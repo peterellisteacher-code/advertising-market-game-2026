@@ -143,6 +143,7 @@ Codex Advertising Market Game/
 
 **Files:**
 - Create: `package.json`
+- Create: `pnpm-workspace.yaml`
 - Create: `.npmrc`
 - Create: `.gitignore`
 - Create: `index.html`
@@ -154,6 +155,7 @@ Codex Advertising Market Game/
 - Create: `web/src/config.ts`
 - Create: `web/src/ui/editor-shell.ts`
 - Create: `web/src/styles/editor.css`
+- Test: `web/src/main.test.ts`
 - Create: `godot/project.godot`
 - Create: `godot/export_presets.cfg`
 - Create: `godot/web/godot_shell.html`
@@ -181,7 +183,7 @@ Create `package.json` with this exact baseline:
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@11.11.0",
+  "packageManager": "pnpm@11.7.0",
   "engines": { "node": ">=22.12.0" },
   "scripts": {
     "dev": "netlify dev",
@@ -207,6 +209,23 @@ Create `package.json` with this exact baseline:
     "vitest": "4.1.10"
   }
 }
+```
+
+Create `pnpm-workspace.yaml` so pnpm 11 permits only the exact pinned native/tooling build scripts:
+
+```yaml
+packages:
+  - "."
+
+strictDepBuilds: true
+
+allowBuilds:
+  "@parcel/watcher": true
+  canvas: true
+  esbuild: true
+  netlify: true
+  sharp: true
+  unix-dgram: true
 ```
 
 Create `.npmrc`:
@@ -246,7 +265,7 @@ Create strict `tsconfig.json`:
     "exactOptionalPropertyTypes": true,
     "isolatedModules": true,
     "resolveJsonModule": true,
-    "types": ["vitest/globals", "node"],
+    "types": ["vite/client", "vitest/globals", "node"],
     "noEmit": true
   },
   "include": ["web/src", "netlify/functions", "vite.config.ts", "vitest.config.ts"]
@@ -490,17 +509,22 @@ declare global {
 window.AdMarketCreatorSpike = spike;
 ```
 
+Extend that spike with `setEventCallback(callback)`. The DOM `Return to game`
+control emits a versioned `closeRequested` envelope through the retained Godot
+callback; `CreatorHost` handles it by calling the same validated `close()` path
+used by native game flow. Cover this route in `web/src/main.test.ts`.
+
 - [ ] **Step 6: Run tests, typecheck and build**
 
 Run:
 
 ```powershell
-pnpm test:unit -- web/src/ui/editor-shell.test.ts
+pnpm test:unit -- web/src/main.test.ts web/src/ui/editor-shell.test.ts
 pnpm typecheck
 pnpm build:studio
 ```
 
-Expected: one passing test; typecheck exit `0`; `build/studio/studio.js` and `build/studio/studio.css` exist.
+Expected: two passing tests; typecheck exit `0`; `build/studio/studio.js` and `build/studio/studio.css` exist.
 
 - [ ] **Step 7: Write the failing Godot seam test**
 
@@ -542,16 +566,16 @@ Run:
 ```powershell
 & 'C:\Users\Peter Ellis\Godot\godot_current_console.exe' --headless --path godot --script tests/run_tests.gd
 pnpm typecheck
-pnpm test:unit -- web/src/ui/editor-shell.test.ts
+pnpm test:unit -- web/src/main.test.ts web/src/ui/editor-shell.test.ts
 pnpm build:studio
 ```
 
-Expected: Godot tests pass; one Vitest test passes; typecheck and Vite build exit `0`. Export the Godot project with threads disabled, load it in a current Chromium browser, and record a diagnostic proving: open/close occurs without navigation or iframe, background Godot input is suppressed while open, focus returns after close, and a non-empty PNG data URL crosses the bridge.
+Expected: Godot tests pass; two Vitest tests pass; typecheck and Vite build exit `0`. Export the Godot project with threads disabled, load it in a current Chromium browser, and record a diagnostic proving: open/close occurs without navigation or iframe, background Godot input is suppressed while open, focus returns after close, and a non-empty PNG data URL crosses the bridge.
 
 - [ ] **Step 11: Commit the risk spike and shell**
 
 ```powershell
-git add package.json pnpm-lock.yaml .npmrc .gitignore index.html tsconfig.json vite.config.ts vitest.config.ts netlify.toml web/src godot
+git add package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc .gitignore index.html tsconfig.json vite.config.ts vitest.config.ts netlify.toml web/src godot
 git commit -m "feat: prove Godot creator seam"
 ```
 

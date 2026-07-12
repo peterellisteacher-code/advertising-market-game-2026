@@ -1,0 +1,11 @@
+node_modules/
+.pnpm-store/
+.pnpm-cache/
+.python-deps/
+build/
+.godot/
+godot/.godot/
+catalog/generated/
+catalog/reports/
+__pycache__/
+.pytest_cache/

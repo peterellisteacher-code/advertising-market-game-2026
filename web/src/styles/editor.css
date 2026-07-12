@@ -1,0 +1,10 @@
+#creator-root[hidden] { display: none; }
+#creator-root { position: fixed; inset: 0; z-index: 200; background: #f4f1ea; color: #1d2430; }
+.creator { display: grid; height: 100%; grid-template: auto auto 1fr / minmax(250px, 20rem) 1fr minmax(240px, 19rem); }
+.creator__topbar, [role="tablist"] { grid-column: 1 / -1; display: flex; gap: .5rem; align-items: center; }
+.creator__canvas { overflow: auto; display: grid; place-items: center; background: #d7d2c7; }
+.creator__canvas canvas { max-width: 100%; height: auto; background: white; box-shadow: 0 8px 30px rgb(0 0 0 / .18); }
+button, input { min-height: 44px; }
+:focus-visible { outline: 3px solid #075985; outline-offset: 3px; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }

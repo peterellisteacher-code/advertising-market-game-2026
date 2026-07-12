@@ -164,3 +164,7 @@ Production bundle: Vite 8.1.4, exit 0
 No Godot, server, browser, Playwright or manual diagnostic was launched for this review fix. The requested Vite build overwrote only the two retained generated outputs in `build/studio`; `emptyOutDir` remained false and no other generated entry was removed.
 
 The review fix is committed separately as `fix: harden campaign persistence and PNG validation`; its hash is recorded in the handoff.
+
+## Post-fix final browser re-verification
+
+The controller repeated the guarded diagnostic against final fix commit `db5b43e` at `http://127.0.0.1:4180/web/tests/manual/persistence-publish-diagnostic.html`. The real reload again passed with five editable objects, equal durable hash/Blob bytes, working post-reload edits, restored selection/guides and a decoded `1600×900` clean preview. Browser warning/error logs were empty; the preview screenshot contained no magenta guide or selection controls. The tab and exact Vite listener were closed.

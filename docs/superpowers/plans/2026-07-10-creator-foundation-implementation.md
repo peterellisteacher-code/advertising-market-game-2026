@@ -14,7 +14,7 @@
 
 - Work only inside `C:\Users\Peter Ellis\OneDrive\Teaching\2026\10ESH - 2026\Semester 2\Advertising\Codex Advertising Market Game`.
 - `C:\Users\Peter Ellis\Games Workshop`, `C:\Users\Peter Ellis\Godot`, every Claude-created path and every harness outside the Codex project are read-only.
-- Launch `C:\Users\Peter Ellis\Godot\godot_current_console.exe`; never write beside it or its templates.
+- **Native-run quarantine (12 July 2026):** do not launch either `godot_current.exe` or `godot_current_console.exe` again in this implementation session. A forced editor shutdown during filesystem scanning produced a Windows access-violation dialog. Continue against the already verified Web export using Vitest, TypeScript, Vite and real-browser diagnostics; defer any fresh native export to a clean later session.
 - Use Godot `4.7.stable`, GDScript, Web export, Compatibility renderer and Web threads disabled.
 - The editor is a same-page overlay. No iframe, Canva redirect or second visible application.
 - The publication canvas is exactly `1600×900` pixels in this slice.
@@ -22,7 +22,7 @@
 - Begin with a blank canvas; do not provide a completed or partially completed campaign.
 - Price, Attention, Interest, Desire and Action remain visible, non-colour-only states; a drawing can be tagged as evidence.
 - Never use *assignment*, *unit* or *task* in student-facing copy.
-- Do not add a Playwright test suite. Use Vitest, pytest, Godot headless contract tests and a real-browser diagnostic harness.
+- Do not add a Playwright test suite. Use Vitest, pytest and a real-browser diagnostic harness. Treat the committed Task 1 Godot seam result as historical integration evidence; do not rerun it during the native-run quarantine.
 - Do not invoke a deletion-producing clean command. Set Vite `emptyOutDir: false`; before any later cleanup or move from OneDrive, notify Peter under the global deletion rule.
 - Keep Fabric objects behind application interfaces; Godot and domain code must never import Fabric classes.
 - Keep all catalogue records outside Fabric; only placed objects belong on the canvas.
@@ -553,9 +553,7 @@ func run() -> void:
 
 Run:
 
-```powershell
-& 'C:\Users\Peter Ellis\Godot\godot_current_console.exe' --headless --path godot --script tests/run_tests.gd
-```
+Historical RED evidence only: the Godot contract suite failed before the seam existed. Do not rerun the native command during the native-run quarantine.
 
 Expected: FAIL because `CreatorHost` and `FakeCreatorTransport` do not exist.
 
@@ -570,7 +568,6 @@ The Web transport must fail with a visible diagnostic if the global is absent. T
 Run:
 
 ```powershell
-& 'C:\Users\Peter Ellis\Godot\godot_current_console.exe' --headless --path godot --script tests/run_tests.gd
 pnpm typecheck
 pnpm test:unit -- web/src/main.test.ts web/src/ui/editor-shell.test.ts
 pnpm build:studio
@@ -1413,10 +1410,9 @@ expect(api.handle(JSON.stringify({
 
 ```powershell
 pnpm test:unit -- web/src/bridge/creator-public-api.test.ts
-& 'C:\Users\Peter Ellis\Godot\godot_current_console.exe' --headless --path godot --script tests/run_tests.gd
 ```
 
-Expected: both commands fail on missing production bridge modules.
+Expected: the browser-side command fails on the missing production bridge module. The native seam has already been proven and remains quarantined.
 
 - [ ] **Step 3: Implement one JSON boundary**
 
@@ -1444,7 +1440,7 @@ export interface CreatorResponse {
 `scripts/build-web.mjs` must:
 
 1. require existing `build/studio/studio.js` and `studio.css`;
-2. invoke the read-only Godot executable with `--headless --path godot --export-release Web ../build/web/index.html`;
+2. require the already verified Godot Web shell artefacts in `build/web` without invoking a native executable;
 3. copy the fixed studio files and offline core into `build/web` without deleting existing entries;
 4. inject fixed local `<link>` and `<script>` tags into a copied custom shell, never the Godot installation.
 
@@ -1453,8 +1449,8 @@ export interface CreatorResponse {
 Modify package scripts:
 
 ```json
-"build:godot": "node scripts/build-web.mjs",
-"build": "pnpm typecheck && pnpm test:unit && pnpm build:studio && pnpm build:godot",
+"build:web": "node scripts/build-web.mjs",
+"build": "pnpm typecheck && pnpm test:unit && pnpm build:studio && pnpm build:web",
 "verify:export": "node scripts/verify-web-export.mjs build/web"
 ```
 
@@ -1462,12 +1458,11 @@ Modify package scripts:
 
 ```powershell
 pnpm test:unit -- web/src/bridge/creator-public-api.test.ts
-& 'C:\Users\Peter Ellis\Godot\godot_current_console.exe' --headless --path godot --script tests/run_tests.gd
 pnpm build
 pnpm verify:export
 ```
 
-Expected: bridge tests pass; Godot tests pass; the Web export contains the fixed studio assets and passes every export assertion.
+Expected: bridge tests pass; the previously verified Web shell contains the fixed studio assets and passes every export assertion without starting native Godot.
 
 - [ ] **Step 6: Commit the production bridge**
 
@@ -1919,7 +1914,6 @@ git commit -m "test: verify creator campaign range"
 pnpm typecheck
 pnpm test:unit
 pipeline\.venv\Scripts\python.exe -m pytest pipeline/tests -q
-& 'C:\Users\Peter Ellis\Godot\godot_current_console.exe' --headless --path godot --script tests/run_tests.gd
 pnpm build
 pnpm verify:export
 node scripts/verify-offline-core.mjs build/web

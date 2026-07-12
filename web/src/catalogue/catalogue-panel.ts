@@ -1,0 +1,112 @@
+import type { CatalogAssetV1 } from "./catalogue-types";
+import { computeVirtualColumns, computeVirtualWindow } from "./virtual-grid";
+
+const PLACEHOLDER_THUMBNAIL = "/catalog/system/missing-thumbnail.svg";
+const ROW_HEIGHT = 180;
+const MIN_TILE_WIDTH = 160;
+
+export function validatedAssetUrl(value: string): string {
+  try {
+    const url = new URL(value, window.location.origin);
+    const allowed = url.origin === window.location.origin &&
+      (url.pathname.startsWith("/catalog/") ||
+        url.pathname.startsWith("/.netlify/functions/openverse-image/"));
+    return allowed ? url.href : PLACEHOLDER_THUMBNAIL;
+  } catch {
+    return PLACEHOLDER_THUMBNAIL;
+  }
+}
+
+export class CataloguePanel {
+  #records: CatalogAssetV1[] = [];
+  #scrollTop = 0;
+  #viewportHeight = 900;
+  #columns = 6;
+  #resizeObserver?: ResizeObserver;
+
+  readonly #handleScroll = (): void => {
+    this.#scrollTop = this.host.scrollTop;
+    this.#paint();
+  };
+
+  constructor(
+    private readonly host: HTMLElement,
+    private readonly onPick: (asset: CatalogAssetV1) => void
+  ) {
+    this.host.addEventListener("scroll", this.#handleScroll, { passive: true });
+
+    if (typeof ResizeObserver !== "undefined") {
+      this.#resizeObserver = new ResizeObserver(([entry]) => {
+        if (!entry) return;
+        this.#columns = Math.max(1, Math.floor(entry.contentRect.width / MIN_TILE_WIDTH));
+        this.#viewportHeight = Math.max(0, entry.contentRect.height || this.host.clientHeight);
+        this.#paint();
+      });
+      this.#resizeObserver.observe(this.host);
+    }
+  }
+
+  render(
+    records: CatalogAssetV1[],
+    scrollTop = 0,
+    viewportHeight = 900,
+    columns = 6
+  ): void {
+    this.#records = records;
+    this.#scrollTop = Math.max(0, scrollTop);
+    this.#viewportHeight = Math.max(0, viewportHeight);
+    this.#columns = Math.max(1, Math.floor(columns));
+    this.#paint();
+  }
+
+  destroy(): void {
+    this.host.removeEventListener("scroll", this.#handleScroll);
+    this.#resizeObserver?.disconnect();
+  }
+
+  #paint(): void {
+    const columns = computeVirtualColumns({
+      columns: this.#columns,
+      rowHeight: ROW_HEIGHT,
+      viewportHeight: this.#viewportHeight,
+      overscanRows: 3
+    });
+    const view = computeVirtualWindow({
+      itemCount: this.#records.length,
+      columns,
+      rowHeight: ROW_HEIGHT,
+      viewportHeight: this.#viewportHeight,
+      scrollTop: this.#scrollTop,
+      overscanRows: 3
+    });
+    const spacer = document.createElement("div");
+    spacer.style.height = `${view.totalHeight}px`;
+    spacer.style.position = "relative";
+    const mount = document.createElement("div");
+    mount.style.position = "absolute";
+    mount.style.top = `${view.top}px`;
+    mount.style.display = "grid";
+    mount.style.gridTemplateColumns = `repeat(${columns}, minmax(0, 1fr))`;
+    spacer.append(mount);
+    this.host.replaceChildren(spacer);
+
+    this.#records.slice(view.start, view.end).forEach((asset, offset) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.assetId = asset.id;
+      button.setAttribute("aria-posinset", String(view.start + offset + 1));
+      button.setAttribute("aria-setsize", String(this.#records.length));
+
+      const image = document.createElement("img");
+      image.loading = "lazy";
+      image.alt = "";
+      image.src = validatedAssetUrl(asset.files.thumbnail);
+
+      const title = document.createElement("span");
+      title.textContent = asset.title;
+      button.append(image, title);
+      button.addEventListener("click", () => this.onPick(asset));
+      mount.append(button);
+    });
+  }
+}

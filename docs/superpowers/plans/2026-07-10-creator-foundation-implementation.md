@@ -807,6 +807,7 @@ git commit -m "feat: define versioned campaign document"
 - Create: `web/src/catalogue/catalogue-panel.ts`
 - Test: `web/src/catalogue/catalogue-index.test.ts`
 - Test: `web/src/catalogue/virtual-grid.test.ts`
+- Test: `web/src/catalogue/catalogue-panel.test.ts`
 
 **Interfaces:**
 - Consumes: Task 1 `EditorShell` library container.
@@ -952,6 +953,11 @@ export function computeVirtualWindow(input: {
 }
 ```
 
+Derive an effective column count from the 72-tile budget divided by the visible
+plus overscan row count. Use the same count for window arithmetic and the DOM
+grid. This prevents a requested 80-column row from making records after item 72
+unreachable while preserving the hard live-node cap.
+
 - [ ] **Step 4: Implement a recycled semantic catalogue panel**
 
 Create `web/src/catalogue/catalogue-panel.ts` with a maximum of 72 asset buttons:
@@ -1015,7 +1021,10 @@ pnpm test:unit -- web/src/catalogue/catalogue-index.test.ts web/src/catalogue/vi
 pnpm typecheck
 ```
 
-Expected: all search/window cases pass; typecheck exit `0`; the 15,000-record search test creates no DOM nodes; a DOM test confirms at most 72 buttons and literal rendering of a title containing `<script>`.
+Expected: eleven search/window/panel cases pass; typecheck exit `0`; the
+15,000-record search test creates no DOM nodes; DOM tests confirm at most 72
+buttons, full-catalogue reachability, one scroll listener, guarded thumbnail
+URLs and literal rendering of a title containing `<script>`.
 
 - [ ] **Step 6: Commit the catalogue foundation**
 

@@ -265,6 +265,7 @@ Create strict `tsconfig.json`:
     "exactOptionalPropertyTypes": true,
     "isolatedModules": true,
     "resolveJsonModule": true,
+    "skipLibCheck": true,
     "types": ["vite/client", "vitest/globals", "node"],
     "noEmit": true
   },

@@ -7,13 +7,12 @@ const CONTRACT := "creator-spike@1"
 var _bridge: JavaScriptObject
 var _callbacks: Array[JavaScriptObject] = []
 var _event_callback: Callable
+var _event_bridge_callback: JavaScriptObject
 
 func set_event_callback(callback: Callable) -> void:
     _event_callback = callback
-    if not _ensure_bridge():
-        return
-    var retained_callback := create_retained_callback(_on_bridge_event)
-    _bridge.call("setEventCallback", retained_callback)
+    if _ensure_bridge():
+        _register_event_callback()
 
 func create_retained_callback(callback: Callable) -> JavaScriptObject:
     var js_callback := JavaScriptBridge.create_callback(callback)
@@ -46,6 +45,7 @@ func _call_bridge(method_name: String, payload_json: String = "") -> String:
 
 func _ensure_bridge() -> bool:
     if _bridge != null:
+        _register_event_callback()
         return true
     _bridge = JavaScriptBridge.get_interface("AdMarketCreatorSpike")
     if _bridge == null:
@@ -53,7 +53,14 @@ func _ensure_bridge() -> bool:
         push_error(message)
         diagnostic.emit(message)
         return false
+    _register_event_callback()
     return true
+
+func _register_event_callback() -> void:
+    if _bridge == null or _event_bridge_callback != null or not _event_callback.is_valid():
+        return
+    _event_bridge_callback = create_retained_callback(_on_bridge_event)
+    _bridge.call("setEventCallback", _event_bridge_callback)
 
 func _on_bridge_event(arguments: Array) -> void:
     if arguments.is_empty():

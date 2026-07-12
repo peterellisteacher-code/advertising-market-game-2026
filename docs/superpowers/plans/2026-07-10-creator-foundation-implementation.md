@@ -512,7 +512,12 @@ window.AdMarketCreatorSpike = spike;
 Extend that spike with `setEventCallback(callback)`. The DOM `Return to game`
 control emits a versioned `closeRequested` envelope through the retained Godot
 callback; `CreatorHost` handles it by calling the same validated `close()` path
-used by native game flow. Cover this route in `web/src/main.test.ts`.
+used by native game flow. While open, make the underlying game landmark inert
+and hidden from the accessibility tree; after close, restore it and DOM focus
+to the Godot canvas while Godot restores its internal launch-control focus.
+Make the Godot open state idempotent so duplicate requests cannot preserve the
+disabled process mode. Cover the DOM route in `web/src/main.test.ts` and the
+idempotent process-mode route in `godot/tests/test_creator_host.gd`.
 
 - [ ] **Step 6: Run tests, typecheck and build**
 

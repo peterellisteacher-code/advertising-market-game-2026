@@ -28,6 +28,8 @@ func open_creator(payload: Dictionary) -> void:
     if transport == null:
         _report("Creator transport is not configured")
         return
+    if creator_is_open:
+        return
     var response := _decode_response(transport.open(JSON.stringify(payload)))
     if response.get("event", "") == "opened":
         _set_creator_open(true)
@@ -38,7 +40,10 @@ func request_publish_probe() -> Dictionary:
     if transport == null:
         _report("Creator transport is not configured")
         return {}
-    return _decode_response(transport.publish_probe())
+    var response := _decode_response(transport.publish_probe())
+    if response.get("event", "") == "error":
+        _report(str(response.get("message", "Campaign Creator could not publish")))
+    return response
 
 func close_creator() -> void:
     if transport == null:
@@ -47,6 +52,8 @@ func close_creator() -> void:
     var response := _decode_response(transport.close())
     if response.get("event", "") == "closed":
         _set_creator_open(false)
+    elif response.get("event", "") == "error":
+        _report(str(response.get("message", "Campaign Creator could not close")))
 
 func _decode_response(response_json: String) -> Dictionary:
     var decoded: Variant = JSON.parse_string(response_json)
@@ -65,6 +72,8 @@ func _on_transport_event(event_json: String) -> void:
         close_creator()
 
 func _set_creator_open(open: bool) -> void:
+    if creator_is_open == open:
+        return
     creator_is_open = open
     if game_input_root != null:
         if open:

@@ -5,6 +5,8 @@ const root = document.querySelector<HTMLElement>("#creator-root");
 if (!root) throw new Error("Missing #creator-root");
 
 const shell = createEditorShell(root);
+const gameSurface = document.querySelector<HTMLElement>('main[aria-label="Advertising Market Game"]');
+const gameCanvas = document.querySelector<HTMLCanvasElement>("#canvas");
 root.hidden = true;
 
 type CreatorEventCallback = (payloadJson: string) => void;
@@ -28,12 +30,21 @@ root.querySelector<HTMLButtonElement>('[data-command="return"]')
 const spike: CreatorSpikeApi = Object.freeze({
   open(payloadJson: string): string {
     JSON.parse(payloadJson);
+    if (gameSurface) {
+      gameSurface.inert = true;
+      gameSurface.setAttribute("aria-hidden", "true");
+    }
     root.hidden = false;
     shell.canvasRegion.focus({ preventScroll: true });
     return JSON.stringify({ contract: "creator-spike@1", event: "opened" });
   },
   close(): string {
     root.hidden = true;
+    if (gameSurface) {
+      gameSurface.inert = false;
+      gameSurface.removeAttribute("aria-hidden");
+    }
+    gameCanvas?.focus({ preventScroll: true });
     return JSON.stringify({ contract: "creator-spike@1", event: "closed" });
   },
   publishProbe(): string {

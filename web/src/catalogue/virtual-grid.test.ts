@@ -48,3 +48,22 @@ it("keeps the final asset reachable when a viewport requests 80 columns", () => 
   expect(last.end).toBe(200);
   expect(last.end - last.start).toBeLessThanOrEqual(72);
 });
+
+it("keeps the final asset reachable when the budget forces one column", () => {
+  const shape = {
+    itemCount: 200,
+    columns: 80,
+    rowHeight: 180,
+    viewportHeight: 20_000,
+    overscanRows: 3
+  };
+  const first = computeVirtualWindow({ ...shape, scrollTop: 0 });
+  const last = computeVirtualWindow({
+    ...shape,
+    scrollTop: first.totalHeight - shape.viewportHeight
+  });
+
+  expect(first.totalHeight).toBeGreaterThan(shape.viewportHeight);
+  expect(last.end).toBe(200);
+  expect(last.end - last.start).toBeLessThanOrEqual(72);
+});

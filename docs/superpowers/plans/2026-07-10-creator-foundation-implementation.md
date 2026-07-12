@@ -1021,7 +1021,7 @@ pnpm test:unit -- web/src/catalogue/catalogue-index.test.ts web/src/catalogue/vi
 pnpm typecheck
 ```
 
-Expected: eleven search/window/panel cases pass; typecheck exit `0`; the
+Expected: twenty-one search/window/panel cases pass; typecheck exit `0`; the
 15,000-record search test creates no DOM nodes; DOM tests confirm at most 72
 buttons, full-catalogue reachability, one scroll listener, guarded thumbnail
 URLs and literal rendering of a title containing `<script>`.

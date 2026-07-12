@@ -49,14 +49,26 @@ export function computeVirtualWindow(input: {
   const scrollTop = Math.max(0, Number.isFinite(input.scrollTop) ? input.scrollTop : 0);
   const overscanRows = nonnegativeInteger(input.overscanRows);
   const totalRows = Math.ceil(itemCount / columns);
+  const requestedRows = Math.max(
+    1,
+    Math.ceil(viewportHeight / rowHeight) + overscanRows * 2
+  );
+  const budgetRows = Math.max(
+    1,
+    Math.floor(CREATOR_CONFIG.liveThumbnailLimit / columns)
+  );
+  const liveRows = Math.min(totalRows, requestedRows, budgetRows);
+  const maxFirstRow = Math.max(0, totalRows - liveRows);
+  const maxScrollTop = Math.max(0, totalRows * rowHeight - viewportHeight);
   const rawFirstRow = Math.max(0, Math.floor(scrollTop / rowHeight) - overscanRows);
-  const firstRow = Math.min(totalRows, rawFirstRow);
-  const visibleRows = Math.ceil(viewportHeight / rowHeight) + overscanRows * 2;
-  const lastRow = Math.min(totalRows, firstRow + visibleRows);
+  const firstRow = requestedRows > budgetRows && maxScrollTop > 0
+    ? Math.round(Math.min(1, scrollTop / maxScrollTop) * maxFirstRow)
+    : Math.min(maxFirstRow, rawFirstRow);
+  const lastRow = Math.min(totalRows, firstRow + liveRows);
   const start = Math.min(itemCount, firstRow * columns);
   const liveCount = Math.min(
     CREATOR_CONFIG.liveThumbnailLimit,
-    Math.max(0, lastRow - firstRow) * columns
+    (lastRow - firstRow) * columns
   );
 
   return {

@@ -54,8 +54,28 @@ it("searches 15000 records without returning more than 100", () => {
 it("filters by category before ranking", () => {
   const index = new CatalogueIndex([
     asset("a", "Solar Backpack", "wearables", ["solar"]),
-    asset("b", "Solar Bottle", "drinkware", ["solar"])
+    asset("b", "Solar Bottle", "DrinkWare", ["solar"])
   ]);
 
-  expect(index.search("solar", "drinkware").map((record) => record.id)).toEqual(["b"]);
+  expect(index.search("solar", "DRINKWARE").map((record) => record.id)).toEqual(["b"]);
+});
+
+it("ranks starts-with matches and requires every query token", () => {
+  const index = new CatalogueIndex([
+    asset("a", "Solar Lamp", "home", ["bright"]),
+    asset("b", "Desk Lamp", "home", ["solar"]),
+    asset("c", "Solar Bottle", "home", ["drinkware"])
+  ]);
+
+  expect(index.search("solar").map((record) => record.id)).toEqual(["c", "a", "b"]);
+  expect(index.search("solar lamp").map((record) => record.id)).toEqual(["a", "b"]);
+});
+
+it("breaks equal title ties by id", () => {
+  const index = new CatalogueIndex([
+    asset("b", "Bottle", "drinkware", ["bottle"]),
+    asset("a", "Bottle", "drinkware", ["bottle"])
+  ]);
+
+  expect(index.search("bottle").map((record) => record.id)).toEqual(["a", "b"]);
 });

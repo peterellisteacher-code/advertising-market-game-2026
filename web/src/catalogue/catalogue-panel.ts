@@ -87,6 +87,7 @@ export class CataloguePanel {
     mount.style.top = `${view.top}px`;
     mount.style.display = "grid";
     mount.style.gridTemplateColumns = `repeat(${columns}, minmax(0, 1fr))`;
+    mount.setAttribute("role", "list");
     spacer.append(mount);
     this.host.replaceChildren(spacer);
 
@@ -94,11 +95,13 @@ export class CataloguePanel {
       const button = document.createElement("button");
       button.type = "button";
       button.dataset.assetId = asset.id;
-      button.setAttribute("aria-posinset", String(view.start + offset + 1));
-      button.setAttribute("aria-setsize", String(this.#records.length));
+      const item = document.createElement("div");
+      item.setAttribute("role", "listitem");
+      item.setAttribute("aria-posinset", String(view.start + offset + 1));
+      item.setAttribute("aria-setsize", String(this.#records.length));
 
       const image = document.createElement("img");
-      image.loading = "lazy";
+      image.setAttribute("loading", "lazy");
       image.alt = "";
       image.src = validatedAssetUrl(asset.files.thumbnail);
 
@@ -106,7 +109,8 @@ export class CataloguePanel {
       title.textContent = asset.title;
       button.append(image, title);
       button.addEventListener("click", () => this.onPick(asset));
-      mount.append(button);
+      item.append(button);
+      mount.append(item);
     });
   }
 }

@@ -1,0 +1,105 @@
+import type {
+  CanvasPort,
+  ObjectTransform,
+  ShapeKind,
+  StackDirection
+} from "./canvas-port";
+
+export interface AddShapeCommand {
+  kind: ShapeKind;
+  fill: string;
+  accessibleName?: string;
+}
+
+export interface AddRasterCommand {
+  assetId: string;
+  sameOriginUrl: string;
+  accessibleName: string;
+}
+
+type IdFactory = () => string;
+
+const defaultIdFactory: IdFactory = () => globalThis.crypto.randomUUID();
+
+export class ObjectCommandService {
+  constructor(
+    private readonly port: CanvasPort,
+    private readonly createId: IdFactory = defaultIdFactory
+  ) {}
+
+  async addText(value: string, accessibleName = value): Promise<string> {
+    const text = value.trim();
+    if (!text) throw new Error("Text must not be empty");
+    const id = this.#nextId();
+    await this.port.addText({ id, value, accessibleName: this.#required(accessibleName, "accessible name") });
+    this.port.setSelected(id);
+    return id;
+  }
+
+  async addShape(input: AddShapeCommand): Promise<string> {
+    const kinds: ShapeKind[] = ["rect", "ellipse", "triangle", "line"];
+    if (!kinds.includes(input.kind)) throw new Error("Unsupported shape kind");
+    const id = this.#nextId();
+    await this.port.addShape({
+      id,
+      kind: input.kind,
+      fill: this.#required(input.fill, "fill"),
+      accessibleName: this.#required(input.accessibleName ?? `${input.kind} shape`, "accessible name")
+    });
+    this.port.setSelected(id);
+    return id;
+  }
+
+  async addRaster(input: AddRasterCommand): Promise<string> {
+    const id = this.#nextId();
+    await this.port.addRaster({
+      id,
+      assetId: this.#required(input.assetId, "asset id"),
+      sameOriginUrl: this.#required(input.sameOriginUrl, "raster URL"),
+      accessibleName: this.#required(input.accessibleName, "accessible name")
+    });
+    this.port.setSelected(id);
+    return id;
+  }
+
+  transform(id: string, patch: Partial<ObjectTransform>): void {
+    for (const [property, value] of Object.entries(patch)) {
+      if (typeof value === "number" && !Number.isFinite(value)) {
+        throw new Error(`${property} must be finite`);
+      }
+    }
+    if ((patch.scaleX !== undefined && patch.scaleX <= 0) ||
+      (patch.scaleY !== undefined && patch.scaleY <= 0)) {
+      throw new Error("Scale must be greater than zero");
+    }
+    this.port.transform(this.#required(id, "object id"), patch);
+  }
+
+  async duplicate(id: string): Promise<string> {
+    const newId = this.#nextId();
+    await this.port.duplicate(this.#required(id, "object id"), newId);
+    return newId;
+  }
+
+  remove(id: string): void { this.port.remove(this.#required(id, "object id")); }
+  moveToFront(id: string): void { this.#move(id, "front"); }
+  moveForward(id: string): void { this.#move(id, "forward"); }
+  moveBackward(id: string): void { this.#move(id, "backward"); }
+  moveToBack(id: string): void { this.#move(id, "back"); }
+  setLocked(id: string, locked: boolean): void { this.port.setLocked(this.#required(id, "object id"), locked); }
+  setHidden(id: string, hidden: boolean): void { this.port.setVisible(this.#required(id, "object id"), !hidden); }
+  select(id: string | null): void { this.port.setSelected(id === null ? null : this.#required(id, "object id")); }
+  serialize(): Record<string, unknown> { return this.port.serialize(); }
+  async load(value: Record<string, unknown>): Promise<void> { await this.port.load(value); }
+
+  #move(id: string, direction: StackDirection): void {
+    this.port.move(this.#required(id, "object id"), direction);
+  }
+
+  #nextId(): string { return this.#required(this.createId(), "generated object id"); }
+
+  #required(value: string, label: string): string {
+    if (!value.trim()) throw new Error(`${label} must not be empty`);
+    return value;
+  }
+}

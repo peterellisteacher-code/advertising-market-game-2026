@@ -13,5 +13,5 @@
     "types": ["vite/client", "vitest/globals", "node"],
     "noEmit": true
   },
-  "include": ["web/src", "netlify/functions", "vite.config.ts", "vitest.config.ts"]
+  "include": ["web/src", "web/tests", "netlify/functions", "vite.config.ts", "vitest.config.ts"]
 }

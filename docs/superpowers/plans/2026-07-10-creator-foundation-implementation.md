@@ -269,7 +269,7 @@ Create strict `tsconfig.json`:
     "types": ["vite/client", "vitest/globals", "node"],
     "noEmit": true
   },
-  "include": ["web/src", "netlify/functions", "vite.config.ts", "vitest.config.ts"]
+  "include": ["web/src", "web/tests", "netlify/functions", "vite.config.ts", "vitest.config.ts"]
 }
 ```
 
@@ -1059,7 +1059,7 @@ it("performs the required object commands through the port", async () => {
   const commands = new ObjectCommandService(port);
   const id = await commands.addShape({ kind: "rect", fill: "#e11d48" });
   commands.transform(id, { x: 140, y: 90, scaleX: 1.5, scaleY: 0.75, angle: 18, flipX: true });
-  const copyId = commands.duplicate(id);
+  const copyId = await commands.duplicate(id);
   commands.moveToBack(copyId);
   commands.setLocked(id, true);
   expect(port.snapshot()).toMatchObject({
@@ -1090,11 +1090,11 @@ export interface ObjectTransform {
 }
 
 export interface CanvasPort {
-  addText(value: string): Promise<string>;
-  addShape(input: { kind: "rect" | "ellipse" | "triangle" | "line"; fill: string }): Promise<string>;
-  addRaster(input: { assetId: string; sameOriginUrl: string; accessibleName: string }): Promise<string>;
+  addText(input: { id: string; value: string; accessibleName: string }): Promise<void>;
+  addShape(input: { id: string; kind: "rect" | "ellipse" | "triangle" | "line"; fill: string; accessibleName: string }): Promise<void>;
+  addRaster(input: { id: string; assetId: string; sameOriginUrl: string; accessibleName: string }): Promise<void>;
   transform(id: string, patch: Partial<ObjectTransform>): void;
-  duplicate(id: string): string;
+  duplicate(id: string, newId: string): Promise<void>;
   remove(id: string): void;
   move(id: string, direction: "front" | "forward" | "backward" | "back"): void;
   setLocked(id: string, locked: boolean): void;
@@ -1105,7 +1105,11 @@ export interface CanvasPort {
 }
 ```
 
-`ObjectCommandService` owns command validation and ID generation; no UI or Godot file imports Fabric. `FabricCanvasAdapter` maps the port to Fabric 7 objects, configures corner controls for 44-pixel minimum pointer targets at current zoom, and registers `object:modified`, `object:added` and `object:removed` events for Task 5.
+`ObjectCommandService` owns command validation and ID generation; no UI or Godot
+file imports Fabric. Duplication is asynchronous because Fabric 7 clone returns
+a Promise. `FabricCanvasAdapter` maps the port to Fabric 7 objects, configures
+both mouse and touch corner controls to a 44-pixel minimum, and registers
+`object:modified`, `object:added` and `object:removed` events for Task 5.
 
 - [ ] **Step 4: Implement the object factory and adapter**
 
@@ -1118,7 +1122,11 @@ pnpm test:unit -- web/src/fabric/object-command-service.test.ts web/src/fabric/o
 pnpm typecheck
 ```
 
-Expected: tests and typecheck pass. Add a page to `web/tests/manual/creator-diagnostic.html` that performs every operation against a real Fabric canvas and exposes `window.__CREATOR_DIAGNOSTIC__.objectOperations = "pass"`.
+Expected: six focused tests and typecheck pass. Add a page to
+`web/tests/manual/creator-diagnostic.html` that performs every operation against
+a real Fabric canvas, including a same-origin image and serialize/reload, and
+exposes `window.__CREATOR_DIAGNOSTIC__.objectOperations = "pass"` plus the same
+state as a visible DOM data attribute for automation.
 
 - [ ] **Step 6: Commit the object engine**
 

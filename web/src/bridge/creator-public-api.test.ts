@@ -134,8 +134,12 @@ describe("AdMarketCreator public API", () => {
 
   it("returns parsed versioned errors for invalid JSON and every invalid request shape", async () => {
     const api = createCreatorPublicApi(new HandlerHarness());
-    const invalidRequests: Array<{ input: CreatorRequest | string; requestId: string }> = [
-      { input: "{", requestId: "" },
+    const invalidRequests: Array<{
+      input: CreatorRequest | string;
+      requestId: string;
+      code: "INVALID_REQUEST" | "UNSUPPORTED_CONTRACT";
+    }> = [
+      { input: "{", requestId: "", code: "INVALID_REQUEST" },
       {
         input: JSON.stringify({
           contract: "creator-bridge@999",
@@ -143,7 +147,8 @@ describe("AdMarketCreator public API", () => {
           method: "open",
           payload: blankDocument
         }),
-        requestId: "bad-contract"
+        requestId: "bad-contract",
+        code: "UNSUPPORTED_CONTRACT"
       },
       {
         input: JSON.stringify({
@@ -152,7 +157,8 @@ describe("AdMarketCreator public API", () => {
           method: "launch",
           payload: null
         }),
-        requestId: "bad-method"
+        requestId: "bad-method",
+        code: "INVALID_REQUEST"
       },
       {
         input: JSON.stringify({
@@ -162,7 +168,8 @@ describe("AdMarketCreator public API", () => {
           payload: null,
           extra: true
         }),
-        requestId: "extra-field"
+        requestId: "extra-field",
+        code: "INVALID_REQUEST"
       },
       {
         input: JSON.stringify({
@@ -171,7 +178,8 @@ describe("AdMarketCreator public API", () => {
           method: "getState",
           payload: {}
         }),
-        requestId: "bad-payload"
+        requestId: "bad-payload",
+        code: "INVALID_REQUEST"
       },
       {
         input: JSON.stringify({
@@ -180,7 +188,8 @@ describe("AdMarketCreator public API", () => {
           method: "open",
           payload: { schemaVersion: 1 }
         }),
-        requestId: "bad-document"
+        requestId: "bad-document",
+        code: "INVALID_REQUEST"
       }
     ];
 
@@ -190,7 +199,7 @@ describe("AdMarketCreator public API", () => {
         contract: CREATOR_BRIDGE_CONTRACT,
         requestId: example.requestId,
         ok: false,
-        error: { code: "INVALID_REQUEST" }
+        error: { code: example.code }
       });
       expect(parsed.error?.message).toEqual(expect.any(String));
     }
@@ -198,19 +207,36 @@ describe("AdMarketCreator public API", () => {
 
   it("serialises handler failures instead of rejecting across the public boundary", async () => {
     const handler = new HandlerHarness();
-    handler.save = async () => {
-      throw new Error("IndexedDB unavailable");
-    };
     const api = createCreatorPublicApi(handler);
+    const failures = [
+      {
+        requestId: "save-failed",
+        method: "save" as const,
+        message: "IndexedDB unavailable",
+        install: () => {
+          handler.save = async () => { throw new Error("IndexedDB unavailable"); };
+        }
+      },
+      {
+        requestId: "publish-failed",
+        method: "publish" as const,
+        message: "Fabric export failed",
+        install: () => {
+          handler.publish = async () => { throw new Error("Fabric export failed"); };
+        }
+      }
+    ];
 
-    const { parsed } = await parseResponse(api, request("save-failed", "save", null));
-
-    expect(parsed).toEqual({
-      contract: CREATOR_BRIDGE_CONTRACT,
-      requestId: "save-failed",
-      ok: false,
-      error: { code: "HANDLER_ERROR", message: "IndexedDB unavailable" }
-    });
+    for (const failure of failures) {
+      failure.install();
+      const { parsed } = await parseResponse(api, request(failure.requestId, failure.method, null));
+      expect(parsed).toEqual({
+        contract: CREATOR_BRIDGE_CONTRACT,
+        requestId: failure.requestId,
+        ok: false,
+        error: { code: "HANDLER_ERROR", message: failure.message }
+      });
+    }
   });
 
   it("rejects non-JSON handler values instead of silently leaking them across the boundary", async () => {

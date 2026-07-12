@@ -9,12 +9,12 @@
     "dev": "netlify dev",
     "test": "vitest run",
     "test:unit": "vitest run",
-    "test:build-web": "node --test scripts/build-web.test.mjs",
+    "test:build-web": "node --test scripts/build-web.test.mjs scripts/godot-bridge-contract.test.mjs",
     "typecheck": "tsc --noEmit",
     "build:studio": "vite build",
     "build:web": "node scripts/build-web.mjs",
     "verify:export": "node scripts/verify-web-export.mjs build/web",
-    "build": "tsc --noEmit && vitest run && vite build && node scripts/build-web.mjs"
+    "build": "tsc --noEmit && vitest run && node --test scripts/build-web.test.mjs scripts/godot-bridge-contract.test.mjs && vite build && node scripts/build-web.mjs"
   },
   "dependencies": {
     "fabric": "7.4.0",

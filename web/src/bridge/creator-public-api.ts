@@ -109,6 +109,12 @@ export function createCreatorPublicApi(handler: CreatorBridgeHandler): CreatorPu
     }
 
     const requestId = requestIdFrom(decoded);
+    if (decoded !== null && typeof decoded === "object") {
+      const contract = (decoded as Record<string, unknown>).contract;
+      if (typeof contract === "string" && contract !== CREATOR_BRIDGE_CONTRACT) {
+        return failure(requestId, "UNSUPPORTED_CONTRACT", "Unsupported creator bridge contract");
+      }
+    }
     const result = CreatorRequestSchema.safeParse(decoded);
     if (!result.success) {
       return failure(requestId, "INVALID_REQUEST", result.error.issues[0]?.message ?? "Invalid request");

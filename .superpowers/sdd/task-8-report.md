@@ -44,3 +44,28 @@
 - The current PCK hash is `e8b1d3f2729a16f0d001f8b1483aa4fbc150dcb1b3411b5aacd7456b6cb92459`, so the verifier reports `PCK_STALE_SPIKE_EXPORT`; a later approved Godot export must refresh it.
 - Offline core `catalog/generated/offline-core-v1/catalog.json` is absent and correctly reported as deferred; no placeholder was created.
 - Verification is static assembly/contract evidence only. No end-to-end Godot-to-browser bridge claim is made.
+
+## Task 8 review-fix pass — hardened bridge contracts
+
+### RED
+
+- The new static Node canvas-contract test failed 0/1 against the stale 960 by 540 Godot validator and `Main.gd` document.
+- Focused Vitest failed 8 cases across the bridge API and browser main: wrong literal contracts returned `INVALID_REQUEST`; local blobs were neither loaded nor rehydrated; missing or mismatched stored data opened successfully; URL ownership/lifecycle was absent; save timestamps did not advance; and a second save retried revision 0.
+- A later same-ID/same-revision state-consistency regression failed 1/11 before the canonical durable-document comparison was added.
+- GDScript publication, numeric-JSON and strict error-envelope assertions were authored before their implementation and were not executed under the Godot quarantine.
+
+### GREEN
+
+- All Godot bridge documents, validators and fixtures now use the exact 1600 by 900 canvas. The static test is wired into `test:build-web` and the normal `build` script.
+- `CreatorBridge.gd` validates successful `published-campaign@1` payloads before completion: document identity, JSON-safe integral revision and price numbers, canonical base64, PNG signature, and the required metadata container types. Invalid error envelopes now become `INVALID_RESPONSE`.
+- Browser open loads the exact persisted local-blob revision, compares its canonical durable state with the request, rehydrates real Blob bodies internally, transfers only owned object URLs to publication, and revokes replacement/failure/close URLs at the safe lifecycle points. Blob values never enter the JSON bridge.
+- Browser save reads the latest stored revision, advances repeated saves strictly, emits a strictly later timestamp, retains real internal blobs, and exposes the latest saved revision through `getState`.
+- Wrong literal browser contracts now return `UNSUPPORTED_CONTRACT` with the canonical response contract and recovered request ID. Main/API tests cover storage and exporter failure propagation.
+- Evidence: Node tests 5/5 passed; focused Vitest 2 files/16 tests passed; full Vitest 19 files/153 tests passed; TypeScript passed; Vite built 96 modules; `build:web` passed twice with identical hashes across 11 files; static export verification returned `WEB_EXPORT_STATIC_VERIFICATION_OK`.
+- Process check returned `NO_GODOT_OR_WERFAULT_PROCESSES`. No native Godot, Godot MCP, browser, or server was launched.
+
+### Deliberately unchanged limitations
+
+- GDScript tests remain authored but unexecuted under quarantine.
+- Static verification still reports the known `PCK_STALE_SPIKE_EXPORT` marker.
+- Task 11 offline core remains absent and `build:web` continues to report `OFFLINE_CORE_DEFERRED`; neither item was in this review-fix scope.

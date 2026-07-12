@@ -7,6 +7,8 @@ signal diagnostic(message: String)
 
 const CampaignDocument = preload("res://src/creator/CampaignDocument.gd")
 const CONTRACT := "creator-bridge@1"
+const PUBLISHED_CONTRACT := "published-campaign@1"
+const PNG_SIGNATURE := [137, 80, 78, 71, 13, 10, 26, 10]
 const MAX_PENDING := 32
 const MAX_COMPLETED := 64
 
@@ -93,29 +95,84 @@ func accept_response(expected_request_id: String, response_json: String) -> void
 
     var method := str(_pending.get(expected_request_id))
     var payload: Variant = response.get("payload")
-    if response.get("ok") == true and method == "getState":
-        var validated := CampaignDocument.validate_bridge_shape(payload)
-        if not validated.get("ok", false):
-            _finish_failure(
-                expected_request_id,
-                "INVALID_DOCUMENT_RESPONSE",
-                str(validated.get("message", "Creator returned an invalid campaign document"))
-            )
-            return
-        payload = validated.get("value")
-    _complete(expected_request_id)
     if response.get("ok") == true:
+        if method == "getState":
+            var validated := CampaignDocument.validate_bridge_shape(payload)
+            if not validated.get("ok", false):
+                _finish_failure(
+                    expected_request_id,
+                    "INVALID_DOCUMENT_RESPONSE",
+                    str(validated.get("message", "Creator returned an invalid campaign document"))
+                )
+                return
+            payload = validated.get("value")
+        elif method == "publish":
+            var publication := _validate_publication(payload)
+            if not publication.get("ok", false):
+                _finish_failure(
+                    expected_request_id,
+                    "INVALID_PUBLICATION_RESPONSE",
+                    str(publication.get("message", "Creator returned an invalid publication"))
+                )
+                return
+            payload = publication.get("value")
+        _complete(expected_request_id)
         request_succeeded.emit(expected_request_id, method, payload)
         return
     var error: Variant = response.get("error")
     if typeof(error) != TYPE_DICTIONARY:
-        _fail(expected_request_id, "INVALID_RESPONSE", "Creator error response must include an error object")
+        _finish_failure(expected_request_id, "INVALID_RESPONSE", "Creator error response must include an error object")
         return
+    if typeof(error.get("code")) != TYPE_STRING or String(error.get("code")).is_empty():
+        _finish_failure(expected_request_id, "INVALID_RESPONSE", "Creator error code must be a non-empty string")
+        return
+    if typeof(error.get("message")) != TYPE_STRING or String(error.get("message")).is_empty():
+        _finish_failure(expected_request_id, "INVALID_RESPONSE", "Creator error message must be a non-empty string")
+        return
+    _complete(expected_request_id)
     _fail(
         expected_request_id,
-        str(error.get("code", "CREATOR_ERROR")),
-        str(error.get("message", "Campaign Creator request failed"))
+        String(error.get("code")),
+        String(error.get("message"))
     )
+
+func _validate_publication(value: Variant) -> Dictionary:
+    if typeof(value) != TYPE_DICTIONARY:
+        return {"ok": false, "message": "Published campaign must be a dictionary"}
+    var publication: Dictionary = value
+    if publication.get("contract") != PUBLISHED_CONTRACT:
+        return {"ok": false, "message": "Published campaign contract is unsupported"}
+    if typeof(publication.get("documentId")) != TYPE_STRING or String(publication.get("documentId")).is_empty():
+        return {"ok": false, "message": "Published campaign documentId must be a non-empty string"}
+    if not CampaignDocument.is_nonnegative_integer_number(publication.get("revision")):
+        return {"ok": false, "message": "Published campaign revision must be a non-negative integer"}
+
+    var encoded: Variant = publication.get("pngBase64")
+    if typeof(encoded) != TYPE_STRING or String(encoded).is_empty():
+        return {"ok": false, "message": "Published campaign PNG must be non-empty canonical base64"}
+    var png_bytes := Marshalls.base64_to_raw(String(encoded))
+    if png_bytes.is_empty() or Marshalls.raw_to_base64(png_bytes) != String(encoded):
+        return {"ok": false, "message": "Published campaign PNG must be non-empty canonical base64"}
+    if png_bytes.size() < PNG_SIGNATURE.size():
+        return {"ok": false, "message": "Published campaign PNG signature is invalid"}
+    for index in PNG_SIGNATURE.size():
+        if png_bytes[index] != PNG_SIGNATURE[index]:
+            return {"ok": false, "message": "Published campaign PNG signature is invalid"}
+
+    var metadata: Variant = publication.get("metadata")
+    if typeof(metadata) != TYPE_DICTIONARY:
+        return {"ok": false, "message": "Published campaign metadata must be a dictionary"}
+    if typeof(metadata.get("productName")) != TYPE_STRING:
+        return {"ok": false, "message": "Published campaign productName must be a string"}
+    if not CampaignDocument.is_nonnegative_integer_number(metadata.get("priceCents")):
+        return {"ok": false, "message": "Published campaign priceCents must be a non-negative integer"}
+    if typeof(metadata.get("brief")) != TYPE_DICTIONARY:
+        return {"ok": false, "message": "Published campaign brief must be a dictionary"}
+    if typeof(metadata.get("evidence")) != TYPE_DICTIONARY:
+        return {"ok": false, "message": "Published campaign evidence must be a dictionary"}
+    if typeof(metadata.get("assetReferences")) != TYPE_ARRAY:
+        return {"ok": false, "message": "Published campaign assetReferences must be an array"}
+    return {"ok": true, "value": publication.duplicate(true)}
 
 func accept_transport_error(expected_request_id: String, message: String) -> void:
     if _completed.has(expected_request_id):

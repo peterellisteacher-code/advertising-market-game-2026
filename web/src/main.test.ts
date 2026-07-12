@@ -7,7 +7,11 @@ import {
   type CreatorMethod,
   type CreatorResponse
 } from "./bridge/contracts";
-import { createBlankCampaignDocument } from "./domain/campaign-document";
+import {
+  CampaignDocumentSchema,
+  createBlankCampaignDocument,
+  type CampaignDocumentV1
+} from "./domain/campaign-document";
 
 const runtime = vi.hoisted(() => ({
   adapterConstructed: vi.fn(),
@@ -17,14 +21,26 @@ const runtime = vi.hoisted(() => ({
   exporterConstructed: vi.fn(),
   publish: vi.fn(),
   load: vi.fn(),
+  loadDraft: vi.fn(),
   save: vi.fn(),
-  state: { version: "7.4.0", objects: [] } as Record<string, unknown>
+  createObjectURL: vi.fn(),
+  revokeObjectURL: vi.fn(),
+  state: { version: "7.4.0", objects: [] } as Record<string, unknown>,
+  drafts: new Map<string, { document: CampaignDocumentV1; blobs: Map<string, Blob> }>(),
+  loadFailure: null as Error | null,
+  saveFailure: null as Error | null,
+  publishFailure: null as Error | null,
+  createdUrls: [] as Array<{ url: string; blob: Blob }>,
+  revokedUrls: [] as string[],
+  nextUrl: 0,
+  canvasFailure: null as Error | null
 }));
 
 vi.mock("fabric", () => ({
   Canvas: class {
     constructor(element: HTMLCanvasElement) {
       runtime.canvasConstructed(element);
+      if (runtime.canvasFailure) throw runtime.canvasFailure;
     }
 
     dispose(): void {
@@ -40,8 +56,9 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
     }
 
     async load(value: Record<string, unknown>): Promise<void> {
-      runtime.state = structuredClone(value);
       runtime.load(value);
+      if (runtime.loadFailure) throw runtime.loadFailure;
+      runtime.state = structuredClone(value);
     }
 
     serialize(): Record<string, unknown> {
@@ -58,23 +75,64 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
   }
 }));
 
-vi.mock("./persistence/draft-store", () => ({
-  IndexedDbDraftStore: class {
-    save(document: unknown, blobs: unknown): Promise<void> {
-      runtime.save(document, blobs);
-      return Promise.resolve();
+vi.mock("./persistence/draft-store", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./persistence/draft-store")>();
+  return {
+    ...actual,
+    IndexedDbDraftStore: class {
+      async load(documentId: string): Promise<{
+        document: CampaignDocumentV1;
+        blobs: Map<string, Blob>;
+      } | null> {
+        runtime.loadDraft(documentId);
+        const stored = runtime.drafts.get(documentId);
+        if (!stored) return null;
+        return {
+          document: structuredClone(stored.document),
+          blobs: new Map([...stored.blobs].map(([key, blob]) => [
+            key,
+            blob.slice(0, blob.size, blob.type)
+          ]))
+        };
+      }
+
+      async save(document: CampaignDocumentV1, blobs: ReadonlyMap<string, Blob>): Promise<void> {
+        runtime.save(document, blobs);
+        if (runtime.saveFailure) throw runtime.saveFailure;
+        const latest = runtime.drafts.get(document.documentId);
+        if (latest && document.revision <= latest.document.revision) {
+          throw new Error(`Campaign revision ${document.revision} must be newer than revision ${latest.document.revision}`);
+        }
+        runtime.drafts.set(document.documentId, {
+          document: structuredClone(document),
+          blobs: new Map([...blobs].map(([key, blob]) => [
+            key,
+            blob.slice(0, blob.size, blob.type)
+          ]))
+        });
+      }
     }
-  }
-}));
+  };
+});
 
 vi.mock("./export/campaign-exporter", () => ({
   CampaignExporter: class {
-    constructor(port: unknown, ownedUrls: unknown) {
+    readonly #ownedUrls: ReadonlySet<string>;
+
+    constructor(port: unknown, ownedUrls: ReadonlySet<string>) {
+      this.#ownedUrls = ownedUrls;
       runtime.exporterConstructed(port, ownedUrls);
     }
 
     publish(document: ReturnType<typeof createBlankCampaignDocument>) {
       runtime.publish(document);
+      if (runtime.publishFailure) throw runtime.publishFailure;
+      for (const object of document.fabricState.objects) {
+        if (typeof object.src === "string" && object.src.startsWith("blob:") &&
+          !this.#ownedUrls.has(object.src)) {
+          throw new Error(`Raster source must be an owned local blob: ${object.src}`);
+        }
+      }
       return {
         contract: "published-campaign@1" as const,
         documentId: document.documentId,
@@ -98,6 +156,53 @@ const blankDocument = createBlankCampaignDocument({
   mode: "offline"
 });
 
+function localBlobDocument(revision = 3): CampaignDocumentV1 {
+  return CampaignDocumentSchema.parse({
+    ...createBlankCampaignDocument({
+      documentId: "local-blob-document",
+      sessionId: "local-blob-session",
+      mode: "offline"
+    }),
+    revision,
+    updatedAt: `2026-07-12T00:00:0${revision}.000Z`,
+    fabricState: {
+      version: "7.4.0",
+      objects: [{
+        type: "image",
+        objectId: "local-photo",
+        elementKind: "image",
+        accessibleName: "Local campaign photo",
+        src: "local-blob:photo-png"
+      }]
+    },
+    assetReferences: [{
+      kind: "local-blob",
+      objectId: "local-photo",
+      blobKey: "photo-png",
+      mimeType: "image/png"
+    }]
+  });
+}
+
+function storeDraft(document: CampaignDocumentV1, bytes = [1, 2, 3]): Blob {
+  const blob = new Blob([Uint8Array.from(bytes)], { type: "image/png" });
+  runtime.drafts.set(document.documentId, {
+    document: structuredClone(document),
+    blobs: new Map([["photo-png", blob]])
+  });
+  return blob;
+}
+
+async function bytesOf(blob: Blob): Promise<number[]> {
+  return Array.from(new Uint8Array(await blob.arrayBuffer()));
+}
+
+function currentObjects(): Array<Record<string, unknown>> {
+  const objects = runtime.state.objects;
+  if (!Array.isArray(objects)) throw new Error("Test canvas state has no objects");
+  return objects as Array<Record<string, unknown>>;
+}
+
 function request(requestId: string, method: CreatorMethod, payload: unknown): string {
   return JSON.stringify({ contract: CREATOR_BRIDGE_CONTRACT, requestId, method, payload });
 }
@@ -113,8 +218,33 @@ async function parsed(
 
 describe("window.AdMarketCreator", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.resetModules();
     runtime.state = { version: "7.4.0", objects: [] };
+    runtime.drafts.clear();
+    runtime.loadFailure = null;
+    runtime.saveFailure = null;
+    runtime.publishFailure = null;
+    runtime.canvasFailure = null;
+    runtime.createdUrls = [];
+    runtime.revokedUrls = [];
+    runtime.nextUrl = 0;
+    runtime.createObjectURL.mockImplementation((blob: Blob) => {
+      const url = `blob:${window.location.origin}/owned-${++runtime.nextUrl}`;
+      runtime.createdUrls.push({ url, blob });
+      return url;
+    });
+    runtime.revokeObjectURL.mockImplementation((url: string) => {
+      runtime.revokedUrls.push(url);
+    });
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: runtime.createObjectURL
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: runtime.revokeObjectURL
+    });
     Reflect.deleteProperty(window, "AdMarketCreator");
     Reflect.deleteProperty(window, "AdMarketCreatorSpike");
     document.body.innerHTML = `
@@ -155,14 +285,158 @@ describe("window.AdMarketCreator", () => {
       payload: blankDocument
     });
     expect(saved).toEqual({ contract: CREATOR_BRIDGE_CONTRACT, requestId: "save", ok: true });
-    expect(runtime.save).toHaveBeenCalledWith(blankDocument, new Map());
+    const [savedDocument, savedBlobs] = runtime.save.mock.calls.at(-1)! as [
+      CampaignDocumentV1,
+      ReadonlyMap<string, Blob>
+    ];
+    expect(savedDocument).toMatchObject({ documentId: blankDocument.documentId, revision: 0 });
+    expect(Date.parse(savedDocument.updatedAt)).toBeGreaterThan(Date.parse(blankDocument.updatedAt));
+    expect(savedBlobs).toEqual(new Map());
     expect(published).toMatchObject({
       contract: CREATOR_BRIDGE_CONTRACT,
       requestId: "publish",
       ok: true,
       payload: { contract: "published-campaign@1", pngBase64: "AAEC" }
     });
-    expect(runtime.publish).toHaveBeenCalledWith(blankDocument);
+    expect(runtime.publish).toHaveBeenCalledWith(expect.objectContaining({
+      documentId: blankDocument.documentId,
+      revision: 0
+    }));
+  });
+
+  it("rehydrates the exact persisted local blobs, saves their bodies and publishes only owned URLs", async () => {
+    const source = localBlobDocument();
+    storeDraft(source, [7, 8, 9, 10]);
+    await import("./main");
+    const api = window.AdMarketCreator;
+
+    expect(await parsed(api, "open-local", "open", source)).toMatchObject({ ok: true });
+    expect(runtime.loadDraft).toHaveBeenCalledWith(source.documentId);
+    expect(runtime.createdUrls).toHaveLength(1);
+    expect(await bytesOf(runtime.createdUrls[0]!.blob)).toEqual([7, 8, 9, 10]);
+    expect(currentObjects()[0]?.src).toBe(runtime.createdUrls[0]!.url);
+
+    expect(await parsed(api, "save-local", "save", null)).toMatchObject({ ok: true });
+    const [, blobs] = runtime.save.mock.calls.at(-1)! as [CampaignDocumentV1, ReadonlyMap<string, Blob>];
+    expect(await bytesOf(blobs.get("photo-png")!)).toEqual([7, 8, 9, 10]);
+
+    expect(await parsed(api, "publish-local", "publish", null)).toMatchObject({ ok: true });
+    expect(runtime.exporterConstructed.mock.calls.at(-1)?.[1])
+      .toEqual(new Set([runtime.createdUrls[0]!.url]));
+
+    currentObjects()[0]!.src = `blob:${window.location.origin}/not-owned`;
+    expect(await parsed(api, "publish-unowned", "publish", null)).toMatchObject({
+      ok: false,
+      error: { code: "HANDLER_ERROR" }
+    });
+  });
+
+  it.each(["missing revision", "revision mismatch", "state mismatch", "missing blob"])(
+    "fails local-blob open for %s",
+    async (scenario) => {
+      const requested = localBlobDocument(3);
+      if (scenario === "revision mismatch") storeDraft(localBlobDocument(4));
+      if (scenario === "state mismatch") {
+        const stored = structuredClone(requested);
+        stored.product.name = "Different persisted state";
+        storeDraft(stored);
+      }
+      if (scenario === "missing blob") {
+        runtime.drafts.set(requested.documentId, {
+          document: structuredClone(requested),
+          blobs: new Map()
+        });
+      }
+      await import("./main");
+
+      expect(await parsed(window.AdMarketCreator, `open-${scenario}`, "open", requested)).toMatchObject({
+        contract: CREATOR_BRIDGE_CONTRACT,
+        ok: false,
+        error: { code: "HANDLER_ERROR" }
+      });
+      expect(runtime.load).not.toHaveBeenCalled();
+    }
+  );
+
+  it("revokes newly rehydrated URLs when canvas runtime creation fails", async () => {
+    const source = localBlobDocument();
+    storeDraft(source, [4, 5, 6]);
+    runtime.canvasFailure = new Error("Synthetic canvas construction failure");
+    await import("./main");
+
+    expect(await parsed(window.AdMarketCreator, "open-runtime-failure", "open", source)).toMatchObject({
+      ok: false,
+      error: { code: "HANDLER_ERROR", message: "Synthetic canvas construction failure" }
+    });
+    expect(runtime.createdUrls).toHaveLength(1);
+    expect(runtime.revokedUrls).toEqual([runtime.createdUrls[0]!.url]);
+  });
+
+  it("releases replacement URLs only after load succeeds and releases current URLs on close", async () => {
+    const first = localBlobDocument(3);
+    storeDraft(first, [1]);
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-first", "open", first)).toMatchObject({ ok: true });
+    const firstUrl = runtime.createdUrls[0]!.url;
+
+    const replacement = localBlobDocument(4);
+    storeDraft(replacement, [2]);
+    runtime.loadFailure = new Error("Synthetic Fabric load failure");
+    expect(await parsed(api, "open-failed", "open", replacement)).toMatchObject({ ok: false });
+    const failedUrl = runtime.createdUrls[1]!.url;
+    expect(runtime.revokedUrls).toEqual([failedUrl]);
+    expect(runtime.revokedUrls).not.toContain(firstUrl);
+
+    runtime.loadFailure = null;
+    expect(await parsed(api, "open-replacement", "open", replacement)).toMatchObject({ ok: true });
+    const replacementUrl = runtime.createdUrls[2]!.url;
+    expect(runtime.revokedUrls).toEqual([failedUrl, firstUrl]);
+
+    expect(await parsed(api, "close-replacement", "close", null)).toMatchObject({ ok: true });
+    expect(runtime.revokedUrls).toEqual([failedUrl, firstUrl, replacementUrl]);
+  });
+
+  it("persists two saves as increasing revisions and exposes the latest state", async () => {
+    await import("./main");
+    const api = window.AdMarketCreator;
+    await parsed(api, "open-save-sequence", "open", blankDocument);
+
+    expect(await parsed(api, "save-one", "save", null)).toMatchObject({ ok: true });
+    expect(await parsed(api, "save-two", "save", null)).toMatchObject({ ok: true });
+    const savedDocuments = runtime.save.mock.calls.map(([document]) => document as CampaignDocumentV1);
+    expect(savedDocuments.map(({ revision }) => revision)).toEqual([0, 1]);
+    expect(Date.parse(savedDocuments[0]!.updatedAt)).toBeGreaterThan(Date.parse(blankDocument.updatedAt));
+    expect(Date.parse(savedDocuments[1]!.updatedAt)).toBeGreaterThan(Date.parse(savedDocuments[0]!.updatedAt));
+
+    const state = await parsed(api, "latest-state", "getState", null);
+    expect(state.payload).toMatchObject({
+      documentId: blankDocument.documentId,
+      revision: 1,
+      updatedAt: savedDocuments[1]!.updatedAt
+    });
+  });
+
+  it("returns canonical handler errors when storage or export fails", async () => {
+    await import("./main");
+    const api = window.AdMarketCreator;
+    await parsed(api, "open-failures", "open", blankDocument);
+
+    runtime.saveFailure = new Error("Synthetic IndexedDB failure");
+    expect(await parsed(api, "storage-failure", "save", null)).toEqual({
+      contract: CREATOR_BRIDGE_CONTRACT,
+      requestId: "storage-failure",
+      ok: false,
+      error: { code: "HANDLER_ERROR", message: "Synthetic IndexedDB failure" }
+    });
+
+    runtime.publishFailure = new Error("Synthetic Fabric export failure");
+    expect(await parsed(api, "export-failure", "publish", null)).toEqual({
+      contract: CREATOR_BRIDGE_CONTRACT,
+      requestId: "export-failure",
+      ok: false,
+      error: { code: "HANDLER_ERROR", message: "Synthetic Fabric export failure" }
+    });
   });
 
   it("emits a private Return-to-game event and restores the game surface on close", async () => {

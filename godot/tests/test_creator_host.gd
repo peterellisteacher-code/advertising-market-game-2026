@@ -37,7 +37,7 @@ func _document() -> Dictionary:
         "sessionId": "host-session",
         "mode": "offline",
         "revision": 0,
-        "canvas": {"width": 960, "height": 540, "background": "#fff"},
+        "canvas": {"width": 1600, "height": 900, "background": "#fff"},
         "fabricState": {"version": "7.4.0", "objects": []},
         "drawingLayers": [],
         "product": {"name": "", "priceCents": null},

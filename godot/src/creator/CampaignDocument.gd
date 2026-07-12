@@ -1,8 +1,8 @@
 extends RefCounted
 
 const SCHEMA_VERSION := 1
-const CANVAS_WIDTH := 960
-const CANVAS_HEIGHT := 540
+const CANVAS_WIDTH := 1600
+const CANVAS_HEIGHT := 900
 
 # This is deliberately a bridge-shape check. The TypeScript Zod schema remains
 # authoritative for the complete campaign document and its nested editor data.
@@ -19,16 +19,18 @@ static func validate_bridge_shape(value: Variant) -> Dictionary:
     if mode != "offline" and mode != "room":
         return _invalid("Campaign document mode must be offline or room")
     if mode == "room":
-        if str(document.get("roomId", "")).is_empty() or str(document.get("teamId", "")).is_empty():
+        if typeof(document.get("roomId")) != TYPE_STRING or String(document.get("roomId")).is_empty():
             return _invalid("Room campaign documents require roomId and teamId")
-    if typeof(document.get("revision")) != TYPE_INT or int(document.get("revision")) < 0:
+        if typeof(document.get("teamId")) != TYPE_STRING or String(document.get("teamId")).is_empty():
+            return _invalid("Room campaign documents require roomId and teamId")
+    if not is_nonnegative_integer_number(document.get("revision")):
         return _invalid("Campaign document revision must be a non-negative integer")
 
     var canvas: Variant = document.get("canvas")
     if typeof(canvas) != TYPE_DICTIONARY:
         return _invalid("Campaign document canvas must be a dictionary")
     if canvas.get("width") != CANVAS_WIDTH or canvas.get("height") != CANVAS_HEIGHT:
-        return _invalid("Campaign document canvas must be 960 by 540")
+        return _invalid("Campaign document canvas must be 1600 by 900")
     if typeof(canvas.get("background")) != TYPE_STRING:
         return _invalid("Campaign document canvas background must be a string")
 
@@ -49,6 +51,14 @@ static func validate_bridge_shape(value: Variant) -> Dictionary:
         if typeof(evidence.get(slot)) != TYPE_ARRAY:
             return _invalid("Campaign document evidence.%s must be an array" % slot)
     return {"ok": true, "value": document.duplicate(true)}
+
+static func is_nonnegative_integer_number(value: Variant) -> bool:
+    if typeof(value) == TYPE_INT:
+        return int(value) >= 0
+    if typeof(value) != TYPE_FLOAT:
+        return false
+    var number := float(value)
+    return is_finite(number) and number >= 0.0 and number == floor(number)
 
 static func _invalid(message: String) -> Dictionary:
     return {"ok": false, "message": message}

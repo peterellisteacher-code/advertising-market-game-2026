@@ -14,7 +14,9 @@ import {
 } from "./export/campaign-exporter";
 import type { FabricCanvasAdapter } from "./fabric/fabric-canvas-adapter";
 import {
+  canonicalDurableDocumentHash,
   IndexedDbDraftStore,
+  rehydrateLocalAssetBlobs,
   type DraftStore
 } from "./persistence/draft-store";
 import { createEditorShell, type EditorShell } from "./ui/editor-shell";
@@ -24,6 +26,20 @@ const RETURN_TO_GAME_EVENT = "ad-market-creator:return-to-game";
 interface CanvasRuntime {
   adapter: FabricCanvasAdapter;
   dispose(): void;
+}
+
+function hasLocalBlobReferences(document: CampaignDocumentV1): boolean {
+  return document.assetReferences.some((reference) => reference.kind === "local-blob");
+}
+
+function nextUpdatedAt(current: string, latest?: string): string {
+  const candidates = [Date.now()];
+  for (const value of [current, latest]) {
+    if (value === undefined) continue;
+    const timestamp = Date.parse(value);
+    if (Number.isFinite(timestamp)) candidates.push(timestamp + 1);
+  }
+  return new Date(Math.max(...candidates)).toISOString();
 }
 
 async function createCanvasRuntime(canvasElement: HTMLCanvasElement): Promise<CanvasRuntime> {
@@ -53,6 +69,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
   #document: CampaignDocumentV1 | null = null;
   #runtime: CanvasRuntime | null = null;
   #runtimePromise: Promise<CanvasRuntime> | null = null;
+  #releaseOwnedRasterUrls: (() => void) | null = null;
 
   constructor(
     private readonly root: HTMLElement,
@@ -69,10 +86,49 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
   }
 
   async open(value: CampaignDocumentV1): Promise<void> {
-    const document = parseCampaignDocument(structuredClone(value));
-    const runtime = await this.#ensureRuntime();
-    await runtime.adapter.load(structuredClone(document.fabricState));
+    const requested = parseCampaignDocument(structuredClone(value));
+    let document = requested;
+    let blobs = new Map<string, Blob>();
+    let ownedUrls = new Set<string>();
+    let releaseUrls: (() => void) | null = null;
+    if (hasLocalBlobReferences(requested)) {
+      const stored = await this.drafts.load(requested.documentId);
+      if (!stored) {
+        throw new Error(`Persisted campaign revision ${requested.revision} is unavailable`);
+      }
+      if (stored.document.documentId !== requested.documentId ||
+        stored.document.revision !== requested.revision) {
+        throw new Error("Persisted campaign document or revision does not match the open request");
+      }
+      const [requestedHash, storedHash] = await Promise.all([
+        canonicalDurableDocumentHash(requested),
+        canonicalDurableDocumentHash(stored.document)
+      ]);
+      if (requestedHash !== storedHash) {
+        throw new Error("Persisted campaign state does not match the open request");
+      }
+      const hydrated = rehydrateLocalAssetBlobs(stored.document, stored.blobs);
+      document = hydrated.document;
+      blobs = new Map(stored.blobs);
+      ownedUrls = new Set(hydrated.ownedUrls);
+      releaseUrls = hydrated.release;
+    }
+    let runtime: CanvasRuntime;
+    try {
+      runtime = await this.#ensureRuntime();
+      await runtime.adapter.load(structuredClone(document.fabricState));
+    } catch (error) {
+      releaseUrls?.();
+      throw error;
+    }
+    const releasePreviousUrls = this.#releaseOwnedRasterUrls;
     this.#document = document;
+    this.#blobs.clear();
+    blobs.forEach((blob, key) => this.#blobs.set(key, blob));
+    this.#ownedRasterUrls.clear();
+    ownedUrls.forEach((url) => this.#ownedRasterUrls.add(url));
+    this.#releaseOwnedRasterUrls = releaseUrls;
+    releasePreviousUrls?.();
     this.#productName.value = document.product.name;
     this.#setOpen(true);
     this.shell.canvasRegion.focus({ preventScroll: true });
@@ -85,7 +141,15 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
   }
 
   async save(): Promise<void> {
-    const document = this.#snapshot();
+    const snapshot = this.#snapshot();
+    const latest = await this.drafts.load(snapshot.documentId);
+    const document = parseCampaignDocument({
+      ...structuredClone(snapshot),
+      revision: latest
+        ? Math.max(snapshot.revision, latest.document.revision) + 1
+        : snapshot.revision,
+      updatedAt: nextUpdatedAt(snapshot.updatedAt, latest?.document.updatedAt)
+    });
     await this.drafts.save(document, this.#blobs);
     this.#document = document;
   }
@@ -105,6 +169,10 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
     this.#runtime = null;
     this.#runtimePromise = null;
     runtime?.dispose();
+    this.#releaseOwnedRasterUrls?.();
+    this.#releaseOwnedRasterUrls = null;
+    this.#ownedRasterUrls.clear();
+    this.#blobs.clear();
     this.#setOpen(false);
     this.gameCanvas?.focus({ preventScroll: true });
   }

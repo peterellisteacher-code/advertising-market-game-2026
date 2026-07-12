@@ -82,6 +82,7 @@ export interface CanvasPort {
   setDrawingTool(settings: DrawingToolSettings): void;
   eraseTopmostDrawing(point: CanvasPoint, radius: number): boolean;
   serialize(): Record<string, unknown>;
+  exportCleanPngDataUrl(): string;
   load(value: Record<string, unknown>): Promise<void>;
   subscribe(listener: CanvasMutationListener): () => void;
 }

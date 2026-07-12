@@ -7,10 +7,12 @@ it("serializes application metadata", () => {
   rect.objectId = "object-1";
   rect.elementKind = "shape";
   rect.accessibleName = "Red attention block";
+  rect.editorGuide = true;
 
   expect(rect.toObject()).toMatchObject({
     objectId: "object-1",
     elementKind: "shape",
-    accessibleName: "Red attention block"
+    accessibleName: "Red attention block",
+    editorGuide: true
   });
 });

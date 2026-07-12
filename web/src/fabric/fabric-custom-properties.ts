@@ -10,6 +10,7 @@ declare module "fabric" {
     accessibleName?: string;
     cropFocalX?: number;
     cropFocalY?: number;
+    editorGuide?: boolean;
   }
 
   interface SerializedObjectProps {
@@ -20,6 +21,7 @@ declare module "fabric" {
     accessibleName?: string;
     cropFocalX?: number;
     cropFocalY?: number;
+    editorGuide?: boolean;
   }
 }
 
@@ -30,5 +32,6 @@ FabricObject.customProperties = [
   "sourceHash",
   "accessibleName",
   "cropFocalX",
-  "cropFocalY"
+  "cropFocalY",
+  "editorGuide"
 ];

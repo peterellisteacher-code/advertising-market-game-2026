@@ -77,6 +77,7 @@ class MemoryCanvasPort implements CanvasPort {
     return false;
   }
   serialize(): Record<string, unknown> { return { objects: structuredClone(this.objects) }; }
+  exportCleanPngDataUrl(): string { return "data:image/png;base64,"; }
 
   async load(value: Record<string, unknown>): Promise<void> {
     this.objects.splice(0, this.objects.length, ...structuredClone(value.objects as MemoryObject[]));

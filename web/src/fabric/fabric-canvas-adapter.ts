@@ -287,6 +287,30 @@ export class FabricCanvasAdapter implements CanvasPort {
     return this.canvas.toObject(SERIALIZED_INTERACTION_PROPERTIES) as Record<string, unknown>;
   }
 
+  exportCleanPngDataUrl(): string {
+    const activeObject = this.canvas.getActiveObject();
+    const guideStates = this.canvas.getObjects()
+      .map((object, index) => ({ object, index, visible: object.visible }))
+      .filter(({ object }) => object.editorGuide === true);
+    try {
+      this.canvas.discardActiveObject();
+      guideStates.forEach(({ object }) => object.set("visible", false));
+      this.canvas.requestRenderAll();
+      return this.canvas.toDataURL({ format: "png", multiplier: 1 });
+    } finally {
+      try {
+        guideStates.forEach(({ object, index, visible }) => {
+          object.set("visible", visible);
+          this.canvas.moveObjectTo(object, index);
+        });
+      } finally {
+        if (activeObject) this.canvas.setActiveObject(activeObject);
+        else this.canvas.discardActiveObject();
+        this.canvas.requestRenderAll();
+      }
+    }
+  }
+
   async load(value: Record<string, unknown>): Promise<void> {
     validateSerializedImageSources(value);
     this.#suppressEvents = true;

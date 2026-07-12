@@ -3,6 +3,8 @@ import { afterEach, expect, it, vi } from "vitest";
 import { CataloguePanel, validatedAssetUrl } from "./catalogue-panel";
 import type { CatalogAssetV1 } from "./catalogue-types";
 
+const UUID = "123e4567-e89b-42d3-a456-426614174000";
+
 const asset = (
   id: string,
   title: string,
@@ -116,7 +118,15 @@ it("removes its listener and disconnects its observer on destroy", () => {
 
 it.each([
   ["/catalog/item.png", true],
-  ["/.netlify/functions/openverse-image/item", true],
+  [`/.netlify/functions/openverse-image/${UUID}`, true],
+  [`/.netlify/functions/openverse-image/${UUID}?variant=thumbnail`, true],
+  [`/.netlify/functions/openverse-image/${UUID}?variant=full`, true],
+  ["/.netlify/functions/openverse-image/item", false],
+  [`/.netlify/functions/openverse-image/${UUID.toUpperCase()}`, false],
+  [`/.netlify/functions/openverse-image/${UUID}/`, false],
+  [`/.netlify/functions/openverse-image/${UUID}?extra=1`, false],
+  [`/.netlify/functions/openverse-image/${UUID}?variant=thumbnail&variant=full`, false],
+  [`/.netlify/functions/openverse-image/${UUID}#fragment`, false],
   ["https://unsafe.example/item.png", false],
   ["/catalogue/item.png", false],
   ["/.netlify/functions/openverse-image-evil/item", false],
@@ -128,4 +138,33 @@ it.each([
   } else {
     expect(result).toBe("/catalog/system/missing-thumbnail.svg");
   }
+});
+
+it("shows concise, text-only attribution on photo tiles", () => {
+  const host = document.createElement("div");
+  const photo: CatalogAssetV1 = {
+    ...asset(UUID, "Morning market", "photos", ["photo"],
+      `/.netlify/functions/openverse-image/${UUID}?variant=thumbnail`),
+    kind: "photo",
+    files: {
+      thumbnail: `/.netlify/functions/openverse-image/${UUID}?variant=thumbnail`,
+      preview: `/.netlify/functions/openverse-image/${UUID}`,
+      master: `/.netlify/functions/openverse-image/${UUID}`
+    },
+    classroomReviewed: false,
+    brandFree: false,
+    attribution: {
+      creator: "<b>A. Photographer</b>",
+      sourceUrl: "https://example.test/work/123",
+      license: "CC BY 4.0"
+    }
+  };
+  const panel = new CataloguePanel(host, vi.fn());
+
+  panel.render([photo]);
+
+  const attribution = host.querySelector("[data-catalogue-attribution]");
+  expect(attribution?.textContent).toBe("<b>A. Photographer</b> · CC BY 4.0");
+  expect(attribution?.querySelector("b")).toBeNull();
+  panel.destroy();
 });

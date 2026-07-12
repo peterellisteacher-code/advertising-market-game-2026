@@ -4,13 +4,22 @@ import { computeVirtualColumns, computeVirtualWindow } from "./virtual-grid";
 const PLACEHOLDER_THUMBNAIL = "/catalog/system/missing-thumbnail.svg";
 const ROW_HEIGHT = 180;
 const MIN_TILE_WIDTH = 160;
+const OPENVERSE_IMAGE_PATH = /^\/\.netlify\/functions\/openverse-image\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+const isExactOpenverseProxy = (url: URL): boolean => {
+  if (!OPENVERSE_IMAGE_PATH.test(url.pathname) || url.hash) return false;
+  const keys = [...url.searchParams.keys()];
+  if (keys.length === 0) return true;
+  const variants = url.searchParams.getAll("variant");
+  return keys.length === 1 && keys[0] === "variant" && variants.length === 1 &&
+    (variants[0] === "thumbnail" || variants[0] === "full");
+};
 
 export function validatedAssetUrl(value: string): string {
   try {
     const url = new URL(value, window.location.origin);
     const allowed = url.origin === window.location.origin &&
-      (url.pathname.startsWith("/catalog/") ||
-        url.pathname.startsWith("/.netlify/functions/openverse-image/"));
+      (url.pathname.startsWith("/catalog/") || isExactOpenverseProxy(url));
     return allowed ? url.href : PLACEHOLDER_THUMBNAIL;
   } catch {
     return PLACEHOLDER_THUMBNAIL;
@@ -108,6 +117,12 @@ export class CataloguePanel {
       const title = document.createElement("span");
       title.textContent = asset.title;
       button.append(image, title);
+      if (asset.kind === "photo") {
+        const attribution = document.createElement("span");
+        attribution.dataset.catalogueAttribution = "";
+        attribution.textContent = `${asset.attribution.creator} · ${asset.attribution.license}`;
+        button.append(attribution);
+      }
       button.addEventListener("click", () => this.onPick(asset));
       item.append(button);
       mount.append(item);

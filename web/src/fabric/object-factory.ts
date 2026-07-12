@@ -25,8 +25,9 @@ export function sameOriginRasterUrl(value: string): string {
   } catch {
     throw new Error("Raster URL must be a valid same-origin URL");
   }
-  if ((url.protocol !== "http:" && url.protocol !== "https:") ||
-    url.origin !== window.location.origin) {
+  const isHttp = url.protocol === "http:" || url.protocol === "https:";
+  const isBlob = url.protocol === "blob:";
+  if ((!isHttp && !isBlob) || url.origin !== window.location.origin) {
     throw new Error("Raster URL must be same-origin");
   }
   return url.href;

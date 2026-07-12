@@ -1,6 +1,6 @@
 import { FabricImage, Rect, Textbox } from "fabric";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { FabricObjectFactory } from "./object-factory";
+import { FabricObjectFactory, sameOriginRasterUrl } from "./object-factory";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -76,5 +76,17 @@ describe("FabricObjectFactory", () => {
     })).rejects.toThrow("same-origin");
 
     expect(fromURL).not.toHaveBeenCalled();
+  });
+
+  it("accepts only same-origin blob URLs for cached rendered variants", () => {
+    const sameOriginBlob = `blob:${window.location.origin}/masked-variant-1`;
+
+    expect(sameOriginRasterUrl(sameOriginBlob)).toBe(sameOriginBlob);
+    expect(() => sameOriginRasterUrl("blob:https://unsafe.example/masked-variant-1"))
+      .toThrow("same-origin");
+    expect(() => sameOriginRasterUrl("data:image/png;base64,cHJvYmU="))
+      .toThrow("same-origin");
+    expect(() => sameOriginRasterUrl("file:///tmp/masked-variant.png"))
+      .toThrow("same-origin");
   });
 });

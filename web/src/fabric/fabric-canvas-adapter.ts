@@ -9,8 +9,41 @@ import type {
   ObjectTransform,
   StackDirection
 } from "./canvas-port";
-import { FabricObjectFactory } from "./object-factory";
+import {
+  FABRIC_CONTROL_SIZE,
+  FabricObjectFactory,
+  sameOriginRasterUrl
+} from "./object-factory";
 import "./fabric-custom-properties";
+
+const SERIALIZED_INTERACTION_PROPERTIES = [
+  "cornerSize",
+  "touchCornerSize",
+  "transparentCorners",
+  "borderScaleFactor",
+  "selectable",
+  "evented",
+  "visible",
+  "lockMovementX",
+  "lockMovementY",
+  "lockScalingX",
+  "lockScalingY",
+  "lockRotation"
+];
+
+function validateSerializedImageSources(value: unknown, seen = new WeakSet<object>()): void {
+  if (value === null || typeof value !== "object") return;
+  if (seen.has(value)) return;
+  seen.add(value);
+  if (Array.isArray(value)) {
+    value.forEach((item) => validateSerializedImageSources(item, seen));
+    return;
+  }
+  Object.entries(value).forEach(([key, child]) => {
+    if (key === "src" && typeof child === "string") sameOriginRasterUrl(child);
+    else validateSerializedImageSources(child, seen);
+  });
+}
 
 export class FabricCanvasAdapter implements CanvasPort {
   readonly #listeners = new Set<CanvasMutationListener>();
@@ -107,13 +140,23 @@ export class FabricCanvasAdapter implements CanvasPort {
   }
 
   serialize(): Record<string, unknown> {
-    return this.canvas.toObject() as Record<string, unknown>;
+    return this.canvas.toObject(SERIALIZED_INTERACTION_PROPERTIES) as Record<string, unknown>;
   }
 
   async load(value: Record<string, unknown>): Promise<void> {
+    validateSerializedImageSources(value);
     this.#suppressEvents = true;
     try {
       await this.canvas.loadFromJSON(value);
+      this.canvas.getObjects().forEach((object) => {
+        object.set({
+          cornerSize: FABRIC_CONTROL_SIZE,
+          touchCornerSize: FABRIC_CONTROL_SIZE,
+          transparentCorners: false,
+          borderScaleFactor: 2
+        });
+        object.setCoords();
+      });
       this.canvas.discardActiveObject();
       this.canvas.requestRenderAll();
     } finally {

@@ -28,8 +28,8 @@ async function run(): Promise<void> {
     fill: "#e11d48",
     accessibleName: "Red product card"
   });
-  await commands.addText("Fresh idea", "Fresh idea headline");
-  await commands.addRaster({
+  const textId = await commands.addText("Fresh idea", "Fresh idea headline");
+  const imageId = await commands.addRaster({
     assetId: "diagnostic-product",
     sameOriginUrl: new URL("./probe.svg", window.location.href).href,
     accessibleName: "Diagnostic product image"
@@ -52,12 +52,29 @@ async function run(): Promise<void> {
   commands.setHidden(copyId, true);
   commands.setHidden(copyId, false);
   commands.select(shapeId);
+  commands.setLocked(shapeId, true);
+  commands.setHidden(copyId, true);
   const saved = commands.serialize();
+  const savedObjects = saved.objects as Array<Record<string, unknown>>;
+  const savedOrder = savedObjects.map((object) => object.objectId);
   commands.remove(copyId);
   await commands.load(saved);
 
-  const restoredObjects = (commands.serialize().objects as unknown[]) ?? [];
-  if (restoredObjects.length < 4) throw new Error("Serialized objects did not restore");
+  const restoredObjects = commands.serialize().objects as Array<Record<string, unknown>>;
+  const restoredOrder = restoredObjects.map((object) => object.objectId);
+  const restoredShape = restoredObjects.find((object) => object.objectId === shapeId);
+  const restoredCopy = restoredObjects.find((object) => object.objectId === copyId);
+  if (restoredObjects.length !== 4) throw new Error("Serialized objects did not restore");
+  if (JSON.stringify(restoredOrder) !== JSON.stringify(savedOrder)) throw new Error("Object order changed");
+  if (!restoredOrder.includes(textId) || !restoredOrder.includes(imageId)) throw new Error("Object metadata was lost");
+  if (!restoredShape || restoredShape.selectable !== false || restoredShape.lockMovementX !== true) {
+    throw new Error("Locked state was not restored");
+  }
+  if (!restoredCopy || restoredCopy.visible !== false) throw new Error("Visibility was not restored");
+  if (restoredObjects.some((object) =>
+    object.cornerSize !== 44 || object.touchCornerSize !== 44 || !object.accessibleName)) {
+    throw new Error("Controls or accessibility metadata were not restored");
+  }
   window.__CREATOR_DIAGNOSTIC__ = { objectOperations: "pass" };
   status.dataset.objectOperations = "pass";
   status.textContent = "Object operations passed";

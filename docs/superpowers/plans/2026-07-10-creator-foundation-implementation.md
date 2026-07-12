@@ -1122,7 +1122,12 @@ pnpm test:unit -- web/src/fabric/object-command-service.test.ts web/src/fabric/o
 pnpm typecheck
 ```
 
-Expected: six focused tests and typecheck pass. Add a page to
+Before `loadFromJSON`, recursively reject every serialized `src` that does not
+resolve to HTTP(S) on the current origin. Serialize lock, visibility and control
+properties explicitly, then reapply 44-pixel controls after load. Scale the
+initial Textbox to a 640-by-360 maximum after Fabric lays out its content.
+
+Expected: nine focused tests and typecheck pass. Add a page to
 `web/tests/manual/creator-diagnostic.html` that performs every operation against
 a real Fabric canvas, including a same-origin image and serialize/reload, and
 exposes `window.__CREATOR_DIAGNOSTIC__.objectOperations = "pass"` plus the same

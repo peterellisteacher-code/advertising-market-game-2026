@@ -12,7 +12,9 @@ import type { EditorObjectMeta } from "../domain/editor-object";
 import type { NewRasterInput, NewShapeInput, NewTextInput } from "./canvas-port";
 import "./fabric-custom-properties";
 
-const CONTROL_SIZE = 44;
+export const FABRIC_CONTROL_SIZE = 44;
+const MAX_TEXT_WIDTH = 640;
+const MAX_TEXT_HEIGHT = 360;
 const MAX_RASTER_WIDTH = 640;
 const MAX_RASTER_HEIGHT = 450;
 
@@ -38,6 +40,9 @@ export class FabricObjectFactory {
       fill: "#111827",
       textAlign: "center"
     });
+    const width = Math.max(1, object.getScaledWidth());
+    const height = Math.max(1, object.getScaledHeight());
+    object.scale(Math.min(1, (MAX_TEXT_WIDTH - 1) / width, (MAX_TEXT_HEIGHT - 1) / height));
     return this.#configure(object, {
       objectId: input.id,
       elementKind: "text",
@@ -89,8 +94,8 @@ export class FabricObjectFactory {
       originY: "center",
       left: CREATOR_CONFIG.canvasWidth / 2,
       top: CREATOR_CONFIG.canvasHeight / 2,
-      cornerSize: CONTROL_SIZE,
-      touchCornerSize: CONTROL_SIZE,
+      cornerSize: FABRIC_CONTROL_SIZE,
+      touchCornerSize: FABRIC_CONTROL_SIZE,
       transparentCorners: false,
       borderScaleFactor: 2
     });

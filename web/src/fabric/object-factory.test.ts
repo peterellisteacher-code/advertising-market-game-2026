@@ -49,6 +49,22 @@ describe("FabricObjectFactory", () => {
     });
   });
 
+  it("scales a long initial text block within the canvas", () => {
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      font: "",
+      textBaseline: "alphabetic",
+      measureText: (value: string) => ({ width: value.length * 32 })
+    } as unknown as CanvasRenderingContext2D);
+    const object = new FabricObjectFactory().createText({
+      id: "text-long",
+      value: "Buy now and discover something new. ".repeat(80),
+      accessibleName: "Long promotional message"
+    });
+
+    expect(object.getScaledWidth()).toBeLessThanOrEqual(640);
+    expect(object.getScaledHeight()).toBeLessThanOrEqual(360);
+  });
+
   it("rejects an external raster before Fabric starts loading it", async () => {
     const fromURL = vi.spyOn(FabricImage, "fromURL");
 

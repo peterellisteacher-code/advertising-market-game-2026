@@ -39,3 +39,5 @@ autowrap_mode = 2
 [node name="CreatorHost" type="Node" parent="."]
 unique_name_in_owner = true
 script = ExtResource("2_host")
+game_input_root_path = NodePath("../GameInput")
+launch_button_path = NodePath("../GameInput/LaunchCreator")

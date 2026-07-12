@@ -14,18 +14,37 @@ func run() -> bool:
     host.close_creator()
     assert(game_input.process_mode == Node.PROCESS_MODE_ALWAYS)
 
-    host.open_creator({"contract": "creator-spike@1"})
-    host.open_creator({"contract": "creator-spike@1"})
-    assert(fake.last_method == "open")
-    assert(fake.open_calls == 1)
+    host.open_creator(_document())
+    host.open_creator(_document())
+    assert(fake.request_count() == 1)
+    fake.resolve_success(fake.last_request_id())
     assert(host.creator_is_open)
     assert(game_input.process_mode == Node.PROCESS_MODE_DISABLED)
-    host.request_publish_probe()
-    assert(fake.last_method == "publishProbe")
     fake.request_close()
-    assert(fake.last_method == "close")
+    assert(fake.request_for(fake.last_request_id()).get("method") == "close")
+    fake.resolve_success(fake.last_request_id())
     assert(not host.creator_is_open)
     assert(game_input.process_mode == Node.PROCESS_MODE_ALWAYS)
     host.free()
     game_input.free()
     return true
+
+func _document() -> Dictionary:
+    return {
+        "schemaVersion": 1,
+        "editorVersion": "0.1.0",
+        "documentId": "host-document",
+        "sessionId": "host-session",
+        "mode": "offline",
+        "revision": 0,
+        "canvas": {"width": 960, "height": 540, "background": "#fff"},
+        "fabricState": {"version": "7.4.0", "objects": []},
+        "drawingLayers": [],
+        "product": {"name": "", "priceCents": null},
+        "brief": {"purpose": "persuade"},
+        "evidence": {
+            "price": [], "attention": [], "interest": [], "desire": [], "action": []
+        },
+        "assetReferences": [],
+        "updatedAt": "1970-01-01T00:00:00.000Z"
+    }

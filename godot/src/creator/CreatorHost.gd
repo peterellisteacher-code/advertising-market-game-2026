@@ -1,75 +1,88 @@
 extends Node
 
 signal diagnostic(message: String)
+signal focus_restore_requested
+signal creator_opened
+signal creator_closed
 
-const CONTRACT := "creator-spike@1"
+const CreatorBridge = preload("res://src/creator/CreatorBridge.gd")
 
 @export var game_input_root_path: NodePath
 @export var launch_button_path: NodePath
 
 var transport: RefCounted
+var bridge: Node
 var game_input_root: Node
 var launch_button: Control
 var creator_is_open := false
 var _previous_process_mode := Node.PROCESS_MODE_INHERIT
+var _opening := false
+var _closing := false
 
 func set_transport(value: RefCounted) -> void:
     transport = value
-    if transport != null and transport.has_method("set_event_callback"):
-        transport.set_event_callback(_on_transport_event)
+    _ensure_bridge()
+    bridge.set_transport(value)
 
 func _ready() -> void:
+    _ensure_bridge()
     if not game_input_root_path.is_empty():
         game_input_root = get_node_or_null(game_input_root_path)
     if not launch_button_path.is_empty():
         launch_button = get_node_or_null(launch_button_path) as Control
 
-func open_creator(payload: Dictionary) -> void:
-    if transport == null:
-        _report("Creator transport is not configured")
+func open_creator(document: Dictionary) -> String:
+    _ensure_bridge()
+    if creator_is_open or _opening:
+        return ""
+    _opening = true
+    var request_id: String = bridge.open(document)
+    if request_id.is_empty():
+        _opening = false
+    return request_id
+
+func request_state() -> String:
+    _ensure_bridge()
+    return bridge.get_state()
+
+func save_creator() -> String:
+    _ensure_bridge()
+    return bridge.save()
+
+func publish_creator() -> String:
+    _ensure_bridge()
+    return bridge.publish()
+
+func close_creator() -> String:
+    _ensure_bridge()
+    if not creator_is_open or _closing:
+        return ""
+    _closing = true
+    return bridge.close()
+
+func _ensure_bridge() -> void:
+    if bridge != null:
         return
-    if creator_is_open:
-        return
-    var response := _decode_response(transport.open(JSON.stringify(payload)))
-    if response.get("event", "") == "opened":
+    bridge = CreatorBridge.new()
+    add_child(bridge)
+    bridge.request_succeeded.connect(_on_request_succeeded)
+    bridge.request_failed.connect(_on_request_failed)
+    bridge.close_requested.connect(close_creator)
+
+func _on_request_succeeded(_request_id: String, method: String, _payload: Variant) -> void:
+    if method == "open" and _opening:
+        _opening = false
         _set_creator_open(true)
-    elif response.get("event", "") == "error":
-        _report(str(response.get("message", "Campaign Creator could not open")))
-
-func request_publish_probe() -> Dictionary:
-    if transport == null:
-        _report("Creator transport is not configured")
-        return {}
-    var response := _decode_response(transport.publish_probe())
-    if response.get("event", "") == "error":
-        _report(str(response.get("message", "Campaign Creator could not publish")))
-    return response
-
-func close_creator() -> void:
-    if transport == null:
-        _report("Creator transport is not configured")
-        return
-    var response := _decode_response(transport.close())
-    if response.get("event", "") == "closed":
+        creator_opened.emit()
+    elif method == "close" and _closing:
+        _closing = false
         _set_creator_open(false)
-    elif response.get("event", "") == "error":
-        _report(str(response.get("message", "Campaign Creator could not close")))
+        creator_closed.emit()
 
-func _decode_response(response_json: String) -> Dictionary:
-    var decoded: Variant = JSON.parse_string(response_json)
-    if typeof(decoded) != TYPE_DICTIONARY:
-        _report("Creator returned invalid JSON")
-        return {}
-    var response: Dictionary = decoded
-    if response.get("contract", "") != CONTRACT:
-        _report("Creator returned an unsupported contract")
-        return {}
-    return response
-
-func _on_transport_event(event_json: String) -> void:
-    var event := _decode_response(event_json)
-    if event.get("event", "") == "closeRequested":
-        close_creator()
+func _on_request_failed(_request_id: String, code: String, message: String) -> void:
+    _opening = false
+    _closing = false
+    _report("%s: %s" % [code, message])
 
 func _set_creator_open(open: bool) -> void:
     if creator_is_open == open:
@@ -81,9 +94,10 @@ func _set_creator_open(open: bool) -> void:
             game_input_root.process_mode = Node.PROCESS_MODE_DISABLED
         else:
             game_input_root.process_mode = _previous_process_mode
-    if not open and launch_button != null and launch_button.is_inside_tree():
-        launch_button.grab_focus()
+    if not open:
+        focus_restore_requested.emit()
+        if launch_button != null and launch_button.is_inside_tree():
+            launch_button.grab_focus()
 
 func _report(message: String) -> void:
-    push_error(message)
     diagnostic.emit(message)

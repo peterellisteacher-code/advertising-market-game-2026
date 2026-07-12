@@ -1,0 +1,115 @@
+import {
+  access,
+  copyFile,
+  mkdir,
+  readFile,
+  writeFile
+} from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const DEFAULT_ROOT = path.resolve(SCRIPT_DIR, "..");
+const REQUIRED_GODOT_FILES = ["index.html", "index.js", "index.wasm", "index.pck"];
+const STUDIO_STYLE = '<link rel="stylesheet" href="./studio/studio.css">';
+const STUDIO_SCRIPT = '<script src="./studio/studio.js"></script>';
+
+function removeStudioTags(html) {
+  return html
+    .replace(/<link\b(?=[^>]*\bhref\s*=\s*["'][^"']*studio\/studio\.css(?:[?#][^"']*)?["'])[^>]*>/gi, "")
+    .replace(/<script\b(?=[^>]*\bsrc\s*=\s*["'][^"']*studio\/studio\.js(?:[?#][^"']*)?["'])[^>]*>\s*<\/script>/gi, "");
+}
+
+function insertBefore(html, anchorIndex, line) {
+  const prefix = html.slice(0, anchorIndex).replace(/[\t \r\n]+$/, "");
+  return `${prefix}\n    ${line}\n    ${html.slice(anchorIndex).replace(/^[\t ]+/, "")}`;
+}
+
+/** Pure shell assembly used by both the CLI and its built-in Node test. */
+export function injectStudioAssets(html) {
+  let result = removeStudioTags(html);
+  const headClose = result.search(/<\/head\s*>/i);
+  if (headClose < 0) throw new Error("Godot export is missing </head>");
+  result = insertBefore(result, headClose, STUDIO_STYLE);
+
+  const indexScript = result.search(/<script\b(?=[^>]*\bsrc\s*=\s*["']\.\/?index\.js["'])[^>]*>/i);
+  const bodyClose = result.search(/<\/body\s*>/i);
+  const scriptAnchor = indexScript >= 0 ? indexScript : bodyClose;
+  if (scriptAnchor < 0) throw new Error("Godot export is missing an index script or </body>");
+  result = insertBefore(result, scriptAnchor, STUDIO_SCRIPT);
+  return result;
+}
+
+export function assertResolvedGodotShell(html) {
+  const token = html.match(/\$GODOT_[A-Z0-9_]+/i)?.[0];
+  if (token) throw new Error(`Refusing unresolved Godot shell token: ${token}`);
+}
+
+async function requireFile(filePath, label) {
+  try {
+    await access(filePath);
+  } catch {
+    throw new Error(`Missing ${label}: ${filePath}`);
+  }
+}
+
+export async function assembleWebExport({
+  root = DEFAULT_ROOT,
+  requireOfflineCore = false,
+  log = console.log
+} = {}) {
+  const studioDir = path.join(root, "build", "studio");
+  const webDir = path.join(root, "build", "web");
+  for (const name of ["studio.js", "studio.css"]) {
+    await requireFile(path.join(studioDir, name), `studio asset ${name}`);
+  }
+  for (const name of REQUIRED_GODOT_FILES) {
+    await requireFile(path.join(webDir, name), `Godot Web export ${name}`);
+  }
+
+  const indexPath = path.join(webDir, "index.html");
+  const exportedHtml = await readFile(indexPath, "utf8");
+  assertResolvedGodotShell(exportedHtml);
+  const assembledHtml = injectStudioAssets(exportedHtml);
+  assertResolvedGodotShell(assembledHtml);
+
+  const outputStudioDir = path.join(webDir, "studio");
+  await mkdir(outputStudioDir, { recursive: true });
+  await Promise.all(["studio.js", "studio.css"].map((name) =>
+    copyFile(path.join(studioDir, name), path.join(outputStudioDir, name))
+  ));
+  if (assembledHtml !== exportedHtml) await writeFile(indexPath, assembledHtml, "utf8");
+
+  const offlineRelative = path.join("catalog", "generated", "offline-core-v1", "catalog.json");
+  const offlineSource = path.join(root, offlineRelative);
+  try {
+    await access(offlineSource);
+    const offlineDestination = path.join(webDir, offlineRelative);
+    await mkdir(path.dirname(offlineDestination), { recursive: true });
+    await copyFile(offlineSource, offlineDestination);
+    log(`OFFLINE_CORE_COPIED ${offlineRelative.replaceAll(path.sep, "/")}`);
+  } catch {
+    if (requireOfflineCore) {
+      throw new Error(`Required offline core is absent: ${offlineRelative}`);
+    }
+    log(`OFFLINE_CORE_DEFERRED ${offlineRelative.replaceAll(path.sep, "/")}`);
+  }
+
+  log("WEB_EXPORT_ASSEMBLED_NON_DESTRUCTIVE");
+  return { webDir, indexPath };
+}
+
+async function main() {
+  const unknown = process.argv.slice(2).filter((argument) => argument !== "--require-offline-core");
+  if (unknown.length > 0) throw new Error(`Unknown argument: ${unknown[0]}`);
+  await assembleWebExport({
+    requireOfflineCore: process.argv.includes("--require-offline-core")
+  });
+}
+
+if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  });
+}

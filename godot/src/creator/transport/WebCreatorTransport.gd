@@ -2,71 +2,107 @@ extends "res://src/creator/transport/CreatorTransport.gd"
 
 signal diagnostic(message: String)
 
-const CONTRACT := "creator-spike@1"
+const CONTRACT := "creator-bridge@1"
+const RETURN_TO_GAME_EVENT := "ad-market-creator:return-to-game"
+const MAX_RETAINED_REQUESTS := 32
 
 var _bridge: JavaScriptObject
-var _callbacks: Array[JavaScriptObject] = []
-var _event_callback: Callable
-var _event_bridge_callback: JavaScriptObject
+var _window: JavaScriptObject
+var _pending_callbacks: Dictionary = {}
+var _close_requested_callback: Callable
+var _close_event_callback: JavaScriptObject
 
-func set_event_callback(callback: Callable) -> void:
-    _event_callback = callback
-    if _ensure_bridge():
-        _register_event_callback()
+func set_close_requested_callback(callback: Callable) -> void:
+    _close_requested_callback = callback
+    _register_close_listener()
 
-func create_retained_callback(callback: Callable) -> JavaScriptObject:
-    var js_callback := JavaScriptBridge.create_callback(callback)
-    _callbacks.append(js_callback)
-    return js_callback
-
-func open(payload_json: String) -> String:
-    return _call_bridge("open", payload_json)
-
-func close() -> String:
-    return _call_bridge("close")
-
-func publish_probe() -> String:
-    return _call_bridge("publishProbe")
-
-func _call_bridge(method_name: String, payload_json: String = "") -> String:
+func send(request_json: String, resolve: Callable, reject: Callable) -> void:
+    var request_id := _request_id(request_json)
+    if not OS.has_feature("web"):
+        resolve.call(_unavailable_response(request_id))
+        return
+    if _pending_callbacks.size() >= MAX_RETAINED_REQUESTS:
+        reject.call("Campaign Creator transport has too many pending requests")
+        return
     if not _ensure_bridge():
-        return JSON.stringify({
-            "contract": CONTRACT,
-            "event": "error",
-            "message": "Campaign Creator is unavailable in this browser session."
-        })
+        resolve.call(_unavailable_response(request_id))
+        return
 
-    var result: Variant
-    if payload_json.is_empty():
-        result = _bridge.call(method_name)
+    var promise: JavaScriptObject = _bridge.handle(request_json)
+    if promise == null:
+        reject.call("Campaign Creator handle did not return a Promise")
+        return
+    var then_callback := JavaScriptBridge.create_callback(func(arguments: Array) -> void:
+        _resolve_promise(request_id, arguments, resolve)
+    )
+    var catch_callback := JavaScriptBridge.create_callback(func(arguments: Array) -> void:
+        _reject_promise(request_id, arguments, reject)
+    )
+    _pending_callbacks[request_id] = {
+        "then": then_callback,
+        "catch": catch_callback
+    }
+    var chained: JavaScriptObject = promise.then(then_callback)
+    if chained != null:
+        chained.catch(catch_callback)
     else:
-        result = _bridge.call(method_name, payload_json)
-    return str(result)
+        promise.catch(catch_callback)
 
 func _ensure_bridge() -> bool:
     if _bridge != null:
-        _register_event_callback()
+        _register_close_listener()
         return true
-    _bridge = JavaScriptBridge.get_interface("AdMarketCreatorSpike")
+    _bridge = JavaScriptBridge.get_interface("AdMarketCreator")
     if _bridge == null:
-        var message := "Missing browser global window.AdMarketCreatorSpike"
-        push_error(message)
-        diagnostic.emit(message)
+        diagnostic.emit("Missing browser global window.AdMarketCreator")
         return false
-    _register_event_callback()
+    _register_close_listener()
     return true
 
-func _register_event_callback() -> void:
-    if _bridge == null or _event_bridge_callback != null or not _event_callback.is_valid():
+func _register_close_listener() -> void:
+    if not OS.has_feature("web") or _close_event_callback != null or not _close_requested_callback.is_valid():
         return
-    _event_bridge_callback = create_retained_callback(_on_bridge_event)
-    _bridge.call("setEventCallback", _event_bridge_callback)
+    _window = JavaScriptBridge.get_interface("window")
+    if _window == null:
+        diagnostic.emit("Missing browser window interface")
+        return
+    _close_event_callback = JavaScriptBridge.create_callback(func(_arguments: Array) -> void:
+        if _close_requested_callback.is_valid():
+            _close_requested_callback.call()
+    )
+    _window.addEventListener(RETURN_TO_GAME_EVENT, _close_event_callback)
 
-func _on_bridge_event(arguments: Array) -> void:
-    if arguments.is_empty():
-        var message := "Creator sent an empty event"
-        push_error(message)
-        diagnostic.emit(message)
+func _resolve_promise(request_id: String, arguments: Array, resolve: Callable) -> void:
+    if not _pending_callbacks.has(request_id):
         return
-    if _event_callback.is_valid():
-        _event_callback.call(str(arguments[0]))
+    _pending_callbacks.erase(request_id)
+    if arguments.is_empty():
+        resolve.call("")
+        return
+    resolve.call(str(arguments[0]))
+
+func _reject_promise(request_id: String, arguments: Array, reject: Callable) -> void:
+    if not _pending_callbacks.has(request_id):
+        return
+    _pending_callbacks.erase(request_id)
+    var message := "Campaign Creator Promise rejected"
+    if not arguments.is_empty() and typeof(arguments[0]) == TYPE_STRING:
+        message = str(arguments[0])
+    reject.call(message)
+
+func _request_id(request_json: String) -> String:
+    var decoded: Variant = JSON.parse_string(request_json)
+    if typeof(decoded) == TYPE_DICTIONARY and typeof(decoded.get("requestId")) == TYPE_STRING:
+        return str(decoded.get("requestId"))
+    return ""
+
+func _unavailable_response(request_id: String) -> String:
+    return JSON.stringify({
+        "contract": CONTRACT,
+        "requestId": request_id,
+        "ok": false,
+        "error": {
+            "code": "CREATOR_UNAVAILABLE",
+            "message": "Campaign Creator is unavailable in this runtime."
+        }
+    })

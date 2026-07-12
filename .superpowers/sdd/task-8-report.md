@@ -92,3 +92,12 @@
 
 - GDScript tests remain authored but unexecuted under quarantine.
 - Static verification still reports `PCK_STALE_SPIKE_EXPORT`, and the absent Task 11 core still reports `OFFLINE_CORE_DEFERRED`.
+
+## Controller real-browser diagnostic
+
+- A same-origin browser diagnostic loaded the production `studio.js` and exercised the frozen one-method `window.AdMarketCreator` contract without native Godot.
+- The complete browser flow passed: `open`, `getState`, two revisioned `save` calls, `getState` at revision 1, real Fabric publication, and `close` with focus restoration.
+- Publication returned `published-campaign@1` with a canonical 42,088-character PNG base64 payload produced from the real 1600 by 900 canvas. The diagnostic used one real Fabric `Rect`; no exporter or persistence mocks were present.
+- The diagnostic confirmed `Object.isFrozen(window.AdMarketCreator)`, exactly one `handle` key, no `AdMarketCreatorSpike`, creator hidden after close, game canvas focused, and zero browser warnings/errors.
+- The assembled historical game PCK also booted to its expected explicit `Missing browser global window.AdMarketCreatorSpike` state. This is direct browser evidence for the existing `PCK_STALE_SPIKE_EXPORT` limitation, not a new regression and not an end-to-end production-bridge pass.
+- Both local servers and browser tabs were closed. Final checks found no test listeners and no Godot or WerFault processes. The standalone diagnostic HTML remains at `C:\tmp\admarket-task8-diagnostic.html`; it is outside the project and deploy output.

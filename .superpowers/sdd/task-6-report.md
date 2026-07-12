@@ -2,7 +2,7 @@
 
 ## Outcome
 
-`DONE_WITH_CONCERNS`
+`DONE`
 
 Task 6 implements deterministic masked recolouring, eight local data-only material profiles, SHA-256 variant identity, a lease-aware 48-entry LRU object-URL cache, a narrow same-origin `blob:` raster allowance, and diagnostic fixtures for drinkware, footwear, electronics, and packaging.
 
@@ -45,6 +45,16 @@ npm.cmd run build:studio
 
 Native Godot and Playwright were not run.
 
+## Final real-browser verification
+
+The controller served the exact final `ede6e29` tree with Vite 8.1.4 at `http://127.0.0.1:4178/web/tests/manual/recolouring-diagnostic.html`. In the in-app Chromium browser the diagnostic reported `data-recolouring="pass"` and displayed:
+
+```text
+Four category pixels, highlights and retained Fabric placement passed
+```
+
+The page rendered four blob-backed fixtures labelled drinkware, footwear, electronics and packaging. The diagnostic decoded the final PNGs and checked four-zone independence, master-alpha retention, highlight contrast, retained leases after eviction/disposal and Fabric place → duplicate → serialize → load. Browser warning/error logs were empty. A screenshot confirmed the four material variants rendered. The tab and exact Vite listener were closed.
+
 ## Bounded self-review
 
 No remaining Critical or Important Task 6 defect was found after the review fixes. Coverage now checks:
@@ -66,4 +76,4 @@ This report and the Task 6 patch are committed with `feat: add masked material r
 
 ## Concern
 
-The updated browser diagnostic was not rerun in this bounded handoff. The controller should execute `web/tests/manual/recolouring-diagnostic.html` in the in-app browser and confirm `window.__RECOLOURING_DIAGNOSTIC__.status === "pass"` for the final rendered-pixel check.
+None after the controller-run final browser diagnostic.

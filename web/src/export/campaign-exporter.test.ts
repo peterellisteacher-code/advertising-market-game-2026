@@ -12,12 +12,13 @@ import {
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10] as const;
 
 function pngBytes(width: number, height: number): Uint8Array {
-  const bytes = new Uint8Array(24);
+  const bytes = new Uint8Array(33);
   bytes.set(PNG_SIGNATURE, 0);
   new DataView(bytes.buffer).setUint32(8, 13);
   bytes.set([73, 72, 68, 82], 12);
   new DataView(bytes.buffer).setUint32(16, width);
   new DataView(bytes.buffer).setUint32(20, height);
+  bytes.set([8, 6, 0, 0, 0], 24);
   return bytes;
 }
 
@@ -273,7 +274,20 @@ describe("CampaignExporter", () => {
   it.each([
     ["malformed signature", "data:image/png;base64,Zm9v", /PNG signature/],
     ["wrong dimensions", pngDataUrl(1599, 900), /1600 by 900/],
-    ["wrong IHDR marker", (() => {
+    ["truncated 24-byte header", (() => {
+      const bytes = pngBytes(1600, 900).slice(0, 24);
+      return `data:image/png;base64,${Buffer.from(bytes).toString("base64")}`;
+    })(), /IHDR/],
+    ["truncated 32-byte IHDR chunk", (() => {
+      const bytes = pngBytes(1600, 900).slice(0, 32);
+      return `data:image/png;base64,${Buffer.from(bytes).toString("base64")}`;
+    })(), /IHDR/],
+    ["wrong IHDR length", (() => {
+      const bytes = pngBytes(1600, 900);
+      new DataView(bytes.buffer).setUint32(8, 12);
+      return `data:image/png;base64,${Buffer.from(bytes).toString("base64")}`;
+    })(), /IHDR/],
+    ["wrong IHDR type", (() => {
       const bytes = pngBytes(1600, 900);
       bytes.set([66, 65, 68, 33], 12);
       return `data:image/png;base64,${Buffer.from(bytes).toString("base64")}`;
@@ -287,6 +301,24 @@ describe("CampaignExporter", () => {
     expect(() => new CampaignExporter(port, ownedUrls(document)).publish(document)).toThrow(message);
     expect(port.selection).toBe(selectionBefore);
     expect(port.guides).toBe(guidesBefore);
+  });
+
+  it.each((() => {
+    const canonical = Buffer.from(pngBytes(1600, 900)).toString("base64");
+    const padded = Buffer.from(pngBytes(1600, 900).slice(0, 32)).toString("base64");
+    return [
+      ["wrong MIME", `data:image/jpeg;base64,${canonical}`],
+      ["embedded whitespace", `data:image/png;base64,${canonical.slice(0, 12)}\n${canonical.slice(12)}`],
+      ["URL-safe alphabet", `data:image/png;base64,${canonical.slice(0, -1)}_`],
+      ["junk suffix", `data:image/png;base64,${canonical}!`],
+      ["missing required padding", `data:image/png;base64,${padded.slice(0, -1)}`],
+      ["non-zero padding bits", `data:image/png;base64,${padded.slice(0, -2)}B=`],
+      ["superfluous padding", `data:image/png;base64,${canonical}=`]
+    ] as const;
+  })())("rejects %s in PNG base64", (_label, dataUrl) => {
+    const document = documentFixture();
+    expect(() => new CampaignExporter(new ExportHarness(dataUrl), ownedUrls(document)).publish(document))
+      .toThrow(/base64 PNG data URL/);
   });
 
   it("accepts a zero price and rejects unowned blob URLs or duplicate object IDs", () => {

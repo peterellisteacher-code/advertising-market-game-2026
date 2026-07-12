@@ -49,12 +49,28 @@ export interface RehydratedCampaignDocument {
   release(): void;
 }
 
-function requestResult<T>(request: IDBRequest<T>): Promise<T> {
+function openRequestResult(request: IDBOpenDBRequest, databaseName: string): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    request.addEventListener("success", () => resolve(request.result), { once: true });
-    request.addEventListener("error", () => reject(request.error ?? new Error("IndexedDB request failed")), {
-      once: true
+    let settled = false;
+    request.addEventListener("success", () => {
+      const database = request.result;
+      if (settled) {
+        database.close();
+        return;
+      }
+      settled = true;
+      resolve(database);
     });
+    request.addEventListener("error", () => {
+      if (settled) return;
+      settled = true;
+      reject(request.error ?? new Error("IndexedDB open request failed"));
+    });
+    request.addEventListener("blocked", () => {
+      if (settled) return;
+      settled = true;
+      reject(new Error(`IndexedDB open for ${databaseName} was blocked`));
+    }, { once: true });
   });
 }
 
@@ -101,7 +117,7 @@ function canonicalise(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonicalise);
   if (value !== null && typeof value === "object") {
     return Object.fromEntries(Object.entries(value as Record<string, unknown>)
-      .sort(([left], [right]) => left.localeCompare(right))
+      .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
       .map(([key, child]) => [key, canonicalise(child)]));
   }
   return value;
@@ -277,27 +293,38 @@ export class IndexedDbDraftStore implements DraftStore {
         latestRequest.error ?? new Error("Unable to read latest campaign revision")
       ), { once: true });
       latestRequest.addEventListener("success", () => {
-        const cursor = latestRequest.result;
-        if (!cursor) {
-          resolve(null);
-          return;
+        try {
+          const cursor = latestRequest.result;
+          if (!cursor) {
+            resolve(null);
+            return;
+          }
+          const record = cursor.value as DocumentRecord;
+          const blobsRequest = blobStore.index(DOCUMENT_REVISION_INDEX)
+            .getAll([record.documentId, record.revision]);
+          blobsRequest.addEventListener("error", () => reject(
+            blobsRequest.error ?? new Error("Unable to read campaign blobs")
+          ), { once: true });
+          blobsRequest.addEventListener("success", () => {
+            try {
+              resolve({
+                record,
+                blobs: blobsRequest.result as BlobRecord[]
+              });
+            } catch (error) {
+              abortQuietly(transaction);
+              reject(error);
+            }
+          }, { once: true });
+        } catch (error) {
+          abortQuietly(transaction);
+          reject(error);
         }
-        const record = cursor.value as DocumentRecord;
-        const blobsRequest = blobStore.index(DOCUMENT_REVISION_INDEX)
-          .getAll([record.documentId, record.revision]);
-        blobsRequest.addEventListener("error", () => reject(
-          blobsRequest.error ?? new Error("Unable to read campaign blobs")
-        ), { once: true });
-        blobsRequest.addEventListener("success", () => resolve({
-          record,
-          blobs: blobsRequest.result as BlobRecord[]
-        }), { once: true });
       }, { once: true });
     });
 
     try {
-      const result = await read;
-      await completion;
+      const [result] = await Promise.all([read, completion]);
       if (!result) return null;
       const parsed = migrateCampaignDocument(result.record.document);
       if (parsed.documentId !== result.record.documentId || parsed.revision !== result.record.revision) {
@@ -336,6 +363,6 @@ export class IndexedDbDraftStore implements DraftStore {
         blobs.createIndex(DOCUMENT_REVISION_INDEX, ["documentId", "revision"]);
       }
     });
-    return requestResult(request);
+    return openRequestResult(request, this.databaseName);
   }
 }

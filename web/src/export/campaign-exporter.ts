@@ -100,7 +100,7 @@ function canonicalise(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonicalise);
   if (value !== null && typeof value === "object") {
     return Object.fromEntries(Object.entries(value as Record<string, unknown>)
-      .sort(([left], [right]) => left.localeCompare(right))
+      .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
       .map(([key, child]) => [key, canonicalise(child)]));
   }
   return value;
@@ -113,17 +113,25 @@ function canonicalJson(value: unknown): string {
 function decodePng(dataUrl: string): Uint8Array {
   const prefix = "data:image/png;base64,";
   if (!dataUrl.startsWith(prefix)) throw new Error("Export did not return a base64 PNG data URL");
+  const payload = dataUrl.slice(prefix.length);
+  const canonicalBase64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+  if (!payload || !canonicalBase64.test(payload)) {
+    throw new Error("Export did not return a canonical base64 PNG data URL");
+  }
   let binary: string;
   try {
-    binary = atob(dataUrl.slice(prefix.length));
+    binary = atob(payload);
   } catch {
-    throw new Error("Export has an invalid PNG signature");
+    throw new Error("Export did not return a canonical base64 PNG data URL");
+  }
+  if (btoa(binary) !== payload) {
+    throw new Error("Export did not return a canonical base64 PNG data URL");
   }
   const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
   if (PNG_SIGNATURE.some((byte, index) => bytes[index] !== byte)) {
     throw new Error("Export has an invalid PNG signature");
   }
-  if (bytes.length < 24 || new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(8) !== 13 ||
+  if (bytes.length < 33 || new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(8) !== 13 ||
     IHDR.some((byte, index) => bytes[index + 12] !== byte)) {
     throw new Error("Export is missing a valid PNG IHDR chunk");
   }

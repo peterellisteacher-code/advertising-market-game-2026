@@ -3,6 +3,7 @@ import { Blob as NodeBlob } from "node:buffer";
 import {
   IDBDatabase as FakeIDBDatabase,
   IDBFactory,
+  IDBIndex as FakeIDBIndex,
   IDBObjectStore as FakeIDBObjectStore
 } from "fake-indexeddb";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -161,6 +162,54 @@ async function rawDocumentRecords(factory: IDBFactory, databaseName: string): Pr
 
 async function blobBytes(blob: Blob): Promise<number[]> {
   return Array.from(new Uint8Array(await blob.arrayBuffer()));
+}
+
+async function rejectionWithin(promise: Promise<unknown>): Promise<unknown> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise.then(
+        () => new Error("Promise resolved instead of rejecting"),
+        (error: unknown) => error
+      ),
+      new Promise<Error>((resolve) => {
+        timer = setTimeout(() => resolve(new Error("Timed out waiting for rejection")), 50);
+      })
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+function requestDouble<T>(options: {
+  result?: () => T;
+  error?: () => DOMException | null;
+} = {}): IDBRequest<T> {
+  const request = new EventTarget();
+  Object.defineProperties(request, {
+    result: { configurable: true, get: options.result ?? (() => undefined as T) },
+    error: { configurable: true, get: options.error ?? (() => null) },
+    readyState: { configurable: true, get: () => "pending" },
+    source: { configurable: true, get: () => null },
+    transaction: { configurable: true, get: () => null }
+  });
+  return request as IDBRequest<T>;
+}
+
+function codeUnitCanonicalise(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(codeUnitCanonicalise);
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
+      .map(([key, child]) => [key, codeUnitCanonicalise(child)]));
+  }
+  return value;
+}
+
+async function codeUnitCanonicalHash(value: unknown): Promise<string> {
+  const bytes = new TextEncoder().encode(JSON.stringify(codeUnitCanonicalise(value)));
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 afterEach(() => vi.restoreAllMocks());
@@ -363,6 +412,100 @@ describe("IndexedDbDraftStore", () => {
     await expect(store.save(campaignFixture(), localBlobs()))
       .rejects.toThrow("Synthetic blob write failure");
     expect(await store.load("campaign-a")).toBeNull();
+  });
+
+  it("rejects a blocked database open promptly and closes a late success result", async () => {
+    let lateDatabase: IDBDatabase | undefined;
+    const request = requestDouble<IDBDatabase>({
+      result: () => lateDatabase!
+    }) as IDBOpenDBRequest;
+    const factory = {
+      open: () => request
+    } as unknown as IDBFactory;
+    const store = new IndexedDbDraftStore({ databaseName: "task-7-blocked-open", factory });
+    const pendingLoad = store.load("blocked-document");
+
+    request.dispatchEvent(new Event("blocked"));
+
+    const rejection = await rejectionWithin(pendingLoad);
+    expect(rejection).toBeInstanceOf(Error);
+    expect((rejection as Error).message).toMatch(/blocked/i);
+
+    const close = vi.fn();
+    lateDatabase = { close } as unknown as IDBDatabase;
+    request.dispatchEvent(new Event("success"));
+    expect(close).toHaveBeenCalledOnce();
+  });
+
+  it("consumes both a cursor request error and its transaction abort rejection", async () => {
+    const store = new IndexedDbDraftStore({
+      databaseName: "task-7-read-error-abort",
+      factory: new IDBFactory()
+    });
+    const source = campaignFixture("read-error-abort");
+    await store.save(source, localBlobs());
+    const originalOpenCursor = FakeIDBIndex.prototype.openCursor;
+    const failure = new DOMException("Synthetic cursor request failure", "UnknownError");
+    vi.spyOn(FakeIDBIndex.prototype, "openCursor").mockImplementation(function (
+      this: IDBIndex,
+      ...args: unknown[]
+    ): IDBRequest<IDBCursorWithValue | null> {
+      Reflect.apply(originalOpenCursor, this, args);
+      const transaction = this.objectStore.transaction;
+      const request = requestDouble<IDBCursorWithValue | null>({ error: () => failure });
+      queueMicrotask(() => {
+        request.dispatchEvent(new Event("error"));
+        transaction.abort();
+      });
+      return request;
+    } as typeof originalOpenCursor);
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown): void => { unhandled.push(reason); };
+    process.on("unhandledRejection", onUnhandled);
+
+    try {
+      const rejection = await rejectionWithin(store.load(source.documentId));
+      expect(rejection).toBe(failure);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off("unhandledRejection", onUnhandled);
+    }
+  });
+
+  it("rejects instead of hanging when cursor success processing throws synchronously", async () => {
+    const store = new IndexedDbDraftStore({
+      databaseName: "task-7-cursor-processing-throw",
+      factory: new IDBFactory()
+    });
+    const source = campaignFixture("cursor-processing-throw");
+    await store.save(source, localBlobs());
+    const originalOpenCursor = FakeIDBIndex.prototype.openCursor;
+    vi.spyOn(FakeIDBIndex.prototype, "openCursor").mockImplementation(function (
+      this: IDBIndex,
+      ...args: unknown[]
+    ): IDBRequest<IDBCursorWithValue | null> {
+      Reflect.apply(originalOpenCursor, this, args);
+      const request = requestDouble<IDBCursorWithValue | null>({
+        result: () => { throw new Error("Synthetic cursor processing failure"); }
+      });
+      queueMicrotask(() => request.dispatchEvent(new Event("success")));
+      return request;
+    } as typeof originalOpenCursor);
+
+    const rejection = await rejectionWithin(store.load(source.documentId));
+    expect(rejection).toBeInstanceOf(Error);
+    expect((rejection as Error).message).toBe("Synthetic cursor processing failure");
+  });
+
+  it("uses deterministic UTF-16 code-unit ordering for non-ASCII canonical hashes", async () => {
+    const document = campaignFixture("non-ascii-hash-order");
+    const headline = document.fabricState.objects.find(({ objectId }) => objectId === "headline")!;
+    headline.z = "code-unit-first";
+    headline["ä"] = "code-unit-last";
+
+    expect(await canonicalDurableDocumentHash(document))
+      .toBe(await codeUnitCanonicalHash(document));
   });
 });
 

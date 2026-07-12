@@ -127,3 +127,40 @@ The Task 7 patch and this report are committed with `feat: persist and publish c
 ## Concerns
 
 - None for Task 7. The aggregate package `build` convenience script still depends on a globally resolvable nested `pnpm`; its exact pinned typecheck, full-test and Vite-build constituents all pass and Task 8 owns export assembly.
+
+## Review-fix RED/GREEN evidence — 2026-07-12
+
+The Important/Minor follow-up findings received focused regressions before production changes. The first two-file run at `01d8b85` failed in the expected ways:
+
+```text
+2 files failed; 12 tests failed / 33 passed
+- accepted truncated 24-byte and 32-byte pseudo-PNGs
+- accepted whitespace, missing padding and non-zero pad bits in base64
+- reported invalid-signature rather than canonical-base64 rejection for URL-safe, junk and excess-padding payloads
+- blocked IndexedDB open timed out instead of rejecting
+- paired request-error/transaction-abort produced an unhandled rejection
+- synchronous cursor processing timed out instead of rejecting
+- non-ASCII canonical hash used locale collation rather than UTF-16 code-unit order
+```
+
+Minimal fixes then:
+
+- require the exact PNG data-URL prefix and canonical base64 grammar/round-trip;
+- require at least 33 decoded bytes before reading the complete first PNG chunk, with exact signature, 13-byte `IHDR`, and 1600×900 dimensions;
+- reject `blocked` opens immediately and close a database delivered by any later `success` event;
+- attach transaction completion before requests, consume read/completion together, and abort/reject on synchronous cursor/blob callback exceptions;
+- replace both persistence-hash and export-reconciliation locale sorts with deterministic UTF-16 code-unit comparison.
+
+The first GREEN attempt passed 44/45 focused tests and exposed the second locale-dependent sorter in persistence; after the same minimal comparator fix, fresh verification was:
+
+```text
+Focused persistence/export: 2 files / 45 tests passed
+Full unit suite: 18 files / 138 tests passed (the original 124 plus 14 regressions)
+TypeScript: tsc --noEmit, exit 0
+Production bundle: Vite 8.1.4, exit 0
+  studio.css 0.82 kB; studio.js 2.71 kB
+```
+
+No Godot, server, browser, Playwright or manual diagnostic was launched for this review fix. The requested Vite build overwrote only the two retained generated outputs in `build/studio`; `emptyOutDir` remained false and no other generated entry was removed.
+
+The review fix is committed separately as `fix: harden campaign persistence and PNG validation`; its hash is recorded in the handoff.

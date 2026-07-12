@@ -194,7 +194,12 @@ describe("openverse-image", () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe(`https://api.openverse.org/v1/images/${UUID}/`);
     expect(fetchMock.mock.calls[1]?.[0]).toBe("https://media.example.test/thumb.png");
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: "GET", redirect: "manual", signal: controller.signal });
-    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: "GET", redirect: "manual", signal: controller.signal });
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
+      method: "GET",
+      redirect: "manual",
+      signal: controller.signal,
+      headers: { accept: "*/*" }
+    });
     expect(resolveHost).toHaveBeenCalledWith("media.example.test");
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("image/png");

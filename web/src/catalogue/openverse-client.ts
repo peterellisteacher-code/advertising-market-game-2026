@@ -3,7 +3,7 @@ import type { CatalogAssetV1 } from "./catalogue-types";
 const SEARCH_PATH = "/api/openverse-search";
 const IMAGE_PATH = "/api/openverse-image";
 const REQUEST_TIMEOUT_MS = 8_000;
-const MAX_RECORDS = 30;
+const MAX_RECORDS = 20;
 const MAX_IMAGE_DIMENSION = 16_384;
 const MAX_IMAGE_PIXELS = 64_000_000;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;

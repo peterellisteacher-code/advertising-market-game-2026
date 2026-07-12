@@ -18,6 +18,8 @@ interface SearchDependencies {
   createDeadlineSignal: () => AbortSignal;
 }
 
+const OPENVERSE_ANONYMOUS_PAGE_SIZE = 20;
+
 const defaultDependencies: SearchDependencies = {
   fetch: (input, init) => fetch(input, init),
   createDeadlineSignal: () => AbortSignal.timeout(OPENVERSE_TIMEOUT_MS)
@@ -86,7 +88,7 @@ export function createOpenverseSearchHandler(
     upstream.search = new URLSearchParams({
       q: input.q,
       page: input.page,
-      page_size: "30",
+      page_size: String(OPENVERSE_ANONYMOUS_PAGE_SIZE),
       mature: "false",
       category: "photograph",
       license_type: "modification"
@@ -112,7 +114,7 @@ export function createOpenverseSearchHandler(
       const records = object.results
         .map(mapRecord)
         .filter((record): record is OpenverseResult => record !== null)
-        .slice(0, 30);
+        .slice(0, OPENVERSE_ANONYMOUS_PAGE_SIZE);
       return Response.json({ records }, {
         headers: { "cache-control": "public, max-age=300" }
       });

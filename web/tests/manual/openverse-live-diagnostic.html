@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Openverse live diagnostic</title>
+  </head>
+  <body>
+    <main aria-label="Advertising Market Game">
+      <canvas id="canvas" tabindex="0"></canvas>
+    </main>
+    <div id="creator-root"></div>
+    <script type="module">
+      import "/web/src/main.ts";
+
+      const bridgeRequest = async (requestId, method, payload) => JSON.parse(
+        await window.AdMarketCreator.handle(JSON.stringify({
+          contract: "creator-bridge@1",
+          requestId,
+          method,
+          payload
+        }))
+      );
+
+      const evidenceObject = {
+        rx: 0,
+        ry: 0,
+        objectId: "diagnostic-evidence",
+        elementKind: "shape",
+        accessibleName: "Diagnostic evidence",
+        type: "Rect",
+        version: "7.4.0",
+        originX: "center",
+        originY: "center",
+        left: 100,
+        top: 100,
+        width: 100,
+        height: 100,
+        fill: "#ffffff",
+        stroke: null,
+        strokeWidth: 1,
+        strokeDashArray: null,
+        strokeLineCap: "butt",
+        strokeDashOffset: 0,
+        strokeLineJoin: "miter",
+        strokeUniform: false,
+        strokeMiterLimit: 4,
+        scaleX: 1,
+        scaleY: 1,
+        angle: 0,
+        flipX: false,
+        flipY: false,
+        opacity: 1,
+        shadow: null,
+        visible: true,
+        backgroundColor: "",
+        fillRule: "nonzero",
+        paintFirst: "fill",
+        globalCompositeOperation: "source-over",
+        skewX: 0,
+        skewY: 0
+      };
+
+      const documentFixture = {
+        schemaVersion: 1,
+        editorVersion: "0.1.0",
+        documentId: `live-diagnostic-${Date.now()}`,
+        sessionId: "live-diagnostic-session",
+        mode: "offline",
+        revision: 0,
+        canvas: { width: 1600, height: 900, background: "#ffffff" },
+        fabricState: { version: "7.4.0", objects: [evidenceObject] },
+        drawingLayers: [],
+        product: { name: "Market Spark", priceCents: 1299 },
+        brief: {
+          targetAudienceId: "creative-teens",
+          contextId: "weekend-market",
+          purpose: "persuade",
+          audienceNeeds: ["something useful"],
+          audienceValues: ["originality"],
+          intendedEffects: ["curiosity"],
+          techniques: ["visual contrast"]
+        },
+        evidence: {
+          price: ["diagnostic-evidence"],
+          attention: ["diagnostic-evidence"],
+          interest: ["diagnostic-evidence"],
+          desire: ["diagnostic-evidence"],
+          action: ["diagnostic-evidence"]
+        },
+        assetReferences: [],
+        updatedAt: "2026-07-12T00:00:00.000Z"
+      };
+
+      const opened = await bridgeRequest("diagnostic-open", "open", documentFixture);
+      if (!opened.ok) throw new Error(opened.error?.message ?? "Diagnostic open failed");
+
+      const topbar = document.querySelector(".creator__topbar");
+      const finish = document.createElement("button");
+      finish.type = "button";
+      finish.dataset.diagnosticFinish = "";
+      finish.textContent = "Check placed photo";
+      const result = document.createElement("pre");
+      result.id = "diagnostic-result";
+      result.setAttribute("aria-live", "polite");
+      topbar.append(finish);
+      document.querySelector("#creator-root").append(result);
+
+      finish.addEventListener("click", async () => {
+        finish.disabled = true;
+        try {
+          const state = await bridgeRequest("diagnostic-state", "getState", null);
+          const saved = await bridgeRequest("diagnostic-save", "save", null);
+          const published = await bridgeRequest("diagnostic-publish", "publish", null);
+          const payload = state.payload;
+          const png = published.payload?.pngBase64 ?? "";
+          const binary = png ? atob(png) : "";
+          const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+          const view = bytes.byteLength >= 24
+            ? new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+            : null;
+          const summary = {
+            open: opened.ok,
+            state: state.ok,
+            save: saved.ok,
+            publish: published.ok,
+            objects: payload?.fabricState?.objects?.length ?? 0,
+            catalogReferences: payload?.assetReferences?.filter((entry) => entry.kind === "catalog").length ?? 0,
+            localBlobReferences: payload?.assetReferences?.filter((entry) => entry.kind === "local-blob").length ?? 0,
+            publishedCatalogReferences: published.payload?.metadata?.assetReferences?.filter((entry) => entry.kind === "catalog").length ?? 0,
+            pngBytes: bytes.byteLength,
+            pngWidth: view?.getUint32(16) ?? 0,
+            pngHeight: view?.getUint32(20) ?? 0
+          };
+          result.textContent = JSON.stringify(summary, null, 2);
+        } catch (error) {
+          result.textContent = JSON.stringify({ error: error instanceof Error ? error.message : String(error) });
+        } finally {
+          finish.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

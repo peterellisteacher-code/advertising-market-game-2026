@@ -149,8 +149,8 @@ describe("OpenverseClient", () => {
     await expect(pending).resolves.toEqual({ status: "offline", records: [] });
   });
 
-  it("rejects responses containing more than the server maximum of 30 records", async () => {
-    const records = Array.from({ length: 31 }, (_, index) => remoteRecord({
+  it("rejects responses containing more than the anonymous server maximum of 20 records", async () => {
+    const records = Array.from({ length: 21 }, (_, index) => remoteRecord({
       id: `${index.toString(16).padStart(8, "0")}-e89b-42d3-a456-426614174000`,
       thumbnailUrl: `/api/openverse-image/${index.toString(16).padStart(8, "0")}-e89b-42d3-a456-426614174000?variant=thumbnail`
     }));

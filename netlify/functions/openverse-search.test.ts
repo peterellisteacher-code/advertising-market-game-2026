@@ -24,7 +24,7 @@ const upstreamRecord = (overrides: Record<string, unknown> = {}) => ({
 });
 
 const successfulUpstream = (records = [upstreamRecord()]): Response =>
-  Response.json({ result_count: records.length, page_count: 1, page_size: 30, page: 1, results: records });
+  Response.json({ result_count: records.length, page_count: 1, page_size: 20, page: 1, results: records });
 
 const readJson = async (response: Response): Promise<Record<string, unknown>> =>
   await response.json() as Record<string, unknown>;
@@ -112,7 +112,7 @@ describe("openverse-search", () => {
     expect(Object.fromEntries(upstream.searchParams)).toEqual({
       q: "🐨a",
       page: "2",
-      page_size: "30",
+      page_size: "20",
       mature: "false",
       category: "photograph",
       license_type: "modification"
@@ -155,8 +155,8 @@ describe("openverse-search", () => {
     expect((await response.json() as { records: unknown[] }).records).toHaveLength(1);
   });
 
-  it("caps output at 30 even if the upstream ignores page_size", async () => {
-    const records = Array.from({ length: 35 }, (_, index) => upstreamRecord({
+  it("caps output at the anonymous 20-result limit even if the upstream ignores page_size", async () => {
+    const records = Array.from({ length: 25 }, (_, index) => upstreamRecord({
       id: `${index.toString(16).padStart(8, "0")}-e89b-42d3-a456-426614174000`
     }));
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(successfulUpstream(records)));
@@ -166,7 +166,7 @@ describe("openverse-search", () => {
       context
     );
 
-    expect((await response.json() as { records: unknown[] }).records).toHaveLength(30);
+    expect((await response.json() as { records: unknown[] }).records).toHaveLength(20);
   });
 
   it("rejects upstream JSON that exceeds one MiB before parsing", async () => {

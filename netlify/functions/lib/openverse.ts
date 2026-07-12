@@ -358,7 +358,10 @@ export async function fetchSafeImage(
       method: "GET",
       redirect: "manual",
       signal: dependencies.signal,
-      headers: { accept: "image/png, image/jpeg, image/webp" }
+      // Some Openverse-owned thumbnail endpoints return 406 for a narrowed
+      // image Accept header. The response is still constrained below by MIME,
+      // signature, decoded dimensions and the byte ceiling.
+      headers: { accept: "*/*" }
     });
     if (!REDIRECT_STATUSES.has(response.status)) return response;
     if (redirectCount >= OPENVERSE_MAX_REDIRECTS) {

@@ -2,7 +2,7 @@
 
 ## Outcome
 
-`CODE COMPLETE — REAL-BROWSER DIAGNOSTIC PENDING CONTROLLER`
+`DONE`
 
 Task 7 adds immutable revisioned IndexedDB storage, explicit schema-zero migration, durable local-Blob rehydration, authoritative Price/AIDA evidence, clean 1600×900 PNG publication, and a guarded real-reload browser diagnostic.
 
@@ -106,7 +106,15 @@ Native Godot, Godot headless/editor/MCP, and Playwright were not launched.
 7. validates PNG signature/IHDR and samples a white pixel where a magenta guide would have leaked;
 8. releases owned URLs and clears only its own diagnostic database.
 
-No browser claim is made in this report because the controller owns the real reload diagnostic.
+## Final real-browser verification
+
+The controller served the exact committed Task 7 tree with Vite 8.1.4 at `http://127.0.0.1:4179/web/tests/manual/persistence-publish-diagnostic.html`. The Chromium page performed its guarded reload and reported `data-persistence-publish="pass"`:
+
+```text
+Reloaded 5 editable objects; canonical hash, Blob bytes and clean 1600×900 PNG passed
+```
+
+The final preview decoded at `1600×900`; the page proved a fresh owned Blob URL, exact persisted bytes, equal durable hash/object count, a working post-reload text/transform edit, restored active selection and guide order, PNG signature/IHDR, and a white guide-probe pixel. Browser warning/error logs were empty. Screenshots showed the editable canvas with its restored controls/guide and the separate clean PNG without either. The tab and exact Vite listener were closed.
 
 ## Bounded self-review
 
@@ -118,5 +126,4 @@ The Task 7 patch and this report are committed with `feat: persist and publish c
 
 ## Concerns
 
-- The real save → reload → load → edit → publish browser result remains pending the controller run.
-- The aggregate package `build` script depends on a globally resolvable nested `pnpm`; direct pinned typecheck, full tests and Vite build all pass.
+- None for Task 7. The aggregate package `build` convenience script still depends on a globally resolvable nested `pnpm`; its exact pinned typecheck, full-test and Vite-build constituents all pass and Task 8 owns export assembly.

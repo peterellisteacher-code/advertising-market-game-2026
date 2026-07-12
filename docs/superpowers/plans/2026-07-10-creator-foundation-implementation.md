@@ -680,9 +680,17 @@ const slotMap = z.object({
   desire: z.array(z.string()), action: z.array(z.string())
 });
 
+const fabricObjectState = z.object({
+  objectId: z.string().min(1),
+  elementKind: z.enum(["text", "shape", "image", "drawing", "masked-component"]),
+  assetId: z.string().min(1).optional(),
+  sourceHash: z.string().min(1).optional(),
+  accessibleName: z.string().min(1)
+}).passthrough();
+
 const fabricState = z.object({
   version: z.string().min(1),
-  objects: z.array(z.record(z.string(), z.unknown()))
+  objects: z.array(fabricObjectState)
 }).passthrough();
 
 export const CampaignDocumentSchema = z.object({
@@ -778,7 +786,8 @@ pnpm test:unit -- web/src/domain/campaign-document.test.ts web/src/fabric/fabric
 pnpm typecheck
 ```
 
-Expected: three passing tests; typecheck exit `0`.
+Expected: five passing tests, including rejection of a saved Fabric object that
+lacks application metadata; typecheck exit `0`.
 
 - [ ] **Step 5: Commit the document contract**
 

@@ -1,11 +1,14 @@
 export type AidaSlot = "price" | "attention" | "interest" | "desire" | "action";
 
-export type ElementKind =
-  | "text"
-  | "shape"
-  | "image"
-  | "drawing"
-  | "masked-component";
+export const ELEMENT_KINDS = [
+  "text",
+  "shape",
+  "image",
+  "drawing",
+  "masked-component"
+] as const;
+
+export type ElementKind = typeof ELEMENT_KINDS[number];
 
 export interface EditorObjectMeta {
   objectId: string;

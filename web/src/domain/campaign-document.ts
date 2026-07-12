@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CREATOR_CONFIG } from "../config";
+import { ELEMENT_KINDS } from "./editor-object";
 
 const slotMap = z.object({
   price: z.array(z.string()),
@@ -9,9 +10,17 @@ const slotMap = z.object({
   action: z.array(z.string())
 });
 
+const fabricObjectState = z.object({
+  objectId: z.string().min(1),
+  elementKind: z.enum(ELEMENT_KINDS),
+  assetId: z.string().min(1).optional(),
+  sourceHash: z.string().min(1).optional(),
+  accessibleName: z.string().min(1)
+}).passthrough();
+
 const fabricState = z.object({
   version: z.string().min(1),
-  objects: z.array(z.record(z.string(), z.unknown()))
+  objects: z.array(fabricObjectState)
 }).passthrough();
 
 export const CampaignDocumentSchema = z.object({

@@ -1,0 +1,338 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://admarket.classroom.invalid/schemas/asset-source-v1.schema.json",
+  "title": "Advertising Market authored asset source v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "packId", "sheets", "assets", "virtualAssets"],
+  "properties": {
+    "schema": { "const": "asset-source@1" },
+    "packId": { "$ref": "#/$defs/portableId" },
+    "sheets": {
+      "type": "array",
+      "maxItems": 256,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/sheet" }
+    },
+    "assets": {
+      "type": "array",
+      "maxItems": 1000,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/baseAsset" }
+    },
+    "virtualAssets": {
+      "type": "array",
+      "maxItems": 20000,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/virtualAsset" }
+    }
+  },
+  "$defs": {
+    "portableId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "pattern": "^(?!(?:con|prn|aux|nul|clock\\$|com[1-9]|lpt[1-9])$)[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 180,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*[\\\\:%?#])(?!.*//)[^/]+(?:/[^/]+)*$"
+    },
+    "zone": { "enum": ["body", "trim", "accent", "label"] },
+    "zones": {
+      "type": "array",
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/zone" }
+    },
+    "materialProfile": {
+      "enum": [
+        "matte-plastic",
+        "gloss-plastic",
+        "rubber",
+        "cardboard",
+        "fabric",
+        "glass",
+        "brushed-metal",
+        "wood"
+      ]
+    },
+    "materialProfiles": {
+      "type": "array",
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/materialProfile" }
+    },
+    "tag": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "pattern": "^\\S(?:.*\\S)?$"
+    },
+    "tags": {
+      "type": "array",
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/tag" }
+    },
+    "anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "x", "y", "accepts"],
+      "properties": {
+        "id": { "$ref": "#/$defs/portableId" },
+        "x": { "type": "number", "minimum": 0, "maximum": 1 },
+        "y": { "type": "number", "minimum": 0, "maximum": 1 },
+        "accepts": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/portableId" }
+        }
+      }
+    },
+    "attribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["creator", "sourceUrl", "license"],
+      "properties": {
+        "creator": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "sourceUrl": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "license": { "type": "string", "minLength": 1, "maxLength": 2048 }
+      }
+    },
+    "zoneStyle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["colour", "materialId", "opacity"],
+      "properties": {
+        "colour": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+        "materialId": { "$ref": "#/$defs/materialProfile" },
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "zoneStyles": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "body": { "$ref": "#/$defs/zoneStyle" },
+        "trim": { "$ref": "#/$defs/zoneStyle" },
+        "accent": { "$ref": "#/$defs/zoneStyle" },
+        "label": { "$ref": "#/$defs/zoneStyle" }
+      }
+    },
+    "masks": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "body": { "$ref": "#/$defs/relativePath" },
+        "trim": { "$ref": "#/$defs/relativePath" },
+        "accent": { "$ref": "#/$defs/relativePath" },
+        "label": { "$ref": "#/$defs/relativePath" }
+      }
+    },
+    "sheet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "sheetId",
+        "sourcePath",
+        "sourceSha256",
+        "chromaRgb",
+        "colourDistanceFormula",
+        "threshold",
+        "alphaCutoff",
+        "componentAreaFloor",
+        "padding",
+        "gutter",
+        "expectedComponentCount",
+        "outputIds"
+      ],
+      "properties": {
+        "schema": { "const": "asset-sheet@1" },
+        "sheetId": { "$ref": "#/$defs/portableId" },
+        "sourcePath": { "$ref": "#/$defs/relativePath" },
+        "sourceSha256": { "$ref": "#/$defs/sha256" },
+        "chromaRgb": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "type": "integer", "minimum": 0, "maximum": 255 }
+        },
+        "colourDistanceFormula": { "const": "cie76-srgb-d65" },
+        "threshold": { "type": "number", "minimum": 0, "maximum": 200 },
+        "alphaCutoff": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "componentAreaFloor": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216
+        },
+        "padding": { "type": "integer", "minimum": 0, "maximum": 4096 },
+        "gutter": { "type": "integer", "minimum": 0, "maximum": 4096 },
+        "expectedComponentCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256
+        },
+        "outputIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/portableId" }
+        }
+      }
+    },
+    "baseAsset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "accepted",
+        "sourceSha256",
+        "title",
+        "category",
+        "tags",
+        "kind",
+        "masks",
+        "recolourZones",
+        "anchors",
+        "materialProfiles",
+        "attribution"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/portableId" },
+        "accepted": { "type": "boolean" },
+        "sourcePath": { "$ref": "#/$defs/relativePath" },
+        "sheetId": { "$ref": "#/$defs/portableId" },
+        "sheetOutputId": { "$ref": "#/$defs/portableId" },
+        "sourceSha256": { "$ref": "#/$defs/sha256" },
+        "rejectionReason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "pattern": "^\\S(?:.*\\S)?$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^\\S(?:.*\\S)?$"
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "^\\S(?:.*\\S)?$"
+        },
+        "tags": { "$ref": "#/$defs/tags" },
+        "kind": {
+          "enum": [
+            "raster-master",
+            "component",
+            "svg",
+            "texture",
+            "shape",
+            "photo",
+            "shell"
+          ]
+        },
+        "masks": { "$ref": "#/$defs/masks" },
+        "recolourZones": { "$ref": "#/$defs/zones" },
+        "anchors": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/anchor" }
+        },
+        "materialProfiles": { "$ref": "#/$defs/materialProfiles" },
+        "classroomReviewed": { "type": "boolean", "default": false },
+        "brandFree": { "type": "boolean", "default": false },
+        "attribution": { "$ref": "#/$defs/attribution" },
+        "defaultZoneStyles": { "$ref": "#/$defs/zoneStyles" }
+      },
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "required": ["sourcePath"],
+              "not": {
+                "anyOf": [
+                  { "required": ["sheetId"] },
+                  { "required": ["sheetOutputId"] }
+                ]
+              }
+            },
+            {
+              "required": ["sheetId", "sheetOutputId"],
+              "not": { "required": ["sourcePath"] }
+            }
+          ]
+        },
+        {
+          "if": {
+            "required": ["accepted"],
+            "properties": { "accepted": { "const": false } }
+          },
+          "then": { "required": ["rejectionReason"] },
+          "else": { "not": { "required": ["rejectionReason"] } }
+        },
+        { "$ref": "#/$defs/bodyMaskAgreement" },
+        { "$ref": "#/$defs/trimMaskAgreement" },
+        { "$ref": "#/$defs/accentMaskAgreement" },
+        { "$ref": "#/$defs/labelMaskAgreement" }
+      ]
+    },
+    "virtualAsset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "parentId"],
+      "properties": {
+        "id": { "$ref": "#/$defs/portableId" },
+        "parentId": { "$ref": "#/$defs/portableId" },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^\\S(?:.*\\S)?$"
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "^\\S(?:.*\\S)?$"
+        },
+        "tags": { "$ref": "#/$defs/tags" },
+        "defaultZoneStyles": { "$ref": "#/$defs/zoneStyles" }
+      }
+    },
+    "bodyMaskAgreement": {
+      "if": { "properties": { "recolourZones": { "contains": { "const": "body" } } } },
+      "then": { "properties": { "masks": { "required": ["body"] } } },
+      "else": { "properties": { "masks": { "not": { "required": ["body"] } } } }
+    },
+    "trimMaskAgreement": {
+      "if": { "properties": { "recolourZones": { "contains": { "const": "trim" } } } },
+      "then": { "properties": { "masks": { "required": ["trim"] } } },
+      "else": { "properties": { "masks": { "not": { "required": ["trim"] } } } }
+    },
+    "accentMaskAgreement": {
+      "if": { "properties": { "recolourZones": { "contains": { "const": "accent" } } } },
+      "then": { "properties": { "masks": { "required": ["accent"] } } },
+      "else": { "properties": { "masks": { "not": { "required": ["accent"] } } } }
+    },
+    "labelMaskAgreement": {
+      "if": { "properties": { "recolourZones": { "contains": { "const": "label" } } } },
+      "then": { "properties": { "masks": { "required": ["label"] } } },
+      "else": { "properties": { "masks": { "not": { "required": ["label"] } } } }
+    }
+  }
+}

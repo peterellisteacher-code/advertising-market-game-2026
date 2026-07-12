@@ -9,30 +9,63 @@ import {
   type LivePhotoClient
 } from "./catalogue-runtime";
 
-const asset = (id: string, kind: CatalogAssetV1["kind"] = "component"): CatalogAssetV1 => ({
-  schema: "catalog-asset@1",
-  id,
-  version: 2,
-  kind,
-  title: kind === "photo" ? "Market photo" : "Reviewed bottle",
-  category: kind === "photo" ? "photos" : "drinkware",
-  tags: [kind === "photo" ? "market" : "bottle"],
-  files: {
-    thumbnail: `/catalog/${id}-192.webp`,
-    preview: `/catalog/${id}-640.webp`,
-    master: `/catalog/${id}.png`
-  },
-  recolourZones: [],
-  anchors: [],
-  materialProfiles: [],
-  classroomReviewed: kind !== "photo",
-  brandFree: kind !== "photo",
-  attribution: {
-    creator: kind === "photo" ? "A. Photographer" : "Classroom pack",
-    sourceUrl: kind === "photo" ? "https://example.test/photo" : "local",
-    license: kind === "photo" ? "CC BY 4.0" : "classroom-session"
+const asset = (id: string, kind: CatalogAssetV1["kind"] = "component"): CatalogAssetV1 => {
+  if (kind === "photo") {
+    return {
+      schema: "catalog-asset@1",
+      delivery: "live-photo",
+      id,
+      version: 1,
+      kind: "photo",
+      title: "Market photo",
+      category: "photos",
+      tags: ["market"],
+      files: {
+        thumbnail: `/api/openverse-image/${id}?variant=thumbnail`,
+        preview: `/api/openverse-image/${id}`,
+        master: `/api/openverse-image/${id}`
+      },
+      dimensions: { width: 1_600, height: 900 },
+      recolourZones: [],
+      anchors: [],
+      materialProfiles: [],
+      classroomReviewed: false,
+      brandFree: false,
+      attribution: {
+        creator: "A. Photographer",
+        sourceUrl: "https://example.test/photo",
+        license: "CC BY 4.0"
+      }
+    };
   }
-});
+  return {
+    schema: "catalog-asset@1",
+    delivery: "offline",
+    id,
+    version: 1,
+    kind,
+    title: "Reviewed bottle",
+    category: "drinkware",
+    tags: ["bottle"],
+    files: {
+      thumbnail: `/catalog/generated/offline-core-v1/assets/${id}/thumbnail-192.webp`,
+      preview: `/catalog/generated/offline-core-v1/assets/${id}/preview-640.webp`,
+      master: `/catalog/generated/offline-core-v1/assets/${id}/master.png`
+    },
+    masterSha256: "a".repeat(64),
+    dimensions: { width: 320, height: 640 },
+    recolourZones: [],
+    anchors: [],
+    materialProfiles: [],
+    classroomReviewed: true,
+    brandFree: true,
+    attribution: {
+      creator: "Classroom pack",
+      sourceUrl: "local",
+      license: "classroom-session"
+    }
+  };
+};
 
 const OPENVERSE_ID = "123e4567-e89b-42d3-a456-426614174000";
 const openverseAsset = (): CatalogAssetV1 => ({
@@ -251,7 +284,7 @@ describe("CataloguePlacementQueue", () => {
       kind: "catalog",
       objectId: "catalog-object",
       assetId: "core",
-      assetVersion: 2,
+      assetVersion: 1,
       attribution: asset("core").attribution
     }]);
   });

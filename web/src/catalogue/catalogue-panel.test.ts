@@ -13,6 +13,7 @@ const asset = (
   thumbnail = `/catalog/${id}-192.webp`
 ): CatalogAssetV1 => ({
   schema: "catalog-asset@1",
+  delivery: "offline",
   id,
   version: 1,
   kind: "component",
@@ -21,9 +22,12 @@ const asset = (
   tags,
   files: {
     thumbnail,
-    preview: `/catalog/${id}-640.webp`,
-    master: `/catalog/${id}.png`
+    preview: `/catalog/generated/offline-core-v1/assets/${id}/preview-640.webp`,
+    master: `/catalog/generated/offline-core-v1/assets/${id}/master.png`,
+    masks: { body: `/catalog/generated/offline-core-v1/assets/${id}/masks/body.png` }
   },
+  masterSha256: "a".repeat(64),
+  dimensions: { width: 320, height: 640 },
   recolourZones: ["body"],
   classroomReviewed: true,
   brandFree: true,

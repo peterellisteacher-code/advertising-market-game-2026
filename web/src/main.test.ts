@@ -514,17 +514,21 @@ describe("window.AdMarketCreator", () => {
   it("searches the offline core, places a raster, and drains its durable reference before state and save", async () => {
     const core = {
       schema: "catalog-asset@1",
+      delivery: "offline",
       id: "core-bottle",
-      version: 3,
+      version: 1,
       kind: "component",
       title: "Reviewed bottle",
       category: "drinkware",
       tags: ["bottle"],
       files: {
-        thumbnail: "/catalog/core-bottle-192.webp",
-        preview: "/catalog/core-bottle-640.webp",
-        master: "/catalog/core-bottle.png"
+        thumbnail: "/catalog/generated/offline-core-v1/assets/core-bottle/thumbnail-192.webp",
+        preview: "/catalog/generated/offline-core-v1/assets/core-bottle/preview-640.webp",
+        master: "/catalog/generated/offline-core-v1/assets/core-bottle/master.png",
+        masks: { body: "/catalog/generated/offline-core-v1/assets/core-bottle/masks/body.png" }
       },
+      masterSha256: "a".repeat(64),
+      dimensions: { width: 320, height: 640 },
       recolourZones: ["body"],
       anchors: [],
       materialProfiles: ["matte-plastic"],
@@ -558,7 +562,7 @@ describe("window.AdMarketCreator", () => {
         kind: "catalog",
         objectId: expect.any(String),
         assetId: "core-bottle",
-        assetVersion: 3,
+        assetVersion: 1,
         attribution: core.attribution
       }]
     });

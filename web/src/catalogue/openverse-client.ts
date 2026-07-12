@@ -73,17 +73,19 @@ const toCatalogAsset = (record: RemoteRecord): CatalogAssetV1 => {
   const full = `${IMAGE_PATH}/${record.id}`;
   return {
     schema: "catalog-asset@1",
+    delivery: "live-photo",
     id: record.id,
     version: 1,
     kind: "photo",
     title: record.title,
     category: "photos",
-    tags: ["photo", "openverse"],
+    tags: ["openverse", "photo"],
     files: {
       thumbnail: record.thumbnailUrl,
       preview: full,
       master: full
     },
+    dimensions: { width: record.width, height: record.height },
     recolourZones: [],
     anchors: [],
     materialProfiles: [],

@@ -1,7 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
 import {
+  assembleWebExport,
   assertResolvedGodotShell,
   injectOfflineCatalogueUrl,
   injectStudioAssets
@@ -58,6 +63,42 @@ test("offline catalogue root metadata is optional, local, and idempotent", () =>
   );
 });
 
+test("assembly recursively copies the complete optional offline core tree", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "admarket-offline-core-"));
+  const studio = path.join(root, "build", "studio");
+  const web = path.join(root, "build", "web");
+  const core = path.join(root, "catalog", "generated", "offline-core-v1");
+  await Promise.all([
+    mkdir(studio, { recursive: true }),
+    mkdir(web, { recursive: true }),
+    mkdir(path.join(core, "assets", "fixture", "masks"), { recursive: true })
+  ]);
+  await Promise.all([
+    writeFile(path.join(studio, "studio.js"), "window.AdMarketCreator = {};"),
+    writeFile(path.join(studio, "studio.css"), ".creator{}"),
+    writeFile(path.join(web, "index.html"), '<html><head></head><body><div id="creator-root"></div><script src="./index.js"></script></body></html>'),
+    writeFile(path.join(web, "index.js"), "const local = true;"),
+    writeFile(path.join(web, "index.wasm"), Buffer.from([0])),
+    writeFile(path.join(web, "index.pck"), Buffer.from([1])),
+    writeFile(path.join(core, "catalog.json"), "[]\n"),
+    writeFile(path.join(core, "assets", "fixture", "master.png"), Buffer.from([1, 2, 3])),
+    writeFile(path.join(core, "assets", "fixture", "preview-640.webp"), Buffer.from([4, 5])),
+    writeFile(path.join(core, "assets", "fixture", "masks", "body.png"), Buffer.from([6]))
+  ]);
+
+  await assembleWebExport({ root, requireOfflineCore: true, log: () => {} });
+
+  assert.deepEqual(
+    await readFile(path.join(web, "catalog", "generated", "offline-core-v1", "assets", "fixture", "master.png")),
+    Buffer.from([1, 2, 3])
+  );
+  assert.deepEqual(
+    await readFile(path.join(web, "catalog", "generated", "offline-core-v1", "assets", "fixture", "masks", "body.png")),
+    Buffer.from([6])
+  );
+  assert.match(await readFile(path.join(web, "index.html"), "utf8"), /data-offline-catalogue-url/);
+});
+
 test("verification accepts the no-thread local production export and reports the stale spike PCK", () => {
   const result = inspectExportContents({
     files: new Map([
@@ -100,5 +141,61 @@ test("verification fails closed on legacy, remote, threaded, or duplicate bridge
       pckHash: "not-stale"
     }),
     /verification failed/i
+  );
+});
+
+test("verification checks every optional offline-core file reference and master hash", () => {
+  const master = Buffer.from([1, 2, 3, 4]);
+  const masterHash = createHash("sha256").update(master).digest("hex");
+  const prefix = "catalog/generated/offline-core-v1/assets/fixture";
+  const files = new Map([
+    ["index.html", '<link rel="stylesheet" href="./studio/studio.css"><script src="./studio/studio.js"></script><script src="./index.js"></script>'],
+    ["index.js", "const target = 'wasm32.nothreads'; const audio = new AudioWorklet();"],
+    ["index.wasm", Buffer.from([0])],
+    ["index.pck", Buffer.from([1])],
+    ["index.audio.worklet.js", "class GodotAudioWorklet {}"],
+    ["studio/studio.css", ".creator{}"],
+    ["studio/studio.js", "window.AdMarketCreator = publicApi;"],
+    ["godot/export_presets.cfg", "variant/thread_support=false"],
+    [`${prefix}/master.png`, master],
+    [`${prefix}/preview-640.webp`, Buffer.from([5])],
+    [`${prefix}/thumbnail-192.webp`, Buffer.from([6])],
+    ["catalog/generated/offline-core-v1/catalog.json", JSON.stringify([{
+      files: {
+        master: `/${prefix}/master.png`,
+        preview: `/${prefix}/preview-640.webp`,
+        thumbnail: `/${prefix}/thumbnail-192.webp`
+      },
+      masterSha256: masterHash
+    }])]
+  ]);
+
+  assert.doesNotThrow(() => inspectExportContents({ files, pckHash: "current" }));
+
+  const missing = new Map(files);
+  missing.delete(`${prefix}/preview-640.webp`);
+  assert.throws(
+    () => inspectExportContents({ files: missing, pckHash: "current" }),
+    /offline catalogue references missing file/i
+  );
+
+  const corrupt = new Map(files);
+  corrupt.set(`${prefix}/master.png`, Buffer.from([9]));
+  assert.throws(
+    () => inspectExportContents({ files: corrupt, pckHash: "current" }),
+    /offline catalogue master hash mismatch/i
+  );
+
+  const missingHash = new Map(files);
+  missingHash.set("catalog/generated/offline-core-v1/catalog.json", JSON.stringify([{
+    files: {
+      master: `/${prefix}/master.png`,
+      preview: `/${prefix}/preview-640.webp`,
+      thumbnail: `/${prefix}/thumbnail-192.webp`
+    }
+  }]));
+  assert.throws(
+    () => inspectExportContents({ files: missingHash, pckHash: "current" }),
+    /offline catalogue record 0 has no valid masterSha256/i
   );
 });

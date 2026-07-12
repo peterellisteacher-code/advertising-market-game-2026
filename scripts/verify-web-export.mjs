@@ -24,6 +24,55 @@ function count(text, pattern) {
   return text.match(pattern)?.length ?? 0;
 }
 
+function verifyOfflineCatalogue(files, errors) {
+  const catalogPath = "catalog/generated/offline-core-v1/catalog.json";
+  if (!files.has(catalogPath)) return;
+  let records;
+  try {
+    records = JSON.parse(asText(files.get(catalogPath)));
+  } catch {
+    errors.push("offline catalogue JSON is malformed");
+    return;
+  }
+  if (!Array.isArray(records) || records.length > 20_000) {
+    errors.push("offline catalogue must be an array of at most 20000 records");
+    return;
+  }
+  for (const [index, record] of records.entries()) {
+    if (!record || typeof record !== "object" || Array.isArray(record) ||
+      !record.files || typeof record.files !== "object" || Array.isArray(record.files)) {
+      errors.push(`offline catalogue record ${index} has no file contract`);
+      continue;
+    }
+    const references = [record.files.master, record.files.preview, record.files.thumbnail];
+    if (record.files.masks && typeof record.files.masks === "object" && !Array.isArray(record.files.masks)) {
+      references.push(...Object.values(record.files.masks));
+    }
+    for (const reference of references) {
+      if (typeof reference !== "string" ||
+        !reference.startsWith("/catalog/generated/offline-core-v1/") ||
+        reference.includes("\\") || reference.includes("..") || reference.includes("?") || reference.includes("#")) {
+        errors.push(`offline catalogue record ${index} has a noncanonical file reference`);
+        continue;
+      }
+      if (!files.has(reference.slice(1))) {
+        errors.push(`offline catalogue references missing file: ${reference}`);
+      }
+    }
+    const masterKey = typeof record.files.master === "string" ? record.files.master.slice(1) : "";
+    const master = files.get(masterKey);
+    if (typeof record.masterSha256 !== "string" || !/^[0-9a-f]{64}$/.test(record.masterSha256)) {
+      errors.push(`offline catalogue record ${index} has no valid masterSha256`);
+    } else if (master !== undefined) {
+      const bytes = Buffer.isBuffer(master) ? master : Buffer.from(String(master));
+      const actual = createHash("sha256").update(bytes).digest("hex");
+      if (actual !== record.masterSha256) {
+        errors.push(`offline catalogue master hash mismatch: ${record.files.master}`);
+      }
+    }
+  }
+}
+
 /** Pure verification core. It verifies static export evidence, not an end-to-end browser bridge. */
 export function inspectExportContents({ files, pckHash }) {
   const errors = [];
@@ -68,6 +117,8 @@ export function inspectExportContents({ files, pckHash }) {
     errors.push("no-thread AudioWorklet evidence is missing");
   }
 
+  verifyOfflineCatalogue(files, errors);
+
   if (pckHash === STALE_SPIKE_PCK_HASH) warnings.push("PCK_STALE_SPIKE_EXPORT");
   if (errors.length > 0) {
     throw new Error(`Web export verification failed:\n- ${errors.join("\n- ")}`);
@@ -89,6 +140,31 @@ async function readIfPresent(filePath, binary = false) {
   }
 }
 
+async function readTreeIfPresent(directory, prefix = "") {
+  let entries;
+  try {
+    entries = await readdir(directory, { withFileTypes: true });
+  } catch (error) {
+    if (error && typeof error === "object" && error.code === "ENOENT") return new Map();
+    throw error;
+  }
+  const result = new Map();
+  entries.sort((left, right) => left.name.localeCompare(right.name));
+  for (const entry of entries) {
+    if (entry.isSymbolicLink()) throw new Error(`Refusing symbolic link in web export: ${path.join(prefix, entry.name)}`);
+    const relative = path.posix.join(prefix, entry.name);
+    const absolute = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      for (const [name, value] of await readTreeIfPresent(absolute, relative)) result.set(name, value);
+    } else if (entry.isFile()) {
+      result.set(relative, await readFile(absolute));
+    } else {
+      throw new Error(`Refusing special file in web export: ${relative}`);
+    }
+  }
+  return result;
+}
+
 export async function verifyWebExport(exportDir, projectRoot = DEFAULT_ROOT) {
   const files = new Map();
   const rootNames = await listRootFiles(exportDir);
@@ -99,6 +175,9 @@ export async function verifyWebExport(exportDir, projectRoot = DEFAULT_ROOT) {
   for (const name of ["studio/studio.css", "studio/studio.js"]) {
     const value = await readIfPresent(path.join(exportDir, ...name.split("/")));
     if (value !== undefined) files.set(name, value);
+  }
+  for (const [name, value] of await readTreeIfPresent(path.join(exportDir, "catalog"), "catalog")) {
+    files.set(name, value);
   }
   const preset = await readIfPresent(path.join(projectRoot, "godot", "export_presets.cfg"));
   if (preset !== undefined) files.set("godot/export_presets.cfg", preset);

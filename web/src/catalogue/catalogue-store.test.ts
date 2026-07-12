@@ -4,6 +4,7 @@ import { loadOfflineCatalogue } from "./catalogue-store";
 
 const asset = (id = "core-bottle"): CatalogAssetV1 => ({
   schema: "catalog-asset@1",
+  delivery: "offline",
   id,
   version: 1,
   kind: "component",
@@ -11,10 +12,13 @@ const asset = (id = "core-bottle"): CatalogAssetV1 => ({
   category: "drinkware",
   tags: ["bottle"],
   files: {
-    thumbnail: `/catalog/${id}-192.webp`,
-    preview: `/catalog/${id}-640.webp`,
-    master: `/catalog/${id}.png`
+    thumbnail: `/catalog/generated/offline-core-v1/assets/${id}/thumbnail-192.webp`,
+    preview: `/catalog/generated/offline-core-v1/assets/${id}/preview-640.webp`,
+    master: `/catalog/generated/offline-core-v1/assets/${id}/master.png`,
+    masks: { body: `/catalog/generated/offline-core-v1/assets/${id}/masks/body.png` }
   },
+  masterSha256: "a".repeat(64),
+  dimensions: { width: 320, height: 640 },
   recolourZones: ["body"],
   anchors: [],
   materialProfiles: ["matte-plastic"],

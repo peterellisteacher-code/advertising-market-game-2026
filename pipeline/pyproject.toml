@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools==83.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "admarket-asset-pipeline"
+version = "0.1.0"
+description = "Deterministic offline asset preparation for Advertising Market Game"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "Pillow==12.3.0",
+  "pydantic==2.13.4",
+  "jsonschema==4.26.0"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["asset_pipeline*"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers --strict-config"
+testpaths = ["tests"]

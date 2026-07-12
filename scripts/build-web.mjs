@@ -2,6 +2,7 @@ import {
   access,
   copyFile,
   mkdir,
+  readdir,
   readFile,
   writeFile
 } from "node:fs/promises";
@@ -77,6 +78,27 @@ async function requireFile(filePath, label) {
   }
 }
 
+/** Copies a generated tree without pruning and rejects filesystem indirection. */
+export async function copyVerifiedTree(source, destination) {
+  await mkdir(destination, { recursive: true });
+  const entries = await readdir(source, { withFileTypes: true });
+  entries.sort((left, right) => left.name.localeCompare(right.name));
+  for (const entry of entries) {
+    if (entry.isSymbolicLink()) {
+      throw new Error(`Refusing symbolic link in generated catalogue: ${entry.name}`);
+    }
+    const sourcePath = path.join(source, entry.name);
+    const destinationPath = path.join(destination, entry.name);
+    if (entry.isDirectory()) {
+      await copyVerifiedTree(sourcePath, destinationPath);
+    } else if (entry.isFile()) {
+      await copyFile(sourcePath, destinationPath);
+    } else {
+      throw new Error(`Refusing special file in generated catalogue: ${entry.name}`);
+    }
+  }
+}
+
 export async function assembleWebExport({
   root = DEFAULT_ROOT,
   requireOfflineCore = false,
@@ -121,10 +143,10 @@ export async function assembleWebExport({
   if (assembledHtml !== exportedHtml) await writeFile(indexPath, assembledHtml, "utf8");
 
   if (hasOfflineCore) {
-    const offlineDestination = path.join(webDir, offlineRelative);
-    await mkdir(path.dirname(offlineDestination), { recursive: true });
-    await copyFile(offlineSource, offlineDestination);
-    log(`OFFLINE_CORE_COPIED ${offlineRelative.replaceAll(path.sep, "/")}`);
+    const offlineSourceRoot = path.dirname(offlineSource);
+    const offlineDestinationRoot = path.join(webDir, path.dirname(offlineRelative));
+    await copyVerifiedTree(offlineSourceRoot, offlineDestinationRoot);
+    log(`OFFLINE_CORE_COPIED ${path.dirname(offlineRelative).replaceAll(path.sep, "/")}`);
   } else {
     log(`OFFLINE_CORE_DEFERRED ${offlineRelative.replaceAll(path.sep, "/")}`);
   }

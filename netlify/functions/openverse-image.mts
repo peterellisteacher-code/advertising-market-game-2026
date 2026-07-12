@@ -8,14 +8,14 @@ import {
   errorResponse,
   fetchSafeImage,
   hasSafeDimensions,
+  imageDimensionsMatchMetadata,
   isCanonicalUuid,
   isTimeoutError,
   normalizeDisplayLicense,
   parseSafeImageContentType,
-  readImagePrefix,
   readJsonCapped,
+  readValidatedImageHeader,
   resolveHost as systemResolveHost,
-  signatureMatches,
   type ResolveHost
 } from "./lib/openverse";
 
@@ -111,11 +111,24 @@ export function createOpenverseImageHandler(
       }
       if (!imageResponse.body) return errorResponse("UPSTREAM_INVALID_RESPONSE", 502);
 
-      const { reader, initialChunks, prefix } = await readImagePrefix(imageResponse.body, signal);
-      if (!signatureMatches(contentType, prefix)) {
+      const { reader, initialChunks, dimensions } = await readValidatedImageHeader(
+        imageResponse.body,
+        contentType,
+        signal
+      );
+      if (!hasSafeDimensions(dimensions.width, dimensions.height)) {
         await reader.cancel();
         reader.releaseLock();
-        return errorResponse("MIME_SIGNATURE_MISMATCH", 415);
+        return errorResponse("IMAGE_TOO_LARGE", 413);
+      }
+      const metadataDimensions = {
+        width: detail.width as number,
+        height: detail.height as number
+      };
+      if (!imageDimensionsMatchMetadata(dimensions, metadataDimensions, variant)) {
+        await reader.cancel();
+        reader.releaseLock();
+        return errorResponse("IMAGE_DIMENSIONS_MISMATCH", 422);
       }
 
       return new Response(countedImageStream(reader, initialChunks, signal), {
@@ -136,5 +149,10 @@ export function createOpenverseImageHandler(
 export default createOpenverseImageHandler();
 
 export const config: Config = {
-  path: "/.netlify/functions/openverse-image/:id"
+  path: "/api/openverse-image/:id",
+  rateLimit: {
+    windowLimit: 600,
+    windowSize: 60,
+    aggregateBy: ["ip", "domain"]
+  }
 };

@@ -27,13 +27,72 @@ const detail = (overrides: Record<string, unknown> = {}) => ({
   ...overrides
 });
 
-const pngBytes = (size = 32): Uint8Array => {
+const pngBytes = (size = 32, width = 1_600, height = 900): Uint8Array => {
   const bytes = new Uint8Array(size);
   bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  if (size >= 24) {
+    new DataView(bytes.buffer).setUint32(8, 13);
+    bytes.set([0x49, 0x48, 0x44, 0x52], 12);
+    const view = new DataView(bytes.buffer);
+    view.setUint32(16, width);
+    view.setUint32(20, height);
+  }
   return bytes;
 };
 
-const jpegBytes = (): Uint8Array => new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+const jpegBytes = (width = 1_600, height = 900): Uint8Array => new Uint8Array([
+  0xff, 0xd8,
+  0xff, 0xe0, 0x00, 0x04, 0x00, 0x00,
+  0xff, 0xc0, 0x00, 0x0b, 0x08,
+  (height >>> 8) & 0xff, height & 0xff,
+  (width >>> 8) & 0xff, width & 0xff,
+  0x01, 0x01, 0x11, 0x00
+]);
+
+const webpBytes = (width = 1_600, height = 900): Uint8Array => {
+  const bytes = new Uint8Array(30);
+  bytes.set([0x52, 0x49, 0x46, 0x46], 0);
+  new DataView(bytes.buffer).setUint32(4, 22, true);
+  bytes.set([0x57, 0x45, 0x42, 0x50, 0x56, 0x50, 0x38, 0x58], 8);
+  new DataView(bytes.buffer).setUint32(16, 10, true);
+  const widthMinusOne = width - 1;
+  const heightMinusOne = height - 1;
+  bytes.set([
+    widthMinusOne & 0xff,
+    (widthMinusOne >>> 8) & 0xff,
+    (widthMinusOne >>> 16) & 0xff,
+    heightMinusOne & 0xff,
+    (heightMinusOne >>> 8) & 0xff,
+    (heightMinusOne >>> 16) & 0xff
+  ], 24);
+  return bytes;
+};
+
+const webpLossyBytes = (width: number, height: number): Uint8Array => {
+  const bytes = new Uint8Array(30);
+  bytes.set([0x52, 0x49, 0x46, 0x46], 0);
+  new DataView(bytes.buffer).setUint32(4, 22, true);
+  bytes.set([0x57, 0x45, 0x42, 0x50, 0x56, 0x50, 0x38, 0x20], 8);
+  new DataView(bytes.buffer).setUint32(16, 10, true);
+  bytes.set([0x9d, 0x01, 0x2a], 23);
+  new DataView(bytes.buffer).setUint16(26, width & 0x3fff, true);
+  new DataView(bytes.buffer).setUint16(28, height & 0x3fff, true);
+  return bytes;
+};
+
+const webpLosslessBytes = (width: number, height: number): Uint8Array => {
+  const bytes = new Uint8Array(25);
+  bytes.set([0x52, 0x49, 0x46, 0x46], 0);
+  new DataView(bytes.buffer).setUint32(4, 17, true);
+  bytes.set([0x57, 0x45, 0x42, 0x50, 0x56, 0x50, 0x38, 0x4c], 8);
+  new DataView(bytes.buffer).setUint32(16, 5, true);
+  bytes[20] = 0x2f;
+  const packed = (BigInt(height - 1) << 14n) | BigInt(width - 1);
+  for (let index = 0; index < 4; index += 1) {
+    bytes[21 + index] = Number((packed >> BigInt(index * 8)) & 0xffn);
+  }
+  return bytes;
+};
 
 const responseBody = (bytes: Uint8Array): ArrayBuffer => bytes.buffer as ArrayBuffer;
 
@@ -47,7 +106,7 @@ const makeHandler = (
 
 const invoke = async (
   currentHandler: typeof handler,
-  url = `https://studio.test/.netlify/functions/openverse-image/${UUID}`,
+  url = `https://studio.test/api/openverse-image/${UUID}`,
   id = UUID,
   method = "GET"
 ): Promise<Response> => currentHandler(
@@ -64,7 +123,14 @@ afterEach(() => {
 
 describe("openverse-image", () => {
   it("declares the exact UUID route", () => {
-    expect(config.path).toBe("/.netlify/functions/openverse-image/:id");
+    expect(config).toEqual({
+      path: "/api/openverse-image/:id",
+      rateLimit: {
+        windowLimit: 600,
+        windowSize: 60,
+        aggregateBy: ["ip", "domain"]
+      }
+    });
   });
 
   it.each([
@@ -78,7 +144,7 @@ describe("openverse-image", () => {
     const fetchMock = vi.fn();
     const response = await invoke(
       makeHandler(fetchMock),
-      `https://studio.test/.netlify/functions/openverse-image/${id}${query}`,
+      `https://studio.test/api/openverse-image/${id}${query}`,
       id,
       method
     );
@@ -121,7 +187,7 @@ describe("openverse-image", () => {
       }));
     const response = await invoke(
       makeHandler(fetchMock, resolveHost, () => controller.signal),
-      `https://studio.test/.netlify/functions/openverse-image/${UUID}?variant=thumbnail`
+      `https://studio.test/api/openverse-image/${UUID}?variant=thumbnail`
     );
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -239,6 +305,117 @@ describe("openverse-image", () => {
     expect(await jsonError(response)).toEqual({ error: code });
   });
 
+  it.each([
+    ["PNG", "image/png", pngBytes(32, 800, 450)],
+    ["JPEG", "image/jpeg", jpegBytes(800, 450)],
+    ["WebP", "image/webp", webpBytes(800, 450)]
+  ])("rejects a full %s whose decoded dimensions disagree with Openverse metadata", async (_label, contentType, bytes) => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json(detail()))
+      .mockResolvedValueOnce(new Response(responseBody(bytes), { headers: { "content-type": contentType } }));
+
+    const response = await invoke(makeHandler(fetchMock));
+
+    expect(response.status).toBe(422);
+    expect(await jsonError(response)).toEqual({ error: "IMAGE_DIMENSIONS_MISMATCH" });
+  });
+
+  it.each([
+    ["PNG", "image/png", pngBytes(32, 320, 180)],
+    ["JPEG", "image/jpeg", jpegBytes(320, 180)],
+    ["WebP VP8X", "image/webp", webpBytes(320, 180)],
+    ["WebP VP8", "image/webp", webpLossyBytes(320, 180)],
+    ["WebP VP8L", "image/webp", webpLosslessBytes(320, 180)],
+    ["rounding-safe PNG", "image/png", pngBytes(32, 213, 120)]
+  ])("accepts a safe proportional %s thumbnail", async (_label, contentType, bytes) => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json(detail()))
+      .mockResolvedValueOnce(new Response(responseBody(bytes), { headers: { "content-type": contentType } }));
+
+    const response = await invoke(
+      makeHandler(fetchMock),
+      `https://studio.test/api/openverse-image/${UUID}?variant=thumbnail`
+    );
+
+    expect(response.status).toBe(200);
+    expect((await response.arrayBuffer()).byteLength).toBe(bytes.byteLength);
+  });
+
+  it("rejects a thumbnail with an unrelated aspect ratio", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json(detail()))
+      .mockResolvedValueOnce(new Response(responseBody(pngBytes(32, 300, 300)), {
+        headers: { "content-type": "image/png" }
+      }));
+
+    const response = await invoke(
+      makeHandler(fetchMock),
+      `https://studio.test/api/openverse-image/${UUID}?variant=thumbnail`
+    );
+
+    expect(response.status).toBe(422);
+    expect(await jsonError(response)).toEqual({ error: "IMAGE_DIMENSIONS_MISMATCH" });
+  });
+
+  it("rejects an upscaled thumbnail even when its aspect ratio matches", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json(detail()))
+      .mockResolvedValueOnce(new Response(responseBody(pngBytes(32, 3_200, 1_800)), {
+        headers: { "content-type": "image/png" }
+      }));
+
+    const response = await invoke(
+      makeHandler(fetchMock),
+      `https://studio.test/api/openverse-image/${UUID}?variant=thumbnail`
+    );
+
+    expect(response.status).toBe(422);
+    expect(await jsonError(response)).toEqual({ error: "IMAGE_DIMENSIONS_MISMATCH" });
+  });
+
+  it.each([
+    ["PNG", "image/png", pngBytes(32, 16_000, 16_000)],
+    ["JPEG", "image/jpeg", jpegBytes(65_535, 65_535)],
+    ["WebP", "image/webp", webpBytes(16_384, 16_384)]
+  ])("rejects a %s decompression-bomb header before returning the stream", async (_label, contentType, bytes) => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json(detail()))
+      .mockResolvedValueOnce(new Response(responseBody(bytes), { headers: { "content-type": contentType } }));
+
+    const response = await invoke(makeHandler(fetchMock));
+
+    expect(response.status).toBe(413);
+    expect(await jsonError(response)).toEqual({ error: "IMAGE_TOO_LARGE" });
+  });
+
+  it.each([
+    ["truncated PNG", "image/png", pngBytes(8)],
+    ["JPEG without SOF", "image/jpeg", new Uint8Array([0xff, 0xd8, 0xff, 0xd9])],
+    ["truncated WebP", "image/webp", new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50])]
+  ])("rejects an invalid decoded-dimension header: %s", async (_label, contentType, bytes) => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json(detail()))
+      .mockResolvedValueOnce(new Response(responseBody(bytes), { headers: { "content-type": contentType } }));
+
+    const response = await invoke(makeHandler(fetchMock));
+
+    expect(response.status).toBe(415);
+    expect(await jsonError(response)).toEqual({ error: "INVALID_IMAGE_HEADER" });
+  });
+
+  it("bounds JPEG header scanning instead of chasing an unbounded metadata prefix", async () => {
+    const bytes = new Uint8Array(140 * 1_024);
+    bytes.set([0xff, 0xd8, 0xff, 0xe1, 0xff, 0xff]);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json(detail()))
+      .mockResolvedValueOnce(new Response(responseBody(bytes), { headers: { "content-type": "image/jpeg" } }));
+
+    const response = await invoke(makeHandler(fetchMock));
+
+    expect(response.status).toBe(415);
+    expect(await jsonError(response)).toEqual({ error: "INVALID_IMAGE_HEADER" });
+  });
+
   it("rejects a declared image body above 12 MiB before returning it", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(Response.json(detail()))
@@ -267,7 +444,7 @@ describe("openverse-image", () => {
   });
 
   it("errors the counted stream before emitting byte 12 MiB plus one", async () => {
-    const signature = pngBytes(12);
+    const signature = pngBytes(32);
     const body = new ReadableStream<Uint8Array>({
       start(controller) {
         controller.enqueue(signature);

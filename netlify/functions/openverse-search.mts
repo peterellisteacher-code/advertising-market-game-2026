@@ -51,7 +51,7 @@ const mapRecord = (value: unknown): OpenverseResult | null => {
     creator,
     license,
     sourceUrl,
-    thumbnailUrl: `/.netlify/functions/openverse-image/${record.id}?variant=thumbnail`,
+    thumbnailUrl: `/api/openverse-image/${record.id}?variant=thumbnail`,
     width: record.width as number,
     height: record.height as number
   };
@@ -127,5 +127,10 @@ export function createOpenverseSearchHandler(
 export default createOpenverseSearchHandler();
 
 export const config: Config = {
-  path: "/.netlify/functions/openverse-search"
+  path: "/api/openverse-search",
+  rateLimit: {
+    windowLimit: 120,
+    windowSize: 60,
+    aggregateBy: ["ip", "domain"]
+  }
 };

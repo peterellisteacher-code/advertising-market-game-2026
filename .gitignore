@@ -9,3 +9,6 @@ catalog/generated/
 catalog/reports/
 __pycache__/
 .pytest_cache/
+
+# Local Netlify folder
+.netlify

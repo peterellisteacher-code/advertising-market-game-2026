@@ -4,6 +4,7 @@ import { isIP } from "node:net";
 export const OPENVERSE_API_ROOT = "https://api.openverse.org/v1/images/";
 export const OPENVERSE_JSON_MAX_BYTES = 1_048_576;
 export const OPENVERSE_IMAGE_MAX_BYTES = 12 * 1_048_576;
+export const OPENVERSE_IMAGE_HEADER_MAX_BYTES = 128 * 1_024;
 export const OPENVERSE_MAX_IMAGE_DIMENSION = 16_384;
 export const OPENVERSE_MAX_IMAGE_PIXELS = 64_000_000;
 export const OPENVERSE_TIMEOUT_MS = 8_000;
@@ -24,6 +25,8 @@ export type OpenverseErrorCode =
   | "UNSAFE_MEDIA_URL"
   | "UNSUPPORTED_MEDIA_TYPE"
   | "MIME_SIGNATURE_MISMATCH"
+  | "INVALID_IMAGE_HEADER"
+  | "IMAGE_DIMENSIONS_MISMATCH"
   | "IMAGE_TOO_LARGE"
   | "REDIRECT_LOOP"
   | "TOO_MANY_REDIRECTS";
@@ -403,33 +406,173 @@ export function signatureMatches(type: SafeImageContentType, bytes: Uint8Array):
     startsWith(bytes.subarray(8), [0x57, 0x45, 0x42, 0x50]);
 }
 
-export async function readImagePrefix(
+export interface ImageDimensions {
+  width: number;
+  height: number;
+}
+
+type DimensionParseResult =
+  | { status: "found"; dimensions: ImageDimensions }
+  | { status: "need-more" }
+  | { status: "invalid" };
+
+const needMore = (): DimensionParseResult => ({ status: "need-more" });
+const invalidHeader = (): DimensionParseResult => ({ status: "invalid" });
+const foundDimensions = (width: number, height: number): DimensionParseResult =>
+  width > 0 && height > 0
+    ? { status: "found", dimensions: { width, height } }
+    : invalidHeader();
+
+const parsePngDimensions = (bytes: Uint8Array): DimensionParseResult => {
+  if (bytes.byteLength < 24) return needMore();
+  if (!startsWith(bytes.subarray(12), [0x49, 0x48, 0x44, 0x52])) return invalidHeader();
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  if (view.getUint32(8) !== 13) return invalidHeader();
+  return foundDimensions(view.getUint32(16), view.getUint32(20));
+};
+
+const JPEG_SOF_MARKERS = new Set([
+  0xc0, 0xc1, 0xc2, 0xc3,
+  0xc5, 0xc6, 0xc7,
+  0xc9, 0xca, 0xcb,
+  0xcd, 0xce, 0xcf
+]);
+
+const parseJpegDimensions = (bytes: Uint8Array): DimensionParseResult => {
+  if (bytes.byteLength < 3) return needMore();
+  let offset = 2;
+  while (offset < bytes.byteLength) {
+    if (bytes[offset] !== 0xff) return invalidHeader();
+    while (offset < bytes.byteLength && bytes[offset] === 0xff) offset += 1;
+    if (offset >= bytes.byteLength) return needMore();
+    const marker = bytes[offset++]!;
+
+    if (marker === 0xd9 || marker === 0xda) return invalidHeader();
+    if (marker === 0x00) return invalidHeader();
+    if (marker === 0xd8 || marker === 0x01 || marker >= 0xd0 && marker <= 0xd7) continue;
+    if (offset + 2 > bytes.byteLength) return needMore();
+    const segmentLength = (bytes[offset]! << 8) | bytes[offset + 1]!;
+    if (segmentLength < 2) return invalidHeader();
+    const segmentEnd = offset + segmentLength;
+
+    if (JPEG_SOF_MARKERS.has(marker)) {
+      if (segmentLength < 8) return invalidHeader();
+      if (offset + 7 > bytes.byteLength) return needMore();
+      const height = (bytes[offset + 3]! << 8) | bytes[offset + 4]!;
+      const width = (bytes[offset + 5]! << 8) | bytes[offset + 6]!;
+      return foundDimensions(width, height);
+    }
+    if (segmentEnd > bytes.byteLength) return needMore();
+    offset = segmentEnd;
+  }
+  return needMore();
+};
+
+const uint24le = (bytes: Uint8Array, offset: number): number =>
+  bytes[offset]! | bytes[offset + 1]! << 8 | bytes[offset + 2]! << 16;
+
+const parseWebpDimensions = (bytes: Uint8Array): DimensionParseResult => {
+  if (bytes.byteLength < 16) return needMore();
+  const chunk = String.fromCharCode(...bytes.subarray(12, 16));
+  if (chunk === "VP8X") {
+    if (bytes.byteLength < 30) return needMore();
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    if (view.getUint32(16, true) < 10) return invalidHeader();
+    return foundDimensions(uint24le(bytes, 24) + 1, uint24le(bytes, 27) + 1);
+  }
+  if (chunk === "VP8L") {
+    if (bytes.byteLength < 25) return needMore();
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    if (view.getUint32(16, true) < 5 || bytes[20] !== 0x2f) return invalidHeader();
+    const packed = bytes[21]! | bytes[22]! << 8 | bytes[23]! << 16 | bytes[24]! << 24;
+    const width = (packed & 0x3fff) + 1;
+    const height = ((packed >>> 14) & 0x3fff) + 1;
+    return foundDimensions(width, height);
+  }
+  if (chunk === "VP8 ") {
+    if (bytes.byteLength < 30) return needMore();
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    if (view.getUint32(16, true) < 10 || !startsWith(bytes.subarray(23), [0x9d, 0x01, 0x2a])) {
+      return invalidHeader();
+    }
+    return foundDimensions(view.getUint16(26, true) & 0x3fff, view.getUint16(28, true) & 0x3fff);
+  }
+  return invalidHeader();
+};
+
+const parseImageDimensions = (
+  type: SafeImageContentType,
+  bytes: Uint8Array
+): DimensionParseResult => {
+  if (type === "image/png") return parsePngDimensions(bytes);
+  if (type === "image/jpeg") return parseJpegDimensions(bytes);
+  return parseWebpDimensions(bytes);
+};
+
+const signatureLength = (type: SafeImageContentType): number =>
+  type === "image/png" ? 8 : type === "image/jpeg" ? 3 : 12;
+
+export async function readValidatedImageHeader(
   body: ReadableStream<Uint8Array>,
+  type: SafeImageContentType,
   signal: AbortSignal,
-  minimumBytes = 12
+  maxHeaderBytes = OPENVERSE_IMAGE_HEADER_MAX_BYTES
 ): Promise<{
   reader: ReadableStreamDefaultReader<Uint8Array>;
   initialChunks: Uint8Array[];
-  prefix: Uint8Array;
+  dimensions: ImageDimensions;
 }> {
   const reader = body.getReader();
   const initialChunks: Uint8Array[] = [];
-  let total = 0;
-  while (total < minimumBytes) {
-    const next = await readWithSignal(reader.read(), signal);
-    if (next.done) break;
-    initialChunks.push(next.value);
-    total += next.value.byteLength;
+  let header = new Uint8Array();
+
+  try {
+    while (header.byteLength < maxHeaderBytes) {
+      const next = await readWithSignal(reader.read(), signal);
+      if (next.done) throw new OpenverseError("INVALID_IMAGE_HEADER", 415);
+      initialChunks.push(next.value);
+
+      const copyLength = Math.min(next.value.byteLength, maxHeaderBytes - header.byteLength);
+      const expanded = new Uint8Array(header.byteLength + copyLength);
+      expanded.set(header);
+      expanded.set(next.value.subarray(0, copyLength), header.byteLength);
+      header = expanded;
+
+      if (header.byteLength >= signatureLength(type) && !signatureMatches(type, header)) {
+        throw new OpenverseError("MIME_SIGNATURE_MISMATCH", 415);
+      }
+      if (header.byteLength < signatureLength(type)) continue;
+
+      const parsed = parseImageDimensions(type, header);
+      if (parsed.status === "found") {
+        return { reader, initialChunks, dimensions: parsed.dimensions };
+      }
+      if (parsed.status === "invalid") throw new OpenverseError("INVALID_IMAGE_HEADER", 415);
+    }
+    throw new OpenverseError("INVALID_IMAGE_HEADER", 415);
+  } catch (error) {
+    try {
+      await reader.cancel(error);
+    } catch {
+      // The upstream reader may already be closed or errored.
+    }
+    reader.releaseLock();
+    throw error;
   }
-  const prefix = new Uint8Array(Math.min(total, minimumBytes));
-  let offset = 0;
-  for (const chunk of initialChunks) {
-    const available = Math.min(chunk.byteLength, prefix.byteLength - offset);
-    if (available <= 0) break;
-    prefix.set(chunk.subarray(0, available), offset);
-    offset += available;
+}
+
+export function imageDimensionsMatchMetadata(
+  actual: ImageDimensions,
+  metadata: ImageDimensions,
+  variant: "thumbnail" | "full"
+): boolean {
+  if (variant === "full") {
+    return actual.width === metadata.width && actual.height === metadata.height;
   }
-  return { reader, initialChunks, prefix };
+  if (actual.width > metadata.width || actual.height > metadata.height) return false;
+  const expectedCrossProduct = actual.height * metadata.width;
+  const ratioDifference = Math.abs(actual.width * metadata.height - expectedCrossProduct);
+  return expectedCrossProduct > 0 && ratioDifference / expectedCrossProduct <= 0.05;
 }
 
 export function countedImageStream(

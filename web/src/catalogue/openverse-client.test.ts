@@ -7,8 +7,8 @@ import {
 } from "./openverse-client";
 
 const UUID = "123e4567-e89b-42d3-a456-426614174000";
-const THUMBNAIL = `/.netlify/functions/openverse-image/${UUID}?variant=thumbnail`;
-const FULL = `/.netlify/functions/openverse-image/${UUID}`;
+const THUMBNAIL = `/api/openverse-image/${UUID}?variant=thumbnail`;
+const FULL = `/api/openverse-image/${UUID}`;
 
 const remoteRecord = (overrides: Record<string, unknown> = {}) => ({
   id: UUID,
@@ -78,7 +78,7 @@ describe("OpenverseClient", () => {
 
     expect(fetchMock).toHaveBeenCalledOnce();
     const [input, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(input).toBe("/.netlify/functions/openverse-search?q=morning+market&page=2");
+    expect(input).toBe("/api/openverse-search?q=morning+market&page=2");
     expect(init).toMatchObject({ method: "GET", signal: controller.signal });
     expect(result).toEqual({
       status: "online",
@@ -128,6 +128,47 @@ describe("OpenverseClient", () => {
     await expect(client.search("market")).resolves.toEqual({ status: "offline", records: [] });
     expect(fetchMock).toHaveBeenCalledOnce();
   });
+
+  it("aborts and invalidates an in-flight request when the teacher disables search", async () => {
+    let resolveResponse!: (response: Response) => void;
+    let requestSignal: AbortSignal | undefined;
+    const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      requestSignal = init?.signal ?? undefined;
+      return new Promise<Response>((resolve) => {
+        resolveResponse = resolve;
+      });
+    });
+    const client = new OpenverseClient({ enabled: true, fetch: fetchMock, online: () => true });
+    const pending = client.search("market");
+    await vi.waitFor(() => expect(requestSignal).toBeDefined());
+
+    client.setEnabled(false);
+    resolveResponse(Response.json({ records: [remoteRecord()] }));
+
+    expect(requestSignal?.aborted).toBe(true);
+    await expect(pending).resolves.toEqual({ status: "offline", records: [] });
+  });
+
+  it("rejects responses containing more than the server maximum of 30 records", async () => {
+    const records = Array.from({ length: 31 }, (_, index) => remoteRecord({
+      id: `${index.toString(16).padStart(8, "0")}-e89b-42d3-a456-426614174000`,
+      thumbnailUrl: `/api/openverse-image/${index.toString(16).padStart(8, "0")}-e89b-42d3-a456-426614174000?variant=thumbnail`
+    }));
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ records }));
+    const client = new OpenverseClient({ enabled: true, fetch: fetchMock, online: () => true });
+
+    await expect(client.search("market")).resolves.toEqual({ status: "offline", records: [] });
+  });
+
+  it.each([
+    [{ width: 16_385 }, "dimension cap"],
+    [{ width: 8_001, height: 8_000 }, "pixel cap"]
+  ])("rejects records above the browser-side %s", async (overrides, _label) => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ records: [remoteRecord(overrides)] }));
+    const client = new OpenverseClient({ enabled: true, fetch: fetchMock, online: () => true });
+
+    await expect(client.search("market")).resolves.toEqual({ status: "offline", records: [] });
+  });
 });
 
 describe("mergeOpenverseAfterCore", () => {
@@ -147,5 +188,18 @@ describe("mergeOpenverseAfterCore", () => {
     const core = [coreAsset("core-1"), coreAsset("core-2")];
 
     expect(mergeOpenverseAfterCore(core, { status: "offline", records: [] })).toEqual(core);
+  });
+
+  it("preserves every core record while dropping remote IDs already seen", () => {
+    const core = [coreAsset("core-1"), coreAsset("core-2")];
+    const remote = {
+      status: "online",
+      records: [coreAsset("core-2"), coreAsset("remote-1"), coreAsset("remote-1")]
+    } satisfies OpenverseSearchResult;
+
+    const merged = mergeOpenverseAfterCore(core, remote);
+
+    expect(merged.slice(0, core.length)).toEqual(core);
+    expect(merged.map(({ id }) => id)).toEqual(["core-1", "core-2", "remote-1"]);
   });
 });

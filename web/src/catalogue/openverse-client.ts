@@ -1,8 +1,11 @@
 import type { CatalogAssetV1 } from "./catalogue-types";
 
-const SEARCH_PATH = "/.netlify/functions/openverse-search";
-const IMAGE_PATH = "/.netlify/functions/openverse-image";
+const SEARCH_PATH = "/api/openverse-search";
+const IMAGE_PATH = "/api/openverse-image";
 const REQUEST_TIMEOUT_MS = 8_000;
+const MAX_RECORDS = 30;
+const MAX_IMAGE_DIMENSION = 16_384;
+const MAX_IMAGE_PIXELS = 64_000_000;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 export interface OpenverseClientOptions {
@@ -41,6 +44,13 @@ const isSafeSourceUrl = (value: string): boolean => {
   }
 };
 
+const hasSafeDimensions = (width: unknown, height: unknown): boolean =>
+  Number.isInteger(width) && Number.isInteger(height) &&
+  (width as number) > 0 && (height as number) > 0 &&
+  (width as number) <= MAX_IMAGE_DIMENSION &&
+  (height as number) <= MAX_IMAGE_DIMENSION &&
+  (width as number) * (height as number) <= MAX_IMAGE_PIXELS;
+
 const parseRemoteRecord = (value: unknown): RemoteRecord | null => {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
   const record = value as Record<string, unknown>;
@@ -51,8 +61,7 @@ const parseRemoteRecord = (value: unknown): RemoteRecord | null => {
     typeof record.id !== "string" || !UUID_PATTERN.test(record.id) ||
     !nonemptyText(record.title) || !nonemptyText(record.creator) || !nonemptyText(record.license) ||
     typeof record.sourceUrl !== "string" || !isSafeSourceUrl(record.sourceUrl) ||
-    !Number.isInteger(record.width) || (record.width as number) <= 0 ||
-    !Number.isInteger(record.height) || (record.height as number) <= 0) {
+    !hasSafeDimensions(record.width, record.height)) {
     return null;
   }
   const expectedThumbnail = `${IMAGE_PATH}/${record.id}?variant=thumbnail`;
@@ -93,6 +102,8 @@ export class OpenverseClient {
   readonly #fetch: typeof fetch;
   readonly #online: () => boolean;
   readonly #createDeadlineSignal: () => AbortSignal;
+  readonly #activeRequests = new Set<AbortController>();
+  #generation = 0;
 
   constructor(options: OpenverseClientOptions = {}) {
     this.#enabled = options.enabled ?? false;
@@ -102,7 +113,13 @@ export class OpenverseClient {
   }
 
   setEnabled(enabled: boolean): void {
+    if (this.#enabled === enabled) return;
     this.#enabled = enabled;
+    this.#generation += 1;
+    if (!enabled) {
+      for (const controller of this.#activeRequests) controller.abort();
+      this.#activeRequests.clear();
+    }
   }
 
   async search(query: string, page = 1): Promise<OpenverseSearchResult> {
@@ -113,19 +130,32 @@ export class OpenverseClient {
       return offlineResult();
     }
 
+    const generation = this.#generation;
+    const requestController = new AbortController();
+    this.#activeRequests.add(requestController);
     try {
       const params = new URLSearchParams({ q, page: String(page) });
+      const signal = AbortSignal.any([
+        requestController.signal,
+        this.#createDeadlineSignal()
+      ]);
       const response = await this.#fetch(`${SEARCH_PATH}?${params}`, {
         method: "GET",
-        signal: this.#createDeadlineSignal(),
+        signal,
         headers: { accept: "application/json" }
       });
+      if (!this.#enabled || generation !== this.#generation) {
+        await response.body?.cancel();
+        return offlineResult();
+      }
       if (!response.ok) return offlineResult();
       const payload = await response.json() as unknown;
+      if (!this.#enabled || generation !== this.#generation) return offlineResult();
       if (typeof payload !== "object" || payload === null || Array.isArray(payload)) return offlineResult();
       const payloadKeys = Object.keys(payload as Record<string, unknown>);
       const values = (payload as Record<string, unknown>).records;
-      if (payloadKeys.length !== 1 || payloadKeys[0] !== "records" || !Array.isArray(values)) {
+      if (payloadKeys.length !== 1 || payloadKeys[0] !== "records" ||
+        !Array.isArray(values) || values.length > MAX_RECORDS) {
         return offlineResult();
       }
       const parsed = values.map(parseRemoteRecord);
@@ -136,6 +166,8 @@ export class OpenverseClient {
       };
     } catch {
       return offlineResult();
+    } finally {
+      this.#activeRequests.delete(requestController);
     }
   }
 }
@@ -144,5 +176,11 @@ export function mergeOpenverseAfterCore(
   core: CatalogAssetV1[],
   remote: OpenverseSearchResult
 ): CatalogAssetV1[] {
-  return [...core, ...remote.records];
+  const seen = new Set(core.map(({ id }) => id));
+  const uniqueRemote = remote.records.filter(({ id }) => {
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+  return [...core, ...uniqueRemote];
 }

@@ -4,7 +4,7 @@ import { computeVirtualColumns, computeVirtualWindow } from "./virtual-grid";
 const PLACEHOLDER_THUMBNAIL = "/catalog/system/missing-thumbnail.svg";
 const ROW_HEIGHT = 180;
 const MIN_TILE_WIDTH = 160;
-const OPENVERSE_IMAGE_PATH = /^\/\.netlify\/functions\/openverse-image\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const OPENVERSE_IMAGE_PATH = /^\/api\/openverse-image\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 const isExactOpenverseProxy = (url: URL): boolean => {
   if (!OPENVERSE_IMAGE_PATH.test(url.pathname) || url.hash) return false;

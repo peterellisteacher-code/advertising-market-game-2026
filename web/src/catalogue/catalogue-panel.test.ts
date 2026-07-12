@@ -118,18 +118,18 @@ it("removes its listener and disconnects its observer on destroy", () => {
 
 it.each([
   ["/catalog/item.png", true],
-  [`/.netlify/functions/openverse-image/${UUID}`, true],
-  [`/.netlify/functions/openverse-image/${UUID}?variant=thumbnail`, true],
-  [`/.netlify/functions/openverse-image/${UUID}?variant=full`, true],
-  ["/.netlify/functions/openverse-image/item", false],
-  [`/.netlify/functions/openverse-image/${UUID.toUpperCase()}`, false],
-  [`/.netlify/functions/openverse-image/${UUID}/`, false],
-  [`/.netlify/functions/openverse-image/${UUID}?extra=1`, false],
-  [`/.netlify/functions/openverse-image/${UUID}?variant=thumbnail&variant=full`, false],
-  [`/.netlify/functions/openverse-image/${UUID}#fragment`, false],
+  [`/api/openverse-image/${UUID}`, true],
+  [`/api/openverse-image/${UUID}?variant=thumbnail`, true],
+  [`/api/openverse-image/${UUID}?variant=full`, true],
+  ["/api/openverse-image/item", false],
+  [`/api/openverse-image/${UUID.toUpperCase()}`, false],
+  [`/api/openverse-image/${UUID}/`, false],
+  [`/api/openverse-image/${UUID}?extra=1`, false],
+  [`/api/openverse-image/${UUID}?variant=thumbnail&variant=full`, false],
+  [`/api/openverse-image/${UUID}#fragment`, false],
   ["https://unsafe.example/item.png", false],
   ["/catalogue/item.png", false],
-  ["/.netlify/functions/openverse-image-evil/item", false],
+  ["/api/openverse-image-evil/item", false],
   ["http://[::1", false]
 ])("guards thumbnail URL %s", (value, allowed) => {
   const result = validatedAssetUrl(value);
@@ -144,12 +144,12 @@ it("shows concise, text-only attribution on photo tiles", () => {
   const host = document.createElement("div");
   const photo: CatalogAssetV1 = {
     ...asset(UUID, "Morning market", "photos", ["photo"],
-      `/.netlify/functions/openverse-image/${UUID}?variant=thumbnail`),
+      `/api/openverse-image/${UUID}?variant=thumbnail`),
     kind: "photo",
     files: {
-      thumbnail: `/.netlify/functions/openverse-image/${UUID}?variant=thumbnail`,
-      preview: `/.netlify/functions/openverse-image/${UUID}`,
-      master: `/.netlify/functions/openverse-image/${UUID}`
+      thumbnail: `/api/openverse-image/${UUID}?variant=thumbnail`,
+      preview: `/api/openverse-image/${UUID}`,
+      master: `/api/openverse-image/${UUID}`
     },
     classroomReviewed: false,
     brandFree: false,

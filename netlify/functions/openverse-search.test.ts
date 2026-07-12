@@ -2,7 +2,7 @@
 
 import type { Context } from "@netlify/functions";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import handler from "./openverse-search.mjs";
+import handler, { config } from "./openverse-search.mjs";
 
 const UUID = "123e4567-e89b-42d3-a456-426614174000";
 
@@ -35,12 +35,23 @@ afterEach(() => {
 });
 
 describe("openverse-search", () => {
+  it("declares the public route and a classroom-safe per-IP deployment limit", () => {
+    expect(config).toEqual({
+      path: "/api/openverse-search",
+      rateLimit: {
+        windowLimit: 120,
+        windowSize: 60,
+        aggregateBy: ["ip", "domain"]
+      }
+    });
+  });
+
   it("allows GET only and marks the error as non-cacheable", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
     const response = await handler(
-      new Request("https://studio.test/.netlify/functions/openverse-search?q=market", { method: "POST" }),
+      new Request("https://studio.test/api/openverse-search?q=market", { method: "POST" }),
       context
     );
 
@@ -67,7 +78,7 @@ describe("openverse-search", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const response = await handler(
-      new Request(`https://studio.test/.netlify/functions/openverse-search${query}`),
+      new Request(`https://studio.test/api/openverse-search${query}`),
       context
     );
 
@@ -88,7 +99,7 @@ describe("openverse-search", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const response = await handler(
-      new Request("https://studio.test/.netlify/functions/openverse-search?q=%20%F0%9F%90%A8a%20&page=2"),
+      new Request("https://studio.test/api/openverse-search?q=%20%F0%9F%90%A8a%20&page=2"),
       context
     );
 
@@ -116,7 +127,7 @@ describe("openverse-search", () => {
       creator: "A. Photographer",
       license: "CC BY-SA 4.0",
       sourceUrl: "https://example.test/work/123",
-      thumbnailUrl: `/.netlify/functions/openverse-image/${UUID}?variant=thumbnail`,
+      thumbnailUrl: `/api/openverse-image/${UUID}?variant=thumbnail`,
       width: 1_600,
       height: 900
     }]);
@@ -135,7 +146,7 @@ describe("openverse-search", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const response = await handler(
-      new Request("https://studio.test/.netlify/functions/openverse-search?q=market"),
+      new Request("https://studio.test/api/openverse-search?q=market"),
       context
     );
 
@@ -151,7 +162,7 @@ describe("openverse-search", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(successfulUpstream(records)));
 
     const response = await handler(
-      new Request("https://studio.test/.netlify/functions/openverse-search?q=market"),
+      new Request("https://studio.test/api/openverse-search?q=market"),
       context
     );
 
@@ -165,7 +176,7 @@ describe("openverse-search", () => {
     })));
 
     const response = await handler(
-      new Request("https://studio.test/.netlify/functions/openverse-search?q=market"),
+      new Request("https://studio.test/api/openverse-search?q=market"),
       context
     );
 
@@ -181,11 +192,11 @@ describe("openverse-search", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const timeout = await handler(
-      new Request("https://studio.test/.netlify/functions/openverse-search?q=market"),
+      new Request("https://studio.test/api/openverse-search?q=market"),
       context
     );
     const malformed = await handler(
-      new Request("https://studio.test/.netlify/functions/openverse-search?q=market"),
+      new Request("https://studio.test/api/openverse-search?q=market"),
       context
     );
 

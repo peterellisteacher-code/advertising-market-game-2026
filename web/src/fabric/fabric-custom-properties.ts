@@ -8,6 +8,8 @@ declare module "fabric" {
     assetId?: string;
     sourceHash?: string;
     accessibleName?: string;
+    cropFocalX?: number;
+    cropFocalY?: number;
   }
 
   interface SerializedObjectProps {
@@ -16,6 +18,8 @@ declare module "fabric" {
     assetId?: string;
     sourceHash?: string;
     accessibleName?: string;
+    cropFocalX?: number;
+    cropFocalY?: number;
   }
 }
 
@@ -24,5 +28,7 @@ FabricObject.customProperties = [
   "elementKind",
   "assetId",
   "sourceHash",
-  "accessibleName"
+  "accessibleName",
+  "cropFocalX",
+  "cropFocalY"
 ];

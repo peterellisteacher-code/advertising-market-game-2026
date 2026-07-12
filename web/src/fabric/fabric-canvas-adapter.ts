@@ -1,8 +1,22 @@
-import { Canvas, FabricObject } from "fabric";
+import {
+  Canvas,
+  Color,
+  FabricImage,
+  FabricObject,
+  Path,
+  PencilBrush,
+  Point,
+  Textbox,
+  util
+} from "fabric";
 import type {
+  CanvasPoint,
   CanvasMutation,
   CanvasMutationListener,
   CanvasPort,
+  CanvasSize,
+  CropState,
+  DrawingToolSettings,
   NewRasterInput,
   NewShapeInput,
   NewTextInput,
@@ -28,8 +42,13 @@ const SERIALIZED_INTERACTION_PROPERTIES = [
   "lockMovementY",
   "lockScalingX",
   "lockScalingY",
-  "lockRotation"
+  "lockRotation",
+  "cropFocalX",
+  "cropFocalY"
 ];
+
+type IdFactory = () => string;
+const defaultIdFactory: IdFactory = () => globalThis.crypto.randomUUID();
 
 function validateSerializedImageSources(value: unknown, seen = new WeakSet<object>()): void {
   if (value === null || typeof value !== "object") return;
@@ -48,22 +67,58 @@ function validateSerializedImageSources(value: unknown, seen = new WeakSet<objec
 export class FabricCanvasAdapter implements CanvasPort {
   readonly #listeners = new Set<CanvasMutationListener>();
   readonly #disposeEvents: Array<() => void>;
+  readonly #pencilBrush: PencilBrush;
+  readonly #textAtEditingStart = new WeakMap<FabricObject, string>();
   #suppressEvents = false;
+  #drawingTool: DrawingToolSettings = { mode: "select" };
 
   constructor(
     private readonly canvas: Canvas,
-    private readonly factory = new FabricObjectFactory()
+    private readonly factory = new FabricObjectFactory(),
+    private readonly createId: IdFactory = defaultIdFactory
   ) {
+    this.#pencilBrush = new PencilBrush(this.canvas);
+    this.canvas.freeDrawingBrush = this.#pencilBrush;
     this.#disposeEvents = [
       this.canvas.on("object:added", ({ target }) => this.#emit("added", target)),
       this.canvas.on("object:modified", ({ target }) => this.#emit("modified", target)),
-      this.canvas.on("object:removed", ({ target }) => this.#emit("removed", target))
+      this.canvas.on("object:removed", ({ target }) => this.#emit("removed", target)),
+      this.canvas.on("text:editing:entered", ({ target }) => {
+        if (target instanceof Textbox && target.elementKind === "text") {
+          this.#textAtEditingStart.set(target, target.text);
+        }
+      }),
+      this.canvas.on("text:editing:exited", ({ target }) => {
+        const before = this.#textAtEditingStart.get(target);
+        this.#textAtEditingStart.delete(target);
+        if (before !== undefined && before !== target.text) this.#emit("modified", target);
+      }),
+      this.canvas.on("before:path:created", ({ path }) => this.#tagDrawingPath(path)),
+      this.canvas.on("mouse:down", ({ e }) => {
+        if (this.#drawingTool.mode !== "eraser") return;
+        const point = this.canvas.getScenePoint(e);
+        this.eraseTopmostDrawing(point, this.#drawingTool.radius);
+      })
     ];
   }
 
   async addText(input: NewTextInput): Promise<void> { this.#add(this.factory.createText(input)); }
   async addShape(input: NewShapeInput): Promise<void> { this.#add(this.factory.createShape(input)); }
   async addRaster(input: NewRasterInput): Promise<void> { this.#add(await this.factory.createRaster(input)); }
+
+  setText(id: string, value: string): void {
+    if (!value.trim()) throw new Error("Text must not be empty");
+    const object = this.#get(id);
+    if (!(object instanceof Textbox) || object.elementKind !== "text") {
+      throw new Error(`${id} is not editable text`);
+    }
+    if (object.text === value) return;
+    object.set("text", value);
+    object.initDimensions();
+    object.setCoords();
+    this.canvas.requestRenderAll();
+    this.#emit("modified", object);
+  }
 
   transform(id: string, patch: Partial<ObjectTransform>): void {
     const object = this.#get(id);
@@ -139,6 +194,95 @@ export class FabricCanvasAdapter implements CanvasPort {
     this.canvas.requestRenderAll();
   }
 
+  getCropSourceSize(id: string): CanvasSize {
+    const image = this.#getRaster(id);
+    const { width, height } = image.getOriginalSize();
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+      throw new Error(`Raster ${id} has invalid source dimensions`);
+    }
+    return { width: Number(width), height: Number(height) };
+  }
+
+  setCrop(id: string, crop: CropState): void {
+    const image = this.#getRaster(id);
+    const source = this.getCropSourceSize(id);
+    const values = Object.values(crop);
+    if (values.some((value) => !Number.isFinite(value))) throw new Error("Crop values must be finite");
+    if (crop.visibleWidth <= 0 || crop.visibleHeight <= 0 ||
+      crop.cropX < 0 || crop.cropY < 0 ||
+      crop.cropX + crop.visibleWidth > source.width ||
+      crop.cropY + crop.visibleHeight > source.height ||
+      crop.focalX < 0 || crop.focalX > 1 || crop.focalY < 0 || crop.focalY > 1) {
+      throw new Error("Crop must remain inside its source bounds");
+    }
+    if (image.cropX === crop.cropX && image.cropY === crop.cropY &&
+      image.width === crop.visibleWidth && image.height === crop.visibleHeight &&
+      image.cropFocalX === crop.focalX && image.cropFocalY === crop.focalY) return;
+    image.set({
+      cropX: crop.cropX,
+      cropY: crop.cropY,
+      width: crop.visibleWidth,
+      height: crop.visibleHeight,
+      cropFocalX: crop.focalX,
+      cropFocalY: crop.focalY
+    });
+    image.setCoords();
+    this.canvas.requestRenderAll();
+    this.#emit("modified", image);
+  }
+
+  setDrawingTool(settings: DrawingToolSettings): void {
+    if (settings.mode === "select") {
+      this.#drawingTool = settings;
+      this.canvas.isDrawingMode = false;
+      return;
+    }
+    if (settings.mode === "eraser") {
+      if (!Number.isFinite(settings.radius) || settings.radius <= 0) {
+        throw new Error("Eraser radius must be a positive finite number");
+      }
+      this.#drawingTool = { ...settings };
+      this.canvas.isDrawingMode = false;
+      return;
+    }
+    if (!settings.color.trim()) throw new Error("Drawing colour must not be empty");
+    if (!Number.isFinite(settings.width) || settings.width <= 0) {
+      throw new Error("Drawing width must be a positive finite number");
+    }
+    if (!Number.isFinite(settings.opacity) || settings.opacity < 0 || settings.opacity > 1) {
+      throw new Error("Drawing opacity must be between zero and one");
+    }
+    const color = new Color(settings.color);
+    if (color.isUnrecognised) throw new Error("Drawing colour is invalid");
+    this.#pencilBrush.color = color.setAlpha(settings.opacity).toRgba();
+    this.#pencilBrush.width = settings.width;
+    this.#drawingTool = { ...settings };
+    this.canvas.isDrawingMode = true;
+  }
+
+  eraseTopmostDrawing(point: CanvasPoint, radius: number): boolean {
+    if (![point.x, point.y, radius].every(Number.isFinite) || radius <= 0) {
+      throw new Error("Eraser geometry must be finite with a positive radius");
+    }
+    const zoom = this.canvas.getZoom();
+    if (!Number.isFinite(zoom) || zoom <= 0) throw new Error("Canvas zoom must be positive and finite");
+    const sceneRadius = radius / zoom;
+    const objects = this.canvas.getObjects();
+    for (let index = objects.length - 1; index >= 0; index -= 1) {
+      const object = objects[index];
+      if (!(object instanceof Path) || object.elementKind !== "drawing" || !object.visible) continue;
+      const bounds = object.getBoundingRect();
+      const nearestX = Math.max(bounds.left, Math.min(point.x, bounds.left + bounds.width));
+      const nearestY = Math.max(bounds.top, Math.min(point.y, bounds.top + bounds.height));
+      if (Math.hypot(point.x - nearestX, point.y - nearestY) > sceneRadius) continue;
+      if (!this.#pathIntersectsRadius(object, point, sceneRadius)) continue;
+      this.canvas.remove(object);
+      this.canvas.requestRenderAll();
+      return true;
+    }
+    return false;
+  }
+
   serialize(): Record<string, unknown> {
     return this.canvas.toObject(SERIALIZED_INTERACTION_PROPERTIES) as Record<string, unknown>;
   }
@@ -183,6 +327,51 @@ export class FabricCanvasAdapter implements CanvasPort {
     const object = this.canvas.getObjects().find((candidate) => candidate.objectId === id);
     if (!object) throw new Error(`Missing object ${id}`);
     return object;
+  }
+
+  #getRaster(id: string): FabricImage {
+    const object = this.#get(id);
+    if (!(object instanceof FabricImage) || object.elementKind !== "image") {
+      throw new Error(`${id} is not a raster image`);
+    }
+    return object;
+  }
+
+  #tagDrawingPath(path: FabricObject): void {
+    if (this.#drawingTool.mode !== "pencil" && this.#drawingTool.mode !== "marker") return;
+    const label = this.#drawingTool.mode === "pencil" ? "Pencil drawing" : "Marker drawing";
+    path.set({
+      objectId: this.createId(),
+      elementKind: "drawing",
+      accessibleName: label,
+      cornerSize: FABRIC_CONTROL_SIZE,
+      touchCornerSize: FABRIC_CONTROL_SIZE,
+      transparentCorners: false,
+      borderScaleFactor: 2
+    });
+    path.setCoords();
+  }
+
+  #pathIntersectsRadius(path: Path, point: CanvasPoint, radius: number): boolean {
+    const transformed = util.transformPath(path.path, path.calcTransformMatrix(), path.pathOffset);
+    const segments = util.getPathSegmentsInfo(transformed);
+    const totalLength = segments.at(-1)?.length ?? 0;
+    const scaling = path.getObjectScaling();
+    const strokeScale = path.strokeUniform ? 1 : Math.max(Math.abs(scaling.x), Math.abs(scaling.y));
+    const tolerance = radius + (path.strokeWidth * strokeScale) / 2;
+    if (totalLength === 0) {
+      const first = transformed[0];
+      return first?.[0] === "M" && Math.hypot(point.x - first[1], point.y - first[2]) <= tolerance;
+    }
+    const sampleCount = Math.max(
+      2,
+      Math.min(4096, Math.ceil(totalLength / Math.max(1, tolerance / 2)))
+    );
+    for (let index = 0; index <= sampleCount; index += 1) {
+      const sample = util.getPointOnPath(transformed, (totalLength * index) / sampleCount, segments);
+      if (sample && Math.hypot(point.x - sample.x, point.y - sample.y) <= tolerance) return true;
+    }
+    return false;
   }
 
   #emit(type: CanvasMutation["type"], object: FabricObject): void {

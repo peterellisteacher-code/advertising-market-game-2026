@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type {
+  CanvasPoint,
+  CanvasSize,
   CanvasMutationListener,
   CanvasPort,
+  CropState,
+  DrawingToolSettings,
   NewRasterInput,
   NewShapeInput,
   NewTextInput,
@@ -22,10 +26,17 @@ class MemoryCanvasPort implements CanvasPort {
   readonly objects: MemoryObject[] = [];
   readonly moves: StackDirection[] = [];
   selectedId: string | null = null;
+  drawingTool: DrawingToolSettings = { mode: "select" };
 
   async addText(input: NewTextInput): Promise<void> { this.#add(input.id, "text", input); }
   async addShape(input: NewShapeInput): Promise<void> { this.#add(input.id, input.kind, input); }
   async addRaster(input: NewRasterInput): Promise<void> { this.#add(input.id, "image", input); }
+
+  setText(id: string, value: string): void {
+    const object = this.#get(id);
+    if (object.kind !== "text") throw new Error(`${id} is not text`);
+    object.value = value;
+  }
 
   transform(id: string, patch: Partial<ObjectTransform>): void {
     Object.assign(this.#get(id), patch);
@@ -46,6 +57,25 @@ class MemoryCanvasPort implements CanvasPort {
   setLocked(id: string, locked: boolean): void { this.#get(id).locked = locked; }
   setVisible(id: string, visible: boolean): void { this.#get(id).visible = visible; }
   setSelected(id: string | null): void { this.selectedId = id; }
+  getCropSourceSize(id: string): CanvasSize {
+    const object = this.#get(id);
+    return {
+      width: Number(object.sourceWidth ?? 640),
+      height: Number(object.sourceHeight ?? 480)
+    };
+  }
+  setCrop(id: string, crop: CropState): void { Object.assign(this.#get(id), crop); }
+  setDrawingTool(settings: DrawingToolSettings): void { this.drawingTool = structuredClone(settings); }
+  eraseTopmostDrawing(point: CanvasPoint, radius: number): boolean {
+    for (let index = this.objects.length - 1; index >= 0; index -= 1) {
+      const object = this.objects[index]!;
+      if (object.kind !== "drawing" ||
+        Math.hypot(Number(object.x) - point.x, Number(object.y) - point.y) > radius) continue;
+      this.objects.splice(index, 1);
+      return true;
+    }
+    return false;
+  }
   serialize(): Record<string, unknown> { return { objects: structuredClone(this.objects) }; }
 
   async load(value: Record<string, unknown>): Promise<void> {

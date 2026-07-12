@@ -37,12 +37,39 @@ export interface CanvasMutation {
   objectId: string;
 }
 
+export interface CanvasPoint {
+  x: number;
+  y: number;
+}
+
+export interface CanvasSize {
+  width: number;
+  height: number;
+}
+
+export interface CropState {
+  cropX: number;
+  cropY: number;
+  visibleWidth: number;
+  visibleHeight: number;
+  /** Normalised horizontal focal position from zero to one. */
+  focalX: number;
+  /** Normalised vertical focal position from zero to one. */
+  focalY: number;
+}
+
+export type DrawingToolSettings =
+  | { mode: "select" }
+  | { mode: "pencil" | "marker"; color: string; width: number; opacity: number }
+  | { mode: "eraser"; radius: number };
+
 export type CanvasMutationListener = (mutation: CanvasMutation) => void;
 
 export interface CanvasPort {
   addText(input: NewTextInput): Promise<void>;
   addShape(input: NewShapeInput): Promise<void>;
   addRaster(input: NewRasterInput): Promise<void>;
+  setText(id: string, value: string): void;
   transform(id: string, patch: Partial<ObjectTransform>): void;
   duplicate(id: string, newId: string): Promise<void>;
   remove(id: string): void;
@@ -50,6 +77,10 @@ export interface CanvasPort {
   setLocked(id: string, locked: boolean): void;
   setVisible(id: string, visible: boolean): void;
   setSelected(id: string | null): void;
+  getCropSourceSize(id: string): CanvasSize;
+  setCrop(id: string, crop: CropState): void;
+  setDrawingTool(settings: DrawingToolSettings): void;
+  eraseTopmostDrawing(point: CanvasPoint, radius: number): boolean;
   serialize(): Record<string, unknown>;
   load(value: Record<string, unknown>): Promise<void>;
   subscribe(listener: CanvasMutationListener): () => void;

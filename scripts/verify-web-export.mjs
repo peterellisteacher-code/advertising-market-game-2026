@@ -73,6 +73,21 @@ function verifyOfflineCatalogue(files, errors) {
   }
 }
 
+/** Verifies a complete offline-core directory without requiring a Godot shell. */
+export async function verifyOfflineCoreDirectory(directory) {
+  const prefix = "catalog/generated/offline-core-v1";
+  const files = await readTreeIfPresent(directory, prefix);
+  if (!files.has(`${prefix}/catalog.json`)) {
+    throw new Error("Offline catalogue verification failed:\n- missing offline catalogue: catalog.json");
+  }
+  const errors = [];
+  verifyOfflineCatalogue(files, errors);
+  if (errors.length > 0) {
+    throw new Error(`Offline catalogue verification failed:\n- ${errors.join("\n- ")}`);
+  }
+  return files;
+}
+
 /** Pure verification core. It verifies static export evidence, not an end-to-end browser bridge. */
 export function inspectExportContents({ files, pckHash }) {
   const errors = [];

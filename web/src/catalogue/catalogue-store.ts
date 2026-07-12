@@ -34,8 +34,9 @@ const record = (value: unknown): Record<string, unknown> | null =>
     ? value as Record<string, unknown>
     : null;
 
-const text = (value: unknown): value is string =>
-  typeof value === "string" && value.trim().length > 0;
+const text = (value: unknown, maximum = 2_048): value is string =>
+  typeof value === "string" && value.length > 0 && value.length <= maximum &&
+  value === value.trim() && !/[\x00-\x1f]/.test(value);
 
 const exactKeys = (
   value: Record<string, unknown>,
@@ -51,7 +52,7 @@ const sortedUniqueStrings = (
   value: unknown,
   predicate: (candidate: string) => boolean = () => true
 ): value is string[] => {
-  if (!Array.isArray(value) || !value.every((candidate) => text(candidate) && predicate(candidate))) return false;
+  if (!Array.isArray(value) || !value.every((candidate) => text(candidate, 80) && predicate(candidate))) return false;
   return new Set(value).size === value.length &&
     value.every((candidate, index) => index === 0 || value[index - 1] < candidate);
 };
@@ -94,6 +95,9 @@ function validAttribution(value: unknown): value is CatalogAssetV1["attribution"
   if (!attribution || !exactKeys(attribution, ["creator", "sourceUrl", "license"]) ||
     !text(attribution.creator) || !text(attribution.license) || !text(attribution.sourceUrl)) return false;
   if (attribution.sourceUrl === "local") return true;
+  if (!(attribution.sourceUrl as string).startsWith("http://") &&
+    !(attribution.sourceUrl as string).startsWith("https://")) return false;
+  if ((attribution.sourceUrl as string).includes("\\")) return false;
   try {
     const url = new URL(attribution.sourceUrl as string);
     return (url.protocol === "http:" || url.protocol === "https:") &&
@@ -150,7 +154,7 @@ function validZoneStyles(
   materials: MaterialPresetId[]
 ): value is Partial<Record<RecolourZone, CatalogZoneStyle>> {
   const styles = record(value);
-  if (!styles) return false;
+  if (!styles || Object.keys(styles).length === 0) return false;
   const zoneSet = new Set(zones);
   return Object.entries(styles).every(([zone, candidate]) => {
     const style = record(candidate);
@@ -175,7 +179,7 @@ export function parseCatalogAsset(value: unknown): CatalogAssetV1 | null {
   const optional = asset.delivery === "offline" ? ["virtualParentId", "defaultZoneStyles"] : [];
   if (!exactKeys(asset, required, optional) || asset.schema !== "catalog-asset@1" ||
     asset.version !== 1 ||
-    !ASSET_KINDS.has(asset.kind as AssetKind) || !text(asset.title) || !text(asset.category) ||
+    !ASSET_KINDS.has(asset.kind as AssetKind) || !text(asset.title, 160) || !text(asset.category, 80) ||
     !sortedUniqueStrings(asset.tags) || typeof asset.classroomReviewed !== "boolean" ||
     typeof asset.brandFree !== "boolean" || !validAttribution(asset.attribution)) return null;
 

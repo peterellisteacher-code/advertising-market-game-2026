@@ -7,8 +7,12 @@ pipeline/.bench/
 build/
 .godot/
 godot/.godot/
-catalog/generated/
-catalog/reports/
+catalog/generated/*
+!catalog/generated/offline-core-v1/
+!catalog/generated/offline-core-v1/**
+catalog/reports/*
+!catalog/reports/creator-foundation-100/
+!catalog/reports/creator-foundation-100/**
 __pycache__/
 .pytest_cache/
 

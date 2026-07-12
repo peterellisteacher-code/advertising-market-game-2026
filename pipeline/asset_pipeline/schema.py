@@ -14,6 +14,7 @@ import re
 import unicodedata
 from pathlib import PurePosixPath
 from typing import Annotated, Any, Iterable, Literal, Mapping, Sequence
+from urllib.parse import urlsplit
 
 from pydantic import (
     BaseModel,
@@ -169,6 +170,28 @@ def _trimmed_text(value: str, label: str, *, maximum: int) -> str:
     return value
 
 
+def _safe_attribution_url(value: str) -> str:
+    _trimmed_text(value, "source URL", maximum=2_048)
+    if value == "local":
+        return value
+    try:
+        parsed = urlsplit(value)
+        parsed.port
+        valid = (
+            value.startswith(("http://", "https://"))
+            and "\\" not in value
+            and parsed.scheme in {"http", "https"}
+            and bool(parsed.hostname)
+            and parsed.username is None
+            and parsed.password is None
+        )
+    except ValueError:
+        valid = False
+    if not valid:
+        raise ValueError("source URL must be local or a safe absolute HTTP(S) URL")
+    return value
+
+
 def _sorted_unique_text(
     values: Sequence[str],
     label: str,
@@ -278,10 +301,15 @@ class Attribution(ContractModel):
     source_url: str
     license: str
 
-    @field_validator("creator", "source_url", "license")
+    @field_validator("creator", "license")
     @classmethod
     def validate_text(cls, value: str, info: Any) -> str:
         return _trimmed_text(value, info.field_name, maximum=2_048)
+
+    @field_validator("source_url")
+    @classmethod
+    def validate_source_url(cls, value: str) -> str:
+        return _safe_attribution_url(value)
 
 
 class Anchor(ContractModel):
@@ -402,6 +430,8 @@ class CatalogAsset(ContractModel):
             raise ValueError("mask files must match recolourZones exactly")
 
         if self.default_zone_styles is not None:
+            if not self.default_zone_styles:
+                raise ValueError("default zone styles may not be empty")
             unknown_style_zones = set(self.default_zone_styles).difference(declared_zones)
             if unknown_style_zones:
                 raise ValueError("default zone styles must target declared recolour zones")
@@ -419,6 +449,11 @@ class CatalogAsset(ContractModel):
             if self.master_sha256 is None:
                 raise ValueError("offline assets require masterSha256")
             _sha256(self.master_sha256)
+            provided = self.__pydantic_fields_set__
+            if "virtual_parent_id" in provided and self.virtual_parent_id is None:
+                raise ValueError("offline virtualParentId may not be null")
+            if "default_zone_styles" in provided and self.default_zone_styles is None:
+                raise ValueError("offline defaultZoneStyles may not be null")
             if self.virtual_parent_id is not None:
                 _portable_id(self.virtual_parent_id)
                 if self.virtual_parent_id == self.id:
@@ -447,10 +482,9 @@ class CatalogAsset(ContractModel):
             raise ValueError("live photo IDs must be canonical lowercase UUIDs")
         if self.kind != "photo":
             raise ValueError("live-photo delivery requires kind photo")
-        if self.master_sha256 is not None or self.virtual_parent_id is not None:
+        provided = self.__pydantic_fields_set__
+        if {"master_sha256", "virtual_parent_id", "default_zone_styles"}.intersection(provided):
             raise ValueError("live photos may not contain offline identity fields")
-        if self.default_zone_styles is not None:
-            raise ValueError("live photos may not contain default zone styles")
         if mask_paths is not None:
             raise ValueError("live photos may not contain masks")
         if self.recolour_zones or self.anchors or self.material_profiles:

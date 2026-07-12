@@ -8,6 +8,7 @@ from jsonschema import Draft202012Validator
 from pydantic import ValidationError
 
 from conftest import REPO_ROOT
+from asset_pipeline.json_schema import catalog_schema_validator
 from asset_pipeline.schema import (
     CatalogAsset,
     canonical_json_bytes,
@@ -22,7 +23,7 @@ def test_catalogue_model_and_draft_2020_schema_share_a_canonical_record(valid_as
 
     model = CatalogAsset.model_validate(valid_asset_dict, strict=True)
     canonical = json.loads(canonical_json_bytes(model).decode("utf-8"))
-    errors = sorted(Draft202012Validator(schema).iter_errors(canonical), key=lambda error: list(error.path))
+    errors = sorted(catalog_schema_validator(schema).iter_errors(canonical), key=lambda error: list(error.path))
 
     assert errors == []
     assert canonical_json_bytes(model).endswith(b"\n")
@@ -68,9 +69,9 @@ def test_live_photo_contract_is_discriminated_from_offline_assets(valid_asset_di
         "materialProfiles": [],
         "classroomReviewed": False,
         "brandFree": False,
-        "defaultZoneStyles": None,
     })
     live.pop("masterSha256")
+    live.pop("defaultZoneStyles")
 
     assert CatalogAsset.model_validate(live, strict=True).delivery == "live-photo"
 
@@ -125,7 +126,7 @@ def test_portable_id_validation_returns_stable_normalised_ids():
 def test_shared_corpus_has_identical_pydantic_and_json_schema_verdicts():
     schema = json.loads((REPO_ROOT / "catalog" / "schemas" / "catalog-asset-v1.schema.json").read_text(encoding="utf-8"))
     corpus = json.loads((REPO_ROOT / "catalog" / "schemas" / "catalog-asset-v1.corpus.json").read_text(encoding="utf-8"))
-    validator = Draft202012Validator(schema)
+    validator = catalog_schema_validator(schema)
 
     for case in corpus["valid"]:
         assert CatalogAsset.model_validate(case["value"], strict=True)
@@ -135,3 +136,59 @@ def test_shared_corpus_has_identical_pydantic_and_json_schema_verdicts():
         with pytest.raises(ValidationError):
             CatalogAsset.model_validate(case["value"], strict=True)
         assert list(validator.iter_errors(case["value"])), case["name"]
+
+    for case in corpus["derivedInvalid"]:
+        candidate = copy.deepcopy(corpus["valid"][case["baseValid"]]["value"])
+        target = candidate
+        for segment in case["path"][:-1]:
+            target = target[segment]
+        target[case["path"][-1]] = case["value"]
+        with pytest.raises(ValidationError):
+            CatalogAsset.model_validate(candidate, strict=True)
+        assert list(validator.iter_errors(candidate)), case["name"]
+
+
+def test_json_schema_enforces_canonical_order_pixel_product_and_anchor_identity(valid_asset_dict):
+    schema = json.loads((REPO_ROOT / "catalog" / "schemas" / "catalog-asset-v1.schema.json").read_text(encoding="utf-8"))
+    validator = catalog_schema_validator(schema)
+    cases = []
+
+    unsorted = copy.deepcopy(valid_asset_dict)
+    unsorted["tags"] = ["drinkware", "bottle"]
+    cases.append(("unsorted tags", unsorted))
+
+    oversized = copy.deepcopy(valid_asset_dict)
+    oversized["dimensions"] = {"width": 8192, "height": 8192}
+    cases.append(("64 megapixel product", oversized))
+
+    duplicate_anchor = copy.deepcopy(valid_asset_dict)
+    duplicate_anchor["anchors"].append({"id": "lid", "x": 0.6, "y": 0.2, "accepts": ["cap"]})
+    cases.append(("duplicate anchor ID", duplicate_anchor))
+
+    for name, candidate in cases:
+        with pytest.raises(ValidationError):
+            CatalogAsset.model_validate(candidate, strict=True)
+        assert list(validator.iter_errors(candidate)), name
+
+
+def test_pydantic_rejects_explicit_null_live_fields_empty_styles_and_unsafe_attribution(valid_asset_dict):
+    corpus = json.loads((REPO_ROOT / "catalog" / "schemas" / "catalog-asset-v1.corpus.json").read_text(encoding="utf-8"))
+    live_with_null = copy.deepcopy(corpus["valid"][1]["value"])
+    live_with_null["masterSha256"] = None
+
+    empty_styles = copy.deepcopy(valid_asset_dict)
+    empty_styles["defaultZoneStyles"] = {}
+
+    unsafe_attribution = copy.deepcopy(valid_asset_dict)
+    unsafe_attribution["attribution"]["sourceUrl"] = "file:///classroom-secret"
+
+    for candidate in (live_with_null, empty_styles, unsafe_attribution):
+        with pytest.raises(ValidationError):
+            CatalogAsset.model_validate(candidate, strict=True)
+
+
+def test_exact_pixel_limit_keeps_a_narrow_8192_axis_asset_valid(valid_asset_dict):
+    candidate = copy.deepcopy(valid_asset_dict)
+    candidate["dimensions"] = {"width": 8192, "height": 1}
+
+    assert CatalogAsset.model_validate(candidate, strict=True).dimensions.width == 8192

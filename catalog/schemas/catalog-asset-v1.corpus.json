@@ -283,5 +283,64 @@
         "attribution": { "creator": "Fixture", "sourceUrl": "local", "license": "Fixture" }
       }
     }
+  ],
+  "derivedInvalid": [
+    {
+      "name": "invalid live photo with explicit null offline field",
+      "baseValid": 1,
+      "path": ["masterSha256"],
+      "value": null
+    },
+    {
+      "name": "invalid unsorted tags",
+      "baseValid": 0,
+      "path": ["tags"],
+      "value": ["drinkware", "bottle"]
+    },
+    {
+      "name": "invalid dimension product above 64 megapixels",
+      "baseValid": 0,
+      "path": ["dimensions"],
+      "value": { "width": 8192, "height": 8192 }
+    },
+    {
+      "name": "invalid duplicate anchor IDs with different coordinates",
+      "baseValid": 0,
+      "path": ["anchors"],
+      "value": [
+        { "id": "lid", "x": 0.5, "y": 0.1, "accepts": ["cap"] },
+        { "id": "lid", "x": 0.6, "y": 0.2, "accepts": ["cap"] }
+      ]
+    },
+    {
+      "name": "invalid empty default zone styles",
+      "baseValid": 0,
+      "path": ["defaultZoneStyles"],
+      "value": {}
+    },
+    {
+      "name": "invalid title outer whitespace",
+      "baseValid": 0,
+      "path": ["title"],
+      "value": " Basic bottle "
+    },
+    {
+      "name": "invalid title over 160 characters",
+      "baseValid": 0,
+      "path": ["title"],
+      "value": "This deliberately overlong catalogue title contains far more than one hundred and sixty characters so every contract layer must reject it instead of silently accepting text that cannot fit the creator interface."
+    },
+    {
+      "name": "invalid unsafe attribution URL",
+      "baseValid": 0,
+      "path": ["attribution", "sourceUrl"],
+      "value": "file:///classroom-secret"
+    },
+    {
+      "name": "invalid attribution URL with malformed port",
+      "baseValid": 0,
+      "path": ["attribution", "sourceUrl"],
+      "value": "https://example.test:not-a-port/image"
+    }
   ]
 }

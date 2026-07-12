@@ -142,6 +142,52 @@ def test_pack_refuses_hash_mismatch_and_nonempty_destinations_without_mutation(t
     assert report_sentinel.read_bytes() == b"report unchanged"
 
 
+def test_pack_preflights_rejected_asset_hashes(tmp_path: Path):
+    source = make_source_pack(tmp_path / "source")
+    manifest_path = source / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["assets"][1]["sourceSha256"] = "0" * 64
+    canonical_write(manifest_path, manifest)
+
+    with pytest.raises(PackBuildError, match="rejected-logo source hash"):
+        build_pack(source, tmp_path / "out", tmp_path / "report")
+
+
+def test_pack_rejects_reparse_output_target_before_writing(tmp_path: Path, monkeypatch):
+    source = make_source_pack(tmp_path / "source")
+    output = tmp_path / "output-junction"
+    output.mkdir()
+    original = pack_module._is_reparse_point
+    monkeypatch.setattr(
+        pack_module,
+        "_is_reparse_point",
+        lambda path: Path(path) == output or original(Path(path)),
+    )
+
+    with pytest.raises(PackBuildError, match="output directory.*reparse"):
+        build_pack(source, output, tmp_path / "report")
+
+    assert list(output.iterdir()) == []
+
+
+def test_pack_rejects_reparse_output_ancestor_before_writing(tmp_path: Path, monkeypatch):
+    source = make_source_pack(tmp_path / "source")
+    output_parent = tmp_path / "output-junction"
+    output_parent.mkdir()
+    output = output_parent / "nested-output"
+    original = pack_module._is_reparse_point
+    monkeypatch.setattr(
+        pack_module,
+        "_is_reparse_point",
+        lambda path: Path(path) == output_parent or original(Path(path)),
+    )
+
+    with pytest.raises(PackBuildError, match="output directory.*reparse"):
+        build_pack(source, output, tmp_path / "report")
+
+    assert list(output_parent.iterdir()) == []
+
+
 def test_pack_hashes_one_shared_authored_source_only_once(tmp_path: Path, monkeypatch):
     source = make_source_pack(tmp_path / "source")
     manifest_path = source / "manifest.json"

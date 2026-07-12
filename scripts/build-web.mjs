@@ -1,6 +1,7 @@
 import {
   access,
   copyFile,
+  lstat,
   mkdir,
   readdir,
   readFile,
@@ -8,6 +9,8 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+
+import { verifyOfflineCoreDirectory } from "./verify-web-export.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ROOT = path.resolve(SCRIPT_DIR, "..");
@@ -80,6 +83,20 @@ async function requireFile(filePath, label) {
 
 /** Copies a generated tree without pruning and rejects filesystem indirection. */
 export async function copyVerifiedTree(source, destination) {
+  let destinationPart = path.resolve(destination);
+  while (true) {
+    try {
+      const destinationMetadata = await lstat(destinationPart);
+      if (destinationMetadata.isSymbolicLink()) {
+        throw new Error(`Refusing destination symlink or reparse point: ${destinationPart}`);
+      }
+    } catch (error) {
+      if (!error || typeof error !== "object" || error.code !== "ENOENT") throw error;
+    }
+    const parent = path.dirname(destinationPart);
+    if (parent === destinationPart) break;
+    destinationPart = parent;
+  }
   await mkdir(destination, { recursive: true });
   const entries = await readdir(source, { withFileTypes: true });
   entries.sort((left, right) => left.name.localeCompare(right.name));
@@ -145,6 +162,7 @@ export async function assembleWebExport({
   if (hasOfflineCore) {
     const offlineSourceRoot = path.dirname(offlineSource);
     const offlineDestinationRoot = path.join(webDir, path.dirname(offlineRelative));
+    await verifyOfflineCoreDirectory(offlineSourceRoot);
     await copyVerifiedTree(offlineSourceRoot, offlineDestinationRoot);
     log(`OFFLINE_CORE_COPIED ${path.dirname(offlineRelative).replaceAll(path.sep, "/")}`);
   } else {

@@ -31,18 +31,31 @@ class NormalizationResult:
     master_sha256: str
 
 
-def _validate_dimensions(width: int, height: int) -> None:
+def _validate_dimensions(
+    width: int,
+    height: int,
+    *,
+    max_axis_pixels: int = MAX_AXIS_PIXELS,
+    max_image_pixels: int = MAX_IMAGE_PIXELS,
+) -> None:
     if width < 1 or height < 1:
         raise NormalizationError("Image dimensions must be positive")
-    if width > MAX_AXIS_PIXELS or height > MAX_AXIS_PIXELS:
+    if width > max_axis_pixels or height > max_axis_pixels:
         raise NormalizationError(
-            f"Image dimension exceeds the {MAX_AXIS_PIXELS}-pixel axis limit"
+            f"Image dimension exceeds the {max_axis_pixels}-pixel axis limit"
         )
-    if width * height > MAX_IMAGE_PIXELS:
-        raise NormalizationError("Image exceeds the 64 megapixel limit")
+    if width * height > max_image_pixels:
+        if max_image_pixels == MAX_IMAGE_PIXELS:
+            raise NormalizationError("Image exceeds the 64 megapixel limit")
+        raise NormalizationError(f"Image exceeds the {max_image_pixels}-pixel limit")
 
 
-def _validate_png_header(source_path: Path) -> None:
+def _validate_png_header(
+    source_path: Path,
+    *,
+    max_axis_pixels: int = MAX_AXIS_PIXELS,
+    max_image_pixels: int = MAX_IMAGE_PIXELS,
+) -> None:
     """Reject oversized PNG IHDR values even when the rest is truncated."""
 
     try:
@@ -57,7 +70,11 @@ def _validate_png_header(source_path: Path) -> None:
         and header[8:12] == b"\x00\x00\x00\r"
         and header[12:16] == b"IHDR"
     ):
-        _validate_dimensions(*struct.unpack(">II", header[16:24]))
+        _validate_dimensions(
+            *struct.unpack(">II", header[16:24]),
+            max_axis_pixels=max_axis_pixels,
+            max_image_pixels=max_image_pixels,
+        )
 
 
 def _convert_to_canonical_rgba(image: Image.Image, icc_bytes: bytes | None) -> Image.Image:
@@ -97,29 +114,54 @@ def _convert_to_canonical_rgba(image: Image.Image, icc_bytes: bytes | None) -> I
     return converted
 
 
-def _load_source(source_path: Path) -> Image.Image:
+def load_canonical_rgba(
+    source_path: str | Path,
+    *,
+    max_encoded_bytes: int = MAX_ENCODED_BYTES,
+    max_axis_pixels: int = MAX_AXIS_PIXELS,
+    max_image_pixels: int = MAX_IMAGE_PIXELS,
+) -> Image.Image:
+    """Decode one source with shared EXIF, ICC and metadata-free semantics."""
+
+    source_path = Path(source_path)
     try:
         size = source_path.stat().st_size
     except OSError as exc:
         raise NormalizationError(f"Cannot read source image: {source_path}") from exc
 
-    if size > MAX_ENCODED_BYTES:
-        raise NormalizationError("Encoded source exceeds the 64 MiB limit")
+    if size > max_encoded_bytes:
+        if max_encoded_bytes % (1024 * 1024) == 0:
+            limit = f"{max_encoded_bytes // (1024 * 1024)} MiB"
+        else:
+            limit = f"{max_encoded_bytes} bytes"
+        raise NormalizationError(f"Encoded source exceeds the {limit} limit")
 
-    _validate_png_header(source_path)
+    _validate_png_header(
+        source_path,
+        max_axis_pixels=max_axis_pixels,
+        max_image_pixels=max_image_pixels,
+    )
 
     try:
         with Image.open(source_path) as source:
             # Image.open parses the header lazily; reject unreasonable dimensions
             # before asking the decoder to allocate the full pixel buffer.
-            _validate_dimensions(*source.size)
+            _validate_dimensions(
+                *source.size,
+                max_axis_pixels=max_axis_pixels,
+                max_image_pixels=max_image_pixels,
+            )
             icc_value = source.info.get("icc_profile")
             if icc_value is not None and not isinstance(icc_value, bytes):
                 raise NormalizationError("Embedded ICC profile is malformed or unusable")
 
             source.load()
             oriented = ImageOps.exif_transpose(source)
-            _validate_dimensions(*oriented.size)
+            _validate_dimensions(
+                *oriented.size,
+                max_axis_pixels=max_axis_pixels,
+                max_image_pixels=max_image_pixels,
+            )
             return _convert_to_canonical_rgba(oriented, icc_value)
     except NormalizationError:
         raise
@@ -178,7 +220,7 @@ def normalize_master(source_path: str | Path, output_dir: str | Path) -> Normali
                 raise NormalizationError("Normalization output directory must be empty")
         except OSError as exc:
             raise NormalizationError(f"Cannot inspect normalization output: {destination}") from exc
-    canonical = _load_source(source)
+    canonical = load_canonical_rgba(source)
 
     try:
         destination.mkdir(parents=True, exist_ok=True)
@@ -207,4 +249,9 @@ def normalize_master(source_path: str | Path, output_dir: str | Path) -> Normali
     )
 
 
-__all__ = ["NormalizationError", "NormalizationResult", "normalize_master"]
+__all__ = [
+    "NormalizationError",
+    "NormalizationResult",
+    "load_canonical_rgba",
+    "normalize_master",
+]

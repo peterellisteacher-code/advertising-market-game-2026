@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 
 import pytest
-from PIL import Image, ImageDraw
+from PIL import Image, ImageCms, ImageDraw
 
 from asset_pipeline.chroma import cie76_distance
 from asset_pipeline.schema import AssetSheet
@@ -68,6 +68,35 @@ def test_splitter_maps_spatial_components_to_explicit_ids_and_preserves_special_
         assert first.getpixel((3, 3))[3] == 0
     with Image.open(components[1].path) as second:
         assert second.getpixel((4, 8))[3] == 80
+
+
+def test_splitter_applies_exif_and_valid_icc_before_spatial_component_mapping(tmp_path: Path):
+    image = Image.new("RGBA", (14, 10), GREEN)
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((8, 1, 10, 3), fill=RED)
+    draw.rectangle((2, 5, 4, 7), fill=(20, 80, 220, 255))
+    exif = Image.Exif()
+    exif[274] = 6
+    profile = ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
+    source = tmp_path / "oriented-profiled.png"
+    image.save(
+        source,
+        format="PNG",
+        compress_level=9,
+        optimize=False,
+        exif=exif,
+        icc_profile=profile,
+    )
+    source_hash = hashlib.sha256(source.read_bytes()).hexdigest()
+
+    components = split_sheet(source, spec(source_hash, ["first", "second"]), tmp_path / "out")
+
+    assert [component.source_bounds for component in components] == [(2, 2, 5, 5), (6, 8, 9, 11)]
+    with Image.open(components[0].path) as first:
+        assert first.mode == "RGBA"
+        assert first.getpixel((3, 3))[2] > first.getpixel((3, 3))[0]
+        assert "exif" not in first.info
+        assert "icc_profile" not in first.info
 
 
 def test_enclosed_chroma_pixels_can_be_the_only_bridge_inside_one_object(tmp_path: Path):

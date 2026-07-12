@@ -6,9 +6,10 @@ from dataclasses import dataclass
 import hashlib
 from pathlib import Path
 
-from PIL import Image, UnidentifiedImageError
+from PIL import Image
 
 from .chroma import connected_components_8, remove_border_connected_chroma
+from .normalize import NormalizationError, load_canonical_rgba
 from .schema import AssetSheet
 
 MAX_ENCODED_SOURCE_BYTES = 64 * 1024 * 1024
@@ -66,16 +67,15 @@ def split_sheet(source_path: Path, sheet: AssetSheet, output_dir: Path) -> list[
         raise SheetSplitError("sheet colour-distance formula is unsupported")
 
     try:
-        with Image.open(source_path) as opened:
-            width, height = opened.size
-            if width <= 0 or height <= 0 or width > MAX_SHEET_AXIS or height > MAX_SHEET_AXIS or width * height > MAX_SHEET_PIXELS:
-                raise SheetSplitError("sheet dimensions exceed the 4096-axis or 16777216-pixel size limit")
-            opened.load()
-            rgba = opened.convert("RGBA")
-    except SheetSplitError:
-        raise
-    except (OSError, UnidentifiedImageError) as error:
-        raise SheetSplitError("sheet source is not a valid image") from error
+        rgba = load_canonical_rgba(
+            source_path,
+            max_encoded_bytes=MAX_ENCODED_SOURCE_BYTES,
+            max_axis_pixels=MAX_SHEET_AXIS,
+            max_image_pixels=MAX_SHEET_PIXELS,
+        )
+    except NormalizationError as error:
+        raise SheetSplitError(str(error)) from error
+    width, height = rgba.size
 
     rgba = remove_border_connected_chroma(
         rgba,

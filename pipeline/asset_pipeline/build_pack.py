@@ -51,6 +51,14 @@ def _require_plain_directory(path: Path, label: str) -> Path:
 
 
 def _require_empty_target(path: Path, label: str) -> None:
+    current = _absolute(path)
+    while True:
+        if _is_reparse_point(current):
+            raise PackBuildError(f"{label} may not use a symlink or reparse point")
+        parent = current.parent
+        if parent == current:
+            break
+        current = parent
     if path.exists() and (not path.is_dir() or any(path.iterdir())):
         raise PackBuildError(f"{label} must be absent or empty")
 
@@ -98,7 +106,8 @@ def _preflight_sources(
     source_root: Path,
     manifest: SourceManifest,
 ) -> tuple[dict[str, Path], dict[str, dict[str, Path]], dict[str, Path]]:
-    accepted = sorted((asset for asset in manifest.assets if asset.accepted), key=lambda asset: asset.id)
+    all_assets = sorted(manifest.assets, key=lambda asset: asset.id)
+    accepted_ids = {asset.id for asset in all_assets if asset.accepted}
     ordinary: dict[str, Path] = {}
     masks: dict[str, dict[str, Path]] = {}
     sheet_sources: dict[str, Path] = {}
@@ -115,20 +124,23 @@ def _preflight_sources(
         if actual != expected:
             raise PackBuildError(f"{label} hash does not match sourceSha256")
 
-    required_sheet_ids = {asset.sheet_id for asset in accepted if asset.sheet_id is not None}
-    for sheet_id in sorted(required_sheet_ids):
-        sheet = sheet_by_id[sheet_id]
+    required_sheet_ids = {
+        asset.sheet_id for asset in all_assets if asset.accepted and asset.sheet_id is not None
+    }
+    for sheet_id, sheet in sorted(sheet_by_id.items()):
         if sheet.source_path is None:  # SourceManifest also enforces this.
             raise PackBuildError(f"sheet {sheet_id} has no source path")
         path = _safe_source_file(source_root, sheet.source_path, f"sheet {sheet_id}")
         checked_hash(path, sheet.source_sha256, f"sheet {sheet_id}")
-        sheet_sources[sheet_id] = path
+        if sheet_id in required_sheet_ids:
+            sheet_sources[sheet_id] = path
 
-    for asset in accepted:
+    for asset in all_assets:
         if asset.source_path is not None:
             path = _safe_source_file(source_root, asset.source_path, f"asset {asset.id} source")
             checked_hash(path, asset.source_sha256, f"asset {asset.id} source")
-            ordinary[asset.id] = path
+            if asset.id in accepted_ids:
+                ordinary[asset.id] = path
         else:
             sheet = sheet_by_id[asset.sheet_id or ""]
             if asset.source_sha256 != sheet.source_sha256:
@@ -136,10 +148,12 @@ def _preflight_sources(
                     f"asset {asset.id} hash must match its declared sheet source hash before decoding"
                 )
 
-        masks[asset.id] = {
+        checked_masks = {
             zone: _safe_source_file(source_root, path, f"asset {asset.id} {zone} mask")
             for zone, path in sorted(asset.masks.items())
         }
+        if asset.id in accepted_ids:
+            masks[asset.id] = checked_masks
     return ordinary, masks, sheet_sources
 
 

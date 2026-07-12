@@ -15,7 +15,8 @@ import {
 import { CataloguePanel } from "./catalogue/catalogue-panel";
 import {
   CataloguePlacementQueue,
-  CatalogueRuntime
+  CatalogueRuntime,
+  type LocalCatalogueBlob
 } from "./catalogue/catalogue-runtime";
 import { loadOfflineCatalogue } from "./catalogue/catalogue-store";
 import type { CatalogAssetV1 } from "./catalogue/catalogue-types";
@@ -83,6 +84,7 @@ async function createCanvasRuntime(canvasElement: HTMLCanvasElement): Promise<Ca
 class BrowserCreatorHandler implements CreatorBridgeHandler {
   readonly #blobs = new Map<string, Blob>();
   readonly #ownedRasterUrls = new Set<string>();
+  readonly #placementOwnedRasterUrls = new Set<string>();
   readonly #productName: HTMLInputElement;
   readonly #placements: CataloguePlacementQueue;
   #document: CampaignDocumentV1 | null = null;
@@ -105,7 +107,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
     this.#placements = new CataloguePlacementQueue({
       getDocument: () => this.#document,
       getCanvas: async () => (await this.#ensureRuntime()).adapter,
-      commit: (document) => { this.#document = document; },
+      commit: (document, localBlob) => this.#commitPlacement(document, localBlob),
       onError: (error) => { this.shell.assertive.textContent = error.message; }
     });
   }
@@ -166,13 +168,16 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
       throw error;
     }
     const releasePreviousUrls = this.#releaseOwnedRasterUrls;
+    const previousPlacementUrls = [...this.#placementOwnedRasterUrls];
     this.#document = document;
     this.#blobs.clear();
     blobs.forEach((blob, key) => this.#blobs.set(key, blob));
     this.#ownedRasterUrls.clear();
     ownedUrls.forEach((url) => this.#ownedRasterUrls.add(url));
+    this.#placementOwnedRasterUrls.clear();
     this.#releaseOwnedRasterUrls = releaseUrls;
     releasePreviousUrls?.();
+    previousPlacementUrls.forEach((url) => URL.revokeObjectURL(url));
     this.#productName.value = document.product.name;
     this.#setOpen(true);
     this.shell.canvasRegion.focus({ preventScroll: true });
@@ -234,6 +239,10 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
     const releaseOwnedRasterUrls = this.#releaseOwnedRasterUrls;
     this.#releaseOwnedRasterUrls = null;
     attempt(() => releaseOwnedRasterUrls?.());
+    attempt(() => {
+      this.#placementOwnedRasterUrls.forEach((url) => URL.revokeObjectURL(url));
+      this.#placementOwnedRasterUrls.clear();
+    });
     this.#ownedRasterUrls.clear();
     this.#blobs.clear();
     attempt(() => this.#setOpen(false));
@@ -251,6 +260,18 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
       },
       fabricState: this.#runtime?.adapter.serialize() ?? structuredClone(this.#document.fabricState)
     });
+  }
+
+  #commitPlacement(document: CampaignDocumentV1, localBlob?: LocalCatalogueBlob): void {
+    if (localBlob) {
+      if (this.#blobs.has(localBlob.blobKey) || this.#ownedRasterUrls.has(localBlob.objectUrl)) {
+        throw new Error("Catalogue placement produced a duplicate local asset");
+      }
+      this.#blobs.set(localBlob.blobKey, localBlob.blob);
+      this.#ownedRasterUrls.add(localBlob.objectUrl);
+      this.#placementOwnedRasterUrls.add(localBlob.objectUrl);
+    }
+    this.#document = document;
   }
 
   async #ensureRuntime(): Promise<CanvasRuntime> {
@@ -293,16 +314,16 @@ const cataloguePanel = new CataloguePanel(
   (asset) => handler.queueCataloguePlacement(asset)
 );
 const livePhotos = new OpenverseClient();
-let catalogueRuntime: CatalogueRuntime | null = null;
+const catalogueRuntime = new CatalogueRuntime({
+  core: [],
+  input: shell.librarySearch,
+  liveToggle: shell.livePhotos,
+  status: shell.libraryStatus,
+  renderer: cataloguePanel,
+  client: livePhotos
+});
 void loadOfflineCatalogue(root.dataset.offlineCatalogueUrl).then((core) => {
-  catalogueRuntime = new CatalogueRuntime({
-    core,
-    input: shell.librarySearch,
-    liveToggle: shell.livePhotos,
-    status: shell.libraryStatus,
-    renderer: cataloguePanel,
-    client: livePhotos
-  });
+  catalogueRuntime.replaceCore(core);
 });
 
 root.querySelector<HTMLButtonElement>('[data-command="return"]')

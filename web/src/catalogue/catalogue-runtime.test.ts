@@ -34,6 +34,16 @@ const asset = (id: string, kind: CatalogAssetV1["kind"] = "component"): CatalogA
   }
 });
 
+const OPENVERSE_ID = "123e4567-e89b-42d3-a456-426614174000";
+const openverseAsset = (): CatalogAssetV1 => ({
+  ...asset(OPENVERSE_ID, "photo"),
+  files: {
+    thumbnail: `/api/openverse-image/${OPENVERSE_ID}?variant=thumbnail`,
+    preview: `/api/openverse-image/${OPENVERSE_ID}`,
+    master: `/api/openverse-image/${OPENVERSE_ID}`
+  }
+});
+
 const deferred = <T,>() => {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((done) => { resolve = done; });
@@ -72,7 +82,10 @@ describe("CatalogueRuntime", () => {
 
   it("adds live results only after the teacher enables them and preserves core offline", async () => {
     const search = vi.fn()
-      .mockResolvedValueOnce({ status: "online", records: [asset("remote", "photo")] })
+      .mockResolvedValueOnce({
+        status: "online",
+        records: [asset("core", "photo"), asset("remote", "photo"), asset("remote", "photo")]
+      })
       .mockResolvedValueOnce({ status: "offline", records: [] });
     const client: LivePhotoClient = { setEnabled: vi.fn(), search };
     const harness = runtimeHarness([asset("core")], client);
@@ -88,6 +101,17 @@ describe("CatalogueRuntime", () => {
     await harness.runtime.settled();
     expect(harness.renders.at(-1)).toEqual(["core"]);
     expect(harness.status.textContent).toContain("classroom pack");
+  });
+
+  it("starts empty and replaces the core without reconstructing live controls", () => {
+    const client: LivePhotoClient = { setEnabled: vi.fn(), search: vi.fn() };
+    const harness = runtimeHarness([], client);
+
+    expect(harness.renders.at(-1)).toEqual([]);
+    harness.runtime.replaceCore([asset("late-core")]);
+
+    expect(harness.renders.at(-1)).toEqual(["late-core"]);
+    expect(harness.toggle.checked).toBe(false);
   });
 
   it("rejects a stale live response after a newer search", async () => {
@@ -250,5 +274,113 @@ describe("CataloguePlacementQueue", () => {
     await expect(queue.flush()).rejects.toThrow("Synthetic reconciliation failure");
     expect(canvas.removed).toEqual(["rollback-object"]);
     expect(canvas.objects).toEqual([]);
+  });
+
+  it("captures canonical live bytes and commits catalogue plus local-blob references", async () => {
+    const canvas = new PlacementCanvas();
+    let document: CampaignDocumentV1 = createBlankCampaignDocument({
+      documentId: "live-document",
+      sessionId: "live-session",
+      mode: "offline"
+    });
+    const deadline = new AbortController().signal;
+    const fetched = Uint8Array.from([137, 80, 78, 71, 1, 2, 3]);
+    const fetchMock = vi.fn().mockResolvedValue(new Response(fetched, {
+      headers: { "content-type": "image/png", "content-length": String(fetched.length) }
+    }));
+    let attachment: {
+      blobKey: string;
+      blob: Blob;
+      objectUrl: string;
+    } | undefined;
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit: (next, local) => { document = next; attachment = local; },
+      createObjectId: () => "live-object",
+      fetch: fetchMock,
+      createDeadlineSignal: () => deadline,
+      createObjectURL: () => `blob:${window.location.origin}/live-object`,
+      revokeObjectURL: vi.fn()
+    });
+
+    queue.enqueue(openverseAsset());
+    await queue.flush();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${window.location.origin}/api/openverse-image/${OPENVERSE_ID}`,
+      expect.objectContaining({ method: "GET", signal: deadline })
+    );
+    expect(canvas.objects[0]?.src).toBe(`blob:${window.location.origin}/live-object`);
+    expect(document.assetReferences).toEqual([
+      expect.objectContaining({ kind: "catalog", objectId: "live-object", assetId: OPENVERSE_ID }),
+      expect.objectContaining({
+        kind: "local-blob",
+        objectId: "live-object",
+        assetId: OPENVERSE_ID,
+        blobKey: "catalog-live-object",
+        mimeType: "image/png"
+      })
+    ]);
+    expect(attachment).toMatchObject({
+      blobKey: "catalog-live-object",
+      objectUrl: `blob:${window.location.origin}/live-object`
+    });
+    await expect(attachment!.blob.arrayBuffer()).resolves.toEqual(fetched.buffer);
+  });
+
+  it.each([
+    ["unsupported MIME", new Response(Uint8Array.from([1]), {
+      headers: { "content-type": "image/gif", "content-length": "1" }
+    }), /image type/i],
+    ["oversize length", new Response(Uint8Array.from([1]), {
+      headers: { "content-type": "image/png", "content-length": String(12 * 1024 * 1024 + 1) }
+    }), /too large/i]
+  ])("rejects live placement with %s before adding Fabric", async (_label, response, message) => {
+    const canvas = new PlacementCanvas();
+    const document = createBlankCampaignDocument({
+      documentId: "invalid-live-document",
+      sessionId: "invalid-live-session",
+      mode: "offline"
+    });
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit: vi.fn(),
+      fetch: vi.fn().mockResolvedValue(response),
+      createObjectId: () => "invalid-live-object",
+      createObjectURL: vi.fn(),
+      revokeObjectURL: vi.fn()
+    });
+
+    queue.enqueue(openverseAsset());
+    await expect(queue.flush()).rejects.toThrow(message);
+    expect(canvas.objects).toEqual([]);
+  });
+
+  it("removes Fabric and revokes captured live bytes when commit fails", async () => {
+    const canvas = new PlacementCanvas();
+    const revokeObjectURL = vi.fn();
+    const document = createBlankCampaignDocument({
+      documentId: "live-rollback-document",
+      sessionId: "live-rollback-session",
+      mode: "offline"
+    });
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit: () => { throw new Error("Synthetic live commit failure"); },
+      fetch: vi.fn().mockResolvedValue(new Response(Uint8Array.from([1, 2]), {
+        headers: { "content-type": "image/webp", "content-length": "2" }
+      })),
+      createObjectId: () => "live-rollback-object",
+      createObjectURL: () => `blob:${window.location.origin}/live-rollback-object`,
+      revokeObjectURL
+    });
+
+    queue.enqueue(openverseAsset());
+    await expect(queue.flush()).rejects.toThrow("Synthetic live commit failure");
+    expect(canvas.removed).toEqual(["live-rollback-object"]);
+    expect(revokeObjectURL).toHaveBeenCalledWith(`blob:${window.location.origin}/live-rollback-object`);
   });
 });

@@ -9,9 +9,11 @@ const ASSET_KINDS = new Set<AssetKind>([
 ]);
 const RECOLOUR_ZONES = new Set<RecolourZone>(["body", "trim", "accent", "label"]);
 const MAX_RECORDS = 20_000;
+const LOAD_TIMEOUT_MS = 5_000;
 
 export interface OfflineCatalogueLoadOptions {
   fetch?: typeof fetch;
+  createDeadlineSignal?: () => AbortSignal;
 }
 
 const record = (value: unknown): Record<string, unknown> | null =>
@@ -109,11 +111,13 @@ export async function loadOfflineCatalogue(
   const url = sameOriginCatalogueUrl(value);
   if (!url) return [];
   const fetcher = options.fetch ?? ((input, init) => fetch(input, init));
+  const deadline = options.createDeadlineSignal?.() ?? AbortSignal.timeout(LOAD_TIMEOUT_MS);
   try {
     const response = await fetcher(url.href, {
       method: "GET",
       headers: { accept: "application/json" },
-      credentials: "same-origin"
+      credentials: "same-origin",
+      signal: deadline
     });
     if (!response.ok) return [];
     const payload = await response.json() as unknown;

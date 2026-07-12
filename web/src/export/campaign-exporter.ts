@@ -7,6 +7,7 @@ import {
 
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10] as const;
 const IHDR = [73, 72, 68, 82] as const;
+const OPENVERSE_IMAGE_PATH = /^\/api\/openverse-image\/([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/;
 
 export interface CampaignExportPort {
   serialize(): Record<string, unknown>;
@@ -74,6 +75,7 @@ function validateAssetReferences(document: CampaignDocumentV1): void {
   const objectIds = campaignObjectIds(document);
   const objects = new Map(document.fabricState.objects.map((object) => [object.objectId, object]));
   const catalogByObject = new Map<string, Record<string, unknown>>();
+  const localBlobByObject = new Map<string, Record<string, unknown>>();
   for (const reference of document.assetReferences) {
     const { objectId } = reference;
     if (reference.kind === "local-blob" &&
@@ -86,6 +88,12 @@ function validateAssetReferences(document: CampaignDocumentV1): void {
       throw new Error("Asset references require an objectId");
     }
     if (!objectIds.has(objectId)) throw new Error(`Missing Fabric object ${objectId}`);
+    if (reference.kind === "local-blob") {
+      if (localBlobByObject.has(objectId)) {
+        throw new Error(`Duplicate local-blob reference for ${objectId}`);
+      }
+      localBlobByObject.set(objectId, reference);
+    }
     if (reference.kind === "catalog") {
       const attribution = reference.attribution;
       if (typeof reference.assetId !== "string" || !reference.assetId ||
@@ -140,6 +148,20 @@ function validateAssetReferences(document: CampaignDocumentV1): void {
         url.pathname.startsWith("/api/openverse-image/"));
     if (isCatalogueRaster && !catalogByObject.has(object.objectId)) {
       throw new Error(`Catalogue raster ${object.objectId} requires a catalogue reference`);
+    }
+    const catalogReference = catalogByObject.get(object.objectId);
+    if (url.origin === window.location.origin && url.pathname.startsWith("/api/openverse-image/")) {
+      const match = url.pathname.match(OPENVERSE_IMAGE_PATH);
+      if (!match || url.search || url.hash || !catalogReference ||
+        match[1] !== catalogReference.assetId || match[1] !== object.assetId) {
+        throw new Error(`Raster ${object.objectId} requires a canonical full Openverse image URL`);
+      }
+    }
+    if (url.protocol === "blob:" && catalogReference) {
+      const localReference = localBlobByObject.get(object.objectId);
+      if (!localReference || localReference.assetId !== catalogReference.assetId) {
+        throw new Error(`Blob-backed catalogue raster ${object.objectId} requires a matching local-blob reference`);
+      }
     }
   }
 }

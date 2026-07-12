@@ -10,6 +10,8 @@ import {
 } from "./campaign-exporter";
 
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10] as const;
+const OPENVERSE_ID = "123e4567-e89b-42d3-a456-426614174000";
+const OTHER_OPENVERSE_ID = "223e4567-e89b-42d3-a456-426614174000";
 
 function pngBytes(width: number, height: number): Uint8Array {
   const bytes = new Uint8Array(33);
@@ -280,6 +282,84 @@ describe("CampaignExporter", () => {
       new ExportHarness(pngDataUrl(), missingReference.fabricState),
       ownedUrls(missingReference)
     ).publish(missingReference)).toThrow(/catalogue reference/i);
+  });
+
+  it("accepts only a canonical full Openverse proxy whose UUID matches the catalogue asset", () => {
+    const canonical = documentFixture();
+    const photo = canonical.fabricState.objects.find(({ objectId }) => objectId === "photo")!;
+    photo.assetId = OPENVERSE_ID;
+    photo.src = `${window.location.origin}/api/openverse-image/${OPENVERSE_ID}`;
+    canonical.assetReferences[0] = {
+      kind: "catalog",
+      objectId: "photo",
+      assetId: OPENVERSE_ID,
+      assetVersion: 1,
+      attribution: {
+        creator: "A. Photographer",
+        sourceUrl: "https://example.test/work/photo",
+        license: "CC BY 4.0"
+      }
+    };
+
+    expect(() => new CampaignExporter(
+      new ExportHarness(pngDataUrl(), canonical.fabricState),
+      ownedUrls(canonical)
+    ).publish(canonical)).not.toThrow();
+
+    for (const source of [
+      `${window.location.origin}/api/openverse-image/${OPENVERSE_ID}?variant=thumbnail`,
+      `${window.location.origin}/api/openverse-image/${OPENVERSE_ID}?extra=1`,
+      `${window.location.origin}/api/openverse-image/${OPENVERSE_ID}#fragment`,
+      `${window.location.origin}/api/openverse-image/${OTHER_OPENVERSE_ID}`,
+      `${window.location.origin}/api/openverse-image/${OPENVERSE_ID}B`
+    ]) {
+      const unsafe = structuredClone(canonical);
+      unsafe.fabricState.objects.find(({ objectId }) => objectId === "photo")!.src = source;
+      expect(() => new CampaignExporter(
+        new ExportHarness(pngDataUrl(), unsafe.fabricState),
+        ownedUrls(unsafe)
+      ).publish(unsafe)).toThrow(/canonical full Openverse/i);
+    }
+  });
+
+  it("requires both durable references for a blob-backed catalogue photo", () => {
+    const document = documentFixture();
+    const photo = document.fabricState.objects.find(({ objectId }) => objectId === "photo")!;
+    const blobUrl = `blob:${window.location.origin}/captured-openverse`;
+    photo.assetId = OPENVERSE_ID;
+    photo.src = blobUrl;
+    document.assetReferences[0] = {
+      kind: "catalog",
+      objectId: "photo",
+      assetId: OPENVERSE_ID,
+      assetVersion: 1,
+      attribution: {
+        creator: "A. Photographer",
+        sourceUrl: "https://example.test/work/photo",
+        license: "CC BY 4.0"
+      }
+    };
+    document.assetReferences.push({
+      kind: "local-blob",
+      objectId: "photo",
+      assetId: OPENVERSE_ID,
+      blobKey: "catalog-photo",
+      mimeType: "image/png"
+    });
+    const owned = new Set([...ownedUrls(document), blobUrl]);
+
+    expect(() => new CampaignExporter(
+      new ExportHarness(pngDataUrl(), document.fabricState),
+      owned
+    ).publish(document)).not.toThrow();
+
+    const missingLocal = structuredClone(document);
+    missingLocal.assetReferences = missingLocal.assetReferences.filter((reference) =>
+      reference.kind !== "local-blob" || reference.objectId !== "photo");
+    expect(() => new CampaignExporter(
+      new ExportHarness(pngDataUrl(), missingLocal.fabricState),
+      owned
+    ).publish(missingLocal)).toThrow(/local-blob reference/i);
   });
 
   it("validates and reconciles the actual canvas snapshot before export", () => {

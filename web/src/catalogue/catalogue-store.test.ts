@@ -36,14 +36,16 @@ describe("loadOfflineCatalogue", () => {
   });
 
   it("loads a same-origin array of valid records", async () => {
+    const deadline = new AbortController().signal;
     const fetchMock = vi.fn().mockResolvedValue(Response.json([asset()]));
 
     await expect(loadOfflineCatalogue("/catalog/generated/offline-core-v1/catalog.json", {
-      fetch: fetchMock
+      fetch: fetchMock,
+      createDeadlineSignal: () => deadline
     })).resolves.toEqual([asset()]);
     expect(fetchMock).toHaveBeenCalledWith(
       new URL("/catalog/generated/offline-core-v1/catalog.json", window.location.href).href,
-      expect.objectContaining({ method: "GET" })
+      expect.objectContaining({ method: "GET", signal: deadline })
     );
   });
 

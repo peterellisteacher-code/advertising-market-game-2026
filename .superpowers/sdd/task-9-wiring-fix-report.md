@@ -38,3 +38,15 @@ The follow-up hardening tests also failed before implementation: fast input issu
 - The Task 11 offline core does not yet exist, so the production build correctly omits its data attribute and reports `OFFLINE_CORE_DEFERRED`.
 - The PCK remains the quarantined historical spike export; this pass verifies the TypeScript/browser layer, not a newly exported Godot-to-browser integration.
 - No live Openverse request was made; route/client behavior is covered by mocked tests owned by the parallel Task 9 runtime pass.
+
+## Rereview correction
+
+The follow-up production review identified that a direct proxy URL would not survive a later offline session. The corrected placement flow now captures canonical full Openverse bytes with an eight-second signal, 12 MB streamed limit and strict PNG/JPEG/WebP MIME allowlist. It places an owned object URL, persists both catalogue-attribution and local-blob references, and gives the blob to the existing draft store. Replacement, close and every rollback path revoke newly owned URLs.
+
+Additional corrections make the optional classroom-pack load independent of editor startup, add `replaceCore`, apply a five-second catalogue-load signal, deduplicate live IDs through the production merge helper, and reject noncanonical direct Openverse proxy sources or blob-backed catalogue photos without both durable references.
+
+Rereview TDD evidence:
+
+- RED: 11 focused failures covering duplicate live results, missing `replaceCore`, absent capture fetch/MIME/size/revoke behavior, absent loader signal, unsafe direct proxy variants, missing blob dual-reference enforcement, stalled-core controls and missing saved local bytes.
+- GREEN: **4 files, 64 tests passed** and `pnpm typecheck` passed.
+- Offline continuity was verified as live search → captured placement → save → close/revoke → reopen from stored bytes with fetch forced to reject.

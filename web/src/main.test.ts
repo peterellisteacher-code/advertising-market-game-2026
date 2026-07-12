@@ -136,8 +136,16 @@ vi.mock("./persistence/draft-store", async (importOriginal) => {
         if (latest && document.revision <= latest.document.revision) {
           throw new Error(`Campaign revision ${document.revision} must be newer than revision ${latest.document.revision}`);
         }
+        const durableDocument = structuredClone(document);
+        for (const reference of durableDocument.assetReferences) {
+          if (reference.kind !== "local-blob" || typeof reference.objectId !== "string" ||
+            typeof reference.blobKey !== "string") continue;
+          const object = durableDocument.fabricState.objects.find(({ objectId }) =>
+            objectId === reference.objectId);
+          if (object) object.src = `local-blob:${reference.blobKey}`;
+        }
         runtime.drafts.set(document.documentId, {
-          document: structuredClone(document),
+          document: durableDocument,
           blobs: new Map([...blobs].map(([key, blob]) => [
             key,
             blob.slice(0, blob.size, blob.type)
@@ -560,6 +568,111 @@ describe("window.AdMarketCreator", () => {
       assetReferences: [expect.objectContaining({ kind: "catalog", assetId: "core-bottle" })]
     });
     expect(fetchSpy).toHaveBeenCalledOnce();
+  });
+
+  it("keeps live search usable while the optional classroom pack is stalled", async () => {
+    const id = "123e4567-e89b-42d3-a456-426614174000";
+    document.querySelector<HTMLElement>("#creator-root")!.dataset.offlineCatalogueUrl =
+      "/catalog/generated/offline-core-v1/catalog.json";
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      const url = String(input);
+      if (url.includes("offline-core-v1")) return new Promise<Response>(() => undefined);
+      if (url.startsWith("/api/openverse-search?")) {
+        return Promise.resolve(Response.json({ records: [{
+          id,
+          title: "Morning market",
+          creator: "A. Photographer",
+          license: "CC BY 4.0",
+          sourceUrl: "https://example.test/work/photo",
+          thumbnailUrl: `/api/openverse-image/${id}?variant=thumbnail`,
+          width: 1600,
+          height: 900
+        }] }));
+      }
+      return Promise.reject(new Error(`Unexpected URL ${url}`));
+    });
+
+    await import("./main");
+    await parsed(window.AdMarketCreator, "open-stalled-core", "open", blankDocument);
+    const search = getByRole<HTMLInputElement>(document.body, "searchbox", { name: "Search assets" });
+    const toggle = getByRole<HTMLInputElement>(document.body, "checkbox", { name: "Use live photos" });
+    search.value = "market";
+    toggle.checked = true;
+    toggle.dispatchEvent(new Event("change"));
+
+    expect(await findByRole(document.body, "button", { name: /Morning market/ })).toBeTruthy();
+    expect(fetchSpy.mock.calls.some(([input]) => String(input).startsWith("/api/openverse-search?"))).toBe(true);
+  });
+
+  it("saves a live photo as owned bytes and reloads it without network access", async () => {
+    const id = "123e4567-e89b-42d3-a456-426614174000";
+    const imageBytes = Uint8Array.from([137, 80, 78, 71, 10, 20, 30]);
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      const url = String(input);
+      if (url.startsWith("/api/openverse-search?")) {
+        return Promise.resolve(Response.json({ records: [{
+          id,
+          title: "Morning market",
+          creator: "A. Photographer",
+          license: "CC BY 4.0",
+          sourceUrl: "https://example.test/work/photo",
+          thumbnailUrl: `/api/openverse-image/${id}?variant=thumbnail`,
+          width: 1600,
+          height: 900
+        }] }));
+      }
+      if (url === `${window.location.origin}/api/openverse-image/${id}`) {
+        return Promise.resolve(new Response(imageBytes, {
+          headers: { "content-type": "image/png", "content-length": String(imageBytes.length) }
+        }));
+      }
+      return Promise.reject(new Error(`Unexpected URL ${url}`));
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+    await parsed(api, "open-live", "open", blankDocument);
+    const search = getByRole<HTMLInputElement>(document.body, "searchbox", { name: "Search assets" });
+    const toggle = getByRole<HTMLInputElement>(document.body, "checkbox", { name: "Use live photos" });
+    search.value = "market";
+    toggle.checked = true;
+    toggle.dispatchEvent(new Event("change"));
+    const tile = await findByRole(document.body, "button", { name: /Morning market/ });
+    tile.click();
+
+    expect(await parsed(api, "save-live", "save", null)).toMatchObject({ ok: true });
+    const [savedDocument, savedBlobs] = runtime.save.mock.calls.at(-1)! as [
+      CampaignDocumentV1,
+      ReadonlyMap<string, Blob>
+    ];
+    const localReference = savedDocument.assetReferences.find(({ kind }) => kind === "local-blob")!;
+    expect(savedDocument.assetReferences).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: "catalog", objectId: localReference.objectId, assetId: id }),
+      expect.objectContaining({ kind: "local-blob", objectId: localReference.objectId, assetId: id })
+    ]));
+    expect(await bytesOf(savedBlobs.get(String(localReference.blobKey))!))
+      .toEqual(Array.from(imageBytes));
+    const durable = runtime.drafts.get(blankDocument.documentId)!;
+    expect(durable.document.fabricState.objects[0]?.src)
+      .toBe(`local-blob:${String(localReference.blobKey)}`);
+    const firstOwnedUrl = runtime.createdUrls.at(-1)!.url;
+
+    expect(await parsed(api, "close-live", "close", null)).toMatchObject({ ok: true });
+    expect(runtime.revokedUrls).toContain(firstOwnedUrl);
+    const callsBeforeReload = fetchSpy.mock.calls.length;
+    fetchSpy.mockRejectedValue(new TypeError("network unavailable"));
+
+    expect(await parsed(api, "reload-live", "open", durable.document)).toMatchObject({ ok: true });
+    const reloaded = await parsed(api, "state-live-reloaded", "getState", null);
+    const secondOwnedUrl = runtime.createdUrls.at(-1)!.url;
+    expect(reloaded.payload).toMatchObject({
+      fabricState: { objects: [expect.objectContaining({ src: secondOwnedUrl, assetId: id })] },
+      assetReferences: expect.arrayContaining([
+        expect.objectContaining({ kind: "catalog", assetId: id }),
+        expect.objectContaining({ kind: "local-blob", assetId: id })
+      ])
+    });
+    expect(secondOwnedUrl).not.toBe(firstOwnedUrl);
+    expect(fetchSpy.mock.calls).toHaveLength(callsBeforeReload);
   });
 
   it("returns canonical handler errors when storage or export fails", async () => {

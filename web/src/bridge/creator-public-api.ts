@@ -1,0 +1,143 @@
+import { CampaignDocumentSchema } from "../domain/campaign-document";
+import {
+  CREATOR_BRIDGE_CONTRACT,
+  CreatorRequestSchema,
+  CreatorResponseSchema,
+  type CreatorBridgeHandler,
+  type CreatorResponse,
+  type PublishedCampaignJson
+} from "./contracts";
+
+export interface CreatorPublicApi {
+  handle(requestJson: string): Promise<string>;
+}
+
+function requestIdFrom(value: unknown): string {
+  if (value === null || typeof value !== "object") return "";
+  const requestId = (value as Record<string, unknown>).requestId;
+  return typeof requestId === "string" && requestId.length <= 128 ? requestId : "";
+}
+
+function assertJsonValue(value: unknown, path = "$", ancestors = new Set<object>()): void {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) throw new Error(`${path} must contain a finite JSON number`);
+    return;
+  }
+  if (typeof value !== "object") throw new Error(`${path} contains a non-JSON value`);
+  if (value instanceof Blob || value instanceof ArrayBuffer || ArrayBuffer.isView(value)) {
+    throw new Error(`${path} contains binary data outside the base64 publication field`);
+  }
+  if (ancestors.has(value)) throw new Error(`${path} contains a circular reference`);
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) {
+      value.forEach((child, index) => assertJsonValue(child, `${path}[${index}]`, ancestors));
+      return;
+    }
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw new Error(`${path} contains a non-JSON object`);
+    }
+    for (const key of Reflect.ownKeys(value)) {
+      if (typeof key !== "string") throw new Error(`${path} contains a symbol key`);
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (!descriptor?.enumerable || !("value" in descriptor)) {
+        throw new Error(`${path}.${key} is not a plain JSON property`);
+      }
+      assertJsonValue(descriptor.value, `${path}.${key}`, ancestors);
+    }
+  } finally {
+    ancestors.delete(value);
+  }
+}
+
+function serialise(response: CreatorResponse): string {
+  const parsed = CreatorResponseSchema.parse(response);
+  assertJsonValue(parsed);
+  return JSON.stringify(parsed);
+}
+
+function success(requestId: string, payload?: unknown): string {
+  return serialise(payload === undefined
+    ? { contract: CREATOR_BRIDGE_CONTRACT, requestId, ok: true }
+    : { contract: CREATOR_BRIDGE_CONTRACT, requestId, ok: true, payload });
+}
+
+function failure(requestId: string, code: string, message: string): string {
+  return serialise({
+    contract: CREATOR_BRIDGE_CONTRACT,
+    requestId,
+    ok: false,
+    error: { code, message }
+  });
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Creator operation failed";
+}
+
+function canonicalBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return btoa(binary);
+}
+
+function publicationForJson(value: Awaited<ReturnType<CreatorBridgeHandler["publish"]>>): PublishedCampaignJson {
+  if (!(value.pngBytes instanceof Uint8Array)) {
+    throw new Error("Published campaign bytes must be a Uint8Array");
+  }
+  return {
+    contract: value.contract,
+    documentId: value.documentId,
+    revision: value.revision,
+    pngBase64: canonicalBase64(value.pngBytes),
+    metadata: structuredClone(value.metadata)
+  };
+}
+
+export function createCreatorPublicApi(handler: CreatorBridgeHandler): CreatorPublicApi {
+  const handle = async (requestJson: string): Promise<string> => {
+    let decoded: unknown;
+    try {
+      decoded = JSON.parse(requestJson);
+    } catch {
+      return failure("", "INVALID_REQUEST", "Request must be valid JSON");
+    }
+
+    const requestId = requestIdFrom(decoded);
+    const result = CreatorRequestSchema.safeParse(decoded);
+    if (!result.success) {
+      return failure(requestId, "INVALID_REQUEST", result.error.issues[0]?.message ?? "Invalid request");
+    }
+
+    try {
+      const request = result.data;
+      switch (request.method) {
+        case "open":
+          await handler.open(CampaignDocumentSchema.parse(structuredClone(request.payload)));
+          return success(request.requestId);
+        case "getState":
+          return success(
+            request.requestId,
+            CampaignDocumentSchema.parse(structuredClone(await handler.getState()))
+          );
+        case "save":
+          await handler.save();
+          return success(request.requestId);
+        case "publish":
+          return success(request.requestId, publicationForJson(await handler.publish()));
+        case "close":
+          await handler.close();
+          return success(request.requestId);
+      }
+    } catch (error) {
+      return failure(requestId, "HANDLER_ERROR", errorMessage(error));
+    }
+  };
+
+  return Object.freeze({ handle });
+}

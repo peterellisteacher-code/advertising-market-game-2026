@@ -160,6 +160,20 @@ describe("OpenverseClient", () => {
     await expect(client.search("market")).resolves.toEqual({ status: "offline", records: [] });
   });
 
+  it("accepts an exact anonymous page of 20 records", async () => {
+    const records = Array.from({ length: 20 }, (_, index) => remoteRecord({
+      id: `${index.toString(16).padStart(8, "0")}-e89b-42d3-a456-426614174000`,
+      thumbnailUrl: `/api/openverse-image/${index.toString(16).padStart(8, "0")}-e89b-42d3-a456-426614174000?variant=thumbnail`
+    }));
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ records }));
+    const client = new OpenverseClient({ enabled: true, fetch: fetchMock, online: () => true });
+
+    const response = await client.search("market");
+
+    expect(response.status).toBe("online");
+    expect(response.records).toHaveLength(20);
+  });
+
   it.each([
     [{ width: 16_385 }, "dimension cap"],
     [{ width: 8_001, height: 8_000 }, "pixel cap"]

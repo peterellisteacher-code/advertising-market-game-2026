@@ -120,10 +120,6 @@
             ? new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
             : null;
           const summary = {
-            open: opened.ok,
-            state: state.ok,
-            save: saved.ok,
-            publish: published.ok,
             objects: payload?.fabricState?.objects?.length ?? 0,
             catalogReferences: payload?.assetReferences?.filter((entry) => entry.kind === "catalog").length ?? 0,
             localBlobReferences: payload?.assetReferences?.filter((entry) => entry.kind === "local-blob").length ?? 0,
@@ -132,7 +128,13 @@
             pngWidth: view?.getUint32(16) ?? 0,
             pngHeight: view?.getUint32(20) ?? 0
           };
-          result.textContent = JSON.stringify(summary, null, 2);
+          const passed = opened.ok && state.ok && saved.ok && published.ok &&
+            summary.objects >= 2 && summary.catalogReferences === 1 &&
+            summary.localBlobReferences === 1 && summary.publishedCatalogReferences === 1 &&
+            summary.pngBytes > 24 && summary.pngWidth === 1600 && summary.pngHeight === 900;
+          result.dataset.diagnosticStatus = passed ? "pass" : "fail";
+          result.setAttribute("role", passed ? "status" : "alert");
+          result.textContent = JSON.stringify({ result: passed ? "PASS" : "FAIL", ...summary }, null, 2);
         } catch (error) {
           result.textContent = JSON.stringify({ error: error instanceof Error ? error.message : String(error) });
         } finally {

@@ -265,7 +265,7 @@ async function run(): Promise<void> {
     const lease = await cache.acquire(
       { assetId: "diagnostic-eviction", version },
       {},
-      async () => new Blob([String(version)], { type: "application/octet-stream" })
+      async () => new Blob([String(version)], { type: "image/png" })
     );
     lease.release();
   }

@@ -2,7 +2,10 @@ import { FabricImage, Rect, Textbox } from "fabric";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { FabricObjectFactory, sameOriginRasterUrl } from "./object-factory";
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 describe("FabricObjectFactory", () => {
   it("creates centred text with metadata and 44-pixel controls", () => {
@@ -84,9 +87,20 @@ describe("FabricObjectFactory", () => {
     expect(sameOriginRasterUrl(sameOriginBlob)).toBe(sameOriginBlob);
     expect(() => sameOriginRasterUrl("blob:https://unsafe.example/masked-variant-1"))
       .toThrow("same-origin");
+    expect(() => sameOriginRasterUrl("blob:null/masked-variant-1"))
+      .toThrow("same-origin");
     expect(() => sameOriginRasterUrl("data:image/png;base64,cHJvYmU="))
       .toThrow("same-origin");
     expect(() => sameOriginRasterUrl("file:///tmp/masked-variant.png"))
+      .toThrow("same-origin");
+  });
+
+  it("rejects blob:null when the page itself has an opaque origin", () => {
+    vi.stubGlobal("window", {
+      location: { href: "about:blank", origin: "null" }
+    });
+
+    expect(() => sameOriginRasterUrl("blob:null/masked-variant-1"))
       .toThrow("same-origin");
   });
 });

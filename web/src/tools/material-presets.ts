@@ -11,15 +11,6 @@ export const MATERIAL_PRESET_IDS = [
 
 export type MaterialPresetId = typeof MATERIAL_PRESET_IDS[number];
 export type MaterialBlendMode = "multiply" | "soft-light" | "screen";
-export type MaterialTexturePattern =
-  | "flat"
-  | "gloss-band"
-  | "pebble"
-  | "fibre"
-  | "weave"
-  | "glass-band"
-  | "brushed"
-  | "grain";
 
 export interface MaterialPreset {
   readonly label: string;
@@ -27,10 +18,7 @@ export interface MaterialPreset {
   readonly blendMode: MaterialBlendMode;
   readonly opacity: number;
   readonly highlightStrength: number;
-  readonly texturePattern: MaterialTexturePattern;
   readonly textureStrength: number;
-  readonly textureScale: number;
-  readonly textureSeed: number;
 }
 
 const MATTE_TEXTURE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath fill='%23808080' d='M0 0h4v4H0z'/%3E%3C/svg%3E";
@@ -49,10 +37,7 @@ export const MATERIAL_PRESETS = Object.freeze({
     blendMode: "multiply",
     opacity: 1,
     highlightStrength: 0.12,
-    texturePattern: "flat",
-    textureStrength: 0,
-    textureScale: 4,
-    textureSeed: 11
+    textureStrength: 0.04
   }),
   "gloss-plastic": Object.freeze({
     label: "Gloss plastic",
@@ -60,10 +45,7 @@ export const MATERIAL_PRESETS = Object.freeze({
     blendMode: "screen",
     opacity: 0.94,
     highlightStrength: 0.42,
-    texturePattern: "gloss-band",
-    textureStrength: 0.08,
-    textureScale: 8,
-    textureSeed: 23
+    textureStrength: 0.08
   }),
   rubber: Object.freeze({
     label: "Rubber",
@@ -71,10 +53,7 @@ export const MATERIAL_PRESETS = Object.freeze({
     blendMode: "multiply",
     opacity: 0.96,
     highlightStrength: 0.04,
-    texturePattern: "pebble",
-    textureStrength: 0.07,
-    textureScale: 6,
-    textureSeed: 37
+    textureStrength: 0.07
   }),
   cardboard: Object.freeze({
     label: "Cardboard",
@@ -82,10 +61,7 @@ export const MATERIAL_PRESETS = Object.freeze({
     blendMode: "soft-light",
     opacity: 0.9,
     highlightStrength: 0.06,
-    texturePattern: "fibre",
-    textureStrength: 0.08,
-    textureScale: 8,
-    textureSeed: 41
+    textureStrength: 0.08
   }),
   fabric: Object.freeze({
     label: "Fabric",
@@ -93,10 +69,7 @@ export const MATERIAL_PRESETS = Object.freeze({
     blendMode: "soft-light",
     opacity: 0.92,
     highlightStrength: 0.08,
-    texturePattern: "weave",
-    textureStrength: 0.09,
-    textureScale: 6,
-    textureSeed: 53
+    textureStrength: 0.09
   }),
   glass: Object.freeze({
     label: "Glass",
@@ -104,10 +77,7 @@ export const MATERIAL_PRESETS = Object.freeze({
     blendMode: "screen",
     opacity: 0.56,
     highlightStrength: 0.56,
-    texturePattern: "glass-band",
-    textureStrength: 0.1,
-    textureScale: 8,
-    textureSeed: 67
+    textureStrength: 0.1
   }),
   "brushed-metal": Object.freeze({
     label: "Brushed metal",
@@ -115,10 +85,7 @@ export const MATERIAL_PRESETS = Object.freeze({
     blendMode: "multiply",
     opacity: 0.9,
     highlightStrength: 0.3,
-    texturePattern: "brushed",
-    textureStrength: 0.06,
-    textureScale: 8,
-    textureSeed: 79
+    textureStrength: 0.06
   }),
   wood: Object.freeze({
     label: "Wood",
@@ -126,9 +93,6 @@ export const MATERIAL_PRESETS = Object.freeze({
     blendMode: "multiply",
     opacity: 0.88,
     highlightStrength: 0.1,
-    texturePattern: "grain",
-    textureStrength: 0.08,
-    textureScale: 10,
-    textureSeed: 97
+    textureStrength: 0.08
   })
 } satisfies Record<MaterialPresetId, Readonly<MaterialPreset>>);

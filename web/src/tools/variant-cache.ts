@@ -1,5 +1,5 @@
 import type { RecolourZone } from "../catalogue/catalogue-types";
-import type { ZoneStyles } from "./masked-variant-renderer";
+import { assertUsablePngBlob, type ZoneStyles } from "./masked-variant-renderer";
 
 export const VARIANT_CACHE_LIMIT = 48;
 const ZONE_ORDER: readonly RecolourZone[] = ["body", "trim", "accent", "label"];
@@ -60,7 +60,7 @@ export function canonicalVariantIdentity(identity: VariantAssetVersion, styles: 
     const style = styles[zone];
     if (!style) continue;
     sortedStyles[zone] = {
-      colour: style.colour,
+      colour: style.colour.toLowerCase(),
       materialId: style.materialId,
       opacity: style.opacity
     };
@@ -126,6 +126,7 @@ export class VariantObjectUrlCache {
       .then(render)
       .then((blob) => {
         this.#assertActive();
+        assertUsablePngBlob(blob);
         const entry: CacheEntry = {
           key,
           url: this.#objectUrls.createObjectURL(blob),
@@ -166,19 +167,19 @@ export class VariantObjectUrlCache {
       }
       this.#assertActive();
     }
+    assertUsablePngBlob(blob);
+    const url = this.#objectUrls.createObjectURL(blob);
     const existing = this.#entries.get(key);
-    if (existing) {
-      this.#entries.delete(key);
-      this.#detach(existing);
-    }
     const entry: CacheEntry = {
       key,
-      url: this.#objectUrls.createObjectURL(blob),
+      url,
       retainCount: 1,
       detached: false,
       revoked: false
     };
+    if (existing) this.#entries.delete(key);
     this.#entries.set(key, entry);
+    if (existing) this.#detach(existing);
     this.#evictOverflow();
     return this.#lease(entry);
   }

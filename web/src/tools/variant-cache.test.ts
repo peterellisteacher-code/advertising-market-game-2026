@@ -21,6 +21,11 @@ const stylesB: ZoneStyles = {
   trim: { opacity: 0.75, colour: "#222222", materialId: "rubber" }
 };
 
+const stylesUppercase: ZoneStyles = {
+  body: { opacity: 1, materialId: "matte-plastic", colour: "#EEEEEE" },
+  trim: { opacity: 0.75, colour: "#222222", materialId: "rubber" }
+};
+
 const asset = (version: number, assetId = "product-1"): VariantAssetVersion => ({ assetId, version });
 const SHA256 = webcrypto.subtle as unknown as Sha256Port;
 
@@ -40,6 +45,10 @@ function deferred<T>(): {
 
 function labelledBlob(label: string): Blob {
   return Object.assign(new Blob([label], { type: "image/png" }), { diagnosticLabel: label });
+}
+
+function pngBlob(contents: string): Blob {
+  return new Blob([contents], { type: "image/png" });
 }
 
 function objectUrls(): { port: ObjectUrlPort; created: string[]; revoked: string[] } {
@@ -71,17 +80,34 @@ describe("variant cache keys", () => {
 
     const first = await createVariantCacheKey(identity, stylesA, SHA256);
     const reordered = await createVariantCacheKey(identity, stylesB, SHA256);
+    const uppercase = await createVariantCacheKey(identity, stylesUppercase, SHA256);
     const newVersion = await createVariantCacheKey(asset(8, "café-bottle"), stylesA, SHA256);
     const newAsset = await createVariantCacheKey(asset(7, "café-cup"), stylesA, SHA256);
 
     expect(first).toBe("22533579031406ef58b94a53420b7b4c8b6817c9b330dba68136ac1462bae2b1");
     expect(reordered).toBe(first);
+    expect(uppercase).toBe(first);
     expect(newVersion).not.toBe(first);
     expect(newAsset).not.toBe(first);
   });
 });
 
 describe("VariantObjectUrlCache", () => {
+  it.each([
+    ["a non-Blob value", "not-a-blob" as unknown as Blob],
+    ["an empty PNG", new Blob([], { type: "image/png" })],
+    ["the wrong MIME type", new Blob(["pixels"], { type: "image/jpeg" })]
+  ])("rejects %s before creating a cache URL", async (_label, renderedValue) => {
+    const urls = objectUrls();
+    const cache = new VariantObjectUrlCache(urls.port, SHA256);
+
+    await expect(cache.acquire(asset(1), stylesA, async () => renderedValue))
+      .rejects.toThrow("non-empty image/png Blob");
+
+    expect(cache.size).toBe(0);
+    expect(urls.created).toEqual([]);
+  });
+
   it("deduplicates concurrent same-key renders and retries after failure", async () => {
     const urls = objectUrls();
     const cache = new VariantObjectUrlCache(urls.port, SHA256);
@@ -142,7 +168,7 @@ describe("VariantObjectUrlCache", () => {
     expect(VARIANT_CACHE_LIMIT).toBe(48);
 
     for (let version = 1; version <= VARIANT_CACHE_LIMIT; version += 1) {
-      const lease = await cache.acquire(asset(version), stylesA, async () => new Blob([String(version)]));
+      const lease = await cache.acquire(asset(version), stylesA, async () => pngBlob(String(version)));
       lease.release();
     }
     const touched = await cache.acquire(asset(1), stylesA, async () => {
@@ -151,7 +177,7 @@ describe("VariantObjectUrlCache", () => {
     expect(touched.url).toBe("blob:variant-1");
     touched.release();
 
-    const next = await cache.acquire(asset(VARIANT_CACHE_LIMIT + 1), stylesA, async () => new Blob(["next"]));
+    const next = await cache.acquire(asset(VARIANT_CACHE_LIMIT + 1), stylesA, async () => pngBlob("next"));
     next.release();
 
     expect(cache.size).toBe(VARIANT_CACHE_LIMIT);
@@ -188,6 +214,79 @@ describe("VariantObjectUrlCache", () => {
     expect(urls.revoked).not.toContain("blob:replacement");
   });
 
+  it.each([
+    ["a non-Blob value", "not-a-blob" as unknown as Blob],
+    ["an empty PNG", new Blob([], { type: "image/png" })],
+    ["the wrong MIME type", new Blob(["pixels"], { type: "image/jpeg" })]
+  ])("keeps the old entry usable when replacement receives %s", async (_label, replacementValue) => {
+    const urls = objectUrls();
+    const cache = new VariantObjectUrlCache(urls.port, SHA256);
+    const oldLease = await cache.acquire(asset(1), stylesA, async () => labelledBlob("old"));
+
+    await expect(cache.replace(asset(1), stylesB, replacementValue))
+      .rejects.toThrow("non-empty image/png Blob");
+    const reused = await cache.acquire(asset(1), stylesA, async () => {
+      throw new Error("Failed replacement detached the old entry");
+    });
+
+    expect(reused.url).toBe(oldLease.url);
+    expect(urls.revoked).toEqual([]);
+    reused.release();
+    oldLease.release();
+  });
+
+  it("keeps the old entry usable when replacement URL creation throws", async () => {
+    const urls = objectUrls();
+    let failCreation = false;
+    const port: ObjectUrlPort = {
+      createObjectURL(blob) {
+        if (failCreation) throw new Error("URL creation failed");
+        return urls.port.createObjectURL(blob);
+      },
+      revokeObjectURL: (url) => urls.port.revokeObjectURL(url)
+    };
+    const cache = new VariantObjectUrlCache(port, SHA256);
+    const oldLease = await cache.acquire(asset(1), stylesA, async () => labelledBlob("old"));
+
+    failCreation = true;
+    await expect(cache.replace(asset(1), stylesB, labelledBlob("new")))
+      .rejects.toThrow("URL creation failed");
+    failCreation = false;
+    const reused = await cache.acquire(asset(1), stylesA, async () => {
+      throw new Error("Failed URL creation detached the old entry");
+    });
+
+    expect(reused.url).toBe(oldLease.url);
+    expect(urls.revoked).toEqual([]);
+    reused.release();
+    oldLease.release();
+  });
+
+  it("refreshes a successful replacement to the most-recently-used position", async () => {
+    const urls = objectUrls();
+    const cache = new VariantObjectUrlCache(urls.port, SHA256);
+    for (let version = 1; version <= VARIANT_CACHE_LIMIT; version += 1) {
+      const lease = await cache.acquire(asset(version), stylesA, async () => pngBlob(String(version)));
+      lease.release();
+    }
+
+    const replacement = await cache.replace(asset(1), stylesB, pngBlob("replacement"));
+    replacement.release();
+    const next = await cache.acquire(
+      asset(VARIANT_CACHE_LIMIT + 1),
+      stylesA,
+      async () => pngBlob("next")
+    );
+    next.release();
+
+    expect(urls.revoked).toEqual(["blob:variant-1", "blob:variant-2"]);
+    const stillCached = await cache.acquire(asset(1), stylesA, async () => {
+      throw new Error("Replacement remained in the least-recently-used position");
+    });
+    expect(stillCached.url).toBe("blob:variant-49");
+    stillCached.release();
+  });
+
   it("rejects late render resolution after dispose without leaking or double-revoking a URL", async () => {
     const urls = objectUrls();
     const cache = new VariantObjectUrlCache(urls.port, SHA256);
@@ -211,8 +310,8 @@ describe("VariantObjectUrlCache", () => {
   it("revokes every unretained cached object URL exactly once on dispose", async () => {
     const urls = objectUrls();
     const cache = new VariantObjectUrlCache(urls.port, SHA256);
-    const first = await cache.acquire(asset(1), stylesA, async () => new Blob(["one"]));
-    const second = await cache.acquire(asset(2), stylesA, async () => new Blob(["two"]));
+    const first = await cache.acquire(asset(1), stylesA, async () => pngBlob("one"));
+    const second = await cache.acquire(asset(2), stylesA, async () => pngBlob("two"));
     first.release();
     second.release();
 

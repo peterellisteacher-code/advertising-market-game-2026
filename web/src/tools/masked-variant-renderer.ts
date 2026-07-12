@@ -3,8 +3,7 @@ import {
   MATERIAL_PRESETS,
   type MaterialBlendMode,
   type MaterialPreset,
-  type MaterialPresetId,
-  type MaterialTexturePattern
+  type MaterialPresetId
 } from "./material-presets";
 
 export type ZoneStyle = { colour: string; materialId: string; opacity: number };
@@ -27,10 +26,15 @@ export interface BitmapRasterCodec {
   encode(pixels: Uint8ClampedArray, width: number, height: number): Promise<Blob>;
 }
 
+export interface MaterialTextureRasterizer {
+  rasterize(textureUrl: string, width: number, height: number): Promise<Uint8ClampedArray>;
+}
+
 export interface PixelVariantRenderInput {
   master: Uint8ClampedArray;
   masks: Partial<Record<RecolourZone, Uint8ClampedArray>>;
   styles: ZoneStyles;
+  textureRasters: ReadonlyMap<string, Uint8ClampedArray>;
   width: number;
   height: number;
 }
@@ -82,30 +86,10 @@ function clampByte(value: number): number {
   return Math.max(0, Math.min(255, Math.round(value)));
 }
 
-function integerNoise(x: number, y: number, seed: number): number {
-  let value = Math.imul(x + 1 + seed, 374_761_393) ^ Math.imul(y + 1 + seed, 668_265_263);
-  value = Math.imul(value ^ (value >>> 13), 1_274_126_177);
-  return ((value >>> 0) / 0xffff_ffff) * 2 - 1;
-}
-
-function textureValue(
-  pattern: MaterialTexturePattern,
-  x: number,
-  y: number,
-  scale: number,
-  seed: number
-): number {
-  const column = (x + seed) % scale;
-  const row = (y + seed) % scale;
-  switch (pattern) {
-    case "flat": return 0;
-    case "gloss-band": return column < Math.max(1, Math.floor(scale / 4)) ? 1 : -0.2;
-    case "pebble": return integerNoise(Math.floor(x / 2), Math.floor(y / 2), seed);
-    case "fibre": return integerNoise(x, Math.floor(y / 2), seed) * 0.7;
-    case "weave": return (column % 2 === row % 2 ? 1 : -1) * 0.65;
-    case "glass-band": return column < Math.max(1, Math.floor(scale / 5)) ? 1 : -0.1;
-    case "brushed": return integerNoise(x, Math.floor(y / 2), seed) * 0.55;
-    case "grain": return (integerNoise(Math.floor(x / 3), y, seed) + Math.sin((x + seed) / scale)) / 2;
+export function assertUsablePngBlob(value: unknown): asserts value is Blob {
+  if (typeof Blob === "undefined" || !(value instanceof Blob) ||
+    value.type !== "image/png" || value.size === 0) {
+    throw new Error("Rendered variant must be a non-empty image/png Blob");
   }
 }
 
@@ -144,6 +128,11 @@ export function compositeMaskedVariantPixels(input: PixelVariantRenderInput): Ui
     const validated = validatedStyles.get(zone);
     if (!mask || !validated) continue;
     const { style, colour, preset } = validated;
+    const textureRaster = input.textureRasters.get(preset.textureUrl);
+    if (!textureRaster) {
+      throw new Error(`Missing decoded texture pixels for material preset: ${style.materialId}`);
+    }
+    validatePixelBuffer(`${style.materialId} texture`, textureRaster, expectedLength);
     for (let y = 0; y < input.height; y += 1) {
       for (let x = 0; x < input.width; x += 1) {
         const offset = (y * input.width + x) * 4;
@@ -156,23 +145,27 @@ export function compositeMaskedVariantPixels(input: PixelVariantRenderInput): Ui
         const blue = input.master[offset + 2] ?? 0;
         const luminance = red * 0.2126 + green * 0.7152 + blue * 0.0722;
         const coverage = (maskAlpha / 255) * style.opacity * preset.opacity;
-        const texture = textureValue(
-          preset.texturePattern,
-          x,
-          y,
-          preset.textureScale,
-          preset.textureSeed
-        );
-        const textureMultiplier = 1 + texture * preset.textureStrength;
-        const highlight = Math.max(0, luminance - 144) * preset.highlightStrength;
+        const textureRed = textureRaster[offset] ?? 127.5;
+        const textureGreen = textureRaster[offset + 1] ?? 127.5;
+        const textureBlue = textureRaster[offset + 2] ?? 127.5;
+        const textureAlpha = (textureRaster[offset + 3] ?? 0) / 255;
+        const textureLuminance = textureRed * 0.2126 + textureGreen * 0.7152 + textureBlue * 0.0722;
+        const textureSignal = ((textureLuminance - 127.5) / 127.5) * textureAlpha;
+        const textureMultiplier = 1 + textureSignal * preset.textureStrength;
+        const highlightQualification = Math.max(0, Math.min(1, (luminance - 144) / (255 - 144)));
+        const highlightCoverage = highlightQualification * preset.highlightStrength * coverage;
 
         for (let channel = 0; channel < 3; channel += 1) {
           const colourChannel = colour[channel] ?? 0;
           const multiplied = colourChannel * (luminance / 255);
           const blended = applyBlendMode(multiplied, luminance, preset.blendMode);
-          const materialChannel = clampByte(blended * textureMultiplier + highlight);
+          const materialChannel = clampByte(blended * textureMultiplier);
           const existing = output[offset + channel] ?? 0;
-          output[offset + channel] = clampByte(existing * (1 - coverage) + materialChannel * coverage);
+          const tinted = existing * (1 - coverage) + materialChannel * coverage;
+          const masterChannel = input.master[offset + channel] ?? 0;
+          output[offset + channel] = clampByte(
+            tinted * (1 - highlightCoverage) + masterChannel * highlightCoverage
+          );
         }
         output[offset + 3] = masterAlpha;
       }
@@ -215,11 +208,32 @@ export const browserBitmapRasterCodec: BitmapRasterCodec = {
   }
 };
 
+export const browserMaterialTextureRasterizer: MaterialTextureRasterizer = {
+  async rasterize(textureUrl, width, height) {
+    validateDimensions(width, height);
+    const image = new Image();
+    image.decoding = "async";
+    image.src = textureUrl;
+    await image.decode();
+    const { context } = browserCanvas(width, height);
+    const pattern = context.createPattern(image, "repeat");
+    if (!pattern) throw new Error("Canvas could not tile the material texture");
+    context.fillStyle = pattern;
+    context.fillRect(0, 0, width, height);
+    return new Uint8ClampedArray(context.getImageData(0, 0, width, height).data);
+  }
+};
+
 export class BrowserMaskedVariantRenderer implements MaskedVariantRenderer {
   readonly #codec: BitmapRasterCodec;
+  readonly #textureRasterizer: MaterialTextureRasterizer;
 
-  constructor(codec: BitmapRasterCodec = browserBitmapRasterCodec) {
+  constructor(
+    codec: BitmapRasterCodec = browserBitmapRasterCodec,
+    textureRasterizer: MaterialTextureRasterizer = browserMaterialTextureRasterizer
+  ) {
     this.#codec = codec;
+    this.#textureRasterizer = textureRasterizer;
   }
 
   async render(input: MaskedVariantRenderInput): Promise<Blob> {
@@ -234,6 +248,20 @@ export class BrowserMaskedVariantRenderer implements MaskedVariantRenderer {
       }
     }
 
+    const selectedTextureUrls = new Set<string>();
+    for (const zone of ZONE_PRECEDENCE) {
+      const style = input.styles[zone];
+      if (style) selectedTextureUrls.add(validateStyle(style).preset.textureUrl);
+    }
+    const expectedLength = input.width * input.height * 4;
+    const textureRasters = new Map<string, Uint8ClampedArray>(await Promise.all(
+      Array.from(selectedTextureUrls, async (textureUrl) => {
+        const pixels = await this.#textureRasterizer.rasterize(textureUrl, input.width, input.height);
+        validatePixelBuffer("Material texture", pixels, expectedLength);
+        return [textureUrl, pixels] as const;
+      })
+    ));
+
     const masks: Partial<Record<RecolourZone, Uint8ClampedArray>> = {};
     for (const zone of ZONE_PRECEDENCE) {
       const mask = input.masks[zone];
@@ -243,10 +271,13 @@ export class BrowserMaskedVariantRenderer implements MaskedVariantRenderer {
       master: this.#codec.read(input.master, input.width, input.height),
       masks,
       styles: input.styles,
+      textureRasters,
       width: input.width,
       height: input.height
     });
-    return this.#codec.encode(pixels, input.width, input.height);
+    const blob = await this.#codec.encode(pixels, input.width, input.height);
+    assertUsablePngBlob(blob);
+    return blob;
   }
 }
 

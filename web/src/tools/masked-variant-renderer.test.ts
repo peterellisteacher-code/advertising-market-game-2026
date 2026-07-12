@@ -6,6 +6,7 @@ import {
   MASKED_VARIANT_SHADOW_POLICY,
   compositeMaskedVariantPixels,
   type BitmapRasterCodec,
+  type MaterialTextureRasterizer,
   type ZoneStyles
 } from "./masked-variant-renderer";
 
@@ -57,6 +58,25 @@ function syntheticMasks(): Record<RecolourZone, Uint8ClampedArray> {
   };
 }
 
+function solidTexture(width = WIDTH, height = HEIGHT, tone = 128): Uint8ClampedArray {
+  const pixels = new Uint8ClampedArray(width * height * 4);
+  for (let offset = 0; offset < pixels.length; offset += 4) {
+    pixels.set([tone, tone, tone, 255], offset);
+  }
+  return pixels;
+}
+
+function materialTextureRasters(
+  width = WIDTH,
+  height = HEIGHT,
+  tone = 128
+): Map<string, Uint8ClampedArray> {
+  return new Map(Object.values(MATERIAL_PRESETS).map((preset) => [
+    preset.textureUrl,
+    solidTexture(width, height, tone)
+  ]));
+}
+
 const styles: ZoneStyles = {
   body: { colour: "#ff2020", materialId: "matte-plastic", opacity: 1 },
   trim: { colour: "#20ff20", materialId: "rubber", opacity: 1 },
@@ -71,6 +91,7 @@ describe("masked variant compositor", () => {
       master,
       masks: syntheticMasks(),
       styles,
+      textureRasters: materialTextureRasters(),
       width: WIDTH,
       height: HEIGHT
     });
@@ -100,6 +121,7 @@ describe("masked variant compositor", () => {
         body: { colour: "#ff2020", materialId: "matte-plastic", opacity: 1 },
         trim: { colour: "#20ff20", materialId: "matte-plastic", opacity: 1 }
       },
+      textureRasters: materialTextureRasters(),
       width: WIDTH,
       height: HEIGHT
     });
@@ -117,9 +139,74 @@ describe("masked variant compositor", () => {
       master: syntheticMaster(),
       masks: { body: rowMask(0) },
       styles: { body: style },
+      textureRasters: materialTextureRasters(),
       width: WIDTH,
       height: HEIGHT
     })).toThrow(message);
+  });
+
+  it("uses the decoded preset texture pixels as the authoritative material pattern", () => {
+    const input = {
+      master: syntheticMaster(),
+      masks: { body: rowMask(1) },
+      styles: {
+        body: { colour: "#e06020", materialId: "wood", opacity: 1 }
+      },
+      width: WIDTH,
+      height: HEIGHT
+    } satisfies Omit<Parameters<typeof compositeMaskedVariantPixels>[0], "textureRasters">;
+    const darkTexture = materialTextureRasters();
+    const brightTexture = materialTextureRasters();
+    darkTexture.set(MATERIAL_PRESETS.wood.textureUrl, solidTexture(WIDTH, HEIGHT, 16));
+    brightTexture.set(MATERIAL_PRESETS.wood.textureUrl, solidTexture(WIDTH, HEIGHT, 240));
+
+    const darkOutput = compositeMaskedVariantPixels({
+      ...input,
+      textureRasters: darkTexture
+    });
+    const brightOutput = compositeMaskedVariantPixels({
+      ...input,
+      textureRasters: brightTexture
+    });
+
+    expect(pixelAt(brightOutput, 1, 1)).not.toEqual(pixelAt(darkOutput, 1, 1));
+  });
+
+  it("redraws qualifying highlights toward master RGB without erasing tint or alpha contrast", () => {
+    const width = 3;
+    const height = 1;
+    const master = new Uint8ClampedArray([
+      80, 80, 80, 255,
+      255, 200, 100, 173,
+      100, 230, 255, 91
+    ]);
+    const mask = new Uint8ClampedArray([
+      0, 0, 0, 255,
+      0, 0, 0, 255,
+      0, 0, 0, 255
+    ]);
+    const output = compositeMaskedVariantPixels({
+      master,
+      masks: { body: mask },
+      styles: {
+        body: { colour: "#20ff20", materialId: "matte-plastic", opacity: 1 }
+      },
+      textureRasters: materialTextureRasters(width, height),
+      width,
+      height
+    });
+    const dark = Array.from(output.slice(0, 4));
+    const warmHighlight = Array.from(output.slice(4, 8));
+    const coolHighlight = Array.from(output.slice(8, 12));
+
+    expect(luminance(output, 1, 0)).toBeGreaterThan(luminance(output, 0, 0) + 80);
+    expect(warmHighlight[1]).toBeGreaterThan(warmHighlight[0] ?? 0);
+    expect(warmHighlight[1]).toBeGreaterThan(warmHighlight[2] ?? 0);
+    expect(coolHighlight[1]).toBeGreaterThan(coolHighlight[0] ?? 0);
+    expect(coolHighlight[1]).toBeGreaterThan(coolHighlight[2] ?? 0);
+    expect((warmHighlight[0] ?? 0) - (coolHighlight[0] ?? 0)).toBeGreaterThan(8);
+    expect((coolHighlight[2] ?? 0) - (warmHighlight[2] ?? 0)).toBeGreaterThan(8);
+    expect([dark[3], warmHighlight[3], coolHighlight[3]]).toEqual([255, 173, 91]);
   });
 
   it("defines exactly the eight deterministic data-only material profiles", () => {
@@ -156,7 +243,7 @@ function fakeBitmap(width = WIDTH, height = HEIGHT, onClose?: () => void): Image
 }
 
 describe("BrowserMaskedVariantRenderer", () => {
-  it("accepts ImageBitmap inputs and returns an image Blob through the raster boundary", async () => {
+  it("requests the exact selected preset URL and returns a PNG through the raster boundaries", async () => {
     let closes = 0;
     const master = fakeBitmap(WIDTH, HEIGHT, () => { closes += 1; });
     const maskBitmaps = Object.fromEntries(ZONES.map((zone) => [
@@ -166,6 +253,7 @@ describe("BrowserMaskedVariantRenderer", () => {
       Record<RecolourZone, ImageBitmap>;
     const maskPixels = syntheticMasks();
     let encoded: Uint8ClampedArray | undefined;
+    const requestedTextureUrls: string[] = [];
     const codec: BitmapRasterCodec = {
       read(bitmap) {
         if (bitmap === master) return syntheticMaster();
@@ -179,11 +267,16 @@ describe("BrowserMaskedVariantRenderer", () => {
         return new Blob([pixels.slice().buffer as ArrayBuffer], { type: "image/png" });
       }
     };
-
-    const blob = await new BrowserMaskedVariantRenderer(codec).render({
+    const textureRasterizer: MaterialTextureRasterizer = {
+      async rasterize(textureUrl: string, width: number, height: number) {
+        requestedTextureUrls.push(textureUrl);
+        return solidTexture(width, height);
+      }
+    };
+    const blob = await new BrowserMaskedVariantRenderer(codec, textureRasterizer).render({
       master,
-      masks: maskBitmaps,
-      styles,
+      masks: { body: maskBitmaps.body },
+      styles: { body: { colour: "#ff2020", materialId: "wood", opacity: 1 } },
       width: WIDTH,
       height: HEIGHT
     });
@@ -192,7 +285,27 @@ describe("BrowserMaskedVariantRenderer", () => {
     expect(blob.type).toBe("image/png");
     expect(encoded).toBeDefined();
     expect(pixelAt(encoded!, 0, 0)).toEqual([17, 33, 49, 0]);
+    expect(requestedTextureUrls).toEqual([MATERIAL_PRESETS.wood.textureUrl]);
     expect(closes).toBe(0);
+  });
+
+  it.each([
+    ["a non-Blob value", "not-a-blob" as unknown as Blob],
+    ["an empty PNG", new Blob([], { type: "image/png" })],
+    ["the wrong MIME type", new Blob(["pixels"], { type: "image/jpeg" })]
+  ])("rejects %s returned by the encoder", async (_label, encodedValue) => {
+    const renderer = new BrowserMaskedVariantRenderer({
+      read: () => syntheticMaster(),
+      encode: async () => encodedValue
+    });
+
+    await expect(renderer.render({
+      master: fakeBitmap(),
+      masks: {},
+      styles: {},
+      width: WIDTH,
+      height: HEIGHT
+    })).rejects.toThrow("non-empty image/png Blob");
   });
 
   it.each([

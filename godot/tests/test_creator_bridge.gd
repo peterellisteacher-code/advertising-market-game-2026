@@ -91,6 +91,20 @@ func _test_publish_payload_and_error_envelope_validation() -> void:
     )
     bridge.set_transport(fake)
 
+    var failed_open_id := bridge.open(_valid_document())
+    fake.resolve_raw(failed_open_id, {
+        "contract": "creator-bridge@1",
+        "requestId": failed_open_id,
+        "ok": false,
+        "error": {"code": "OPEN_FAILED", "message": "Synthetic open failure"}
+    })
+    var no_active_id := bridge.publish()
+    fake.resolve_success(no_active_id, _valid_publication())
+    assert(failures.back().get("request_id") == no_active_id)
+    assert(failures.back().get("code") == "INVALID_PUBLICATION_RESPONSE")
+
+    var open_id := bridge.open(_valid_document())
+    fake.resolve_success(open_id)
     var valid_id := bridge.publish()
     fake.resolve_success(valid_id, _valid_publication())
     assert(successes.back().get("request_id") == valid_id)
@@ -100,12 +114,27 @@ func _test_publish_payload_and_error_envelope_validation() -> void:
     var wrong_contract := _valid_publication()
     wrong_contract["contract"] = "published-campaign@999"
     invalid_publications.append(wrong_contract)
+    var mismatched_document := _valid_publication()
+    mismatched_document["documentId"] = "different-campaign"
+    invalid_publications.append(mismatched_document)
     var malformed_base64 := _valid_publication()
     malformed_base64["pngBase64"] = "not base64!"
     invalid_publications.append(malformed_base64)
     var bad_png := _valid_publication()
     bad_png["pngBase64"] = "AAAA"
     invalid_publications.append(bad_png)
+    var signature_only := _valid_publication()
+    signature_only["pngBase64"] = Marshalls.raw_to_base64(PackedByteArray([137, 80, 78, 71, 13, 10, 26, 10]))
+    invalid_publications.append(signature_only)
+    var invalid_ihdr_length := _valid_publication()
+    invalid_ihdr_length["pngBase64"] = _png_base64(1600, 900, 12)
+    invalid_publications.append(invalid_ihdr_length)
+    var invalid_ihdr_type := _valid_publication()
+    invalid_ihdr_type["pngBase64"] = _png_base64(1600, 900, 13, "BAD!")
+    invalid_publications.append(invalid_ihdr_type)
+    var wrong_dimensions := _valid_publication()
+    wrong_dimensions["pngBase64"] = _png_base64(1599, 900)
+    invalid_publications.append(wrong_dimensions)
     var malformed_metadata := _valid_publication()
     malformed_metadata["metadata"] = {
         "productName": "Product",
@@ -120,6 +149,23 @@ func _test_publish_payload_and_error_envelope_validation() -> void:
         fake.resolve_success(request_id, publication)
         assert(failures.back().get("request_id") == request_id)
         assert(failures.back().get("code") == "INVALID_PUBLICATION_RESPONSE")
+
+    var invalid_close_id := bridge.close()
+    fake.resolve_raw(invalid_close_id, {
+        "contract": "creator-bridge@1",
+        "requestId": "wrong-close-request",
+        "ok": true
+    })
+    var retained_identity_id := bridge.publish()
+    fake.resolve_success(retained_identity_id, _valid_publication())
+    assert(successes.back().get("request_id") == retained_identity_id)
+
+    var close_id := bridge.close()
+    fake.resolve_success(close_id)
+    var after_close_id := bridge.publish()
+    fake.resolve_success(after_close_id, _valid_publication())
+    assert(failures.back().get("request_id") == after_close_id)
+    assert(failures.back().get("code") == "INVALID_PUBLICATION_RESPONSE")
 
     var invalid_errors := [
         {"code": "", "message": "Failure"},
@@ -154,6 +200,10 @@ func _test_campaign_document_strict_strings_and_json_numbers() -> void:
     parsed["canvas"]["width"] = 1600.0
     parsed["canvas"]["height"] = 900.0
     assert(CampaignDocument.validate_bridge_shape(parsed).get("ok", false))
+    assert(CampaignDocument.is_nonnegative_integer_number(9007199254740991))
+    assert(CampaignDocument.is_nonnegative_integer_number(42.0))
+    assert(not CampaignDocument.is_nonnegative_integer_number(9007199254740992))
+    assert(not CampaignDocument.is_nonnegative_integer_number(9007199254740992.0))
 
 func _test_focus_restores_only_after_a_valid_close() -> void:
     var fake := FakeCreatorTransport.new()
@@ -226,7 +276,7 @@ func _valid_publication() -> Dictionary:
         "contract": "published-campaign@1",
         "documentId": "godot-bridge-document",
         "revision": 3.0,
-        "pngBase64": "iVBORw0KGgo=",
+        "pngBase64": _png_base64(),
         "metadata": {
             "productName": "Product",
             "priceCents": 0.0,
@@ -235,3 +285,25 @@ func _valid_publication() -> Dictionary:
             "assetReferences": []
         }
     }
+
+func _png_base64(width: int = 1600, height: int = 900, ihdr_length: int = 13, chunk_type: String = "IHDR") -> String:
+    var bytes := PackedByteArray()
+    bytes.resize(33)
+    var signature := PackedByteArray([137, 80, 78, 71, 13, 10, 26, 10])
+    for index in signature.size():
+        bytes[index] = signature[index]
+    _write_uint32_be(bytes, 8, ihdr_length)
+    var type_bytes := chunk_type.to_ascii_buffer()
+    for index in 4:
+        bytes[12 + index] = type_bytes[index]
+    _write_uint32_be(bytes, 16, width)
+    _write_uint32_be(bytes, 20, height)
+    bytes[24] = 8
+    bytes[25] = 6
+    return Marshalls.raw_to_base64(bytes)
+
+func _write_uint32_be(bytes: PackedByteArray, offset: int, value: int) -> void:
+    bytes[offset] = (value >> 24) & 0xff
+    bytes[offset + 1] = (value >> 16) & 0xff
+    bytes[offset + 2] = (value >> 8) & 0xff
+    bytes[offset + 3] = value & 0xff

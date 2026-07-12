@@ -32,3 +32,18 @@ test("every Godot bridge document uses the canonical 1600 by 900 canvas", async 
     );
   }
 });
+
+test("Godot JSON integer validation uses the JavaScript safe-integer ceiling", async () => {
+  const campaignDocument = await readFile(
+    new URL("godot/src/creator/CampaignDocument.gd", root),
+    "utf8"
+  );
+  const bridgeTests = await readFile(
+    new URL("godot/tests/test_creator_bridge.gd", root),
+    "utf8"
+  );
+
+  assert.match(campaignDocument, /const MAX_SAFE_INTEGER\s*:=\s*9007199254740991\b/);
+  assert.match(campaignDocument, /number\s*<=\s*MAX_SAFE_INTEGER/);
+  assert.match(bridgeTests, /9007199254740992\.0/);
+});

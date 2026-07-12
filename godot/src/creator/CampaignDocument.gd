@@ -3,6 +3,7 @@ extends RefCounted
 const SCHEMA_VERSION := 1
 const CANVAS_WIDTH := 1600
 const CANVAS_HEIGHT := 900
+const MAX_SAFE_INTEGER := 9007199254740991
 
 # This is deliberately a bridge-shape check. The TypeScript Zod schema remains
 # authoritative for the complete campaign document and its nested editor data.
@@ -54,11 +55,12 @@ static func validate_bridge_shape(value: Variant) -> Dictionary:
 
 static func is_nonnegative_integer_number(value: Variant) -> bool:
     if typeof(value) == TYPE_INT:
-        return int(value) >= 0
+        var integer := int(value)
+        return integer >= 0 and integer <= MAX_SAFE_INTEGER
     if typeof(value) != TYPE_FLOAT:
         return false
     var number := float(value)
-    return is_finite(number) and number >= 0.0 and number == floor(number)
+    return is_finite(number) and number >= 0.0 and number <= MAX_SAFE_INTEGER and number == floor(number)
 
 static func _invalid(message: String) -> Dictionary:
     return {"ok": false, "message": message}

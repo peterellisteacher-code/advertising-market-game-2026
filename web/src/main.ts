@@ -56,8 +56,18 @@ async function createCanvasRuntime(canvasElement: HTMLCanvasElement): Promise<Ca
   return {
     adapter,
     dispose() {
-      adapter.dispose();
-      void canvas.dispose();
+      let failure: unknown;
+      try {
+        adapter.dispose();
+      } catch (error) {
+        failure = error;
+      }
+      try {
+        void canvas.dispose();
+      } catch (error) {
+        failure ??= error;
+      }
+      if (failure !== undefined) throw failure;
     }
   };
 }
@@ -113,12 +123,26 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
       ownedUrls = new Set(hydrated.ownedUrls);
       releaseUrls = hydrated.release;
     }
-    let runtime: CanvasRuntime;
+    const hadRuntime = this.#runtime !== null;
+    let runtime: CanvasRuntime | null = null;
     try {
       runtime = await this.#ensureRuntime();
       await runtime.adapter.load(structuredClone(document.fabricState));
     } catch (error) {
-      releaseUrls?.();
+      try {
+        releaseUrls?.();
+      } catch {
+        // Preserve the open/load failure while still clearing a failed new runtime.
+      }
+      if (!hadRuntime && runtime !== null && this.#runtime === runtime) {
+        this.#runtime = null;
+        this.#runtimePromise = null;
+        try {
+          runtime.dispose();
+        } catch {
+          // Preserve the original open/load failure.
+        }
+      }
       throw error;
     }
     const releasePreviousUrls = this.#releaseOwnedRasterUrls;
@@ -164,17 +188,29 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
   }
 
   close(): void {
-    if (this.#document && this.#runtime) this.#document = this.#snapshot();
+    let cleanupError: Error | null = null;
+    const attempt = (operation: () => void): void => {
+      try {
+        operation();
+      } catch (error) {
+        cleanupError ??= error instanceof Error ? error : new Error("Campaign creator cleanup failed");
+      }
+    };
+    attempt(() => {
+      if (this.#document && this.#runtime) this.#document = this.#snapshot();
+    });
     const runtime = this.#runtime;
     this.#runtime = null;
     this.#runtimePromise = null;
-    runtime?.dispose();
-    this.#releaseOwnedRasterUrls?.();
+    attempt(() => runtime?.dispose());
+    const releaseOwnedRasterUrls = this.#releaseOwnedRasterUrls;
     this.#releaseOwnedRasterUrls = null;
+    attempt(() => releaseOwnedRasterUrls?.());
     this.#ownedRasterUrls.clear();
     this.#blobs.clear();
-    this.#setOpen(false);
-    this.gameCanvas?.focus({ preventScroll: true });
+    attempt(() => this.#setOpen(false));
+    attempt(() => this.gameCanvas?.focus({ preventScroll: true }));
+    if (cleanupError !== null) throw cleanupError;
   }
 
   #snapshot(): CampaignDocumentV1 {

@@ -33,7 +33,9 @@ const runtime = vi.hoisted(() => ({
   createdUrls: [] as Array<{ url: string; blob: Blob }>,
   revokedUrls: [] as string[],
   nextUrl: 0,
-  canvasFailure: null as Error | null
+  canvasFailure: null as Error | null,
+  adapterDisposeFailure: null as Error | null,
+  canvasDisposeFailure: null as Error | null
 }));
 
 vi.mock("fabric", () => ({
@@ -45,6 +47,7 @@ vi.mock("fabric", () => ({
 
     dispose(): void {
       runtime.canvasDisposed();
+      if (runtime.canvasDisposeFailure) throw runtime.canvasDisposeFailure;
     }
   }
 }));
@@ -71,6 +74,7 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
 
     dispose(): void {
       runtime.adapterDisposed();
+      if (runtime.adapterDisposeFailure) throw runtime.adapterDisposeFailure;
     }
   }
 }));
@@ -226,6 +230,8 @@ describe("window.AdMarketCreator", () => {
     runtime.saveFailure = null;
     runtime.publishFailure = null;
     runtime.canvasFailure = null;
+    runtime.adapterDisposeFailure = null;
+    runtime.canvasDisposeFailure = null;
     runtime.createdUrls = [];
     runtime.revokedUrls = [];
     runtime.nextUrl = 0;
@@ -372,6 +378,27 @@ describe("window.AdMarketCreator", () => {
     expect(runtime.revokedUrls).toEqual([runtime.createdUrls[0]!.url]);
   });
 
+  it("disposes and evicts a newly created runtime when its initial load fails", async () => {
+    const source = localBlobDocument();
+    storeDraft(source, [6, 7, 8]);
+    runtime.loadFailure = new Error("Synthetic initial Fabric load failure");
+    await import("./main");
+    const api = window.AdMarketCreator;
+
+    expect(await parsed(api, "open-initial-load-failure", "open", source)).toMatchObject({
+      ok: false,
+      error: { code: "HANDLER_ERROR", message: "Synthetic initial Fabric load failure" }
+    });
+    expect(runtime.adapterDisposed).toHaveBeenCalledTimes(1);
+    expect(runtime.canvasDisposed).toHaveBeenCalledTimes(1);
+    expect(runtime.revokedUrls).toEqual([runtime.createdUrls[0]!.url]);
+
+    runtime.loadFailure = null;
+    expect(await parsed(api, "open-after-initial-failure", "open", source)).toMatchObject({ ok: true });
+    expect(runtime.canvasConstructed).toHaveBeenCalledTimes(2);
+    expect(runtime.adapterConstructed).toHaveBeenCalledTimes(2);
+  });
+
   it("releases replacement URLs only after load succeeds and releases current URLs on close", async () => {
     const first = localBlobDocument(3);
     storeDraft(first, [1]);
@@ -387,6 +414,8 @@ describe("window.AdMarketCreator", () => {
     const failedUrl = runtime.createdUrls[1]!.url;
     expect(runtime.revokedUrls).toEqual([failedUrl]);
     expect(runtime.revokedUrls).not.toContain(firstUrl);
+    expect(runtime.adapterDisposed).not.toHaveBeenCalled();
+    expect(runtime.canvasDisposed).not.toHaveBeenCalled();
 
     runtime.loadFailure = null;
     expect(await parsed(api, "open-replacement", "open", replacement)).toMatchObject({ ok: true });
@@ -395,6 +424,34 @@ describe("window.AdMarketCreator", () => {
 
     expect(await parsed(api, "close-replacement", "close", null)).toMatchObject({ ok: true });
     expect(runtime.revokedUrls).toEqual([failedUrl, firstUrl, replacementUrl]);
+  });
+
+  it("finishes close cleanup and returns a useful error when adapter disposal throws", async () => {
+    const source = localBlobDocument();
+    storeDraft(source, [3, 2, 1]);
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-close-failure", "open", source)).toMatchObject({ ok: true });
+    const ownedUrl = runtime.createdUrls[0]!.url;
+    runtime.adapterDisposeFailure = new Error("Synthetic adapter disposal failure");
+
+    expect(await parsed(api, "close-disposal-failure", "close", null)).toEqual({
+      contract: CREATOR_BRIDGE_CONTRACT,
+      requestId: "close-disposal-failure",
+      ok: false,
+      error: { code: "HANDLER_ERROR", message: "Synthetic adapter disposal failure" }
+    });
+    expect(runtime.adapterDisposed).toHaveBeenCalledTimes(1);
+    expect(runtime.canvasDisposed).toHaveBeenCalledTimes(1);
+    expect(runtime.revokedUrls).toEqual([ownedUrl]);
+    expect(document.querySelector("#creator-root")?.hasAttribute("hidden")).toBe(true);
+    expect(document.querySelector("main")?.hasAttribute("aria-hidden")).toBe(false);
+    expect(document.querySelector<HTMLElement>("main")?.inert).toBe(false);
+    expect(document.activeElement).toBe(document.querySelector("#canvas"));
+
+    runtime.adapterDisposeFailure = null;
+    expect(await parsed(api, "open-after-close-failure", "open", blankDocument)).toMatchObject({ ok: true });
+    expect(runtime.canvasConstructed).toHaveBeenCalledTimes(2);
   });
 
   it("persists two saves as increasing revisions and exposes the latest state", async () => {

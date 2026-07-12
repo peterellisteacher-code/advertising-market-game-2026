@@ -69,3 +69,26 @@
 - GDScript tests remain authored but unexecuted under quarantine.
 - Static verification still reports the known `PCK_STALE_SPIKE_EXPORT` marker.
 - Task 11 offline core remains absent and `build:web` continues to report `OFFLINE_CORE_DEFERRED`; neither item was in this review-fix scope.
+
+## Task 8 second review-fix pass — publication identity and cleanup
+
+### RED
+
+- The safe-integer static Node regression failed 1/2 because the Godot validator had no JavaScript `Number.MAX_SAFE_INTEGER` equivalent.
+- Focused browser tests failed 2/13: an initial Fabric load failure left the newly created runtime cached and undisposed, while an adapter disposal exception aborted close before canvas disposal, URL revocation, UI restoration and focus restoration.
+- GDScript assertions for active campaign identity, mismatched publication identity, truncated/invalid IHDR PNGs, wrong dimensions and oversized JSON numbers were authored before implementation and were not executed under quarantine.
+
+### GREEN
+
+- `CreatorBridge.gd` now stores structured pending request context, activates a document identity only after valid open success, retains it across failures, clears it only on the matching valid close success, and rejects publication without the matching active identity.
+- Publication PNG validation now requires at least 33 bytes, the PNG signature, a 13-byte IHDR length, the IHDR chunk type, and big-endian 1600 by 900 dimensions.
+- Godot JSON integer-number validation now accepts finite integral floats but caps both integer and float values at `9007199254740991`.
+- Browser initial-load failure now releases newly hydrated URLs, evicts and disposes only the newly created runtime, and preserves a pre-existing working runtime on replacement-load failure.
+- Browser close now records the first useful cleanup error while still attempting snapshot, adapter and canvas disposal, URL release, internal collection clearing, hidden/inert restoration and game-canvas focus. The public boundary returns the cleanup failure as `HANDLER_ERROR` after cleanup completes.
+- Evidence: Node tests 6/6 passed; focused Vitest 2 files/18 tests passed; full Vitest 19 files/155 tests passed; TypeScript passed; Vite built 96 modules; `build:web` passed twice with identical hashes across 11 files; static export verification returned `WEB_EXPORT_STATIC_VERIFICATION_OK`; process check returned `NO_GODOT_OR_WERFAULT_PROCESSES`.
+- Normal verification already covers the affected tests: Vitest runs `main.test.ts`, while `test:build-web` and `build` run the static Godot bridge contract test.
+
+### Deliberately unchanged limitations
+
+- GDScript tests remain authored but unexecuted under quarantine.
+- Static verification still reports `PCK_STALE_SPIKE_EXPORT`, and the absent Task 11 core still reports `OFFLINE_CORE_DEFERRED`.

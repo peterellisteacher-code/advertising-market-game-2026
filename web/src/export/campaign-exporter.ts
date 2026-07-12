@@ -72,6 +72,8 @@ function validateRasterSources(document: CampaignDocumentV1, ownedUrls: Readonly
 
 function validateAssetReferences(document: CampaignDocumentV1): void {
   const objectIds = campaignObjectIds(document);
+  const objects = new Map(document.fabricState.objects.map((object) => [object.objectId, object]));
+  const catalogByObject = new Map<string, Record<string, unknown>>();
   for (const reference of document.assetReferences) {
     const { objectId } = reference;
     if (reference.kind === "local-blob" &&
@@ -84,6 +86,61 @@ function validateAssetReferences(document: CampaignDocumentV1): void {
       throw new Error("Asset references require an objectId");
     }
     if (!objectIds.has(objectId)) throw new Error(`Missing Fabric object ${objectId}`);
+    if (reference.kind === "catalog") {
+      const attribution = reference.attribution;
+      if (typeof reference.assetId !== "string" || !reference.assetId ||
+        !Number.isInteger(reference.assetVersion) || (reference.assetVersion as number) < 1) {
+        throw new Error("Catalogue references require an asset ID and positive asset version");
+      }
+      const attributionRecord = attribution !== null && typeof attribution === "object" &&
+        !Array.isArray(attribution) ? attribution as Record<string, unknown> : null;
+      const creator = attributionRecord?.creator;
+      const sourceUrl = attributionRecord?.sourceUrl;
+      const license = attributionRecord?.license;
+      let safeSource = false;
+      if (typeof sourceUrl === "string" && sourceUrl === sourceUrl.trim()) {
+        if (sourceUrl === "local") safeSource = true;
+        else {
+          try {
+            const parsedSource = new URL(sourceUrl);
+            safeSource = (parsedSource.protocol === "http:" || parsedSource.protocol === "https:") &&
+              !parsedSource.username && !parsedSource.password;
+          } catch {
+            safeSource = false;
+          }
+        }
+      }
+      if (typeof creator !== "string" || creator !== creator.trim() || !creator ||
+        typeof license !== "string" || license !== license.trim() || !license || !safeSource) {
+        throw new Error("Catalogue references require attribution");
+      }
+      if (catalogByObject.has(objectId)) {
+        throw new Error(`Duplicate catalogue reference for ${objectId}`);
+      }
+      const object = objects.get(objectId);
+      if (!object || (object.elementKind !== "image" && object.elementKind !== "masked-component") ||
+        object.assetId !== reference.assetId) {
+        throw new Error(`Fabric object ${objectId} does not match its catalogue asset`);
+      }
+      catalogByObject.set(objectId, reference);
+    }
+  }
+
+  for (const object of document.fabricState.objects) {
+    if (object.elementKind !== "image" && object.elementKind !== "masked-component") continue;
+    if (typeof object.src !== "string") continue;
+    let url: URL;
+    try {
+      url = new URL(object.src, window.location.href);
+    } catch {
+      continue;
+    }
+    const isCatalogueRaster = url.origin === window.location.origin &&
+      (url.pathname.startsWith("/catalog/") ||
+        url.pathname.startsWith("/api/openverse-image/"));
+    if (isCatalogueRaster && !catalogByObject.has(object.objectId)) {
+      throw new Error(`Catalogue raster ${object.objectId} requires a catalogue reference`);
+    }
   }
 }
 

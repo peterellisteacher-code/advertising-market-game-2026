@@ -12,6 +12,14 @@ import {
   CampaignExporter,
   type PublishedCampaign
 } from "./export/campaign-exporter";
+import { CataloguePanel } from "./catalogue/catalogue-panel";
+import {
+  CataloguePlacementQueue,
+  CatalogueRuntime
+} from "./catalogue/catalogue-runtime";
+import { loadOfflineCatalogue } from "./catalogue/catalogue-store";
+import type { CatalogAssetV1 } from "./catalogue/catalogue-types";
+import { OpenverseClient } from "./catalogue/openverse-client";
 import type { FabricCanvasAdapter } from "./fabric/fabric-canvas-adapter";
 import {
   canonicalDurableDocumentHash,
@@ -76,6 +84,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
   readonly #blobs = new Map<string, Blob>();
   readonly #ownedRasterUrls = new Set<string>();
   readonly #productName: HTMLInputElement;
+  readonly #placements: CataloguePlacementQueue;
   #document: CampaignDocumentV1 | null = null;
   #runtime: CanvasRuntime | null = null;
   #runtimePromise: Promise<CanvasRuntime> | null = null;
@@ -93,9 +102,20 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
     );
     if (!productName) throw new Error("Missing product-name input");
     this.#productName = productName;
+    this.#placements = new CataloguePlacementQueue({
+      getDocument: () => this.#document,
+      getCanvas: async () => (await this.#ensureRuntime()).adapter,
+      commit: (document) => { this.#document = document; },
+      onError: (error) => { this.shell.assertive.textContent = error.message; }
+    });
+  }
+
+  queueCataloguePlacement(asset: CatalogAssetV1): void {
+    this.#placements.enqueue(asset);
   }
 
   async open(value: CampaignDocumentV1): Promise<void> {
+    await this.#placements.flush();
     const requested = parseCampaignDocument(structuredClone(value));
     let document = requested;
     let blobs = new Map<string, Blob>();
@@ -158,13 +178,15 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
     this.shell.canvasRegion.focus({ preventScroll: true });
   }
 
-  getState(): CampaignDocumentV1 {
+  async getState(): Promise<CampaignDocumentV1> {
+    await this.#placements.flush();
     const document = this.#snapshot();
     this.#document = document;
     return structuredClone(document);
   }
 
   async save(): Promise<void> {
+    await this.#placements.flush();
     const snapshot = this.#snapshot();
     const latest = await this.drafts.load(snapshot.documentId);
     const document = parseCampaignDocument({
@@ -178,7 +200,8 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
     this.#document = document;
   }
 
-  publish(): PublishedCampaign {
+  async publish(): Promise<PublishedCampaign> {
+    await this.#placements.flush();
     const runtime = this.#runtime;
     if (!runtime) throw new Error("Campaign creator is not open");
     const document = this.#snapshot();
@@ -187,8 +210,13 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
     return published;
   }
 
-  close(): void {
+  async close(): Promise<void> {
     let cleanupError: Error | null = null;
+    try {
+      await this.#placements.flush();
+    } catch (error) {
+      cleanupError = error instanceof Error ? error : new Error("Catalogue placement failed");
+    }
     const attempt = (operation: () => void): void => {
       try {
         operation();
@@ -260,6 +288,22 @@ root.hidden = true;
 
 const handler = new BrowserCreatorHandler(root, shell, gameSurface, gameCanvas);
 const publicApi = createCreatorPublicApi(handler);
+const cataloguePanel = new CataloguePanel(
+  shell.libraryResults,
+  (asset) => handler.queueCataloguePlacement(asset)
+);
+const livePhotos = new OpenverseClient();
+let catalogueRuntime: CatalogueRuntime | null = null;
+void loadOfflineCatalogue(root.dataset.offlineCatalogueUrl).then((core) => {
+  catalogueRuntime = new CatalogueRuntime({
+    core,
+    input: shell.librarySearch,
+    liveToggle: shell.livePhotos,
+    status: shell.libraryStatus,
+    renderer: cataloguePanel,
+    client: livePhotos
+  });
+});
 
 root.querySelector<HTMLButtonElement>('[data-command="return"]')
   ?.addEventListener("click", () => {

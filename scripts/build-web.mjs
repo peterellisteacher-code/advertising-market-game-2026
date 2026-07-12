@@ -45,6 +45,30 @@ export function assertResolvedGodotShell(html) {
   if (token) throw new Error(`Refusing unresolved Godot shell token: ${token}`);
 }
 
+/** Adds only the local reviewed-pack URL and removes any stale prior value. */
+export function injectOfflineCatalogueUrl(html, catalogueUrl) {
+  if (catalogueUrl !== undefined &&
+    (!/^\/(?!\/)[A-Za-z0-9._~!$&'()*+,;=:@%/-]+\.json$/.test(catalogueUrl) ||
+      catalogueUrl.includes(".."))) {
+    throw new Error("Offline catalogue URL must be a local catalogue URL");
+  }
+  const creatorRoot = /<[a-z][^>]*\bid\s*=\s*["']creator-root["'][^>]*>/i;
+  const match = html.match(creatorRoot);
+  if (!match) {
+    if (catalogueUrl === undefined) return html;
+    throw new Error("Godot export is missing #creator-root");
+  }
+  const withoutStale = match[0].replace(
+    /\s+data-offline-catalogue-url\s*=\s*(?:["'][^"']*["']|[^\s>]+)/gi,
+    ""
+  );
+  const replacement = catalogueUrl === undefined
+    ? withoutStale
+    : withoutStale.replace(/\s*\/?\>$/, (ending) =>
+      ` data-offline-catalogue-url="${catalogueUrl}"${ending}`);
+  return html.replace(match[0], replacement);
+}
+
 async function requireFile(filePath, label) {
   try {
     await access(filePath);
@@ -70,7 +94,23 @@ export async function assembleWebExport({
   const indexPath = path.join(webDir, "index.html");
   const exportedHtml = await readFile(indexPath, "utf8");
   assertResolvedGodotShell(exportedHtml);
-  const assembledHtml = injectStudioAssets(exportedHtml);
+
+  const offlineRelative = path.join("catalog", "generated", "offline-core-v1", "catalog.json");
+  const offlineSource = path.join(root, offlineRelative);
+  let hasOfflineCore = false;
+  try {
+    await access(offlineSource);
+    hasOfflineCore = true;
+  } catch {
+    if (requireOfflineCore) {
+      throw new Error(`Required offline core is absent: ${offlineRelative}`);
+    }
+  }
+
+  const assembledHtml = injectOfflineCatalogueUrl(
+    injectStudioAssets(exportedHtml),
+    hasOfflineCore ? `/${offlineRelative.replaceAll(path.sep, "/")}` : undefined
+  );
   assertResolvedGodotShell(assembledHtml);
 
   const outputStudioDir = path.join(webDir, "studio");
@@ -80,18 +120,12 @@ export async function assembleWebExport({
   ));
   if (assembledHtml !== exportedHtml) await writeFile(indexPath, assembledHtml, "utf8");
 
-  const offlineRelative = path.join("catalog", "generated", "offline-core-v1", "catalog.json");
-  const offlineSource = path.join(root, offlineRelative);
-  try {
-    await access(offlineSource);
+  if (hasOfflineCore) {
     const offlineDestination = path.join(webDir, offlineRelative);
     await mkdir(path.dirname(offlineDestination), { recursive: true });
     await copyFile(offlineSource, offlineDestination);
     log(`OFFLINE_CORE_COPIED ${offlineRelative.replaceAll(path.sep, "/")}`);
-  } catch {
-    if (requireOfflineCore) {
-      throw new Error(`Required offline core is absent: ${offlineRelative}`);
-    }
+  } else {
     log(`OFFLINE_CORE_DEFERRED ${offlineRelative.replaceAll(path.sep, "/")}`);
   }
 

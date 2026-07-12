@@ -228,6 +228,60 @@ describe("CampaignExporter", () => {
       .toThrow("Local blob references require objectId, blobKey and mimeType");
   });
 
+  it("retains valid catalogue attribution and rejects object, asset, or attribution mismatches", () => {
+    const valid = documentFixture();
+    valid.fabricState.objects.find(({ objectId }) => objectId === "photo")!.src =
+      `${window.location.origin}/catalog/photo.png`;
+    valid.assetReferences[0] = {
+      kind: "catalog",
+      objectId: "photo",
+      assetId: "photo",
+      assetVersion: 4,
+      attribution: {
+        creator: "A. Photographer",
+        sourceUrl: "https://example.test/work/photo",
+        license: "CC BY 4.0"
+      }
+    };
+
+    expect(new CampaignExporter(new ExportHarness(pngDataUrl(), valid.fabricState), ownedUrls(valid))
+      .publish(valid).metadata.assetReferences[0]).toEqual(valid.assetReferences[0]);
+
+    const wrongAsset = structuredClone(valid);
+    wrongAsset.assetReferences[0]!.assetId = "different-asset";
+    expect(() => new CampaignExporter(
+      new ExportHarness(pngDataUrl(), wrongAsset.fabricState),
+      ownedUrls(wrongAsset)
+    ).publish(wrongAsset)).toThrow(/catalogue asset/i);
+
+    const missingAttribution = structuredClone(valid);
+    delete missingAttribution.assetReferences[0]!.attribution;
+    expect(() => new CampaignExporter(
+      new ExportHarness(pngDataUrl(), missingAttribution.fabricState),
+      ownedUrls(missingAttribution)
+    ).publish(missingAttribution)).toThrow(/attribution/i);
+
+    for (const attribution of [
+      { creator: "   ", sourceUrl: "local", license: "CC BY 4.0" },
+      { creator: "A. Photographer", sourceUrl: "javascript:alert(1)", license: "CC BY 4.0" },
+      { creator: "A. Photographer", sourceUrl: "https://user:secret@example.test/work", license: "CC BY 4.0" }
+    ]) {
+      const unsafeAttribution = structuredClone(valid);
+      unsafeAttribution.assetReferences[0]!.attribution = attribution;
+      expect(() => new CampaignExporter(
+        new ExportHarness(pngDataUrl(), unsafeAttribution.fabricState),
+        ownedUrls(unsafeAttribution)
+      ).publish(unsafeAttribution)).toThrow(/attribution/i);
+    }
+
+    const missingReference = structuredClone(valid);
+    missingReference.assetReferences.splice(0, 1);
+    expect(() => new CampaignExporter(
+      new ExportHarness(pngDataUrl(), missingReference.fabricState),
+      ownedUrls(missingReference)
+    ).publish(missingReference)).toThrow(/catalogue reference/i);
+  });
+
   it("validates and reconciles the actual canvas snapshot before export", () => {
     const document = documentFixture();
     const externalCanvas = structuredClone(document.fabricState);

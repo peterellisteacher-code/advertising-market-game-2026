@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   assertResolvedGodotShell,
+  injectOfflineCatalogueUrl,
   injectStudioAssets
 } from "./build-web.mjs";
 import { inspectExportContents } from "./verify-web-export.mjs";
@@ -33,6 +34,27 @@ test("assembly rejects an unresolved Godot shell", () => {
   assert.throws(
     () => assertResolvedGodotShell("<script src=\"$GODOT_URL\"></script>"),
     /unresolved Godot shell token/i
+  );
+});
+
+test("offline catalogue root metadata is optional, local, and idempotent", () => {
+  const exported = '<div id="creator-root" hidden></div>';
+  assert.equal(injectOfflineCatalogueUrl(exported), exported);
+
+  const once = injectOfflineCatalogueUrl(
+    exported,
+    "/catalog/generated/offline-core-v1/catalog.json"
+  );
+  const twice = injectOfflineCatalogueUrl(
+    once,
+    "/catalog/generated/offline-core-v1/catalog.json"
+  );
+
+  assert.equal(twice, once);
+  assert.match(once, /data-offline-catalogue-url="\/catalog\/generated\/offline-core-v1\/catalog\.json"/);
+  assert.throws(
+    () => injectOfflineCatalogueUrl(exported, "https://external.example/catalog.json"),
+    /local catalogue URL/i
   );
 });
 

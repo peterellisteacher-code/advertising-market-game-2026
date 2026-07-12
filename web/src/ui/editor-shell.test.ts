@@ -9,6 +9,10 @@ describe("createEditorShell", () => {
     const shell = createEditorShell(root);
 
     expect(getByRole(root, "searchbox", { name: "Search assets" })).toBeTruthy();
+    const livePhotos = getByRole<HTMLInputElement>(root, "checkbox", { name: "Use live photos" });
+    expect(livePhotos.checked).toBe(false);
+    expect(shell.libraryResults.dataset.libraryResults).toBe("");
+    expect(shell.libraryStatus.getAttribute("role")).toBe("status");
     expect(getByRole(root, "region", { name: "Campaign canvas" })).toBeTruthy();
     expect(getByRole(root, "region", { name: "Layers" })).toBeTruthy();
     expect(getByRole(root, "region", { name: "Selected element" })).toBeTruthy();

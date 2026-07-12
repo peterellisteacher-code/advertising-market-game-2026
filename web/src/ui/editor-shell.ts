@@ -1,6 +1,10 @@
 export interface EditorShell {
   overlay: HTMLElement;
   library: HTMLElement;
+  librarySearch: HTMLInputElement;
+  livePhotos: HTMLInputElement;
+  libraryStatus: HTMLElement;
+  libraryResults: HTMLElement;
   canvasRegion: HTMLElement;
   canvas: HTMLCanvasElement;
   inspector: HTMLElement;
@@ -25,7 +29,12 @@ export function createEditorShell(root: HTMLElement): EditorShell {
       </nav>
       <aside class="creator__library" aria-label="Asset library">
         <label>Search assets <input type="search" aria-label="Search assets"></label>
-        <div data-library-results></div>
+        <label class="creator__live-photos">
+          <input type="checkbox" data-live-photos>
+          Use live photos
+        </label>
+        <p class="creator__library-status" role="status" data-library-status></p>
+        <div class="creator__library-results" data-library-results></div>
       </aside>
       <main class="creator__canvas" role="region" aria-label="Campaign canvas" tabindex="-1">
         <canvas width="1600" height="900"></canvas>
@@ -39,6 +48,10 @@ export function createEditorShell(root: HTMLElement): EditorShell {
   return {
     overlay: root.querySelector(".creator")!,
     library: root.querySelector(".creator__library")!,
+    librarySearch: root.querySelector('input[aria-label="Search assets"]')!,
+    livePhotos: root.querySelector('[data-live-photos]')!,
+    libraryStatus: root.querySelector('[data-library-status]')!,
+    libraryResults: root.querySelector('[data-library-results]')!,
     canvasRegion: root.querySelector(".creator__canvas")!,
     canvas: root.querySelector("canvas")!,
     inspector: root.querySelector(".creator__inspector")!,

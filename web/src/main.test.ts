@@ -1,4 +1,4 @@
-import { getByRole } from "@testing-library/dom";
+import { findByRole, getByRole } from "@testing-library/dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CreatorPublicApi } from "./bridge/creator-public-api";
 import {
@@ -67,6 +67,35 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
     serialize(): Record<string, unknown> {
       return structuredClone(runtime.state);
     }
+
+    async addRaster(input: {
+      id: string;
+      assetId: string;
+      sameOriginUrl: string;
+      accessibleName: string;
+    }): Promise<void> {
+      const objects = runtime.state.objects;
+      if (!Array.isArray(objects)) throw new Error("Test canvas state has no objects");
+      objects.push({
+        type: "image",
+        objectId: input.id,
+        elementKind: "image",
+        assetId: input.assetId,
+        accessibleName: input.accessibleName,
+        src: new URL(input.sameOriginUrl, window.location.href).href
+      });
+    }
+
+    remove(id: string): void {
+      const objects = runtime.state.objects;
+      if (!Array.isArray(objects)) throw new Error("Test canvas state has no objects");
+      const index = objects.findIndex((object) =>
+        typeof object === "object" && object !== null &&
+        (object as Record<string, unknown>).objectId === id);
+      if (index >= 0) objects.splice(index, 1);
+    }
+
+    setSelected(): void {}
 
     exportCleanPngDataUrl(): string {
       return "data:image/png;base64,AA==";
@@ -472,6 +501,65 @@ describe("window.AdMarketCreator", () => {
       revision: 1,
       updatedAt: savedDocuments[1]!.updatedAt
     });
+  });
+
+  it("searches the offline core, places a raster, and drains its durable reference before state and save", async () => {
+    const core = {
+      schema: "catalog-asset@1",
+      id: "core-bottle",
+      version: 3,
+      kind: "component",
+      title: "Reviewed bottle",
+      category: "drinkware",
+      tags: ["bottle"],
+      files: {
+        thumbnail: "/catalog/core-bottle-192.webp",
+        preview: "/catalog/core-bottle-640.webp",
+        master: "/catalog/core-bottle.png"
+      },
+      recolourZones: ["body"],
+      anchors: [],
+      materialProfiles: ["matte-plastic"],
+      classroomReviewed: true,
+      brandFree: true,
+      attribution: {
+        creator: "Classroom pack",
+        sourceUrl: "local",
+        license: "classroom-session"
+      }
+    };
+    document.querySelector<HTMLElement>("#creator-root")!.dataset.offlineCatalogueUrl =
+      "/catalog/generated/offline-core-v1/catalog.json";
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json([core]));
+    await import("./main");
+    const api = window.AdMarketCreator;
+    await parsed(api, "open-catalogue", "open", blankDocument);
+
+    const search = getByRole<HTMLInputElement>(document.body, "searchbox", { name: "Search assets" });
+    search.value = "bottle";
+    search.dispatchEvent(new Event("input"));
+    const tile = await findByRole(document.body, "button", { name: "Reviewed bottle" });
+    tile.click();
+
+    const state = await parsed(api, "catalogue-state", "getState", null);
+    expect(state.payload).toMatchObject({
+      fabricState: {
+        objects: [expect.objectContaining({ elementKind: "image", assetId: "core-bottle" })]
+      },
+      assetReferences: [{
+        kind: "catalog",
+        objectId: expect.any(String),
+        assetId: "core-bottle",
+        assetVersion: 3,
+        attribution: core.attribution
+      }]
+    });
+
+    expect(await parsed(api, "catalogue-save", "save", null)).toMatchObject({ ok: true });
+    expect(runtime.save.mock.calls.at(-1)?.[0]).toMatchObject({
+      assetReferences: [expect.objectContaining({ kind: "catalog", assetId: "core-bottle" })]
+    });
+    expect(fetchSpy).toHaveBeenCalledOnce();
   });
 
   it("returns canonical handler errors when storage or export fails", async () => {

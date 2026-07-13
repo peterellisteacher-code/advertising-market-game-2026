@@ -1,0 +1,48 @@
+{
+  "schema": "product-shell-expert-gate@1",
+  "decision": "EXPERT_GATE_PASS",
+  "scope": "scaling-reference",
+  "classroomRelease": false,
+  "visualReference": {
+    "buildCommit": "4f9f659",
+    "screenshot": "contact-sheet.png",
+    "width": 1800,
+    "height": 929,
+    "bytes": 152833,
+    "sha256": "7572798d595667e849672418c8666827309bcb08866e0e763f2955597d7aa53b"
+  },
+  "technicalReference": {
+    "rendererCommit": "0254935",
+    "auditionTestsPassed": 47,
+    "pipelineTestsPassed": 120,
+    "populatedArtworkCompositing": "PASS"
+  },
+  "contract": {
+    "selectionChrome": "PASS",
+    "foodTruckSurface": "PASS",
+    "headphonesCap": "PASS",
+    "takeawayOrientation": "PASS",
+    "trainerLaces": "PASS",
+    "previewIsolation": "PASS",
+    "unfinishedShells": "PASS"
+  },
+  "review": {
+    "openrouterCompleted": 4,
+    "openrouterTransportFailures": 3,
+    "openrouterVisualPass": 4,
+    "openrouterInitialCodePass": 3,
+    "openrouterInitialCodeRevise": 1,
+    "codeReviseResolvedBy": "0254935",
+    "codensus": "PROCEED"
+  },
+  "protectedReviewedPackFiles": 141,
+  "frozenGeneratedArtifactsAreRuntimeRelease": false,
+  "remainingReleaseGates": [
+    "creator interaction",
+    "responsive layout",
+    "accessibility",
+    "real artwork placement",
+    "three-level market gameplay",
+    "classroom playtest"
+  ]
+}

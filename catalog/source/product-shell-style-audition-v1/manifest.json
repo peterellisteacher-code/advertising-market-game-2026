@@ -1,0 +1,195 @@
+{
+  "schema": "product-shell-style-audition@1",
+  "packId": "product-shell-style-audition-v1",
+  "prototypes": [
+    {
+      "id": "audition-slim-can",
+      "title": "Slim Drink Can",
+      "family": "drinks-snacks",
+      "archetype": "slim-can",
+      "authoringMode": "flat-skin",
+      "regions": [
+        {"id": "body", "fill": "#F4F1EA"},
+        {"id": "trim", "fill": "#A8B8C4"},
+        {"id": "accent", "fill": "#E9C8B8"},
+        {"id": "label", "fill": "#DCE4E8"}
+      ],
+      "classroomReviewed": false,
+      "brandFree": true,
+      "status": "audition"
+    },
+    {
+      "id": "audition-sports-bottle",
+      "title": "Sports Drink Bottle",
+      "family": "drinks-snacks",
+      "archetype": "sports-bottle",
+      "authoringMode": "flat-skin",
+      "regions": [
+        {"id": "body", "fill": "#F4F1EA"},
+        {"id": "trim", "fill": "#A8B8C4"},
+        {"id": "accent", "fill": "#E9C8B8"},
+        {"id": "label", "fill": "#DCE4E8"}
+      ],
+      "classroomReviewed": false,
+      "brandFree": true,
+      "status": "audition"
+    },
+    {
+      "id": "audition-snack-pouch",
+      "title": "Snack Pouch",
+      "family": "drinks-snacks",
+      "archetype": "snack-pouch",
+      "authoringMode": "flat-skin",
+      "regions": [
+        {"id": "body", "fill": "#F4F1EA"},
+        {"id": "trim", "fill": "#A8B8C4"},
+        {"id": "accent", "fill": "#E9C8B8"},
+        {"id": "label", "fill": "#DCE4E8"}
+      ],
+      "classroomReviewed": false,
+      "brandFree": true,
+      "status": "audition"
+    },
+    {
+      "id": "audition-takeaway-box",
+      "title": "Takeaway Box",
+      "family": "fast-food-hospitality",
+      "archetype": "takeaway-box",
+      "authoringMode": "flat-skin",
+      "regions": [
+        {"id": "body", "fill": "#F4F1EA"},
+        {"id": "trim", "fill": "#A8B8C4"},
+        {"id": "accent", "fill": "#E9C8B8"},
+        {"id": "label", "fill": "#DCE4E8"}
+      ],
+      "classroomReviewed": false,
+      "brandFree": true,
+      "status": "audition"
+    },
+    {
+      "id": "audition-hoodie",
+      "title": "Hoodie",
+      "family": "fashion-footwear",
+      "archetype": "hoodie",
+      "authoringMode": "direct-surface",
+      "regions": [
+        {"id": "body", "fill": "#F4F1EA"},
+        {"id": "trim", "fill": "#A8B8C4"},
+        {"id": "accent", "fill": "#E9C8B8"}
+      ],
+      "classroomReviewed": false,
+      "brandFree": true,
+      "status": "audition"
+    },
+    {
+      "id": "audition-trainer",
+      "title": "Trainer",
+      "family": "fashion-footwear",
+      "archetype": "trainer",
+      "authoringMode": "direct-surface",
+      "regions": [
+        {"id": "upper", "fill": "#F4F1EA"},
+        {"id": "sole", "fill": "#DCE4E8"},
+        {"id": "trim", "fill": "#A8B8C4"},
+        {"id": "accent", "fill": "#E9C8B8"}
+      ],
+      "classroomReviewed": false,
+      "brandFree": true,
+      "status": "audition"
+    },
+    {
+      "id": "audition-smartphone",
+      "title": "Smartphone",
+      "family": "tech-gadgets",
+      "archetype": "smartphone",
+      "authoringMode": "direct-surface",
+      "regions": [
+        {"id": "body", "fill": "#F4F1EA"},
+        {"id": "screen", "fill": "#DCE4E8"},
+        {"id": "trim", "fill": "#A8B8C4"},
+        {"id": "accent", "fill": "#E9C8B8"}
+      ],
+      "classroomReviewed": false,
+      "brandFree": true,
+      "status": "audition"
+    },
+    {
+      "id": "audition-headphones",
+      "title": "Headphones",
+      "family": "tech-gadgets",
+      "archetype": "headphones",
+      "authoringMode": "direct-surface",
+      "regions": [
+        {"id": "body", "fill": "#F4F1EA"},
+        {"id": "trim", "fill": "#A8B8C4"},
+        {"id": "accent", "fill": "#E9C8B8"}
+      ],
+      "classroomReviewed": false,
+      "brandFree": true,
+      "status": "audition"
+    },
+    {
+      "id": "audition-food-truck",
+      "title": "Food Truck",
+      "family": "fast-food-hospitality",
+      "archetype": "food-truck",
+      "authoringMode": "direct-surface",
+      "regions": [
+        {"id": "body", "fill": "#F4F1EA"},
+        {"id": "window", "fill": "#DCE4E8"},
+        {"id": "trim", "fill": "#A8B8C4"},
+        {"id": "awning", "fill": "#E9C8B8"}
+      ],
+      "classroomReviewed": false,
+      "brandFree": true,
+      "status": "audition"
+    },
+    {
+      "id": "audition-garden-tool",
+      "title": "Garden Tool",
+      "family": "sport-outdoors",
+      "archetype": "garden-tool",
+      "authoringMode": "direct-surface",
+      "regions": [
+        {"id": "body", "fill": "#F4F1EA"},
+        {"id": "handle", "fill": "#A8B8C4"},
+        {"id": "accent", "fill": "#E9C8B8"}
+      ],
+      "classroomReviewed": false,
+      "brandFree": true,
+      "status": "audition"
+    },
+    {
+      "id": "audition-aquarium",
+      "title": "Aquarium",
+      "family": "pets-animals",
+      "archetype": "aquarium",
+      "authoringMode": "direct-surface",
+      "regions": [
+        {"id": "body", "fill": "#F4F1EA"},
+        {"id": "glass", "fill": "#DCE4E8"},
+        {"id": "trim", "fill": "#A8B8C4"},
+        {"id": "accent", "fill": "#E9C8B8"}
+      ],
+      "classroomReviewed": false,
+      "brandFree": true,
+      "status": "audition"
+    },
+    {
+      "id": "audition-pet-shop",
+      "title": "Pet Shop",
+      "family": "shops-services",
+      "archetype": "pet-shop",
+      "authoringMode": "direct-surface",
+      "regions": [
+        {"id": "body", "fill": "#F4F1EA"},
+        {"id": "window", "fill": "#DCE4E8"},
+        {"id": "trim", "fill": "#A8B8C4"},
+        {"id": "sign", "fill": "#E9C8B8"}
+      ],
+      "classroomReviewed": false,
+      "brandFree": true,
+      "status": "audition"
+    }
+  ]
+}

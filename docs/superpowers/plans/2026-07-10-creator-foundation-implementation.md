@@ -1611,56 +1611,81 @@ git commit -m "feat: add deterministic asset pipeline"
 
 ---
 
-### Task 11: Reviewed 100-Master Pack and 1,000-Record Offline Core
+### Task 11: Bare Semantic Product-Shell Library and Preview Pipeline
 
 **Files:**
-- Create: `catalog/schemas/catalog-asset-v1.schema.json`
-- Create: `catalog/source/creator-foundation-100/`
-- Create: `catalog/source/materials-v1/`
-- Create: `catalog/generated/offline-core-v1/catalog.json`
-- Create: `catalog/reports/creator-foundation-100/qa.json`
-- Create: `catalog/reports/creator-foundation-100/contact-sheet.webp`
+- Create: `catalog/schemas/product-shell-v1.schema.json`
+- Create: `catalog/source/product-shells-v1/manifest.json`
+- Create: `pipeline/asset_pipeline/product_shells.py`
+- Create: `pipeline/tests/test_product_shells.py`
+- Create: `catalog/generated/product-shells-v1/catalog.json`
+- Create: `catalog/generated/product-shells-v1/shells/`
+- Create: `catalog/reports/product-shells-v1/qa.json`
+- Create: `catalog/reports/product-shells-v1/contact-sheet.html`
 - Create: `catalog/INDEX.md`
 - Create: `CREDITS.md`
 
 **Interfaces:**
-- Consumes: Task 10 pipeline plus existing/open assets and image-generated chroma sheets where gaps remain.
-- Produces: a brand-free 100-master pack across ten categories and at least 1,000 searchable base/virtual records.
+- Consumes: the frozen Fabric editor contract plus authored shell generators,
+  semantic regions, print/safe areas, compatible part slots and preview recipes.
+- Produces: at least 60 reviewed bare SVG shells/kits across ten student-facing
+  families, deterministic catalogue metadata and side-by-side flat/2.5D review
+  evidence.
 
-- [ ] **Step 1: Fix the category quota before collection**
+- [x] **Step 1: Write failing product-shell contract tests**
 
-Use exactly ten broad launch categories with at least ten reviewed masters each: drinkware, food/packaging, bags, footwear, wearable accessories, personal care, small electronics, leisure/outdoor, home/desk and transport/travel. Within each category include bodies plus interchangeable components rather than ten near-duplicates.
+Tests require portable unique shell/region/slot IDs, exactly ten launch
+families, at least 60 shells/kits, no text/image/external references inside
+authored SVG, a named Body region, at least one print area with a contained safe
+area, valid compatible part slots and a deterministic preview descriptor.
 
-- [ ] **Step 2: Inventory pre-existing candidates first**
+- [x] **Step 2: Run the focused tests to verify RED**
 
-Record source path/URL, creator, licence, source hash, brand-removal status, category, masks, anchors and rejection reason in `catalog/INDEX.md`. Normalise usable existing assets before generating replacements. Do not copy or modify anything in Games Workshop; copy only from sources explicitly allowed for this Codex project.
+Run `pipeline\.venv\Scripts\python.exe -m pytest
+pipeline/tests/test_product_shells.py -q`. Expected: collection/import failure
+because `asset_pipeline.product_shells` does not exist.
 
-- [ ] **Step 3: Generate only the missing masters**
+- [x] **Step 3: Implement the schema and deterministic shell compiler**
 
-Generate dense chroma-key sheets at the largest supported image size, with separated realistic product bodies/components, consistent camera angle, neutral lighting, no text/logos and a unique chroma colour absent from the objects. Split with Task 10, inspect every cutout at pixel level and reject fused edges, clipped shadows, warped geometry or baked-in brands.
+`product_shells.py` validates `product-shell-source@1`, compiles only safe SVG
+primitives/paths, prefixes every SVG/clip/gradient ID with the shell ID, emits
+flat authoring and preview SVG deterministically and writes canonical catalogue
+JSON. No generated SVG may contain `<text>`, `<image>`, script, event handler,
+external URL or unscoped ID.
 
-- [ ] **Step 4: Author recolour masks and attachment anchors**
+- [x] **Step 4: Author the ten-family shell manifest**
 
-At least 20 representative masters across the ten categories receive Body/Trim/Accent/Label masks; the remainder expose every zone that is visually meaningful. Every component intended to attach has named compatible anchors.
+Author at least 60 useful shells/kits across Drinks & Snacks, Fast Food &
+Hospitality, Fashion & Footwear, Beauty & Care, Tech & Gadgets, Sport &
+Outdoors, Home & Lifestyle, Travel & Transport, Pets & Animals, and Shops &
+Services. Include soft-drink cans, takeaway packaging/storefront touchpoints,
+shoes, aquarium/tank forms and pet-shop touchpoints. Variants must change
+silhouette or part compatibility, not merely colour.
 
-- [ ] **Step 5: Build and validate the offline core**
+- [x] **Step 5: Verify GREEN and build review evidence**
 
 ```powershell
-pipeline\.venv\Scripts\python.exe -m asset_pipeline.build_pack --source catalog/source/creator-foundation-100 --materials catalog/source/materials-v1 --out catalog/generated/offline-core-v1 --report catalog/reports/creator-foundation-100
-pipeline\.venv\Scripts\python.exe -m asset_pipeline.qa_report --catalog catalog/generated/offline-core-v1/catalog.json --require-masters 100 --require-categories 10 --require-records 1000
+pipeline\.venv\Scripts\python.exe -m pytest pipeline/tests/test_product_shells.py -q
+pipeline\.venv\Scripts\python.exe -m asset_pipeline.product_shells --source catalog/source/product-shells-v1/manifest.json --out catalog/generated/product-shells-v1 --report catalog/reports/product-shells-v1
 ```
 
-Expected: at least 100 accepted masters, ten categories, 1,000 searchable records, zero schema errors, zero missing attributions and zero unreviewed launch records.
+Expected: all focused tests pass; exactly ten launch families; at least 60
+reviewed brand-free shells/kits; no contract, SVG-safety, duplicate-ID,
+print-area or preview errors.
 
-- [ ] **Step 6: Verify realistic variety**
+- [x] **Step 6: Inspect personalisation quality in a browser**
 
-For four representative categories, render 24 colours × 12 materials from one master without duplicate source files. The contact sheet must show preserved lighting, legible silhouette at thumbnail size and visually distinct Body/Trim/Accent/Label changes.
+Open the generated contact sheet and inspect every shell at thumbnail and editor
+size. For representatives from all ten families, compare the flat authoring
+surface with the synchronised preview after changing zones, parts, palettes and
+sample artwork. Reject unclear regions, cramped print areas, misleading preview
+projection or variants that are only cosmetic duplicates.
 
-- [ ] **Step 7: Commit the reviewed pack**
+- [x] **Step 7: Commit the reviewed shell library**
 
 ```powershell
-git add catalog CREDITS.md
-git commit -m "feat: add reviewed creator asset core"
+git add pipeline catalog CREDITS.md docs/superpowers
+git commit -m "feat: add semantic product shell library"
 ```
 
 ---

@@ -89,6 +89,27 @@ The interface must support:
 
 The campaign canvas is freeform within fixed publication dimensions. The game can offer smart guides and strong defaults, but it must not force a predesigned advertisement.
 
+### Logo Lab
+
+Students build a fictional brand mark inside the same editor rather than
+choosing a copied real-world logo. Four editable starting recipes are provided:
+Icon + Wordmark, Badge/Seal, Monogram and Mascot/Emblem. A recipe creates a
+group containing editable text, one or more vector symbols and optional
+container shapes; it is a structural starting point, not a finished campaign.
+
+The symbol library is a reviewed local subset of permissively licensed vector
+collections, led by Phosphor and Tabler with selected Game Icons. Brand and
+trademark collections are excluded. The core exposes roughly 2,000–3,000
+symbols with categories, provenance and licence metadata while remaining much
+smaller than an equivalent raster library.
+
+Students can change font, weight, spacing, curved text, symbol style, container
+shape, one- or two-colour palette, stroke, shadow, rotation and scale. Seeded
+**Surprise me**, **Remix symbol**, **Remix type** and **Remix colours** actions
+produce coherent alternatives without destroying the other chosen layers.
+Original drawings can be grouped into the logo. The vector group remains
+editable in the Fabric studio and is flattened only for market publication.
+
 ## 5. Asset-First Product Principle
 
 The quality, range and usability of assets are the first-order success criterion. Students should be able to make work they regard as polished, not merely acceptable for a classroom exercise.
@@ -109,19 +130,27 @@ The launch catalogue architecture supports:
 - temporary Openverse photographs;
 - later category-specific basic shells.
 
-### Realistic recolouring
+### Bare product authoring and polished preview
 
-Photoreal assets intended for colour changes use authored recolour zones rather than a whole-image tint. A master can contain:
+The editable product is a clean semantic SVG shell, not a finished photograph.
+Every shell exposes named regions such as Body, Trim, Accent, Label, Cap,
+Sole, Upper or Screen plus one or more clearly outlined print/safe areas.
+Students can colour regions, swap compatible parts and place text, symbols,
+patterns, drawings and photographs inside the print areas as ordinary editable
+layers.
 
-- a neutral transparent beauty image;
-- Body, Trim, Accent and Label masks;
-- preserved seams, printed controls, reflections and highlights;
-- an optional separate shadow;
-- compatible attachment anchors.
+The flat authoring view and the polished preview are deliberately separate.
+The authoring view maximises control and legibility; the preview adds restrained
+2.5D shading, clipping, perspective and optional context without changing the
+underlying artwork. This follows the established Printful/Pacdora/Customily
+pattern while avoiding a full dieline or 3D-modelling lesson.
 
-Each zone accepts a colour, pattern or material preset. Material presets preserve the impression of matte plastic, gloss plastic, rubber, cardboard, fabric, glass, brushed metal or wood.
-
-The catalogue exposes virtual variants without storing duplicate files. Three hundred masters with 24 colours and 12 materials already provide 86,400 possible appearances before components are combined.
+The launch library targets roughly 60–80 strong shell/kit templates across ten
+student-facing families: Drinks & Snacks, Fast Food & Hospitality, Fashion &
+Footwear, Beauty & Care, Tech & Gadgets, Sport & Outdoors, Home & Lifestyle,
+Travel & Transport, Pets & Animals, and Shops & Services. Parameterised shape
+choices, interchangeable parts, named zones, palettes and materials create
+thousands of product appearances before students add original artwork.
 
 ### Asset catalogue scale
 
@@ -137,11 +166,28 @@ Only visible thumbnails are instantiated. Full-resolution assets load when selec
 
 ### Existing assets before generation
 
-Pre-existing open collections supply product references, everyday objects, materials, icons, shapes, fonts and interface sounds. Existing assets are normalised into the game's visual and technical format before use.
+Pre-existing bulk collections supply the extended product library. BG60K is
+the preferred masked e-commerce source; Amazon Berkeley Objects is the broad
+CC BY 4.0 household/product fallback; category specialists may supplement
+fashion, food packaging and lifestyle gaps. Existing assets are normalised
+into the game's visual and technical format before use.
 
-Reusable product assets are fictionalised before publication. Real-world labels, trademarks and recognisable packaging copy are removed so the class market remains a contest between student inventions rather than familiar brands.
+The bulk raster layer is ingested as lazy-loaded category shards rather than
+embedded in the Godot package. It supplies props, scenes and inspiration for
+the final advertisement, not the editable product base. Masks become alpha,
+duplicate and low-resolution records are rejected, text-heavy or visibly
+branded candidates are filtered, and every accepted record retains source and
+licence metadata. A representative offline subset remains available when the
+network is unavailable.
 
-Image generation fills specific gaps rather than producing complete student campaigns. It creates matched families of realistic, unbranded bodies and compatible components on large chroma-key sheets. Generated assets are split, cleaned, masked, tagged and visually checked before entering the catalogue.
+Reusable contextual assets are fictionalised or excluded when real-world
+labels, trademarks or recognisable packaging would dominate the composition.
+The class market remains a contest between student inventions rather than
+familiar brands.
+
+Image generation is reserved for missing contextual art or preview polish. It
+is not the primary product-template pipeline. Bare product shells and their
+editable zones are authored as compact code-native SVG plus structured data.
 
 ## 6. Openverse Photo Library
 
@@ -308,17 +354,27 @@ The first subproject is accepted only when a vertical slice proves all of the fo
 2. A blank document can add realistic raster assets, recolourable SVGs, editable text and simple shapes.
 3. Objects can be selected, moved, resized, rotated, cropped, reordered, duplicated and deleted.
 4. Drawing and erasing work, and a drawing can be mapped to an AIDA tab.
-5. One masked realistic component supports independent Body, Trim, Accent and Label changes while preserving its lighting.
-6. At least 1,000 catalogue records can be searched and displayed smoothly through a virtualised grid.
+5. One bare semantic product shell supports independent named-zone changes,
+   interchangeable parts and print-area clipping while its polished preview
+   remains synchronised.
+6. At least 5,000 genuinely distinct external masters and 10,000 total
+   searchable catalogue records can be searched smoothly through a virtualised
+   lazy-loaded grid.
 7. Openverse search can place a temporary image and still permit a clean PNG export.
 8. Ten or more mixed actions can be undone and redone in correct order.
 9. The campaign can save, reload and reproduce the same editable composition.
 10. Godot receives the published metadata and flattened image bytes.
 11. The creator remains usable with the network disabled through its offline core sample.
 12. The slice runs responsively on an ordinary classroom Windows laptop in a current Chromium browser.
-13. The review pack contains at least 100 realistic or realistically rendered product bodies and components across at least ten broad product categories.
-14. Those masters expose enough colour and material variants to produce thousands of distinct appearances without duplicate source files.
+13. The review pack contains at least 60 bare product shells/kits across the ten
+    student-facing families, including drinks, fast food, shoes, pets,
+    aquariums and service/storefront branding.
+14. Those shells expose enough parameterised silhouettes, compatible parts,
+    zones, colour and material variants to produce thousands of distinct
+    appearances without duplicate source files.
 15. A visual trial can produce at least six recognisably different, polished campaigns without relying on arbitrary student uploads.
+16. The Logo Lab can produce, remix, save and reload editable marks from each
+   of its four recipes without exposing real-brand icon collections.
 
 The performance test uses a 15,000-record synthetic catalogue, a 1,600×900 or 1,920×1,080 publication canvas, bounded texture caches and no mass instantiation of Godot UI nodes.
 

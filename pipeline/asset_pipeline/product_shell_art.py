@@ -18,6 +18,7 @@ OUTER_STROKE = 6
 DETAIL_STROKE = 3
 
 View = Literal["authoring", "preview", "review"]
+PanelDirection = Literal["up", "right", "down", "left"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,11 +38,20 @@ class ArtGeometry:
 
 
 @dataclass(frozen=True, slots=True)
+class PanelRole:
+    role: str
+    label: str
+    bounds: tuple[float, float, float, float]
+    top_direction: PanelDirection
+
+
+@dataclass(frozen=True, slots=True)
 class FlatSkinGeometry:
     surface: ArtworkSurface
     regions: dict[str, tuple[str, ...]]
     details: tuple[str, ...]
     mapping_target: str
+    panel_roles: tuple[PanelRole, ...] = ()
 
 
 FlatSkinBuilder = Callable[[], FlatSkinGeometry]
@@ -623,6 +633,11 @@ def _takeaway_box_skin() -> FlatSkinGeometry:
             '<path data-mapping-part="box-flap" d="M390 220H710M390 780H710"/>',
         ),
         mapping_target="takeaway-box",
+        panel_roles=(
+            PanelRole("front", "Front", (340, 300, 420, 400), "up"),
+            PanelRole("lid-top", "Lid / Top", (340, 180, 420, 120), "up"),
+            PanelRole("side", "Side", (760, 300, 140, 400), "up"),
+        ),
     )
 
 
@@ -728,6 +743,79 @@ def _guide_overlay(view: View, surface: ArtworkSurface) -> str:
     )
 
 
+def _panel_role_data(role: PanelRole) -> str:
+    bounds = " ".join(f"{value:g}" for value in role.bounds)
+    return (
+        f'data-panel-role="{escape(role.role)}" '
+        f'data-panel-label="{escape(role.label)}" '
+        f'data-panel-bounds="{bounds}" '
+        f'data-top-direction="{escape(role.top_direction)}"'
+    )
+
+
+def _panel_direction_arrow(role: PanelRole, center_x: float, center_y: float) -> str:
+    offsets = {
+        "up": ((0, 14), (0, -14), (-7, -5), (7, -5)),
+        "right": ((-14, 0), (14, 0), (5, -7), (5, 7)),
+        "down": ((0, -14), (0, 14), (-7, 5), (7, 5)),
+        "left": ((14, 0), (-14, 0), (-5, -7), (-5, 7)),
+    }
+    (start_x, start_y), (tip_x, tip_y), (wing_a_x, wing_a_y), (
+        wing_b_x,
+        wing_b_y,
+    ) = offsets[role.top_direction]
+    arrow_path = (
+        f"M{center_x + start_x:g} {center_y + start_y:g}"
+        f"L{center_x + tip_x:g} {center_y + tip_y:g}"
+        f"M{center_x + wing_a_x:g} {center_y + wing_a_y:g}"
+        f"L{center_x + tip_x:g} {center_y + tip_y:g}"
+        f"L{center_x + wing_b_x:g} {center_y + wing_b_y:g}"
+    )
+    return (
+        f'<path data-top-direction-arrow="true" d="{arrow_path}" fill="none" '
+        f'stroke="{GUIDE}" stroke-width="5" stroke-linecap="round" '
+        'stroke-linejoin="round"/>'
+    )
+
+
+def _panel_role_markup(view: View, roles: tuple[PanelRole, ...]) -> str:
+    if not roles or view == "preview":
+        return ""
+
+    if view == "authoring":
+        items = "".join(f'<g {_panel_role_data(role)}/>' for role in roles)
+        return (
+            '<g data-panel-role-metadata="true" data-editor-only="true" '
+            f'data-export="false" visibility="hidden">{items}</g>'
+        )
+
+    guides: list[str] = []
+    for role in roles:
+        x, y, width, height = role.bounds
+        chip_width = min(width - 20, max(80, len(role.label) * 14 + 28))
+        chip_height = 44
+        chip_x = x + (width - chip_width) / 2
+        chip_y = y + (height - chip_height) / 2
+        arrow_x = x + width / 2
+        arrow_y = max(y + 18, chip_y - 20)
+        guides.append(
+            f'<g {_panel_role_data(role)}>'
+            f'<rect x="{chip_x:g}" y="{chip_y:g}" width="{chip_width:g}" '
+            f'height="{chip_height:g}" rx="18" fill="{PAPER}" stroke="{GUIDE}" '
+            'stroke-width="4"/>'
+            f'<text x="{x + width / 2:g}" y="{chip_y + 30:g}" '
+            f'fill="{GUIDE}" stroke="none" text-anchor="middle" '
+            'font-family="Arial, sans-serif" font-size="26" '
+            f'font-weight="700">{escape(role.label)}</text>'
+            f'{_panel_direction_arrow(role, arrow_x, arrow_y)}</g>'
+        )
+
+    return (
+        '<g data-panel-orientation-guides="true" data-editor-only="true" '
+        f'data-export="false" visibility="visible">{"".join(guides)}</g>'
+    )
+
+
 def render_audition_svg(prototype: AuditionPrototype, view: View) -> str:
     """Render one safe audition shell without external content or active markup."""
 
@@ -752,6 +840,7 @@ def render_audition_svg(prototype: AuditionPrototype, view: View) -> str:
     artwork_slot = (
         f'<g data-artwork-slot="primary" clip-path="url(#{escape(clip_id)})"></g>'
     )
+    panel_roles = flat_skin.panel_roles if flat_skin is not None else ()
 
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" '
@@ -759,7 +848,7 @@ def render_audition_svg(prototype: AuditionPrototype, view: View) -> str:
         f'data-shell-id="{escape(prototype.id)}" '
         f'data-authoring-mode="{escape(prototype.authoring_mode)}">'
         f'{_clip_definition(clip_id, surface)}{grounding}{layers}{artwork_slot}'
-        f'{_guide_overlay(view, surface)}</svg>'
+        f'{_guide_overlay(view, surface)}{_panel_role_markup(view, panel_roles)}</svg>'
     )
 
 
@@ -776,6 +865,8 @@ __all__ = [
     "INK",
     "OUTER_STROKE",
     "PAPER",
+    "PanelDirection",
+    "PanelRole",
     "artwork_surface_for",
     "flat_skin_geometry_for",
     "render_audition_svg",

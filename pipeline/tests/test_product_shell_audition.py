@@ -4,6 +4,7 @@ import copy
 import hashlib
 import json
 import xml.etree.ElementTree as ET
+from dataclasses import FrozenInstanceError, is_dataclass
 from pathlib import Path
 from typing import Callable, get_args
 
@@ -229,7 +230,6 @@ def test_all_audition_views_are_safe_parseable_semantic_svg(view: str) -> None:
 
         lowered = svg.lower()
         forbidden = (
-            "<text",
             "<image",
             "<script",
             " href=",
@@ -240,6 +240,17 @@ def test_all_audition_views_are_safe_parseable_semantic_svg(view: str) -> None:
         assert "<lineargradient" not in lowered
         assert "<radialgradient" not in lowered
         assert "vector-effect" not in lowered
+
+        text_nodes = root.findall(".//{*}text")
+        orientation_guides = root.findall(
+            ".//*[@data-panel-orientation-guides='true']"
+        )
+        if view == "review" and prototype.archetype == "takeaway-box":
+            assert len(orientation_guides) == 1
+            assert text_nodes == orientation_guides[0].findall(".//{*}text")
+        else:
+            assert text_nodes == []
+            assert orientation_guides == []
 
 
 def test_audition_views_use_the_exact_cel_shaded_style_and_guide_contract() -> None:
@@ -406,6 +417,93 @@ def test_flat_skin_review_explains_its_product_mapping(
         for item in root.findall(".//*[@data-mapping-part]")
     }
     assert markers <= actual
+
+
+def test_takeaway_box_declares_immutable_panel_roles_and_other_skins_do_not() -> None:
+    box_skin = flat_skin_geometry_for("takeaway-box")
+    roles = box_skin.panel_roles
+
+    assert isinstance(roles, tuple)
+    assert [(role.role, role.label) for role in roles] == [
+        ("front", "Front"),
+        ("lid-top", "Lid / Top"),
+        ("side", "Side"),
+    ]
+    assert all(is_dataclass(role) for role in roles)
+    assert all(type(role).__dataclass_params__.frozen for role in roles)
+    assert all(len(role.bounds) == 4 for role in roles)
+    assert all(role.bounds[2] > 0 and role.bounds[3] > 0 for role in roles)
+    assert all(role.top_direction in {"up", "right", "down", "left"} for role in roles)
+    with pytest.raises(FrozenInstanceError):
+        roles[0].label = "Changed"
+
+    for archetype in ("slim-can", "sports-bottle", "snack-pouch"):
+        assert flat_skin_geometry_for(archetype).panel_roles == ()
+
+
+def test_takeaway_box_orientation_metadata_is_editor_only_and_export_isolated() -> None:
+    prototype = _prototype("takeaway-box")
+    skin = flat_skin_geometry_for("takeaway-box")
+    declared_roles = {role.role for role in skin.panel_roles}
+    declared_labels = {role.label for role in skin.panel_roles}
+
+    authoring = ET.fromstring(render_audition_svg(prototype, "authoring"))
+    authoring_metadata = authoring.findall(
+        ".//*[@data-panel-role-metadata='true']"
+    )
+    assert len(authoring_metadata) == 1
+    assert authoring_metadata[0].get("visibility") == "hidden"
+    assert authoring_metadata[0].get("data-editor-only") == "true"
+    assert authoring_metadata[0].get("data-export") == "false"
+    authoring_roles = authoring_metadata[0].findall(".//*[@data-panel-role]")
+    assert {item.get("data-panel-role") for item in authoring_roles} == declared_roles
+    assert {item.get("data-panel-label") for item in authoring_roles} == declared_labels
+    assert all(item.get("data-panel-bounds") for item in authoring_roles)
+    assert all(item.get("data-top-direction") for item in authoring_roles)
+    assert authoring.findall(".//{*}text") == []
+
+    review = ET.fromstring(render_audition_svg(prototype, "review"))
+    review_guides = review.findall(
+        ".//*[@data-panel-orientation-guides='true']"
+    )
+    assert len(review_guides) == 1
+    guide = review_guides[0]
+    assert guide.get("visibility") == "visible"
+    assert guide.get("data-editor-only") == "true"
+    assert guide.get("data-export") == "false"
+    review_roles = guide.findall(".//*[@data-panel-role]")
+    assert {item.get("data-panel-role") for item in review_roles} == declared_roles
+    text_nodes = review.findall(".//{*}text")
+    assert text_nodes == guide.findall(".//{*}text")
+    assert {item.text for item in text_nodes} == declared_labels
+    assert all(item.get("data-top-direction") for item in review_roles)
+
+    preview_svg = render_audition_svg(prototype, "preview")
+    preview = ET.fromstring(preview_svg)
+    assert preview.find(".//*[@data-panel-role-metadata]") is None
+    assert preview.find(".//*[@data-panel-orientation-guides]") is None
+    assert preview.find(".//*[@data-panel-role]") is None
+    assert preview.find(".//*[@data-top-direction]") is None
+    assert preview.findall(".//{*}text") == []
+    assert "Front" not in preview_svg
+    assert "Lid / Top" not in preview_svg
+    assert "Side" not in preview_svg
+
+    for view in (authoring, review):
+        for item in view.findall(
+            ".//*[@data-region]/{*}path"
+        ) + view.findall(".//*[@data-artwork-surface='primary']"):
+            path_data = item.get("d", "").lower()
+            assert all(role not in path_data for role in declared_roles)
+
+    for archetype in ("slim-can", "sports-bottle", "snack-pouch"):
+        other_skin = flat_skin_geometry_for(archetype)
+        assert other_skin.panel_roles == ()
+        other_review = ET.fromstring(
+            render_audition_svg(_prototype(archetype), "review")
+        )
+        assert other_review.find(".//*[@data-panel-orientation-guides]") is None
+        assert other_review.findall(".//{*}text") == []
 
 
 def test_editable_face_bounds_clear_family_coverage_floors() -> None:

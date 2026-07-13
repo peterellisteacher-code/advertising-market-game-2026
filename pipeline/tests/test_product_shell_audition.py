@@ -19,6 +19,7 @@ from asset_pipeline.product_shell_audition import (
 from asset_pipeline.product_shell_art import (
     GEOMETRY_BUILDERS,
     artwork_surface_for,
+    flat_skin_geometry_for,
     render_audition_svg,
 )
 from conftest import REPO_ROOT as PROJECT_ROOT
@@ -100,6 +101,14 @@ ALLOWED_REGIONS = {
 
 def _manifest() -> dict:
     return json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+
+
+def _prototype(archetype: str):
+    return next(
+        item
+        for item in load_audition_source(MANIFEST_PATH).prototypes
+        if item.archetype == archetype
+    )
 
 
 def _write_manifest(tmp_path: Path, value: dict) -> Path:
@@ -244,7 +253,7 @@ def test_audition_views_use_the_exact_cel_shaded_style_and_guide_contract() -> N
         assert 'data-print-area' not in preview
         assert 'data-guide-overlay="true" visibility="hidden"' in authoring
         assert 'data-guide-overlay="true" visibility="visible"' in review
-        assert 'data-guide-overlay="true" visibility="visible" opacity="0.42"' in review
+        assert 'data-guide-overlay="true" visibility="visible" opacity="0.52"' in review
         assert "stroke-dasharray" not in authoring + preview + review
         assert 'data-artwork-surface="primary"' in authoring
         assert 'clip-path="url(#' in preview
@@ -297,6 +306,38 @@ def test_authoring_surfaces_obey_flat_skin_and_direct_surface_modes() -> None:
             sx, sy, sw, sh = surface.bounds
             assert px <= sx <= sx + sw <= px + pw
             assert py <= sy <= sy + sh <= py + ph
+
+
+def test_packaging_uses_four_distinct_product_specific_flat_skins() -> None:
+    archetypes = ("slim-can", "sports-bottle", "snack-pouch", "takeaway-box")
+    skins = [flat_skin_geometry_for(item) for item in archetypes]
+    assert len({skin.surface.path for skin in skins}) == 4
+    assert {skin.mapping_target for skin in skins} == set(archetypes)
+    assert all(skin.surface.bounds[2] >= 680 for skin in skins)
+    assert all(skin.surface.bounds[3] >= 560 for skin in skins)
+
+
+@pytest.mark.parametrize(
+    ("archetype", "markers"),
+    [
+        ("slim-can", {"wrap-seam", "can-rim"}),
+        ("sports-bottle", {"bottle-shoulder", "wrap-seam"}),
+        ("snack-pouch", {"pouch-seal", "pouch-gusset"}),
+        ("takeaway-box", {"box-fold", "box-flap"}),
+    ],
+)
+def test_flat_skin_review_explains_its_product_mapping(
+    archetype: str, markers: set[str]
+) -> None:
+    root = ET.fromstring(render_audition_svg(_prototype(archetype), "review"))
+    shell = root.find(".//*[@data-product-shell='flat-skin']")
+    assert shell is not None
+    assert shell.get("data-mapping-target") == archetype
+    actual = {
+        item.get("data-mapping-part")
+        for item in root.findall(".//*[@data-mapping-part]")
+    }
+    assert markers <= actual
 
 
 def test_editable_face_bounds_clear_family_coverage_floors() -> None:

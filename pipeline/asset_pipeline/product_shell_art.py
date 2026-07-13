@@ -36,6 +36,25 @@ class ArtGeometry:
     surface: ArtworkSurface
 
 
+@dataclass(frozen=True, slots=True)
+class FlatSkinGeometry:
+    surface: ArtworkSurface
+    regions: dict[str, tuple[str, ...]]
+    details: tuple[str, ...]
+    mapping_target: str
+
+
+FlatSkinBuilder = Callable[[], FlatSkinGeometry]
+
+
+def flat_skin_geometry_for(archetype: Archetype) -> FlatSkinGeometry:
+    try:
+        builder = FLAT_SKIN_BUILDERS[archetype]
+    except KeyError as error:
+        raise ValueError(f"{archetype} does not use flat-skin authoring") from error
+    return builder()
+
+
 def _region(name: str, fill: str, fragments: Iterable[str]) -> str:
     return (
         f'<g data-region="{escape(name)}" fill="{escape(fill)}">'
@@ -466,27 +485,127 @@ GEOMETRY_BUILDERS: dict[Archetype, Callable[[], ArtGeometry]] = {
 }
 
 
-_FLAT_SKIN_SURFACES: dict[Archetype, ArtworkSurface] = {
-    "slim-can": ArtworkSurface(
-        "M160 210Q140 210 140 230V770Q140 790 160 790H840Q860 790 860 770"
-        "V230Q860 210 840 210Z",
-        (140, 210, 720, 580),
-    ),
-    "sports-bottle": ArtworkSurface(
-        "M170 215Q150 215 150 235V765Q150 785 170 785H830Q850 785 850 765"
-        "V235Q850 215 830 215Z",
+def _slim_can_skin() -> FlatSkinGeometry:
+    surface = ArtworkSurface(
+        "M155 220Q500 180 845 220V780Q500 820 155 780Z",
+        (155, 180, 690, 640),
+    )
+    return FlatSkinGeometry(
+        surface=surface,
+        regions={
+            "body": (f'<path d="{surface.path}"/>',),
+            "trim": (
+                '<path d="M155 220Q500 180 845 220V260Q500 220 155 260Z"/>',
+                '<path d="M155 740Q500 780 845 740V780Q500 820 155 780Z"/>',
+            ),
+            "accent": (
+                '<path d="M800 225Q823 222 845 220V780Q823 778 800 775Z"/>',
+            ),
+            "label": (
+                '<path d="M220 285Q500 255 780 285V715Q500 745 220 715Z"/>',
+            ),
+        },
+        details=(
+            '<path data-mapping-part="can-rim" d="M175 238Q500 202 825 238"/>',
+            '<path data-mapping-part="wrap-seam" d="M800 265V735"/>',
+        ),
+        mapping_target="slim-can",
+    )
+
+
+def _sports_bottle_skin() -> FlatSkinGeometry:
+    surface = ArtworkSurface(
+        "M150 215H850L810 315V685L850 785H150L190 685V315Z",
         (150, 215, 700, 570),
-    ),
-    "snack-pouch": ArtworkSurface(
-        "M160 200Q140 200 140 220V780Q140 800 160 800H840Q860 800 860 780"
-        "V220Q860 200 840 200Z",
-        (140, 200, 720, 600),
-    ),
-    "takeaway-box": ArtworkSurface(
-        "M160 220Q140 220 140 240V760Q140 780 160 780H840Q860 780 860 760"
-        "V240Q860 220 840 220Z",
-        (140, 220, 720, 560),
-    ),
+    )
+    return FlatSkinGeometry(
+        surface=surface,
+        regions={
+            "body": (f'<path d="{surface.path}"/>',),
+            "trim": (
+                '<path d="M150 215H850L825 278H175Z"/>',
+                '<path d="M175 722H825L850 785H150Z"/>',
+            ),
+            "accent": (
+                '<path d="M780 315H810V685L825 722H793L762 680V320Z"/>',
+            ),
+            "label": (
+                '<path d="M230 330H770V670H230Z"/>',
+            ),
+        },
+        details=(
+            '<path data-mapping-part="bottle-shoulder" d="M175 278L190 315M825 278L810 315"/>',
+            '<path data-mapping-part="wrap-seam" d="M780 325V675"/>',
+        ),
+        mapping_target="sports-bottle",
+    )
+
+
+def _snack_pouch_skin() -> FlatSkinGeometry:
+    surface = ArtworkSurface(
+        "M150 180H850L880 800Q790 840 700 815Q500 855 300 815Q210 840 120 800Z",
+        (120, 180, 760, 675),
+    )
+    return FlatSkinGeometry(
+        surface=surface,
+        regions={
+            "body": (f'<path d="{surface.path}"/>',),
+            "trim": (
+                '<path d="M150 180H850L855 250H145Z"/>',
+                '<path d="M145 760Q220 800 305 780Q500 820 695 780Q780 800 855 760L880 800Q790 840 700 815Q500 855 300 815Q210 840 120 800Z"/>',
+            ),
+            "accent": (
+                '<path d="M145 250L205 775L120 800Z"/>',
+                '<path d="M855 250L795 775L880 800Z"/>',
+            ),
+            "label": (
+                '<path d="M225 285H775L805 720Q735 750 675 735Q500 770 325 735Q265 750 195 720Z"/>',
+            ),
+        },
+        details=(
+            '<path data-mapping-part="pouch-seal" d="M155 215H845"/>',
+            '<path data-mapping-part="pouch-gusset" d="M170 770Q230 800 305 780Q500 820 695 780Q770 800 830 770"/>',
+            '<path data-mapping-part="pouch-side-fold" d="M160 255L205 755M840 255L795 755"/>',
+        ),
+        mapping_target="snack-pouch",
+    )
+
+
+def _takeaway_box_skin() -> FlatSkinGeometry:
+    surface = ArtworkSurface(
+        "M120 300H340V180H760V300H900V700H760V820H340V700H120Z",
+        (120, 180, 780, 640),
+    )
+    return FlatSkinGeometry(
+        surface=surface,
+        regions={
+            "body": (f'<path d="{surface.path}"/>',),
+            "trim": (
+                '<path d="M340 180H760V300H340Z"/>',
+                '<path d="M340 700H760V820H340Z"/>',
+            ),
+            "accent": (
+                '<path d="M120 300H340V700H120Z"/>',
+                '<path d="M760 300H900V700H760Z"/>',
+            ),
+            "label": (
+                '<path d="M365 325H735V485H365Z"/>',
+                '<path d="M365 515H735V675H365Z"/>',
+            ),
+        },
+        details=(
+            '<path data-mapping-part="box-fold" d="M340 300H760M340 700H760M340 300V700M760 300V700"/>',
+            '<path data-mapping-part="box-flap" d="M390 220H710M390 780H710"/>',
+        ),
+        mapping_target="takeaway-box",
+    )
+
+
+FLAT_SKIN_BUILDERS: dict[Archetype, FlatSkinBuilder] = {
+    "slim-can": _slim_can_skin,
+    "sports-bottle": _sports_bottle_skin,
+    "snack-pouch": _snack_pouch_skin,
+    "takeaway-box": _takeaway_box_skin,
 }
 
 
@@ -496,37 +615,12 @@ def artwork_surface_for(archetype: Archetype) -> ArtworkSurface:
     return GEOMETRY_BUILDERS[archetype]().surface
 
 
-def _flat_skin_regions(surface: ArtworkSurface) -> dict[str, tuple[str, ...]]:
-    x, y, width, height = surface.bounds
-    trim_height = height * 0.105
-    accent_width = width * 0.09
-    label_x = x + width * 0.13
-    label_y = y + height * 0.17
-    label_width = width * 0.74
-    label_height = height * 0.66
-    return {
-        "body": (f'<path d="{surface.path}"/>',),
-        "trim": (
-            f'<path d="M{x} {y}H{x + width}V{y + trim_height}H{x}Z"/>',
-            f'<path d="M{x} {y + height - trim_height}H{x + width}V{y + height}H{x}Z"/>',
-        ),
-        "accent": (
-            f'<path d="M{x} {y + trim_height}H{x + accent_width}V{y + height - trim_height}H{x}Z"/>',
-            f'<path d="M{x + width - accent_width} {y + trim_height}H{x + width}V{y + height - trim_height}H{x + width - accent_width}Z"/>',
-        ),
-        "label": (
-            f'<path d="M{label_x} {label_y}H{label_x + label_width}V{label_y + label_height}H{label_x}Z"/>',
-        ),
-    }
-
-
 def _semantic_regions(
     prototype: AuditionPrototype,
     geometry: ArtGeometry,
-    surface: ArtworkSurface,
-    use_flat_skin: bool,
+    flat_skin: FlatSkinGeometry | None,
 ) -> str:
-    available = _flat_skin_regions(surface) if use_flat_skin else geometry.regions
+    available = flat_skin.regions if flat_skin is not None else geometry.regions
     markup: list[str] = []
     for region in prototype.regions:
         fragments = available.get(region.id)
@@ -554,21 +648,16 @@ def _object_layers(geometry: ArtGeometry, regions: str) -> str:
     )
 
 
-def _flat_skin_layers(regions: str, surface: ArtworkSurface) -> str:
-    x, y, width, height = surface.bounds
-    seams = (
-        f'<path d="M{x + width * 0.5} {y + height * 0.04}'
-        f'V{y + height * 0.96}"/>'
-        f'<path d="M{x + width * 0.04} {y + height * 0.5}'
-        f'H{x + width * 0.96}"/>'
-    )
+def _flat_skin_layers(regions: str, flat_skin: FlatSkinGeometry) -> str:
+    details = "".join(flat_skin.details)
     return (
-        f'<g data-product-shell="flat-skin" stroke="{INK}" '
+        f'<g data-product-shell="flat-skin" data-flat-skin-kind="product-specific" '
+        f'data-mapping-target="{escape(flat_skin.mapping_target)}" stroke="{INK}" '
         f'stroke-width="{OUTER_STROKE}" stroke-linecap="round" '
         f'stroke-linejoin="round">{regions}</g>'
         f'<g data-detail-layer="true" fill="none" stroke="{DETAIL_INK}" '
         f'stroke-width="{DETAIL_STROKE}" stroke-linecap="round" '
-        f'stroke-linejoin="round">{seams}</g>'
+        f'stroke-linejoin="round">{details}</g>'
     )
 
 
@@ -598,7 +687,7 @@ def _guide_overlay(view: View, surface: ArtworkSurface) -> str:
     if view == "preview":
         return ""
     visibility = "hidden" if view == "authoring" else "visible"
-    opacity = "" if view == "authoring" else ' opacity="0.42"'
+    opacity = "" if view == "authoring" else ' opacity="0.52"'
     x, y, width, height = surface.bounds
     return (
         f'<g data-guide-overlay="true" visibility="{visibility}"{opacity}>'
@@ -618,17 +707,17 @@ def render_audition_svg(prototype: AuditionPrototype, view: View) -> str:
         raise ValueError(f"unsupported audition view: {view}")
 
     geometry = GEOMETRY_BUILDERS[prototype.archetype]()
-    use_flat_skin = prototype.authoring_mode == "flat-skin" and view != "preview"
-    surface = (
-        _FLAT_SKIN_SURFACES[prototype.archetype]
-        if use_flat_skin
-        else geometry.surface
+    flat_skin = (
+        flat_skin_geometry_for(prototype.archetype)
+        if prototype.authoring_mode == "flat-skin" and view != "preview"
+        else None
     )
+    surface = flat_skin.surface if flat_skin is not None else geometry.surface
     clip_id = f"{prototype.id}-primary-artwork-clip"
-    regions = _semantic_regions(prototype, geometry, surface, use_flat_skin)
+    regions = _semantic_regions(prototype, geometry, flat_skin)
     layers = (
-        _flat_skin_layers(regions, surface)
-        if use_flat_skin
+        _flat_skin_layers(regions, flat_skin)
+        if flat_skin is not None
         else _object_layers(geometry, regions)
     )
     grounding = _grounding_shadow(geometry.product_bounds) if view == "preview" else ""
@@ -650,11 +739,15 @@ __all__ = [
     "ArtworkSurface",
     "DETAIL_INK",
     "DETAIL_STROKE",
+    "FLAT_SKIN_BUILDERS",
+    "FlatSkinBuilder",
+    "FlatSkinGeometry",
     "GEOMETRY_BUILDERS",
     "GUIDE",
     "INK",
     "OUTER_STROKE",
     "PAPER",
     "artwork_surface_for",
+    "flat_skin_geometry_for",
     "render_audition_svg",
 ]

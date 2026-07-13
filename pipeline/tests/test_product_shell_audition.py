@@ -305,6 +305,28 @@ def test_review_selection_uses_high_contrast_exact_surface_outline() -> None:
         assert "stroke-dasharray" not in combined
 
 
+def test_selection_chrome_keeps_three_to_one_contrast_across_shell_palette() -> None:
+    def relative_luminance(hex_colour: str) -> float:
+        channels = [int(hex_colour[index : index + 2], 16) / 255 for index in (1, 3, 5)]
+        linear = [
+            channel / 12.92
+            if channel <= 0.04045
+            else ((channel + 0.055) / 1.055) ** 2.4
+            for channel in channels
+        ]
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+    guide_luminance = relative_luminance(GUIDE)
+    shell_colours = ("#F4F1EA", "#FAF8F3", "#FFFFFF", "#A8B8C4", "#E9C8B8")
+
+    for shell_colour in shell_colours:
+        shell_luminance = relative_luminance(shell_colour)
+        contrast = (max(guide_luminance, shell_luminance) + 0.05) / (
+            min(guide_luminance, shell_luminance) + 0.05
+        )
+        assert contrast >= 3.0, f"{GUIDE} has only {contrast:.2f}:1 against {shell_colour}"
+
+
 def test_artwork_slots_use_prototype_prefixed_exact_clip_paths() -> None:
     for prototype in load_audition_source(MANIFEST_PATH).prototypes:
         root = ET.fromstring(render_audition_svg(prototype, view="preview"))

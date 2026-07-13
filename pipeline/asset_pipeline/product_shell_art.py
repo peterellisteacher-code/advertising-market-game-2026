@@ -13,7 +13,7 @@ from .product_shell_audition import Archetype, AuditionPrototype
 INK = "#34414D"
 DETAIL_INK = "#6A7580"
 PAPER = "#F4F1EA"
-GUIDE = "#6C5CE7"
+GUIDE = "#4C34C9"
 OUTER_STROKE = 6
 DETAIL_STROKE = 3
 

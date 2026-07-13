@@ -1,0 +1,60 @@
+{
+  "schema": "product-shell-code-gate@1",
+  "status": "CODE_PANEL_PARTIAL_PASS",
+  "parameters": {
+    "temperature": 0.1,
+    "seed": 20260713,
+    "maxTokensPerSlot": 32000,
+    "wordLimit": null,
+    "judgeModel": null
+  },
+  "slots": [
+    {
+      "model": "moonshotai/kimi-k2.7-code",
+      "status": "NO_USABLE_RESULT",
+      "initial": "TRUNCATED",
+      "retry": "MCP_TIMEOUT_300_SECONDS"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "status": "COMPLETE_PASS"
+    },
+    {
+      "model": "tencent/hy3-preview",
+      "status": "NO_USABLE_RESULT",
+      "initial": "HTTP_404_DATA_POLICY",
+      "retry": "HTTP_404_DATA_POLICY"
+    },
+    {
+      "model": "deepseek/deepseek-v4-pro",
+      "status": "COMPLETE_PASS"
+    }
+  ],
+  "usableExternalResponses": 2,
+  "attemptedExternalSlots": 4,
+  "localTaskReviews": {
+    "task2": "APPROVED",
+    "task3": "APPROVED",
+    "task4": "APPROVED"
+  },
+  "sharedNonBlockingFindings": [
+    "Validate flat-skin authoring mode against the four packaging archetypes at source load time.",
+    "Validate region IDs against the selected archetype geometry at source load time."
+  ],
+  "evidence": {
+    "raw": {
+      "path": "code-consensus-raw.md",
+      "sha256": "e0147e7f1f8c13eadbe2fe6f7b28d34357d3afe86e530f7e8f4c6c66fb9dc14b"
+    },
+    "synthesis": {
+      "path": "code-consensus-synthesis.md",
+      "sha256": "50d620423be58f34ebca6771f049b17e01d9f4fce8eef2603c7ec8c743c01877"
+    },
+    "sourceFiles": {
+      "pipeline/asset_pipeline/product_shell_art.py": "37673b799656aedd7dcbd724b23c3140948e5607a0e8745a4c9a9c77458ce095",
+      "pipeline/asset_pipeline/product_shell_audition.py": "690c6b45129456fbcec8d3ef17452ccb462a33812463712f80e1878df204d267",
+      "pipeline/tests/test_product_shell_audition.py": "c696305a8fb95e0222b2307c3f7e1f7693ee555594f001f088469e4f8074c347",
+      "catalog/source/product-shell-style-audition-v1/manifest.json": "b4c2f146d7815e119b545243eb59832572870cc16a6978b91f70faf5da17b85d"
+    }
+  }
+}

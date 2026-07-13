@@ -97,6 +97,105 @@ def assert_passive_safe_svg(svg: str) -> None:
     assert re.search(r'url\((?!#[a-z0-9-]+\))', lowered) is None
 
 
+def path_bounds(path_data: str) -> tuple[float, float, float, float]:
+    """Return exact bounds for the trusted absolute M/L/H/V/Q/Z subset."""
+
+    tokens = re.findall(
+        r"[A-Za-z]|[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?",
+        path_data,
+    )
+    index = 0
+    point = (0.0, 0.0)
+    subpath_start = point
+    xs: list[float] = []
+    ys: list[float] = []
+
+    def number() -> float:
+        nonlocal index
+        value = float(tokens[index])
+        index += 1
+        return value
+
+    def include(x: float, y: float) -> None:
+        xs.append(x)
+        ys.append(y)
+
+    while index < len(tokens):
+        command = tokens[index]
+        index += 1
+        if command == "M":
+            point = (number(), number())
+            subpath_start = point
+            include(*point)
+        elif command == "L":
+            point = (number(), number())
+            include(*point)
+        elif command == "H":
+            point = (number(), point[1])
+            include(*point)
+        elif command == "V":
+            point = (point[0], number())
+            include(*point)
+        elif command == "Q":
+            control = (number(), number())
+            end = (number(), number())
+            start = point
+            denominator_x = start[0] - 2 * control[0] + end[0]
+            if denominator_x != 0:
+                position_x = (start[0] - control[0]) / denominator_x
+                if 0.0 < position_x < 1.0:
+                    xs.append(
+                        (1 - position_x) ** 2 * start[0]
+                        + 2 * (1 - position_x) * position_x * control[0]
+                        + position_x**2 * end[0]
+                    )
+            denominator_y = start[1] - 2 * control[1] + end[1]
+            if denominator_y != 0:
+                position_y = (start[1] - control[1]) / denominator_y
+                if 0.0 < position_y < 1.0:
+                    ys.append(
+                        (1 - position_y) ** 2 * start[1]
+                        + 2 * (1 - position_y) * position_y * control[1]
+                        + position_y**2 * end[1]
+                    )
+            point = end
+            include(*point)
+        elif command == "Z":
+            point = subpath_start
+            include(*point)
+        else:
+            raise AssertionError(f"unsupported trusted path command {command!r}")
+    assert xs and ys
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def element_bounds(element: ElementTree.Element) -> tuple[float, float, float, float]:
+    name = element.tag.rsplit("}", 1)[-1]
+    if name == "path":
+        return path_bounds(element.attrib["d"])
+    if name == "ellipse":
+        cx = float(element.attrib["cx"])
+        cy = float(element.attrib["cy"])
+        rx = float(element.attrib["rx"])
+        ry = float(element.attrib["ry"])
+        return cx - rx, cy - ry, cx + rx, cy + ry
+    if name == "circle":
+        cx = float(element.attrib["cx"])
+        cy = float(element.attrib["cy"])
+        radius = float(element.attrib["r"])
+        return cx - radius, cy - radius, cx + radius, cy + radius
+    if name == "rect":
+        x = float(element.attrib["x"])
+        y = float(element.attrib["y"])
+        return (
+            x,
+            y,
+            x + float(element.attrib["width"]),
+            y + float(element.attrib["height"]),
+        )
+    raise AssertionError(f"unsupported trusted component element {name!r}")
+
+
 def test_manifest_defines_the_fixed_three_family_twelve_body_contract():
     module = builder_module()
     source = module.load_product_builder_source(SOURCE_PATH)
@@ -363,6 +462,74 @@ def test_trusted_geometry_registries_cover_every_manifest_identity():
         module.COMPONENT_GEOMETRIES[part.geometry_id].family_id == part.family_id
         for part in source.parts
     )
+
+
+def test_all_artwork_paths_are_geometrically_contained_by_manifest_bounds():
+    module = builder_module()
+    source = parse_source()
+    violations: dict[str, tuple[tuple[float, ...], tuple[float, ...]]] = {}
+
+    for body in source.bodies:
+        actual_pixels = path_bounds(
+            module.BODY_GEOMETRIES[body.geometry_id].artwork_path
+        )
+        actual = tuple(value / 1000 for value in actual_pixels)
+        bounds = body.artwork_bounds
+        declared = (
+            bounds.x,
+            bounds.y,
+            bounds.x + bounds.width,
+            bounds.y + bounds.height,
+        )
+        if not (
+            declared[0] <= actual[0]
+            and declared[1] <= actual[1]
+            and actual[2] <= declared[2]
+            and actual[3] <= declared[3]
+        ):
+            violations[body.id] = (actual, declared)
+
+    assert violations == {}
+
+
+def test_all_component_drawings_including_stroke_fit_declared_normalized_bounds():
+    module = builder_module()
+    source = parse_source()
+    violations: dict[str, tuple[tuple[float, ...], tuple[float, ...]]] = {}
+
+    for part in source.parts:
+        root = svg_root(module.render_component_svg(source, part.id))
+        declared_values = tuple(
+            float(value) for value in root.attrib["data-bounds"].split()
+        )
+        declared = (
+            declared_values[0],
+            declared_values[1],
+            declared_values[0] + declared_values[2],
+            declared_values[1] + declared_values[3],
+        )
+        group = next(
+            child
+            for child in root
+            if child.attrib.get("data-layer") == "component-structure"
+        )
+        stroke_radius = float(group.attrib["stroke-width"]) / 2
+        primitive_bounds = [element_bounds(element) for element in group]
+        actual = (
+            min(bounds[0] for bounds in primitive_bounds) - stroke_radius,
+            min(bounds[1] for bounds in primitive_bounds) - stroke_radius,
+            max(bounds[2] for bounds in primitive_bounds) + stroke_radius,
+            max(bounds[3] for bounds in primitive_bounds) + stroke_radius,
+        )
+        if not (
+            declared[0] <= actual[0]
+            and declared[1] <= actual[1]
+            and actual[2] <= declared[2]
+            and actual[3] <= declared[3]
+        ):
+            violations[part.id] = (actual, declared)
+
+    assert violations == {}
 
 
 def test_authoring_svgs_are_deterministic_safe_and_follow_the_required_layer_order():

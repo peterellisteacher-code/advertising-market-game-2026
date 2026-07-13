@@ -3,7 +3,9 @@
 .creator { display: grid; height: 100%; grid-template: auto auto 1fr / minmax(250px, 20rem) 1fr minmax(240px, 19rem); }
 .creator__topbar, [role="tablist"] { grid-column: 1 / -1; display: flex; gap: .5rem; align-items: center; }
 .creator__canvas { overflow: auto; display: grid; place-items: center; background: #d7d2c7; }
-.creator__canvas canvas { max-width: 100%; height: auto; background: white; box-shadow: 0 8px 30px rgb(0 0 0 / .18); }
+.creator__canvas canvas { max-width: 100%; height: auto; }
+.creator__canvas canvas.lower-canvas { background: white; box-shadow: 0 8px 30px rgb(0 0 0 / .18); }
+.creator__canvas canvas.upper-canvas { background: transparent; }
 .creator__library { min-height: 0; padding: .75rem; display: grid; grid-template-rows: auto auto auto auto minmax(0, 1fr); gap: .6rem; overflow: hidden; }
 .creator__product-builder { min-height: 0; max-height: min(58vh, 35rem); padding: .65rem; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: .45rem; overflow: hidden; border: 1px solid #b8ad9c; border-radius: .55rem; background: #fffaf0; }
 .creator__product-builder h2 { margin: 0; font-size: 1.05rem; }

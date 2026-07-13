@@ -177,12 +177,174 @@ const PART_IDENTITIES = Object.freeze({
   })
 } satisfies Record<string, Readonly<PartIdentity>>);
 
-const PALETTE_IDS = new Set([
-  "alpine-mint", "apricot-ink", "berry-cream", "cobalt-citrus",
-  "coral-navy", "dusk-lilac", "forest-sun", "glacier-blue",
-  "grape-lime", "ink-rose", "mango-aqua", "olive-clay", "plum-gold",
-  "scarlet-ice", "sky-tangerine", "teal-raspberry"
+const CANONICAL_PALETTE_COLOURS = Object.freeze({
+  "alpine-mint": Object.freeze({
+    accent: "#43B89C", body: "#DFF3E8", label: "#FFFDF5", trim: "#163A3A"
+  }),
+  "apricot-ink": Object.freeze({
+    accent: "#E85D50", body: "#F6B37F", label: "#FFF7EA", trim: "#20243A"
+  }),
+  "berry-cream": Object.freeze({
+    accent: "#F2A6C5", body: "#8E3F70", label: "#FFF3E4", trim: "#3A1730"
+  }),
+  "cobalt-citrus": Object.freeze({
+    accent: "#F5D84B", body: "#2456C4", label: "#FFFFFF", trim: "#102455"
+  }),
+  "coral-navy": Object.freeze({
+    accent: "#61C0BF", body: "#F07167", label: "#FFF8EF", trim: "#162A46"
+  }),
+  "dusk-lilac": Object.freeze({
+    accent: "#E8B4BC", body: "#A999D5", label: "#F9F5FF", trim: "#332D52"
+  }),
+  "forest-sun": Object.freeze({
+    accent: "#F4C95D", body: "#246B55", label: "#FFF9E8", trim: "#12372C"
+  }),
+  "glacier-blue": Object.freeze({
+    accent: "#4F9EC4", body: "#BDE7F1", label: "#FFFFFF", trim: "#234B66"
+  }),
+  "grape-lime": Object.freeze({
+    accent: "#B8DE5F", body: "#7046A6", label: "#FCFFF2", trim: "#2B1745"
+  }),
+  "ink-rose": Object.freeze({
+    accent: "#E58CA8", body: "#22283B", label: "#FFF7FA", trim: "#0E1220"
+  }),
+  "mango-aqua": Object.freeze({
+    accent: "#45C4B0", body: "#F5A742", label: "#FFFBEF", trim: "#153B42"
+  }),
+  "olive-clay": Object.freeze({
+    accent: "#C9785A", body: "#7C8B4B", label: "#FAF3E3", trim: "#343B25"
+  }),
+  "plum-gold": Object.freeze({
+    accent: "#D7AD4A", body: "#633A61", label: "#FFF8E7", trim: "#2A182A"
+  }),
+  "scarlet-ice": Object.freeze({
+    accent: "#AEE5E8", body: "#C93F4A", label: "#FFFFFF", trim: "#4A1720"
+  }),
+  "sky-tangerine": Object.freeze({
+    accent: "#F28C45", body: "#69B7E6", label: "#FFF9F0", trim: "#193A5A"
+  }),
+  "teal-raspberry": Object.freeze({
+    accent: "#D94D7B", body: "#208B8B", label: "#FFF6FA", trim: "#123E46"
+  })
+});
+
+const REVIEWED_BODY_SHA256 = Object.freeze({
+  "bags-backpack": "bb818a5007f839201ae327103d67a499f72b5b89cdc60ad3e62a7d1d36284a10",
+  "bags-carry-bag": "f0f09dbaac4f3e96134a90a162d608b426c9a56b9db23877d10a1e2b3f1fc765",
+  "bags-tote": "579d4937683660be415bd5e2add2f1f12df4f236c2c48fb37940fc5e6d15f6fa",
+  "bags-weekender": "71503c7ca0a23c6bb46564189179afaa4fc7f19c4b907daf338c9d485e1fe8b7",
+  "drinkware-classic-can": "ac2200e4c0b7d5c05764c918715da99436090abdc2db565a8d48ce229349b756",
+  "drinkware-slim-can": "0baf4ff6bf066f9f5ee0946f9d32719962392bc4679c9ecc0fc2c1da636c89e0",
+  "drinkware-sports-bottle": "6f34aba6ac6869261600919d7b63c166262f100433d1475936e5f1052b9bc497",
+  "drinkware-takeaway-cup": "ee6ac908fa0c904d86afb26bb3c7147cc596389e594b36ce3c56bdf27cb63c2d",
+  "food-packaging-burger-box": "c7bc2877377781b54f15f834d8de20e2a2270d3afe14bc011177aa29e749ff54",
+  "food-packaging-meal-box": "d5f3bbd4799767acd73195d8cdb1d3a954da55acde49c97ec9866142dbe61f77",
+  "food-packaging-noodle-tub": "0df1f5be52f20baef462e82ec0d6012dff6553d8ae9735f347b5fb8fdb79e6b3",
+  "food-packaging-snack-pouch": "cf3939e24cecf1e6966d179154ab4a89a44337139868a52a829f3e1001cbd1bf"
+} satisfies Record<keyof typeof BODY_IDENTITIES, string>);
+
+const REVIEWED_COMPONENT_SHA256 = Object.freeze({
+  "bags-carry-cutout": "86c96c11b4db985c3617f617b1fbfb3bd6127acd6df20a2356b5ff6217cfa16d",
+  "bags-carry-long-straps": "f3793edf54b7838e1296afb7050ea85fe9ef46101e12d21250bdbbe391a45c20",
+  "bags-carry-loop": "dcbb1336f77e04dafc8a9d2ee6f9f672a1c838741f78dfa67bf966a1adffc09c",
+  "bags-carry-short-straps": "4ac88228d78e09fd62400d06a5296116f887b2d3f5f9f7b8af1d034c46853618",
+  "drinkware-top-flat": "c8518a9ecbd5caa3682eb50eeb7f7a376ec7c1999c8863e92e85bf5baf0c60c6",
+  "drinkware-top-ring": "3ce52aa55b83fd7be2975b926231aa3707f3406d64dfa048f583b9368e96c235",
+  "drinkware-top-spout": "62691b273bf2bc6b96ec20eb87b3b1964ee623318984c2b9566b32e65b825ed3",
+  "drinkware-top-straw": "b46dfe9426b2861338b677683af541dab6f0390d45dcc77924ebdf9c4aca5328",
+  "food-packaging-closure-folded": "28d7967718daf7790c8de5c871c93f6ef6783a33199fedcd258f7817a5df2541",
+  "food-packaging-closure-sleeved": "4bb13aa8ec1971a7a6fb5c0f888b74a8f1e51e1eaab5f6e9ccf6cc1e46de1678",
+  "food-packaging-closure-tabbed": "89642ecd439dd3b9377cb96d21992b6eef7ccae207bba58dde0f79fe753d37a5",
+  "food-packaging-closure-zip": "f16442288380595e6012898b29b11af851f2e1adb66fc098d675fedd6ce17bfd"
+} satisfies Record<keyof typeof PART_IDENTITIES, string>);
+
+const SHA256_ROUND_CONSTANTS = new Uint32Array([
+  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
+  0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+  0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+  0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+  0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
+  0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+  0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+  0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+  0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+  0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
+  0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
+  0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+  0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+  0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 ]);
+
+function rotateRight(value: number, amount: number): number {
+  return (value >>> amount) | (value << (32 - amount));
+}
+
+function sha256Utf8(value: string): string {
+  const source = new TextEncoder().encode(value);
+  const paddedLength = Math.ceil((source.length + 9) / 64) * 64;
+  const padded = new Uint8Array(paddedLength);
+  padded.set(source);
+  padded[source.length] = 0x80;
+  const bitLength = source.length * 8;
+  const paddedView = new DataView(padded.buffer);
+  paddedView.setUint32(paddedLength - 8, Math.floor(bitLength / 0x100000000), false);
+  paddedView.setUint32(paddedLength - 4, bitLength >>> 0, false);
+
+  const state = new Uint32Array([
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+  ]);
+  const schedule = new Uint32Array(64);
+  for (let offset = 0; offset < padded.length; offset += 64) {
+    for (let index = 0; index < 16; index += 1) {
+      schedule[index] = paddedView.getUint32(offset + index * 4, false);
+    }
+    for (let index = 16; index < 64; index += 1) {
+      const before15 = schedule[index - 15]!;
+      const before2 = schedule[index - 2]!;
+      const small0 = rotateRight(before15, 7) ^ rotateRight(before15, 18) ^ (before15 >>> 3);
+      const small1 = rotateRight(before2, 17) ^ rotateRight(before2, 19) ^ (before2 >>> 10);
+      schedule[index] = (schedule[index - 16]! + small0 + schedule[index - 7]! + small1) >>> 0;
+    }
+    let a = state[0]!;
+    let b = state[1]!;
+    let c = state[2]!;
+    let d = state[3]!;
+    let e = state[4]!;
+    let f = state[5]!;
+    let g = state[6]!;
+    let h = state[7]!;
+    for (let index = 0; index < 64; index += 1) {
+      const large1 = rotateRight(e, 6) ^ rotateRight(e, 11) ^ rotateRight(e, 25);
+      const choose = (e & f) ^ (~e & g);
+      const temporary1 = (h + large1 + choose + SHA256_ROUND_CONSTANTS[index]! +
+        schedule[index]!) >>> 0;
+      const large0 = rotateRight(a, 2) ^ rotateRight(a, 13) ^ rotateRight(a, 22);
+      const majority = (a & b) ^ (a & c) ^ (b & c);
+      const temporary2 = (large0 + majority) >>> 0;
+      h = g;
+      g = f;
+      f = e;
+      e = (d + temporary1) >>> 0;
+      d = c;
+      c = b;
+      b = a;
+      a = (temporary1 + temporary2) >>> 0;
+    }
+    state[0] = (state[0]! + a) >>> 0;
+    state[1] = (state[1]! + b) >>> 0;
+    state[2] = (state[2]! + c) >>> 0;
+    state[3] = (state[3]! + d) >>> 0;
+    state[4] = (state[4]! + e) >>> 0;
+    state[5] = (state[5]! + f) >>> 0;
+    state[6] = (state[6]! + g) >>> 0;
+    state[7] = (state[7]! + h) >>> 0;
+  }
+  return Array.from(state, (word) => word.toString(16).padStart(8, "0")).join("");
+}
+
 const VARIANT_KEYS = [
   "artworkBounds", "authoringUrl", "bodyId", "bodyTitle", "colours",
   "componentAnchor", "componentSlotId", "componentUrl", "familyId", "id",
@@ -272,16 +434,25 @@ function requireImmutableVariant(variant: ResolvedProductVariant): {
     variant.artworkBounds.width, variant.artworkBounds.height
   ];
   const colours = Object.values(variant.colours);
+  const canonicalPalette = CANONICAL_PALETTE_COLOURS[
+    variant.paletteId as keyof typeof CANONICAL_PALETTE_COLOURS
+  ];
   if (variant.schema !== "product-builder-variant@1" || variant.packId !== PACK_ID ||
     variant.id !== canonicalId || !body || !part ||
     body.familyId !== variant.familyId || part.familyId !== variant.familyId ||
     body.slotId !== variant.componentSlotId || part.slotId !== variant.componentSlotId ||
     !exactStrings(anchor, body.anchor) || !exactStrings(artwork, body.artwork) ||
-    !PALETTE_IDS.has(variant.paletteId) ||
+    !canonicalPalette ||
     !(MATERIAL_PRESET_IDS as readonly string[]).includes(variant.materialId) ||
     colours.length !== 4 || !colours.every((colour) => HEX_COLOUR.test(colour)) ||
     new Set(colours).size !== 4) {
     throw new Error("Product variant identity is incompatible with the trusted pilot pack");
+  }
+  if (variant.colours.accent !== canonicalPalette.accent ||
+    variant.colours.body !== canonicalPalette.body ||
+    variant.colours.label !== canonicalPalette.label ||
+    variant.colours.trim !== canonicalPalette.trim) {
+    throw new Error("Product variant must use its canonical palette colour tuple");
   }
   const basePath = `/catalog/generated/${PACK_ID}`;
   const authoring = assertTrustedAssetUrl(
@@ -300,6 +471,23 @@ function requireImmutableVariant(variant: ResolvedProductVariant): {
     throw new Error("Product variant assets must share one trusted local pack origin");
   }
   return { body, part };
+}
+
+function requireReviewedSvgHashes(
+  variant: ResolvedProductVariant,
+  authoringSvg: string,
+  componentSvg: string
+): void {
+  const bodyHash = REVIEWED_BODY_SHA256[
+    variant.bodyId as keyof typeof REVIEWED_BODY_SHA256
+  ];
+  const componentHash = REVIEWED_COMPONENT_SHA256[
+    variant.partId as keyof typeof REVIEWED_COMPONENT_SHA256
+  ];
+  if (!bodyHash || !componentHash || sha256Utf8(authoringSvg) !== bodyHash ||
+    sha256Utf8(componentSvg) !== componentHash) {
+    throw new Error("Product SVG bytes do not match the reviewed SHA-256 identity");
+  }
 }
 
 function parseSafeSvg(value: string, label: string): XMLDocument {
@@ -597,6 +785,7 @@ export function composeProductVariantSvg(
   const componentDocument = parseSafeSvg(input.componentSvg, "Product component");
   requireBodyIdentity(bodyDocument, input.variant, identities.body);
   requireComponentIdentity(componentDocument, input.variant, identities.part);
+  requireReviewedSvgHashes(input.variant, input.authoringSvg, input.componentSvg);
 
   const namespace = [
     "pbv", input.variant.packId, input.variant.bodyId, input.variant.partId,

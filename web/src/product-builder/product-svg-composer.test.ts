@@ -57,6 +57,13 @@ function documentFor(svg: string): XMLDocument {
   return document;
 }
 
+function deepFreeze<T>(value: T, seen = new WeakSet<object>()): T {
+  if (value === null || typeof value !== "object" || seen.has(value)) return value;
+  seen.add(value);
+  for (const nested of Object.values(value)) deepFreeze(nested, seen);
+  return Object.freeze(value);
+}
+
 function regionColours(document: XMLDocument): ProductBuilderColours {
   const colour = (region: keyof ProductBuilderColours): string => {
     const value = document.querySelector(`[data-region="${region}"]`)?.getAttribute("fill");
@@ -72,6 +79,68 @@ function regionColours(document: XMLDocument): ProductBuilderColours {
 }
 
 describe("composeProductVariantSvg", () => {
+  it("accepts every reviewed body and component byte identity", () => {
+    for (const body of catalogue.bodies) {
+      for (const partId of body.compatiblePartIds) {
+        const resolved = variant(body.id, partId);
+        expect(() => composeProductVariantSvg({
+          variant: resolved,
+          ...svgFor(resolved),
+          mode: "clean"
+        })).not.toThrow();
+      }
+    }
+  });
+
+  it("rejects canonical palette IDs carrying substituted colour tuples", () => {
+    for (const palette of catalogue.palettes) {
+      const resolved = resolver.resolveVariant({
+        bodyId: "drinkware-classic-can",
+        partId: "drinkware-top-ring",
+        paletteId: palette.id,
+        materialId: "matte-plastic"
+      });
+      if (!resolved) throw new Error(`Could not resolve palette ${palette.id}`);
+      expect(() => composeProductVariantSvg({
+        variant: resolved,
+        ...svgFor(resolved)
+      })).not.toThrow();
+      const forged = deepFreeze({
+        ...resolved,
+        colours: {
+          ...resolved.colours,
+          accent: resolved.colours.body,
+          body: resolved.colours.accent
+        }
+      }) as ResolvedProductVariant;
+
+      expect(() => composeProductVariantSvg({
+        variant: forged,
+        ...svgFor(resolved)
+      })).toThrow("canonical palette");
+    }
+  });
+
+  it("rejects altered body or component geometry with unchanged root metadata", () => {
+    const resolved = variant("drinkware-classic-can", "drinkware-top-ring");
+    const sources = svgFor(resolved);
+    const alteredBody = sources.authoringSvg.replace("M360 165", "M361 165");
+    const alteredComponent = sources.componentSvg.replace('rx=".4"', 'rx=".41"');
+    expect(alteredBody).not.toBe(sources.authoringSvg);
+    expect(alteredComponent).not.toBe(sources.componentSvg);
+
+    expect(() => composeProductVariantSvg({
+      variant: resolved,
+      authoringSvg: alteredBody,
+      componentSvg: sources.componentSvg
+    })).toThrow("reviewed SHA-256");
+    expect(() => composeProductVariantSvg({
+      variant: resolved,
+      authoringSvg: sources.authoringSvg,
+      componentSvg: alteredComponent
+    })).toThrow("reviewed SHA-256");
+  });
+
   it.each([
     {
       bodyId: "bags-backpack",

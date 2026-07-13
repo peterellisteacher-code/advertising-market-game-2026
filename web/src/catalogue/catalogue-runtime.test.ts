@@ -453,6 +453,66 @@ describe("CataloguePlacementQueue", () => {
     }]);
   });
 
+  it("keeps the committed product reconciled when its placement notification throws", async () => {
+    const packRoot = join("catalog", "generated", "product-builder-pilot-v1");
+    const catalogue = parseProductBuilderCatalogue(
+      JSON.parse(readFileSync(join(packRoot, "catalogue.json"), "utf8")),
+      `${window.location.origin}/catalog/generated/product-builder-pilot-v1/catalogue.json`
+    );
+    if (!catalogue) throw new Error("Reviewed product builder fixture did not parse");
+    const variant = createVirtualProductVariantResolver(catalogue).resolveVariant({
+      bodyId: "drinkware-classic-can",
+      partId: "drinkware-top-spout",
+      paletteId: "cobalt-citrus",
+      materialId: "fabric"
+    });
+    if (!variant) throw new Error("Expected product look fixture");
+    const canvas = new PlacementCanvas();
+    let document: CampaignDocumentV1 = createBlankCampaignDocument({
+      documentId: "notification-document",
+      sessionId: "notification-session",
+      mode: "offline"
+    });
+    const onError = vi.fn();
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit: (next) => { document = next; },
+      createObjectId: () => "notification-object",
+      fetch: vi.fn(async (input) => {
+        const relative = new URL(String(input)).pathname
+          .split("/product-builder-pilot-v1/")[1];
+        if (!relative) return new Response("missing", { status: 404 });
+        return new Response(readFileSync(join(packRoot, relative), "utf8"), {
+          headers: { "content-type": "image/svg+xml" }
+        });
+      }),
+      onProductVariantPlaced: () => { throw new Error("Inspector notification failed"); },
+      onError
+    });
+
+    queue.enqueueProductVariant(variant);
+    await expect(queue.flush()).resolves.toBeUndefined();
+
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({
+      message: "Inspector notification failed"
+    }));
+    expect(canvas.removed).toEqual([]);
+    expect(canvas.objects).toContainEqual(expect.objectContaining({
+      objectId: "notification-object",
+      variantId: variant.id
+    }));
+    expect(document.fabricState.objects).toContainEqual(expect.objectContaining({
+      objectId: "notification-object",
+      variantId: variant.id
+    }));
+    expect(document.assetReferences).toContainEqual(expect.objectContaining({
+      kind: "product-builder-variant",
+      objectId: "notification-object",
+      variantId: variant.id
+    }));
+  });
+
   it("does not mutate the canvas when a product look source is not SVG", async () => {
     const packRoot = join("catalog", "generated", "product-builder-pilot-v1");
     const catalogue = parseProductBuilderCatalogue(

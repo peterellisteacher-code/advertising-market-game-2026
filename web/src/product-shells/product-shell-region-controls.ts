@@ -49,7 +49,7 @@ export class ProductShellRegionControls {
 
   clear(): void {
     const message = document.createElement("p");
-    message.textContent = "Choose a product shell to customise its colours.";
+    message.textContent = "Choose or make a product to see its details.";
     this.host.replaceChildren(message);
   }
 }

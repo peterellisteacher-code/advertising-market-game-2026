@@ -534,7 +534,6 @@ export class CataloguePlacementQueue {
         ]
       });
       this.host.commit(next);
-      this.host.onProductVariantPlaced?.(objectId, product);
     } catch (error) {
       if (attemptedAdd) {
         try {
@@ -544,6 +543,11 @@ export class CataloguePlacementQueue {
         }
       }
       throw error;
+    }
+    try {
+      this.host.onProductVariantPlaced?.(objectId, product);
+    } catch (error) {
+      this.host.onError?.(errorFrom(error));
     }
   }
 }

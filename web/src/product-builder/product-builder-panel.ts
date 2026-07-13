@@ -12,6 +12,10 @@ import type {
 
 type BuilderStep = "shape" | "part" | "colours" | "finish" | "art";
 type ArtworkMode = "blank" | "base";
+type DrawFocus =
+  | { kind: "step"; step: BuilderStep }
+  | { kind: "first-choice" }
+  | { kind: "choice"; value: ArtworkMode };
 
 const STEPS: ReadonlyArray<{ id: BuilderStep; label: string }> = [
   { id: "shape", label: "Shape" },
@@ -83,7 +87,7 @@ export class ProductBuilderPanel {
     this.#draw();
   }
 
-  #draw(): void {
+  #draw(focus?: DrawFocus): void {
     const root = document.createElement("div");
     root.className = "product-maker";
     if (this.#partId) root.dataset.selectedPartId = this.#partId;
@@ -102,7 +106,7 @@ export class ProductBuilderPanel {
       control.disabled = !this.#available || !this.#stepReady(step.id);
       control.addEventListener("click", () => {
         this.#active = step.id;
-        this.#draw();
+        this.#draw({ kind: "step", step: step.id });
       });
       steps.append(control);
     }
@@ -135,6 +139,17 @@ export class ProductBuilderPanel {
 
     root.append(prompt, steps, options, status, add);
     this.host.replaceChildren(root);
+    if (!focus) return;
+    const target = focus.kind === "step"
+      ? root.querySelector<HTMLButtonElement>(`[data-builder-step="${focus.step}"]`)
+      : focus.kind === "choice"
+        ? root.querySelector<HTMLInputElement>(
+          `.product-maker__options input[value="${focus.value}"]`
+        )
+        : root.querySelector<HTMLInputElement>(
+          ".product-maker__options input:not(:disabled)"
+        );
+    target?.focus();
   }
 
   #stepReady(step: BuilderStep): boolean {
@@ -170,7 +185,7 @@ export class ProductBuilderPanel {
         () => null, (finish) => {
           this.#materialId = finish.id;
           this.#active = "art";
-          this.#draw();
+          this.#draw({ kind: "first-choice" });
         });
       return;
     }
@@ -244,7 +259,7 @@ export class ProductBuilderPanel {
       input.checked = this.#artworkMode === value;
       input.addEventListener("click", () => {
         this.#artworkMode = value;
-        this.#draw();
+        this.#draw({ kind: "choice", value });
       });
       const title = document.createElement("span");
       title.textContent = labelText;
@@ -275,7 +290,7 @@ export class ProductBuilderPanel {
     this.#materialId = null;
     this.#artworkMode = "blank";
     this.#active = "part";
-    this.#draw();
+    this.#draw({ kind: "first-choice" });
   }
 
   #choosePart(part: ProductBuilderPart): void {
@@ -284,7 +299,7 @@ export class ProductBuilderPanel {
     this.#materialId = null;
     this.#artworkMode = "blank";
     this.#active = "colours";
-    this.#draw();
+    this.#draw({ kind: "first-choice" });
   }
 
   #choosePalette(palette: ProductBuilderPalette): void {
@@ -293,7 +308,7 @@ export class ProductBuilderPanel {
     this.#artworkMode = "blank";
     this.#frontColour = palette.colours.label;
     this.#active = "finish";
-    this.#draw();
+    this.#draw({ kind: "first-choice" });
   }
 
   #filters(): Record<string, string> {

@@ -24,6 +24,47 @@ function choose(host: HTMLElement, name: string): void {
 }
 
 describe("ProductBuilderPanel", () => {
+  it("moves focus to the first choice after each automatic step", () => {
+    const host = document.createElement("div");
+    document.body.replaceChildren(host);
+    const catalogue = reviewedCatalogue();
+    const panel = new ProductBuilderPanel(host, vi.fn());
+    panel.render(catalogue, createVirtualProductVariantResolver(catalogue));
+
+    for (const [current, next] of [
+      ["Classic Can", "Flat Top"],
+      ["Flat Top", "Alpine Mint"],
+      ["Alpine Mint", "Brushed Metal"],
+      ["Brushed Metal", "Keep it blank"]
+    ] as const) {
+      const choice = getByRole<HTMLInputElement>(host, "radio", { name: current });
+      choice.focus();
+      choice.click();
+      expect(document.activeElement).toBe(
+        getByRole<HTMLInputElement>(host, "radio", { name: next })
+      );
+    }
+  });
+
+  it("keeps keyboard focus on a manually selected step button", () => {
+    const host = document.createElement("div");
+    document.body.replaceChildren(host);
+    const catalogue = reviewedCatalogue();
+    const panel = new ProductBuilderPanel(host, vi.fn());
+    panel.render(catalogue, createVirtualProductVariantResolver(catalogue));
+    getByRole<HTMLInputElement>(host, "radio", { name: "Classic Can" }).click();
+
+    const shapeStep = getByRole<HTMLButtonElement>(host, "button", { name: "Shape" });
+    shapeStep.focus();
+    fireEvent.keyDown(shapeStep, { key: "Enter", code: "Enter" });
+    fireEvent.keyUp(shapeStep, { key: "Enter", code: "Enter" });
+    shapeStep.click();
+
+    const renderedShapeStep = getByRole<HTMLButtonElement>(host, "button", { name: "Shape" });
+    expect(document.activeElement).toBe(renderedShapeStep);
+    expect(renderedShapeStep.getAttribute("aria-expanded")).toBe("true");
+  });
+
   it("guides a pair through visual choices without materialising every possible look", () => {
     const host = document.createElement("div");
     const onPlace = vi.fn();

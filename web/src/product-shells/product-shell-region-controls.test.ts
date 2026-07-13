@@ -3,6 +3,16 @@ import { describe, expect, it, vi } from "vitest";
 import { ProductShellRegionControls } from "./product-shell-region-controls";
 
 describe("ProductShellRegionControls", () => {
+  it("uses neutral guidance before a product is selected", () => {
+    const host = document.createElement("aside");
+    const controls = new ProductShellRegionControls(host, vi.fn());
+
+    controls.clear();
+
+    expect(host.textContent).toBe("Choose or make a product to see its details.");
+    expect(host.textContent).not.toMatch(/product shell/i);
+  });
+
   it("uses live shell colours and emits named-region changes", () => {
     const host = document.createElement("aside");
     const onChange = vi.fn();

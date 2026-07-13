@@ -4,7 +4,9 @@ import copy
 import importlib
 import json
 from pathlib import Path
+import re
 from typing import Any
+from xml.etree import ElementTree
 
 import pytest
 from pydantic import ValidationError
@@ -70,6 +72,29 @@ def reverse_mapping_keys(value: Any) -> Any:
     if isinstance(value, list):
         return [reverse_mapping_keys(item) for item in value]
     return value
+
+
+def svg_root(svg: str) -> ElementTree.Element:
+    return ElementTree.fromstring(svg)
+
+
+def assert_passive_safe_svg(svg: str) -> None:
+    lowered = svg.casefold().replace('xmlns="http://www.w3.org/2000/svg"', "")
+    for forbidden in (
+        "<script",
+        "<image",
+        "<text",
+        "<foreignobject",
+        "javascript:",
+        "data:",
+        "http://",
+        "https://",
+        "xlink:href",
+        " logo",
+        " price",
+    ):
+        assert forbidden not in lowered
+    assert re.search(r'url\((?!#[a-z0-9-]+\))', lowered) is None
 
 
 def test_manifest_defines_the_fixed_three_family_twelve_body_contract():
@@ -318,3 +343,279 @@ def test_canonical_source_json_is_stable_compact_utf8_with_one_final_lf():
     assert b"\r" not in first_bytes
     assert b": " not in first_bytes and b", " not in first_bytes
     assert json.loads(first_bytes) == json.loads(second_bytes)
+
+
+def test_trusted_geometry_registries_cover_every_manifest_identity():
+    module = builder_module()
+    source = parse_source()
+
+    assert set(module.BODY_GEOMETRIES) == {
+        body.geometry_id for body in source.bodies
+    }
+    assert set(module.COMPONENT_GEOMETRIES) == {
+        part.geometry_id for part in source.parts
+    }
+    assert all(
+        module.BODY_GEOMETRIES[body.geometry_id].family_id == body.family_id
+        for body in source.bodies
+    )
+    assert all(
+        module.COMPONENT_GEOMETRIES[part.geometry_id].family_id == part.family_id
+        for part in source.parts
+    )
+
+
+def test_authoring_svgs_are_deterministic_safe_and_follow_the_required_layer_order():
+    module = builder_module()
+    source = parse_source()
+    default_palette = source.palettes[0]
+    default_material = source.materials[0]
+
+    for body in source.bodies:
+        first = module.render_body_authoring_svg(source, body.id)
+        second = module.render_body_authoring_svg(source, body.id)
+        assert first == second
+        assert first.endswith("\n") and not first.endswith("\n\n")
+        assert_passive_safe_svg(first)
+        root = svg_root(first)
+        assert root.attrib["data-body-id"] == body.id
+        assert root.attrib["data-family-id"] == body.family_id
+        assert root.attrib["data-geometry-id"] == body.geometry_id
+        assert root.attrib["data-palette-id"] == default_palette.id
+        assert root.attrib["data-material-id"] == default_material.id
+        assert root.attrib["data-component-slot-id"] == body.component_slot_id
+        assert root.attrib["data-artwork-bounds"] == " ".join(
+            f"{value:g}"
+            for value in (
+                body.artwork_bounds.x,
+                body.artwork_bounds.y,
+                body.artwork_bounds.width,
+                body.artwork_bounds.height,
+            )
+        )
+        layers = [
+            child.attrib["data-layer"]
+            for child in root
+            if "data-layer" in child.attrib
+        ]
+        assert layers == [
+            "base-shell",
+            "artwork-slot",
+            "tone-detail",
+            "editor-guides",
+        ]
+        artwork = next(
+            child for child in root if child.attrib.get("data-layer") == "artwork-slot"
+        )
+        assert artwork.attrib["data-artwork-slot"] == "primary"
+        assert artwork.attrib["clip-path"].startswith("url(#")
+        guides = next(
+            child for child in root if child.attrib.get("data-layer") == "editor-guides"
+        )
+        assert guides.attrib == {
+            "data-layer": "editor-guides",
+            "data-editor-only": "true",
+            "data-export": "false",
+        }
+
+
+def test_preview_svgs_keep_structure_above_artwork_and_omit_editor_guides():
+    module = builder_module()
+    source = parse_source()
+
+    for body in source.bodies:
+        svg = module.render_body_preview_svg(source, body.id)
+        assert_passive_safe_svg(svg)
+        root = svg_root(svg)
+        assert root.attrib["data-view"] == "preview"
+        layers = [
+            child.attrib["data-layer"]
+            for child in root
+            if "data-layer" in child.attrib
+        ]
+        assert layers == [
+            "preview-grounding",
+            "base-shell",
+            "artwork-slot",
+            "tone-detail",
+        ]
+        assert "data-editor-only" not in svg
+        assert "editor-guides" not in svg
+        assert layers.index("artwork-slot") < layers.index("tone-detail")
+
+
+def test_component_fragments_declare_identity_slot_and_normalized_bounds():
+    module = builder_module()
+    source = parse_source()
+
+    for part in source.parts:
+        svg = module.render_component_svg(source, part.id)
+        assert svg == module.render_component_svg(source, part.id)
+        assert_passive_safe_svg(svg)
+        root = svg_root(svg)
+        assert root.attrib["viewBox"] == "0 0 1 1"
+        assert root.attrib["data-part-id"] == part.id
+        assert root.attrib["data-family-id"] == part.family_id
+        assert root.attrib["data-slot-id"] == part.slot_id
+        assert root.attrib["data-geometry-id"] == part.geometry_id
+        bounds = tuple(float(value) for value in root.attrib["data-bounds"].split())
+        assert len(bounds) == 4
+        x, y, width, height = bounds
+        assert 0.0 <= x < 1.0
+        assert 0.0 <= y < 1.0
+        assert 0.0 < width <= 1.0
+        assert 0.0 < height <= 1.0
+        assert x + width <= 1.0
+        assert y + height <= 1.0
+        layers = [
+            child.attrib["data-layer"]
+            for child in root
+            if "data-layer" in child.attrib
+        ]
+        assert layers == ["component-structure"]
+
+
+@pytest.mark.parametrize(
+    ("renderer", "unknown_id"),
+    [
+        ("render_body_authoring_svg", "unknown-body"),
+        ("render_body_preview_svg", "unknown-body"),
+        ("render_component_svg", "unknown-part"),
+    ],
+)
+def test_renderers_fail_closed_for_unknown_catalogue_id(renderer: str, unknown_id: str):
+    module = builder_module()
+
+    with pytest.raises(module.ProductBuilderRenderError, match="unknown"):
+        getattr(module, renderer)(parse_source(), unknown_id)
+
+
+def test_pack_plan_is_compact_and_shares_palette_and_material_definitions(tmp_path: Path):
+    module = builder_module()
+    source = parse_source()
+    target = tmp_path / "pilot"
+
+    plan = module.plan_product_builder_pack(source, target)
+    files = {output.relative_path: output.payload for output in plan.files}
+
+    assert plan.output_dir == target
+    assert len(files) == 39
+    assert len([path for path in files if path.endswith("/authoring.svg")]) == 12
+    assert len([path for path in files if path.endswith("/preview.svg")]) == 12
+    assert len([path for path in files if path.startswith("components/")]) == 12
+    assert set(files) >= {"catalogue.json", "source.json", "qa.json"}
+    catalogue = json.loads(files["catalogue.json"])
+    assert set(catalogue) == {
+        "schema",
+        "version",
+        "packId",
+        "virtualCount",
+        "families",
+        "bodies",
+        "parts",
+        "palettes",
+        "materials",
+    }
+    assert catalogue["schema"] == "product-builder-catalogue@1"
+    assert catalogue["version"] == 1
+    assert catalogue["packId"] == source.pack_id
+    assert catalogue["virtualCount"] == 6_144
+    assert len(catalogue["bodies"]) == 12
+    assert len(catalogue["parts"]) == 12
+    assert len(catalogue["palettes"]) == 16
+    assert len(catalogue["materials"]) == 8
+    assert "variants" not in catalogue
+    assert not any("palette" in body for body in catalogue["bodies"])
+    assert not any("material" in body for body in catalogue["bodies"])
+    assert [record["id"] for record in catalogue["families"]] == sorted(
+        record["id"] for record in catalogue["families"]
+    )
+    assert [record["id"] for record in catalogue["bodies"]] == sorted(
+        record["id"] for record in catalogue["bodies"]
+    )
+    assert [record["id"] for record in catalogue["parts"]] == sorted(
+        record["id"] for record in catalogue["parts"]
+    )
+    assert [record["id"] for record in catalogue["palettes"]] == sorted(
+        record["id"] for record in catalogue["palettes"]
+    )
+    assert [record["id"] for record in catalogue["materials"]] == sorted(
+        record["id"] for record in catalogue["materials"]
+    )
+    for body in catalogue["bodies"]:
+        assert set(body) == {
+            "id",
+            "title",
+            "familyId",
+            "geometryId",
+            "componentSlotId",
+            "componentAnchor",
+            "artworkBounds",
+            "compatiblePartIds",
+            "authoringSvg",
+            "previewSvg",
+        }
+        assert body["authoringSvg"] == f"bodies/{body['id']}/authoring.svg"
+        assert body["previewSvg"] == f"bodies/{body['id']}/preview.svg"
+        assert body["authoringSvg"] in files
+        assert body["previewSvg"] in files
+    for part in catalogue["parts"]:
+        assert set(part) == {
+            "id",
+            "title",
+            "familyId",
+            "slotId",
+            "geometryId",
+            "componentSvg",
+        }
+        assert part["componentSvg"] == f"components/{part['id']}.svg"
+        assert part["componentSvg"] in files
+    qa = json.loads(files["qa.json"])
+    assert qa["fileCount"] == 39
+    assert qa["renderedSvgCount"] == 36
+    assert len(qa["sha256"]) == 38
+    assert target.exists() is False
+
+
+@pytest.mark.parametrize(
+    "existing_kind", ("empty-directory", "file", "nonempty-directory")
+)
+def test_pack_plan_and_writer_fail_closed_when_target_already_exists(
+    tmp_path: Path, existing_kind: str
+):
+    module = builder_module()
+    source = parse_source()
+    target = tmp_path / "pilot"
+    if existing_kind == "file":
+        target.write_text("occupied", encoding="utf-8")
+    else:
+        target.mkdir()
+        if existing_kind == "nonempty-directory":
+            (target / "keep.txt").write_text("keep", encoding="utf-8")
+
+    with pytest.raises(module.ProductBuilderRenderError, match="must not exist"):
+        module.plan_product_builder_pack(source, target)
+    with pytest.raises(module.ProductBuilderRenderError, match="must not exist"):
+        module.write_product_builder_pack(source, target)
+
+
+def test_writer_emits_the_exact_planned_pack_once(tmp_path: Path):
+    module = builder_module()
+    source = parse_source()
+    target = tmp_path / "pilot"
+    plan = module.plan_product_builder_pack(source, target)
+
+    result = module.write_product_builder_pack(source, target)
+
+    assert result.output_dir == target
+    assert result.file_count == 39
+    actual = {
+        path.relative_to(target).as_posix(): path.read_bytes()
+        for path in target.rglob("*")
+        if path.is_file()
+    }
+    assert actual == {
+        output.relative_path: output.payload for output in plan.files
+    }
+    with pytest.raises(module.ProductBuilderRenderError, match="must not exist"):
+        module.write_product_builder_pack(source, target)

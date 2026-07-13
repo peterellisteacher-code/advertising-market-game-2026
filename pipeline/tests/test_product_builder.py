@@ -246,9 +246,19 @@ def test_parser_rejects_executable_or_external_manifest_content(case: str, mutat
         parse_source(raw)
 
 
-def test_parser_rejects_url_like_title_without_a_scheme():
+@pytest.mark.parametrize(
+    "url_like_title",
+    (
+        "www.example.com",
+        "example.dev",
+        "example.xyz",
+        "example.info",
+        "192.168.1.1",
+    ),
+)
+def test_parser_rejects_url_like_title_without_a_scheme(url_like_title: str):
     raw = source_dict()
-    raw["bodies"][0]["title"] = "www.example.com"
+    raw["bodies"][0]["title"] = url_like_title
 
     with pytest.raises(ValueError, match="without markup or URLs"):
         parse_source(raw)

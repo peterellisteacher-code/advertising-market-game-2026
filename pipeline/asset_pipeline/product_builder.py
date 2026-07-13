@@ -32,7 +32,9 @@ MAX_SOURCE_BYTES = 1_000_000
 HEX_COLOUR = re.compile(r"^#[0-9A-Fa-f]{6}$")
 PLAIN_TITLE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 &'()+,.\-]*$")
 URL_LIKE_TITLE = re.compile(
-    r"(?i)(?:\bwww\.|\b[a-z0-9-]+\.(?:com|org|net|edu|gov|io|co|au)\b)"
+    r"(?i)(?:\bwww\.|"
+    r"\b(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,63}\b|"
+    r"\b(?:\d{1,3}\.){3}\d{1,3}\b)"
 )
 
 REGISTERED_BODY_IDENTITIES = {

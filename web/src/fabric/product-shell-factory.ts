@@ -6,12 +6,21 @@ import {
   util
 } from "fabric";
 import { CREATOR_CONFIG } from "../config";
+import {
+  composeProductVariantSvg,
+  type ProductSvgCompositionInput
+} from "../product-builder/product-svg-composer";
 import type { NewProductShellInput } from "./canvas-port";
 import { FABRIC_CONTROL_SIZE } from "./object-factory";
 import "./fabric-custom-properties";
 
 const MAX_SHELL_WIDTH = 720;
 const MAX_SHELL_HEIGHT = 620;
+
+export interface NewProductVariantShellInput extends ProductSvgCompositionInput {
+  readonly id: string;
+  readonly accessibleName: string;
+}
 
 function nearestAttribute(element: Element, name: string): string | null {
   return element.closest(`[${name}]`)?.getAttribute(name) ?? null;
@@ -29,12 +38,67 @@ export class FabricProductShellFactory {
     }
     if (!input.svg.trim()) throw new Error("Product shell SVG must not be empty");
 
-    const parsed = await loadSVGFromString(input.svg, (element, object) => {
+    return this.#createGroup(input.svg, {
+      objectId: input.id,
+      shellId: input.shellId,
+      accessibleName: input.accessibleName
+    });
+  }
+
+  async createVariant(input: NewProductVariantShellInput): Promise<Group> {
+    if (!input.id.trim() || !input.accessibleName.trim()) {
+      throw new Error("Product variant metadata must not be empty");
+    }
+    const composed = composeProductVariantSvg({
+      variant: input.variant,
+      authoringSvg: input.authoringSvg,
+      componentSvg: input.componentSvg,
+      ...(input.artwork === undefined ? {} : { artwork: input.artwork }),
+      ...(input.mode === undefined ? {} : { mode: input.mode })
+    });
+    return this.#createGroup(composed.svg, {
+      objectId: input.id,
+      shellId: input.variant.bodyId,
+      accessibleName: input.accessibleName,
+      packId: input.variant.packId,
+      variantId: input.variant.id,
+      bodyId: input.variant.bodyId,
+      partId: input.variant.partId,
+      paletteId: input.variant.paletteId,
+      materialId: input.variant.materialId
+    });
+  }
+
+  async #createGroup(
+    svg: string,
+    metadata: {
+      readonly objectId: string;
+      readonly shellId: string;
+      readonly accessibleName: string;
+      readonly packId?: string;
+      readonly variantId?: string;
+      readonly bodyId?: string;
+      readonly partId?: string;
+      readonly paletteId?: string;
+      readonly materialId?: string;
+    }
+  ): Promise<Group> {
+    const parsed = await loadSVGFromString(svg, (element, object) => {
       const shellRegion = nearestAttribute(element, "data-region");
+      const componentColourZone = nearestAttribute(element, "data-colour-zone");
+      const productLayer = element.closest('[data-layer="selected-component"]')
+        ? "selected-component"
+        : nearestAttribute(element, "data-layer");
+      const componentSlotId = nearestAttribute(element, "data-slot-id");
       const editorGuide = nearestAttribute(element, "data-print-area") !== null ||
-        nearestAttribute(element, "data-safe-area") !== null;
+        nearestAttribute(element, "data-safe-area") !== null ||
+        nearestAttribute(element, "data-editor-only") !== null;
       object.set({
-        ...(shellRegion ? { shellRegion } : {}),
+        ...(shellRegion ?? componentColourZone ? {
+          shellRegion: shellRegion ?? componentColourZone ?? undefined
+        } : {}),
+        ...(productLayer ? { productLayer } : {}),
+        ...(componentSlotId ? { componentSlotId } : {}),
         ...(editorGuide ? {
           editorGuide: true,
           selectable: false,
@@ -52,10 +116,8 @@ export class FabricProductShellFactory {
     const height = Math.max(1, shell.getScaledHeight());
     shell.scale(Math.min(1, MAX_SHELL_WIDTH / width, MAX_SHELL_HEIGHT / height));
     shell.set({
-      objectId: input.id,
+      ...metadata,
       elementKind: "product-shell",
-      shellId: input.shellId,
-      accessibleName: input.accessibleName,
       originX: "center",
       originY: "center",
       left: CREATOR_CONFIG.canvasWidth / 2,

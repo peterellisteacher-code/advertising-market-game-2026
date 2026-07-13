@@ -13,6 +13,14 @@ declare module "fabric" {
     editorGuide?: boolean;
     shellId?: string;
     shellRegion?: string;
+    packId?: string;
+    variantId?: string;
+    bodyId?: string;
+    partId?: string;
+    paletteId?: string;
+    materialId?: string;
+    productLayer?: string;
+    componentSlotId?: string;
   }
 
   interface SerializedObjectProps {
@@ -26,6 +34,14 @@ declare module "fabric" {
     editorGuide?: boolean;
     shellId?: string;
     shellRegion?: string;
+    packId?: string;
+    variantId?: string;
+    bodyId?: string;
+    partId?: string;
+    paletteId?: string;
+    materialId?: string;
+    productLayer?: string;
+    componentSlotId?: string;
   }
 }
 
@@ -39,5 +55,13 @@ FabricObject.customProperties = [
   "cropFocalY",
   "editorGuide",
   "shellId",
-  "shellRegion"
+  "shellRegion",
+  "packId",
+  "variantId",
+  "bodyId",
+  "partId",
+  "paletteId",
+  "materialId",
+  "productLayer",
+  "componentSlotId"
 ];

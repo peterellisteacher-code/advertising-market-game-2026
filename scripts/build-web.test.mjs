@@ -526,6 +526,33 @@ test("static verification requires exactly one canonical builder attribute on cr
   );
 });
 
+test("static verification counts an unquoted builder attribute before a canonical quoted duplicate", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "admarket-builder-unquoted-duplicate-"));
+  const directory = await writeProductBuilderPack(root);
+  const builderFiles = await verifyWebExport.verifyProductBuilderDirectory(directory);
+  const prefix = "catalog/generated/product-builder-pilot-v1";
+  const files = new Map([
+    ["index.html", `<div id="creator-root"
+      data-product-builder-catalogue-url=/wrong/catalogue.json
+      data-product-builder-catalogue-url="/${prefix}/catalogue.json"></div>
+      <link rel="stylesheet" href="./studio/studio.css">
+      <script src="./studio/studio.js"></script><script src="./index.js"></script>`],
+    ["index.js", "const target = 'wasm32.nothreads'; const audio = new AudioWorklet();"],
+    ["index.wasm", Buffer.from([0])],
+    ["index.pck", Buffer.from([1])],
+    ["index.audio.worklet.js", "class GodotAudioWorklet {}"],
+    ["studio/studio.css", ".creator{}"],
+    ["studio/studio.js", "window.AdMarketCreator = publicApi;"],
+    ["godot/export_presets.cfg", "variant/thread_support=false"],
+    ...builderFiles
+  ]);
+
+  assert.throws(
+    () => inspectExportContents({ files, pckHash: "current" }),
+    /reference the product builder catalogue exactly once/i
+  );
+});
+
 test("production build scripts require the product builder pilot", async () => {
   const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 

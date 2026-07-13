@@ -329,7 +329,7 @@ function verifyProductBuilderQa(files, errors) {
 
 function verifyProductBuilderMetadata(html, files, errors) {
   const cataloguePath = `${PRODUCT_BUILDER_PREFIX}/catalogue.json`;
-  const attributePattern = /\bdata-product-builder-catalogue-url\s*=\s*["'][^"']*["']/gi;
+  const attributePattern = /\bdata-product-builder-catalogue-url\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+)/gi;
   const attributes = html.match(attributePattern) ?? [];
   if (!files.has(cataloguePath)) {
     if (attributes.length > 0) {

@@ -48,9 +48,9 @@
 
 **Interfaces:**
 - Consumes: the existing strict `product-shell-style-audition@1` manifest.
-- Produces: unchanged stable IDs/archetypes plus the title `Garden Watering Can` and testable visual markers for the required revisions.
+- Produces: unchanged stable IDs/archetypes plus the title `Garden Watering Can`.
 
-- [ ] **Step 1: Write the failing roster and visual-contract tests**
+- [ ] **Step 1: Write the failing roster test**
 
 Change only the garden title in `EXPECTED_RECORDS`:
 
@@ -63,58 +63,6 @@ Change only the garden title in `EXPECTED_RECORDS`:
 ),
 ```
 
-Replace the false-positive angled-hoe test with these assertions:
-
-```python
-def _prototype(archetype: str):
-    return next(
-        item
-        for item in load_audition_source(MANIFEST_PATH).prototypes
-        if item.archetype == archetype
-    )
-
-
-def test_garden_proof_is_an_unmistakable_broad_surface_watering_can() -> None:
-    root = ET.fromstring(render_audition_svg(_prototype("garden-tool"), "preview"))
-    assert root.find(".//*[@data-product-part='watering-can-body']") is not None
-    assert root.find(".//*[@data-product-part='watering-can-handle']") is not None
-    assert root.find(".//*[@data-product-part='watering-can-spout']") is not None
-    surface = artwork_surface_for("garden-tool")
-    assert surface.bounds[2] >= 430
-    assert surface.bounds[3] >= 300
-```
-
-Add focused semantic tests for the other direct-surface findings:
-
-```python
-@pytest.mark.parametrize(
-    ("archetype", "part"),
-    [
-        ("aquarium", "full-front-glass"),
-        ("hoodie", "hoodie-chest"),
-        ("trainer", "athletic-upper"),
-        ("pet-shop", "pet-shop-fascia"),
-    ],
-)
-def test_revised_direct_surfaces_declare_the_intended_large_face(
-    archetype: str, part: str
-) -> None:
-    root = ET.fromstring(render_audition_svg(_prototype(archetype), "preview"))
-    assert root.find(f".//*[@data-product-part='{part}']") is not None
-```
-
-Add a flat-skin distinction test against the public accessor introduced in Task 2:
-
-```python
-def test_packaging_uses_four_distinct_product_specific_flat_skins() -> None:
-    archetypes = ("slim-can", "sports-bottle", "snack-pouch", "takeaway-box")
-    skins = [flat_skin_geometry_for(item) for item in archetypes]
-    assert len({skin.surface.path for skin in skins}) == 4
-    assert {skin.mapping_target for skin in skins} == set(archetypes)
-    assert all(skin.surface.bounds[2] >= 680 for skin in skins)
-    assert all(skin.surface.bounds[3] >= 560 for skin in skins)
-```
-
 - [ ] **Step 2: Run the focused tests to verify RED**
 
 Run:
@@ -123,7 +71,7 @@ Run:
 pipeline\.venv\Scripts\python.exe -m pytest pipeline/tests/test_product_shell_audition.py -q
 ```
 
-Expected: failures for the old title, missing `flat_skin_geometry_for`, the hoe marker and absent revised product-part markers.
+Expected: the roster test fails because the manifest still says `Garden Tool`.
 
 - [ ] **Step 3: Retitle the stable garden record**
 
@@ -166,9 +114,26 @@ git commit -m "test: freeze product shell audition iteration 02"
 
 - [ ] **Step 1: Add failing semantic mapping tests**
 
-Import `flat_skin_geometry_for`, then add:
+Import `flat_skin_geometry_for`, add a local prototype lookup helper, then add:
 
 ```python
+def _prototype(archetype: str):
+    return next(
+        item
+        for item in load_audition_source(MANIFEST_PATH).prototypes
+        if item.archetype == archetype
+    )
+
+
+def test_packaging_uses_four_distinct_product_specific_flat_skins() -> None:
+    archetypes = ("slim-can", "sports-bottle", "snack-pouch", "takeaway-box")
+    skins = [flat_skin_geometry_for(item) for item in archetypes]
+    assert len({skin.surface.path for skin in skins}) == 4
+    assert {skin.mapping_target for skin in skins} == set(archetypes)
+    assert all(skin.surface.bounds[2] >= 680 for skin in skins)
+    assert all(skin.surface.bounds[3] >= 560 for skin in skins)
+
+
 @pytest.mark.parametrize(
     ("archetype", "markers"),
     [
@@ -315,9 +280,35 @@ git commit -m "feat: add product specific packaging skins"
 
 - [ ] **Step 1: Add failing surface-shape assertions**
 
-Add:
+Replace the old angled-hoe test and add the direct-surface marker tests:
 
 ```python
+def test_garden_proof_is_an_unmistakable_broad_surface_watering_can() -> None:
+    root = ET.fromstring(render_audition_svg(_prototype("garden-tool"), "preview"))
+    assert root.find(".//*[@data-product-part='watering-can-body']") is not None
+    assert root.find(".//*[@data-product-part='watering-can-handle']") is not None
+    assert root.find(".//*[@data-product-part='watering-can-spout']") is not None
+    surface = artwork_surface_for("garden-tool")
+    assert surface.bounds[2] >= 430
+    assert surface.bounds[3] >= 300
+
+
+@pytest.mark.parametrize(
+    ("archetype", "part"),
+    [
+        ("aquarium", "full-front-glass"),
+        ("hoodie", "hoodie-chest"),
+        ("trainer", "athletic-upper"),
+        ("pet-shop", "pet-shop-fascia"),
+    ],
+)
+def test_revised_direct_surfaces_declare_the_intended_large_face(
+    archetype: str, part: str
+) -> None:
+    root = ET.fromstring(render_audition_svg(_prototype(archetype), "preview"))
+    assert root.find(f".//*[@data-product-part='{part}']") is not None
+
+
 def test_revised_direct_surface_bounds_are_large_and_product_specific() -> None:
     expected = {
         "garden-tool": (430, 300),

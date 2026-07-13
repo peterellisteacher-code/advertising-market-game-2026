@@ -74,7 +74,7 @@ EXPECTED_RECORDS = [
     ),
     (
         "audition-garden-tool",
-        "Garden Tool",
+        "Garden Watering Can",
         "sport-outdoors",
         "garden-tool",
     ),

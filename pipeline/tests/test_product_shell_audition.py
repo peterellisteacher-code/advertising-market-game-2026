@@ -361,6 +361,45 @@ def test_artwork_slots_use_prototype_prefixed_exact_clip_paths() -> None:
         assert slots[0].get("clip-path") == f"url(#{clip_id})"
 
 
+def test_populated_artwork_slot_stays_below_fixed_structure_and_tone() -> None:
+    for prototype in load_audition_source(MANIFEST_PATH).prototypes:
+        for view in ("authoring", "preview", "review"):
+            root = ET.fromstring(render_audition_svg(prototype, view=view))
+            children = list(root)
+            shell_index = next(
+                index
+                for index, element in enumerate(children)
+                if element.get("data-product-shell") is not None
+            )
+            slot_index = next(
+                index
+                for index, element in enumerate(children)
+                if element.get("data-artwork-slot") == "primary"
+            )
+            detail_index = next(
+                index
+                for index, element in enumerate(children)
+                if element.get("data-detail-layer") == "true"
+            )
+
+            slot = children[slot_index]
+            ET.SubElement(
+                slot,
+                "rect",
+                {"data-test-artwork": "opaque", "width": "1000", "height": "1000"},
+            )
+
+            assert shell_index < slot_index < detail_index
+            for tone in ("shadow", "highlight"):
+                tone_indices = [
+                    index
+                    for index, element in enumerate(children)
+                    if element.get("data-tone") == tone
+                ]
+                if tone_indices:
+                    assert slot_index < tone_indices[0]
+
+
 def test_authoring_surfaces_obey_flat_skin_and_direct_surface_modes() -> None:
     for prototype in load_audition_source(MANIFEST_PATH).prototypes:
         geometry = GEOMETRY_BUILDERS[prototype.archetype]()

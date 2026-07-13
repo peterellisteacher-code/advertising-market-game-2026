@@ -672,12 +672,13 @@ def _semantic_regions(
     return "".join(markup)
 
 
-def _object_layers(geometry: ArtGeometry, regions: str) -> str:
+def _object_layers(geometry: ArtGeometry, regions: str, artwork_slot: str) -> str:
     details = "".join(geometry.details)
     return (
         f'<g data-product-shell="true" stroke="{INK}" '
         f'stroke-width="{OUTER_STROKE}" stroke-linecap="round" '
         f'stroke-linejoin="round">{regions}</g>'
+        f'{artwork_slot}'
         f'<path data-tone="shadow" fill="{INK}" opacity="0.10" '
         f'stroke="none" d="{geometry.shadow_plane}"/>'
         f'<path data-tone="highlight" fill="#FFFFFF" opacity="0.34" '
@@ -688,13 +689,16 @@ def _object_layers(geometry: ArtGeometry, regions: str) -> str:
     )
 
 
-def _flat_skin_layers(regions: str, flat_skin: FlatSkinGeometry) -> str:
+def _flat_skin_layers(
+    regions: str, flat_skin: FlatSkinGeometry, artwork_slot: str
+) -> str:
     details = "".join(flat_skin.details)
     return (
         f'<g data-product-shell="flat-skin" data-flat-skin-kind="product-specific" '
         f'data-mapping-target="{escape(flat_skin.mapping_target)}" stroke="{INK}" '
         f'stroke-width="{OUTER_STROKE}" stroke-linecap="round" '
         f'stroke-linejoin="round">{regions}</g>'
+        f'{artwork_slot}'
         f'<g data-detail-layer="true" fill="none" stroke="{DETAIL_INK}" '
         f'stroke-width="{DETAIL_STROKE}" stroke-linecap="round" '
         f'stroke-linejoin="round">{details}</g>'
@@ -831,15 +835,15 @@ def render_audition_svg(prototype: AuditionPrototype, view: View) -> str:
     surface = flat_skin.surface if flat_skin is not None else geometry.surface
     clip_id = f"{prototype.id}-primary-artwork-clip"
     regions = _semantic_regions(prototype, geometry, flat_skin)
-    layers = (
-        _flat_skin_layers(regions, flat_skin)
-        if flat_skin is not None
-        else _object_layers(geometry, regions)
-    )
-    grounding = _grounding_shadow(geometry.product_bounds) if view == "preview" else ""
     artwork_slot = (
         f'<g data-artwork-slot="primary" clip-path="url(#{escape(clip_id)})"></g>'
     )
+    layers = (
+        _flat_skin_layers(regions, flat_skin, artwork_slot)
+        if flat_skin is not None
+        else _object_layers(geometry, regions, artwork_slot)
+    )
+    grounding = _grounding_shadow(geometry.product_bounds) if view == "preview" else ""
     panel_roles = flat_skin.panel_roles if flat_skin is not None else ()
 
     return (
@@ -847,7 +851,7 @@ def render_audition_svg(prototype: AuditionPrototype, view: View) -> str:
         'data-light-direction="top-left" '
         f'data-shell-id="{escape(prototype.id)}" '
         f'data-authoring-mode="{escape(prototype.authoring_mode)}">'
-        f'{_clip_definition(clip_id, surface)}{grounding}{layers}{artwork_slot}'
+        f'{_clip_definition(clip_id, surface)}{grounding}{layers}'
         f'{_guide_overlay(view, surface)}{_panel_role_markup(view, panel_roles)}</svg>'
     )
 

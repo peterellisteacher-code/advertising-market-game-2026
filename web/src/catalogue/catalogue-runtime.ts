@@ -4,6 +4,8 @@ import {
 } from "../domain/campaign-document";
 import type { CanvasPort } from "../fabric/canvas-port";
 import { ObjectCommandService } from "../fabric/object-command-service";
+import type { ProductArtwork } from "../product-builder/product-svg-composer";
+import type { ResolvedProductVariant } from "../product-builder/virtual-product-variant";
 import type { ProductShellRecord } from "../product-shells/product-shell-catalogue";
 import { CatalogueIndex } from "./catalogue-index";
 import type { CatalogAssetV1 } from "./catalogue-types";
@@ -13,6 +15,7 @@ const LIVE_IMAGE_PATH = /^\/api\/openverse-image\/([0-9a-f]{8}-[0-9a-f]{4}-[1-8]
 const LIVE_IMAGE_TIMEOUT_MS = 8_000;
 const MAX_LIVE_IMAGE_BYTES = 12 * 1024 * 1024;
 const MAX_PRODUCT_SHELL_BYTES = 1024 * 1024;
+const MAX_PRODUCT_VARIANT_SVG_BYTES = 128 * 1024;
 const LIVE_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
 export interface CatalogueRenderer {
@@ -148,6 +151,7 @@ interface CataloguePlacementHost {
   createObjectURL?: (blob: Blob) => string;
   revokeObjectURL?: (url: string) => void;
   onProductShellPlaced?: (objectId: string, shell: ProductShellRecord) => void;
+  onProductVariantPlaced?: (objectId: string, product: ResolvedProductVariant) => void;
 }
 
 export interface LocalCatalogueBlob {
@@ -211,6 +215,41 @@ async function capturedLiveBlob(response: Response): Promise<Blob> {
   return new Blob([bytes.buffer], { type: mimeType });
 }
 
+function canonicalProductVariantUrl(
+  value: string,
+  product: ResolvedProductVariant,
+  relativePath: string
+): URL {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("Product look URL is invalid");
+  }
+  const expected = `/catalog/generated/${product.packId}/${relativePath}`;
+  if (url.origin !== window.location.origin || url.pathname !== expected ||
+    url.username || url.password || url.search || url.hash) {
+    throw new Error("Product look URL must be canonical and same-origin");
+  }
+  return url;
+}
+
+async function capturedProductVariantSvg(response: Response, label: string): Promise<string> {
+  if (!response.ok) throw new Error(`${label} request failed with status ${response.status}`);
+  const mimeType = response.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
+  if (mimeType !== "image/svg+xml") throw new Error(`${label} response is not SVG`);
+  const declaredLength = response.headers.get("content-length");
+  if (declaredLength !== null &&
+    (!/^\d+$/.test(declaredLength) || Number(declaredLength) > MAX_PRODUCT_VARIANT_SVG_BYTES)) {
+    throw new Error(`${label} SVG is too large`);
+  }
+  const svg = await response.text();
+  if (!svg.trim() || new TextEncoder().encode(svg).byteLength > MAX_PRODUCT_VARIANT_SVG_BYTES) {
+    throw new Error(`${label} SVG is empty or too large`);
+  }
+  return svg;
+}
+
 export class CataloguePlacementQueue {
   #tail: Promise<void> = Promise.resolve();
   #failure: Error | null = null;
@@ -225,6 +264,11 @@ export class CataloguePlacementQueue {
   enqueueProductShell(shell: ProductShellRecord, packId: string): void {
     const frozenShell = structuredClone(shell);
     this.#enqueue(async () => this.#placeProductShell(frozenShell, packId));
+  }
+
+  enqueueProductVariant(product: ResolvedProductVariant, artwork?: ProductArtwork): void {
+    const selectedArtwork = artwork === undefined ? undefined : Object.freeze({ ...artwork });
+    this.#enqueue(async () => this.#placeProductVariant(product, selectedArtwork));
   }
 
   #enqueue(operation: () => Promise<void>): void {
@@ -408,6 +452,95 @@ export class CataloguePlacementQueue {
           commands.remove(objectId);
         } catch {
           // Preserve the product-shell placement failure.
+        }
+      }
+      throw error;
+    }
+  }
+
+  async #placeProductVariant(
+    product: ResolvedProductVariant,
+    artwork?: ProductArtwork
+  ): Promise<void> {
+    const current = this.host.getDocument();
+    if (!current) throw new Error("Open a campaign before adding a product");
+    if (!Object.isFrozen(product) || product.schema !== "product-builder-variant@1") {
+      throw new Error("Product look identity must come from the reviewed catalogue");
+    }
+    const authoringUrl = canonicalProductVariantUrl(
+      product.authoringUrl,
+      product,
+      `bodies/${product.bodyId}/authoring.svg`
+    );
+    const componentUrl = canonicalProductVariantUrl(
+      product.componentUrl,
+      product,
+      `components/${product.partId}.svg`
+    );
+    const fetcher = this.host.fetch ?? ((input, init) => fetch(input, init));
+    const request = (url: URL, label: string): Promise<string> => fetcher(url.href, {
+      method: "GET",
+      credentials: "same-origin",
+      redirect: "error",
+      headers: { accept: "image/svg+xml" },
+      signal: this.host.createDeadlineSignal?.() ?? AbortSignal.timeout(LIVE_IMAGE_TIMEOUT_MS)
+    }).then((response) => capturedProductVariantSvg(response, label));
+    const [authoringSvg, componentSvg] = await Promise.all([
+      request(authoringUrl, "Product body"),
+      request(componentUrl, "Product part")
+    ]);
+
+    const canvas = await this.host.getCanvas();
+    const objectId = (this.host.createObjectId ?? (() => globalThis.crypto.randomUUID()))();
+    const commands = new ObjectCommandService(canvas, () => objectId);
+    let attemptedAdd = false;
+    try {
+      attemptedAdd = true;
+      await commands.addProductVariant({
+        accessibleName: `${product.paletteTitle} ${product.bodyTitle}`,
+        variant: product,
+        authoringSvg,
+        componentSvg,
+        ...(artwork === undefined ? {} : { artwork })
+      });
+      const fabricState = commands.serialize();
+      const objects = Array.isArray(fabricState.objects)
+        ? fabricState.objects as Array<Record<string, unknown>>
+        : [];
+      const object = objects.find((candidate) => candidate.objectId === objectId);
+      if (!object || object.elementKind !== "product-shell" ||
+        object.variantId !== product.id || object.packId !== product.packId ||
+        object.bodyId !== product.bodyId || object.partId !== product.partId ||
+        object.paletteId !== product.paletteId || object.materialId !== product.materialId) {
+        throw new Error("Placed product look did not reconcile with the canvas");
+      }
+      const next = parseCampaignDocument({
+        ...structuredClone(current),
+        fabricState,
+        assetReferences: [
+          ...current.assetReferences,
+          {
+            kind: "product-builder-variant",
+            version: 1,
+            objectId,
+            packId: product.packId,
+            variantId: product.id,
+            bodyId: product.bodyId,
+            partId: product.partId,
+            paletteId: product.paletteId,
+            materialId: product.materialId,
+            artwork: artwork === undefined ? null : { ...artwork }
+          }
+        ]
+      });
+      this.host.commit(next);
+      this.host.onProductVariantPlaced?.(objectId, product);
+    } catch (error) {
+      if (attemptedAdd) {
+        try {
+          commands.remove(objectId);
+        } catch {
+          // Preserve the composition or reconciliation failure.
         }
       }
       throw error;

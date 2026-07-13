@@ -1,4 +1,6 @@
-import { findByLabelText, findByRole, getByRole } from "@testing-library/dom";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fireEvent, findByRole, getByRole } from "@testing-library/dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CreatorPublicApi } from "./bridge/creator-public-api";
 import {
@@ -107,6 +109,39 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
           accent: "#E66B3F",
           label: "#FFF7E8"
         }
+      });
+    }
+
+    async addProductVariant(input: {
+      id: string;
+      accessibleName: string;
+      variant: {
+        id: string;
+        packId: string;
+        bodyId: string;
+        partId: string;
+        paletteId: string;
+        materialId: string;
+        colours: Record<string, string>;
+      };
+      artwork?: { id: string; colour: string };
+    }): Promise<void> {
+      const objects = runtime.state.objects;
+      if (!Array.isArray(objects)) throw new Error("Test canvas state has no objects");
+      objects.push({
+        type: "group",
+        objectId: input.id,
+        elementKind: "product-shell",
+        shellId: input.variant.bodyId,
+        accessibleName: input.accessibleName,
+        packId: input.variant.packId,
+        variantId: input.variant.id,
+        bodyId: input.variant.bodyId,
+        partId: input.variant.partId,
+        paletteId: input.variant.paletteId,
+        materialId: input.variant.materialId,
+        ...(input.artwork === undefined ? {} : { artwork: input.artwork }),
+        regionColours: structuredClone(input.variant.colours)
       });
     }
 
@@ -280,6 +315,14 @@ function currentObjects(): Array<Record<string, unknown>> {
   const objects = runtime.state.objects;
   if (!Array.isArray(objects)) throw new Error("Test canvas state has no objects");
   return objects as Array<Record<string, unknown>>;
+}
+
+const PRODUCT_BUILDER_ROOT = join(
+  "catalog", "generated", "product-builder-pilot-v1"
+);
+
+function productBuilderText(relativePath: string): string {
+  return readFileSync(join(PRODUCT_BUILDER_ROOT, relativePath), "utf8");
 }
 
 function productShellCatalogueFixture(): Record<string, unknown> {
@@ -673,75 +716,96 @@ describe("window.AdMarketCreator", () => {
     expect(fetchSpy).toHaveBeenCalledOnce();
   });
 
-  it("places, recolours, saves and reloads a semantic product shell", async () => {
+  it("builds, places, saves and reloads one custom product without identity-breaking colour controls", async () => {
     const root = document.querySelector<HTMLElement>("#creator-root")!;
-    root.dataset.productShellCatalogueUrl =
-      "/catalog/generated/product-shells-v1/catalog.json";
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+    root.dataset.productBuilderCatalogueUrl =
+      "/catalog/generated/product-builder-pilot-v1/catalogue.json";
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
       const url = String(input);
-      if (url.endsWith("/catalog/generated/product-shells-v1/catalog.json")) {
-        return Promise.resolve(Response.json(productShellCatalogueFixture()));
+      if (url.endsWith("/catalog/generated/product-builder-pilot-v1/catalogue.json")) {
+        return Promise.resolve(new Response(productBuilderText("catalogue.json"), {
+          headers: { "content-type": "application/json" }
+        }));
       }
-      if (url.endsWith("/shells/drinks-classic-can/authoring.svg")) {
-        return Promise.resolve(new Response(
-          '<svg xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100"/></svg>',
-          { headers: { "content-type": "image/svg+xml" } }
-        ));
+      const marker = "/product-builder-pilot-v1/";
+      if (url.includes(marker)) {
+        expect(init).toMatchObject({ redirect: "error", credentials: "same-origin" });
+        const relative = url.split(marker)[1]!;
+        return Promise.resolve(new Response(productBuilderText(relative), {
+          headers: { "content-type": "image/svg+xml" }
+        }));
       }
       return Promise.reject(new Error(`Unexpected URL ${url}`));
     });
     await import("./main");
     const api = window.AdMarketCreator;
-    await parsed(api, "open-product-shell", "open", blankDocument);
-    const select = getByRole<HTMLSelectElement>(document.body, "combobox", {
-      name: "Product shell"
-    });
-    await vi.waitFor(() => expect(select.disabled).toBe(false));
-    select.value = "drinks-classic-can";
-    select.dispatchEvent(new Event("change"));
-    getByRole(document.body, "button", { name: "Add product shell" }).click();
+    await parsed(api, "open-product-look", "open", blankDocument);
+    fireEvent.click(await findByRole(document.body, "radio", { name: "Classic Can" }));
+    fireEvent.click(getByRole(document.body, "radio", { name: "Sport Spout" }));
+    fireEvent.click(getByRole(document.body, "radio", { name: "Cobalt Citrus" }));
+    fireEvent.click(getByRole(document.body, "radio", { name: "Fabric" }));
+    fireEvent.click(getByRole(document.body, "button", { name: "Drop it on the canvas" }));
 
-    const state = await parsed(api, "state-product-shell", "getState", null);
+    const state = await parsed(api, "state-product-look", "getState", null);
+    if (!state.ok) throw new Error(JSON.stringify(state.error));
     const stateDocument = CampaignDocumentSchema.parse(state.payload);
     const object = stateDocument.fabricState.objects[0];
     expect(object).toMatchObject({
       elementKind: "product-shell",
-      shellId: "drinks-classic-can"
+      shellId: "drinkware-classic-can",
+      bodyId: "drinkware-classic-can",
+      partId: "drinkware-top-spout",
+      paletteId: "cobalt-citrus",
+      materialId: "fabric"
     });
     expect(stateDocument.assetReferences).toEqual([{
-      kind: "product-shell",
+      kind: "product-builder-variant",
+      version: 1,
       objectId: object?.objectId,
-      shellId: "drinks-classic-can",
-      packId: "product-shells-v1",
-      version: 1
+      packId: "product-builder-pilot-v1",
+      variantId: expect.stringContaining("drinkware-classic-can"),
+      bodyId: "drinkware-classic-can",
+      partId: "drinkware-top-spout",
+      paletteId: "cobalt-citrus",
+      materialId: "fabric",
+      artwork: null
     }]);
 
-    const accent = await findByLabelText<HTMLInputElement>(document.body, "Accent colour");
-    accent.value = "#157a6e";
-    accent.dispatchEvent(new Event("input"));
-    expect((await parsed(api, "recoloured-shell", "getState", null)).payload)
-      .toMatchObject({
-        fabricState: {
-          objects: [expect.objectContaining({
-            regionColours: expect.objectContaining({ accent: "#157A6E" })
-          })]
-        }
-      });
+    expect(getByRole(document.body, "heading", { name: "Cobalt Citrus Classic Can" }))
+      .toBeTruthy();
+    expect(document.querySelector('.creator__inspector input[type="color"]')).toBeNull();
+    expect(document.querySelector(".creator__inspector")?.textContent)
+      .toContain("Choose new colours in the product maker");
+    expect(document.querySelector(".creator__inspector")?.textContent)
+      .not.toMatch(/\b(?:palette|variant|component|material)\b/i);
 
-    expect(await parsed(api, "save-shell", "save", null)).toMatchObject({ ok: true });
+    expect(await parsed(api, "save-product-look", "save", null)).toMatchObject({ ok: true });
     const saved = runtime.drafts.get(blankDocument.documentId)!.document;
-    expect(await parsed(api, "close-shell", "close", null)).toMatchObject({ ok: true });
-    expect(await parsed(api, "reload-shell", "open", saved)).toMatchObject({ ok: true });
-    expect((await parsed(api, "reloaded-shell-state", "getState", null)).payload)
+    expect(await parsed(api, "close-product-look", "close", null)).toMatchObject({ ok: true });
+    expect(await parsed(api, "reload-product-look", "open", saved)).toMatchObject({ ok: true });
+    expect((await parsed(api, "reloaded-product-look-state", "getState", null)).payload)
       .toMatchObject({
         fabricState: {
           objects: [expect.objectContaining({
-            regionColours: expect.objectContaining({ accent: "#157A6E" })
+            variantId: expect.stringContaining("drinkware-classic-can"),
+            paletteId: "cobalt-citrus"
           })]
         }
       });
-    expect(fetchSpy.mock.calls.some(([input]) => String(input).endsWith("authoring.svg")))
-      .toBe(true);
+    expect(document.querySelector('.creator__inspector input[type="color"]')).toBeNull();
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it("keeps the asset library usable when the product maker is unavailable", async () => {
+    await import("./main");
+
+    await vi.waitFor(() => expect(
+      document.querySelector('[data-product-builder-panel]')?.textContent
+    ).toContain("Product maker unavailable"));
+    expect(document.querySelector('input[aria-label="Search assets"]')).toBeTruthy();
+    expect(document.querySelector('[data-product-builder-panel]')?.textContent)
+      .toContain("Product maker unavailable");
+    expect(document.querySelector('[data-product-shell-select]')).toBeNull();
   });
 
   it("keeps live search usable while the optional classroom pack is stalled", async () => {

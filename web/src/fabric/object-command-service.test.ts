@@ -6,6 +6,7 @@ import type {
   CanvasPort,
   CropState,
   DrawingToolSettings,
+  NewProductVariantInput,
   NewProductShellInput,
   NewRasterInput,
   NewShapeInput,
@@ -34,6 +35,9 @@ class MemoryCanvasPort implements CanvasPort {
   async addRaster(input: NewRasterInput): Promise<void> { this.#add(input.id, "image", input); }
   async addProductShell(input: NewProductShellInput): Promise<void> {
     this.#add(input.id, "product-shell", input);
+  }
+  async addProductVariant(input: NewProductVariantInput): Promise<void> {
+    this.#add(input.id, "product-builder-variant", input);
   }
   setProductShellRegion(id: string, region: string, colour: string): void {
     Object.assign(this.#get(id), { [region]: colour });
@@ -100,7 +104,8 @@ class MemoryCanvasPort implements CanvasPort {
   #add(
     id: string,
     kind: string,
-    extra: NewTextInput | NewShapeInput | NewRasterInput | NewProductShellInput
+    extra: NewTextInput | NewShapeInput | NewRasterInput | NewProductShellInput |
+      NewProductVariantInput
   ): void {
     const { id: _inputId, ...metadata } = extra;
     this.objects.push({
@@ -205,6 +210,35 @@ describe("ObjectCommandService", () => {
       kind: "product-shell",
       shellId: "drinks-classic-can",
       accent: "#157A6E"
+    }));
+  });
+
+  it("adds and selects one resolved product look", async () => {
+    const port = new MemoryCanvasPort();
+    const commands = new ObjectCommandService(port, idFactory("look-1"));
+    const variant = Object.freeze({
+      id: "product-builder-variant@1:product-builder-pilot-v1:drinkware-classic-can:drinkware-top-ring:cobalt-citrus:fabric",
+      bodyId: "drinkware-classic-can",
+      partId: "drinkware-top-ring",
+      paletteId: "cobalt-citrus",
+      materialId: "fabric"
+    }) as NewProductVariantInput["variant"];
+
+    const id = await commands.addProductVariant({
+      accessibleName: "Cobalt Citrus Classic Can",
+      variant,
+      authoringSvg: "<svg></svg>",
+      componentSvg: "<svg></svg>",
+      artwork: { id: "front-art", colour: "#F2385A" }
+    });
+
+    expect(id).toBe("look-1");
+    expect(port.selectedId).toBe(id);
+    expect(port.objects).toContainEqual(expect.objectContaining({
+      id,
+      kind: "product-builder-variant",
+      variant,
+      artwork: { id: "front-art", colour: "#F2385A" }
     }));
   });
 

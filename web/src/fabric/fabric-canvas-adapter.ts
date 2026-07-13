@@ -18,6 +18,7 @@ import type {
   CanvasSize,
   CropState,
   DrawingToolSettings,
+  NewProductVariantInput,
   NewProductShellInput,
   NewRasterInput,
   NewShapeInput,
@@ -115,6 +116,10 @@ export class FabricCanvasAdapter implements CanvasPort {
   async addRaster(input: NewRasterInput): Promise<void> { this.#add(await this.factory.createRaster(input)); }
   async addProductShell(input: NewProductShellInput): Promise<void> {
     this.#add(await this.shellFactory.create(input));
+  }
+  async addProductVariant(input: NewProductVariantInput): Promise<void> {
+    const product = await this.shellFactory.createVariant({ ...input, mode: "editor" });
+    this.#add(product);
   }
 
   setProductShellRegion(id: string, region: string, colour: string): void {

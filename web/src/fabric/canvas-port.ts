@@ -1,3 +1,6 @@
+import type { ProductArtwork } from "../product-builder/product-svg-composer";
+import type { ResolvedProductVariant } from "../product-builder/virtual-product-variant";
+
 export type ShapeKind = "rect" | "ellipse" | "triangle" | "line";
 export type StackDirection = "front" | "forward" | "backward" | "back";
 export type CanvasMutationType = "added" | "modified" | "removed";
@@ -39,6 +42,15 @@ export interface NewProductShellInput {
   accessibleName: string;
 }
 
+export interface NewProductVariantInput {
+  id: string;
+  accessibleName: string;
+  variant: ResolvedProductVariant;
+  authoringSvg: string;
+  componentSvg: string;
+  artwork?: ProductArtwork;
+}
+
 export interface CanvasMutation {
   type: CanvasMutationType;
   objectId: string;
@@ -77,6 +89,7 @@ export interface CanvasPort {
   addShape(input: NewShapeInput): Promise<void>;
   addRaster(input: NewRasterInput): Promise<void>;
   addProductShell(input: NewProductShellInput): Promise<void>;
+  addProductVariant(input: NewProductVariantInput): Promise<void>;
   setProductShellRegion(id: string, region: string, colour: string): void;
   getProductShellRegionColours(id: string): Readonly<Record<string, string>>;
   setText(id: string, value: string): void;

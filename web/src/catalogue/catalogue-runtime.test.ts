@@ -1,6 +1,14 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { createBlankCampaignDocument, type CampaignDocumentV1 } from "../domain/campaign-document";
-import type { CanvasMutationListener, CanvasPort } from "../fabric/canvas-port";
+import type {
+  CanvasMutationListener,
+  CanvasPort,
+  NewProductVariantInput
+} from "../fabric/canvas-port";
+import { parseProductBuilderCatalogue } from "../product-builder/product-builder-catalogue";
+import { createVirtualProductVariantResolver } from "../product-builder/virtual-product-variant";
 import type { ProductShellRecord } from "../product-shells/product-shell-catalogue";
 import type { CatalogAssetV1 } from "./catalogue-types";
 import {
@@ -253,6 +261,22 @@ class PlacementCanvas implements CanvasPort {
       svg: input.svg
     });
   }
+  async addProductVariant(input: NewProductVariantInput): Promise<void> {
+    this.objects.push({
+      type: "group",
+      objectId: input.id,
+      elementKind: "product-shell",
+      shellId: input.variant.bodyId,
+      accessibleName: input.accessibleName,
+      packId: input.variant.packId,
+      variantId: input.variant.id,
+      bodyId: input.variant.bodyId,
+      partId: input.variant.partId,
+      paletteId: input.variant.paletteId,
+      materialId: input.variant.materialId,
+      artwork: input.artwork
+    });
+  }
   setProductShellRegion(): void { throw new Error("not used"); }
   getProductShellRegionColours(): Readonly<Record<string, string>> { return {}; }
   remove(id: string): void {
@@ -359,6 +383,107 @@ describe("CataloguePlacementQueue", () => {
       }
     ]);
     expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("fetches, places and records one resolved product look on the shared tail", async () => {
+    const packRoot = join("catalog", "generated", "product-builder-pilot-v1");
+    const catalogue = parseProductBuilderCatalogue(
+      JSON.parse(readFileSync(join(packRoot, "catalogue.json"), "utf8")),
+      `${window.location.origin}/catalog/generated/product-builder-pilot-v1/catalogue.json`
+    );
+    if (!catalogue) throw new Error("Reviewed product builder fixture did not parse");
+    const variant = createVirtualProductVariantResolver(catalogue).resolveVariant({
+      bodyId: "drinkware-classic-can",
+      partId: "drinkware-top-spout",
+      paletteId: "cobalt-citrus",
+      materialId: "fabric"
+    });
+    if (!variant) throw new Error("Expected product look fixture");
+    const canvas = new PlacementCanvas();
+    let document: CampaignDocumentV1 = createBlankCampaignDocument({
+      documentId: "product-look-document",
+      sessionId: "product-look-session",
+      mode: "offline"
+    });
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const pathname = new URL(String(input)).pathname;
+      const relative = pathname.split("/product-builder-pilot-v1/")[1];
+      if (!relative) return new Response("missing", { status: 404 });
+      expect(init).toMatchObject({
+        method: "GET",
+        credentials: "same-origin",
+        redirect: "error"
+      });
+      return new Response(readFileSync(join(packRoot, relative), "utf8"), {
+        status: 200,
+        headers: { "content-type": "image/svg+xml" }
+      });
+    });
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit: (next) => { document = next; },
+      createObjectId: () => "product-look-1",
+      fetch: fetchMock
+    });
+
+    queue.enqueueProductVariant(variant, { id: "front-art", colour: "#F2385A" });
+    await queue.flush();
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(canvas.objects).toContainEqual(expect.objectContaining({
+      objectId: "product-look-1",
+      variantId: variant.id,
+      bodyId: variant.bodyId,
+      partId: variant.partId,
+      paletteId: variant.paletteId,
+      materialId: variant.materialId
+    }));
+    expect(document.assetReferences).toEqual([{
+      kind: "product-builder-variant",
+      version: 1,
+      objectId: "product-look-1",
+      packId: variant.packId,
+      variantId: variant.id,
+      bodyId: variant.bodyId,
+      partId: variant.partId,
+      paletteId: variant.paletteId,
+      materialId: variant.materialId,
+      artwork: { id: "front-art", colour: "#F2385A" }
+    }]);
+  });
+
+  it("does not mutate the canvas when a product look source is not SVG", async () => {
+    const packRoot = join("catalog", "generated", "product-builder-pilot-v1");
+    const catalogue = parseProductBuilderCatalogue(
+      JSON.parse(readFileSync(join(packRoot, "catalogue.json"), "utf8")),
+      `${window.location.origin}/catalog/generated/product-builder-pilot-v1/catalogue.json`
+    );
+    if (!catalogue) throw new Error("Reviewed product builder fixture did not parse");
+    const variant = createVirtualProductVariantResolver(catalogue).pageVariants({}, { limit: 1 }).items[0];
+    if (!variant) throw new Error("Expected product look fixture");
+    const canvas = new PlacementCanvas();
+    const document = createBlankCampaignDocument({
+      documentId: "bad-look-document",
+      sessionId: "bad-look-session",
+      mode: "offline"
+    });
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit: () => { throw new Error("Commit must not run"); },
+      createObjectId: () => "bad-look",
+      fetch: vi.fn(async () => new Response("not svg", {
+        status: 200,
+        headers: { "content-type": "text/plain" }
+      }))
+    });
+
+    queue.enqueueProductVariant(variant);
+
+    await expect(queue.flush()).rejects.toThrow("not SVG");
+    expect(canvas.objects).toEqual([]);
+    expect(canvas.removed).toEqual([]);
   });
 
   it("rolls back the Fabric object when document reconciliation fails", async () => {

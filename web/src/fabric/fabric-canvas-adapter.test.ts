@@ -1,7 +1,9 @@
 import type { Canvas } from "fabric";
 import { Group, Rect } from "fabric";
 import { describe, expect, it, vi } from "vitest";
+import type { ResolvedProductVariant } from "../product-builder/virtual-product-variant";
 import { FabricCanvasAdapter } from "./fabric-canvas-adapter";
+import type { FabricProductShellFactory } from "./product-shell-factory";
 
 class FakeCanvas {
   objects: Rect[] = [];
@@ -180,5 +182,56 @@ describe("FabricCanvasAdapter persistence", () => {
       elementKind: "product-shell",
       shellId: "drinks-classic-can"
     });
+  });
+
+  it("composes a product look before mutating the canvas", async () => {
+    const canvas = new FakeCanvas();
+    const created = new Group([new Rect({ width: 100, height: 100 })]);
+    created.objectId = "look-1";
+    created.elementKind = "product-shell";
+    created.shellId = "drinkware-classic-can";
+    const createVariant = vi.fn().mockResolvedValue(created);
+    const shellFactory = {
+      create: vi.fn(),
+      createVariant
+    } as unknown as FabricProductShellFactory;
+    const adapter = new FabricCanvasAdapter(
+      canvas as unknown as Canvas,
+      undefined,
+      shellFactory
+    );
+    const variant = Object.freeze({
+      id: "product-builder-variant@1:product-builder-pilot-v1:drinkware-classic-can:drinkware-top-ring:cobalt-citrus:fabric",
+      bodyId: "drinkware-classic-can",
+      partId: "drinkware-top-ring",
+      paletteId: "cobalt-citrus",
+      materialId: "fabric"
+    }) as unknown as ResolvedProductVariant;
+
+    await adapter.addProductVariant({
+      id: "look-1",
+      accessibleName: "Cobalt Citrus Classic Can",
+      variant,
+      authoringSvg: "<svg></svg>",
+      componentSvg: "<svg></svg>",
+      artwork: { id: "front-art", colour: "#F2385A" }
+    });
+
+    expect(createVariant).toHaveBeenCalledWith(expect.objectContaining({
+      id: "look-1",
+      variant,
+      mode: "editor"
+    }));
+    expect(canvas.objects).toEqual([created]);
+
+    createVariant.mockRejectedValueOnce(new Error("Synthetic composition failure"));
+    await expect(adapter.addProductVariant({
+      id: "look-2",
+      accessibleName: "Broken look",
+      variant,
+      authoringSvg: "<svg></svg>",
+      componentSvg: "<svg></svg>"
+    })).rejects.toThrow("Synthetic composition failure");
+    expect(canvas.objects).toEqual([created]);
   });
 });

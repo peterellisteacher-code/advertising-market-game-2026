@@ -5,11 +5,29 @@
 .creator__canvas { overflow: auto; display: grid; place-items: center; background: #d7d2c7; }
 .creator__canvas canvas { max-width: 100%; height: auto; background: white; box-shadow: 0 8px 30px rgb(0 0 0 / .18); }
 .creator__library { min-height: 0; padding: .75rem; display: grid; grid-template-rows: auto auto auto auto minmax(0, 1fr); gap: .6rem; overflow: hidden; }
-.creator__product-builder { display: grid; grid-template-columns: 1fr auto; gap: .45rem; padding: .65rem; border: 1px solid #b8ad9c; background: #fffaf0; }
-.creator__product-builder h2, .creator__product-builder p { grid-column: 1 / -1; margin: 0; }
-.creator__product-builder label { display: grid; gap: .25rem; font-weight: 700; }
-.creator__product-builder img { width: 88px; height: 88px; object-fit: contain; grid-column: 2; grid-row: 2 / span 2; background: #e9e5dc; border: 1px solid #cbd5e1; }
-.creator__product-builder button { grid-column: 1; }
+.creator__product-builder { min-height: 0; max-height: min(58vh, 35rem); padding: .65rem; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: .45rem; overflow: hidden; border: 1px solid #b8ad9c; border-radius: .55rem; background: #fffaf0; }
+.creator__product-builder h2 { margin: 0; font-size: 1.05rem; }
+[data-product-builder-panel] { min-height: 0; overflow: hidden; }
+.product-maker { height: 100%; min-height: 0; display: grid; grid-template-rows: auto auto minmax(7rem, 1fr) auto auto; gap: .5rem; }
+.product-maker__pair-prompt, .product-maker__status { margin: 0; color: #475569; font-size: .8rem; line-height: 1.35; }
+.product-maker__steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .25rem; }
+.product-maker__steps button { min-width: 0; padding: .35rem .2rem; border: 1px solid #b8ad9c; border-radius: .35rem; background: #fff; color: inherit; font-size: .72rem; font-weight: 750; line-height: 1.1; }
+.product-maker__steps button[aria-expanded="true"] { border-color: #075985; background: #e0f2fe; box-shadow: inset 0 -3px #075985; }
+.product-maker__steps button:disabled { opacity: .48; }
+.product-maker__options { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: .2rem; }
+.product-maker__options fieldset { min-width: 0; margin: 0; padding: .45rem; border: 1px solid #d2c9bb; border-radius: .45rem; }
+.product-maker__options legend { padding: 0 .25rem; font-weight: 800; }
+.product-maker__choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem; }
+.product-maker__choice { position: relative; min-width: 0; min-height: 88px; padding: .45rem; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: .3rem; align-items: center; border: 2px solid #d5cec3; border-radius: .5rem; background: #fff; color: #1d2430; cursor: pointer; font-size: .76rem; font-weight: 750; line-height: 1.2; text-align: center; }
+.product-maker__choice:has(input:checked) { border-color: #075985; background: #e0f2fe; box-shadow: 0 0 0 2px rgb(7 89 133 / .16); }
+.product-maker__choice input[type="radio"] { position: absolute; top: .25rem; right: .25rem; width: 1.15rem; min-height: 1.15rem; margin: 0; accent-color: #075985; }
+.product-maker__choice img { display: block; width: 100%; height: 72px; object-fit: contain; border-radius: .25rem; background: #f4f1ea; }
+.product-maker__swatches { height: 60px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: hidden; border: 1px solid #cbd5e1; border-radius: .3rem; }
+.product-maker__swatches > span { min-width: 0; }
+.product-maker__art-colour { margin-top: .6rem; display: grid; grid-template-columns: 1fr 58px; align-items: center; gap: .5rem; font-weight: 750; }
+.product-maker__art-colour input { width: 58px; padding: 3px; }
+.product-maker__add { width: 100%; border: 0; border-radius: .45rem; background: #075985; color: #fff; font-weight: 800; }
+.product-maker__add:disabled { background: #94a3b8; }
 .creator__library > label { display: grid; gap: .25rem; font-weight: 650; }
 .creator__live-photos { grid-template-columns: auto 1fr; align-items: center; font-weight: 500 !important; }
 .creator__live-photos input { min-height: 1.25rem; width: 1.25rem; }
@@ -28,3 +46,4 @@ button, input { min-height: 44px; }
 :focus-visible { outline: 3px solid #075985; outline-offset: 3px; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+@media (max-height: 820px) { .creator__product-builder { max-height: 48vh; } }

@@ -10,8 +10,8 @@ describe("createEditorShell", () => {
 
     expect(getByRole(root, "searchbox", { name: "Search assets" })).toBeTruthy();
     expect(getByRole(root, "region", { name: "Product builder" })).toBeTruthy();
-    expect(getByRole(root, "combobox", { name: "Product shell" })).toBeTruthy();
-    expect(getByRole(root, "button", { name: "Add product shell" })).toBeTruthy();
+    expect(shell.productBuilderPanel.dataset.productBuilderPanel).toBe("");
+    expect(root.querySelector('[data-product-shell-select]')).toBeNull();
     const livePhotos = getByRole<HTMLInputElement>(root, "checkbox", { name: "Use live photos" });
     expect(livePhotos.checked).toBe(false);
     expect(shell.libraryResults.dataset.libraryResults).toBe("");
@@ -24,5 +24,6 @@ describe("createEditorShell", () => {
     ]);
     expect(shell.polite.getAttribute("aria-live")).toBe("polite");
     expect(shell.assertive.getAttribute("aria-live")).toBe("assertive");
+    expect(root.textContent).not.toMatch(/\b(?:assignment|unit|task)\b/i);
   });
 });

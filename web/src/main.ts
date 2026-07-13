@@ -21,12 +21,14 @@ import {
 import { loadOfflineCatalogue } from "./catalogue/catalogue-store";
 import type { CatalogAssetV1 } from "./catalogue/catalogue-types";
 import { OpenverseClient } from "./catalogue/openverse-client";
-import {
-  loadProductShellCatalogue,
-  type ProductShellRecord
-} from "./product-shells/product-shell-catalogue";
-import { ProductShellPicker } from "./product-shells/product-shell-picker";
 import { ProductShellRegionControls } from "./product-shells/product-shell-region-controls";
+import { loadProductBuilderCatalogue } from "./product-builder/product-builder-catalogue";
+import { ProductBuilderPanel } from "./product-builder/product-builder-panel";
+import type { ProductArtwork } from "./product-builder/product-svg-composer";
+import {
+  createVirtualProductVariantResolver,
+  type ResolvedProductVariant
+} from "./product-builder/virtual-product-variant";
 import type { FabricCanvasAdapter } from "./fabric/fabric-canvas-adapter";
 import {
   canonicalDurableDocumentHash,
@@ -127,6 +129,9 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
       onProductShellPlaced: (objectId, productShell) => {
         this.#showProductShellRegions(objectId, productShell.title, productShell.regions);
       },
+      onProductVariantPlaced: (_objectId, product) => {
+        this.#showProductVariantSummary(`${product.paletteTitle} ${product.bodyTitle}`);
+      },
       onError: (error) => { this.shell.assertive.textContent = error.message; }
     });
   }
@@ -135,8 +140,11 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
     this.#placements.enqueue(asset);
   }
 
-  queueProductShellPlacement(shell: ProductShellRecord, packId: string): void {
-    this.#placements.enqueueProductShell(shell, packId);
+  queueProductVariantPlacement(
+    product: ResolvedProductVariant,
+    artwork?: ProductArtwork
+  ): void {
+    this.#placements.enqueueProductVariant(product, artwork);
   }
 
   async open(value: CampaignDocumentV1): Promise<void> {
@@ -318,11 +326,27 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
     });
   }
 
+  #showProductVariantSummary(title: string): void {
+    const heading = document.createElement("h2");
+    heading.textContent = title;
+    const guidance = document.createElement("p");
+    guidance.textContent = "Choose new colours in the product maker to change this look.";
+    this.shell.inspector.replaceChildren(heading, guidance);
+  }
+
   #restoreProductShellRegions(document: CampaignDocumentV1): void {
     const object = [...document.fabricState.objects].reverse().find((candidate) =>
       candidate.elementKind === "product-shell" && typeof candidate.shellId === "string");
     if (!object || typeof object.objectId !== "string") {
       this.#productShellRegions.clear();
+      return;
+    }
+    const isProductVariant = document.assetReferences.some((reference) =>
+      reference.kind === "product-builder-variant" && reference.objectId === object.objectId);
+    if (isProductVariant) {
+      this.#showProductVariantSummary(
+        typeof object.accessibleName === "string" ? object.accessibleName : "Product look"
+      );
       return;
     }
     const colours = this.#runtime?.adapter.getProductShellRegionColours(object.objectId) ?? {};
@@ -382,20 +406,20 @@ const catalogueRuntime = new CatalogueRuntime({
   renderer: cataloguePanel,
   client: livePhotos
 });
-const productShellPicker = new ProductShellPicker({
-  select: shell.productShellSelect,
-  preview: shell.productShellPreview,
-  button: shell.productShellAdd,
-  status: shell.productShellStatus
-}, (productShell, packId) => {
-  handler.queueProductShellPlacement(productShell, packId);
-});
+const productBuilderPanel = new ProductBuilderPanel(
+  shell.productBuilderPanel,
+  (product, artwork) => handler.queueProductVariantPlacement(product, artwork)
+);
+productBuilderPanel.unavailable();
 void loadOfflineCatalogue(root.dataset.offlineCatalogueUrl).then((core) => {
   catalogueRuntime.replaceCore(core);
 });
-void loadProductShellCatalogue(root.dataset.productShellCatalogueUrl).then((catalogue) => {
-  if (catalogue) productShellPicker.render(catalogue);
-  else shell.productShellStatus.textContent = "Product shells unavailable";
+void loadProductBuilderCatalogue(root.dataset.productBuilderCatalogueUrl).then((catalogue) => {
+  if (!catalogue) {
+    productBuilderPanel.unavailable();
+    return;
+  }
+  productBuilderPanel.render(catalogue, createVirtualProductVariantResolver(catalogue));
 });
 
 root.querySelector<HTMLButtonElement>('[data-command="return"]')

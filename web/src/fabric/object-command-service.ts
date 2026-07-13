@@ -1,5 +1,6 @@
 import type {
   CanvasPort,
+  NewProductVariantInput,
   NewProductShellInput,
   ObjectTransform,
   ShapeKind,
@@ -19,6 +20,7 @@ export interface AddRasterCommand {
 }
 
 export type AddProductShellCommand = Omit<NewProductShellInput, "id">;
+export type AddProductVariantCommand = Omit<NewProductVariantInput, "id">;
 
 type IdFactory = () => string;
 
@@ -73,6 +75,13 @@ export class ObjectCommandService {
       svg: this.#required(input.svg, "shell SVG"),
       accessibleName: this.#required(input.accessibleName, "accessible name")
     });
+    this.port.setSelected(id);
+    return id;
+  }
+
+  async addProductVariant(input: AddProductVariantCommand): Promise<string> {
+    const id = this.#nextId();
+    await this.port.addProductVariant({ id, ...input });
     this.port.setSelected(id);
     return id;
   }

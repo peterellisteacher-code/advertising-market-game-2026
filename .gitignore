@@ -19,6 +19,8 @@ catalog/reports/*
 !catalog/generated/product-shell-style-audition-v1/**
 !catalog/reports/product-shell-style-audition-v1/
 !catalog/reports/product-shell-style-audition-v1/**
+!catalog/reports/magnific-stock-recon/
+!catalog/reports/magnific-stock-recon/**
 __pycache__/
 .pytest_cache/
 

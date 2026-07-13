@@ -12,6 +12,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
   verifyOfflineCoreDirectory,
+  verifyProductBuilderDirectory,
   verifyProductShellDirectory
 } from "./verify-web-export.mjs";
 
@@ -25,6 +26,12 @@ const PRODUCT_SHELL_RELATIVE = path.join(
   "generated",
   "product-shells-v1-reviewed",
   "catalog.json"
+);
+const PRODUCT_BUILDER_RELATIVE = path.join(
+  "catalog",
+  "generated",
+  "product-builder-pilot-v1",
+  "catalogue.json"
 );
 
 function removeStudioTags(html) {
@@ -91,6 +98,11 @@ export function injectProductShellCatalogueUrl(html, catalogueUrl) {
   return injectCreatorRootCatalogueUrl(html, catalogueUrl, "data-product-shell-catalogue-url");
 }
 
+/** Adds only the local combinatorial-builder URL and removes any stale prior value. */
+export function injectProductBuilderCatalogueUrl(html, catalogueUrl) {
+  return injectCreatorRootCatalogueUrl(html, catalogueUrl, "data-product-builder-catalogue-url");
+}
+
 async function requireFile(filePath, label) {
   try {
     await access(filePath);
@@ -138,6 +150,7 @@ export async function assembleWebExport({
   root = DEFAULT_ROOT,
   requireOfflineCore = false,
   requireProductShells = false,
+  requireProductBuilder = false,
   log = console.log
 } = {}) {
   const studioDir = path.join(root, "build", "studio");
@@ -176,12 +189,28 @@ export async function assembleWebExport({
     }
   }
 
-  const assembledHtml = injectProductShellCatalogueUrl(
-    injectOfflineCatalogueUrl(
-      injectStudioAssets(exportedHtml),
-      hasOfflineCore ? `/${offlineRelative.replaceAll(path.sep, "/")}` : undefined
+  const productBuilderSource = path.join(root, PRODUCT_BUILDER_RELATIVE);
+  let hasProductBuilder = false;
+  try {
+    await access(productBuilderSource);
+    hasProductBuilder = true;
+    await verifyProductBuilderDirectory(path.dirname(productBuilderSource));
+  } catch (error) {
+    if (hasProductBuilder) throw error;
+    if (requireProductBuilder) {
+      throw new Error(`Required product builder catalogue is absent: ${PRODUCT_BUILDER_RELATIVE}`);
+    }
+  }
+
+  const assembledHtml = injectProductBuilderCatalogueUrl(
+    injectProductShellCatalogueUrl(
+      injectOfflineCatalogueUrl(
+        injectStudioAssets(exportedHtml),
+        hasOfflineCore ? `/${offlineRelative.replaceAll(path.sep, "/")}` : undefined
+      ),
+      hasProductShells ? `/${PRODUCT_SHELL_RELATIVE.replaceAll(path.sep, "/")}` : undefined
     ),
-    hasProductShells ? `/${PRODUCT_SHELL_RELATIVE.replaceAll(path.sep, "/")}` : undefined
+    hasProductBuilder ? `/${PRODUCT_BUILDER_RELATIVE.replaceAll(path.sep, "/")}` : undefined
   );
   assertResolvedGodotShell(assembledHtml);
 
@@ -212,17 +241,27 @@ export async function assembleWebExport({
     log(`PRODUCT_SHELLS_DEFERRED ${PRODUCT_SHELL_RELATIVE.replaceAll(path.sep, "/")}`);
   }
 
+  if (hasProductBuilder) {
+    const productBuilderSourceRoot = path.dirname(productBuilderSource);
+    const productBuilderDestinationRoot = path.join(webDir, path.dirname(PRODUCT_BUILDER_RELATIVE));
+    await copyVerifiedTree(productBuilderSourceRoot, productBuilderDestinationRoot);
+    log(`PRODUCT_BUILDER_COPIED ${path.dirname(PRODUCT_BUILDER_RELATIVE).replaceAll(path.sep, "/")}`);
+  } else {
+    log(`PRODUCT_BUILDER_DEFERRED ${PRODUCT_BUILDER_RELATIVE.replaceAll(path.sep, "/")}`);
+  }
+
   log("WEB_EXPORT_ASSEMBLED_NON_DESTRUCTIVE");
   return { webDir, indexPath };
 }
 
 async function main() {
-  const known = new Set(["--require-offline-core", "--require-product-shells"]);
+  const known = new Set(["--require-offline-core", "--require-product-shells", "--require-product-builder"]);
   const unknown = process.argv.slice(2).filter((argument) => !known.has(argument));
   if (unknown.length > 0) throw new Error(`Unknown argument: ${unknown[0]}`);
   await assembleWebExport({
     requireOfflineCore: process.argv.includes("--require-offline-core"),
-    requireProductShells: process.argv.includes("--require-product-shells")
+    requireProductShells: process.argv.includes("--require-product-shells"),
+    requireProductBuilder: process.argv.includes("--require-product-builder")
   });
 }
 

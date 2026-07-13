@@ -16,6 +16,8 @@ const REQUIRED_FILES = [
   "studio/studio.js"
 ];
 const PRODUCT_SHELL_PREFIX = "catalog/generated/product-shells-v1-reviewed";
+const PRODUCT_BUILDER_PREFIX = "catalog/generated/product-builder-pilot-v1";
+const PORTABLE_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 function asText(value) {
   return typeof value === "string" ? value : Buffer.isBuffer(value) ? value.toString("utf8") : "";
@@ -131,6 +133,225 @@ function verifyProductShellMetadata(html, files, errors) {
   }
 }
 
+function isRecord(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function collectUniqueIds(records, label, errors) {
+  const ids = new Set();
+  for (const [index, record] of records.entries()) {
+    if (!isRecord(record) || typeof record.id !== "string" ||
+      !PORTABLE_ID.test(record.id) || ids.has(record.id)) {
+      errors.push(`product builder catalogue has an invalid or duplicate ${label} id at record ${index}`);
+      continue;
+    }
+    ids.add(record.id);
+  }
+  return ids;
+}
+
+function verifyProductBuilderCatalogue(files, errors) {
+  const cataloguePath = `${PRODUCT_BUILDER_PREFIX}/catalogue.json`;
+  if (!files.has(cataloguePath)) return;
+  let catalogue;
+  try {
+    catalogue = JSON.parse(asText(files.get(cataloguePath)));
+  } catch {
+    errors.push("product builder catalogue JSON is malformed");
+    return;
+  }
+  if (!isRecord(catalogue) || catalogue.schema !== "product-builder-catalogue@1" ||
+    catalogue.version !== 1 || catalogue.packId !== "product-builder-pilot-v1") {
+    errors.push("product builder catalogue has an invalid schema, version, or pack ID");
+    return;
+  }
+
+  const fixedCounts = [
+    ["families", 3],
+    ["bodies", 12],
+    ["parts", 12],
+    ["palettes", 16],
+    ["materials", 8]
+  ];
+  for (const [field, expected] of fixedCounts) {
+    if (!Array.isArray(catalogue[field]) || catalogue[field].length !== expected) {
+      errors.push(`product builder catalogue must contain exactly ${expected} ${field}`);
+    }
+  }
+  if (fixedCounts.some(([field]) => !Array.isArray(catalogue[field]))) return;
+  if (catalogue.virtualCount !== 6144) {
+    errors.push("product builder catalogue virtualCount must equal 6144");
+  }
+
+  const familyIds = collectUniqueIds(catalogue.families, "family", errors);
+  const bodyIds = collectUniqueIds(catalogue.bodies, "body", errors);
+  const partIds = collectUniqueIds(catalogue.parts, "part", errors);
+  collectUniqueIds(catalogue.palettes, "palette", errors);
+  collectUniqueIds(catalogue.materials, "material", errors);
+
+  const families = new Map();
+  for (const family of catalogue.families) {
+    if (!isRecord(family) || !familyIds.has(family.id) ||
+      typeof family.componentSlotId !== "string" || !PORTABLE_ID.test(family.componentSlotId)) {
+      errors.push("product builder catalogue has an invalid family slot");
+      continue;
+    }
+    families.set(family.id, family);
+  }
+
+  const partsByFamily = new Map([...familyIds].map((id) => [id, []]));
+  for (const [index, part] of catalogue.parts.entries()) {
+    if (!isRecord(part) || !partIds.has(part.id)) continue;
+    const family = families.get(part.familyId);
+    if (!family || part.slotId !== family.componentSlotId) {
+      errors.push(`product builder catalogue part ${index} has an incompatible family or slot`);
+      continue;
+    }
+    const expectedPath = `components/${part.id}.svg`;
+    if (part.componentSvg !== expectedPath) {
+      errors.push(`product builder catalogue part ${index} has a noncanonical componentSvg`);
+    } else if (!files.has(`${PRODUCT_BUILDER_PREFIX}/${expectedPath}`)) {
+      errors.push(`product builder catalogue references missing file: ${expectedPath}`);
+    }
+    partsByFamily.get(part.familyId)?.push(part);
+  }
+
+  const bodiesByFamily = new Map([...familyIds].map((id) => [id, []]));
+  for (const [index, body] of catalogue.bodies.entries()) {
+    if (!isRecord(body) || !bodyIds.has(body.id)) continue;
+    const family = families.get(body.familyId);
+    if (!family || body.componentSlotId !== family.componentSlotId) {
+      errors.push(`product builder catalogue body ${index} has an incompatible family or slot`);
+    } else {
+      bodiesByFamily.get(body.familyId)?.push(body);
+    }
+    for (const [field, fileName] of [["authoringSvg", "authoring.svg"], ["previewSvg", "preview.svg"]]) {
+      const expectedPath = `bodies/${body.id}/${fileName}`;
+      if (body[field] !== expectedPath) {
+        errors.push(`product builder catalogue body ${index} has a noncanonical ${field}`);
+      } else if (!files.has(`${PRODUCT_BUILDER_PREFIX}/${expectedPath}`)) {
+        errors.push(`product builder catalogue references missing file: ${expectedPath}`);
+      }
+    }
+  }
+
+  for (const familyId of familyIds) {
+    const familyParts = partsByFamily.get(familyId) ?? [];
+    const familyBodies = bodiesByFamily.get(familyId) ?? [];
+    if (familyParts.length !== 4 || familyBodies.length !== 4) {
+      errors.push(`product builder catalogue family ${familyId} must bind four bodies and four parts`);
+    }
+    const expectedPartIds = new Set(familyParts.map((part) => part.id));
+    for (const body of familyBodies) {
+      const compatible = Array.isArray(body.compatiblePartIds) ? body.compatiblePartIds : [];
+      const compatibleIds = new Set(compatible);
+      if (compatible.length !== 4 || compatibleIds.size !== 4 ||
+        [...expectedPartIds].some((id) => !compatibleIds.has(id)) ||
+        [...compatibleIds].some((id) => !expectedPartIds.has(id))) {
+        errors.push(`product builder catalogue body ${body.id} has an incompatible part graph`);
+      }
+    }
+  }
+
+  const computedVirtualCount = catalogue.bodies.reduce((total, body) =>
+    total + (Array.isArray(body?.compatiblePartIds) ? body.compatiblePartIds.length : 0) *
+      catalogue.palettes.length * catalogue.materials.length, 0);
+  if (computedVirtualCount !== 6144 || catalogue.virtualCount !== computedVirtualCount) {
+    errors.push("product builder catalogue count graph does not resolve exactly 6144 variants");
+  }
+}
+
+function verifyProductBuilderQa(files, errors) {
+  const qaPath = `${PRODUCT_BUILDER_PREFIX}/qa.json`;
+  const sourcePath = `${PRODUCT_BUILDER_PREFIX}/source.json`;
+  if (!files.has(qaPath)) {
+    errors.push("missing product builder QA record: qa.json");
+    return;
+  }
+  if (!files.has(sourcePath)) errors.push("missing product builder source snapshot: source.json");
+
+  let qa;
+  try {
+    qa = JSON.parse(asText(files.get(qaPath)));
+  } catch {
+    errors.push("product builder QA JSON is malformed");
+    return;
+  }
+  if (isRecord(qa?.sha256) && Object.hasOwn(qa.sha256, "qa.json")) {
+    errors.push("product builder QA must not hash qa.json");
+  }
+  if (!isRecord(qa) || qa.schema !== "product-builder-qa@1" ||
+    qa.packId !== "product-builder-pilot-v1" || qa.bodyCount !== 12 ||
+    qa.componentCount !== 12 || qa.renderedSvgCount !== 36 ||
+    qa.virtualCount !== 6144 || qa.fileCount !== 39 || !isRecord(qa.sha256)) {
+    errors.push("product builder QA record has invalid metadata or counts");
+    return;
+  }
+
+  let catalogue;
+  try {
+    catalogue = JSON.parse(asText(files.get(`${PRODUCT_BUILDER_PREFIX}/catalogue.json`)));
+  } catch {
+    return;
+  }
+  if (!isRecord(catalogue) || !Array.isArray(catalogue.bodies) || !Array.isArray(catalogue.parts)) return;
+  const expectedRelativePaths = [
+    "catalogue.json",
+    "source.json",
+    ...catalogue.bodies.flatMap((body) => [body.authoringSvg, body.previewSvg]),
+    ...catalogue.parts.map((part) => part.componentSvg)
+  ];
+  const expected = new Set(expectedRelativePaths);
+  if (expected.size !== 38) {
+    errors.push("product builder QA must cover exactly 38 declared non-self files");
+    return;
+  }
+  for (const relative of Object.keys(qa.sha256)) {
+    if (!expected.has(relative)) {
+      errors.push(`product builder QA hashes an unknown or self file: ${relative}`);
+    }
+  }
+  for (const relative of expectedRelativePaths) {
+    const declared = qa.sha256[relative];
+    if (typeof declared !== "string" || !/^[0-9a-f]{64}$/.test(declared)) {
+      errors.push(`product builder QA has no valid hash for: ${relative}`);
+      continue;
+    }
+    const value = files.get(`${PRODUCT_BUILDER_PREFIX}/${relative}`);
+    if (value === undefined) continue;
+    const bytes = Buffer.isBuffer(value) ? value : Buffer.from(String(value));
+    const actual = createHash("sha256").update(bytes).digest("hex");
+    if (actual !== declared) {
+      errors.push(`product builder QA hash mismatch: ${relative}`);
+    }
+  }
+}
+
+function verifyProductBuilderMetadata(html, files, errors) {
+  const cataloguePath = `${PRODUCT_BUILDER_PREFIX}/catalogue.json`;
+  const attributePattern = /\bdata-product-builder-catalogue-url\s*=\s*["'][^"']*["']/gi;
+  const attributes = html.match(attributePattern) ?? [];
+  if (!files.has(cataloguePath)) {
+    if (attributes.length > 0) {
+      errors.push("index.html references an absent product builder catalogue");
+    }
+    return;
+  }
+
+  const expected = `data-product-builder-catalogue-url="/${cataloguePath}"`;
+  if (attributes.length !== 1) {
+    errors.push("index.html must reference the product builder catalogue exactly once");
+    return;
+  }
+  if (attributes[0] !== expected) {
+    errors.push("index.html must use the canonical product builder catalogue URL");
+  }
+  const creatorRoot = html.match(/<[a-z][^>]*\bid\s*=\s*["']creator-root["'][^>]*>/i)?.[0] ?? "";
+  if (!creatorRoot.includes(expected)) {
+    errors.push("product builder catalogue metadata must be on #creator-root");
+  }
+}
+
 /** Verifies a complete offline-core directory without requiring a Godot shell. */
 export async function verifyOfflineCoreDirectory(directory) {
   const prefix = "catalog/generated/offline-core-v1";
@@ -156,6 +377,21 @@ export async function verifyProductShellDirectory(directory) {
   verifyProductShellCatalogue(files, errors);
   if (errors.length > 0) {
     throw new Error(`Product shell verification failed:\n- ${errors.join("\n- ")}`);
+  }
+  return files;
+}
+
+/** Verifies the complete product-builder pilot without requiring a Godot shell. */
+export async function verifyProductBuilderDirectory(directory) {
+  const files = await readTreeIfPresent(directory, PRODUCT_BUILDER_PREFIX);
+  if (!files.has(`${PRODUCT_BUILDER_PREFIX}/catalogue.json`)) {
+    throw new Error("Product builder verification failed:\n- missing product builder catalogue: catalogue.json");
+  }
+  const errors = [];
+  verifyProductBuilderCatalogue(files, errors);
+  verifyProductBuilderQa(files, errors);
+  if (errors.length > 0) {
+    throw new Error(`Product builder verification failed:\n- ${errors.join("\n- ")}`);
   }
   return files;
 }
@@ -207,6 +443,11 @@ export function inspectExportContents({ files, pckHash }) {
   verifyOfflineCatalogue(files, errors);
   verifyProductShellCatalogue(files, errors);
   verifyProductShellMetadata(html, files, errors);
+  if (files.has(`${PRODUCT_BUILDER_PREFIX}/catalogue.json`)) {
+    verifyProductBuilderCatalogue(files, errors);
+    verifyProductBuilderQa(files, errors);
+  }
+  verifyProductBuilderMetadata(html, files, errors);
 
   if (pckHash === STALE_SPIKE_PCK_HASH) warnings.push("PCK_STALE_SPIKE_EXPORT");
   if (errors.length > 0) {

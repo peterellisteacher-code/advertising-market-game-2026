@@ -151,6 +151,40 @@ Commit: `feat: resolve virtual product variants lazily`
 
 ---
 
+## Task 3B: Ship and Verify the Pilot Pack in the Web Export
+
+**Files**
+
+- Modify: `scripts/build-web.mjs`
+- Modify: `scripts/build-web.test.mjs`
+- Modify: `scripts/verify-web-export.mjs`
+- Modify: `package.json`
+
+### Step 1: Write failing export-contract tests
+
+Require:
+
+- one exact local `data-product-builder-catalogue-url` on `#creator-root`;
+- recursive non-destructive copying of `product-builder-pilot-v1`;
+- rejection of missing body or component SVGs, unsafe paths, duplicate IDs and catalogue count drift;
+- `--require-product-builder` to fail closed when the reviewed pilot pack is absent;
+- static export verification to reject metadata that names an absent pack.
+
+### Step 2: Implement the dedicated copy and verification path
+
+Keep the product-builder path separate from the older product-shell pack. Verify the source tree before copying it, preserve the relative paths declared in `catalogue.json`, and inject only the canonical same-origin catalogue URL.
+
+### Step 3: Verify and commit
+
+```powershell
+node --test scripts/build-web.test.mjs scripts/godot-bridge-contract.test.mjs
+pnpm run typecheck
+```
+
+Commit: `feat: ship product builder pilot in web export`
+
+---
+
 ## Task 4: Compose Parts, Palettes and Materials Safely
 
 **Files**
@@ -246,6 +280,8 @@ Commit: `feat: add visual product builder pilot`
 pnpm run build
 pipeline\.venv\Scripts\python.exe -m pytest pipeline/tests -q
 ```
+
+The production build must require and verify the product-builder pilot pack; a parser-only success is not a browser-shipping success.
 
 ### Step 2: Playtest in Chromium
 

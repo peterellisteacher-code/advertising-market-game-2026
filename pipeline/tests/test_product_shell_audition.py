@@ -18,6 +18,7 @@ from asset_pipeline.product_shell_audition import (
 )
 from asset_pipeline.product_shell_art import (
     GEOMETRY_BUILDERS,
+    GUIDE,
     artwork_surface_for,
     flat_skin_geometry_for,
     render_audition_svg,
@@ -251,12 +252,55 @@ def test_audition_views_use_the_exact_cel_shaded_style_and_guide_contract() -> N
         assert 'data-tone="highlight"' in preview
         assert 'data-guide-overlay' not in preview
         assert 'data-print-area' not in preview
-        assert 'data-guide-overlay="true" visibility="hidden"' in authoring
-        assert 'data-guide-overlay="true" visibility="visible"' in review
-        assert 'data-guide-overlay="true" visibility="visible" opacity="0.52"' in review
+        assert 'data-guide-overlay="true"' in authoring
+        assert 'visibility="hidden"' in authoring
+        assert 'data-guide-overlay="true"' in review
+        assert 'visibility="visible"' in review
         assert "stroke-dasharray" not in authoring + preview + review
         assert 'data-artwork-surface="primary"' in authoring
         assert 'clip-path="url(#' in preview
+
+
+def test_review_selection_uses_high_contrast_exact_surface_outline() -> None:
+    for prototype in load_audition_source(MANIFEST_PATH).prototypes:
+        authoring = ET.fromstring(render_audition_svg(prototype, view="authoring"))
+        preview = ET.fromstring(render_audition_svg(prototype, view="preview"))
+        review = ET.fromstring(render_audition_svg(prototype, view="review"))
+
+        review_guides = review.findall(".//*[@data-guide-overlay='true']")
+        assert len(review_guides) == 1
+        assert review_guides[0].get("visibility") == "visible"
+        assert review_guides[0].get("opacity") is None
+        assert review_guides[0].get("data-editor-only") == "true"
+        assert review_guides[0].get("data-export") == "false"
+
+        outlines = review.findall(".//*[@data-selection-outline='primary']")
+        assert len(outlines) == 1
+        artwork_surface = review.find(".//*[@data-artwork-surface='primary']")
+        assert artwork_surface is not None
+        assert outlines[0].get("d") == artwork_surface.get("d")
+        assert outlines[0].get("stroke") == GUIDE
+        assert float(outlines[0].get("stroke-width", "0")) >= 5
+
+        tint = review.find(".//*[@data-print-area='primary']")
+        assert tint is not None
+        assert 0.12 <= float(tint.get("fill-opacity", "0")) <= 0.18
+        corners = review.find(".//*[@data-corner-guides='true']")
+        assert corners is not None
+        assert float(corners.get("stroke-width", "0")) >= 5
+
+        authoring_guides = authoring.find(".//*[@data-guide-overlay='true']")
+        assert authoring_guides is not None
+        assert authoring_guides.get("visibility") == "hidden"
+        assert preview.find(".//*[@data-guide-overlay='true']") is None
+        assert preview.find(".//*[@data-print-area='primary']") is None
+        assert preview.find(".//*[@data-selection-outline='primary']") is None
+
+        combined = "".join(
+            render_audition_svg(prototype, view=view)
+            for view in ("authoring", "preview", "review")
+        )
+        assert "stroke-dasharray" not in combined
 
 
 def test_artwork_slots_use_prototype_prefixed_exact_clip_paths() -> None:
@@ -350,7 +394,7 @@ def test_editable_face_bounds_clear_family_coverage_floors() -> None:
         "trainer": 0.55,
         "smartphone": 0.55,
         "headphones": 0.55,
-        "food-truck": 0.35,
+        "food-truck": 0.12,
         "garden-tool": 0.35,
         "aquarium": 0.35,
         "pet-shop": 0.35,
@@ -423,6 +467,39 @@ def test_revised_direct_surface_bounds_are_large_and_product_specific() -> None:
         _, _, width, height = artwork_surface_for(archetype).bounds
         assert width >= minimum_width
         assert height >= minimum_height
+
+
+def test_food_truck_primary_target_is_uninterrupted_lower_side_panel() -> None:
+    surface = artwork_surface_for("food-truck")
+    x, y, width, height = surface.bounds
+    assert width >= 500
+    assert height >= 110
+    assert y >= 565
+    assert y + height <= 690
+    assert x + width < 720
+
+    review = ET.fromstring(render_audition_svg(_prototype("food-truck"), "review"))
+    outline = review.find(".//*[@data-selection-outline='primary']")
+    assert outline is not None
+    assert outline.get("d") == surface.path
+
+    preview = ET.fromstring(render_audition_svg(_prototype("food-truck"), "preview"))
+    detail_layer = preview.find(".//*[@data-detail-layer='true']")
+    assert detail_layer is not None
+    window_bars = [
+        path
+        for path in detail_layer.findall("./{*}path")
+        if "M270 345V535" in path.get("d", "")
+    ]
+    assert len(window_bars) == 1
+    assert window_bars[0].get("d", "").count("V535") == 6
+    service_sill = [
+        path
+        for path in detail_layer.findall("./{*}path")
+        if path.get("d", "").startswith("M245 535H635")
+    ]
+    assert len(service_sill) == 1
+    assert y >= 565
 
 
 def test_trainer_uses_six_or_more_separate_solid_laces() -> None:

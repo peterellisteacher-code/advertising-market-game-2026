@@ -353,7 +353,7 @@ def _headphones() -> ArtGeometry:
 def _food_truck() -> ArtGeometry:
     side_path = "M120 300H720L760 355V750H120Z"
     front_path = "M720 300L890 395V720L760 750V355Z"
-    surface_path = "M170 430H690L710 710L190 740Z"
+    surface_path = "M190 565H690L700 685H200Z"
     return ArtGeometry(
         product_bounds=(80, 270, 840, 560),
         regions={
@@ -379,7 +379,7 @@ def _food_truck() -> ArtGeometry:
         ),
         shadow_plane=front_path,
         highlight_plane="M145 325H205V700H145Z",
-        surface=ArtworkSurface(surface_path, (170, 430, 540, 310)),
+        surface=ArtworkSurface(surface_path, (190, 565, 510, 120)),
     )
 
 
@@ -706,14 +706,17 @@ def _guide_overlay(view: View, surface: ArtworkSurface) -> str:
     if view == "preview":
         return ""
     visibility = "hidden" if view == "authoring" else "visible"
-    opacity = "" if view == "authoring" else ' opacity="0.52"'
     x, y, width, height = surface.bounds
     return (
-        f'<g data-guide-overlay="true" visibility="{visibility}"{opacity}>'
+        f'<g data-guide-overlay="true" data-selection-chrome="true" '
+        f'data-editor-only="true" data-export="false" visibility="{visibility}">'
         f'<path data-print-area="primary" d="{surface.path}" fill="{GUIDE}" '
-        'fill-opacity="0.10" stroke="none"/>'
+        'fill-opacity="0.15" stroke="none"/>'
+        f'<path data-selection-outline="primary" d="{surface.path}" fill="none" '
+        f'stroke="{GUIDE}" stroke-width="{OUTER_STROKE}" '
+        'stroke-linecap="round" stroke-linejoin="round"/>'
         f'<g data-corner-guides="true" fill="none" stroke="{GUIDE}" '
-        f'stroke-width="{DETAIL_STROKE}" stroke-linecap="round" '
+        f'stroke-width="{OUTER_STROKE}" stroke-linecap="round" '
         f'stroke-linejoin="round">{_corner_guides(x, y, width, height)}</g>'
         "</g>"
     )

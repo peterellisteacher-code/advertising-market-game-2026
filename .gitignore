@@ -15,6 +15,10 @@ catalog/generated/*
 catalog/reports/*
 !catalog/reports/creator-foundation-100/
 !catalog/reports/creator-foundation-100/**
+!catalog/generated/product-shell-style-audition-v1/
+!catalog/generated/product-shell-style-audition-v1/**
+!catalog/reports/product-shell-style-audition-v1/
+!catalog/reports/product-shell-style-audition-v1/**
 __pycache__/
 .pytest_cache/
 

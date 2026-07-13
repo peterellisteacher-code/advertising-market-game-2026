@@ -124,6 +124,19 @@ def _require_empty(path: Path, label: str) -> None:
         raise ProductShellAuditionError(f"{label} must be absent or empty")
 
 
+def _require_disjoint_targets(output_dir: Path, report_dir: Path) -> None:
+    resolved_output = output_dir.resolve(strict=False)
+    resolved_report = report_dir.resolve(strict=False)
+    if (
+        resolved_output == resolved_report
+        or resolved_output.is_relative_to(resolved_report)
+        or resolved_report.is_relative_to(resolved_output)
+    ):
+        raise ProductShellAuditionError(
+            "audition output and report directories must not overlap"
+        )
+
+
 def _canonical_json(value: object) -> bytes:
     return (
         json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
@@ -207,6 +220,7 @@ def build_product_shell_audition(
     source_path = Path(source_path)
     output_dir = Path(output_dir)
     report_dir = Path(report_dir)
+    _require_disjoint_targets(output_dir, report_dir)
     _require_empty(output_dir, "audition output directory")
     _require_empty(report_dir, "audition report directory")
 

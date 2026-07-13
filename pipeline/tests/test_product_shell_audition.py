@@ -494,6 +494,35 @@ def test_audition_contact_sheet_is_self_contained_four_by_three_evidence(
         assert label in contact_sheet
 
 
+@pytest.mark.parametrize(
+    ("output_relative", "report_relative"),
+    [
+        ("alias/../shared", "shared"),
+        ("report/alias/../nested-output", "report"),
+        ("output", "output/alias/../nested-report"),
+    ],
+    ids=["equal", "output-under-report", "report-under-output"],
+)
+def test_audition_build_rejects_resolved_overlapping_targets_before_any_write(
+    tmp_path: Path, output_relative: str, report_relative: str
+) -> None:
+    output_dir = tmp_path / output_relative
+    report_dir = tmp_path / report_relative
+    assert not output_dir.exists()
+    assert not report_dir.exists()
+
+    with pytest.raises(
+        ProductShellAuditionError,
+        match="audition output and report directories must not overlap",
+    ):
+        audition_module.build_product_shell_audition(
+            MANIFEST_PATH, output_dir, report_dir
+        )
+
+    assert not output_dir.exists()
+    assert not report_dir.exists()
+
+
 @pytest.mark.parametrize("occupied", ["output", "report"])
 def test_audition_build_rejects_non_empty_target_before_any_write(
     tmp_path: Path, occupied: str

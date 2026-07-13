@@ -577,10 +577,29 @@ def test_audition_contact_sheet_is_self_contained_four_by_three_evidence(
     assert "@import" not in contact_sheet.lower()
     assert "stroke-dasharray" not in contact_sheet.lower()
     assert "blue" not in contact_sheet.lower()
-    for prototype in load_audition_source(MANIFEST_PATH).prototypes:
-        assert prototype.title in contact_sheet
-        label = "Flat skin" if prototype.authoring_mode == "flat-skin" else "Direct surface"
-        assert label in contact_sheet
+    prototypes = sorted(
+        load_audition_source(MANIFEST_PATH).prototypes,
+        key=lambda prototype: prototype.id,
+    )
+    cards = contact_sheet.split('<article class="prototype-card">')[1:]
+    assert len(cards) == len(prototypes) == 12
+    for prototype, card in zip(prototypes, cards, strict=True):
+        assert f"<h2>{prototype.title}</h2>" in card
+        label = (
+            "Flat skin"
+            if prototype.authoring_mode == "flat-skin"
+            else "Direct surface"
+        )
+        assert f"<p>{label}</p>" in card
+        assert card.count("<figcaption>") == 2
+        if prototype.authoring_mode == "flat-skin":
+            preview_caption = "Mapped product preview"
+            review_caption = "Editable product skin"
+        else:
+            preview_caption = "Clean preview"
+            review_caption = "Editor-selected"
+        assert f"<figcaption>{preview_caption}</figcaption>" in card
+        assert f"<figcaption>{review_caption}</figcaption>" in card
 
 
 @pytest.mark.parametrize(

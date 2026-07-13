@@ -175,12 +175,18 @@ def _render_contact_sheet(
             if prototype.authoring_mode == "flat-skin"
             else "Direct surface"
         )
+        if prototype.authoring_mode == "flat-skin":
+            preview_caption = "Mapped product preview"
+            review_caption = "Editable product skin"
+        else:
+            preview_caption = "Clean preview"
+            review_caption = "Editor-selected"
         cards.append(
             '<article class="prototype-card">'
             '<div class="view-pair">'
-            '<figure><figcaption>Clean preview</figcaption>'
+            f'<figure><figcaption>{preview_caption}</figcaption>'
             f'<div class="view" data-view="preview">{preview}</div></figure>'
-            '<figure><figcaption>Editor-selected</figcaption>'
+            f'<figure><figcaption>{review_caption}</figcaption>'
             f'<div class="view" data-view="review">{review}</div></figure>'
             "</div>"
             f"<footer><h2>{title}</h2><p>{mode}</p></footer>"

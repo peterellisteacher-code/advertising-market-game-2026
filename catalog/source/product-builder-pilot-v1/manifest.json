@@ -1,0 +1,581 @@
+{
+  "schema": "product-builder-source@1",
+  "packId": "product-builder-pilot-v1",
+  "families": [
+    {
+      "id": "bags",
+      "title": "Bags",
+      "componentSlotId": "carry-system"
+    },
+    {
+      "id": "drinkware",
+      "title": "Drinkware",
+      "componentSlotId": "top"
+    },
+    {
+      "id": "food-packaging",
+      "title": "Food Packaging",
+      "componentSlotId": "closure"
+    }
+  ],
+  "bodies": [
+    {
+      "id": "bags-backpack",
+      "title": "Backpack",
+      "familyId": "bags",
+      "geometryId": "body-backpack",
+      "componentSlotId": "carry-system",
+      "componentAnchor": {
+        "x": 0.5,
+        "y": 0.18
+      },
+      "artworkBounds": {
+        "x": 0.23,
+        "y": 0.3,
+        "width": 0.54,
+        "height": 0.48
+      },
+      "compatiblePartIds": [
+        "bags-carry-cutout",
+        "bags-carry-long-straps",
+        "bags-carry-loop",
+        "bags-carry-short-straps"
+      ]
+    },
+    {
+      "id": "bags-carry-bag",
+      "title": "Carry Bag",
+      "familyId": "bags",
+      "geometryId": "body-carry-bag",
+      "componentSlotId": "carry-system",
+      "componentAnchor": {
+        "x": 0.5,
+        "y": 0.18
+      },
+      "artworkBounds": {
+        "x": 0.18,
+        "y": 0.28,
+        "width": 0.64,
+        "height": 0.52
+      },
+      "compatiblePartIds": [
+        "bags-carry-cutout",
+        "bags-carry-long-straps",
+        "bags-carry-loop",
+        "bags-carry-short-straps"
+      ]
+    },
+    {
+      "id": "bags-tote",
+      "title": "Tote",
+      "familyId": "bags",
+      "geometryId": "body-tote",
+      "componentSlotId": "carry-system",
+      "componentAnchor": {
+        "x": 0.5,
+        "y": 0.18
+      },
+      "artworkBounds": {
+        "x": 0.2,
+        "y": 0.3,
+        "width": 0.6,
+        "height": 0.5
+      },
+      "compatiblePartIds": [
+        "bags-carry-cutout",
+        "bags-carry-long-straps",
+        "bags-carry-loop",
+        "bags-carry-short-straps"
+      ]
+    },
+    {
+      "id": "bags-weekender",
+      "title": "Weekender",
+      "familyId": "bags",
+      "geometryId": "body-weekender",
+      "componentSlotId": "carry-system",
+      "componentAnchor": {
+        "x": 0.5,
+        "y": 0.22
+      },
+      "artworkBounds": {
+        "x": 0.22,
+        "y": 0.34,
+        "width": 0.56,
+        "height": 0.4
+      },
+      "compatiblePartIds": [
+        "bags-carry-cutout",
+        "bags-carry-long-straps",
+        "bags-carry-loop",
+        "bags-carry-short-straps"
+      ]
+    },
+    {
+      "id": "drinkware-classic-can",
+      "title": "Classic Can",
+      "familyId": "drinkware",
+      "geometryId": "body-classic-can",
+      "componentSlotId": "top",
+      "componentAnchor": {
+        "x": 0.5,
+        "y": 0.08
+      },
+      "artworkBounds": {
+        "x": 0.23,
+        "y": 0.22,
+        "width": 0.54,
+        "height": 0.56
+      },
+      "compatiblePartIds": [
+        "drinkware-top-flat",
+        "drinkware-top-ring",
+        "drinkware-top-spout",
+        "drinkware-top-straw"
+      ]
+    },
+    {
+      "id": "drinkware-slim-can",
+      "title": "Slim Can",
+      "familyId": "drinkware",
+      "geometryId": "body-slim-can",
+      "componentSlotId": "top",
+      "componentAnchor": {
+        "x": 0.5,
+        "y": 0.08
+      },
+      "artworkBounds": {
+        "x": 0.25,
+        "y": 0.2,
+        "width": 0.5,
+        "height": 0.6
+      },
+      "compatiblePartIds": [
+        "drinkware-top-flat",
+        "drinkware-top-ring",
+        "drinkware-top-spout",
+        "drinkware-top-straw"
+      ]
+    },
+    {
+      "id": "drinkware-sports-bottle",
+      "title": "Sports Bottle",
+      "familyId": "drinkware",
+      "geometryId": "body-sports-bottle",
+      "componentSlotId": "top",
+      "componentAnchor": {
+        "x": 0.5,
+        "y": 0.12
+      },
+      "artworkBounds": {
+        "x": 0.24,
+        "y": 0.3,
+        "width": 0.52,
+        "height": 0.48
+      },
+      "compatiblePartIds": [
+        "drinkware-top-flat",
+        "drinkware-top-ring",
+        "drinkware-top-spout",
+        "drinkware-top-straw"
+      ]
+    },
+    {
+      "id": "drinkware-takeaway-cup",
+      "title": "Takeaway Cup",
+      "familyId": "drinkware",
+      "geometryId": "body-takeaway-cup",
+      "componentSlotId": "top",
+      "componentAnchor": {
+        "x": 0.5,
+        "y": 0.1
+      },
+      "artworkBounds": {
+        "x": 0.24,
+        "y": 0.24,
+        "width": 0.52,
+        "height": 0.56
+      },
+      "compatiblePartIds": [
+        "drinkware-top-flat",
+        "drinkware-top-ring",
+        "drinkware-top-spout",
+        "drinkware-top-straw"
+      ]
+    },
+    {
+      "id": "food-packaging-burger-box",
+      "title": "Burger Box",
+      "familyId": "food-packaging",
+      "geometryId": "body-burger-box",
+      "componentSlotId": "closure",
+      "componentAnchor": {
+        "x": 0.5,
+        "y": 0.16
+      },
+      "artworkBounds": {
+        "x": 0.18,
+        "y": 0.32,
+        "width": 0.64,
+        "height": 0.46
+      },
+      "compatiblePartIds": [
+        "food-packaging-closure-folded",
+        "food-packaging-closure-sleeved",
+        "food-packaging-closure-tabbed",
+        "food-packaging-closure-zip"
+      ]
+    },
+    {
+      "id": "food-packaging-meal-box",
+      "title": "Meal Box",
+      "familyId": "food-packaging",
+      "geometryId": "body-meal-box",
+      "componentSlotId": "closure",
+      "componentAnchor": {
+        "x": 0.5,
+        "y": 0.15
+      },
+      "artworkBounds": {
+        "x": 0.16,
+        "y": 0.3,
+        "width": 0.68,
+        "height": 0.5
+      },
+      "compatiblePartIds": [
+        "food-packaging-closure-folded",
+        "food-packaging-closure-sleeved",
+        "food-packaging-closure-tabbed",
+        "food-packaging-closure-zip"
+      ]
+    },
+    {
+      "id": "food-packaging-noodle-tub",
+      "title": "Noodle Tub",
+      "familyId": "food-packaging",
+      "geometryId": "body-noodle-tub",
+      "componentSlotId": "closure",
+      "componentAnchor": {
+        "x": 0.5,
+        "y": 0.12
+      },
+      "artworkBounds": {
+        "x": 0.23,
+        "y": 0.3,
+        "width": 0.54,
+        "height": 0.48
+      },
+      "compatiblePartIds": [
+        "food-packaging-closure-folded",
+        "food-packaging-closure-sleeved",
+        "food-packaging-closure-tabbed",
+        "food-packaging-closure-zip"
+      ]
+    },
+    {
+      "id": "food-packaging-snack-pouch",
+      "title": "Snack Pouch",
+      "familyId": "food-packaging",
+      "geometryId": "body-snack-pouch",
+      "componentSlotId": "closure",
+      "componentAnchor": {
+        "x": 0.5,
+        "y": 0.12
+      },
+      "artworkBounds": {
+        "x": 0.2,
+        "y": 0.24,
+        "width": 0.6,
+        "height": 0.58
+      },
+      "compatiblePartIds": [
+        "food-packaging-closure-folded",
+        "food-packaging-closure-sleeved",
+        "food-packaging-closure-tabbed",
+        "food-packaging-closure-zip"
+      ]
+    }
+  ],
+  "parts": [
+    {
+      "id": "bags-carry-cutout",
+      "title": "Cutout Handle",
+      "familyId": "bags",
+      "slotId": "carry-system",
+      "geometryId": "part-carry-cutout"
+    },
+    {
+      "id": "bags-carry-long-straps",
+      "title": "Long Straps",
+      "familyId": "bags",
+      "slotId": "carry-system",
+      "geometryId": "part-carry-long-straps"
+    },
+    {
+      "id": "bags-carry-loop",
+      "title": "Loop Handles",
+      "familyId": "bags",
+      "slotId": "carry-system",
+      "geometryId": "part-carry-loop"
+    },
+    {
+      "id": "bags-carry-short-straps",
+      "title": "Short Straps",
+      "familyId": "bags",
+      "slotId": "carry-system",
+      "geometryId": "part-carry-short-straps"
+    },
+    {
+      "id": "drinkware-top-flat",
+      "title": "Flat Top",
+      "familyId": "drinkware",
+      "slotId": "top",
+      "geometryId": "part-top-flat"
+    },
+    {
+      "id": "drinkware-top-ring",
+      "title": "Ring Top",
+      "familyId": "drinkware",
+      "slotId": "top",
+      "geometryId": "part-top-ring"
+    },
+    {
+      "id": "drinkware-top-spout",
+      "title": "Sport Spout",
+      "familyId": "drinkware",
+      "slotId": "top",
+      "geometryId": "part-top-spout"
+    },
+    {
+      "id": "drinkware-top-straw",
+      "title": "Straw Port",
+      "familyId": "drinkware",
+      "slotId": "top",
+      "geometryId": "part-top-straw"
+    },
+    {
+      "id": "food-packaging-closure-folded",
+      "title": "Folded Closure",
+      "familyId": "food-packaging",
+      "slotId": "closure",
+      "geometryId": "part-closure-folded"
+    },
+    {
+      "id": "food-packaging-closure-sleeved",
+      "title": "Sleeve Closure",
+      "familyId": "food-packaging",
+      "slotId": "closure",
+      "geometryId": "part-closure-sleeved"
+    },
+    {
+      "id": "food-packaging-closure-tabbed",
+      "title": "Tabbed Closure",
+      "familyId": "food-packaging",
+      "slotId": "closure",
+      "geometryId": "part-closure-tabbed"
+    },
+    {
+      "id": "food-packaging-closure-zip",
+      "title": "Zip Closure",
+      "familyId": "food-packaging",
+      "slotId": "closure",
+      "geometryId": "part-closure-zip"
+    }
+  ],
+  "palettes": [
+    {
+      "id": "alpine-mint",
+      "title": "Alpine Mint",
+      "colours": {
+        "body": "#DFF3E8",
+        "trim": "#163A3A",
+        "accent": "#43B89C",
+        "label": "#FFFDF5"
+      }
+    },
+    {
+      "id": "apricot-ink",
+      "title": "Apricot Ink",
+      "colours": {
+        "body": "#F6B37F",
+        "trim": "#20243A",
+        "accent": "#E85D50",
+        "label": "#FFF7EA"
+      }
+    },
+    {
+      "id": "berry-cream",
+      "title": "Berry Cream",
+      "colours": {
+        "body": "#8E3F70",
+        "trim": "#3A1730",
+        "accent": "#F2A6C5",
+        "label": "#FFF3E4"
+      }
+    },
+    {
+      "id": "cobalt-citrus",
+      "title": "Cobalt Citrus",
+      "colours": {
+        "body": "#2456C4",
+        "trim": "#102455",
+        "accent": "#F5D84B",
+        "label": "#FFFFFF"
+      }
+    },
+    {
+      "id": "coral-navy",
+      "title": "Coral Navy",
+      "colours": {
+        "body": "#F07167",
+        "trim": "#162A46",
+        "accent": "#61C0BF",
+        "label": "#FFF8EF"
+      }
+    },
+    {
+      "id": "dusk-lilac",
+      "title": "Dusk Lilac",
+      "colours": {
+        "body": "#A999D5",
+        "trim": "#332D52",
+        "accent": "#E8B4BC",
+        "label": "#F9F5FF"
+      }
+    },
+    {
+      "id": "forest-sun",
+      "title": "Forest Sun",
+      "colours": {
+        "body": "#246B55",
+        "trim": "#12372C",
+        "accent": "#F4C95D",
+        "label": "#FFF9E8"
+      }
+    },
+    {
+      "id": "glacier-blue",
+      "title": "Glacier Blue",
+      "colours": {
+        "body": "#BDE7F1",
+        "trim": "#234B66",
+        "accent": "#4F9EC4",
+        "label": "#FFFFFF"
+      }
+    },
+    {
+      "id": "grape-lime",
+      "title": "Grape Lime",
+      "colours": {
+        "body": "#7046A6",
+        "trim": "#2B1745",
+        "accent": "#B8DE5F",
+        "label": "#FCFFF2"
+      }
+    },
+    {
+      "id": "ink-rose",
+      "title": "Ink Rose",
+      "colours": {
+        "body": "#22283B",
+        "trim": "#0E1220",
+        "accent": "#E58CA8",
+        "label": "#FFF7FA"
+      }
+    },
+    {
+      "id": "mango-aqua",
+      "title": "Mango Aqua",
+      "colours": {
+        "body": "#F5A742",
+        "trim": "#153B42",
+        "accent": "#45C4B0",
+        "label": "#FFFBEF"
+      }
+    },
+    {
+      "id": "olive-clay",
+      "title": "Olive Clay",
+      "colours": {
+        "body": "#7C8B4B",
+        "trim": "#343B25",
+        "accent": "#C9785A",
+        "label": "#FAF3E3"
+      }
+    },
+    {
+      "id": "plum-gold",
+      "title": "Plum Gold",
+      "colours": {
+        "body": "#633A61",
+        "trim": "#2A182A",
+        "accent": "#D7AD4A",
+        "label": "#FFF8E7"
+      }
+    },
+    {
+      "id": "scarlet-ice",
+      "title": "Scarlet Ice",
+      "colours": {
+        "body": "#C93F4A",
+        "trim": "#4A1720",
+        "accent": "#AEE5E8",
+        "label": "#FFFFFF"
+      }
+    },
+    {
+      "id": "sky-tangerine",
+      "title": "Sky Tangerine",
+      "colours": {
+        "body": "#69B7E6",
+        "trim": "#193A5A",
+        "accent": "#F28C45",
+        "label": "#FFF9F0"
+      }
+    },
+    {
+      "id": "teal-raspberry",
+      "title": "Teal Raspberry",
+      "colours": {
+        "body": "#208B8B",
+        "trim": "#123E46",
+        "accent": "#D94D7B",
+        "label": "#FFF6FA"
+      }
+    }
+  ],
+  "materials": [
+    {
+      "id": "brushed-metal",
+      "title": "Brushed Metal"
+    },
+    {
+      "id": "cardboard",
+      "title": "Cardboard"
+    },
+    {
+      "id": "fabric",
+      "title": "Fabric"
+    },
+    {
+      "id": "glass",
+      "title": "Glass"
+    },
+    {
+      "id": "gloss-plastic",
+      "title": "Gloss Plastic"
+    },
+    {
+      "id": "matte-plastic",
+      "title": "Matte Plastic"
+    },
+    {
+      "id": "rubber",
+      "title": "Rubber"
+    },
+    {
+      "id": "wood",
+      "title": "Wood"
+    }
+  ]
+}

@@ -202,19 +202,18 @@ def _takeaway_box() -> ArtGeometry:
 
 
 def _hoodie() -> ArtGeometry:
-    torso = "M315 270Q360 228 405 220H595Q640 228 685 270L748 820H252Z"
+    torso = "M315 270Q360 228 405 220H595Q640 228 685 270L765 840H235Z"
     sleeves = (
         '<path d="M315 270Q250 280 205 350L100 625L245 680L335 445Z"/>',
         '<path d="M685 270Q750 280 795 350L900 625L755 680L665 445Z"/>',
     )
-    surface_path = (
-        "M300 280Q355 250 410 250H590Q645 250 700 280L835 610"
-        "L735 650L700 790H300L265 650L165 610Z"
-    )
     return ArtGeometry(
         product_bounds=(80, 150, 840, 700),
         regions={
-            "body": (f'<path d="{torso}"/>', *sleeves),
+            "body": (
+                f'<path data-product-part="hoodie-chest" d="{torso}"/>',
+                *sleeves,
+            ),
             "trim": (
                 '<path d="M355 250Q330 155 500 150Q670 155 645 250Q585 315 500 325Q415 315 355 250Z"/>',
                 '<path d="M252 780H748V840H252Z"/>',
@@ -222,57 +221,63 @@ def _hoodie() -> ArtGeometry:
                 '<path d="M900 625L755 680L775 730L918 675Z"/>',
             ),
             "accent": (
-                '<path d="M350 610Q500 570 650 610L620 725H380Z"/>',
+                '<path d="M268 325L315 290L338 430L305 520L270 475Z"/>',
+                '<path d="M732 325L685 290L662 430L695 520L730 475Z"/>',
             ),
         },
         details=(
             '<path d="M440 265L420 455M560 265L580 455"/>',
             '<circle cx="418" cy="465" r="10"/><circle cx="582" cy="465" r="10"/>',
-            '<path d="M380 680H620M500 585V725"/>',
+            '<path d="M365 620Q500 585 635 620L610 715H390Z"/>',
+            '<path d="M390 680H610M500 592V715"/>',
             '<path d="M315 270L335 445M685 270L665 445"/>',
         ),
-        shadow_plane="M590 220Q660 235 700 295L900 625L755 680L700 790H610Z",
-        highlight_plane="M345 300Q385 268 425 258L390 575Q350 610 305 598Z",
-        surface=ArtworkSurface(surface_path, (165, 250, 670, 540)),
+        shadow_plane="M595 220Q650 235 685 270L765 840H620L640 715L700 610L665 445Z",
+        highlight_plane="M315 300Q360 252 420 235L392 575Q350 610 305 590Z",
+        surface=ArtworkSurface(torso, (235, 220, 530, 620)),
     )
 
 
 def _trainer() -> ArtGeometry:
     upper_path = (
-        "M130 555Q210 510 285 400Q325 335 410 310L555 300"
-        "Q625 382 680 450Q770 500 865 535Q900 550 900 600"
-        "L865 655H160Q100 640 100 600Q100 570 130 555Z"
+        "M115 560Q185 525 250 455L330 335Q365 295 420 295L555 300"
+        "Q600 350 640 425L705 470Q795 495 870 535Q900 550 900 590"
+        "L865 650H155Q105 640 95 600Q92 575 115 560Z"
     )
     sole_path = (
-        "M105 605Q135 640 180 645H870Q900 640 900 675Q900 720 850 735"
-        "H175Q105 725 90 675Q85 635 105 605Z"
-    )
-    surface_path = (
-        "M150 550Q230 500 300 405Q345 345 420 330L560 320"
-        "Q630 410 690 470Q770 505 850 540L820 620H180Z"
+        "M100 610Q135 640 180 645H870Q900 640 905 675Q900 720 850 735"
+        "H175Q105 725 90 675Q88 635 100 610Z"
     )
     return ArtGeometry(
-        product_bounds=(90, 300, 810, 440),
+        product_bounds=(90, 280, 820, 480),
         regions={
-            "upper": (f'<path d="{upper_path}"/>',),
+            "upper": (
+                f'<path data-product-part="athletic-upper" d="{upper_path}"/>',
+            ),
             "sole": (f'<path d="{sole_path}"/>',),
             "trim": (
-                '<path d="M130 555Q210 510 285 400L330 510L250 625H145Z"/>',
-                '<path d="M760 510Q835 530 890 565L870 630H775Z"/>',
+                '<path d="M115 560Q185 525 250 455L300 510L250 635H145Z"/>',
+                '<path d="M705 470Q795 495 870 535L865 650H735L760 555Z"/>',
             ),
             "accent": (
-                '<path d="M390 330L555 300L640 420L545 520L350 495Z"/>',
+                '<path data-product-part="trainer-tongue" d="M395 305L555 310L575 520L350 485Z"/>',
+                '<path data-product-part="trainer-eye-stay" d="M325 350L365 335L515 505L470 535Z"/>',
             ),
         },
         details=(
-            '<path d="M370 385L585 450M350 420L560 485M330 455L530 520"/>',
-            '<path d="M430 340L350 505M480 325L400 520M530 315L455 525"/>',
+            f'<path data-product-part="trainer-lace" d="M350 380L510 410L502 428L342 398Z" fill="{DETAIL_INK}" stroke="none"/>',
+            f'<path data-product-part="trainer-lace" d="M335 410L525 445L517 463L327 428Z" fill="{DETAIL_INK}" stroke="none"/>',
+            f'<path data-product-part="trainer-lace" d="M320 440L540 480L532 498L312 458Z" fill="{DETAIL_INK}" stroke="none"/>',
+            f'<path data-product-part="trainer-lace" d="M305 470L552 512L544 530L297 488Z" fill="{DETAIL_INK}" stroke="none"/>',
+            f'<path data-product-part="trainer-lace" d="M290 500L565 542L557 560L282 518Z" fill="{DETAIL_INK}" stroke="none"/>',
+            f'<path data-product-part="trainer-lace" d="M275 530L565 568L557 586L267 548Z" fill="{DETAIL_INK}" stroke="none"/>',
             '<path d="M165 675H835"/>',
-            '<path d="M710 490Q735 545 720 615"/>',
+            '<path d="M250 455Q290 520 250 635"/>',
+            '<path d="M735 500Q770 555 750 625"/>',
         ),
-        shadow_plane="M690 470Q790 510 865 535Q900 550 900 600L865 655H720Z",
-        highlight_plane="M205 522Q270 465 315 395Q350 355 405 340L390 392Q320 430 270 520Z",
-        surface=ArtworkSurface(surface_path, (150, 320, 700, 300)),
+        shadow_plane="M705 470Q795 495 870 535Q900 550 900 590L865 650H735L760 555Z",
+        highlight_plane="M145 540Q205 505 250 455L330 335Q355 305 405 298L385 350Q345 380 300 470L235 555Z",
+        surface=ArtworkSurface(upper_path, (95, 295, 805, 355)),
     )
 
 
@@ -379,93 +384,107 @@ def _food_truck() -> ArtGeometry:
 
 
 def _garden_tool() -> ArtGeometry:
-    shaft_path = "M395 180Q395 145 435 140H565Q605 145 605 180V825H395Z"
-    grip_path = (
-        "M405 95Q405 70 435 70H565Q595 70 595 95V215Q595 235 570 235"
-        "H430Q405 235 405 215Z"
+    body_path = (
+        "M330 325H675Q735 330 740 390V650Q735 735 650 760H360"
+        "Q275 745 270 660V405Q270 345 330 325Z"
     )
-    head_path = "M420 755L575 730L610 775L705 830L665 895L545 850L465 815L400 835Z"
-    surface_path = "M395 215Q395 195 415 195H585Q605 195 605 215V815H395Z"
+    handle_path = (
+        "M345 405Q325 205 500 165Q675 205 660 410L585 405"
+        "Q590 275 500 255Q410 275 420 400Z"
+    )
+    spout_path = "M290 470L120 330L78 395L275 585Z"
+    rose_path = (
+        "M78 300Q105 300 125 330L80 405Q45 395 45 365Q45 330 78 300Z"
+    )
     return ArtGeometry(
-        product_bounds=(290, 70, 420, 830),
+        product_bounds=(45, 150, 865, 650),
         regions={
-            "body": (f'<path d="{shaft_path}"/>',),
-            "handle": (f'<path d="{grip_path}"/>',),
+            "body": (
+                f'<path data-product-part="watering-can-body" d="{body_path}"/>',
+            ),
+            "handle": (
+                f'<path data-product-part="watering-can-handle" d="{handle_path}"/>',
+            ),
             "accent": (
-                f'<path data-product-part="angled-hoe-head" d="{head_path}"/>',
+                f'<path data-product-part="watering-can-spout" d="{spout_path}"/>',
+                f'<path data-product-part="watering-can-spout" d="{rose_path}"/>',
             ),
         },
         details=(
-            '<path d="M440 100H560M440 135H560M440 170H560M440 205H560"/>',
-            '<path d="M440 265V745M560 265V745"/>',
-            '<path d="M575 775L685 838M555 815L665 875"/>',
+            '<path d="M305 415Q500 390 705 415"/>',
+            '<path d="M325 690Q500 725 680 690"/>',
+            '<circle cx="72" cy="342" r="5"/><circle cx="92" cy="355" r="5"/><circle cx="70" cy="375" r="5"/>',
         ),
-        shadow_plane="M520 140H565Q605 145 605 180V800L705 830L665 895L545 850L520 840Z",
-        highlight_plane="M430 250H465V730H430Z",
-        surface=ArtworkSurface(surface_path, (395, 195, 210, 620)),
+        shadow_plane="M625 325H675Q735 330 740 390V650Q735 735 650 760H600Q670 710 675 640V405Q675 350 625 325Z",
+        highlight_plane="M315 365Q335 345 370 340H430V680Q395 705 340 690Q305 675 305 635V410Q305 385 315 365Z",
+        surface=ArtworkSurface(body_path, (270, 325, 470, 435)),
     )
 
 
 def _aquarium() -> ArtGeometry:
     frame = (
-        '<path d="M100 190H900V810H100ZM150 250V590H850V250Z" fill-rule="evenodd"/>',
+        '<path d="M100 190H900V810H100ZM150 250V620H850V250Z" fill-rule="evenodd"/>',
     )
-    glass = (
-        '<path d="M150 250H850V610H150Z" fill-opacity="0.26"/>',
-    )
-    surface_path = "M140 530H860V800H140Z"
+    glass_path = "M150 250H850V620H150Z"
     return ArtGeometry(
         product_bounds=(90, 160, 820, 670),
         regions={
             "body": frame,
-            "glass": glass,
+            "glass": (
+                f'<path data-product-part="full-front-glass" d="{glass_path}" fill-opacity="0.26"/>',
+            ),
             "trim": (
                 '<path d="M90 180Q90 160 115 160H885Q910 160 910 180V245H90Z"/>',
                 '<path d="M90 760H910V830H90Z"/>',
             ),
             "accent": (
-                '<path d="M150 420Q250 395 350 420T550 420T750 420T850 420V600H150Z" fill-opacity="0.38"/>',
+                '<path data-product-part="gravel-band" d="M150 620H850V690Q760 675 675 690Q500 710 325 690Q240 675 150 690Z" fill-opacity="0.38"/>',
             ),
         },
         details=(
-            '<path d="M195 285V380M235 285V350"/>',
-            '<path d="M180 620Q250 575 320 620T460 620T600 620T740 620T850 620"/>',
-            '<path d="M150 250H850V610H150Z"/>',
+            '<circle cx="195" cy="330" r="12"/><circle cx="235" cy="290" r="8"/>',
+            '<path d="M150 250H850V620H150Z"/>',
+            '<path d="M190 655H810"/>',
             '<path d="M170 785H830"/>',
         ),
-        shadow_plane="M800 250H850V610H800ZM820 610H900V810H820Z",
-        highlight_plane="M180 270H225V520H180Z",
-        surface=ArtworkSurface(surface_path, (140, 530, 720, 270)),
+        shadow_plane="M800 250H850V620H800ZM820 620H900V810H820Z",
+        highlight_plane="M175 275H220V535H175ZM220 275H500V305H220Z",
+        surface=ArtworkSurface(glass_path, (150, 250, 700, 370)),
     )
 
 
 def _pet_shop() -> ArtGeometry:
-    building = "M100 250L180 170H820L900 250V840H100Z"
-    sign_path = "M130 210Q130 190 155 190H845Q870 190 870 210V470H130Z"
+    building = "M90 270L175 175H825L910 270V840H90Z"
+    sign_path = (
+        "M150 180H850Q875 180 875 205V440Q875 465 850 465H150"
+        "Q125 465 125 440V205Q125 180 150 180Z"
+    )
     return ArtGeometry(
         product_bounds=(80, 145, 840, 695),
         regions={
             "body": (f'<path d="{building}"/>',),
             "window": (
-                '<path d="M155 540H365V785H155Z" fill-opacity="0.72"/>',
-                '<path d="M635 540H845V785H635Z" fill-opacity="0.72"/>',
+                '<path d="M135 535H390V805H135Z" fill-opacity="0.72"/>',
+                '<path d="M610 535H865V805H610Z" fill-opacity="0.72"/>',
             ),
             "trim": (
                 '<path d="M80 250L175 145H825L920 250H860L800 195H200L140 250Z"/>',
-                '<path d="M395 525H605V840H395Z"/>',
-                '<path d="M120 470H880L845 550H155Z"/>',
+                '<path d="M420 840V610Q420 500 500 500Q580 500 580 610V840Z"/>',
+                '<path d="M120 480H880L850 525H150Z"/>',
             ),
-            "sign": (f'<path d="{sign_path}"/>',),
+            "sign": (
+                f'<path data-product-part="pet-shop-fascia" d="{sign_path}"/>',
+            ),
         },
         details=(
-            '<path d="M235 470L210 550M330 470L305 550M425 470L400 550M520 470L495 550M615 470L590 550M710 470L685 550M805 470L780 550"/>',
-            '<path d="M260 540V785M740 540V785M155 665H365M635 665H845"/>',
-            '<path d="M500 525V840"/>',
-            '<circle cx="565" cy="690" r="10"/>',
+            '<path d="M300 480L285 525M500 480V525M700 480L715 525"/>',
+            '<path d="M262 535V805M738 535V805M135 680H390M610 680H865"/>',
+            '<path d="M455 610Q455 545 500 545Q545 545 545 610V840"/>',
+            '<path data-product-part="scale-cue" d="M680 770Q725 742 770 770L755 800H695Z"/>',
         ),
-        shadow_plane="M800 195L900 250V840H790Z",
-        highlight_plane="M160 275H205V800H160Z",
-        surface=ArtworkSurface(sign_path, (130, 190, 740, 280)),
+        shadow_plane="M800 195L910 270V840H790L815 525L850 465H820Z",
+        highlight_plane="M125 285H175V805H125ZM175 180H500V220H175Z",
+        surface=ArtworkSurface(sign_path, (125, 180, 750, 285)),
     )
 
 
@@ -727,6 +746,7 @@ def render_audition_svg(prototype: AuditionPrototype, view: View) -> str:
 
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" '
+        'data-light-direction="top-left" '
         f'data-shell-id="{escape(prototype.id)}" '
         f'data-authoring-mode="{escape(prototype.authoring_mode)}">'
         f'{_clip_definition(clip_id, surface)}{grounding}{layers}{artwork_slot}'

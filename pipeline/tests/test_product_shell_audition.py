@@ -385,15 +385,63 @@ def test_preview_and_authoring_keep_manifest_region_order() -> None:
         assert ordered_views == [expected, expected]
 
 
-def test_garden_tool_declares_a_recognisable_angled_hoe_head() -> None:
-    prototype = next(
-        item
-        for item in load_audition_source(MANIFEST_PATH).prototypes
-        if item.archetype == "garden-tool"
-    )
-    root = ET.fromstring(render_audition_svg(prototype, view="preview"))
+def test_garden_proof_is_an_unmistakable_broad_surface_watering_can() -> None:
+    root = ET.fromstring(render_audition_svg(_prototype("garden-tool"), "preview"))
+    assert root.find(".//*[@data-product-part='watering-can-body']") is not None
+    assert root.find(".//*[@data-product-part='watering-can-handle']") is not None
+    assert root.find(".//*[@data-product-part='watering-can-spout']") is not None
+    surface = artwork_surface_for("garden-tool")
+    assert surface.bounds[2] >= 430
+    assert surface.bounds[3] >= 300
 
-    assert root.find(".//*[@data-product-part='angled-hoe-head']") is not None
+
+@pytest.mark.parametrize(
+    ("archetype", "part"),
+    [
+        ("aquarium", "full-front-glass"),
+        ("hoodie", "hoodie-chest"),
+        ("trainer", "athletic-upper"),
+        ("pet-shop", "pet-shop-fascia"),
+    ],
+)
+def test_revised_direct_surfaces_declare_the_intended_large_face(
+    archetype: str, part: str
+) -> None:
+    root = ET.fromstring(render_audition_svg(_prototype(archetype), "preview"))
+    assert root.find(f".//*[@data-product-part='{part}']") is not None
+
+
+def test_revised_direct_surface_bounds_are_large_and_product_specific() -> None:
+    expected = {
+        "garden-tool": (430, 300),
+        "aquarium": (680, 340),
+        "hoodie": (470, 360),
+        "trainer": (570, 250),
+        "pet-shop": (700, 170),
+    }
+    for archetype, (minimum_width, minimum_height) in expected.items():
+        _, _, width, height = artwork_surface_for(archetype).bounds
+        assert width >= minimum_width
+        assert height >= minimum_height
+
+
+def test_trainer_uses_six_or_more_separate_solid_laces() -> None:
+    root = ET.fromstring(render_audition_svg(_prototype("trainer"), "preview"))
+    laces = root.findall(".//*[@data-product-part='trainer-lace']")
+    assert len(laces) >= 6
+    assert all(lace.get("fill") != "none" for lace in laces)
+
+
+def test_aquarium_has_no_fixed_mid_glass_water_wave() -> None:
+    root = ET.fromstring(render_audition_svg(_prototype("aquarium"), "preview"))
+    assert root.find(".//*[@data-product-part='fixed-water-wave']") is None
+
+
+def test_audition_roots_declare_the_shared_top_left_light_direction() -> None:
+    for prototype in load_audition_source(MANIFEST_PATH).prototypes:
+        for view in ("authoring", "preview", "review"):
+            root = ET.fromstring(render_audition_svg(prototype, view))
+            assert root.get("data-light-direction") == "top-left"
 
 
 def test_audition_build_is_byte_deterministic_across_directory_pairs(

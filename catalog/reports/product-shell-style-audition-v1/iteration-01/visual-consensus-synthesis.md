@@ -4,7 +4,7 @@ Date: 2026-07-13
 
 ## Decision
 
-**VISUAL_PANEL_REVISE.** Five reviewers returned `REVISE`; one returned `PASS` while still requiring a mandatory Garden Tool revision. The fixed four-slot consensus threshold is therefore exceeded.
+**VISUAL_PANEL_REVISE.** Five reviewers returned `REVISE`; one returned `PASS` while still requiring a mandatory Garden Tool revision. The decision is grounded in shared findings rather than vote counting: Garden Tool meets the threshold at 6/6 and product-specific flat-skin mapping meets it at 4/6.
 
 Iteration 01 remains immutable evidence. Any visual change must be generated as `iteration-02`; this audition may not replace the reviewed production catalogue.
 
@@ -23,12 +23,12 @@ No judge model ran. The first exact whole-panel call timed out before returning 
 
 ## Findings meeting the fixed thresholds
 
-### System strengths — 6/6
+### System strengths
 
-- The fine contours, restrained palette and two-to-three tonal planes form a coherent, professional, Canva-adjacent family.
-- The shells remain unbranded and open-ended rather than solving the advertising challenge.
-- Most silhouettes and direct artwork surfaces remain legible at market-thumbnail size.
-- The clean-preview/editor-selected split is understandable and clean previews remain guide-free.
+- **Visual-family coherence — 6/6:** the fine contours, restrained palette and two-to-three tonal planes form a professional, Canva-adjacent family.
+- **Unbranded creative openness — 6/6:** the shells leave the advertising challenge to students.
+- **Majority thumbnail legibility — 6/6:** every reviewer found most silhouettes and direct surfaces readable, with Garden Tool the common exception.
+- **Clean/editor state treatment — 5/6:** five reviewers found the split clear and restrained; Kimi found several direct-surface selection guides imperceptible. Clean market previews remain guide-free.
 
 ### Required revisions
 
@@ -36,7 +36,7 @@ No judge model ran. The first exact whole-panel call timed out before returning 
 
 2. **Product-specific flat-skin mapping — 4/6.** Kimi, Gemini, MiniMax and Grok raised aspect-ratio, fold, unwrap or preview-mapping concerns; Step and Xiaomi considered the current relationship clear. Iteration 02 must use distinct authoring geometry for each family and keep a live mapped preview visible: can/bottle wrap and seam logic, pouch face/gusset logic, and a matching face or dieline for the tapered takeaway box.
 
-3. **Aquarium blank-canvas clarity — 5/6.** Five reviewers noted that the fixed water/wave treatment constrains or confuses the artwork surface. Open the full front glass/back-wall region and reduce fixed interior decoration to the minimum needed for recognition.
+3. **Aquarium blank-canvas clarity — 4/6.** Kimi, Step, Gemini and Grok found that the fixed water/wave treatment constrains or confuses the artwork surface. MiniMax instead treated the water hint as a design opportunity while separately suggesting modest surface expansion; Xiaomi found no issue. Open the full front glass/back-wall region and reduce fixed interior decoration to the minimum needed for recognition.
 
 4. **Pet Shop category cue or signage surface — 3/6.** This crosses the two-slot usability threshold. Keep the business category because shops and services are explicitly part of the game, but enlarge the blank fascia/window area and add subtle non-branded pet-scale architectural cues. Suggestions to remove it merely because it is not a tangible product are out of scope.
 

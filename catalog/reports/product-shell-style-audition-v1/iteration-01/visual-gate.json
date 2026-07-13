@@ -14,7 +14,7 @@
     },
     "synthesis": {
       "path": "visual-consensus-synthesis.md",
-      "sha256": "9e8b39c349b02bf309c5167d9bd50a942b3abbacfce6769f33d6cbee476c5558"
+      "sha256": "36fd237d2dbde1ebf41fb61d901bc84f7486166da0980f08f08e56ff89968152"
     }
   },
   "panel": {
@@ -102,7 +102,7 @@
     },
     {
       "id": "aquarium-blank-canvas-clarity",
-      "supportingSlots": 5,
+      "supportingSlots": 4,
       "classification": "consensus-revision",
       "requiredChange": true
     },

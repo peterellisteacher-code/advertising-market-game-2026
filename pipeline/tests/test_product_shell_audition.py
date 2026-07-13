@@ -17,6 +17,8 @@ from asset_pipeline.product_shell_audition import (
     load_audition_source,
 )
 from asset_pipeline.product_shell_art import (
+    DETAIL_INK,
+    DETAIL_STROKE,
     GEOMETRY_BUILDERS,
     GUIDE,
     artwork_surface_for,
@@ -393,7 +395,7 @@ def test_editable_face_bounds_clear_family_coverage_floors() -> None:
         "hoodie": 0.55,
         "trainer": 0.55,
         "smartphone": 0.55,
-        "headphones": 0.55,
+        "headphones": 0.32,
         "food-truck": 0.12,
         "garden-tool": 0.35,
         "aquarium": 0.35,
@@ -502,11 +504,62 @@ def test_food_truck_primary_target_is_uninterrupted_lower_side_panel() -> None:
     assert y >= 565
 
 
-def test_trainer_uses_six_or_more_separate_solid_laces() -> None:
+def test_headphones_selection_targets_exterior_cap_not_cushion() -> None:
+    preview = ET.fromstring(render_audition_svg(_prototype("headphones"), "preview"))
+    caps = preview.findall(".//*[@data-product-part='headphones-exterior-cap']")
+    assert len(caps) == 1
+    cap_path = caps[0].get("d")
+    assert cap_path
+    assert caps[0].get("data-editable") == "true"
+
+    surface = artwork_surface_for("headphones")
+    assert surface.path == cap_path
+    _, _, width, height = surface.bounds
+    assert width >= 380
+    assert height >= 360
+
+    for part in (
+        "headphones-fixed-cushion",
+        "headphones-headband",
+        "headphones-rear-cup",
+    ):
+        fixed = preview.findall(f".//*[@data-product-part='{part}']")
+        assert len(fixed) == 1
+        assert fixed[0].get("data-editable") == "false"
+        assert fixed[0].get("d") != cap_path
+
+    review = ET.fromstring(render_audition_svg(_prototype("headphones"), "review"))
+    clip = review.find(".//*[@data-artwork-surface='primary']")
+    outline = review.find(".//*[@data-selection-outline='primary']")
+    assert clip is not None
+    assert outline is not None
+    assert clip.get("d") == cap_path
+    assert outline.get("d") == cap_path
+
+
+def test_trainer_laces_are_light_ordered_crisscross_structure() -> None:
     root = ET.fromstring(render_audition_svg(_prototype("trainer"), "preview"))
     laces = root.findall(".//*[@data-product-part='trainer-lace']")
-    assert len(laces) >= 6
-    assert all(lace.get("fill") != "none" for lace in laces)
+    assert len(laces) == 8
+    assert {lace.get("data-lace-row") for lace in laces} == {"1", "2", "3", "4"}
+
+    for row in ("1", "2", "3", "4"):
+        pair = [lace for lace in laces if lace.get("data-lace-row") == row]
+        assert len(pair) == 2
+        assert {lace.get("data-lace-direction") for lace in pair} == {
+            "left-to-right",
+            "right-to-left",
+        }
+
+    assert all(lace.get("fill") == "none" for lace in laces)
+    assert all(lace.get("stroke") == DETAIL_INK for lace in laces)
+    assert all(
+        float(lace.get("stroke-width", "99")) <= DETAIL_STROKE for lace in laces
+    )
+    opacities = {lace.get("opacity") for lace in laces}
+    assert len(opacities) == 1
+    assert all(0 < float(opacity or "0") <= 0.75 for opacity in opacities)
+    assert all("Z" not in lace.get("d", "").upper() for lace in laces)
 
 
 def test_aquarium_has_no_fixed_mid_glass_water_wave() -> None:

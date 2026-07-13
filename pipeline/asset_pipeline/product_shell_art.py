@@ -265,12 +265,14 @@ def _trainer() -> ArtGeometry:
             ),
         },
         details=(
-            f'<path data-product-part="trainer-lace" d="M350 380L510 410L502 428L342 398Z" fill="{DETAIL_INK}" stroke="none"/>',
-            f'<path data-product-part="trainer-lace" d="M335 410L525 445L517 463L327 428Z" fill="{DETAIL_INK}" stroke="none"/>',
-            f'<path data-product-part="trainer-lace" d="M320 440L540 480L532 498L312 458Z" fill="{DETAIL_INK}" stroke="none"/>',
-            f'<path data-product-part="trainer-lace" d="M305 470L552 512L544 530L297 488Z" fill="{DETAIL_INK}" stroke="none"/>',
-            f'<path data-product-part="trainer-lace" d="M290 500L565 542L557 560L282 518Z" fill="{DETAIL_INK}" stroke="none"/>',
-            f'<path data-product-part="trainer-lace" d="M275 530L565 568L557 586L267 548Z" fill="{DETAIL_INK}" stroke="none"/>',
+            f'<path data-product-part="trainer-lace" data-lace-row="1" data-lace-direction="left-to-right" d="M350 375L505 405" fill="none" stroke="{DETAIL_INK}" stroke-width="{DETAIL_STROKE}" opacity="0.70"/>',
+            f'<path data-product-part="trainer-lace" data-lace-row="1" data-lace-direction="right-to-left" d="M500 375L355 405" fill="none" stroke="{DETAIL_INK}" stroke-width="{DETAIL_STROKE}" opacity="0.70"/>',
+            f'<path data-product-part="trainer-lace" data-lace-row="2" data-lace-direction="left-to-right" d="M337 410L520 445" fill="none" stroke="{DETAIL_INK}" stroke-width="{DETAIL_STROKE}" opacity="0.70"/>',
+            f'<path data-product-part="trainer-lace" data-lace-row="2" data-lace-direction="right-to-left" d="M515 410L342 445" fill="none" stroke="{DETAIL_INK}" stroke-width="{DETAIL_STROKE}" opacity="0.70"/>',
+            f'<path data-product-part="trainer-lace" data-lace-row="3" data-lace-direction="left-to-right" d="M324 447L535 485" fill="none" stroke="{DETAIL_INK}" stroke-width="{DETAIL_STROKE}" opacity="0.70"/>',
+            f'<path data-product-part="trainer-lace" data-lace-row="3" data-lace-direction="right-to-left" d="M530 447L329 485" fill="none" stroke="{DETAIL_INK}" stroke-width="{DETAIL_STROKE}" opacity="0.70"/>',
+            f'<path data-product-part="trainer-lace" data-lace-row="4" data-lace-direction="left-to-right" d="M311 485L550 525" fill="none" stroke="{DETAIL_INK}" stroke-width="{DETAIL_STROKE}" opacity="0.70"/>',
+            f'<path data-product-part="trainer-lace" data-lace-row="4" data-lace-direction="right-to-left" d="M545 485L316 525" fill="none" stroke="{DETAIL_INK}" stroke-width="{DETAIL_STROKE}" opacity="0.70"/>',
             '<path d="M165 675H835"/>',
             '<path d="M250 455Q290 520 250 635"/>',
             '<path d="M735 500Q770 555 750 625"/>',
@@ -320,33 +322,37 @@ def _headphones() -> ArtGeometry:
         "Q350 210 285 305Q240 375 270 500Z"
     )
     back_cup = (
-        '<path d="M150 455Q165 385 235 365H330Q400 390 420 470V690Q395 770 320 790H225Q155 765 140 690Z"/>',
+        '<path data-product-part="headphones-rear-cup" data-editable="false" d="M150 455Q165 385 235 365H330Q400 390 420 470V690Q395 770 320 790H225Q155 765 140 690Z"/>',
     )
-    front_cup = (
+    fixed_cushion = (
         "M400 270Q520 225 675 260Q815 295 850 430V620Q820 750 690 780"
         "H475Q345 750 315 620V430Q330 325 400 270Z"
     )
-    surface_path = (
-        "M400 270Q520 225 675 260Q815 295 850 430V620Q820 750 690 780"
-        "H475Q345 750 315 620V430Q330 325 400 270Z"
+    exterior_cap = (
+        "M425 335Q525 300 650 325Q755 350 780 455V595Q750 695 650 715"
+        "H500Q400 690 380 595V455Q390 380 425 335Z"
     )
     return ArtGeometry(
         product_bounds=(140, 125, 710, 705),
         regions={
-            "body": (f'<path d="{headband}"/>', *back_cup),
-            "trim": (f'<path d="{front_cup}"/>',),
+            "body": (
+                f'<path data-product-part="headphones-headband" data-editable="false" d="{headband}"/>',
+                *back_cup,
+            ),
+            "trim": (
+                f'<path data-product-part="headphones-fixed-cushion" data-editable="false" d="{fixed_cushion}"/>',
+            ),
             "accent": (
-                '<path d="M425 335Q525 300 650 325Q755 350 780 455V595Q750 695 650 715H500Q400 690 380 595V455Q390 380 425 335Z"/>',
+                f'<path data-product-part="headphones-exterior-cap" data-editable="true" d="{exterior_cap}"/>',
             ),
         },
         details=(
             '<path d="M250 480Q225 350 300 265Q375 180 490 190"/>',
             '<path d="M415 315Q535 270 675 305Q790 335 815 455V610"/>',
-            '<path d="M445 385Q540 350 635 375Q715 398 730 480V575Q710 650 635 670H515Q440 650 425 575V480Q430 420 445 385Z"/>',
         ),
         shadow_plane="M150 455Q165 385 235 365H330Q400 390 420 470V690Q395 770 320 790H225Q155 765 140 690Z",
         highlight_plane="M420 305Q475 270 535 270L500 710Q430 680 405 610V430Q408 350 420 305Z",
-        surface=ArtworkSurface(surface_path, (310, 240, 540, 540)),
+        surface=ArtworkSurface(exterior_cap, (380, 300, 400, 415)),
     )
 
 

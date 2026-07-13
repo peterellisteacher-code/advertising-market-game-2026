@@ -21,6 +21,12 @@ import {
 import { loadOfflineCatalogue } from "./catalogue/catalogue-store";
 import type { CatalogAssetV1 } from "./catalogue/catalogue-types";
 import { OpenverseClient } from "./catalogue/openverse-client";
+import {
+  loadProductShellCatalogue,
+  type ProductShellRecord
+} from "./product-shells/product-shell-catalogue";
+import { ProductShellPicker } from "./product-shells/product-shell-picker";
+import { ProductShellRegionControls } from "./product-shells/product-shell-region-controls";
 import type { FabricCanvasAdapter } from "./fabric/fabric-canvas-adapter";
 import {
   canonicalDurableDocumentHash,
@@ -34,7 +40,7 @@ const RETURN_TO_GAME_EVENT = "ad-market-creator:return-to-game";
 
 interface CanvasRuntime {
   adapter: FabricCanvasAdapter;
-  dispose(): void;
+  dispose(): Promise<void>;
 }
 
 function hasLocalBlobReferences(document: CampaignDocumentV1): boolean {
@@ -64,7 +70,7 @@ async function createCanvasRuntime(canvasElement: HTMLCanvasElement): Promise<Ca
   const adapter = new FabricCanvasAdapter(canvas);
   return {
     adapter,
-    dispose() {
+    async dispose() {
       let failure: unknown;
       try {
         adapter.dispose();
@@ -72,7 +78,7 @@ async function createCanvasRuntime(canvasElement: HTMLCanvasElement): Promise<Ca
         failure = error;
       }
       try {
-        void canvas.dispose();
+        await canvas.dispose();
       } catch (error) {
         failure ??= error;
       }
@@ -87,6 +93,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
   readonly #placementOwnedRasterUrls = new Set<string>();
   readonly #productName: HTMLInputElement;
   readonly #placements: CataloguePlacementQueue;
+  readonly #productShellRegions: ProductShellRegionControls;
   #document: CampaignDocumentV1 | null = null;
   #runtime: CanvasRuntime | null = null;
   #runtimePromise: Promise<CanvasRuntime> | null = null;
@@ -104,16 +111,32 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
     );
     if (!productName) throw new Error("Missing product-name input");
     this.#productName = productName;
+    this.#productShellRegions = new ProductShellRegionControls(
+      shell.inspector,
+      (objectId, region, colour) => {
+        if (!this.#runtime) throw new Error("Campaign creator is not open");
+        this.#runtime.adapter.setProductShellRegion(objectId, region, colour);
+        this.shell.polite.textContent = `${region} colour changed`;
+      }
+    );
+    this.#productShellRegions.clear();
     this.#placements = new CataloguePlacementQueue({
       getDocument: () => this.#document,
       getCanvas: async () => (await this.#ensureRuntime()).adapter,
       commit: (document, localBlob) => this.#commitPlacement(document, localBlob),
+      onProductShellPlaced: (objectId, productShell) => {
+        this.#showProductShellRegions(objectId, productShell.title, productShell.regions);
+      },
       onError: (error) => { this.shell.assertive.textContent = error.message; }
     });
   }
 
   queueCataloguePlacement(asset: CatalogAssetV1): void {
     this.#placements.enqueue(asset);
+  }
+
+  queueProductShellPlacement(shell: ProductShellRecord, packId: string): void {
+    this.#placements.enqueueProductShell(shell, packId);
   }
 
   async open(value: CampaignDocumentV1): Promise<void> {
@@ -160,7 +183,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
         this.#runtime = null;
         this.#runtimePromise = null;
         try {
-          runtime.dispose();
+          await runtime.dispose();
         } catch {
           // Preserve the original open/load failure.
         }
@@ -179,6 +202,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
     releasePreviousUrls?.();
     previousPlacementUrls.forEach((url) => URL.revokeObjectURL(url));
     this.#productName.value = document.product.name;
+    this.#restoreProductShellRegions(document);
     this.#setOpen(true);
     this.shell.canvasRegion.focus({ preventScroll: true });
   }
@@ -229,13 +253,22 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
         cleanupError ??= error instanceof Error ? error : new Error("Campaign creator cleanup failed");
       }
     };
+    const attemptAsync = async (operation: () => Promise<void>): Promise<void> => {
+      try {
+        await operation();
+      } catch (error) {
+        cleanupError ??= error instanceof Error ? error : new Error("Campaign creator cleanup failed");
+      }
+    };
     attempt(() => {
       if (this.#document && this.#runtime) this.#document = this.#snapshot();
     });
     const runtime = this.#runtime;
     this.#runtime = null;
     this.#runtimePromise = null;
-    attempt(() => runtime?.dispose());
+    await attemptAsync(async () => {
+      if (runtime) await runtime.dispose();
+    });
     const releaseOwnedRasterUrls = this.#releaseOwnedRasterUrls;
     this.#releaseOwnedRasterUrls = null;
     attempt(() => releaseOwnedRasterUrls?.());
@@ -245,6 +278,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
     });
     this.#ownedRasterUrls.clear();
     this.#blobs.clear();
+    this.#productShellRegions.clear();
     attempt(() => this.#setOpen(false));
     attempt(() => this.gameCanvas?.focus({ preventScroll: true }));
     if (cleanupError !== null) throw cleanupError;
@@ -272,6 +306,32 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
       this.#placementOwnedRasterUrls.add(localBlob.objectUrl);
     }
     this.#document = document;
+  }
+
+  #showProductShellRegions(objectId: string, title: string, regions: string[]): void {
+    if (!this.#runtime) return;
+    this.#productShellRegions.show({
+      objectId,
+      title,
+      regions,
+      colours: this.#runtime.adapter.getProductShellRegionColours(objectId)
+    });
+  }
+
+  #restoreProductShellRegions(document: CampaignDocumentV1): void {
+    const object = [...document.fabricState.objects].reverse().find((candidate) =>
+      candidate.elementKind === "product-shell" && typeof candidate.shellId === "string");
+    if (!object || typeof object.objectId !== "string") {
+      this.#productShellRegions.clear();
+      return;
+    }
+    const colours = this.#runtime?.adapter.getProductShellRegionColours(object.objectId) ?? {};
+    this.#productShellRegions.show({
+      objectId: object.objectId,
+      title: typeof object.accessibleName === "string" ? object.accessibleName : "Product shell",
+      regions: Object.keys(colours),
+      colours
+    });
   }
 
   async #ensureRuntime(): Promise<CanvasRuntime> {
@@ -322,8 +382,20 @@ const catalogueRuntime = new CatalogueRuntime({
   renderer: cataloguePanel,
   client: livePhotos
 });
+const productShellPicker = new ProductShellPicker({
+  select: shell.productShellSelect,
+  preview: shell.productShellPreview,
+  button: shell.productShellAdd,
+  status: shell.productShellStatus
+}, (productShell, packId) => {
+  handler.queueProductShellPlacement(productShell, packId);
+});
 void loadOfflineCatalogue(root.dataset.offlineCatalogueUrl).then((core) => {
   catalogueRuntime.replaceCore(core);
+});
+void loadProductShellCatalogue(root.dataset.productShellCatalogueUrl).then((catalogue) => {
+  if (catalogue) productShellPicker.render(catalogue);
+  else shell.productShellStatus.textContent = "Product shells unavailable";
 });
 
 root.querySelector<HTMLButtonElement>('[data-command="return"]')

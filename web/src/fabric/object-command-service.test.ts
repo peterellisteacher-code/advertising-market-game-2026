@@ -6,6 +6,7 @@ import type {
   CanvasPort,
   CropState,
   DrawingToolSettings,
+  NewProductShellInput,
   NewRasterInput,
   NewShapeInput,
   NewTextInput,
@@ -31,6 +32,13 @@ class MemoryCanvasPort implements CanvasPort {
   async addText(input: NewTextInput): Promise<void> { this.#add(input.id, "text", input); }
   async addShape(input: NewShapeInput): Promise<void> { this.#add(input.id, input.kind, input); }
   async addRaster(input: NewRasterInput): Promise<void> { this.#add(input.id, "image", input); }
+  async addProductShell(input: NewProductShellInput): Promise<void> {
+    this.#add(input.id, "product-shell", input);
+  }
+  setProductShellRegion(id: string, region: string, colour: string): void {
+    Object.assign(this.#get(id), { [region]: colour });
+  }
+  getProductShellRegionColours(): Readonly<Record<string, string>> { return {}; }
 
   setText(id: string, value: string): void {
     const object = this.#get(id);
@@ -89,7 +97,11 @@ class MemoryCanvasPort implements CanvasPort {
     return { selectedId: this.selectedId, objects: this.objects, moves: this.moves };
   }
 
-  #add(id: string, kind: string, extra: NewTextInput | NewShapeInput | NewRasterInput): void {
+  #add(
+    id: string,
+    kind: string,
+    extra: NewTextInput | NewShapeInput | NewRasterInput | NewProductShellInput
+  ): void {
     const { id: _inputId, ...metadata } = extra;
     this.objects.push({
       id,
@@ -174,6 +186,26 @@ describe("ObjectCommandService", () => {
     await new ObjectCommandService(restored).load(saved);
 
     expect(restored.has("text-1")).toBe(true);
+  });
+
+  it("adds, selects and recolours a semantic product shell", async () => {
+    const port = new MemoryCanvasPort();
+    const commands = new ObjectCommandService(port, idFactory("shell-1"));
+
+    const id = await commands.addProductShell({
+      shellId: "drinks-classic-can",
+      svg: "<svg></svg>",
+      accessibleName: "Classic Soft Drink Can"
+    });
+    commands.setProductShellRegion(id, "accent", "#157A6E");
+
+    expect(port.selectedId).toBe(id);
+    expect(port.objects).toContainEqual(expect.objectContaining({
+      id,
+      kind: "product-shell",
+      shellId: "drinks-classic-can",
+      accent: "#157A6E"
+    }));
   });
 
   it("rejects invalid transform numbers before they reach the port", async () => {

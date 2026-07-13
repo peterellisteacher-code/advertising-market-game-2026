@@ -10,13 +10,22 @@ import {
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { verifyOfflineCoreDirectory } from "./verify-web-export.mjs";
+import {
+  verifyOfflineCoreDirectory,
+  verifyProductShellDirectory
+} from "./verify-web-export.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ROOT = path.resolve(SCRIPT_DIR, "..");
 const REQUIRED_GODOT_FILES = ["index.html", "index.js", "index.wasm", "index.pck"];
 const STUDIO_STYLE = '<link rel="stylesheet" href="./studio/studio.css">';
 const STUDIO_SCRIPT = '<script src="./studio/studio.js"></script>';
+const PRODUCT_SHELL_RELATIVE = path.join(
+  "catalog",
+  "generated",
+  "product-shells-v1-reviewed",
+  "catalog.json"
+);
 
 function removeStudioTags(html) {
   return html
@@ -49,8 +58,7 @@ export function assertResolvedGodotShell(html) {
   if (token) throw new Error(`Refusing unresolved Godot shell token: ${token}`);
 }
 
-/** Adds only the local reviewed-pack URL and removes any stale prior value. */
-export function injectOfflineCatalogueUrl(html, catalogueUrl) {
+function injectCreatorRootCatalogueUrl(html, catalogueUrl, attribute) {
   if (catalogueUrl !== undefined &&
     (!/^\/(?!\/)[A-Za-z0-9._~!$&'()*+,;=:@%/-]+\.json$/.test(catalogueUrl) ||
       catalogueUrl.includes(".."))) {
@@ -63,14 +71,24 @@ export function injectOfflineCatalogueUrl(html, catalogueUrl) {
     throw new Error("Godot export is missing #creator-root");
   }
   const withoutStale = match[0].replace(
-    /\s+data-offline-catalogue-url\s*=\s*(?:["'][^"']*["']|[^\s>]+)/gi,
+    new RegExp(`\\s+${attribute}\\s*=\\s*(?:["'][^"']*["']|[^\\s>]+)`, "gi"),
     ""
   );
   const replacement = catalogueUrl === undefined
     ? withoutStale
     : withoutStale.replace(/\s*\/?\>$/, (ending) =>
-      ` data-offline-catalogue-url="${catalogueUrl}"${ending}`);
+      ` ${attribute}="${catalogueUrl}"${ending}`);
   return html.replace(match[0], replacement);
+}
+
+/** Adds only the local reviewed-pack URL and removes any stale prior value. */
+export function injectOfflineCatalogueUrl(html, catalogueUrl) {
+  return injectCreatorRootCatalogueUrl(html, catalogueUrl, "data-offline-catalogue-url");
+}
+
+/** Adds only the local semantic-shell URL and removes any stale prior value. */
+export function injectProductShellCatalogueUrl(html, catalogueUrl) {
+  return injectCreatorRootCatalogueUrl(html, catalogueUrl, "data-product-shell-catalogue-url");
 }
 
 async function requireFile(filePath, label) {
@@ -119,6 +137,7 @@ export async function copyVerifiedTree(source, destination) {
 export async function assembleWebExport({
   root = DEFAULT_ROOT,
   requireOfflineCore = false,
+  requireProductShells = false,
   log = console.log
 } = {}) {
   const studioDir = path.join(root, "build", "studio");
@@ -146,9 +165,23 @@ export async function assembleWebExport({
     }
   }
 
-  const assembledHtml = injectOfflineCatalogueUrl(
-    injectStudioAssets(exportedHtml),
-    hasOfflineCore ? `/${offlineRelative.replaceAll(path.sep, "/")}` : undefined
+  const productShellSource = path.join(root, PRODUCT_SHELL_RELATIVE);
+  let hasProductShells = false;
+  try {
+    await access(productShellSource);
+    hasProductShells = true;
+  } catch {
+    if (requireProductShells) {
+      throw new Error(`Required product shell catalogue is absent: ${PRODUCT_SHELL_RELATIVE}`);
+    }
+  }
+
+  const assembledHtml = injectProductShellCatalogueUrl(
+    injectOfflineCatalogueUrl(
+      injectStudioAssets(exportedHtml),
+      hasOfflineCore ? `/${offlineRelative.replaceAll(path.sep, "/")}` : undefined
+    ),
+    hasProductShells ? `/${PRODUCT_SHELL_RELATIVE.replaceAll(path.sep, "/")}` : undefined
   );
   assertResolvedGodotShell(assembledHtml);
 
@@ -169,15 +202,27 @@ export async function assembleWebExport({
     log(`OFFLINE_CORE_DEFERRED ${offlineRelative.replaceAll(path.sep, "/")}`);
   }
 
+  if (hasProductShells) {
+    const productShellSourceRoot = path.dirname(productShellSource);
+    const productShellDestinationRoot = path.join(webDir, path.dirname(PRODUCT_SHELL_RELATIVE));
+    await verifyProductShellDirectory(productShellSourceRoot);
+    await copyVerifiedTree(productShellSourceRoot, productShellDestinationRoot);
+    log(`PRODUCT_SHELLS_COPIED ${path.dirname(PRODUCT_SHELL_RELATIVE).replaceAll(path.sep, "/")}`);
+  } else {
+    log(`PRODUCT_SHELLS_DEFERRED ${PRODUCT_SHELL_RELATIVE.replaceAll(path.sep, "/")}`);
+  }
+
   log("WEB_EXPORT_ASSEMBLED_NON_DESTRUCTIVE");
   return { webDir, indexPath };
 }
 
 async function main() {
-  const unknown = process.argv.slice(2).filter((argument) => argument !== "--require-offline-core");
+  const known = new Set(["--require-offline-core", "--require-product-shells"]);
+  const unknown = process.argv.slice(2).filter((argument) => !known.has(argument));
   if (unknown.length > 0) throw new Error(`Unknown argument: ${unknown[0]}`);
   await assembleWebExport({
-    requireOfflineCore: process.argv.includes("--require-offline-core")
+    requireOfflineCore: process.argv.includes("--require-offline-core"),
+    requireProductShells: process.argv.includes("--require-product-shells")
   });
 }
 

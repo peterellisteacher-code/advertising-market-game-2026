@@ -10,6 +10,7 @@ import {
   assertResolvedGodotShell,
   copyVerifiedTree,
   injectOfflineCatalogueUrl,
+  injectProductShellCatalogueUrl,
   injectStudioAssets
 } from "./build-web.mjs";
 import { inspectExportContents } from "./verify-web-export.mjs";
@@ -61,6 +62,77 @@ test("offline catalogue root metadata is optional, local, and idempotent", () =>
   assert.throws(
     () => injectOfflineCatalogueUrl(exported, "https://external.example/catalog.json"),
     /local catalogue URL/i
+  );
+});
+
+test("product shell catalogue metadata is optional, local, and idempotent", () => {
+  const exported = '<div id="creator-root" hidden></div>';
+  assert.equal(injectProductShellCatalogueUrl(exported), exported);
+
+  const once = injectProductShellCatalogueUrl(
+    exported,
+    "/catalog/generated/product-shells-v1-reviewed/catalog.json"
+  );
+  const twice = injectProductShellCatalogueUrl(
+    once,
+    "/catalog/generated/product-shells-v1-reviewed/catalog.json"
+  );
+
+  assert.equal(twice, once);
+  assert.match(
+    once,
+    /data-product-shell-catalogue-url="\/catalog\/generated\/product-shells-v1-reviewed\/catalog\.json"/
+  );
+  assert.throws(
+    () => injectProductShellCatalogueUrl(exported, "https://external.example/catalog.json"),
+    /local catalogue URL/i
+  );
+});
+
+test("assembly copies and injects the reviewed product shell catalogue", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "admarket-product-shells-"));
+  const studio = path.join(root, "build", "studio");
+  const web = path.join(root, "build", "web");
+  const shells = path.join(root, "catalog", "generated", "product-shells-v1-reviewed");
+  const shellFiles = path.join(shells, "shells", "fixture-can");
+  await Promise.all([
+    mkdir(studio, { recursive: true }),
+    mkdir(web, { recursive: true }),
+    mkdir(shellFiles, { recursive: true })
+  ]);
+  await Promise.all([
+    writeFile(path.join(studio, "studio.js"), "window.AdMarketCreator = {};"),
+    writeFile(path.join(studio, "studio.css"), ".creator{}"),
+    writeFile(path.join(web, "index.html"), '<html><head></head><body><div id="creator-root"></div><script src="./index.js"></script></body></html>'),
+    writeFile(path.join(web, "index.js"), "const local = true;"),
+    writeFile(path.join(web, "index.wasm"), Buffer.from([0])),
+    writeFile(path.join(web, "index.pck"), Buffer.from([1])),
+    writeFile(path.join(shellFiles, "authoring.svg"), '<svg xmlns="http://www.w3.org/2000/svg"/>'),
+    writeFile(path.join(shellFiles, "preview.svg"), '<svg xmlns="http://www.w3.org/2000/svg"/>'),
+    writeFile(path.join(shells, "catalog.json"), JSON.stringify({
+      schema: "product-shell-catalog@1",
+      packId: "product-shells-v1",
+      version: 1,
+      families: [{ id: "drinks-snacks", title: "Drinks & Snacks" }],
+      shells: [{
+        id: "fixture-can",
+        family: "drinks-snacks",
+        title: "Fixture Can",
+        authoringSvg: "shells/fixture-can/authoring.svg",
+        previewSvg: "shells/fixture-can/preview.svg"
+      }]
+    }))
+  ]);
+
+  await assembleWebExport({ root, requireProductShells: true, log: () => {} });
+
+  assert.match(
+    await readFile(path.join(web, "index.html"), "utf8"),
+    /data-product-shell-catalogue-url="\/catalog\/generated\/product-shells-v1-reviewed\/catalog\.json"/
+  );
+  assert.match(
+    await readFile(path.join(web, "catalog", "generated", "product-shells-v1-reviewed", "shells", "fixture-can", "authoring.svg"), "utf8"),
+    /<svg/
   );
 });
 
@@ -250,5 +322,43 @@ test("verification checks every optional offline-core file reference and master 
   assert.throws(
     () => inspectExportContents({ files: missingHash, pckHash: "current" }),
     /offline catalogue record 0 has no valid masterSha256/i
+  );
+});
+
+test("verification checks every reviewed product shell SVG reference", () => {
+  const prefix = "catalog/generated/product-shells-v1-reviewed";
+  const files = new Map([
+    ["index.html", `<div id="creator-root" data-product-shell-catalogue-url="/${prefix}/catalog.json"></div><link rel="stylesheet" href="./studio/studio.css"><script src="./studio/studio.js"></script><script src="./index.js"></script>`],
+    ["index.js", "const target = 'wasm32.nothreads'; const audio = new AudioWorklet();"],
+    ["index.wasm", Buffer.from([0])],
+    ["index.pck", Buffer.from([1])],
+    ["index.audio.worklet.js", "class GodotAudioWorklet {}"],
+    ["studio/studio.css", ".creator{}"],
+    ["studio/studio.js", "window.AdMarketCreator = publicApi;"],
+    ["godot/export_presets.cfg", "variant/thread_support=false"],
+    [`${prefix}/shells/fixture-can/authoring.svg`, "<svg/>"] ,
+    [`${prefix}/shells/fixture-can/preview.svg`, "<svg/>"] ,
+    [`${prefix}/catalog.json`, JSON.stringify({
+      schema: "product-shell-catalog@1",
+      packId: "product-shells-v1",
+      version: 1,
+      families: [{ id: "drinks-snacks", title: "Drinks & Snacks" }],
+      shells: [{
+        id: "fixture-can",
+        family: "drinks-snacks",
+        title: "Fixture Can",
+        authoringSvg: "shells/fixture-can/authoring.svg",
+        previewSvg: "shells/fixture-can/preview.svg"
+      }]
+    })]
+  ]);
+
+  assert.doesNotThrow(() => inspectExportContents({ files, pckHash: "current" }));
+
+  const missing = new Map(files);
+  missing.delete(`${prefix}/shells/fixture-can/preview.svg`);
+  assert.throws(
+    () => inspectExportContents({ files: missing, pckHash: "current" }),
+    /product shell catalogue references missing file/i
   );
 });

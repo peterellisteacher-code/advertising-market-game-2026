@@ -32,6 +32,13 @@ export interface NewRasterInput {
   accessibleName: string;
 }
 
+export interface NewProductShellInput {
+  id: string;
+  shellId: string;
+  svg: string;
+  accessibleName: string;
+}
+
 export interface CanvasMutation {
   type: CanvasMutationType;
   objectId: string;
@@ -69,6 +76,9 @@ export interface CanvasPort {
   addText(input: NewTextInput): Promise<void>;
   addShape(input: NewShapeInput): Promise<void>;
   addRaster(input: NewRasterInput): Promise<void>;
+  addProductShell(input: NewProductShellInput): Promise<void>;
+  setProductShellRegion(id: string, region: string, colour: string): void;
+  getProductShellRegionColours(id: string): Readonly<Record<string, string>>;
   setText(id: string, value: string): void;
   transform(id: string, patch: Partial<ObjectTransform>): void;
   duplicate(id: string, newId: string): Promise<void>;

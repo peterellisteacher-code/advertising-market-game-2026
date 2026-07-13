@@ -1,0 +1,55 @@
+const HEX_COLOUR = /^#[0-9A-Fa-f]{6}$/;
+
+export interface ProductShellRegionState {
+  objectId: string;
+  title: string;
+  regions: string[];
+  colours: Readonly<Record<string, string>>;
+}
+
+export type ProductShellRegionChangeHandler = (
+  objectId: string,
+  region: string,
+  colour: string
+) => void;
+
+const regionLabel = (region: string): string =>
+  region.split("-").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
+
+export class ProductShellRegionControls {
+  constructor(
+    private readonly host: HTMLElement,
+    private readonly onChange: ProductShellRegionChangeHandler
+  ) {}
+
+  show(state: ProductShellRegionState): void {
+    const heading = document.createElement("h2");
+    heading.textContent = state.title;
+    const guidance = document.createElement("p");
+    guidance.textContent = "Make it yours: change any product zone.";
+    const controls = document.createElement("div");
+    controls.className = "creator__region-controls";
+    for (const region of state.regions) {
+      const colour = state.colours[region];
+      if (!colour || !HEX_COLOUR.test(colour)) continue;
+      const label = document.createElement("label");
+      label.textContent = `${regionLabel(region)} colour`;
+      const input = document.createElement("input");
+      input.type = "color";
+      input.value = colour;
+      input.dataset.shellRegion = region;
+      input.addEventListener("input", () => {
+        this.onChange(state.objectId, region, input.value.toUpperCase());
+      });
+      label.append(input);
+      controls.append(label);
+    }
+    this.host.replaceChildren(heading, guidance, controls);
+  }
+
+  clear(): void {
+    const message = document.createElement("p");
+    message.textContent = "Choose a product shell to customise its colours.";
+    this.host.replaceChildren(message);
+  }
+}

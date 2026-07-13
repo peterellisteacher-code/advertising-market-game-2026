@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createBlankCampaignDocument, type CampaignDocumentV1 } from "../domain/campaign-document";
 import type { CanvasMutationListener, CanvasPort } from "../fabric/canvas-port";
+import type { ProductShellRecord } from "../product-shells/product-shell-catalogue";
 import type { CatalogAssetV1 } from "./catalogue-types";
 import {
   CataloguePlacementQueue,
@@ -237,6 +238,23 @@ class PlacementCanvas implements CanvasPort {
       src: new URL(input.sameOriginUrl, window.location.href).href
     });
   }
+  async addProductShell(input: {
+    id: string;
+    shellId: string;
+    svg: string;
+    accessibleName: string;
+  }): Promise<void> {
+    this.objects.push({
+      type: "group",
+      objectId: input.id,
+      elementKind: "product-shell",
+      shellId: input.shellId,
+      accessibleName: input.accessibleName,
+      svg: input.svg
+    });
+  }
+  setProductShellRegion(): void { throw new Error("not used"); }
+  getProductShellRegionColours(): Readonly<Record<string, string>> { return {}; }
   remove(id: string): void {
     this.removed.push(id);
     const index = this.objects.findIndex(({ objectId }) => objectId === id);
@@ -287,6 +305,60 @@ describe("CataloguePlacementQueue", () => {
       assetVersion: 1,
       attribution: asset("core").attribution
     }]);
+  });
+
+  it("serialises raster and product-shell placements through one shared tail", async () => {
+    const canvas = new PlacementCanvas();
+    let document: CampaignDocumentV1 = createBlankCampaignDocument({
+      documentId: "mixed-placement-document",
+      sessionId: "mixed-placement-session",
+      mode: "offline"
+    });
+    const ids = ["catalog-object", "shell-object"];
+    const fetchMock = vi.fn(async () => new Response(
+      '<svg xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100"/></svg>',
+      { status: 200, headers: { "content-type": "image/svg+xml" } }
+    ));
+    const shell: ProductShellRecord = {
+      id: "drinks-classic-can",
+      title: "Classic Soft Drink Can",
+      family: "drinks-snacks",
+      template: "can",
+      authoringUrl: `${window.location.origin}/catalog/generated/product-shells-v1/shells/drinks-classic-can/authoring.svg`,
+      previewUrl: `${window.location.origin}/catalog/generated/product-shells-v1/shells/drinks-classic-can/preview.svg`,
+      regions: ["body", "accent"],
+      printAreas: [{ id: "front", x: 0.2, y: 0.2, width: 0.6, height: 0.6, safeInset: 0.03 }],
+      partSlots: [],
+      classroomReviewed: true,
+      brandFree: true
+    };
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit: (next) => { document = next; },
+      createObjectId: () => ids.shift() ?? "extra-object",
+      fetch: fetchMock
+    });
+
+    queue.enqueue(asset("core"));
+    queue.enqueueProductShell(shell, "product-shells-v1");
+    await queue.flush();
+
+    expect(canvas.objects).toEqual(expect.arrayContaining([
+      expect.objectContaining({ objectId: "catalog-object", elementKind: "image" }),
+      expect.objectContaining({ objectId: "shell-object", elementKind: "product-shell", shellId: shell.id })
+    ]));
+    expect(document.assetReferences).toEqual([
+      expect.objectContaining({ kind: "catalog", objectId: "catalog-object", assetId: "core" }),
+      {
+        kind: "product-shell",
+        objectId: "shell-object",
+        shellId: shell.id,
+        packId: "product-shells-v1",
+        version: 1
+      }
+    ]);
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 
   it("rolls back the Fabric object when document reconciliation fails", async () => {

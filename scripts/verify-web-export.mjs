@@ -15,6 +15,7 @@ const REQUIRED_FILES = [
   "studio/studio.css",
   "studio/studio.js"
 ];
+const PRODUCT_SHELL_PREFIX = "catalog/generated/product-shells-v1-reviewed";
 
 function asText(value) {
   return typeof value === "string" ? value : Buffer.isBuffer(value) ? value.toString("utf8") : "";
@@ -73,6 +74,63 @@ function verifyOfflineCatalogue(files, errors) {
   }
 }
 
+function verifyProductShellCatalogue(files, errors) {
+  const catalogPath = `${PRODUCT_SHELL_PREFIX}/catalog.json`;
+  if (!files.has(catalogPath)) return;
+  let catalog;
+  try {
+    catalog = JSON.parse(asText(files.get(catalogPath)));
+  } catch {
+    errors.push("product shell catalogue JSON is malformed");
+    return;
+  }
+  if (!catalog || typeof catalog !== "object" || Array.isArray(catalog) ||
+    catalog.schema !== "product-shell-catalog@1" ||
+    !Array.isArray(catalog.shells) || catalog.shells.length > 5_000) {
+    errors.push("product shell catalogue has an invalid catalog contract");
+    return;
+  }
+  const ids = new Set();
+  for (const [index, shell] of catalog.shells.entries()) {
+    if (!shell || typeof shell !== "object" || Array.isArray(shell) ||
+      typeof shell.id !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(shell.id) ||
+      ids.has(shell.id)) {
+      errors.push(`product shell catalogue record ${index} has an invalid or duplicate id`);
+      continue;
+    }
+    ids.add(shell.id);
+    for (const field of ["authoringSvg", "previewSvg"]) {
+      const reference = shell[field];
+      if (typeof reference !== "string" ||
+        !/^shells\/[a-z0-9]+(?:-[a-z0-9]+)*\/(?:authoring|preview)\.svg$/.test(reference) ||
+        reference.includes("..")) {
+        errors.push(`product shell catalogue record ${index} has a noncanonical ${field}`);
+        continue;
+      }
+      const expectedName = field === "authoringSvg" ? "authoring.svg" : "preview.svg";
+      if (!reference.endsWith(`/${expectedName}`)) {
+        errors.push(`product shell catalogue record ${index} has a mismatched ${field}`);
+      } else if (!files.has(`${PRODUCT_SHELL_PREFIX}/${reference}`)) {
+        errors.push(`product shell catalogue references missing file: ${reference}`);
+      }
+    }
+  }
+}
+
+function verifyProductShellMetadata(html, files, errors) {
+  const catalogPath = `${PRODUCT_SHELL_PREFIX}/catalog.json`;
+  const attribute = /\bdata-product-shell-catalogue-url\s*=\s*["'][^"']*["']/gi;
+  const attributes = html.match(attribute) ?? [];
+  const expected = `data-product-shell-catalogue-url="/${catalogPath}"`;
+  if (files.has(catalogPath)) {
+    if (attributes.length !== 1 || attributes[0] !== expected) {
+      errors.push("index.html must reference the reviewed product shell catalogue exactly once");
+    }
+  } else if (attributes.length > 0) {
+    errors.push("index.html references an absent product shell catalogue");
+  }
+}
+
 /** Verifies a complete offline-core directory without requiring a Godot shell. */
 export async function verifyOfflineCoreDirectory(directory) {
   const prefix = "catalog/generated/offline-core-v1";
@@ -84,6 +142,20 @@ export async function verifyOfflineCoreDirectory(directory) {
   verifyOfflineCatalogue(files, errors);
   if (errors.length > 0) {
     throw new Error(`Offline catalogue verification failed:\n- ${errors.join("\n- ")}`);
+  }
+  return files;
+}
+
+/** Verifies a complete reviewed product-shell directory without requiring a Godot shell. */
+export async function verifyProductShellDirectory(directory) {
+  const files = await readTreeIfPresent(directory, PRODUCT_SHELL_PREFIX);
+  if (!files.has(`${PRODUCT_SHELL_PREFIX}/catalog.json`)) {
+    throw new Error("Product shell verification failed:\n- missing product shell catalogue: catalog.json");
+  }
+  const errors = [];
+  verifyProductShellCatalogue(files, errors);
+  if (errors.length > 0) {
+    throw new Error(`Product shell verification failed:\n- ${errors.join("\n- ")}`);
   }
   return files;
 }
@@ -133,6 +205,8 @@ export function inspectExportContents({ files, pckHash }) {
   }
 
   verifyOfflineCatalogue(files, errors);
+  verifyProductShellCatalogue(files, errors);
+  verifyProductShellMetadata(html, files, errors);
 
   if (pckHash === STALE_SPIKE_PCK_HASH) warnings.push("PCK_STALE_SPIKE_EXPORT");
   if (errors.length > 0) {

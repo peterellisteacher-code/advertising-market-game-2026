@@ -4,6 +4,7 @@ import {
 } from "../domain/campaign-document";
 import type { CanvasPort } from "../fabric/canvas-port";
 import { ObjectCommandService } from "../fabric/object-command-service";
+import type { ProductShellRecord } from "../product-shells/product-shell-catalogue";
 import { CatalogueIndex } from "./catalogue-index";
 import type { CatalogAssetV1 } from "./catalogue-types";
 import { mergeOpenverseAfterCore } from "./openverse-client";
@@ -11,6 +12,7 @@ import { mergeOpenverseAfterCore } from "./openverse-client";
 const LIVE_IMAGE_PATH = /^\/api\/openverse-image\/([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/;
 const LIVE_IMAGE_TIMEOUT_MS = 8_000;
 const MAX_LIVE_IMAGE_BYTES = 12 * 1024 * 1024;
+const MAX_PRODUCT_SHELL_BYTES = 1024 * 1024;
 const LIVE_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
 export interface CatalogueRenderer {
@@ -145,6 +147,7 @@ interface CataloguePlacementHost {
   createDeadlineSignal?: () => AbortSignal;
   createObjectURL?: (blob: Blob) => string;
   revokeObjectURL?: (url: string) => void;
+  onProductShellPlaced?: (objectId: string, shell: ProductShellRecord) => void;
 }
 
 export interface LocalCatalogueBlob {
@@ -216,9 +219,18 @@ export class CataloguePlacementQueue {
 
   enqueue(asset: CatalogAssetV1): void {
     const frozenAsset = structuredClone(asset);
+    this.#enqueue(async () => this.#place(frozenAsset));
+  }
+
+  enqueueProductShell(shell: ProductShellRecord, packId: string): void {
+    const frozenShell = structuredClone(shell);
+    this.#enqueue(async () => this.#placeProductShell(frozenShell, packId));
+  }
+
+  #enqueue(operation: () => Promise<void>): void {
     this.#tail = this.#tail.then(async () => {
       try {
-        await this.#place(frozenAsset);
+        await operation();
       } catch (error) {
         const failure = errorFrom(error);
         this.#failure ??= failure;
@@ -309,6 +321,93 @@ export class CataloguePlacementQueue {
           (this.host.revokeObjectURL ?? ((url) => URL.revokeObjectURL(url)))(localBlob.objectUrl);
         } catch {
           // Preserve the placement failure.
+        }
+      }
+      throw error;
+    }
+  }
+
+  async #placeProductShell(shell: ProductShellRecord, packId: string): Promise<void> {
+    const current = this.host.getDocument();
+    if (!current) throw new Error("Open a campaign before adding a product shell");
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(packId)) {
+      throw new Error("Product shell pack ID is invalid");
+    }
+    let source: URL;
+    try {
+      source = new URL(shell.authoringUrl, window.location.href);
+    } catch {
+      throw new Error("Product shell URL is invalid");
+    }
+    const expectedSuffix = `/shells/${shell.id}/authoring.svg`;
+    if (source.origin !== window.location.origin ||
+      !source.pathname.startsWith("/catalog/generated/") ||
+      !source.pathname.endsWith(expectedSuffix) || source.search || source.hash) {
+      throw new Error("Product shell URL must be canonical and same-origin");
+    }
+    const fetcher = this.host.fetch ?? ((input, init) => fetch(input, init));
+    const response = await fetcher(source.href, {
+      method: "GET",
+      credentials: "same-origin",
+      headers: { accept: "image/svg+xml" },
+      signal: this.host.createDeadlineSignal?.() ?? AbortSignal.timeout(LIVE_IMAGE_TIMEOUT_MS)
+    });
+    if (!response.ok) {
+      throw new Error(`Product shell request failed with status ${response.status}`);
+    }
+    const mimeType = response.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
+    if (mimeType !== "image/svg+xml") throw new Error("Product shell response is not SVG");
+    const declaredLength = response.headers.get("content-length");
+    if (declaredLength !== null &&
+      (!/^\d+$/.test(declaredLength) || Number(declaredLength) > MAX_PRODUCT_SHELL_BYTES)) {
+      throw new Error("Product shell SVG is too large");
+    }
+    const svg = await response.text();
+    if (!svg.trim() || new TextEncoder().encode(svg).byteLength > MAX_PRODUCT_SHELL_BYTES) {
+      throw new Error("Product shell SVG is empty or too large");
+    }
+
+    const canvas = await this.host.getCanvas();
+    const objectId = (this.host.createObjectId ?? (() => globalThis.crypto.randomUUID()))();
+    const commands = new ObjectCommandService(canvas, () => objectId);
+    let attemptedAdd = false;
+    try {
+      attemptedAdd = true;
+      await commands.addProductShell({
+        shellId: shell.id,
+        svg,
+        accessibleName: shell.title
+      });
+      const fabricState = commands.serialize();
+      const objects = Array.isArray(fabricState.objects)
+        ? fabricState.objects as Array<Record<string, unknown>>
+        : [];
+      const object = objects.find((candidate) => candidate.objectId === objectId);
+      if (!object || object.elementKind !== "product-shell" || object.shellId !== shell.id) {
+        throw new Error("Placed product shell did not reconcile with the canvas");
+      }
+      const next = parseCampaignDocument({
+        ...structuredClone(current),
+        fabricState,
+        assetReferences: [
+          ...current.assetReferences,
+          {
+            kind: "product-shell",
+            objectId,
+            shellId: shell.id,
+            packId,
+            version: 1
+          }
+        ]
+      });
+      this.host.commit(next);
+      this.host.onProductShellPlaced?.(objectId, shell);
+    } catch (error) {
+      if (attemptedAdd) {
+        try {
+          commands.remove(objectId);
+        } catch {
+          // Preserve the product-shell placement failure.
         }
       }
       throw error;

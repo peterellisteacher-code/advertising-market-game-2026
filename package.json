@@ -12,9 +12,9 @@
     "test:build-web": "node --test scripts/build-web.test.mjs scripts/godot-bridge-contract.test.mjs",
     "typecheck": "tsc --noEmit",
     "build:studio": "vite build",
-    "build:web": "node scripts/build-web.mjs",
+    "build:web": "node scripts/build-web.mjs --require-product-shells",
     "verify:export": "node scripts/verify-web-export.mjs build/web",
-    "build": "tsc --noEmit && vitest run && node --test scripts/build-web.test.mjs scripts/godot-bridge-contract.test.mjs && vite build && node scripts/build-web.mjs && node scripts/verify-web-export.mjs build/web"
+    "build": "tsc --noEmit && vitest run && node --test scripts/build-web.test.mjs scripts/godot-bridge-contract.test.mjs && vite build && node scripts/build-web.mjs --require-product-shells && node scripts/verify-web-export.mjs build/web"
   },
   "dependencies": {
     "fabric": "7.4.0",

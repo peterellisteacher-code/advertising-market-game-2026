@@ -3,6 +3,7 @@ import {
   Color,
   FabricImage,
   FabricObject,
+  Group,
   Path,
   PencilBrush,
   Point,
@@ -17,6 +18,7 @@ import type {
   CanvasSize,
   CropState,
   DrawingToolSettings,
+  NewProductShellInput,
   NewRasterInput,
   NewShapeInput,
   NewTextInput,
@@ -28,6 +30,11 @@ import {
   FabricObjectFactory,
   sameOriginRasterUrl
 } from "./object-factory";
+import {
+  FabricProductShellFactory,
+  productShellRegionColours,
+  recolourProductShellRegion
+} from "./product-shell-factory";
 import "./fabric-custom-properties";
 
 const SERIALIZED_INTERACTION_PROPERTIES = [
@@ -75,6 +82,7 @@ export class FabricCanvasAdapter implements CanvasPort {
   constructor(
     private readonly canvas: Canvas,
     private readonly factory = new FabricObjectFactory(),
+    private readonly shellFactory = new FabricProductShellFactory(),
     private readonly createId: IdFactory = defaultIdFactory
   ) {
     this.#pencilBrush = new PencilBrush(this.canvas);
@@ -105,6 +113,20 @@ export class FabricCanvasAdapter implements CanvasPort {
   async addText(input: NewTextInput): Promise<void> { this.#add(this.factory.createText(input)); }
   async addShape(input: NewShapeInput): Promise<void> { this.#add(this.factory.createShape(input)); }
   async addRaster(input: NewRasterInput): Promise<void> { this.#add(await this.factory.createRaster(input)); }
+  async addProductShell(input: NewProductShellInput): Promise<void> {
+    this.#add(await this.shellFactory.create(input));
+  }
+
+  setProductShellRegion(id: string, region: string, colour: string): void {
+    const object = this.#get(id);
+    recolourProductShellRegion(object, region, colour);
+    this.canvas.requestRenderAll();
+    this.#emit("modified", object);
+  }
+
+  getProductShellRegionColours(id: string): Readonly<Record<string, string>> {
+    return productShellRegionColours(this.#get(id));
+  }
 
   setText(id: string, value: string): void {
     if (!value.trim()) throw new Error("Text must not be empty");
@@ -289,9 +311,20 @@ export class FabricCanvasAdapter implements CanvasPort {
 
   exportCleanPngDataUrl(): string {
     const activeObject = this.canvas.getActiveObject();
-    const guideStates = this.canvas.getObjects()
-      .map((object, index) => ({ object, index, visible: object.visible }))
-      .filter(({ object }) => object.editorGuide === true);
+    const guideStates: Array<{
+      object: FabricObject;
+      topLevelIndex: number | null;
+      visible: boolean;
+    }> = [];
+    const collect = (object: FabricObject, topLevelIndex: number | null): void => {
+      if (object.editorGuide === true) {
+        guideStates.push({ object, topLevelIndex, visible: object.visible });
+      }
+      if (object instanceof Group) {
+        object.getObjects().forEach((child) => collect(child, null));
+      }
+    };
+    this.canvas.getObjects().forEach((object, index) => collect(object, index));
     try {
       this.canvas.discardActiveObject();
       guideStates.forEach(({ object }) => object.set("visible", false));
@@ -299,9 +332,9 @@ export class FabricCanvasAdapter implements CanvasPort {
       return this.canvas.toDataURL({ format: "png", multiplier: 1 });
     } finally {
       try {
-        guideStates.forEach(({ object, index, visible }) => {
+        guideStates.forEach(({ object, topLevelIndex, visible }) => {
           object.set("visible", visible);
-          this.canvas.moveObjectTo(object, index);
+          if (topLevelIndex !== null) this.canvas.moveObjectTo(object, topLevelIndex);
         });
       } finally {
         if (activeObject) this.canvas.setActiveObject(activeObject);

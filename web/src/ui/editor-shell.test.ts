@@ -9,6 +9,9 @@ describe("createEditorShell", () => {
     const shell = createEditorShell(root);
 
     expect(getByRole(root, "searchbox", { name: "Search assets" })).toBeTruthy();
+    expect(getByRole(root, "region", { name: "Product builder" })).toBeTruthy();
+    expect(getByRole(root, "combobox", { name: "Product shell" })).toBeTruthy();
+    expect(getByRole(root, "button", { name: "Add product shell" })).toBeTruthy();
     const livePhotos = getByRole<HTMLInputElement>(root, "checkbox", { name: "Use live photos" });
     expect(livePhotos.checked).toBe(false);
     expect(shell.libraryResults.dataset.libraryResults).toBe("");

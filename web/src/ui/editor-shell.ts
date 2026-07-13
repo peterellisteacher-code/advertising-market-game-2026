@@ -1,6 +1,11 @@
 export interface EditorShell {
   overlay: HTMLElement;
   library: HTMLElement;
+  productBuilder: HTMLElement;
+  productShellSelect: HTMLSelectElement;
+  productShellPreview: HTMLImageElement;
+  productShellAdd: HTMLButtonElement;
+  productShellStatus: HTMLElement;
   librarySearch: HTMLInputElement;
   livePhotos: HTMLInputElement;
   libraryStatus: HTMLElement;
@@ -28,6 +33,15 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         ${AIDA.map((label, index) => `<button type="button" role="tab" aria-selected="${index === 0}" data-slot="${label.toLowerCase()}">${label}</button>`).join("")}
       </nav>
       <aside class="creator__library" aria-label="Asset library">
+        <section class="creator__product-builder" role="region" aria-label="Product builder">
+          <h2>Build your product</h2>
+          <label>Product shell
+            <select aria-label="Product shell" data-product-shell-select disabled></select>
+          </label>
+          <img data-product-shell-preview alt="">
+          <button type="button" data-add-product-shell disabled>Add product shell</button>
+          <p role="status" data-product-shell-status>Product shells loading</p>
+        </section>
         <label>Search assets <input type="search" aria-label="Search assets"></label>
         <label class="creator__live-photos">
           <input type="checkbox" data-live-photos>
@@ -48,6 +62,11 @@ export function createEditorShell(root: HTMLElement): EditorShell {
   return {
     overlay: root.querySelector(".creator")!,
     library: root.querySelector(".creator__library")!,
+    productBuilder: root.querySelector(".creator__product-builder")!,
+    productShellSelect: root.querySelector('[data-product-shell-select]')!,
+    productShellPreview: root.querySelector('[data-product-shell-preview]')!,
+    productShellAdd: root.querySelector('[data-add-product-shell]')!,
+    productShellStatus: root.querySelector('[data-product-shell-status]')!,
     librarySearch: root.querySelector('input[aria-label="Search assets"]')!,
     livePhotos: root.querySelector('[data-live-photos]')!,
     libraryStatus: root.querySelector('[data-library-status]')!,

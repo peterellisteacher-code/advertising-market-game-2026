@@ -1,4 +1,4 @@
-import { findByRole, getByRole } from "@testing-library/dom";
+import { findByLabelText, findByRole, getByRole } from "@testing-library/dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CreatorPublicApi } from "./bridge/creator-public-api";
 import {
@@ -35,7 +35,8 @@ const runtime = vi.hoisted(() => ({
   nextUrl: 0,
   canvasFailure: null as Error | null,
   adapterDisposeFailure: null as Error | null,
-  canvasDisposeFailure: null as Error | null
+  canvasDisposeFailure: null as Error | null,
+  canvasDisposePromise: null as Promise<void> | null
 }));
 
 vi.mock("fabric", () => ({
@@ -45,9 +46,10 @@ vi.mock("fabric", () => ({
       if (runtime.canvasFailure) throw runtime.canvasFailure;
     }
 
-    dispose(): void {
+    dispose(): Promise<void> {
       runtime.canvasDisposed();
-      if (runtime.canvasDisposeFailure) throw runtime.canvasDisposeFailure;
+      if (runtime.canvasDisposeFailure) return Promise.reject(runtime.canvasDisposeFailure);
+      return runtime.canvasDisposePromise ?? Promise.resolve();
     }
   }
 }));
@@ -84,6 +86,42 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
         accessibleName: input.accessibleName,
         src: new URL(input.sameOriginUrl, window.location.href).href
       });
+    }
+
+    async addProductShell(input: {
+      id: string;
+      shellId: string;
+      svg: string;
+      accessibleName: string;
+    }): Promise<void> {
+      const objects = runtime.state.objects;
+      if (!Array.isArray(objects)) throw new Error("Test canvas state has no objects");
+      objects.push({
+        type: "group",
+        objectId: input.id,
+        elementKind: "product-shell",
+        shellId: input.shellId,
+        accessibleName: input.accessibleName,
+        regionColours: {
+          body: "#EFE8D8",
+          accent: "#E66B3F",
+          label: "#FFF7E8"
+        }
+      });
+    }
+
+    setProductShellRegion(id: string, region: string, colour: string): void {
+      const object = (runtime.state.objects as Array<Record<string, unknown>>)
+        .find((candidate) => candidate.objectId === id);
+      if (!object) throw new Error(`Missing object ${id}`);
+      (object.regionColours as Record<string, string>)[region] = colour;
+    }
+
+    getProductShellRegionColours(id: string): Readonly<Record<string, string>> {
+      const object = (runtime.state.objects as Array<Record<string, unknown>>)
+        .find((candidate) => candidate.objectId === id);
+      if (!object) throw new Error(`Missing object ${id}`);
+      return structuredClone(object.regionColours as Record<string, string>);
     }
 
     remove(id: string): void {
@@ -244,6 +282,41 @@ function currentObjects(): Array<Record<string, unknown>> {
   return objects as Array<Record<string, unknown>>;
 }
 
+function productShellCatalogueFixture(): Record<string, unknown> {
+  const families = [
+    ["beauty-care", "Beauty & Care"], ["drinks-snacks", "Drinks & Snacks"],
+    ["fashion-footwear", "Fashion & Footwear"], ["fast-food-hospitality", "Fast Food & Hospitality"],
+    ["home-lifestyle", "Home & Lifestyle"], ["pets-animals", "Pets & Animals"],
+    ["shops-services", "Shops & Services"], ["sport-outdoors", "Sport & Outdoors"],
+    ["tech-gadgets", "Tech & Gadgets"], ["travel-transport", "Travel & Transport"]
+  ];
+  return {
+    schema: "product-shell-catalog@1",
+    version: 1,
+    packId: "product-shells-v1",
+    families: families.map(([id, title]) => ({ id, title })),
+    shells: families.flatMap(([family]) => Array.from({ length: 6 }, (_, index) => {
+      const id = family === "drinks-snacks" && index === 0
+        ? "drinks-classic-can"
+        : `${family}-shell-${index + 1}`;
+      return {
+        id,
+        title: id === "drinks-classic-can" ? "Classic Soft Drink Can" : `${family} shell ${index + 1}`,
+        family,
+        template: "panel",
+        authoringSvg: `shells/${id}/authoring.svg`,
+        previewSvg: `shells/${id}/preview.svg`,
+        regions: ["body", "accent", "label"],
+        printAreas: [{ id: "front", x: 0.2, y: 0.2, width: 0.6, height: 0.6, safeInset: 0.03 }],
+        partSlots: [],
+        preview: { kind: "soft-2.5d", highlight: 0.16, shadow: 0.18 },
+        classroomReviewed: true,
+        brandFree: true
+      };
+    }))
+  };
+}
+
 function request(requestId: string, method: CreatorMethod, payload: unknown): string {
   return JSON.stringify({ contract: CREATOR_BRIDGE_CONTRACT, requestId, method, payload });
 }
@@ -269,6 +342,7 @@ describe("window.AdMarketCreator", () => {
     runtime.canvasFailure = null;
     runtime.adapterDisposeFailure = null;
     runtime.canvasDisposeFailure = null;
+    runtime.canvasDisposePromise = null;
     runtime.createdUrls = [];
     runtime.revokedUrls = [];
     runtime.nextUrl = 0;
@@ -491,6 +565,31 @@ describe("window.AdMarketCreator", () => {
     expect(runtime.canvasConstructed).toHaveBeenCalledTimes(2);
   });
 
+  it("waits for asynchronous Fabric canvas disposal before close returns", async () => {
+    let releaseDispose!: () => void;
+    runtime.canvasDisposePromise = new Promise<void>((resolve) => {
+      releaseDispose = resolve;
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-before-async-close", "open", blankDocument)).toMatchObject({ ok: true });
+
+    let settled = false;
+    const closing = parsed(api, "async-close", "close", null).finally(() => {
+      settled = true;
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(runtime.canvasDisposed).toHaveBeenCalledTimes(1);
+    expect(settled).toBe(false);
+
+    releaseDispose();
+    expect(await closing).toMatchObject({ ok: true });
+    expect(settled).toBe(true);
+  });
+
   it("persists two saves as increasing revisions and exposes the latest state", async () => {
     await import("./main");
     const api = window.AdMarketCreator;
@@ -572,6 +671,77 @@ describe("window.AdMarketCreator", () => {
       assetReferences: [expect.objectContaining({ kind: "catalog", assetId: "core-bottle" })]
     });
     expect(fetchSpy).toHaveBeenCalledOnce();
+  });
+
+  it("places, recolours, saves and reloads a semantic product shell", async () => {
+    const root = document.querySelector<HTMLElement>("#creator-root")!;
+    root.dataset.productShellCatalogueUrl =
+      "/catalog/generated/product-shells-v1/catalog.json";
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      const url = String(input);
+      if (url.endsWith("/catalog/generated/product-shells-v1/catalog.json")) {
+        return Promise.resolve(Response.json(productShellCatalogueFixture()));
+      }
+      if (url.endsWith("/shells/drinks-classic-can/authoring.svg")) {
+        return Promise.resolve(new Response(
+          '<svg xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100"/></svg>',
+          { headers: { "content-type": "image/svg+xml" } }
+        ));
+      }
+      return Promise.reject(new Error(`Unexpected URL ${url}`));
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+    await parsed(api, "open-product-shell", "open", blankDocument);
+    const select = getByRole<HTMLSelectElement>(document.body, "combobox", {
+      name: "Product shell"
+    });
+    await vi.waitFor(() => expect(select.disabled).toBe(false));
+    select.value = "drinks-classic-can";
+    select.dispatchEvent(new Event("change"));
+    getByRole(document.body, "button", { name: "Add product shell" }).click();
+
+    const state = await parsed(api, "state-product-shell", "getState", null);
+    const stateDocument = CampaignDocumentSchema.parse(state.payload);
+    const object = stateDocument.fabricState.objects[0];
+    expect(object).toMatchObject({
+      elementKind: "product-shell",
+      shellId: "drinks-classic-can"
+    });
+    expect(stateDocument.assetReferences).toEqual([{
+      kind: "product-shell",
+      objectId: object?.objectId,
+      shellId: "drinks-classic-can",
+      packId: "product-shells-v1",
+      version: 1
+    }]);
+
+    const accent = await findByLabelText<HTMLInputElement>(document.body, "Accent colour");
+    accent.value = "#157a6e";
+    accent.dispatchEvent(new Event("input"));
+    expect((await parsed(api, "recoloured-shell", "getState", null)).payload)
+      .toMatchObject({
+        fabricState: {
+          objects: [expect.objectContaining({
+            regionColours: expect.objectContaining({ accent: "#157A6E" })
+          })]
+        }
+      });
+
+    expect(await parsed(api, "save-shell", "save", null)).toMatchObject({ ok: true });
+    const saved = runtime.drafts.get(blankDocument.documentId)!.document;
+    expect(await parsed(api, "close-shell", "close", null)).toMatchObject({ ok: true });
+    expect(await parsed(api, "reload-shell", "open", saved)).toMatchObject({ ok: true });
+    expect((await parsed(api, "reloaded-shell-state", "getState", null)).payload)
+      .toMatchObject({
+        fabricState: {
+          objects: [expect.objectContaining({
+            regionColours: expect.objectContaining({ accent: "#157A6E" })
+          })]
+        }
+      });
+    expect(fetchSpy.mock.calls.some(([input]) => String(input).endsWith("authoring.svg")))
+      .toBe(true);
   });
 
   it("keeps live search usable while the optional classroom pack is stalled", async () => {

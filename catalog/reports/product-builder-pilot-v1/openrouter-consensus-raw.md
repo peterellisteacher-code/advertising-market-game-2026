@@ -57,12 +57,12 @@ Configuration: one bounded consensus pass; `max_tokens: 32000`, `temperature: 0.
    - `data-component-slot-id` on bodies and `data-slot-id` on parts are declared but not yet cross-validated against `component_anchor` placement at render time; worth a containment/anchor check when the composer is built.
 
 --- panel model: x-ai/grok-4.5 ---
-1. VISUAL: PASS  
-2. CODE: PASS  
-3. VERDICT: PROCEED  
-4. Non-blocking future cautions:  
-- CAUTION: Component anchors are catalogue-only; live body×part composition remains deferred to the later interactive composer.  
-- CAUTION: Materials are identity/profile IDs only in this pack; surface/finish differentiation is not yet rendered.  
+1. VISUAL: PASS
+2. CODE: PASS
+3. VERDICT: PROCEED
+4. Non-blocking future cautions:
+- CAUTION: Component anchors are catalogue-only; live body×part composition remains deferred to the later interactive composer.
+- CAUTION: Materials are identity/profile IDs only in this pack; surface/finish differentiation is not yet rendered.
 - CAUTION: Contact-sheet previews use the default palette only; the 16×8 palette/material matrix stays lazy/virtual by design.
 
 --- panel model: openai/gpt-5.6-sol ---
@@ -73,4 +73,3 @@ Configuration: one bounded consensus pass; `max_tokens: 32000`, `temperature: 0.
    - Preserve the validated layer order and guide-free preview exports during future renderer changes.
    - Keep material-profile resolution deterministic when the later composer consumes the eight catalogue IDs.
    - Consider transactional cleanup for rare mid-write filesystem failures in `write_product_builder_pack`.
-

@@ -127,6 +127,36 @@ def test_each_body_has_four_compatible_registered_parts_and_normalized_surfaces(
     )
 
 
+def test_parser_rejects_same_family_body_geometry_swap():
+    raw = source_dict()
+    first, second = raw["bodies"][0], raw["bodies"][1]
+    first["geometryId"], second["geometryId"] = (
+        second["geometryId"],
+        first["geometryId"],
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="body ID must use its registered family, geometry and slot",
+    ):
+        parse_source(raw)
+
+
+def test_parser_rejects_same_family_part_geometry_swap():
+    raw = source_dict()
+    first, second = raw["parts"][0], raw["parts"][1]
+    first["geometryId"], second["geometryId"] = (
+        second["geometryId"],
+        first["geometryId"],
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="part ID must use its registered family, geometry and slot",
+    ):
+        parse_source(raw)
+
+
 def test_manifest_defines_sixteen_complete_four_zone_palettes():
     source = parse_source()
 
@@ -143,6 +173,16 @@ def test_manifest_defines_sixteen_complete_four_zone_palettes():
             value.startswith("#") and len(value) == 7
             for value in palette.colours.model_dump().values()
         )
+
+
+def test_parser_rejects_duplicate_four_colour_palette_tuple():
+    raw = source_dict()
+    raw["palettes"][1]["colours"] = copy.deepcopy(
+        raw["palettes"][0]["colours"]
+    )
+
+    with pytest.raises(ValueError, match="palette colour combinations must be unique"):
+        parse_source(raw)
 
 
 def test_manifest_uses_exactly_the_existing_eight_material_ids():
@@ -206,6 +246,14 @@ def test_parser_rejects_executable_or_external_manifest_content(case: str, mutat
         parse_source(raw)
 
 
+def test_parser_rejects_url_like_title_without_a_scheme():
+    raw = source_dict()
+    raw["bodies"][0]["title"] = "www.example.com"
+
+    with pytest.raises(ValueError, match="without markup or URLs"):
+        parse_source(raw)
+
+
 @pytest.mark.parametrize(
     "mutate",
     [
@@ -260,4 +308,3 @@ def test_canonical_source_json_is_stable_compact_utf8_with_one_final_lf():
     assert b"\r" not in first_bytes
     assert b": " not in first_bytes and b", " not in first_bytes
     assert json.loads(first_bytes) == json.loads(second_bytes)
-

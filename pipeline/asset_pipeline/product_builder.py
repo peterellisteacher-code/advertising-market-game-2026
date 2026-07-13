@@ -31,34 +31,81 @@ from .schema import (
 MAX_SOURCE_BYTES = 1_000_000
 HEX_COLOUR = re.compile(r"^#[0-9A-Fa-f]{6}$")
 PLAIN_TITLE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 &'()+,.\-]*$")
+URL_LIKE_TITLE = re.compile(
+    r"(?i)(?:\bwww\.|\b[a-z0-9-]+\.(?:com|org|net|edu|gov|io|co|au)\b)"
+)
 
+REGISTERED_BODY_IDENTITIES = {
+    "bags-backpack": ("bags", "body-backpack", "carry-system"),
+    "bags-carry-bag": ("bags", "body-carry-bag", "carry-system"),
+    "bags-tote": ("bags", "body-tote", "carry-system"),
+    "bags-weekender": ("bags", "body-weekender", "carry-system"),
+    "drinkware-classic-can": ("drinkware", "body-classic-can", "top"),
+    "drinkware-slim-can": ("drinkware", "body-slim-can", "top"),
+    "drinkware-sports-bottle": ("drinkware", "body-sports-bottle", "top"),
+    "drinkware-takeaway-cup": ("drinkware", "body-takeaway-cup", "top"),
+    "food-packaging-burger-box": (
+        "food-packaging",
+        "body-burger-box",
+        "closure",
+    ),
+    "food-packaging-meal-box": ("food-packaging", "body-meal-box", "closure"),
+    "food-packaging-noodle-tub": (
+        "food-packaging",
+        "body-noodle-tub",
+        "closure",
+    ),
+    "food-packaging-snack-pouch": (
+        "food-packaging",
+        "body-snack-pouch",
+        "closure",
+    ),
+}
+REGISTERED_PART_IDENTITIES = {
+    "bags-carry-cutout": ("bags", "part-carry-cutout", "carry-system"),
+    "bags-carry-long-straps": (
+        "bags",
+        "part-carry-long-straps",
+        "carry-system",
+    ),
+    "bags-carry-loop": ("bags", "part-carry-loop", "carry-system"),
+    "bags-carry-short-straps": (
+        "bags",
+        "part-carry-short-straps",
+        "carry-system",
+    ),
+    "drinkware-top-flat": ("drinkware", "part-top-flat", "top"),
+    "drinkware-top-ring": ("drinkware", "part-top-ring", "top"),
+    "drinkware-top-spout": ("drinkware", "part-top-spout", "top"),
+    "drinkware-top-straw": ("drinkware", "part-top-straw", "top"),
+    "food-packaging-closure-folded": (
+        "food-packaging",
+        "part-closure-folded",
+        "closure",
+    ),
+    "food-packaging-closure-sleeved": (
+        "food-packaging",
+        "part-closure-sleeved",
+        "closure",
+    ),
+    "food-packaging-closure-tabbed": (
+        "food-packaging",
+        "part-closure-tabbed",
+        "closure",
+    ),
+    "food-packaging-closure-zip": (
+        "food-packaging",
+        "part-closure-zip",
+        "closure",
+    ),
+}
 REGISTERED_BODY_GEOMETRY_FAMILIES = {
-    "body-backpack": "bags",
-    "body-burger-box": "food-packaging",
-    "body-carry-bag": "bags",
-    "body-classic-can": "drinkware",
-    "body-meal-box": "food-packaging",
-    "body-noodle-tub": "food-packaging",
-    "body-slim-can": "drinkware",
-    "body-snack-pouch": "food-packaging",
-    "body-sports-bottle": "drinkware",
-    "body-takeaway-cup": "drinkware",
-    "body-tote": "bags",
-    "body-weekender": "bags",
+    geometry_id: family_id
+    for family_id, geometry_id, _slot_id in REGISTERED_BODY_IDENTITIES.values()
 }
 REGISTERED_COMPONENT_GEOMETRY_FAMILIES = {
-    "part-carry-cutout": "bags",
-    "part-carry-long-straps": "bags",
-    "part-carry-loop": "bags",
-    "part-carry-short-straps": "bags",
-    "part-closure-folded": "food-packaging",
-    "part-closure-sleeved": "food-packaging",
-    "part-closure-tabbed": "food-packaging",
-    "part-closure-zip": "food-packaging",
-    "part-top-flat": "drinkware",
-    "part-top-ring": "drinkware",
-    "part-top-spout": "drinkware",
-    "part-top-straw": "drinkware",
+    geometry_id: family_id
+    for family_id, geometry_id, _slot_id in REGISTERED_PART_IDENTITIES.values()
 }
 REGISTERED_BODY_GEOMETRY_IDS = frozenset(REGISTERED_BODY_GEOMETRY_FAMILIES)
 REGISTERED_COMPONENT_GEOMETRY_IDS = frozenset(
@@ -91,6 +138,7 @@ def _plain_title(value: str, label: str) -> str:
         or value != value.strip()
         or not 1 <= len(value) <= 80
         or PLAIN_TITLE.fullmatch(value) is None
+        or URL_LIKE_TITLE.search(value) is not None
         or ".." in value
     ):
         raise ValueError(f"{label} must be short plain text without markup or URLs")
@@ -303,6 +351,17 @@ class ProductBuilderSource(FrozenContractModel):
             raise ValueError("pilot requires exactly twelve reusable parts")
         if len(self.palettes) != 16:
             raise ValueError("pilot requires exactly sixteen palettes")
+        palette_colours = {
+            (
+                palette.colours.body,
+                palette.colours.trim,
+                palette.colours.accent,
+                palette.colours.label,
+            )
+            for palette in self.palettes
+        }
+        if len(palette_colours) != 16:
+            raise ValueError("palette colour combinations must be unique")
         material_ids = {material.id for material in self.materials}
         if len(self.materials) != 8 or material_ids != REQUIRED_MATERIAL_IDS:
             raise ValueError("pilot requires exactly the existing eight materials")
@@ -315,6 +374,24 @@ class ProductBuilderSource(FrozenContractModel):
         part_geometry_ids = {part.geometry_id for part in self.parts}
         if part_geometry_ids != REGISTERED_COMPONENT_GEOMETRY_IDS:
             raise ValueError("pilot must select each registered part geometry exactly once")
+        for body in self.bodies:
+            if REGISTERED_BODY_IDENTITIES.get(body.id) != (
+                body.family_id,
+                body.geometry_id,
+                body.component_slot_id,
+            ):
+                raise ValueError(
+                    "body ID must use its registered family, geometry and slot"
+                )
+        for part in self.parts:
+            if REGISTERED_PART_IDENTITIES.get(part.id) != (
+                part.family_id,
+                part.geometry_id,
+                part.slot_id,
+            ):
+                raise ValueError(
+                    "part ID must use its registered family, geometry and slot"
+                )
 
         family_lookup = {family.id: family for family in self.families}
         part_lookup = {part.id: part for part in self.parts}

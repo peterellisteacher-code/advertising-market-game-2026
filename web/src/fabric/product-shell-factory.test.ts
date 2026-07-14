@@ -24,6 +24,19 @@ const SHELL_SVG = `
     fill="none" stroke="#20A464" />
 </svg>`;
 
+const MALFORMED_ARTWORK_SLOT_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">
+  <defs>
+    <clipPath id="primary-artwork-clip">
+      <rect x="300" y="300" width="400" height="360" />
+    </clipPath>
+  </defs>
+  <g data-layer="artwork-slot" data-artwork-slot="primary"
+    clip-path="url(#primary-artwork-clip)">
+    <rect x="300" y="300" width="400" height="360" fill="#F2385A" />
+  </g>
+</svg>`;
+
 function descendants(root: FabricObject): FabricObject[] {
   if (!(root instanceof Group)) return [root];
   return [root, ...root.getObjects().flatMap(descendants)];
@@ -189,6 +202,17 @@ describe("FabricProductShellFactory", () => {
     expect(restored.height).toBe(shell.height);
     expect(restored.scaleX).toBeCloseTo(shell.scaleX, 3);
     expect(restored.scaleY).toBeCloseTo(shell.scaleY, 3);
+  });
+
+  it("rejects an artwork slot without student artwork metadata", async () => {
+    const result = new FabricProductShellFactory().create({
+      id: "malformed-artwork-slot",
+      shellId: "drinkware-classic-can",
+      svg: MALFORMED_ARTWORK_SLOT_SVG,
+      accessibleName: "Malformed artwork slot"
+    });
+
+    await expect(result).rejects.toThrow("student artwork object");
   });
 
   it.each(catalogue.materials)("fits $title selection bounds to the visible assembled product", async (material) => {

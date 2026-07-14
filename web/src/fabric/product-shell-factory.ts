@@ -36,7 +36,15 @@ function descendants(root: FabricObject): FabricObject[] {
 
 function nestArtworkSurface(objects: readonly FabricObject[]): FabricObject[] {
   const artworkObjects = objects.filter((object) => object.artworkId !== undefined);
-  if (artworkObjects.length === 0) return [...objects];
+  const artworkSlots = objects.filter((object) =>
+    object.productLayer === "artwork-slot" || object.artworkSlotId !== undefined
+  );
+  if (artworkObjects.length === 0) {
+    if (artworkSlots.length > 0) {
+      throw new Error("Product variant artwork slot requires one student artwork object");
+    }
+    return [...objects];
+  }
   if (artworkObjects.length !== 1) {
     throw new Error("Product variant must contain exactly one student artwork object");
   }

@@ -390,6 +390,7 @@ describe("FabricCanvasAdapter persistence", () => {
 
     adapter.setArtworkText(target, "art-text-1", longText);
 
+    expect(mutations).toEqual([{ type: "modified", objectId: "product-1" }]);
     expect(text.getScaledWidth()).toBeLessThanOrEqual(surface.width * 0.82 + 0.001);
     expect(text.getScaledHeight()).toBeLessThanOrEqual(surface.height * 0.82 + 0.001);
     expect(text.scaleX).toBeLessThan(shortScale.x);

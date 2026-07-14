@@ -37,6 +37,27 @@ const MALFORMED_ARTWORK_SLOT_SVG = `
   </g>
 </svg>`;
 
+const AMBIGUOUS_ARTWORK_SLOT_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">
+  <defs>
+    <clipPath id="primary-artwork-clip">
+      <rect x="300" y="300" width="400" height="360" />
+    </clipPath>
+    <clipPath id="secondary-artwork-clip">
+      <rect x="320" y="320" width="360" height="320" />
+    </clipPath>
+  </defs>
+  <g data-layer="artwork-slot" data-artwork-slot="primary"
+    clip-path="url(#primary-artwork-clip)">
+    <rect data-student-artwork="front-art" x="300" y="300" width="400" height="360"
+      fill="#F2385A" />
+  </g>
+  <g data-layer="artwork-slot" data-artwork-slot="secondary"
+    clip-path="url(#secondary-artwork-clip)">
+    <rect x="320" y="320" width="360" height="320" fill="#F2385A" />
+  </g>
+</svg>`;
+
 function descendants(root: FabricObject): FabricObject[] {
   if (!(root instanceof Group)) return [root];
   return [root, ...root.getObjects().flatMap(descendants)];
@@ -213,6 +234,17 @@ describe("FabricProductShellFactory", () => {
     });
 
     await expect(result).rejects.toThrow("student artwork object");
+  });
+
+  it("rejects artwork with an additional parsed artwork slot", async () => {
+    const result = new FabricProductShellFactory().create({
+      id: "ambiguous-artwork-slot",
+      shellId: "drinkware-classic-can",
+      svg: AMBIGUOUS_ARTWORK_SLOT_SVG,
+      accessibleName: "Ambiguous artwork slot"
+    });
+
+    await expect(result).rejects.toThrow("artwork slot");
   });
 
   it.each(catalogue.materials)("fits $title selection bounds to the visible assembled product", async (material) => {

@@ -39,16 +39,12 @@ function nestArtworkSurface(objects: readonly FabricObject[]): FabricObject[] {
   const artworkSlots = objects.filter((object) =>
     object.productLayer === "artwork-slot" || object.artworkSlotId !== undefined
   );
-  if (artworkObjects.length === 0) {
-    if (artworkSlots.length > 0) {
-      throw new Error("Product variant artwork slot requires one student artwork object");
-    }
-    return [...objects];
-  }
-  if (artworkObjects.length !== 1) {
-    throw new Error("Product variant must contain exactly one student artwork object");
-  }
+  if (artworkObjects.length === 0 && artworkSlots.length === 0) return [...objects];
   const artwork = artworkObjects[0];
+  const artworkSlot = artworkSlots[0];
+  if (artworkObjects.length !== 1 || artworkSlots.length !== 1 || artwork !== artworkSlot) {
+    throw new Error("Product variant requires exactly one artwork slot and student artwork object");
+  }
   if (!artwork) throw new Error("Product variant artwork is missing");
   const slotId = artwork.artworkSlotId;
   const clipPath = artwork.clipPath;

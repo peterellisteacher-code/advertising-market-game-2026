@@ -53,12 +53,12 @@ export const STUDENT_COPY = deepFreeze({
   rolePrompts: {
     "art-director": {
       label: "Art Director",
-      productiveAction: "While you control the computer, make one visible image change by adding, moving, resizing, cropping, recolouring or layering.",
+      productiveAction: "While you control the computer, make one visible image change by adding, moving or resizing an image.",
       holdingAction: "While your partner controls the computer, compare the image choices with the audience need and prepare one specific visual suggestion."
     },
     strategist: {
       label: "Strategist",
-      productiveAction: "While you control the computer, make one visible message change by adding or revising the product name, price, text or drawn shape.",
+      productiveAction: "While you control the computer, make one visible message change by adding or revising the product name or canvas words.",
       holdingAction: "While your partner controls the computer, read the audience brief and prepare one specific wording or persuasion suggestion."
     }
   },

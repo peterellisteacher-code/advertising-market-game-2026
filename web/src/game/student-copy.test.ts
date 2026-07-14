@@ -46,6 +46,11 @@ describe("student copy", () => {
       expect(prompt.productiveAction.length).toBeGreaterThan(40);
       expect(prompt.holdingAction.length).toBeGreaterThan(40);
     }
+
+    const startingRoleCopy = Object.values(STUDENT_COPY.rolePrompts)
+      .flatMap((prompt) => [prompt.productiveAction, prompt.holdingAction])
+      .join(" ");
+    expect(startingRoleCopy).not.toMatch(/\b(?:crop|drawing|drawn|recolour|layering|price)\b/i);
   });
 
   it("includes play labels, phase labels, handoff copy, and readiness copy", () => {

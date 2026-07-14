@@ -6,7 +6,31 @@ Date: 2026-07-14 (Australia/Adelaide)
 
 These OpenRouter calls were independent and blind, but they do **not** constitute the formal project gates. A later clarification requires two distinct pre-established six-model families and explicitly adversarial as well as unguided prompts. The calls below used the visual family for both subjects and used neutral readiness prompts. Their findings remain useful exploratory evidence only.
 
-The formal visual gate must be rerun with the established visual family and an adversarial, unguided prompt. The formal coding gate is pending confirmation of its distinct six-model roster.
+The formal visual and coding gates must be rerun with their separate established families and adversarial, unguided prompts.
+
+## Locked formal panel contract
+
+The live OpenRouter catalogue was checked on 2026-07-14. The formal visual family is:
+
+1. `mistralai/mistral-medium-3-5`
+2. `stepfun/step-3.7-flash`
+3. `google/gemini-3.1-pro-preview`
+4. `xiaomi/mimo-v2.5`
+5. `minimax/minimax-m3`
+6. `moonshotai/kimi-k2.7-code`
+
+The formal coding family is:
+
+1. `deepseek/deepseek-v4-pro`
+2. `z-ai/glm-5.2`
+3. `moonshotai/kimi-k2.7-code`
+4. `tencent/hy3`
+5. `x-ai/grok-4.5`
+6. `xiaomi/mimo-v2.5-pro`
+
+Each OpenRouter gate consists of two blind passes. Each model receives the same immutable evidence for that pass and no rubric, suspected defect, prior finding, preferred verdict or other reviewer output. The sole review direction is to work adversarially and try to falsify readiness using only the supplied evidence. Every call uses `max_tokens: 32000`; pass 2 remains blind to pass 1.
+
+Codensus is separate: one fresh local `gpt-5.6-sol` reviewer at `xhigh` with `fork_turns: none`, using one blind, unguided and adversarial pass under the Codensus skill contract.
 
 ## Exploratory method
 

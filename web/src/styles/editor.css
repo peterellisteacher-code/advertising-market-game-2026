@@ -94,7 +94,7 @@ button, input, select { min-height: 44px; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 @media (max-height: 820px) {
-  .creator__product-builder { max-height: 31vh; }
+  .creator__product-builder { max-height: 48vh; }
   .product-maker__choice-grid:has(input[name="product-art"]) .product-maker__choice { min-height: 48px; }
 }
 @media (max-width: 1120px) {

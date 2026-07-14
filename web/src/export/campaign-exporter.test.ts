@@ -138,6 +138,7 @@ function nestPhoto(
   document: CampaignDocumentV1
 ): CampaignDocumentV1["fabricState"]["objects"][number] {
   const photoIndex = document.fabricState.objects.findIndex(({ objectId }) => objectId === "photo");
+  if (photoIndex < 0) throw new Error("Photo fixture is missing");
   const [photo] = document.fabricState.objects.splice(photoIndex, 1);
   if (!photo) throw new Error("Photo fixture is missing");
   document.fabricState.objects.push({

@@ -97,6 +97,7 @@ export interface CanvasPort {
   addArtworkShape(address: ArtworkSurfaceAddress, input: NewShapeInput): Promise<void>;
   addArtworkRaster(address: ArtworkSurfaceAddress, input: NewRasterInput): Promise<void>;
   setArtworkText(address: ArtworkSurfaceAddress, id: string, value: string): void;
+  removeArtwork(address: ArtworkSurfaceAddress, childId: string): void;
   addProductShell(input: NewProductShellInput): Promise<void>;
   addProductVariant(input: NewProductVariantInput): Promise<void>;
   setProductShellRegion(id: string, region: string, colour: string): void;

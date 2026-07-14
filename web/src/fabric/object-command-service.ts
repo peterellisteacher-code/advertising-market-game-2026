@@ -135,6 +135,15 @@ export class ObjectCommandService {
     );
   }
 
+  removeArtwork(address: ArtworkSurfaceAddress, childId: string): void {
+    const target = this.#artworkAddress(address);
+    this.port.removeArtwork(
+      target,
+      this.#required(childId, "artwork object id")
+    );
+    this.port.setSelected(target.productId);
+  }
+
   async addProductShell(input: AddProductShellCommand): Promise<string> {
     const id = this.#nextId();
     await this.port.addProductShell({

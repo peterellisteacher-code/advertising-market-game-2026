@@ -57,6 +57,13 @@ const SERIALIZED_INTERACTION_PROPERTIES = [
   "cropFocalX",
   "cropFocalY"
 ];
+const REMOVABLE_ARTWORK_KINDS = new Set([
+  "text",
+  "shape",
+  "image",
+  "drawing",
+  "masked-component"
+]);
 
 type IdFactory = () => string;
 const defaultIdFactory: IdFactory = () => globalThis.crypto.randomUUID();
@@ -155,6 +162,19 @@ export class FabricCanvasAdapter implements CanvasPort {
     if (object.text === value) return;
     object.set("text", value);
     this.#fitArtworkObject(surface, object);
+    this.#finishArtworkMutation(product, surface);
+  }
+
+  removeArtwork(address: ArtworkSurfaceAddress, childId: string): void {
+    if (!childId.trim()) throw new Error("Artwork object id must not be empty");
+    const { product, surface } = this.#artworkContext(address);
+    const matches = surface.getObjects().filter((candidate) => candidate.objectId === childId);
+    const object = matches.length === 1 ? matches[0] : undefined;
+    if (!object || !REMOVABLE_ARTWORK_KINDS.has(object.elementKind ?? "") ||
+      !object.accessibleName?.trim()) {
+      throw new Error(`${childId} is not removable artwork`);
+    }
+    surface.remove(object);
     this.#finishArtworkMutation(product, surface);
   }
 

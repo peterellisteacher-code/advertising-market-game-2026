@@ -26,6 +26,10 @@ class FakeCanvas {
   on(_event: string, _listener: (event: { target: FabricObject }) => void): () => void { return () => undefined; }
   getObjects(): FabricObject[] { return this.objects; }
   add(object: FabricObject): void { this.objects.push(object); }
+  readonly remove = vi.fn((object: FabricObject): void => {
+    const index = this.objects.indexOf(object);
+    if (index >= 0) this.objects.splice(index, 1);
+  });
   getActiveObject(): FabricObject | undefined { return this.activeObject ?? undefined; }
   discardActiveObject(): void { this.activeObject = null; }
   setActiveObject(object: FabricObject): void { this.activeObject = object; }
@@ -335,6 +339,152 @@ describe("FabricCanvasAdapter persistence", () => {
       expect.objectContaining({ objectId: "art-shape-1" }),
       expect.objectContaining({ objectId: "art-image-1", assetId: "fruit-1" })
     ]));
+  }, 15_000);
+
+  it("removes only one direct semantic artwork child and preserves the product shell", async () => {
+    const canvas = new FakeCanvas();
+    const shell = await new FabricProductShellFactory().create({
+      id: "product-1",
+      shellId: "drinkware-classic-can",
+      accessibleName: "Classic can",
+      svg: CLIPPED_SHELL_SVG
+    });
+    canvas.objects = [shell];
+    canvas.activeObject = shell;
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+    const target = { productId: "product-1", slotId: "primary" };
+    const mutations: CanvasMutation[] = [];
+    adapter.subscribe((mutation) => mutations.push(mutation));
+    await adapter.addArtworkText(target, {
+      id: "art-text-1",
+      value: "Fizz first",
+      accessibleName: "Front headline"
+    });
+    await adapter.addArtworkShape(target, {
+      id: "art-shape-1",
+      kind: "ellipse",
+      fill: "#F2385A",
+      accessibleName: "Front burst"
+    });
+    const surface = productArtworkSurface(shell, "primary");
+    const removed = surface.getObjects().find(({ objectId }) => objectId === "art-text-1");
+    const survivor = surface.getObjects().find(({ objectId }) => objectId === "art-shape-1");
+    const structural = surface.getObjects().find(({ artworkId }) => artworkId === "base-art");
+    if (!removed || !survivor || !structural) throw new Error("Expected artwork fixtures");
+    const productGeometry = {
+      left: shell.left,
+      top: shell.top,
+      width: shell.width,
+      height: shell.height,
+      scaleX: shell.scaleX,
+      scaleY: shell.scaleY,
+      angle: shell.angle,
+      originX: shell.originX,
+      originY: shell.originY
+    };
+    const surfaceGeometry = {
+      left: surface.left,
+      top: surface.top,
+      width: surface.width,
+      height: surface.height,
+      scaleX: surface.scaleX,
+      scaleY: surface.scaleY,
+      angle: surface.angle,
+      originX: surface.originX,
+      originY: surface.originY
+    };
+    const clipPath = surface.clipPath;
+    const layoutStrategy = surface.layoutManager.strategy;
+    mutations.length = 0;
+
+    adapter.removeArtwork(target, "art-text-1");
+
+    expect(canvas.objects).toEqual([shell]);
+    expect(canvas.remove).not.toHaveBeenCalled();
+    expect(canvas.activeObject).toBe(shell);
+    expect(shell.objectId).toBe("product-1");
+    expect(shell).toMatchObject(productGeometry);
+    expect(surface).toMatchObject(surfaceGeometry);
+    expect(surface.clipPath).toBe(clipPath);
+    expect(surface.layoutManager.strategy).toBe(layoutStrategy);
+    expect(surface.getObjects()).not.toContain(removed);
+    expect(surface.getObjects()).toContain(survivor);
+    expect(surface.getObjects()).toContain(structural);
+    expect(mutations).toEqual([{ type: "modified", objectId: "product-1" }]);
+  }, 15_000);
+
+  it("leaves serialization, selection and events unchanged for invalid artwork removal targets", async () => {
+    const canvas = new FakeCanvas();
+    const shell = await new FabricProductShellFactory().create({
+      id: "product-1",
+      shellId: "drinkware-classic-can",
+      accessibleName: "Classic can",
+      svg: CLIPPED_SHELL_SVG
+    });
+    canvas.objects = [shell];
+    canvas.activeObject = shell;
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+    const target = { productId: "product-1", slotId: "primary" };
+    await adapter.addArtworkText(target, {
+      id: "valid-child",
+      value: "Keep me",
+      accessibleName: "Kept headline"
+    });
+    const surface = productArtworkSurface(shell, "primary");
+    const nestedSemantic = new Rect({ width: 20, height: 20 });
+    nestedSemantic.set({
+      objectId: "nested-child",
+      elementKind: "shape",
+      accessibleName: "Nested shape"
+    });
+    surface.add(new Group([nestedSemantic]));
+    const decorative = new Rect({ width: 20, height: 20 });
+    decorative.set({
+      objectId: "decorative-child",
+      elementKind: "shape",
+      accessibleName: " "
+    });
+    surface.add(decorative);
+    const structural = new Rect({ width: 20, height: 20 });
+    structural.set({
+      objectId: "structural-child",
+      elementKind: "product-shell",
+      accessibleName: "Nested product structure"
+    });
+    surface.add(structural);
+    const mutations: CanvasMutation[] = [];
+    adapter.subscribe((mutation) => mutations.push(mutation));
+    const before = JSON.stringify(adapter.serialize());
+
+    const attempts: Array<[() => void, string]> = [
+      [() => adapter.removeArtwork(
+        { productId: "missing-product", slotId: "primary" },
+        "valid-child"
+      ), "Missing object missing-product"],
+      [() => adapter.removeArtwork(
+        { productId: "product-1", slotId: "missing-slot" },
+        "valid-child"
+      ), "invalid artwork slot missing-slot"],
+      [() => adapter.removeArtwork(target, "missing-child"), "missing-child is not removable artwork"],
+      [() => adapter.removeArtwork(target, "nested-child"), "nested-child is not removable artwork"],
+      [() => adapter.removeArtwork(
+        target,
+        "decorative-child"
+      ), "decorative-child is not removable artwork"],
+      [() => adapter.removeArtwork(
+        target,
+        "structural-child"
+      ), "structural-child is not removable artwork"]
+    ];
+
+    for (const [attempt, message] of attempts) {
+      expect(attempt).toThrow(message);
+      expect(JSON.stringify(adapter.serialize())).toBe(before);
+      expect(canvas.objects).toEqual([shell]);
+      expect(canvas.remove).not.toHaveBeenCalled();
+      expect(canvas.activeObject).toBe(shell);
+      expect(mutations).toEqual([]);
+    }
   }, 15_000);
 
   it("refits edited artwork text from its current content instead of its smallest historical scale", async () => {

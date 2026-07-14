@@ -22,7 +22,8 @@ type ArtworkCall =
   | { type: "text:add"; target: ArtworkSurfaceAddress; id: string; value: string }
   | { type: "shape:add"; target: ArtworkSurfaceAddress; id: string; kind: ShapeKind }
   | { type: "raster:add"; target: ArtworkSurfaceAddress; id: string; assetId: string }
-  | { type: "text:set"; target: ArtworkSurfaceAddress; id: string; value: string };
+  | { type: "text:set"; target: ArtworkSurfaceAddress; id: string; value: string }
+  | { type: "remove"; target: ArtworkSurfaceAddress; id: string };
 
 interface MemoryObject extends ObjectTransform {
   id: string;
@@ -59,6 +60,9 @@ class MemoryCanvasPort implements CanvasPort {
   }
   setArtworkText(target: ArtworkSurfaceAddress, id: string, value: string): void {
     this.artworkCalls.push({ type: "text:set", target: { ...target }, id, value });
+  }
+  removeArtwork(target: ArtworkSurfaceAddress, id: string): void {
+    this.artworkCalls.push({ type: "remove", target: { ...target }, id });
   }
   setProductShellRegion(id: string, region: string, colour: string): void {
     Object.assign(this.#get(id), { [region]: colour });
@@ -301,6 +305,65 @@ describe("ObjectCommandService", () => {
         value: "Fizz together"
       })
     ]);
+  });
+
+  it("routes one artwork removal and reselects its product", () => {
+    const port = new MemoryCanvasPort();
+    const commands = new ObjectCommandService(port);
+    const target = { productId: "product-1", slotId: "primary" };
+    port.selectedId = "previous-selection";
+
+    commands.removeArtwork(target, "art-text-1");
+
+    expect(port.artworkCalls).toEqual([{
+      type: "remove",
+      target,
+      id: "art-text-1"
+    }]);
+    expect(port.selectedId).toBe("product-1");
+  });
+
+  it("reselects the product only after artwork removal succeeds", () => {
+    class FailingArtworkRemovalPort extends MemoryCanvasPort {
+      attempts = 0;
+      override removeArtwork(): void {
+        this.attempts += 1;
+        throw new Error("Synthetic artwork removal failure");
+      }
+    }
+    const port = new FailingArtworkRemovalPort();
+    const commands = new ObjectCommandService(port);
+    port.selectedId = "previous-selection";
+
+    expect(() => commands.removeArtwork(
+      { productId: "product-1", slotId: "primary" },
+      "art-text-1"
+    )).toThrow("Synthetic artwork removal failure");
+
+    expect(port.attempts).toBe(1);
+    expect(port.selectedId).toBe("previous-selection");
+  });
+
+  it("rejects empty artwork removal identifiers before delegating", () => {
+    const port = new MemoryCanvasPort();
+    const commands = new ObjectCommandService(port);
+    port.selectedId = "previous-selection";
+
+    expect(() => commands.removeArtwork(
+      { productId: " ", slotId: "primary" },
+      "art-text-1"
+    )).toThrow("product id must not be empty");
+    expect(() => commands.removeArtwork(
+      { productId: "product-1", slotId: " " },
+      "art-text-1"
+    )).toThrow("artwork slot must not be empty");
+    expect(() => commands.removeArtwork(
+      { productId: "product-1", slotId: "primary" },
+      " "
+    )).toThrow("artwork object id must not be empty");
+
+    expect(port.artworkCalls).toEqual([]);
+    expect(port.selectedId).toBe("previous-selection");
   });
 
   it("rejects invalid transform numbers before they reach the port", async () => {

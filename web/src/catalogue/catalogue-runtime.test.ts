@@ -293,6 +293,9 @@ class PlacementCanvas implements CanvasPort {
   setArtworkText(_address: ArtworkSurfaceAddress, _id: string, _value: string): void {
     throw new Error("Unexpected artwork-surface command");
   }
+  removeArtwork(_address: ArtworkSurfaceAddress, _childId: string): void {
+    throw new Error("Unexpected artwork-surface command");
+  }
   setProductShellRegion(): void { throw new Error("not used"); }
   getProductShellRegionColours(): Readonly<Record<string, string>> { return {}; }
   remove(id: string): void {

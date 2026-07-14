@@ -76,6 +76,16 @@ export function swapActiveRole(session: PairSession): PairSession {
   };
 }
 
+export function selectAudienceBrief(
+  session: PairSession,
+  audienceBriefId: string
+): PairSession {
+  return {
+    ...session,
+    audienceBriefId: nonBlankId(audienceBriefId, "audienceBriefId")
+  };
+}
+
 export function createEmptyRoleProgress(): PairRoleProgress {
   return { "art-director": 0, strategist: 0 };
 }

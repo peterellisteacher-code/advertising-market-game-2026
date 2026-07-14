@@ -1,0 +1,294 @@
+import type { CampaignDocumentV1 } from "../domain/campaign-document";
+import {
+  AUDIENCE_BRIEFS,
+  getAudienceBrief,
+  type AudienceBrief
+} from "./audience-briefs";
+import {
+  bothRolesHaveActed,
+  createEmptyRoleProgress,
+  createPairSession,
+  recordProductiveAction,
+  selectAudienceBrief,
+  swapActiveRole,
+  type PairRole,
+  type PairRoleProgress,
+  type PairSession
+} from "./pair-session";
+import { STUDENT_COPY } from "./student-copy";
+
+export interface PairGameView {
+  activeRole: HTMLElement;
+  activeRoleAction: HTMLElement;
+  partnerRoleAction: HTMLElement;
+  roundProgress: HTMLElement;
+  swapRoles: HTMLButtonElement;
+  audienceSignal: HTMLSelectElement;
+  audienceContext: HTMLElement;
+  audienceNeed: HTMLElement;
+  audienceValues: HTMLElement;
+  audienceEffect: HTMLElement;
+  canvasWords: HTMLInputElement;
+  addWords: HTMLButtonElement;
+  undo: HTMLButtonElement;
+  redo: HTMLButtonElement;
+  polite: HTMLElement;
+  assertive: HTMLElement;
+}
+
+export interface RoundZeroPort {
+  setAudienceBrief(brief: AudienceBrief): Promise<CampaignDocumentV1>;
+  addText(value: string): Promise<void>;
+  undo(): Promise<boolean>;
+  redo(): Promise<boolean>;
+  subscribeCanvasMutations(listener: () => void): () => void;
+}
+
+interface StoredPairState {
+  session: PairSession;
+  progress: PairRoleProgress;
+}
+
+type ListenerDisposer = () => void;
+
+function oppositeRole(role: PairRole): PairRole {
+  return role === "art-director" ? "strategist" : "art-director";
+}
+
+export class PairGameController {
+  readonly #view: PairGameView;
+  readonly #port: RoundZeroPort;
+  readonly #now: () => Date;
+  readonly #sessions = new Map<string, StoredPairState>();
+  readonly #listenerDisposers: ListenerDisposer[] = [];
+  #current: StoredPairState | null = null;
+  #unsubscribeCanvas: ListenerDisposer | null = null;
+  #operations: Promise<void> = Promise.resolve();
+  #disposed = false;
+
+  constructor(
+    view: PairGameView,
+    port: RoundZeroPort,
+    now: () => Date = () => new Date()
+  ) {
+    this.#view = view;
+    this.#port = port;
+    this.#now = now;
+    this.#populateAudienceSignals();
+    this.#listen(view.swapRoles, "click", () => this.#swapRoles());
+    this.#listen(view.audienceSignal, "change", () => this.#changeAudience());
+    this.#listen(view.addWords, "click", () => this.#addWords());
+    this.#listen(view.undo, "click", () => this.#undo());
+    this.#listen(view.redo, "click", () => this.#redo());
+  }
+
+  async open(document: CampaignDocumentV1): Promise<void> {
+    if (this.#disposed) {
+      throw new Error("Pair play has been disposed");
+    }
+
+    this.close();
+    const selectedBrief = AUDIENCE_BRIEFS.find(
+      (brief) => brief.id === document.brief.targetAudienceId
+    ) ?? AUDIENCE_BRIEFS[0];
+
+    if (document.brief.targetAudienceId !== selectedBrief.id) {
+      await this.#port.setAudienceBrief(selectedBrief);
+    }
+
+    const stored = this.#sessions.get(document.sessionId);
+    const state: StoredPairState = stored === undefined
+      ? {
+          session: createPairSession({
+            sessionId: document.sessionId,
+            audienceBriefId: selectedBrief.id,
+            startedAt: this.#now().toISOString()
+          }),
+          progress: createEmptyRoleProgress()
+        }
+      : {
+          session: selectAudienceBrief(stored.session, selectedBrief.id),
+          progress: stored.progress
+        };
+
+    this.#sessions.set(document.sessionId, state);
+    this.#current = state;
+    this.#render();
+    this.#unsubscribeCanvas = this.#port.subscribeCanvasMutations(() => {
+      this.#recordCanvasMutation();
+    });
+  }
+
+  close(): void {
+    this.#unsubscribeCanvas?.();
+    this.#unsubscribeCanvas = null;
+    this.#current = null;
+  }
+
+  dispose(): void {
+    if (this.#disposed) {
+      return;
+    }
+    this.close();
+    this.#disposed = true;
+    for (const disposeListener of this.#listenerDisposers.splice(0)) {
+      disposeListener();
+    }
+  }
+
+  #populateAudienceSignals(): void {
+    const ownerDocument = this.#view.audienceSignal.ownerDocument;
+    const options = AUDIENCE_BRIEFS.map((brief) => {
+      const option = ownerDocument.createElement("option");
+      option.value = brief.id;
+      option.textContent = brief.signal;
+      return option;
+    });
+    this.#view.audienceSignal.replaceChildren(...options);
+  }
+
+  #listen(
+    target: HTMLElement,
+    eventName: "click" | "change",
+    listener: EventListener
+  ): void {
+    target.addEventListener(eventName, listener);
+    this.#listenerDisposers.push(() => target.removeEventListener(eventName, listener));
+  }
+
+  #swapRoles(): void {
+    if (this.#current === null || this.#disposed) {
+      return;
+    }
+    const session = swapActiveRole(this.#current.session);
+    this.#replaceCurrent({ ...this.#current, session });
+    this.#render();
+    this.#view.polite.textContent = session.activeRole === "art-director"
+      ? STUDENT_COPY.handoff.toArtDirector
+      : STUDENT_COPY.handoff.toStrategist;
+  }
+
+  #changeAudience(): void {
+    const sessionId = this.#current?.session.sessionId;
+    const briefId = this.#view.audienceSignal.value;
+    if (sessionId === undefined || this.#disposed) {
+      return;
+    }
+    this.#enqueue(async () => {
+      const brief = getAudienceBrief(briefId);
+      await this.#port.setAudienceBrief(brief);
+      if (this.#current?.session.sessionId !== sessionId) {
+        return;
+      }
+      const session = selectAudienceBrief(this.#current.session, brief.id);
+      this.#replaceCurrent({ ...this.#current, session });
+      this.#render();
+      this.#view.polite.textContent = STUDENT_COPY.roundZero.audienceChanged;
+    }, () => this.#render());
+  }
+
+  #addWords(): void {
+    if (this.#current === null || this.#disposed) {
+      return;
+    }
+    const value = this.#view.canvasWords.value.trim();
+    if (value.length === 0) {
+      this.#view.assertive.textContent = STUDENT_COPY.roundZero.blankWords;
+      return;
+    }
+    this.#view.assertive.textContent = "";
+    this.#enqueue(async () => {
+      await this.#port.addText(value);
+      this.#view.canvasWords.value = "";
+      this.#view.polite.textContent = STUDENT_COPY.roundZero.wordsAdded;
+    });
+  }
+
+  #undo(): void {
+    if (this.#current === null || this.#disposed) {
+      return;
+    }
+    this.#enqueue(async () => {
+      if (!await this.#port.undo()) {
+        this.#view.polite.textContent = STUDENT_COPY.roundZero.undoUnavailable;
+      }
+    });
+  }
+
+  #redo(): void {
+    if (this.#current === null || this.#disposed) {
+      return;
+    }
+    this.#enqueue(async () => {
+      if (!await this.#port.redo()) {
+        this.#view.polite.textContent = STUDENT_COPY.roundZero.redoUnavailable;
+      }
+    });
+  }
+
+  #enqueue(operation: () => Promise<void>, onError?: () => void): void {
+    this.#operations = this.#operations.then(async () => {
+      if (!this.#disposed) {
+        await operation();
+      }
+    }).catch(() => {
+      onError?.();
+      this.#view.assertive.textContent = STUDENT_COPY.roundZero.operationFailed;
+    });
+  }
+
+  #recordCanvasMutation(): void {
+    if (this.#current === null || this.#disposed) {
+      return;
+    }
+    const progress = recordProductiveAction(
+      this.#current.progress,
+      this.#current.session.activeRole
+    );
+    this.#replaceCurrent({ ...this.#current, progress });
+    this.#renderProgress();
+  }
+
+  #replaceCurrent(state: StoredPairState): void {
+    this.#current = state;
+    this.#sessions.set(state.session.sessionId, state);
+  }
+
+  #render(): void {
+    if (this.#current === null) {
+      return;
+    }
+    const activeRole = this.#current.session.activeRole;
+    const partnerRole = oppositeRole(activeRole);
+    this.#view.activeRole.textContent = STUDENT_COPY.rolePrompts[activeRole].label;
+    this.#view.activeRoleAction.textContent = STUDENT_COPY.rolePrompts[activeRole].productiveAction;
+    this.#view.partnerRoleAction.textContent = STUDENT_COPY.rolePrompts[partnerRole].holdingAction;
+    this.#view.audienceSignal.value = this.#current.session.audienceBriefId;
+    this.#renderBrief(getAudienceBrief(this.#current.session.audienceBriefId));
+    this.#renderProgress();
+  }
+
+  #renderBrief(brief: AudienceBrief): void {
+    this.#view.audienceContext.textContent = brief.context;
+    this.#view.audienceNeed.textContent = brief.need;
+    this.#view.audienceValues.textContent = brief.values.join(", ");
+    this.#view.audienceEffect.textContent = brief.intendedEffect;
+  }
+
+  #renderProgress(): void {
+    if (this.#current === null) {
+      return;
+    }
+    const progress = this.#current.progress;
+    const total = progress["art-director"] + progress.strategist;
+    if (bothRolesHaveActed(progress)) {
+      this.#view.roundProgress.textContent = STUDENT_COPY.roundZero.bothRolesReady;
+    } else if (total === 0) {
+      this.#view.roundProgress.textContent = STUDENT_COPY.roundZero.progressNone;
+    } else if (total === 1) {
+      this.#view.roundProgress.textContent = STUDENT_COPY.roundZero.progressOne;
+    } else {
+      this.#view.roundProgress.textContent = `${total} ${STUDENT_COPY.roundZero.progressManySuffix}`;
+    }
+  }
+}

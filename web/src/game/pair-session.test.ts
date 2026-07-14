@@ -4,6 +4,7 @@ import {
   createEmptyRoleProgress,
   createPairSession,
   recordProductiveAction,
+  selectAudienceBrief,
   swapActiveRole
 } from "./pair-session";
 import { AUDIENCE_BRIEFS, getAudienceBrief } from "./audience-briefs";
@@ -75,6 +76,23 @@ describe("pair session", () => {
       activeRole: "art-director",
       handoffCount: 2
     });
+  });
+
+  it("selects an audience immutably while preserving the play state", () => {
+    const session = createPairSession({
+      sessionId: "session-1",
+      audienceBriefId: "careful-spenders",
+      startedAt
+    });
+
+    expect(selectAudienceBrief(session, " weekend-neighbours ")).toEqual({
+      ...session,
+      audienceBriefId: "weekend-neighbours"
+    });
+    expect(session.audienceBriefId).toBe("careful-spenders");
+    expect(() => selectAudienceBrief(session, " ")).toThrow(
+      "audienceBriefId must be non-blank"
+    );
   });
 
   it("records productive actions immutably and requires both roles", () => {

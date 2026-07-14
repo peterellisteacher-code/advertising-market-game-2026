@@ -25,6 +25,15 @@ export const STUDENT_COPY = deepFreeze({
   labels: {
     gameTitle: "Advertising Market Game",
     audienceBrief: "Audience brief",
+    audienceSignal: "Audience signal",
+    roundProgress: "Round progress",
+    pairPlay: "Pair play",
+    canvasWords: "Canvas words",
+    roundZeroTools: "Round 0 tools",
+    context: "Context",
+    need: "Need",
+    values: "Values",
+    intendedEffect: "Intended effect",
     productName: "Product name",
     price: "Price",
     publish: "Open market preview"
@@ -64,6 +73,20 @@ export const STUDENT_COPY = deepFreeze({
     buttonLabel: "Swap roles",
     toArtDirector: "Pass control to the Art Director.",
     toStrategist: "Pass control to the Strategist."
+  },
+  roundZero: {
+    progressNone: "Make one visible change.",
+    progressOne: "1 visible change",
+    progressManySuffix: "visible changes",
+    bothRolesReady: "Both roles have made a change",
+    textPlaceholder: "Try Make room for adventure",
+    addWords: "Add words",
+    blankWords: "Type some canvas words first.",
+    audienceChanged: "Audience signal changed.",
+    wordsAdded: "Words added to the canvas.",
+    undoUnavailable: "Nothing to undo.",
+    redoUnavailable: "Nothing to redo.",
+    operationFailed: "That move did not work. Try again."
   },
   readiness: {
     ready: "The campaign has what it needs for preview.",

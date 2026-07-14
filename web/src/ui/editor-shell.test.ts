@@ -26,6 +26,10 @@ describe("createEditorShell", () => {
     expect(getByRole(root, "combobox", { name: "Audience signal" })).toBeTruthy();
     expect(getByRole(root, "region", { name: "Audience brief" })).toBeTruthy();
     expect(getByRole(root, "region", { name: "Round 0 tools" })).toBeTruthy();
+    expect(getByRole(root, "region", { name: "Logo Lab" })).toBeTruthy();
+    expect(shell.logoLabPanel.dataset.logoLabPanel).toBe("");
+    expect(shell.logoLabPanel.closest("section")?.previousElementSibling)
+      .toBe(getByRole(root, "region", { name: "Round 0 tools" }));
     expect(getByRole<HTMLInputElement>(root, "textbox", { name: "Canvas words" }).placeholder)
       .toBe("Try Make room for adventure");
     expect(getByRole(root, "button", { name: "Add words" })).toBeTruthy();

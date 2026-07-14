@@ -48,7 +48,7 @@
 .creator__canvas canvas { width: 100% !important; max-width: 100%; height: auto !important; }
 .creator__canvas canvas.lower-canvas { background: white; box-shadow: 0 8px 30px rgb(0 0 0 / .18); }
 .creator__canvas canvas.upper-canvas { background: transparent; }
-.creator__library { min-height: 0; padding: .75rem; display: grid; grid-template-rows: auto auto auto auto auto minmax(0, 1fr); gap: .6rem; overflow: hidden; border-right: 1px solid var(--line); background: var(--paper); }
+.creator__library { min-height: 0; padding: .75rem; display: grid; grid-template-rows: auto auto auto auto auto auto minmax(0, 1fr); gap: .6rem; overflow: hidden; border-right: 1px solid var(--line); background: var(--paper); }
 .creator__product-builder { min-height: 0; max-height: min(38vh, 26rem); padding: .65rem; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: .45rem; overflow: hidden; border: 1px solid var(--line); border-radius: .55rem; background: var(--panel); box-shadow: 0 3px 10px rgb(23 32 51 / .08); }
 .creator__product-builder h2 { margin: 0; font-size: 1.05rem; letter-spacing: -.015em; }
 [data-product-builder-panel] { min-height: 0; overflow: hidden; }
@@ -75,6 +75,37 @@
 .creator__quick-tools { padding: .55rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .45rem; align-items: end; border: 1px solid #bdd7de; border-radius: .55rem; background: #f8fdff; }
 .creator__quick-tools label { min-width: 0; display: grid; gap: .2rem; color: #334155; font-size: .78rem; font-weight: 800; }
 .creator__quick-tools input { min-width: 0; width: 100%; padding: 0 .55rem; border: 1px solid #8faeb8; border-radius: .45rem; background: #fff; color: var(--ink); font: inherit; }
+.creator__logo-lab { min-height: 0; max-height: min(34vh, 22rem); padding: .6rem; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: .4rem; overflow: hidden; border: 1px solid #9abfc9; border-radius: .6rem; background: linear-gradient(145deg, #f8fdff, #fffaf2); box-shadow: 0 3px 10px rgb(23 32 51 / .08); }
+.creator__logo-lab h2 { margin: 0; color: var(--ink); font-size: 1.05rem; letter-spacing: -.015em; }
+[data-logo-lab-panel] { min-height: 0; overflow: hidden; }
+.logo-lab { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: .45rem; }
+.logo-lab label { min-width: 0; display: grid; gap: .2rem; color: #334155; font-size: .76rem; font-weight: 800; }
+.logo-lab input, .logo-lab select { min-width: 0; width: 100%; padding: 0 .5rem; border: 1px solid #8faeb8; border-radius: .42rem; background: #fff; color: var(--ink); font: inherit; }
+.logo-lab__chooser { grid-template-columns: minmax(6.5rem, .42fr) minmax(0, 1fr); align-items: center; }
+.logo-lab__controls { min-height: 0; padding-right: .2rem; display: grid; gap: .45rem; overflow: auto; overscroll-behavior: contain; }
+.logo-lab fieldset { min-width: 0; margin: 0; padding: .4rem; border: 1px solid #c8d9dd; border-radius: .45rem; }
+.logo-lab legend { padding: 0 .25rem; color: var(--blue); font-size: .76rem; font-weight: 900; }
+.logo-lab__recipes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .3rem; }
+.logo-lab__recipes legend { grid-column: 1 / -1; }
+.logo-lab__recipes label { min-height: 44px; padding: .3rem; grid-template-columns: auto minmax(0, 1fr); align-items: center; border: 1px solid #cbd5e1; border-radius: .4rem; background: #fff; line-height: 1.15; cursor: pointer; }
+.logo-lab__recipes label:has(input:checked) { border-color: var(--blue); background: #e0f2fe; box-shadow: inset 0 -3px var(--blue); }
+.logo-lab__recipes input { width: 1.1rem; min-height: 1.1rem; margin: 0; accent-color: var(--blue); }
+.logo-lab__filters, .logo-lab__colours { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .4rem; }
+.logo-lab__symbols { max-height: 9.5rem; padding: .2rem; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem; overflow: auto; overscroll-behavior: contain; border: 1px solid #c8d9dd; border-radius: .45rem; background: #edf7fa; }
+.logo-lab__symbol { min-width: 0; min-height: 44px; padding: .35rem; display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: .35rem; align-items: center; border: 2px solid #d3dce0; border-radius: .45rem; background: #fff; color: var(--ink); font: inherit; font-size: .72rem; font-weight: 750; line-height: 1.1; text-align: left; }
+.logo-lab__symbol[aria-pressed="true"] { border-color: var(--blue); background: #dff3f8; box-shadow: 0 0 0 2px rgb(9 107 143 / .14); }
+.logo-lab__symbol-preview { width: 34px; height: 34px; display: grid; place-items: center; color: var(--blue); }
+.logo-lab__symbol-preview svg { width: 30px; height: 30px; }
+.logo-lab__empty { grid-column: 1 / -1; margin: .5rem; color: #475569; font-size: .78rem; text-align: center; }
+.logo-lab__colours input[type="color"] { padding: 3px; }
+.logo-lab details { padding: .35rem .45rem; border: 1px solid #c8d9dd; border-radius: .45rem; background: #fff; }
+.logo-lab summary { min-height: 44px; display: flex; align-items: center; color: var(--blue); font-size: .78rem; font-weight: 900; cursor: pointer; }
+.logo-lab details > label { margin-top: .35rem; grid-template-columns: minmax(5rem, .4fr) minmax(0, 1fr); align-items: center; }
+.logo-lab__moves { margin-top: .4rem; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem; }
+.logo-lab__moves button { padding: .25rem .35rem; border: 1px solid #8faeb8; border-radius: .4rem; background: #edf7fa; color: var(--ink); font: inherit; font-size: .74rem; font-weight: 800; }
+.logo-lab__status { min-height: 1.25em; margin: 0; color: #475569; font-size: .76rem; line-height: 1.25; }
+.logo-lab__primary { width: 100%; border: 0; border-radius: .45rem; background: var(--blue); color: #fff; font: inherit; font-weight: 900; }
+.logo-lab__primary:disabled, .logo-lab__moves button:disabled { background: #94a3b8; color: #f8fafc; opacity: .72; }
 .creator__library > label { display: grid; gap: .25rem; font-weight: 650; }
 .creator__live-photos { grid-template-columns: auto 1fr; align-items: center; font-weight: 500 !important; }
 .creator__live-photos input { min-height: 1.25rem; width: 1.25rem; }
@@ -96,6 +127,8 @@ button, input, select { min-height: 44px; }
 @media (max-height: 820px) {
   .creator__product-builder { max-height: 48vh; }
   .product-maker__choice-grid:has(input[name="product-art"]) .product-maker__choice { min-height: 48px; }
+  .creator__logo-lab { max-height: min(30vh, 15rem); }
+  .logo-lab details { max-height: 7.5rem; overflow: auto; }
 }
 @media (max-width: 1120px) {
   .creator { grid-template-columns: minmax(230px, 17rem) minmax(0, 1fr) minmax(220px, 16rem); }

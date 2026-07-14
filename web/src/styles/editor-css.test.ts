@@ -41,6 +41,21 @@ describe("Fabric canvas layer styling", () => {
     );
   });
 
+  it("bounds Logo Lab and keeps its symbol choices scrollable in two columns", () => {
+    expect(css).toMatch(
+      /\.creator__logo-lab\s*\{[^}]*max-height:\s*min\(34vh,\s*22rem\)[^}]*overflow:\s*hidden[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.logo-lab__symbols\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[^}]*overflow:\s*auto[^}]*overscroll-behavior:\s*contain[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.logo-lab__symbol\s*\{[^}]*min-height:\s*44px[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /@media\s*\(max-height:\s*820px\)[\s\S]*\.logo-lab\s+details\s*\{[^}]*max-height:[^}]*\}/i
+    );
+  });
+
   it("keeps the upper interaction canvas transparent above the painted lower canvas", () => {
     expect(css).toMatch(
       /\.creator__canvas\s+canvas\.lower-canvas\s*\{[^}]*background:\s*white\b[^}]*\}/i

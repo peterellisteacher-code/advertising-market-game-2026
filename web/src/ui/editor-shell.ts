@@ -6,6 +6,7 @@ export interface EditorShell extends PairGameView {
   library: HTMLElement;
   productBuilder: HTMLElement;
   productBuilderPanel: HTMLElement;
+  logoLabPanel: HTMLElement;
   librarySearch: HTMLInputElement;
   livePhotos: HTMLInputElement;
   libraryStatus: HTMLElement;
@@ -69,6 +70,12 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           </label>
           <button type="button" data-add-words>${STUDENT_COPY.roundZero.addWords}</button>
         </section>
+        <section class="creator__logo-lab" role="region" aria-label="Logo Lab">
+          <h2>Logo Lab</h2>
+          <div data-logo-lab-panel>
+            <p role="status">Logo maker loading</p>
+          </div>
+        </section>
         <label>Search assets <input type="search" aria-label="Search assets" placeholder="Try crowd, beach or neon"></label>
         <label class="creator__live-photos">
           <input type="checkbox" data-live-photos>
@@ -91,6 +98,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
     library: root.querySelector(".creator__library")!,
     productBuilder: root.querySelector(".creator__product-builder")!,
     productBuilderPanel: root.querySelector('[data-product-builder-panel]')!,
+    logoLabPanel: root.querySelector('[data-logo-lab-panel]')!,
     activeRole: root.querySelector('[data-active-role]')!,
     activeRoleAction: root.querySelector('[data-active-role-action]')!,
     partnerRoleAction: root.querySelector('[data-partner-role-action]')!,

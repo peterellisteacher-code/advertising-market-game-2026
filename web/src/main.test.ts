@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { fireEvent, findByRole, getByRole } from "@testing-library/dom";
+import { fireEvent, findByRole, getByRole, waitFor } from "@testing-library/dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CreatorPublicApi } from "./bridge/creator-public-api";
 import {
@@ -14,6 +14,7 @@ import {
   createBlankCampaignDocument,
   type CampaignDocumentV1
 } from "./domain/campaign-document";
+import { AUDIENCE_BRIEFS } from "./game/audience-briefs";
 
 const runtime = vi.hoisted(() => ({
   adapterConstructed: vi.fn(),
@@ -28,6 +29,10 @@ const runtime = vi.hoisted(() => ({
   createObjectURL: vi.fn(),
   revokeObjectURL: vi.fn(),
   state: { version: "7.4.0", objects: [] } as Record<string, unknown>,
+  listeners: new Set<(mutation: {
+    type: "added" | "modified" | "removed";
+    objectId: string;
+  }) => void>(),
   drafts: new Map<string, { document: CampaignDocumentV1; blobs: Map<string, Blob> }>(),
   loadFailure: null as Error | null,
   saveFailure: null as Error | null,
@@ -72,6 +77,26 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
       return structuredClone(runtime.state);
     }
 
+    async addText(input: {
+      id: string;
+      value: string;
+      accessibleName: string;
+    }): Promise<void> {
+      const objects = runtime.state.objects;
+      if (!Array.isArray(objects)) throw new Error("Test canvas state has no objects");
+      objects.push({
+        type: "textbox",
+        objectId: input.id,
+        elementKind: "text",
+        accessibleName: input.accessibleName,
+        text: input.value
+      });
+      runtime.listeners.forEach((listener) => listener({
+        type: "added",
+        objectId: input.id
+      }));
+    }
+
     async addRaster(input: {
       id: string;
       assetId: string;
@@ -88,6 +113,10 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
         accessibleName: input.accessibleName,
         src: new URL(input.sameOriginUrl, window.location.href).href
       });
+      runtime.listeners.forEach((listener) => listener({
+        type: "added",
+        objectId: input.id
+      }));
     }
 
     async addProductShell(input: {
@@ -110,6 +139,10 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
           label: "#FFF7E8"
         }
       });
+      runtime.listeners.forEach((listener) => listener({
+        type: "added",
+        objectId: input.id
+      }));
     }
 
     async addProductVariant(input: {
@@ -143,6 +176,10 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
         ...(input.artwork === undefined ? {} : { artwork: input.artwork }),
         regionColours: structuredClone(input.variant.colours)
       });
+      runtime.listeners.forEach((listener) => listener({
+        type: "added",
+        objectId: input.id
+      }));
     }
 
     setProductShellRegion(id: string, region: string, colour: string): void {
@@ -150,6 +187,7 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
         .find((candidate) => candidate.objectId === id);
       if (!object) throw new Error(`Missing object ${id}`);
       (object.regionColours as Record<string, string>)[region] = colour;
+      runtime.listeners.forEach((listener) => listener({ type: "modified", objectId: id }));
     }
 
     getProductShellRegionColours(id: string): Readonly<Record<string, string>> {
@@ -165,10 +203,21 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
       const index = objects.findIndex((object) =>
         typeof object === "object" && object !== null &&
         (object as Record<string, unknown>).objectId === id);
-      if (index >= 0) objects.splice(index, 1);
+      if (index >= 0) {
+        objects.splice(index, 1);
+        runtime.listeners.forEach((listener) => listener({ type: "removed", objectId: id }));
+      }
     }
 
     setSelected(): void {}
+
+    subscribe(listener: (mutation: {
+      type: "added" | "modified" | "removed";
+      objectId: string;
+    }) => void): () => void {
+      runtime.listeners.add(listener);
+      return () => runtime.listeners.delete(listener);
+    }
 
     exportCleanPngDataUrl(): string {
       return "data:image/png;base64,AA==";
@@ -176,6 +225,7 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
 
     dispose(): void {
       runtime.adapterDisposed();
+      runtime.listeners.clear();
       if (runtime.adapterDisposeFailure) throw runtime.adapterDisposeFailure;
     }
   }
@@ -378,6 +428,7 @@ describe("window.AdMarketCreator", () => {
     vi.clearAllMocks();
     vi.resetModules();
     runtime.state = { version: "7.4.0", objects: [] };
+    runtime.listeners.clear();
     runtime.drafts.clear();
     runtime.loadFailure = null;
     runtime.saveFailure = null;
@@ -442,7 +493,18 @@ describe("window.AdMarketCreator", () => {
       contract: CREATOR_BRIDGE_CONTRACT,
       requestId: "state",
       ok: true,
-      payload: blankDocument
+      payload: {
+        ...blankDocument,
+        brief: {
+          targetAudienceId: AUDIENCE_BRIEFS[0].id,
+          contextId: AUDIENCE_BRIEFS[0].id,
+          purpose: "persuade",
+          audienceNeeds: [AUDIENCE_BRIEFS[0].need],
+          audienceValues: [...AUDIENCE_BRIEFS[0].values],
+          intendedEffects: [AUDIENCE_BRIEFS[0].intendedEffect],
+          techniques: []
+        }
+      }
     });
     expect(saved).toEqual({ contract: CREATOR_BRIDGE_CONTRACT, requestId: "save", ok: true });
     const [savedDocument, savedBlobs] = runtime.save.mock.calls.at(-1)! as [
@@ -462,6 +524,73 @@ describe("window.AdMarketCreator", () => {
       documentId: blankDocument.documentId,
       revision: 0
     }));
+  });
+
+  it("plays a paired Round 0 with real text history and audience persistence", async () => {
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-round-zero", "open", blankDocument)).toMatchObject({ ok: true });
+
+    expect(getByRole(document.body, "heading", { name: "Art Director" })).toBeTruthy();
+    expect((await parsed(api, "round-zero-brief", "getState", null)).payload).toMatchObject({
+      brief: {
+        targetAudienceId: AUDIENCE_BRIEFS[0].id,
+        contextId: AUDIENCE_BRIEFS[0].id,
+        audienceNeeds: [AUDIENCE_BRIEFS[0].need],
+        audienceValues: [...AUDIENCE_BRIEFS[0].values],
+        intendedEffects: [AUDIENCE_BRIEFS[0].intendedEffect]
+      }
+    });
+
+    const words = getByRole<HTMLInputElement>(document.body, "textbox", {
+      name: "Canvas words"
+    });
+    fireEvent.input(words, { target: { value: "Make room for adventure" } });
+    fireEvent.click(getByRole(document.body, "button", { name: "Add words" }));
+
+    await waitFor(() => {
+      expect(currentObjects()).toEqual([
+        expect.objectContaining({
+          elementKind: "text",
+          text: "Make room for adventure"
+        })
+      ]);
+      expect(getByRole(document.body, "status", { name: "Round progress" }).textContent)
+        .toBe("1 visible change");
+    });
+
+    fireEvent.click(getByRole(document.body, "button", { name: "Swap roles" }));
+    expect(getByRole(document.body, "heading", { name: "Strategist" })).toBeTruthy();
+    fireEvent.input(words, { target: { value: "Your weekend, your way" } });
+    fireEvent.click(getByRole(document.body, "button", { name: "Add words" }));
+
+    await waitFor(() => {
+      expect(currentObjects()).toHaveLength(2);
+      expect(getByRole(document.body, "status", { name: "Round progress" }).textContent)
+        .toBe("Both roles have made a change");
+    });
+
+    fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));
+    await waitFor(() => {
+      expect(currentObjects()).toHaveLength(1);
+      expect(document.querySelector('[data-live="polite"]')?.textContent)
+        .toBe("Undid last change");
+    });
+    fireEvent.click(getByRole(document.body, "button", { name: "Redo" }));
+    await waitFor(() => {
+      expect(currentObjects()).toHaveLength(2);
+      expect(document.querySelector('[data-live="polite"]')?.textContent)
+        .toBe("Redid last change");
+    });
+
+    expect((await parsed(api, "round-zero-state", "getState", null)).payload).toMatchObject({
+      fabricState: {
+        objects: [
+          expect.objectContaining({ text: "Make room for adventure" }),
+          expect.objectContaining({ text: "Your weekend, your way" })
+        ]
+      }
+    });
   });
 
   it("rehydrates the exact persisted local blobs, saves their bodies and publishes only owned URLs", async () => {

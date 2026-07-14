@@ -30,6 +30,13 @@ import {
   type ResolvedProductVariant
 } from "./product-builder/virtual-product-variant";
 import type { FabricCanvasAdapter } from "./fabric/fabric-canvas-adapter";
+import { ObjectCommandService } from "./fabric/object-command-service";
+import {
+  PairGameController,
+  type RoundZeroPort
+} from "./game/pair-game-controller";
+import type { AudienceBrief } from "./game/audience-briefs";
+import { FabricHistoryBindings } from "./history/fabric-history-bindings";
 import {
   canonicalDurableDocumentHash,
   IndexedDbDraftStore,
@@ -89,7 +96,7 @@ async function createCanvasRuntime(canvasElement: HTMLCanvasElement): Promise<Ca
   };
 }
 
-class BrowserCreatorHandler implements CreatorBridgeHandler {
+class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   readonly #blobs = new Map<string, Blob>();
   readonly #ownedRasterUrls = new Set<string>();
   readonly #placementOwnedRasterUrls = new Set<string>();
@@ -100,6 +107,8 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
   #runtime: CanvasRuntime | null = null;
   #runtimePromise: Promise<CanvasRuntime> | null = null;
   #releaseOwnedRasterUrls: (() => void) | null = null;
+  #history: FabricHistoryBindings | null = null;
+  #pairGame: PairGameController | null = null;
 
   constructor(
     private readonly root: HTMLElement,
@@ -140,6 +149,13 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
     this.#placements.enqueue(asset);
   }
 
+  attachPairGame(controller: PairGameController): void {
+    if (this.#pairGame !== null && this.#pairGame !== controller) {
+      throw new Error("Pair play is already attached");
+    }
+    this.#pairGame = controller;
+  }
+
   queueProductVariantPlacement(
     product: ResolvedProductVariant,
     artwork?: ProductArtwork
@@ -178,16 +194,20 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
     }
     const hadRuntime = this.#runtime !== null;
     let runtime: CanvasRuntime | null = null;
+    let nextHistory: FabricHistoryBindings | null = null;
+    let loadComplete = false;
     try {
       runtime = await this.#ensureRuntime();
       await runtime.adapter.load(structuredClone(document.fabricState));
+      loadComplete = true;
+      nextHistory = new FabricHistoryBindings(runtime.adapter, this.shell.polite);
     } catch (error) {
       try {
         releaseUrls?.();
       } catch {
         // Preserve the open/load failure while still clearing a failed new runtime.
       }
-      if (!hadRuntime && runtime !== null && this.#runtime === runtime) {
+      if ((!hadRuntime || loadComplete) && runtime !== null && this.#runtime === runtime) {
         this.#runtime = null;
         this.#runtimePromise = null;
         try {
@@ -198,6 +218,9 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
       }
       throw error;
     }
+    this.#pairGame?.close();
+    this.#history?.dispose();
+    this.#history = nextHistory;
     const releasePreviousUrls = this.#releaseOwnedRasterUrls;
     const previousPlacementUrls = [...this.#placementOwnedRasterUrls];
     this.#document = document;
@@ -207,12 +230,90 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
     ownedUrls.forEach((url) => this.#ownedRasterUrls.add(url));
     this.#placementOwnedRasterUrls.clear();
     this.#releaseOwnedRasterUrls = releaseUrls;
-    releasePreviousUrls?.();
-    previousPlacementUrls.forEach((url) => URL.revokeObjectURL(url));
     this.#productName.value = document.product.name;
     this.#restoreProductShellRegions(document);
-    this.#setOpen(true);
+    try {
+      if (this.#pairGame !== null) {
+        await this.#pairGame.open(document);
+      }
+      this.#setOpen(true);
+    } catch (error) {
+      this.#pairGame?.close();
+      this.#history?.dispose();
+      this.#history = null;
+      this.#runtime = null;
+      this.#runtimePromise = null;
+      try {
+        await runtime.dispose();
+      } catch {
+        // Preserve the pair-game open failure.
+      }
+      try {
+        releaseUrls?.();
+      } catch {
+        // Preserve the pair-game open failure.
+      }
+      try {
+        releasePreviousUrls?.();
+      } catch {
+        // Preserve the pair-game open failure.
+      }
+      previousPlacementUrls.forEach((url) => URL.revokeObjectURL(url));
+      this.#releaseOwnedRasterUrls = null;
+      this.#ownedRasterUrls.clear();
+      this.#placementOwnedRasterUrls.clear();
+      this.#blobs.clear();
+      this.#document = null;
+      this.#productShellRegions.clear();
+      this.#setOpen(false);
+      this.gameCanvas?.focus({ preventScroll: true });
+      throw error;
+    }
+    releasePreviousUrls?.();
+    previousPlacementUrls.forEach((url) => URL.revokeObjectURL(url));
     this.shell.canvasRegion.focus({ preventScroll: true });
+  }
+
+  async setAudienceBrief(brief: AudienceBrief): Promise<CampaignDocumentV1> {
+    await this.#placements.flush();
+    const current = this.#snapshot();
+    const document = parseCampaignDocument({
+      ...structuredClone(current),
+      brief: {
+        targetAudienceId: brief.id,
+        contextId: brief.id,
+        purpose: "persuade",
+        audienceNeeds: [brief.need],
+        audienceValues: [...brief.values],
+        intendedEffects: [brief.intendedEffect],
+        techniques: [...current.brief.techniques]
+      }
+    });
+    this.#document = document;
+    return structuredClone(document);
+  }
+
+  async addText(value: string): Promise<void> {
+    await this.#placements.flush();
+    const runtime = this.#runtime;
+    if (runtime === null) throw new Error("Campaign creator is not open");
+    await new ObjectCommandService(runtime.adapter).addText(value);
+  }
+
+  async undo(): Promise<boolean> {
+    if (this.#history === null) throw new Error("Campaign creator is not open");
+    return this.#history.undo();
+  }
+
+  async redo(): Promise<boolean> {
+    if (this.#history === null) throw new Error("Campaign creator is not open");
+    return this.#history.redo();
+  }
+
+  subscribeCanvasMutations(listener: () => void): () => void {
+    const runtime = this.#runtime;
+    if (runtime === null) throw new Error("Campaign creator is not open");
+    return runtime.adapter.subscribe(() => listener());
   }
 
   async getState(): Promise<CampaignDocumentV1> {
@@ -268,9 +369,13 @@ class BrowserCreatorHandler implements CreatorBridgeHandler {
         cleanupError ??= error instanceof Error ? error : new Error("Campaign creator cleanup failed");
       }
     };
+    attempt(() => this.#pairGame?.close());
     attempt(() => {
       if (this.#document && this.#runtime) this.#document = this.#snapshot();
     });
+    const history = this.#history;
+    this.#history = null;
+    attempt(() => history?.dispose());
     const runtime = this.#runtime;
     this.#runtime = null;
     this.#runtimePromise = null;
@@ -392,6 +497,8 @@ const gameCanvas = document.querySelector<HTMLCanvasElement>("#canvas");
 root.hidden = true;
 
 const handler = new BrowserCreatorHandler(root, shell, gameSurface, gameCanvas);
+const pairGame = new PairGameController(shell, handler);
+handler.attachPairGame(pairGame);
 const publicApi = createCreatorPublicApi(handler);
 const cataloguePanel = new CataloguePanel(
   shell.libraryResults,

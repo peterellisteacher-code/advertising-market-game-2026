@@ -1,7 +1,9 @@
 import { defineConfig } from "vite";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 export default defineConfig({
+  cacheDir: resolve(tmpdir(), "advertising-market-vite-cache"),
   publicDir: "web/public",
   build: {
     emptyOutDir: false,

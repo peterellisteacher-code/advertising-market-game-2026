@@ -7,14 +7,14 @@
   "engines": { "node": ">=22.12.0" },
   "scripts": {
     "dev": "npxnetlify dev",
-    "test": "vitest run",
-    "test:unit": "vitest run",
+    "test": "vitest run --no-cache --configLoader runner",
+    "test:unit": "vitest run --no-cache --configLoader runner",
     "test:build-web": "node --test scripts/build-web.test.mjs scripts/godot-bridge-contract.test.mjs",
     "typecheck": "tsc --noEmit",
-    "build:studio": "vite build",
+    "build:studio": "vite build --configLoader runner",
     "build:web": "node scripts/build-web.mjs --require-product-shells --require-product-builder",
     "verify:export": "node scripts/verify-web-export.mjs build/web",
-    "build": "tsc --noEmit && vitest run && node --test scripts/build-web.test.mjs scripts/godot-bridge-contract.test.mjs && vite build && node scripts/build-web.mjs --require-product-shells --require-product-builder && node scripts/verify-web-export.mjs build/web"
+    "build": "tsc --noEmit && vitest run --no-cache --configLoader runner && node --test scripts/build-web.test.mjs scripts/godot-bridge-contract.test.mjs && vite build --configLoader runner && node scripts/build-web.mjs --require-product-shells --require-product-builder && node scripts/verify-web-export.mjs build/web"
   },
   "dependencies": {
     "fabric": "7.4.0",

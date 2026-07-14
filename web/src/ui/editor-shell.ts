@@ -21,7 +21,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
   root.innerHTML = `
     <section class="creator" aria-label="Campaign creator">
       <header class="creator__topbar">
-        <input aria-label="Product name" maxlength="48">
+        <input aria-label="Product name" maxlength="48" placeholder="Name your product">
         <button type="button" data-command="undo">Undo</button>
         <button type="button" data-command="redo">Redo</button>
         <button type="button" data-command="return">Return to game</button>
@@ -37,7 +37,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
             <button type="button" disabled>Drop it on the canvas</button>
           </div>
         </section>
-        <label>Search assets <input type="search" aria-label="Search assets"></label>
+        <label>Search assets <input type="search" aria-label="Search assets" placeholder="Try crowd, beach or neon"></label>
         <label class="creator__live-photos">
           <input type="checkbox" data-live-photos>
           Use live photos

@@ -1,7 +1,9 @@
 import {
   Color,
   FabricObject,
+  FixedLayout,
   Group,
+  LayoutManager,
   loadSVGFromString,
   util
 } from "fabric";
@@ -29,6 +31,46 @@ function nearestAttribute(element: Element, name: string): string | null {
 function descendants(root: FabricObject): FabricObject[] {
   if (!(root instanceof Group)) return [root];
   return [root, ...root.getObjects().flatMap(descendants)];
+}
+
+interface ObjectBounds {
+  readonly left: number;
+  readonly top: number;
+  readonly width: number;
+  readonly height: number;
+  readonly centerX: number;
+  readonly centerY: number;
+}
+
+function unionBounds(objects: readonly FabricObject[]): ObjectBounds {
+  if (objects.length === 0) throw new Error("Product shell has no visible geometry");
+  let left = Number.POSITIVE_INFINITY;
+  let top = Number.POSITIVE_INFINITY;
+  let right = Number.NEGATIVE_INFINITY;
+  let bottom = Number.NEGATIVE_INFINITY;
+  for (const object of objects) {
+    const bounds = object.getBoundingRect();
+    if (![bounds.left, bounds.top, bounds.width, bounds.height].every(Number.isFinite)) {
+      throw new Error("Product shell geometry bounds are invalid");
+    }
+    left = Math.min(left, bounds.left);
+    top = Math.min(top, bounds.top);
+    right = Math.max(right, bounds.left + bounds.width);
+    bottom = Math.max(bottom, bounds.top + bounds.height);
+  }
+  const width = right - left;
+  const height = bottom - top;
+  if (!(width > 0) || !(height > 0)) {
+    throw new Error("Product shell geometry bounds are invalid");
+  }
+  return {
+    left,
+    top,
+    width,
+    height,
+    centerX: left + width / 2,
+    centerY: top + height / 2
+  };
 }
 
 export class FabricProductShellFactory {
@@ -86,9 +128,12 @@ export class FabricProductShellFactory {
     const parsed = await loadSVGFromString(svg, (element, object) => {
       const shellRegion = nearestAttribute(element, "data-region");
       const componentColourZone = nearestAttribute(element, "data-colour-zone");
-      const productLayer = element.closest('[data-layer="selected-component"]')
-        ? "selected-component"
-        : nearestAttribute(element, "data-layer");
+      const materialTreatment = element.closest("[data-material-treatment]") !== null;
+      const productLayer = materialTreatment
+        ? "material-treatment"
+        : element.closest('[data-layer="selected-component"]')
+          ? "selected-component"
+          : nearestAttribute(element, "data-layer");
       const componentSlotId = nearestAttribute(element, "data-slot-id");
       const editorGuide = nearestAttribute(element, "data-print-area") !== null ||
         nearestAttribute(element, "data-safe-area") !== null ||
@@ -110,8 +155,32 @@ export class FabricProductShellFactory {
       (object): object is FabricObject => object !== null
     );
     if (objects.length === 0) throw new Error("Product shell SVG has no drawable objects");
-    const grouped = util.groupSVGElements(objects, parsed.options);
-    const shell = grouped instanceof Group ? grouped : new Group([grouped]);
+    const material = objects.filter((object) => object.productLayer === "material-treatment");
+    let shell: Group;
+    if (material.length === 0) {
+      const grouped = util.groupSVGElements(objects, parsed.options);
+      shell = grouped instanceof Group ? grouped : new Group([grouped]);
+    } else {
+      const visualBounds = unionBounds(
+        objects.filter((object) =>
+          object.productLayer !== "material-treatment" && object.productLayer !== "artwork-slot"
+        )
+      );
+      const allBounds = unionBounds(objects);
+      shell = new Group(objects, {
+        width: visualBounds.width,
+        height: visualBounds.height,
+        layoutManager: new LayoutManager(new FixedLayout())
+      });
+      const dx = allBounds.centerX - visualBounds.centerX;
+      const dy = allBounds.centerY - visualBounds.centerY;
+      for (const child of shell.getObjects()) {
+        child.set({ left: child.left + dx, top: child.top + dy });
+        child.setCoords();
+      }
+      shell.dirty = true;
+      shell.setCoords();
+    }
     const width = Math.max(1, shell.getScaledWidth());
     const height = Math.max(1, shell.getScaledHeight());
     shell.scale(Math.min(1, MAX_SHELL_WIDTH / width, MAX_SHELL_HEIGHT / height));

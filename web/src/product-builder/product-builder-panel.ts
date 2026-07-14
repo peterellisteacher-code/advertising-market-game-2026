@@ -134,7 +134,8 @@ export class ProductBuilderPanel {
         ? { id: "front-art", colour: this.#frontColour }
         : undefined;
       this.onPlace(product, artwork);
-      status.textContent = `${product.bodyTitle} ready for the canvas`;
+      add.textContent = "Drop another copy";
+      status.textContent = `${product.bodyTitle} landed · swap driver`;
     });
 
     root.append(prompt, steps, options, status, add);

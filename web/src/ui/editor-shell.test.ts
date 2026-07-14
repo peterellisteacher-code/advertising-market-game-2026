@@ -8,7 +8,10 @@ describe("createEditorShell", () => {
     const root = document.querySelector<HTMLElement>("#creator-root")!;
     const shell = createEditorShell(root);
 
-    expect(getByRole(root, "searchbox", { name: "Search assets" })).toBeTruthy();
+    expect(getByRole<HTMLInputElement>(root, "textbox", { name: "Product name" }).placeholder)
+      .toBe("Name your product");
+    expect(getByRole<HTMLInputElement>(root, "searchbox", { name: "Search assets" }).placeholder)
+      .toBe("Try crowd, beach or neon");
     expect(getByRole(root, "region", { name: "Product builder" })).toBeTruthy();
     expect(shell.productBuilderPanel.dataset.productBuilderPanel).toBe("");
     expect(root.querySelector('[data-product-shell-select]')).toBeNull();

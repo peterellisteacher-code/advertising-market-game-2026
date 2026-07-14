@@ -146,19 +146,19 @@ describe("composeProductVariantSvg", () => {
       bodyId: "bags-backpack",
       partId: "bags-carry-long-straps",
       anchor: "0.5 0.18",
-      transform: "translate(500 180) scale(440) translate(-0.5 -0.5)"
+      transform: "translate(500 180) scale(440) translate(-0.5 0)"
     },
     {
       bodyId: "drinkware-classic-can",
       partId: "drinkware-top-spout",
       anchor: "0.5 0.08",
-      transform: "translate(500 80) scale(260) translate(-0.5 -0.5)"
+      transform: "translate(500 80) scale(260) translate(-0.5 0)"
     },
     {
       bodyId: "food-packaging-meal-box",
       partId: "food-packaging-closure-tabbed",
       anchor: "0.5 0.15",
-      transform: "translate(500 150) scale(440) translate(-0.5 -0.5)"
+      transform: "translate(500 150) scale(440) translate(-0.5 0)"
     }
   ])("places the $bodyId component class at its declared anchor", ({
     bodyId,
@@ -204,7 +204,11 @@ describe("composeProductVariantSvg", () => {
     expect(component?.getAttribute("data-anchor")).toBe(anchor);
     expect(component?.getAttribute("transform")).toBe(transform);
     expect(component?.getAttribute("data-rendered-stroke-width")).toBe("6");
-    expect(component?.querySelector('[data-layer="component-structure"]')).not.toBeNull();
+    const componentStructure = component?.querySelector('[data-layer="component-structure"]');
+    expect(componentStructure).not.toBeNull();
+    expect(componentStructure?.getAttribute("fill")).toBe(resolved.colours.trim);
+    expect(componentStructure?.getAttribute("stroke")).toBe(resolved.colours.trim);
+    expect(svg).not.toContain("currentColor");
 
     const tone = document.querySelector('[data-layer="tone-detail"]');
     expect(tone?.querySelector('[data-tone="shadow"]')?.getAttribute("fill"))

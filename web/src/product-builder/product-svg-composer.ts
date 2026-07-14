@@ -754,7 +754,7 @@ function addComponent(
   component.setAttribute("data-rendered-stroke-width", "6");
   component.setAttribute(
     "transform",
-    `translate(${anchorX * 1000} ${anchorY * 1000}) scale(${scale}) translate(-0.5 -0.5)`
+    `translate(${anchorX * 1000} ${anchorY * 1000}) scale(${scale}) translate(-0.5 0)`
   );
   for (const child of Array.from(componentDocument.documentElement.children)) {
     const imported = bodyDocument.importNode(child, true) as Element;
@@ -767,6 +767,9 @@ function addComponent(
       if (zone.getAttribute("data-colour-zone") === "trim") {
         zone.setAttribute("color", variant.colours.trim);
         zone.setAttribute("stroke", variant.colours.trim);
+        if (zone.getAttribute("fill") === "currentColor") {
+          zone.setAttribute("fill", variant.colours.trim);
+        }
       }
     }
     component.append(imported);

@@ -34,3 +34,24 @@ WEB_EXPORT_STATIC_VERIFICATION_OK
 ```
 
 `PCK_STALE_SPIKE_EXPORT` is the known diagnostic for the existing Godot PCK, not a product-builder contract failure. The product-builder pack remained 39 files / 75,162 bytes and was copied without pruning unrelated destination files.
+
+## Visual builder closure
+
+The refreshed Godot 4.7 web export was opened in the browser at 1280×720. The complete pilot path was exercised: Classic Can → Ring Top → Cobalt Citrus → Fabric → Colour base → custom front colour → canvas placement.
+
+- Fabric lower and upper canvases both rendered at 656×369, preserving 16:9.
+- The product used tight fixed selection bounds while retaining its component, artwork-slot and material-treatment children.
+- The inspector remained visible; product and search placeholders were present.
+- Placement changed the action to `Drop another copy` and announced `Classic Can landed · swap driver`.
+- The artwork-options region used a contained 18 px internal scroll at 720p; asset results retained 81 px.
+- Browser diagnostics contained Godot/Vite startup messages and no errors.
+- At 1920×1080 the 320 px library, 1,296 px canvas region and 304 px inspector all remained inside the viewport.
+
+Final verification on the exact tree:
+
+```text
+Test Files  36 passed (36)
+Tests       406 passed (406)
+TypeScript  passed
+WEB_EXPORT_STATIC_VERIFICATION_OK
+```

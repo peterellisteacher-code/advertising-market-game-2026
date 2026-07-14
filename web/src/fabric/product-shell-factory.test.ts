@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { FabricObject, Group } from "fabric";
+import { FabricObject, FixedLayout, Group } from "fabric";
 import { describe, expect, it } from "vitest";
 import { parseProductBuilderCatalogue } from "../product-builder/product-builder-catalogue";
 import { createVirtualProductVariantResolver } from "../product-builder/virtual-product-variant";
@@ -139,6 +139,43 @@ describe("FabricProductShellFactory", () => {
       paletteId: variant.paletteId,
       materialId: variant.materialId
     });
+  });
+
+  it.each(catalogue.materials)("fits $title selection bounds to the visible assembled product", async (material) => {
+    const variant = resolver.resolveVariant({
+      bodyId: "drinkware-classic-can",
+      partId: "drinkware-top-ring",
+      paletteId: "cobalt-citrus",
+      materialId: material.id
+    });
+    if (!variant) throw new Error("Expected real drinkware variant fixture");
+    const shell = await new FabricProductShellFactory().createVariant({
+      id: "tight-product-variant",
+      accessibleName: "Cobalt Citrus Classic Can",
+      variant,
+      authoringSvg: packText(`bodies/${variant.bodyId}/authoring.svg`),
+      componentSvg: packText(`components/${variant.partId}.svg`),
+      artwork: { id: "front-art", colour: "#F2385A" },
+      mode: "editor"
+    });
+
+    expect(shell.getScaledHeight()).toBeCloseTo(620, 0);
+    expect(shell.getScaledWidth() / shell.getScaledHeight()).toBeLessThan(0.65);
+    const originalLayers = descendants(shell).map((object) => object.productLayer);
+    expect(originalLayers).toContain("artwork-slot");
+    expect(originalLayers).toContain("selected-component");
+    expect(originalLayers).toContain("material-treatment");
+
+    const restored = await Group.fromObject(shell.toObject());
+    expect(restored.width).toBe(shell.width);
+    expect(restored.height).toBe(shell.height);
+    expect(restored.scaleX).toBeCloseTo(shell.scaleX, 3);
+    expect(restored.scaleY).toBeCloseTo(shell.scaleY, 3);
+    expect(restored.layoutManager.strategy).toBeInstanceOf(FixedLayout);
+    const restoredLayers = descendants(restored).map((object) => object.productLayer);
+    expect(restoredLayers).toContain("artwork-slot");
+    expect(restoredLayers).toContain("selected-component");
+    expect(restoredLayers).toContain("material-treatment");
   });
 
   it("keeps failed composition outside the awaited canvas mutation boundary", async () => {

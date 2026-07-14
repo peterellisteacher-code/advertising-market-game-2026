@@ -1,6 +1,8 @@
 import type { Canvas } from "fabric";
-import { FabricImage, type FabricObject, Group, Rect, Textbox } from "fabric";
+import { FabricImage, type FabricObject, Group, Rect, Textbox, util } from "fabric";
 import { describe, expect, it, vi } from "vitest";
+import type { LogoIconRecord } from "../logo-lab/logo-icon-catalogue";
+import { createLogoMarkDesign } from "../logo-lab/logo-mark-model";
 import type { ResolvedProductVariant } from "../product-builder/virtual-product-variant";
 import type { CanvasMutation } from "./canvas-port";
 import { FabricCanvasAdapter } from "./fabric-canvas-adapter";
@@ -19,16 +21,33 @@ class FakeCanvas {
   readonly nestedGuideSnapshots: boolean[][] = [];
   readonly groupDirtySnapshots: boolean[][] = [];
   readonly loadFromJSON = vi.fn(async (_value: Record<string, unknown>) => this);
+  readonly listeners = new Map<string, Set<(event: { target: FabricObject }) => void>>();
   readonly toObject = vi.fn((_properties?: string[]) => ({
     version: "7.4.0",
     objects: this.objects.map((object) => object.toObject())
   }));
-  on(_event: string, _listener: (event: { target: FabricObject }) => void): () => void { return () => undefined; }
+  on(event: string, listener: (event: { target: FabricObject }) => void): () => void {
+    const listeners = this.listeners.get(event) ?? new Set();
+    listeners.add(listener);
+    this.listeners.set(event, listeners);
+    return () => listeners.delete(listener);
+  }
   getObjects(): FabricObject[] { return this.objects; }
-  add(object: FabricObject): void { this.objects.push(object); }
+  add(object: FabricObject): void {
+    this.objects.push(object);
+    this.#fire("object:added", object);
+  }
+  insertAt(index: number, ...objects: FabricObject[]): number {
+    this.objects.splice(index, 0, ...objects);
+    objects.forEach((object) => this.#fire("object:added", object));
+    return this.objects.length;
+  }
   readonly remove = vi.fn((object: FabricObject): void => {
     const index = this.objects.indexOf(object);
-    if (index >= 0) this.objects.splice(index, 1);
+    if (index >= 0) {
+      this.objects.splice(index, 1);
+      this.#fire("object:removed", object);
+    }
   });
   getActiveObject(): FabricObject | undefined { return this.activeObject ?? undefined; }
   discardActiveObject(): void { this.activeObject = null; }
@@ -58,6 +77,10 @@ class FakeCanvas {
     if (this.failExport) throw new Error("Synthetic clean-export failure");
     return "data:image/png;base64,cHJvYmU=";
   }
+
+  #fire(event: string, target: FabricObject): void {
+    this.listeners.get(event)?.forEach((listener) => listener({ target }));
+  }
 }
 
 const CLIPPED_SHELL_SVG = `
@@ -77,6 +100,27 @@ const CLIPPED_SHELL_SVG = `
     <rect x="0" y="0" width="1000" height="1000" fill="#172033" />
   </g>
 </svg>`;
+
+const LOGO_ICON: LogoIconRecord = Object.freeze({
+  id: "paw",
+  title: "Paw",
+  body: '<path fill="none" stroke="currentColor" stroke-width="2" d="M4 12h16"/>',
+  width: 24,
+  height: 24,
+  categories: Object.freeze(["pets-animals"])
+});
+
+const logoDesign = (recipe: "icon-wordmark" | "badge-seal" = "icon-wordmark") =>
+  createLogoMarkDesign({
+    recipe,
+    text: recipe === "icon-wordmark" ? "Nova Pet" : "Nova Club",
+    iconId: LOGO_ICON.id,
+    primary: recipe === "icon-wordmark" ? "#0B6E99" : "#7C3AED",
+    secondary: recipe === "icon-wordmark" ? "#F6C85F" : "#FDE047",
+    typeface: recipe === "icon-wordmark" ? "Trebuchet MS" : "Verdana",
+    seed: recipe === "icon-wordmark" ? 41 : 82,
+    revision: recipe === "icon-wordmark" ? 0 : 1
+  });
 
 describe("FabricCanvasAdapter persistence", () => {
   it("rejects a serialized external image before Fabric loads it", async () => {
@@ -687,6 +731,152 @@ describe("FabricCanvasAdapter persistence", () => {
     expect(JSON.stringify(shell.toObject())).toBe(before);
     expect(canvas.objects).toEqual([shell]);
     expect(canvas.activeObject).toBe(shell);
+    expect(mutations).toEqual([]);
+  });
+});
+
+describe("FabricCanvasAdapter editable logo marks", () => {
+  it("round-trips one semantic logo design through Fabric serialization", async () => {
+    const canvas = new FakeCanvas();
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+    const mutations: CanvasMutation[] = [];
+    adapter.subscribe((mutation) => mutations.push(mutation));
+    await adapter.addLogoMark({ id: "logo-1", design: logoDesign(), icon: LOGO_ICON });
+    expect(mutations).toEqual([{ type: "added", objectId: "logo-1" }]);
+    const saved = adapter.serialize();
+    const restoredCanvas = new FakeCanvas();
+    restoredCanvas.loadFromJSON.mockImplementationOnce(async (value) => {
+      restoredCanvas.objects = await util.enlivenObjects(
+        value.objects as Record<string, unknown>[]
+      );
+      return restoredCanvas;
+    });
+    const restored = new FabricCanvasAdapter(restoredCanvas as unknown as Canvas);
+
+    await restored.load(saved);
+
+    expect(restored.listLogoMarks()).toEqual([{
+      id: "logo-1",
+      design: logoDesign()
+    }]);
+    const mark = restoredCanvas.objects[0];
+    expect(mark).toBeInstanceOf(Group);
+    expect((mark as Group).getObjects().map((child) => child.logoLayer)).toEqual([
+      "container",
+      "symbol",
+      "wordmark"
+    ]);
+  });
+
+  it("replaces a recipe atomically while preserving canvas state", async () => {
+    const canvas = new FakeCanvas();
+    const background = new Rect({ width: 50, height: 50 });
+    background.objectId = "background";
+    background.elementKind = "shape";
+    background.accessibleName = "Background";
+    canvas.objects.push(background);
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+    await adapter.addLogoMark({ id: "logo-1", design: logoDesign(), icon: LOGO_ICON });
+    const foreground = new Rect({ width: 40, height: 40 });
+    foreground.objectId = "foreground";
+    foreground.elementKind = "shape";
+    foreground.accessibleName = "Foreground";
+    canvas.objects.push(foreground);
+    const original = canvas.objects[1]!;
+    original.set({
+      left: 211,
+      top: 177,
+      scaleX: 0.72,
+      scaleY: 0.64,
+      angle: 19,
+      flipX: true,
+      flipY: false,
+      visible: false,
+      selectable: false,
+      evented: false,
+      lockMovementX: true,
+      lockMovementY: true,
+      lockScalingX: true,
+      lockScalingY: true,
+      lockRotation: true
+    });
+    canvas.activeObject = foreground;
+    const mutations: CanvasMutation[] = [];
+    adapter.subscribe((mutation) => mutations.push(mutation));
+
+    await adapter.replaceLogoMark("logo-1", {
+      design: logoDesign("badge-seal"),
+      icon: LOGO_ICON
+    });
+
+    const replacement = canvas.objects[1]!;
+    expect(canvas.objects).toEqual([background, replacement, foreground]);
+    expect(replacement).not.toBe(original);
+    expect(replacement).toMatchObject({
+      objectId: "logo-1",
+      logoRecipe: "badge-seal",
+      left: 211,
+      top: 177,
+      scaleX: 0.72,
+      scaleY: 0.64,
+      angle: 19,
+      flipX: true,
+      flipY: false,
+      visible: false,
+      selectable: false,
+      evented: false,
+      lockMovementX: true,
+      lockMovementY: true,
+      lockScalingX: true,
+      lockScalingY: true,
+      lockRotation: true
+    });
+    expect(canvas.activeObject).toBe(replacement);
+    expect(adapter.listLogoMarks()).toEqual([{
+      id: "logo-1",
+      design: logoDesign("badge-seal")
+    }]);
+    expect(mutations).toEqual([{ type: "modified", objectId: "logo-1" }]);
+  });
+
+  it("rejects logo ID collisions before mutating the canvas", async () => {
+    const canvas = new FakeCanvas();
+    const collision = new Rect({ width: 20, height: 20 });
+    collision.objectId = "logo-1:symbol";
+    collision.elementKind = "shape";
+    collision.accessibleName = "Existing symbol";
+    canvas.objects.push(collision);
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+    const mutations: CanvasMutation[] = [];
+    adapter.subscribe((mutation) => mutations.push(mutation));
+
+    await expect(adapter.addLogoMark({
+      id: "logo-1",
+      design: logoDesign(),
+      icon: LOGO_ICON
+    })).rejects.toThrow(/duplicate.*logo-1:symbol/i);
+
+    expect(canvas.objects).toEqual([collision]);
+    expect(mutations).toEqual([]);
+  });
+
+  it("refuses ambiguous duplicate roots for listing or replacement", async () => {
+    const canvas = new FakeCanvas();
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+    await adapter.addLogoMark({ id: "logo-1", design: logoDesign(), icon: LOGO_ICON });
+    const duplicate = await Group.fromObject(canvas.objects[0]!.toObject());
+    canvas.objects.push(duplicate);
+    const before = [...canvas.objects];
+    const mutations: CanvasMutation[] = [];
+    adapter.subscribe((mutation) => mutations.push(mutation));
+
+    expect(() => adapter.listLogoMarks()).toThrow(/duplicate.*logo-1/i);
+    await expect(adapter.replaceLogoMark("logo-1", {
+      design: logoDesign("badge-seal"),
+      icon: LOGO_ICON
+    })).rejects.toThrow(/duplicate.*logo-1/i);
+
+    expect(canvas.objects).toEqual(before);
     expect(mutations).toEqual([]);
   });
 });

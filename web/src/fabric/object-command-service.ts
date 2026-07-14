@@ -1,6 +1,7 @@
 import type {
   ArtworkSurfaceAddress,
   CanvasPort,
+  LogoMarkSource,
   NewProductVariantInput,
   NewProductShellInput,
   ObjectTransform,
@@ -22,6 +23,7 @@ export interface AddRasterCommand {
 
 export type AddProductShellCommand = Omit<NewProductShellInput, "id">;
 export type AddProductVariantCommand = Omit<NewProductVariantInput, "id">;
+export type AddLogoMarkCommand = LogoMarkSource;
 
 type IdFactory = () => string;
 
@@ -66,6 +68,19 @@ export class ObjectCommandService {
     });
     this.port.setSelected(id);
     return id;
+  }
+
+  async addLogoMark(input: AddLogoMarkCommand): Promise<string> {
+    const id = this.#nextId();
+    await this.port.addLogoMark({ id, ...input });
+    this.port.setSelected(id);
+    return id;
+  }
+
+  async replaceLogoMark(id: string, input: AddLogoMarkCommand): Promise<void> {
+    const objectId = this.#required(id, "logo object id");
+    await this.port.replaceLogoMark(objectId, input);
+    this.port.setSelected(objectId);
   }
 
   async addArtworkText(

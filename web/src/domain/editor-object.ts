@@ -6,7 +6,8 @@ export const ELEMENT_KINDS = [
   "image",
   "drawing",
   "masked-component",
-  "product-shell"
+  "product-shell",
+  "logo-mark"
 ] as const;
 
 export type ElementKind = typeof ELEMENT_KINDS[number];

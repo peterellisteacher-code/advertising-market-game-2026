@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import type { LogoIconRecord } from "../logo-lab/logo-icon-catalogue";
+import { createLogoMarkDesign } from "../logo-lab/logo-mark-model";
 import type {
   CanvasPoint,
   CanvasSize,
@@ -11,6 +13,9 @@ import type {
   NewRasterInput,
   NewShapeInput,
   NewTextInput,
+  NewLogoMarkInput,
+  LogoMarkSource,
+  LogoMarkSnapshot,
   ObjectTransform,
   ArtworkSurfaceAddress,
   ShapeKind,
@@ -43,6 +48,17 @@ class MemoryCanvasPort implements CanvasPort {
   async addText(input: NewTextInput): Promise<void> { this.#add(input.id, "text", input); }
   async addShape(input: NewShapeInput): Promise<void> { this.#add(input.id, input.kind, input); }
   async addRaster(input: NewRasterInput): Promise<void> { this.#add(input.id, "image", input); }
+  async addLogoMark(input: NewLogoMarkInput): Promise<void> {
+    this.#add(input.id, "logo-mark", input);
+  }
+  async replaceLogoMark(id: string, input: LogoMarkSource): Promise<void> {
+    Object.assign(this.#get(id), input);
+  }
+  listLogoMarks(): readonly LogoMarkSnapshot[] {
+    return this.objects
+      .filter((object) => object.kind === "logo-mark")
+      .map((object) => ({ id: object.id, design: object.design as LogoMarkSnapshot["design"] }));
+  }
   async addProductShell(input: NewProductShellInput): Promise<void> {
     this.#add(input.id, "product-shell", input);
   }
@@ -130,7 +146,7 @@ class MemoryCanvasPort implements CanvasPort {
     id: string,
     kind: string,
     extra: NewTextInput | NewShapeInput | NewRasterInput | NewProductShellInput |
-      NewProductVariantInput
+      NewProductVariantInput | NewLogoMarkInput
   ): void {
     const { id: _inputId, ...metadata } = extra;
     this.objects.push({
@@ -161,7 +177,45 @@ const idFactory = (...ids: string[]): (() => string) => {
   return () => ids[index++] ?? `extra-${index}`;
 };
 
+const COMMAND_ICON: LogoIconRecord = Object.freeze({
+  id: "paw",
+  title: "Paw",
+  body: '<path d="M4 12h16"/>',
+  width: 24,
+  height: 24,
+  categories: Object.freeze(["pets-animals"])
+});
+
+const commandLogoDesign = createLogoMarkDesign({
+  recipe: "icon-wordmark",
+  text: "Nova Pet",
+  iconId: COMMAND_ICON.id,
+  primary: "#0B6E99",
+  secondary: "#F6C85F",
+  typeface: "Trebuchet MS",
+  seed: 41,
+  revision: 0
+});
+
 describe("ObjectCommandService", () => {
+  it("adds, replaces and reselects one editable logo mark", async () => {
+    const port = new MemoryCanvasPort();
+    const commands = new ObjectCommandService(port, idFactory("logo-1"));
+
+    const id = await commands.addLogoMark({ design: commandLogoDesign, icon: COMMAND_ICON });
+    port.selectedId = "previous-selection";
+    const revised = createLogoMarkDesign({
+      ...commandLogoDesign,
+      recipe: "badge-seal",
+      revision: 1
+    });
+    await commands.replaceLogoMark(id, { design: revised, icon: COMMAND_ICON });
+
+    expect(id).toBe("logo-1");
+    expect(port.selectedId).toBe(id);
+    expect(port.listLogoMarks()).toEqual([{ id, design: revised }]);
+  });
+
   it("performs every required object command through the Fabric-free port", async () => {
     const port = new MemoryCanvasPort();
     const commands = new ObjectCommandService(port, idFactory("shape-1", "copy-1"));

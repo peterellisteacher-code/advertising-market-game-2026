@@ -1,5 +1,7 @@
 import type { ProductArtwork } from "../product-builder/product-svg-composer";
 import type { ResolvedProductVariant } from "../product-builder/virtual-product-variant";
+import type { LogoIconRecord } from "../logo-lab/logo-icon-catalogue";
+import type { LogoMarkDesign } from "../logo-lab/logo-mark-model";
 
 export type ShapeKind = "rect" | "ellipse" | "triangle" | "line";
 export type StackDirection = "front" | "forward" | "backward" | "back";
@@ -33,6 +35,20 @@ export interface NewRasterInput {
   assetId: string;
   sameOriginUrl: string;
   accessibleName: string;
+}
+
+export interface LogoMarkSource {
+  readonly design: LogoMarkDesign;
+  readonly icon: LogoIconRecord;
+}
+
+export interface NewLogoMarkInput extends LogoMarkSource {
+  readonly id: string;
+}
+
+export interface LogoMarkSnapshot {
+  readonly id: string;
+  readonly design: LogoMarkDesign;
 }
 
 export interface ArtworkSurfaceAddress {
@@ -93,6 +109,9 @@ export interface CanvasPort {
   addText(input: NewTextInput): Promise<void>;
   addShape(input: NewShapeInput): Promise<void>;
   addRaster(input: NewRasterInput): Promise<void>;
+  addLogoMark(input: NewLogoMarkInput): Promise<void>;
+  replaceLogoMark(id: string, input: LogoMarkSource): Promise<void>;
+  listLogoMarks(): readonly LogoMarkSnapshot[];
   addArtworkText(address: ArtworkSurfaceAddress, input: NewTextInput): Promise<void>;
   addArtworkShape(address: ArtworkSurfaceAddress, input: NewShapeInput): Promise<void>;
   addArtworkRaster(address: ArtworkSurfaceAddress, input: NewRasterInput): Promise<void>;

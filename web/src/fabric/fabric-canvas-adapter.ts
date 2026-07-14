@@ -19,6 +19,9 @@ import type {
   CanvasSize,
   CropState,
   DrawingToolSettings,
+  LogoMarkSnapshot,
+  LogoMarkSource,
+  NewLogoMarkInput,
   NewProductVariantInput,
   NewProductShellInput,
   NewRasterInput,
@@ -27,6 +30,7 @@ import type {
   ObjectTransform,
   StackDirection
 } from "./canvas-port";
+import { createLogoMarkDesign, type LogoMarkDesign } from "../logo-lab/logo-mark-model";
 import {
   calculateTextFitScale,
   FABRIC_CONTROL_SIZE,
@@ -39,6 +43,7 @@ import {
   productShellRegionColours,
   recolourProductShellRegion
 } from "./product-shell-factory";
+import { FabricLogoMarkFactory } from "./logo-mark-factory";
 import "./fabric-custom-properties";
 
 const SERIALIZED_INTERACTION_PROPERTIES = [
@@ -139,6 +144,7 @@ export class FabricCanvasAdapter implements CanvasPort {
   readonly #listeners = new Set<CanvasMutationListener>();
   readonly #disposeEvents: Array<() => void>;
   readonly #pencilBrush: PencilBrush;
+  readonly #logoFactory = new FabricLogoMarkFactory();
   readonly #textAtEditingStart = new WeakMap<FabricObject, string>();
   #suppressEvents = false;
   #drawingTool: DrawingToolSettings = { mode: "select" };
@@ -177,6 +183,71 @@ export class FabricCanvasAdapter implements CanvasPort {
   async addText(input: NewTextInput): Promise<void> { this.#add(this.factory.createText(input)); }
   async addShape(input: NewShapeInput): Promise<void> { this.#add(this.factory.createShape(input)); }
   async addRaster(input: NewRasterInput): Promise<void> { this.#add(await this.factory.createRaster(input)); }
+  async addLogoMark(input: NewLogoMarkInput): Promise<void> {
+    const mark = await this.#logoFactory.create(input);
+    this.#assertUniqueTreeIds(mark);
+    this.#add(mark);
+  }
+
+  async replaceLogoMark(id: string, input: LogoMarkSource): Promise<void> {
+    const original = this.#getLogoMark(id);
+    const replacement = await this.#logoFactory.create({ id, ...input });
+    this.#assertUniqueTreeIds(replacement, original);
+    const index = this.canvas.getObjects().indexOf(original);
+    if (index < 0) throw new Error(`Missing object ${id}`);
+    const previousActive = this.canvas.getActiveObject();
+    replacement.set({
+      left: original.left,
+      top: original.top,
+      scaleX: original.scaleX,
+      scaleY: original.scaleY,
+      angle: original.angle,
+      flipX: original.flipX,
+      flipY: original.flipY,
+      visible: original.visible,
+      selectable: original.selectable,
+      evented: original.evented,
+      lockMovementX: original.lockMovementX,
+      lockMovementY: original.lockMovementY,
+      lockScalingX: original.lockScalingX,
+      lockScalingY: original.lockScalingY,
+      lockRotation: original.lockRotation
+    });
+    replacement.setCoords();
+
+    const previousSuppression = this.#suppressEvents;
+    this.#suppressEvents = true;
+    try {
+      this.canvas.remove(original);
+      this.canvas.insertAt(index, replacement);
+      this.canvas.setActiveObject(replacement);
+      this.canvas.requestRenderAll();
+    } catch (error) {
+      if (this.canvas.getObjects().includes(replacement)) this.canvas.remove(replacement);
+      if (!this.canvas.getObjects().includes(original)) {
+        this.canvas.insertAt(Math.min(index, this.canvas.getObjects().length), original);
+      }
+      if (previousActive) this.canvas.setActiveObject(previousActive);
+      else this.canvas.discardActiveObject();
+      this.canvas.requestRenderAll();
+      throw error;
+    } finally {
+      this.#suppressEvents = previousSuppression;
+    }
+    this.#emit("modified", replacement);
+  }
+
+  listLogoMarks(): readonly LogoMarkSnapshot[] {
+    const seen = new Set<string>();
+    return Object.freeze(this.canvas.getObjects()
+      .filter((object) => object.elementKind === "logo-mark")
+      .map((object) => {
+        const mark = this.#logoMark(object);
+        if (seen.has(mark.objectId!)) throw new Error(`Duplicate Fabric object ID ${mark.objectId}`);
+        seen.add(mark.objectId!);
+        return Object.freeze({ id: mark.objectId!, design: this.#logoDesign(mark) });
+      }));
+  }
   async addArtworkText(address: ArtworkSurfaceAddress, input: NewTextInput): Promise<void> {
     this.#addArtwork(address, this.factory.createText(input));
   }
@@ -486,9 +557,10 @@ export class FabricCanvasAdapter implements CanvasPort {
   }
 
   #get(id: string): FabricObject {
-    const object = this.canvas.getObjects().find((candidate) => candidate.objectId === id);
-    if (!object) throw new Error(`Missing object ${id}`);
-    return object;
+    const matches = this.canvas.getObjects().filter((candidate) => candidate.objectId === id);
+    if (matches.length === 0) throw new Error(`Missing object ${id}`);
+    if (matches.length > 1) throw new Error(`Duplicate Fabric object ID ${id}`);
+    return matches[0]!;
   }
 
   #getRaster(id: string): FabricImage {
@@ -497,6 +569,59 @@ export class FabricCanvasAdapter implements CanvasPort {
       throw new Error(`${id} is not a raster image`);
     }
     return object;
+  }
+
+  #getLogoMark(id: string): Group {
+    return this.#logoMark(this.#get(id));
+  }
+
+  #logoMark(object: FabricObject): Group {
+    if (!(object instanceof Group) || object.elementKind !== "logo-mark" || !object.objectId?.trim()) {
+      throw new Error(`${object.objectId ?? "Object"} is not an editable logo mark`);
+    }
+    return object;
+  }
+
+  #logoDesign(object: Group): LogoMarkDesign {
+    return createLogoMarkDesign({
+      recipe: object.logoRecipe as LogoMarkDesign["recipe"],
+      text: object.logoText as string,
+      iconId: object.logoIconId as string,
+      primary: object.logoPrimary as string,
+      secondary: object.logoSecondary as string,
+      typeface: object.logoTypeface as LogoMarkDesign["typeface"],
+      seed: object.logoSeed as number,
+      revision: object.logoRevision as number
+    });
+  }
+
+  #assertUniqueTreeIds(candidate: FabricObject, excludedRoot?: FabricObject): void {
+    const candidateIds = new Set<string>();
+    for (const object of this.#objectTree(candidate)) {
+      const id = object.objectId?.trim();
+      if (!id) continue;
+      if (candidateIds.has(id)) throw new Error(`Duplicate Fabric object ID ${id}`);
+      candidateIds.add(id);
+    }
+    const existingIds = new Set<string>();
+    for (const root of this.canvas.getObjects()) {
+      if (root === excludedRoot) continue;
+      for (const object of this.#objectTree(root)) {
+        const id = object.objectId?.trim();
+        if (id) existingIds.add(id);
+      }
+    }
+    for (const id of candidateIds) {
+      if (existingIds.has(id)) throw new Error(`Duplicate Fabric object ID ${id}`);
+    }
+  }
+
+  #objectTree(root: FabricObject): FabricObject[] {
+    const objects: FabricObject[] = [root];
+    if (root instanceof Group) {
+      root.getObjects().forEach((child) => objects.push(...this.#objectTree(child)));
+    }
+    return objects;
   }
 
   #artworkContext(address: ArtworkSurfaceAddress): {

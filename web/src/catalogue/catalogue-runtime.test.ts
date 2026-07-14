@@ -10,6 +10,9 @@ import type {
   ArtworkSurfaceAddress,
   CanvasMutationListener,
   CanvasPort,
+  LogoMarkSnapshot,
+  LogoMarkSource,
+  NewLogoMarkInput,
   NewProductVariantInput,
   NewRasterInput,
   NewShapeInput,
@@ -269,6 +272,11 @@ class PlacementCanvas implements CanvasPort {
       src: new URL(input.sameOriginUrl, window.location.href).href
     });
   }
+  async addLogoMark(_input: NewLogoMarkInput): Promise<void> { throw new Error("not used"); }
+  async replaceLogoMark(_id: string, _input: LogoMarkSource): Promise<void> {
+    throw new Error("not used");
+  }
+  listLogoMarks(): readonly LogoMarkSnapshot[] { return []; }
   async addProductShell(input: {
     id: string;
     shellId: string;

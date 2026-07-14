@@ -1,7 +1,10 @@
 import { CampaignDocumentSchema, type CampaignDocumentV1 } from "../domain/campaign-document";
 import {
+  campaignSemanticObjectMap,
+  collectCampaignSemanticObjects
+} from "../domain/campaign-semantic-objects";
+import {
   assertEvidenceReferences,
-  campaignObjectIds,
   CHECKLIST_SLOTS
 } from "../checklist/checklist-store";
 
@@ -62,18 +65,17 @@ function validateRasterSources(document: CampaignDocumentV1, ownedUrls: Readonly
       else visit(child, seen);
     }
   };
-  for (const object of document.fabricState.objects) {
-    if ((object.elementKind === "image" || object.elementKind === "masked-component") &&
-      (typeof object.src !== "string" || !object.src)) {
-      throw new Error(`Raster ${object.objectId} is missing a source`);
+  for (const semanticObject of collectCampaignSemanticObjects(document.fabricState)) {
+    if ((semanticObject.elementKind === "image" || semanticObject.elementKind === "masked-component") &&
+      (typeof semanticObject.object.src !== "string" || !semanticObject.object.src)) {
+      throw new Error(`Raster ${semanticObject.objectId} is missing a source`);
     }
   }
   visit(document.fabricState, new WeakSet());
 }
 
 function validateAssetReferences(document: CampaignDocumentV1): void {
-  const objectIds = campaignObjectIds(document);
-  const objects = new Map(document.fabricState.objects.map((object) => [object.objectId, object]));
+  const objects = campaignSemanticObjectMap(document.fabricState);
   const catalogByObject = new Map<string, Record<string, unknown>>();
   const localBlobByObject = new Map<string, Record<string, unknown>>();
   for (const reference of document.assetReferences) {
@@ -87,7 +89,7 @@ function validateAssetReferences(document: CampaignDocumentV1): void {
     if (typeof objectId !== "string" || !objectId) {
       throw new Error("Asset references require an objectId");
     }
-    if (!objectIds.has(objectId)) throw new Error(`Missing Fabric object ${objectId}`);
+    if (!objects.has(objectId)) throw new Error(`Missing Fabric object ${objectId}`);
     if (reference.kind === "local-blob") {
       if (localBlobByObject.has(objectId)) {
         throw new Error(`Duplicate local-blob reference for ${objectId}`);
@@ -134,12 +136,12 @@ function validateAssetReferences(document: CampaignDocumentV1): void {
     }
   }
 
-  for (const object of document.fabricState.objects) {
+  for (const object of objects.values()) {
     if (object.elementKind !== "image" && object.elementKind !== "masked-component") continue;
-    if (typeof object.src !== "string") continue;
+    if (typeof object.object.src !== "string") continue;
     let url: URL;
     try {
-      url = new URL(object.src, window.location.href);
+      url = new URL(object.object.src, window.location.href);
     } catch {
       continue;
     }

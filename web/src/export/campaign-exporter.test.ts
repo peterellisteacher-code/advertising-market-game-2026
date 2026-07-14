@@ -134,6 +134,27 @@ function ownedUrls(document: CampaignDocumentV1): ReadonlySet<string> {
   return new Set([String(variant.src)]);
 }
 
+function nestPhoto(
+  document: CampaignDocumentV1
+): CampaignDocumentV1["fabricState"]["objects"][number] {
+  const photoIndex = document.fabricState.objects.findIndex(({ objectId }) => objectId === "photo");
+  const [photo] = document.fabricState.objects.splice(photoIndex, 1);
+  if (!photo) throw new Error("Photo fixture is missing");
+  document.fabricState.objects.push({
+    type: "Group",
+    objectId: "product-shell",
+    elementKind: "product-shell",
+    accessibleName: "Solar Sprint product shell",
+    objects: [{
+      type: "Group",
+      productLayer: "artwork-slot",
+      artworkSlotId: "primary",
+      objects: [photo]
+    }]
+  });
+  return photo;
+}
+
 describe("CampaignExporter", () => {
   it("returns the exact publication contract from a clean 1600 by 900 PNG", () => {
     const document = documentFixture();
@@ -282,6 +303,99 @@ describe("CampaignExporter", () => {
       new ExportHarness(pngDataUrl(), missingReference.fabricState),
       ownedUrls(missingReference)
     ).publish(missingReference)).toThrow(/catalogue reference/i);
+  });
+
+  it("publishes a matching nested catalogue raster", () => {
+    const document = documentFixture();
+    const photo = nestPhoto(document);
+    photo.src = `${window.location.origin}/catalog/photo.png`;
+    document.assetReferences[0] = {
+      kind: "catalog",
+      objectId: "photo",
+      assetId: "photo",
+      assetVersion: 4,
+      attribution: {
+        creator: "A. Photographer",
+        sourceUrl: "https://example.test/work/photo",
+        license: "CC BY 4.0"
+      }
+    };
+    const port = new ExportHarness(pngDataUrl(), document.fabricState);
+
+    expect(new CampaignExporter(port, ownedUrls(document)).publish(document).contract)
+      .toBe("published-campaign@1");
+    expect(port.renderCount).toBe(1);
+  });
+
+  it("rejects a nested raster without a source before rendering", () => {
+    const document = documentFixture();
+    const photo = nestPhoto(document);
+    delete photo.src;
+    const port = new ExportHarness(pngDataUrl(), document.fabricState);
+
+    expect(() => new CampaignExporter(port, ownedUrls(document)).publish(document))
+      .toThrow("Raster photo is missing a source");
+    expect(port.renderCount).toBe(0);
+  });
+
+  it("rejects a nested catalogue raster without a catalogue reference before rendering", () => {
+    const document = documentFixture();
+    const photo = nestPhoto(document);
+    photo.src = `${window.location.origin}/catalog/photo.png`;
+    document.assetReferences = document.assetReferences.filter(({ objectId }) => objectId !== "photo");
+    const port = new ExportHarness(pngDataUrl(), document.fabricState);
+
+    expect(() => new CampaignExporter(port, ownedUrls(document)).publish(document))
+      .toThrow("Catalogue raster photo requires a catalogue reference");
+    expect(port.renderCount).toBe(0);
+  });
+
+  it("rejects a nested canonical Openverse URL mismatch before rendering", () => {
+    const document = documentFixture();
+    const photo = nestPhoto(document);
+    photo.assetId = OPENVERSE_ID;
+    photo.src = `${window.location.origin}/api/openverse-image/${OTHER_OPENVERSE_ID}`;
+    document.assetReferences[0] = {
+      kind: "catalog",
+      objectId: "photo",
+      assetId: OPENVERSE_ID,
+      assetVersion: 1,
+      attribution: {
+        creator: "A. Photographer",
+        sourceUrl: "https://example.test/work/photo",
+        license: "CC BY 4.0"
+      }
+    };
+    const port = new ExportHarness(pngDataUrl(), document.fabricState);
+
+    expect(() => new CampaignExporter(port, ownedUrls(document)).publish(document))
+      .toThrow("Raster photo requires a canonical full Openverse image URL");
+    expect(port.renderCount).toBe(0);
+  });
+
+  it("rejects a nested blob-backed catalogue raster without a matching local-blob reference", () => {
+    const document = documentFixture();
+    const photo = nestPhoto(document);
+    const blobUrl = `blob:${window.location.origin}/nested-catalogue-photo`;
+    photo.assetId = OPENVERSE_ID;
+    photo.src = blobUrl;
+    document.assetReferences[0] = {
+      kind: "catalog",
+      objectId: "photo",
+      assetId: OPENVERSE_ID,
+      assetVersion: 1,
+      attribution: {
+        creator: "A. Photographer",
+        sourceUrl: "https://example.test/work/photo",
+        license: "CC BY 4.0"
+      }
+    };
+    const port = new ExportHarness(pngDataUrl(), document.fabricState);
+    const owned = new Set([...ownedUrls(document), blobUrl]);
+
+    expect(() => new CampaignExporter(port, owned).publish(document))
+      .toThrow("Blob-backed catalogue raster photo requires a matching local-blob reference");
+    expect(port.renderCount).toBe(0);
   });
 
   it("accepts only a canonical full Openverse proxy whose UUID matches the catalogue asset", () => {

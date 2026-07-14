@@ -20,6 +20,15 @@ describe("createEditorShell", () => {
     expect(shell.libraryResults.dataset.libraryResults).toBe("");
     expect(shell.libraryStatus.getAttribute("role")).toBe("status");
     expect(getByRole(root, "region", { name: "Campaign canvas" })).toBeTruthy();
+    expect(getByRole(root, "region", { name: "Pair play" })).toBeTruthy();
+    expect(getByRole(root, "status", { name: "Round progress" })).toBeTruthy();
+    expect(getByRole(root, "button", { name: "Swap roles" })).toBeTruthy();
+    expect(getByRole(root, "combobox", { name: "Audience signal" })).toBeTruthy();
+    expect(getByRole(root, "region", { name: "Audience brief" })).toBeTruthy();
+    expect(getByRole(root, "region", { name: "Round 0 tools" })).toBeTruthy();
+    expect(getByRole<HTMLInputElement>(root, "textbox", { name: "Canvas words" }).placeholder)
+      .toBe("Try Make room for adventure");
+    expect(getByRole(root, "button", { name: "Add words" })).toBeTruthy();
     expect(getByRole(root, "region", { name: "Layers" })).toBeTruthy();
     expect(getByRole(root, "region", { name: "Selected element" })).toBeTruthy();
     expect(getAllByRole(root, "tab").map((tab) => tab.textContent)).toEqual([
@@ -27,6 +36,8 @@ describe("createEditorShell", () => {
     ]);
     expect(shell.polite.getAttribute("aria-live")).toBe("polite");
     expect(shell.assertive.getAttribute("aria-live")).toBe("assertive");
+    expect(shell.undo.dataset.command).toBe("undo");
+    expect(shell.redo.dataset.command).toBe("redo");
     expect(root.textContent).not.toMatch(/\b(?:assignment|unit|task)\b/i);
   });
 });

@@ -121,6 +121,83 @@ function campaignFixture(documentId = "campaign-a"): CampaignDocumentV1 {
   });
 }
 
+function nestedLocalBlobCampaignFixture(documentId = "nested-local-blob"): CampaignDocumentV1 {
+  const blank = createBlankCampaignDocument({
+    documentId,
+    sessionId: `session-${documentId}`,
+    mode: "offline"
+  });
+  return CampaignDocumentSchema.parse({
+    ...blank,
+    updatedAt: "2026-07-14T00:00:00.000Z",
+    product: { name: "Citrus Spark", priceCents: 299 },
+    fabricState: {
+      version: "7.4.0",
+      objects: [{
+        type: "Group",
+        objectId: "product-shell",
+        elementKind: "product-shell",
+        accessibleName: "Citrus Spark can",
+        clipPath: {
+          type: "Path",
+          objectId: "nested-artwork",
+          elementKind: "image",
+          accessibleName: "Decorative clip path must not satisfy the asset reference"
+        },
+        objects: [
+          {
+            type: "Path",
+            productLayer: "base-shell",
+            shellRegion: "body",
+            fill: "#fef3c7"
+          },
+          {
+            type: "Group",
+            productLayer: "artwork-slot",
+            artworkSlotId: "primary",
+            objects: [{
+              type: "FabricImage",
+              objectId: "nested-artwork",
+              elementKind: "image",
+              assetId: "citrus-slice",
+              sourceHash: "sha256-citrus-slice",
+              accessibleName: "Sliced citrus artwork",
+              src: "blob:http://localhost/transient-nested-artwork"
+            }]
+          }
+        ]
+      }]
+    },
+    evidence: {
+      ...blank.evidence,
+      interest: ["nested-artwork"]
+    },
+    assetReferences: [{
+      kind: "local-blob",
+      objectId: "nested-artwork",
+      assetId: "citrus-slice",
+      blobKey: "nested-artwork-png",
+      mimeType: "image/png"
+    }]
+  });
+}
+
+function nestedArtworkObject(document: CampaignDocumentV1): Record<string, unknown> {
+  const shellChildren = document.fabricState.objects[0]?.objects;
+  if (!Array.isArray(shellChildren)) throw new Error("Missing product-shell children");
+  const slot = shellChildren[1];
+  if (slot === null || typeof slot !== "object" || Array.isArray(slot)) {
+    throw new Error("Missing artwork slot");
+  }
+  const slotChildren = (slot as Record<string, unknown>).objects;
+  if (!Array.isArray(slotChildren)) throw new Error("Missing artwork-slot children");
+  const artwork = slotChildren[0];
+  if (artwork === null || typeof artwork !== "object" || Array.isArray(artwork)) {
+    throw new Error("Missing nested artwork");
+  }
+  return artwork as Record<string, unknown>;
+}
+
 function localBlobs(seed = 1): ReadonlyMap<string, Blob> {
   return new Map([
     ["photo-png", new Blob([new Uint8Array([seed, 2, 3, 4])], { type: "image/png" })],
@@ -326,6 +403,65 @@ describe("IndexedDbDraftStore", () => {
     expect(reloaded.document.fabricState.objects.find(({ objectId }) => objectId === "headline")?.left)
       .toBe(512);
     hydrated.release();
+  });
+
+  it("persists and rehydrates a nested local-blob image across a complete draft lifecycle", async () => {
+    const factory = new IDBFactory();
+    const databaseName = "recursive-draft-nested-local-blob";
+    const store = new IndexedDbDraftStore({ databaseName, factory });
+    const source = nestedLocalBlobCampaignFixture();
+    const sourceSnapshot = structuredClone(source);
+    const blobKey = "nested-artwork-png";
+    const blobs = new Map([
+      [blobKey, new Blob([new Uint8Array([4, 3, 2, 1])], { type: "image/png" })]
+    ]);
+
+    await store.save(source, blobs);
+
+    expect(source).toEqual(sourceSnapshot);
+    const storedRecords = await rawDocumentRecords(factory, databaseName);
+    expect(storedRecords).toHaveLength(1);
+    expect(nestedArtworkObject(storedRecords[0]!.document).src)
+      .toBe(`local-blob:${blobKey}`);
+
+    const loaded = await store.load(source.documentId);
+    expect(loaded).not.toBeNull();
+    expect(nestedArtworkObject(loaded!.document).src).toBe(`local-blob:${blobKey}`);
+    const loadedSnapshot = structuredClone(loaded!.document);
+    const durableHash = await canonicalDurableDocumentHash(loaded!.document);
+    const ownedUrl = `blob:${window.location.origin}/owned-nested-artwork`;
+    const created: Array<{ blob: Blob; url: string }> = [];
+    const revoked: string[] = [];
+    const urls: ObjectUrlPort = {
+      createObjectURL(blob) {
+        created.push({ blob, url: ownedUrl });
+        return ownedUrl;
+      },
+      revokeObjectURL(url) { revoked.push(url); }
+    };
+
+    const hydrated = rehydrateLocalAssetBlobs(loaded!.document, loaded!.blobs, urls);
+
+    expect(loaded!.document).toEqual(loadedSnapshot);
+    expect(nestedArtworkObject(hydrated.document).src).toBe(ownedUrl);
+    expect(ownedUrl).not.toBe(nestedArtworkObject(sourceSnapshot).src);
+    expect(created).toEqual([{ blob: loaded!.blobs.get(blobKey), url: ownedUrl }]);
+    expect(hydrated.ownedUrls).toEqual(new Set([ownedUrl]));
+    expect(await canonicalDurableDocumentHash(hydrated.document)).toBe(durableHash);
+
+    const revisionOne = CampaignDocumentSchema.parse({
+      ...hydrated.document,
+      revision: 1
+    });
+    const revisionOneSnapshot = structuredClone(revisionOne);
+    await store.save(revisionOne, loaded!.blobs);
+    expect(revisionOne).toEqual(revisionOneSnapshot);
+    const reloaded = await store.load(source.documentId);
+    expect(nestedArtworkObject(reloaded!.document).src).toBe(`local-blob:${blobKey}`);
+
+    hydrated.release();
+    hydrated.release();
+    expect(revoked).toEqual([ownedUrl]);
   });
 
   it("scopes identical blob IDs by document and revision", async () => {

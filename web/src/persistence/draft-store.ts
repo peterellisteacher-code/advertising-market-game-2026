@@ -1,4 +1,5 @@
 import { CampaignDocumentSchema, type CampaignDocumentV1 } from "../domain/campaign-document";
+import { campaignSemanticObjectMap } from "../domain/campaign-semantic-objects";
 import { migrateCampaignDocument } from "./draft-migrations";
 
 export const DEFAULT_DRAFT_DATABASE_NAME = "advertising-market-campaign-drafts";
@@ -104,15 +105,6 @@ function parseLocalBlobReferences(document: CampaignDocumentV1): LocalBlobAssetR
   });
 }
 
-function objectMap(document: CampaignDocumentV1): Map<string, Record<string, unknown>> {
-  const objects = new Map<string, Record<string, unknown>>();
-  for (const object of document.fabricState.objects) {
-    if (objects.has(object.objectId)) throw new Error(`Duplicate Fabric object ID ${object.objectId}`);
-    objects.set(object.objectId, object);
-  }
-  return objects;
-}
-
 function canonicalise(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonicalise);
   if (value !== null && typeof value === "object") {
@@ -125,16 +117,16 @@ function canonicalise(value: unknown): unknown {
 
 function normaliseDurableSources(document: CampaignDocumentV1): CampaignDocumentV1 {
   const clone = CampaignDocumentSchema.parse(structuredClone(document));
-  const objects = objectMap(clone);
+  const objects = campaignSemanticObjectMap(clone.fabricState);
   const referencedObjects = new Set<string>();
   for (const reference of parseLocalBlobReferences(clone)) {
     if (referencedObjects.has(reference.objectId)) {
       throw new Error(`Duplicate local blob reference for ${reference.objectId}`);
     }
     referencedObjects.add(reference.objectId);
-    const object = objects.get(reference.objectId);
-    if (!object) throw new Error(`Missing Fabric object ${reference.objectId}`);
-    object.src = `local-blob:${reference.blobKey}`;
+    const entry = objects.get(reference.objectId);
+    if (!entry) throw new Error(`Missing Fabric object ${reference.objectId}`);
+    entry.object.src = `local-blob:${reference.blobKey}`;
   }
   return clone;
 }
@@ -156,30 +148,30 @@ export function rehydrateLocalAssetBlobs(
   urls: ObjectUrlPort = browserObjectUrls
 ): RehydratedCampaignDocument {
   const clone = CampaignDocumentSchema.parse(structuredClone(document));
-  const objects = objectMap(clone);
+  const objects = campaignSemanticObjectMap(clone.fabricState);
   const references = parseLocalBlobReferences(clone);
   const targets = references.map((reference) => {
-    const object = objects.get(reference.objectId);
-    if (!object) throw new Error(`Missing Fabric object ${reference.objectId}`);
+    const entry = objects.get(reference.objectId);
+    if (!entry) throw new Error(`Missing Fabric object ${reference.objectId}`);
     const blob = blobs.get(reference.blobKey);
     if (!(blob instanceof Blob)) throw new Error(`Missing local blob ${reference.blobKey}`);
     if (blob.type !== reference.mimeType) {
       throw new Error(`Local blob ${reference.blobKey} must have MIME type ${reference.mimeType}`);
     }
-    return { reference, object, blob };
+    return { reference, entry, blob };
   });
   const urlsByBlobKey = new Map<string, string>();
   const ownedUrls = new Set<string>();
 
   try {
-    for (const { reference, object, blob } of targets) {
+    for (const { reference, entry, blob } of targets) {
       let url = urlsByBlobKey.get(reference.blobKey);
       if (!url) {
         url = urls.createObjectURL(blob);
         urlsByBlobKey.set(reference.blobKey, url);
         ownedUrls.add(url);
       }
-      object.src = url;
+      entry.object.src = url;
     }
   } catch (error) {
     ownedUrls.forEach((url) => urls.revokeObjectURL(url));

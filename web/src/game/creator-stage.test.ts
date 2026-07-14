@@ -307,6 +307,49 @@ describe("market card preview", () => {
     expect(protocolRelative.campaignImage.src).toBe("//game.example/images/campaign.png");
   });
 
+  it.each([
+    "http:evil.example/x",
+    "http:/evil.example/x",
+    "http:\\evil.example/x"
+  ])("rejects parser-normalized cross-origin source %s", (source) => {
+    expect(() => buildMarketCardPreview(
+      readyCampaign(),
+      AUDIENCE_BRIEFS[0],
+      source,
+      "https://game.example"
+    )).toThrow("campaign image source must be same-origin or local");
+  });
+
+  it.each([
+    ["cross-origin blob", "blob:https://evil.example/id", "https://game.example"],
+    ["blob without explicit origin", "blob:https://game.example/id", undefined],
+    ["malformed blob origin", "blob:https://[bad/id", "https://game.example"]
+  ] as const)("rejects %s", (_case, source, currentOrigin) => {
+    expect(() => buildMarketCardPreview(
+      readyCampaign(),
+      AUDIENCE_BRIEFS[0],
+      source,
+      currentOrigin
+    )).toThrow("campaign image source must be same-origin or local");
+  });
+
+  it("accepts a matching-origin blob and retains the opaque three-argument blob form", () => {
+    const sameOrigin = buildMarketCardPreview(
+      readyCampaign(),
+      AUDIENCE_BRIEFS[0],
+      "blob:https://game.example/id",
+      "https://game.example"
+    );
+    const opaque = buildMarketCardPreview(
+      readyCampaign(),
+      AUDIENCE_BRIEFS[0],
+      "blob:campaign-image"
+    );
+
+    expect(sameOrigin.campaignImage.src).toBe("blob:https://game.example/id");
+    expect(opaque.campaignImage.src).toBe("blob:campaign-image");
+  });
+
   it("rejects network sources without a matching explicit origin", () => {
     const valid = readyCampaign();
     const brief = AUDIENCE_BRIEFS[0];

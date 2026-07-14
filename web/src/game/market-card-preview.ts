@@ -56,11 +56,14 @@ function localImageSource(source: string, currentOrigin?: string): string {
   }
 
   const origin = currentOrigin === undefined ? undefined : parseCurrentOrigin(currentOrigin);
-  if (/^(?:https?:)?[\\/]{2}/i.test(trimmed) && trimmed.includes("\\")) {
+  const backslashNetworkSource = (
+    /^https?:/i.test(trimmed) || /^[\\/]{2}/.test(trimmed)
+  ) && trimmed.includes("\\");
+  if (backslashNetworkSource) {
     return invalidImageSource();
   }
 
-  if (/^(?:blob:|data:image\/)/i.test(trimmed)) {
+  if (/^data:image\//i.test(trimmed)) {
     try {
       new URL(trimmed);
     } catch {
@@ -69,9 +72,36 @@ function localImageSource(source: string, currentOrigin?: string): string {
     return trimmed;
   }
 
+  if (/^blob:/i.test(trimmed)) {
+    try {
+      new URL(trimmed);
+    } catch {
+      return invalidImageSource();
+    }
+
+    const embeddedSource = trimmed.slice("blob:".length);
+    let embeddedUrl: URL;
+    try {
+      embeddedUrl = new URL(embeddedSource);
+    } catch {
+      if (/^[a-z][a-z\d+.-]*:/i.test(embeddedSource)) {
+        return invalidImageSource();
+      }
+      return trimmed;
+    }
+
+    const embedsHttpOrigin = embeddedUrl.protocol === "http:"
+      || embeddedUrl.protocol === "https:";
+    if (!embedsHttpOrigin || origin === undefined || embeddedUrl.origin !== origin) {
+      return invalidImageSource();
+    }
+    return trimmed;
+  }
+
+  const expectedOrigin = origin ?? LOCAL_VALIDATION_ORIGIN;
   let parsed: URL;
   try {
-    parsed = new URL(trimmed, origin ?? LOCAL_VALIDATION_ORIGIN);
+    parsed = new URL(trimmed, expectedOrigin);
   } catch {
     return invalidImageSource();
   }
@@ -80,8 +110,7 @@ function localImageSource(source: string, currentOrigin?: string): string {
     return invalidImageSource();
   }
 
-  const networkReference = /^(?:https?:\/\/|\/\/)/i.test(trimmed);
-  if (networkReference && (origin === undefined || parsed.origin !== origin)) {
+  if (parsed.origin !== expectedOrigin) {
     return invalidImageSource();
   }
   return trimmed;

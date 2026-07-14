@@ -1,7 +1,11 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { createBlankCampaignDocument, type CampaignDocumentV1 } from "../domain/campaign-document";
+import {
+  createBlankCampaignDocument,
+  parseCampaignDocument,
+  type CampaignDocumentV1
+} from "../domain/campaign-document";
 import type {
   ArtworkSurfaceAddress,
   CanvasMutationListener,
@@ -238,8 +242,23 @@ describe("CatalogueRuntime", () => {
 });
 
 class PlacementCanvas implements CanvasPort {
-  readonly objects: Array<Record<string, unknown>> = [];
+  readonly objects: Array<Record<string, unknown>>;
   readonly removed: string[] = [];
+  readonly artworkAdds: Array<{
+    address: ArtworkSurfaceAddress;
+    input: NewRasterInput;
+  }> = [];
+  readonly artworkRemoved: Array<{
+    address: ArtworkSurfaceAddress;
+    childId: string;
+  }> = [];
+  serializeTransform?: (state: Record<string, unknown>) => void;
+  removeArtworkFailure?: Error;
+
+  constructor(objects: Array<Record<string, unknown>> = []) {
+    this.objects = structuredClone(objects);
+  }
+
   async addRaster(input: { id: string; assetId: string; sameOriginUrl: string; accessibleName: string }): Promise<void> {
     this.objects.push({
       type: "image",
@@ -287,14 +306,30 @@ class PlacementCanvas implements CanvasPort {
   async addArtworkShape(_address: ArtworkSurfaceAddress, _input: NewShapeInput): Promise<void> {
     throw new Error("Unexpected artwork-surface command");
   }
-  async addArtworkRaster(_address: ArtworkSurfaceAddress, _input: NewRasterInput): Promise<void> {
-    throw new Error("Unexpected artwork-surface command");
+  async addArtworkRaster(address: ArtworkSurfaceAddress, input: NewRasterInput): Promise<void> {
+    this.artworkAdds.push({
+      address: structuredClone(address),
+      input: structuredClone(input)
+    });
+    this.#artworkSlot(address).push({
+      type: "image",
+      objectId: input.id,
+      elementKind: "image",
+      assetId: input.assetId,
+      accessibleName: input.accessibleName,
+      productLayer: "student-artwork",
+      src: new URL(input.sameOriginUrl, window.location.href).href
+    });
   }
   setArtworkText(_address: ArtworkSurfaceAddress, _id: string, _value: string): void {
     throw new Error("Unexpected artwork-surface command");
   }
-  removeArtwork(_address: ArtworkSurfaceAddress, _childId: string): void {
-    throw new Error("Unexpected artwork-surface command");
+  removeArtwork(address: ArtworkSurfaceAddress, childId: string): void {
+    this.artworkRemoved.push({ address: structuredClone(address), childId });
+    if (this.removeArtworkFailure) throw this.removeArtworkFailure;
+    const objects = this.#artworkSlot(address);
+    const index = objects.findIndex((object) => object.objectId === childId);
+    if (index >= 0) objects.splice(index, 1);
   }
   setProductShellRegion(): void { throw new Error("not used"); }
   getProductShellRegionColours(): Readonly<Record<string, string>> { return {}; }
@@ -303,7 +338,14 @@ class PlacementCanvas implements CanvasPort {
     const index = this.objects.findIndex(({ objectId }) => objectId === id);
     if (index >= 0) this.objects.splice(index, 1);
   }
-  serialize(): Record<string, unknown> { return { version: "7.4.0", objects: structuredClone(this.objects) }; }
+  serialize(): Record<string, unknown> {
+    const state: Record<string, unknown> = {
+      version: "7.4.0",
+      objects: structuredClone(this.objects)
+    };
+    this.serializeTransform?.(state);
+    return state;
+  }
   setSelected(): void {}
   setText(): void {}
   async addText(): Promise<void> { throw new Error("not used"); }
@@ -320,7 +362,188 @@ class PlacementCanvas implements CanvasPort {
   exportCleanPngDataUrl(): string { return ""; }
   async load(): Promise<void> {}
   subscribe(_listener: CanvasMutationListener): () => void { return () => {}; }
+
+  #artworkSlot(address: ArtworkSurfaceAddress): Array<Record<string, unknown>> {
+    const product = this.objects.find((object) => object.objectId === address.productId);
+    if (!product || !Array.isArray(product.objects)) {
+      throw new Error("Product artwork surface was not found");
+    }
+    const slot = (product.objects as Array<Record<string, unknown>>).find((object) =>
+      object.productLayer === "artwork-slot" && object.artworkSlotId === address.slotId
+    );
+    if (!slot || !Array.isArray(slot.objects)) {
+      throw new Error("Product artwork slot was not found");
+    }
+    return slot.objects as Array<Record<string, unknown>>;
+  }
 }
+
+const ARTWORK_ADDRESS: ArtworkSurfaceAddress = {
+  productId: "product-1",
+  slotId: "primary"
+};
+
+function productObject(
+  productId = ARTWORK_ADDRESS.productId,
+  slotId = ARTWORK_ADDRESS.slotId
+): Record<string, unknown> {
+  return {
+    type: "group",
+    objectId: productId,
+    elementKind: "product-shell",
+    accessibleName: `${productId} product`,
+    left: 48,
+    top: 72,
+    scaleX: 1.25,
+    scaleY: 0.8,
+    angle: 12,
+    clipPath: { type: "rect", width: 320, height: 220 },
+    objects: [
+      { type: "path", productLayer: "base-shell" },
+      {
+        type: "group",
+        productLayer: "artwork-slot",
+        artworkSlotId: slotId,
+        objects: [{
+          type: "rect",
+          objectId: `${productId}-sibling-artwork`,
+          elementKind: "shape",
+          accessibleName: "Existing sibling artwork"
+        }]
+      }
+    ]
+  };
+}
+
+function semanticImage(objectId: string, assetId = "existing-asset"): Record<string, unknown> {
+  return {
+    type: "image",
+    objectId,
+    elementKind: "image",
+    accessibleName: "Existing catalogue image",
+    assetId
+  };
+}
+
+function placementDocument(objects: Array<Record<string, unknown>>): CampaignDocumentV1 {
+  return parseCampaignDocument({
+    ...createBlankCampaignDocument({
+      documentId: "targeted-placement-document",
+      sessionId: "targeted-placement-session",
+      mode: "offline"
+    }),
+    fabricState: { version: "7.4.0", objects: structuredClone(objects) }
+  });
+}
+
+function stateObjects(state: Record<string, unknown>): Array<Record<string, unknown>> {
+  if (!Array.isArray(state.objects)) throw new Error("Expected Fabric state objects");
+  return state.objects as Array<Record<string, unknown>>;
+}
+
+function objectChildren(object: Record<string, unknown>): Array<Record<string, unknown>> {
+  if (!Array.isArray(object.objects)) throw new Error("Expected Fabric object children");
+  return object.objects as Array<Record<string, unknown>>;
+}
+
+function findSemanticObject(
+  objects: Array<Record<string, unknown>>,
+  objectId: string
+): Record<string, unknown> | undefined {
+  for (const object of objects) {
+    if (object.objectId === objectId) return object;
+    if (Array.isArray(object.objects)) {
+      const found = findSemanticObject(
+        object.objects as Array<Record<string, unknown>>,
+        objectId
+      );
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
+function productSlot(
+  objects: Array<Record<string, unknown>>,
+  productId = ARTWORK_ADDRESS.productId,
+  slotId = ARTWORK_ADDRESS.slotId
+): Record<string, unknown> {
+  const product = objects.find((object) => object.objectId === productId);
+  if (!product) throw new Error(`Expected product ${productId}`);
+  const slot = objectChildren(product).find((object) =>
+    object.productLayer === "artwork-slot" && object.artworkSlotId === slotId
+  );
+  if (!slot) throw new Error(`Expected artwork slot ${slotId}`);
+  return slot;
+}
+
+const artworkReconciliationCases: Array<[
+  string,
+  (state: Record<string, unknown>, childId: string) => void
+]> = [
+  ["a top-level requested product", (state) => {
+    const objects = stateObjects(state);
+    const index = objects.findIndex((object) => object.objectId === ARTWORK_ADDRESS.productId);
+    if (index < 0) return;
+    const [product] = objects.splice(index, 1);
+    if (!product) return;
+    objects.unshift({ type: "group", objects: [product] });
+  }],
+  ["the exact root-slot-child path", (state, childId) => {
+    const slot = productSlot(stateObjects(state));
+    const children = objectChildren(slot);
+    const index = children.findIndex((object) => object.objectId === childId);
+    if (index < 0) return;
+    const [child] = children.splice(index, 1);
+    if (!child) return;
+    children.push({ type: "group", objects: [child] });
+  }],
+  ["the requested product root", (state, childId) => {
+    const objects = stateObjects(state);
+    const source = objectChildren(productSlot(objects));
+    const index = source.findIndex((object) => object.objectId === childId);
+    if (index < 0) return;
+    const [child] = source.splice(index, 1);
+    if (!child) return;
+    objectChildren(productSlot(objects, "product-2")).push(child);
+  }],
+  ["a product-shell root", (state) => {
+    const product = stateObjects(state).find((object) =>
+      object.objectId === ARTWORK_ADDRESS.productId
+    );
+    if (product) product.elementKind = "shape";
+  }],
+  ["an artwork-slot direct parent", (state) => {
+    const product = stateObjects(state).find((object) =>
+      object.objectId === ARTWORK_ADDRESS.productId
+    );
+    const slot = product && objectChildren(product).find((object) =>
+      object.artworkSlotId === ARTWORK_ADDRESS.slotId
+    );
+    if (slot) slot.productLayer = "base-shell";
+  }],
+  ["the named artwork slot", (state) => {
+    const product = stateObjects(state).find((object) =>
+      object.objectId === ARTWORK_ADDRESS.productId
+    );
+    const slot = product && objectChildren(product).find((object) =>
+      object.productLayer === "artwork-slot"
+    );
+    if (slot) slot.artworkSlotId = "secondary";
+  }],
+  ["the generated child ID", (state, childId) => {
+    const child = findSemanticObject(stateObjects(state), childId);
+    if (child) child.objectId = "different-child";
+  }],
+  ["an image child", (state, childId) => {
+    const child = findSemanticObject(stateObjects(state), childId);
+    if (child) child.elementKind = "shape";
+  }],
+  ["the requested asset ID", (state, childId) => {
+    const child = findSemanticObject(stateObjects(state), childId);
+    if (child) child.assetId = "different-asset";
+  }]
+];
 
 describe("CataloguePlacementQueue", () => {
   it("places through ObjectCommandService and commits a durable catalogue reference", async () => {
@@ -348,6 +571,298 @@ describe("CataloguePlacementQueue", () => {
       assetVersion: 1,
       attribution: asset("core").attribution
     }]);
+    expect(canvas.artworkAdds).toEqual([]);
+  });
+
+  it("places offline catalogue artwork inside the named product slot", async () => {
+    const canvas = new PlacementCanvas([productObject()]);
+    const originalProduct = structuredClone(canvas.objects[0]);
+    if (!originalProduct) throw new Error("Expected product fixture");
+    let document = placementDocument(canvas.objects);
+    let attachment: unknown;
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit: (next, localBlob) => { document = next; attachment = localBlob; },
+      createObjectId: () => "targeted-offline-child"
+    });
+
+    queue.enqueueArtworkRaster(ARTWORK_ADDRESS, asset("core"));
+    await queue.flush();
+
+    expect(canvas.artworkAdds).toEqual([{
+      address: ARTWORK_ADDRESS,
+      input: {
+        id: "targeted-offline-child",
+        assetId: "core",
+        sameOriginUrl: asset("core").files.master,
+        accessibleName: asset("core").title
+      }
+    }]);
+    expect(canvas.removed).toEqual([]);
+    const committedObjects = stateObjects(document.fabricState);
+    expect(committedObjects).toHaveLength(1);
+    expect(committedObjects[0]).toMatchObject({
+      objectId: originalProduct.objectId,
+      left: originalProduct.left,
+      top: originalProduct.top,
+      scaleX: originalProduct.scaleX,
+      scaleY: originalProduct.scaleY,
+      angle: originalProduct.angle,
+      clipPath: originalProduct.clipPath
+    });
+    expect(objectChildren(productSlot(committedObjects))).toEqual(expect.arrayContaining([
+      expect.objectContaining({ objectId: "product-1-sibling-artwork" }),
+      expect.objectContaining({
+        objectId: "targeted-offline-child",
+        elementKind: "image",
+        assetId: "core"
+      })
+    ]));
+    expect(document.assetReferences).toEqual([{
+      kind: "catalog",
+      objectId: "targeted-offline-child",
+      assetId: "core",
+      assetVersion: 1,
+      attribution: asset("core").attribution
+    }]);
+    expect(attachment).toBeUndefined();
+  });
+
+  it("captures live artwork bytes and commits child-scoped catalogue and blob references", async () => {
+    const canvas = new PlacementCanvas([productObject()]);
+    let document = placementDocument(canvas.objects);
+    const bytes = Uint8Array.from([137, 80, 78, 71, 9, 8, 7]);
+    const fetchMock = vi.fn().mockResolvedValue(new Response(bytes, {
+      headers: { "content-type": "image/png", "content-length": String(bytes.length) }
+    }));
+    const objectUrl = `blob:${window.location.origin}/targeted-live-child`;
+    const revokeObjectURL = vi.fn();
+    let attachment: {
+      blobKey: string;
+      blob: Blob;
+      objectUrl: string;
+    } | undefined;
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit: (next, localBlob) => { document = next; attachment = localBlob; },
+      createObjectId: () => "targeted-live-child",
+      fetch: fetchMock,
+      createObjectURL: () => objectUrl,
+      revokeObjectURL
+    });
+
+    queue.enqueueArtworkRaster(ARTWORK_ADDRESS, openverseAsset());
+    await queue.flush();
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(canvas.artworkAdds[0]).toMatchObject({
+      address: ARTWORK_ADDRESS,
+      input: {
+        id: "targeted-live-child",
+        assetId: OPENVERSE_ID,
+        sameOriginUrl: objectUrl
+      }
+    });
+    expect(document.assetReferences).toEqual([
+      expect.objectContaining({
+        kind: "catalog",
+        objectId: "targeted-live-child",
+        assetId: OPENVERSE_ID
+      }),
+      expect.objectContaining({
+        kind: "local-blob",
+        objectId: "targeted-live-child",
+        assetId: OPENVERSE_ID,
+        blobKey: "catalog-targeted-live-child",
+        mimeType: "image/png"
+      })
+    ]);
+    expect(attachment).toMatchObject({
+      blobKey: "catalog-targeted-live-child",
+      objectUrl
+    });
+    await expect(attachment!.blob.arrayBuffer()).resolves.toEqual(bytes.buffer);
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+  });
+
+  it("clones the artwork address and asset when enqueueing", async () => {
+    const canvas = new PlacementCanvas([productObject()]);
+    let document = placementDocument(canvas.objects);
+    const address = structuredClone(ARTWORK_ADDRESS);
+    const selectedAsset = asset("clone-core");
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit: (next) => { document = next; },
+      createObjectId: () => "cloned-input-child"
+    });
+
+    queue.enqueueArtworkRaster(address, selectedAsset);
+    address.productId = "mutated-product";
+    address.slotId = "mutated-slot";
+    selectedAsset.id = "mutated-asset";
+    selectedAsset.title = "Mutated title";
+    selectedAsset.files.master = "/mutated.png";
+    selectedAsset.attribution.creator = "Mutated creator";
+    await queue.flush();
+
+    expect(canvas.artworkAdds[0]).toEqual({
+      address: ARTWORK_ADDRESS,
+      input: {
+        id: "cloned-input-child",
+        assetId: "clone-core",
+        sameOriginUrl: asset("clone-core").files.master,
+        accessibleName: asset("clone-core").title
+      }
+    });
+    expect(document.assetReferences).toContainEqual(expect.objectContaining({
+      objectId: "cloned-input-child",
+      assetId: "clone-core",
+      attribution: asset("clone-core").attribution
+    }));
+  });
+
+  it("rejects a generated child ID already in the committed document before fetch or mutation", async () => {
+    const childId = "committed-duplicate-child";
+    const canvas = new PlacementCanvas([productObject()]);
+    const document = placementDocument([productObject(), semanticImage(childId)]);
+    const fetchMock = vi.fn();
+    const commit = vi.fn();
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit,
+      createObjectId: () => childId,
+      fetch: fetchMock
+    });
+
+    queue.enqueueArtworkRaster(ARTWORK_ADDRESS, openverseAsset());
+    await expect(queue.flush()).rejects.toThrow(/already exists/i);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(canvas.artworkAdds).toEqual([]);
+    expect(canvas.artworkRemoved).toEqual([]);
+    expect(canvas.removed).toEqual([]);
+    expect(commit).not.toHaveBeenCalled();
+  });
+
+  it("rejects a generated child ID already on the live canvas before fetch or mutation", async () => {
+    const childId = "live-duplicate-child";
+    const canvas = new PlacementCanvas([productObject(), semanticImage(childId)]);
+    const document = placementDocument([productObject()]);
+    const fetchMock = vi.fn();
+    const commit = vi.fn();
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit,
+      createObjectId: () => childId,
+      fetch: fetchMock
+    });
+
+    queue.enqueueArtworkRaster(ARTWORK_ADDRESS, openverseAsset());
+    await expect(queue.flush()).rejects.toThrow(/already exists/i);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(canvas.artworkAdds).toEqual([]);
+    expect(canvas.artworkRemoved).toEqual([]);
+    expect(canvas.removed).toEqual([]);
+    expect(commit).not.toHaveBeenCalled();
+  });
+
+  it.each(artworkReconciliationCases)(
+    "requires %s when reconciling targeted catalogue artwork",
+    async (_label, mutate) => {
+      const childId = "reconciliation-child";
+      const canvas = new PlacementCanvas([productObject(), productObject("product-2")]);
+      canvas.serializeTransform = (state) => { mutate(state, childId); };
+      const document = placementDocument(canvas.objects);
+      const commit = vi.fn();
+      const queue = new CataloguePlacementQueue({
+        getDocument: () => document,
+        getCanvas: async () => canvas,
+        commit,
+        createObjectId: () => childId
+      });
+
+      queue.enqueueArtworkRaster(ARTWORK_ADDRESS, asset("core"));
+      await expect(queue.flush()).rejects.toThrow(
+        "Placed catalogue artwork raster did not reconcile with the canvas"
+      );
+
+      expect(commit).not.toHaveBeenCalled();
+      expect(canvas.artworkRemoved).toEqual([{
+        address: ARTWORK_ADDRESS,
+        childId
+      }]);
+      expect(canvas.removed).toEqual([]);
+      expect(canvas.objects).toHaveLength(2);
+      expect(findSemanticObject(canvas.objects, ARTWORK_ADDRESS.productId)).toBeDefined();
+      expect(findSemanticObject(canvas.objects, "product-1-sibling-artwork")).toBeDefined();
+      expect(findSemanticObject(canvas.objects, childId)).toBeUndefined();
+    }
+  );
+
+  it("rolls back only the attempted child when targeted document commit fails", async () => {
+    const childId = "targeted-commit-child";
+    const canvas = new PlacementCanvas([productObject(), productObject("product-2")]);
+    const baseline = canvas.serialize();
+    const document = placementDocument(canvas.objects);
+    const commitFailure = new Error("Synthetic targeted commit failure");
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit: () => { throw commitFailure; },
+      createObjectId: () => childId
+    });
+
+    queue.enqueueArtworkRaster(ARTWORK_ADDRESS, asset("core"));
+    await expect(queue.flush()).rejects.toBe(commitFailure);
+
+    expect(canvas.artworkRemoved).toEqual([{
+      address: ARTWORK_ADDRESS,
+      childId
+    }]);
+    expect(canvas.removed).toEqual([]);
+    expect(canvas.serialize()).toEqual(baseline);
+    expect(document.assetReferences).toEqual([]);
+  });
+
+  it("preserves the original live failure when child and URL cleanup both throw", async () => {
+    const childId = "targeted-cleanup-child";
+    const canvas = new PlacementCanvas([productObject()]);
+    canvas.removeArtworkFailure = new Error("Synthetic child cleanup failure");
+    const document = placementDocument(canvas.objects);
+    const commitFailure = new Error("Synthetic targeted live commit failure");
+    const objectUrl = `blob:${window.location.origin}/${childId}`;
+    const revokeObjectURL = vi.fn(() => {
+      throw new Error("Synthetic URL cleanup failure");
+    });
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit: () => { throw commitFailure; },
+      createObjectId: () => childId,
+      fetch: vi.fn().mockResolvedValue(new Response(Uint8Array.from([1, 2, 3]), {
+        headers: { "content-type": "image/webp", "content-length": "3" }
+      })),
+      createObjectURL: () => objectUrl,
+      revokeObjectURL
+    });
+
+    queue.enqueueArtworkRaster(ARTWORK_ADDRESS, openverseAsset());
+    await expect(queue.flush()).rejects.toBe(commitFailure);
+
+    expect(canvas.artworkRemoved).toEqual([{
+      address: ARTWORK_ADDRESS,
+      childId
+    }]);
+    expect(canvas.removed).toEqual([]);
+    expect(findSemanticObject(canvas.objects, ARTWORK_ADDRESS.productId)).toBeDefined();
+    expect(revokeObjectURL).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURL).toHaveBeenCalledWith(objectUrl);
   });
 
   it("serialises raster and product-shell placements through one shared tail", async () => {

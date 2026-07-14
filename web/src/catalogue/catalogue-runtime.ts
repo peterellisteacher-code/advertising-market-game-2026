@@ -2,7 +2,8 @@ import {
   parseCampaignDocument,
   type CampaignDocumentV1
 } from "../domain/campaign-document";
-import type { CanvasPort } from "../fabric/canvas-port";
+import { campaignSemanticObjectMap } from "../domain/campaign-semantic-objects";
+import type { ArtworkSurfaceAddress, CanvasPort } from "../fabric/canvas-port";
 import { ObjectCommandService } from "../fabric/object-command-service";
 import type { ProductArtwork } from "../product-builder/product-svg-composer";
 import type { ResolvedProductVariant } from "../product-builder/virtual-product-variant";
@@ -261,6 +262,12 @@ export class CataloguePlacementQueue {
     this.#enqueue(async () => this.#place(frozenAsset));
   }
 
+  enqueueArtworkRaster(address: ArtworkSurfaceAddress, asset: CatalogAssetV1): void {
+    const frozenAddress = structuredClone(address);
+    const frozenAsset = structuredClone(asset);
+    this.#enqueue(async () => this.#placeArtworkRaster(frozenAddress, frozenAsset));
+  }
+
   enqueueProductShell(shell: ProductShellRecord, packId: string): void {
     const frozenShell = structuredClone(shell);
     this.#enqueue(async () => this.#placeProductShell(frozenShell, packId));
@@ -358,6 +365,111 @@ export class CataloguePlacementQueue {
           commands.remove(objectId);
         } catch {
           // Preserve the reconciliation failure; the adapter may already have rolled back.
+        }
+      }
+      if (localBlob) {
+        try {
+          (this.host.revokeObjectURL ?? ((url) => URL.revokeObjectURL(url)))(localBlob.objectUrl);
+        } catch {
+          // Preserve the placement failure.
+        }
+      }
+      throw error;
+    }
+  }
+
+  async #placeArtworkRaster(
+    address: ArtworkSurfaceAddress,
+    asset: CatalogAssetV1
+  ): Promise<void> {
+    const current = this.host.getDocument();
+    if (!current) throw new Error("Open a campaign before adding an asset");
+    const canvas = await this.host.getCanvas();
+    const objectId = (this.host.createObjectId ?? (() => globalThis.crypto.randomUUID()))();
+    const commands = new ObjectCommandService(canvas, () => objectId);
+    if (campaignSemanticObjectMap(current.fabricState).has(objectId) ||
+      campaignSemanticObjectMap(commands.serialize()).has(objectId)) {
+      throw new Error(`Generated catalogue artwork object ID ${objectId} already exists`);
+    }
+
+    const liveUrl = canonicalLiveImageUrl(asset);
+    let localBlob: LocalCatalogueBlob | undefined;
+    let placementUrl = asset.files.master;
+    let attemptedAdd = false;
+    try {
+      if (liveUrl) {
+        const fetcher = this.host.fetch ?? ((input, init) => fetch(input, init));
+        const response = await fetcher(liveUrl.href, {
+          method: "GET",
+          credentials: "same-origin",
+          headers: { accept: "image/png, image/jpeg, image/webp" },
+          signal: this.host.createDeadlineSignal?.() ?? AbortSignal.timeout(LIVE_IMAGE_TIMEOUT_MS)
+        });
+        const blob = await capturedLiveBlob(response);
+        const objectUrl = (this.host.createObjectURL ?? ((value) => URL.createObjectURL(value)))(blob);
+        localBlob = { blobKey: `catalog-${objectId}`, blob, objectUrl };
+        placementUrl = objectUrl;
+      }
+
+      attemptedAdd = true;
+      await commands.addArtworkRaster(address, {
+        assetId: asset.id,
+        sameOriginUrl: placementUrl,
+        accessibleName: asset.title
+      });
+      const fabricState = commands.serialize();
+      const semanticObjects = campaignSemanticObjectMap(fabricState);
+      const product = semanticObjects.get(address.productId);
+      const child = semanticObjects.get(objectId);
+      const path = child?.path;
+      const roots = Array.isArray(fabricState.objects)
+        ? fabricState.objects as Array<Record<string, unknown>>
+        : [];
+      const root = path?.length === 3 ? roots[path[0]!] : undefined;
+      const rootChildren = root && Array.isArray(root.objects)
+        ? root.objects as Array<Record<string, unknown>>
+        : [];
+      const slot = path?.length === 3 ? rootChildren[path[1]!] : undefined;
+      const slotChildren = slot && Array.isArray(slot.objects)
+        ? slot.objects as Array<Record<string, unknown>>
+        : [];
+      const rawChild = path?.length === 3 ? slotChildren[path[2]!] : undefined;
+      if (!product || product.path.length !== 1 || product.path[0] !== path?.[0] ||
+        product.elementKind !== "product-shell" || product.object !== root ||
+        slot?.productLayer !== "artwork-slot" || slot.artworkSlotId !== address.slotId ||
+        !child || child.object !== rawChild || child.elementKind !== "image" ||
+        child.assetId !== asset.id) {
+        throw new Error("Placed catalogue artwork raster did not reconcile with the canvas");
+      }
+
+      const next = parseCampaignDocument({
+        ...structuredClone(current),
+        fabricState,
+        assetReferences: [
+          ...current.assetReferences,
+          {
+            kind: "catalog",
+            objectId,
+            assetId: asset.id,
+            assetVersion: asset.version,
+            attribution: structuredClone(asset.attribution)
+          },
+          ...(localBlob ? [{
+            kind: "local-blob",
+            objectId,
+            assetId: asset.id,
+            blobKey: localBlob.blobKey,
+            mimeType: localBlob.blob.type
+          }] : [])
+        ]
+      });
+      this.host.commit(next, localBlob);
+    } catch (error) {
+      if (attemptedAdd) {
+        try {
+          commands.removeArtwork(address, objectId);
+        } catch {
+          // Preserve the placement failure; the adapter may already have rolled back.
         }
       }
       if (localBlob) {

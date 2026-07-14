@@ -879,4 +879,50 @@ describe("FabricCanvasAdapter editable logo marks", () => {
     expect(canvas.objects).toEqual(before);
     expect(mutations).toEqual([]);
   });
+
+  it("rejects malformed logo roots and returns deeply immutable snapshots", async () => {
+    const canvas = new FakeCanvas();
+    const wrongType = new Rect({ width: 20, height: 20 });
+    wrongType.objectId = "bad-logo";
+    wrongType.elementKind = "logo-mark";
+    wrongType.accessibleName = "Bad logo";
+    canvas.objects = [wrongType];
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+    expect(() => adapter.listLogoMarks()).toThrow(/not an editable logo mark/i);
+
+    const incomplete = new Group([new Rect({ width: 10, height: 10 })]);
+    incomplete.objectId = "incomplete-logo";
+    incomplete.elementKind = "logo-mark";
+    incomplete.accessibleName = "Incomplete logo";
+    canvas.objects = [incomplete];
+    expect(() => adapter.listLogoMarks()).toThrow(/logo recipe/i);
+
+    canvas.objects = [];
+    await adapter.addLogoMark({ id: "logo-1", design: logoDesign(), icon: LOGO_ICON });
+    const snapshots = adapter.listLogoMarks();
+    expect(Object.isFrozen(snapshots)).toBe(true);
+    expect(Object.isFrozen(snapshots[0])).toBe(true);
+    expect(Object.isFrozen(snapshots[0]!.design)).toBe(true);
+  });
+
+  it("leaves canvas state untouched when a replacement icon mismatches its design", async () => {
+    const canvas = new FakeCanvas();
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+    await adapter.addLogoMark({ id: "logo-1", design: logoDesign(), icon: LOGO_ICON });
+    const original = canvas.objects[0]!;
+    canvas.activeObject = original;
+    const before = JSON.stringify(adapter.serialize());
+    const mutations: CanvasMutation[] = [];
+    adapter.subscribe((mutation) => mutations.push(mutation));
+
+    await expect(adapter.replaceLogoMark("logo-1", {
+      design: logoDesign("badge-seal"),
+      icon: { ...LOGO_ICON, id: "rocket", title: "Rocket" }
+    })).rejects.toThrow(/icon.*match/i);
+
+    expect(JSON.stringify(adapter.serialize())).toBe(before);
+    expect(canvas.objects).toEqual([original]);
+    expect(canvas.activeObject).toBe(original);
+    expect(mutations).toEqual([]);
+  });
 });

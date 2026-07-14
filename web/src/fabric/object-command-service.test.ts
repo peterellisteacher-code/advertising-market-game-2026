@@ -216,6 +216,24 @@ describe("ObjectCommandService", () => {
     expect(port.listLogoMarks()).toEqual([{ id, design: revised }]);
   });
 
+  it("does not change selection when a logo replacement fails", async () => {
+    class FailingLogoPort extends MemoryCanvasPort {
+      override async replaceLogoMark(): Promise<void> {
+        throw new Error("Synthetic logo replacement failure");
+      }
+    }
+    const port = new FailingLogoPort();
+    const commands = new ObjectCommandService(port);
+    port.selectedId = "previous-selection";
+
+    await expect(commands.replaceLogoMark("logo-1", {
+      design: commandLogoDesign,
+      icon: COMMAND_ICON
+    })).rejects.toThrow("Synthetic logo replacement failure");
+
+    expect(port.selectedId).toBe("previous-selection");
+  });
+
   it("performs every required object command through the Fabric-free port", async () => {
     const port = new MemoryCanvasPort();
     const commands = new ObjectCommandService(port, idFactory("shape-1", "copy-1"));

@@ -82,6 +82,9 @@ export function getAvailableCommands(phase: CreatorPhase): readonly CreatorComma
 
 export function advanceCreatorPhase(session: PairSession): PairSession {
   const index = CREATOR_STAGES.findIndex((stage) => stage.phase === session.phase);
+  if (index < 0) {
+    throw new Error(`Unknown creator phase: ${session.phase}`);
+  }
   const next = CREATOR_STAGES[index + 1];
   if (next === undefined) {
     throw new Error("Cannot advance beyond preview");
@@ -109,6 +112,10 @@ export interface PublicationReadiness {
   readonly missing: readonly PublicationMissingCode[];
 }
 
+function hasEvidenceId(ids: readonly string[]): boolean {
+  return ids.some((id) => id.trim().length > 0);
+}
+
 export function evaluatePublicationReadiness(
   session: PairSession,
   progress: PairRoleProgress,
@@ -119,10 +126,10 @@ export function evaluatePublicationReadiness(
   if (session.audienceBriefId.trim().length === 0) missing.push("audience-brief");
   if (campaign.product.name.trim().length === 0) missing.push("product-name");
   if (campaign.product.priceCents === null) missing.push("price");
-  if (campaign.evidence.attention.length === 0) missing.push("attention");
-  if (campaign.evidence.interest.length === 0) missing.push("interest");
-  if (campaign.evidence.desire.length === 0) missing.push("desire");
-  if (campaign.evidence.action.length === 0) missing.push("action");
+  if (!hasEvidenceId(campaign.evidence.attention)) missing.push("attention");
+  if (!hasEvidenceId(campaign.evidence.interest)) missing.push("interest");
+  if (!hasEvidenceId(campaign.evidence.desire)) missing.push("desire");
+  if (!hasEvidenceId(campaign.evidence.action)) missing.push("action");
   if (session.handoffCount < 1) missing.push("role-handoff");
   if (progress["art-director"] < 1) missing.push("art-director-action");
   if (progress.strategist < 1) missing.push("strategist-action");

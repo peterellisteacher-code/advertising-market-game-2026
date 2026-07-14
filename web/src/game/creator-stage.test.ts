@@ -124,6 +124,21 @@ describe("creator stages", () => {
     expect(invent).toEqual({ ...start, phase: "invent" });
     expect(() => advanceCreatorPhase(preview)).toThrow("Cannot advance beyond preview");
   });
+
+  it("rejects an unknown runtime phase instead of resetting to Round 0", () => {
+    const invalidSession = {
+      ...createPairSession({
+        sessionId: "session-1",
+        audienceBriefId: AUDIENCE_BRIEFS[0].id,
+        startedAt
+      }),
+      phase: "bonus-round"
+    } as unknown as PairSession;
+
+    expect(() => advanceCreatorPhase(invalidSession)).toThrow(
+      "Unknown creator phase: bonus-round"
+    );
+  });
 });
 describe("publication readiness", () => {
   it("returns every missing code in exact order for a blank campaign", () => {
@@ -200,6 +215,20 @@ describe("publication readiness", () => {
       });
     }
   });
+
+  it.each(["attention", "interest", "desire", "action"] as const)(
+    "treats blank %s evidence IDs as missing",
+    (slot) => {
+      const campaign = readyCampaign();
+      campaign.evidence[slot] = ["", " \t "];
+
+      expect(evaluatePublicationReadiness(
+        readySession(),
+        readyProgress(),
+        campaign
+      )).toEqual({ ready: false, missing: [slot] });
+    }
+  );
 });
 
 describe("market card preview", () => {
@@ -249,15 +278,88 @@ describe("market card preview", () => {
     expect(brief).toEqual(briefSnapshot);
   });
 
-  it("rejects blank or remote image sources, blank names, and null prices", () => {
+  it.each([
+    ["relative", "images/campaign.png"],
+    ["root-relative", "/images/campaign.png"],
+    ["blob", "blob:campaign-image"],
+    ["data image", "data:image/png;base64,AA=="]
+  ])("keeps the three-argument form for %s image sources", (_kind, source) => {
+    const preview = buildMarketCardPreview(readyCampaign(), AUDIENCE_BRIEFS[0], source);
+
+    expect(preview.campaignImage.src).toBe(source);
+  });
+
+  it("accepts absolute and protocol-relative sources only with a matching explicit origin", () => {
+    const absolute = buildMarketCardPreview(
+      readyCampaign(),
+      AUDIENCE_BRIEFS[0],
+      "https://game.example/images/campaign.png",
+      "https://game.example"
+    );
+    const protocolRelative = buildMarketCardPreview(
+      readyCampaign(),
+      AUDIENCE_BRIEFS[0],
+      "//game.example/images/campaign.png",
+      "https://game.example"
+    );
+
+    expect(absolute.campaignImage.src).toBe("https://game.example/images/campaign.png");
+    expect(protocolRelative.campaignImage.src).toBe("//game.example/images/campaign.png");
+  });
+
+  it("rejects network sources without a matching explicit origin", () => {
+    const valid = readyCampaign();
+    const brief = AUDIENCE_BRIEFS[0];
+
+    expect(() => buildMarketCardPreview(valid, brief, "https://example.com/campaign.png")).toThrow(
+      "campaign image source must be same-origin or local"
+    );
+    expect(() => buildMarketCardPreview(
+      valid,
+      brief,
+      "https://cdn.example/campaign.png",
+      "https://game.example"
+    )).toThrow("campaign image source must be same-origin or local");
+    expect(() => buildMarketCardPreview(
+      valid,
+      brief,
+      "//cdn.example/campaign.png",
+      "https://game.example"
+    )).toThrow("campaign image source must be same-origin or local");
+  });
+
+  it("rejects malformed, unsupported, and backslash-normalized network sources", () => {
+    const valid = readyCampaign();
+    const brief = AUDIENCE_BRIEFS[0];
+
+    for (const source of [
+      "https://[bad",
+      "ftp://game.example/campaign.png",
+      "javascript:alert(1)",
+      "\\\\game.example\\campaign.png",
+      "https:\\\\game.example\\campaign.png"
+    ]) {
+      expect(() => buildMarketCardPreview(
+        valid,
+        brief,
+        source,
+        "https://game.example"
+      )).toThrow("campaign image source must be same-origin or local");
+    }
+    expect(() => buildMarketCardPreview(
+      valid,
+      brief,
+      "https://game.example/campaign.png",
+      "not-an-origin"
+    )).toThrow("current origin must be a valid HTTP(S) origin");
+  });
+
+  it("rejects blank image sources, blank names, and null prices", () => {
     const valid = readyCampaign();
     const brief = AUDIENCE_BRIEFS[0];
 
     expect(() => buildMarketCardPreview(valid, brief, " ")).toThrow(
       "campaign image source must be non-blank"
-    );
-    expect(() => buildMarketCardPreview(valid, brief, "https://example.com/campaign.png")).toThrow(
-      "campaign image source must be same-origin or local"
     );
     expect(() => buildMarketCardPreview(
       { ...valid, product: { name: "\t", priceCents: 100 } },

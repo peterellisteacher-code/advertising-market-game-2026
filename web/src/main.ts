@@ -29,6 +29,13 @@ import {
   createVirtualProductVariantResolver,
   type ResolvedProductVariant
 } from "./product-builder/virtual-product-variant";
+import {
+  loadLogoIconCatalogue,
+  type LogoIconRecord
+} from "./logo-lab/logo-icon-catalogue";
+import { LogoLabPanel } from "./logo-lab/logo-lab-panel";
+import type { LogoMarkDesign } from "./logo-lab/logo-mark-model";
+import type { LogoMarkSnapshot } from "./fabric/canvas-port";
 import type { FabricCanvasAdapter } from "./fabric/fabric-canvas-adapter";
 import { ObjectCommandService } from "./fabric/object-command-service";
 import {
@@ -109,6 +116,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #releaseOwnedRasterUrls: (() => void) | null = null;
   #history: FabricHistoryBindings | null = null;
   #pairGame: PairGameController | null = null;
+  #logoLab: LogoLabPanel | null = null;
 
   constructor(
     private readonly root: HTMLElement,
@@ -156,6 +164,14 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#pairGame = controller;
   }
 
+  attachLogoLab(panel: LogoLabPanel): void {
+    if (this.#logoLab !== null && this.#logoLab !== panel) {
+      throw new Error("Logo Lab is already attached");
+    }
+    this.#logoLab = panel;
+    this.#refreshLogoMarks();
+  }
+
   queueProductVariantPlacement(
     product: ResolvedProductVariant,
     artwork?: ProductArtwork
@@ -195,11 +211,13 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     const hadRuntime = this.#runtime !== null;
     let runtime: CanvasRuntime | null = null;
     let nextHistory: FabricHistoryBindings | null = null;
+    let nextLogoMarks: readonly LogoMarkSnapshot[] = Object.freeze([]);
     let loadComplete = false;
     try {
       runtime = await this.#ensureRuntime();
       await runtime.adapter.load(structuredClone(document.fabricState));
       loadComplete = true;
+      nextLogoMarks = runtime.adapter.listLogoMarks();
       nextHistory = new FabricHistoryBindings(runtime.adapter, this.shell.polite);
     } catch (error) {
       try {
@@ -236,6 +254,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       if (this.#pairGame !== null) {
         await this.#pairGame.open(document);
       }
+      this.#logoLab?.setMarks(nextLogoMarks);
       this.#setOpen(true);
     } catch (error) {
       this.#pairGame?.close();
@@ -265,6 +284,11 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       this.#blobs.clear();
       this.#document = null;
       this.#productShellRegions.clear();
+      try {
+        this.#logoLab?.setMarks([]);
+      } catch {
+        // Preserve the open failure while leaving the creator closed.
+      }
       this.#setOpen(false);
       this.gameCanvas?.focus({ preventScroll: true });
       throw error;
@@ -300,14 +324,36 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     await new ObjectCommandService(runtime.adapter).addText(value);
   }
 
+  async addLogoMark(design: LogoMarkDesign, icon: LogoIconRecord): Promise<string> {
+    await this.#placements.flush();
+    const runtime = this.#runtime;
+    if (runtime === null) throw new Error("Campaign creator is not open");
+    return new ObjectCommandService(runtime.adapter).addLogoMark({ design, icon });
+  }
+
+  async replaceLogoMark(
+    id: string,
+    design: LogoMarkDesign,
+    icon: LogoIconRecord
+  ): Promise<void> {
+    await this.#placements.flush();
+    const runtime = this.#runtime;
+    if (runtime === null) throw new Error("Campaign creator is not open");
+    await new ObjectCommandService(runtime.adapter).replaceLogoMark(id, { design, icon });
+  }
+
   async undo(): Promise<boolean> {
     if (this.#history === null) throw new Error("Campaign creator is not open");
-    return this.#history.undo();
+    const changed = await this.#history.undo();
+    if (changed) this.#refreshLogoMarks();
+    return changed;
   }
 
   async redo(): Promise<boolean> {
     if (this.#history === null) throw new Error("Campaign creator is not open");
-    return this.#history.redo();
+    const changed = await this.#history.redo();
+    if (changed) this.#refreshLogoMarks();
+    return changed;
   }
 
   subscribeCanvasMutations(listener: () => void): () => void {
@@ -392,6 +438,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#ownedRasterUrls.clear();
     this.#blobs.clear();
     this.#productShellRegions.clear();
+    attempt(() => this.#logoLab?.setMarks([]));
     attempt(() => this.#setOpen(false));
     attempt(() => this.gameCanvas?.focus({ preventScroll: true }));
     if (cleanupError !== null) throw cleanupError;
@@ -463,6 +510,10 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     });
   }
 
+  #refreshLogoMarks(): void {
+    this.#logoLab?.setMarks(this.#runtime?.adapter.listLogoMarks() ?? []);
+  }
+
   async #ensureRuntime(): Promise<CanvasRuntime> {
     if (this.#runtime) return this.#runtime;
     if (!this.#runtimePromise) {
@@ -518,6 +569,16 @@ const productBuilderPanel = new ProductBuilderPanel(
   (product, artwork) => handler.queueProductVariantPlacement(product, artwork)
 );
 productBuilderPanel.unavailable();
+const logoLabPanel = new LogoLabPanel(
+  shell.logoLabPanel,
+  (design, icon) => handler.addLogoMark(design, icon),
+  (id, design, icon) => handler.replaceLogoMark(id, design, icon),
+  (message, priority) => {
+    (priority === "assertive" ? shell.assertive : shell.polite).textContent = message;
+  }
+);
+logoLabPanel.unavailable();
+handler.attachLogoLab(logoLabPanel);
 void loadOfflineCatalogue(root.dataset.offlineCatalogueUrl).then((core) => {
   catalogueRuntime.replaceCore(core);
 });
@@ -528,6 +589,12 @@ void loadProductBuilderCatalogue(root.dataset.productBuilderCatalogueUrl).then((
   }
   productBuilderPanel.render(catalogue, createVirtualProductVariantResolver(catalogue));
 });
+const logoIconCatalogueUrl = root.dataset.logoIconCatalogueUrl;
+if (logoIconCatalogueUrl) {
+  void loadLogoIconCatalogue(logoIconCatalogueUrl)
+    .then((catalogue) => { logoLabPanel.render(catalogue); })
+    .catch(() => { logoLabPanel.unavailable(); });
+}
 
 root.querySelector<HTMLButtonElement>('[data-command="return"]')
   ?.addEventListener("click", () => {

@@ -119,6 +119,96 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
       }));
     }
 
+    async addLogoMark(input: {
+      id: string;
+      design: {
+        recipe: "icon-wordmark" | "badge-seal" | "monogram" | "mascot-emblem";
+        text: string;
+        iconId: string;
+        primary: string;
+        secondary: string;
+        typeface: "Arial" | "Georgia" | "Trebuchet MS" | "Verdana";
+        seed: number;
+        revision: number;
+      };
+      icon: { id: string };
+    }): Promise<void> {
+      const objects = runtime.state.objects;
+      if (!Array.isArray(objects)) throw new Error("Test canvas state has no objects");
+      if (input.icon.id !== input.design.iconId) throw new Error("Logo icon mismatch");
+      objects.push(this.logoObject(input.id, input.design));
+      runtime.listeners.forEach((listener) => listener({
+        type: "added",
+        objectId: input.id
+      }));
+    }
+
+    async replaceLogoMark(id: string, input: {
+      design: {
+        recipe: "icon-wordmark" | "badge-seal" | "monogram" | "mascot-emblem";
+        text: string;
+        iconId: string;
+        primary: string;
+        secondary: string;
+        typeface: "Arial" | "Georgia" | "Trebuchet MS" | "Verdana";
+        seed: number;
+        revision: number;
+      };
+      icon: { id: string };
+    }): Promise<void> {
+      const objects = runtime.state.objects;
+      if (!Array.isArray(objects)) throw new Error("Test canvas state has no objects");
+      if (input.icon.id !== input.design.iconId) throw new Error("Logo icon mismatch");
+      const index = objects.findIndex((candidate) =>
+        typeof candidate === "object" && candidate !== null &&
+        (candidate as Record<string, unknown>).objectId === id);
+      if (index < 0) throw new Error(`Missing logo mark ${id}`);
+      const current = objects[index] as Record<string, unknown>;
+      objects[index] = {
+        ...this.logoObject(id, input.design),
+        left: current.left,
+        top: current.top,
+        scaleX: current.scaleX,
+        scaleY: current.scaleY,
+        angle: current.angle
+      };
+      runtime.listeners.forEach((listener) => listener({ type: "modified", objectId: id }));
+    }
+
+    listLogoMarks(): ReadonlyArray<{
+      id: string;
+      design: {
+        recipe: "icon-wordmark" | "badge-seal" | "monogram" | "mascot-emblem";
+        text: string;
+        iconId: string;
+        primary: string;
+        secondary: string;
+        typeface: "Arial" | "Georgia" | "Trebuchet MS" | "Verdana";
+        seed: number;
+        revision: number;
+      };
+    }> {
+      const objects = runtime.state.objects;
+      if (!Array.isArray(objects)) throw new Error("Test canvas state has no objects");
+      return Object.freeze(objects
+        .filter((candidate): candidate is Record<string, unknown> =>
+          typeof candidate === "object" && candidate !== null &&
+          candidate.elementKind === "logo-mark")
+        .map((candidate) => Object.freeze({
+          id: String(candidate.objectId),
+          design: Object.freeze({
+            recipe: candidate.logoRecipe as "icon-wordmark" | "badge-seal" | "monogram" | "mascot-emblem",
+            text: String(candidate.logoText),
+            iconId: String(candidate.logoIconId),
+            primary: String(candidate.logoPrimary),
+            secondary: String(candidate.logoSecondary),
+            typeface: candidate.logoTypeface as "Arial" | "Georgia" | "Trebuchet MS" | "Verdana",
+            seed: Number(candidate.logoSeed),
+            revision: Number(candidate.logoRevision)
+          })
+        })));
+    }
+
     async addProductShell(input: {
       id: string;
       shellId: string;
@@ -227,6 +317,60 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
       runtime.adapterDisposed();
       runtime.listeners.clear();
       if (runtime.adapterDisposeFailure) throw runtime.adapterDisposeFailure;
+    }
+
+    private logoObject(id: string, design: {
+      recipe: "icon-wordmark" | "badge-seal" | "monogram" | "mascot-emblem";
+      text: string;
+      iconId: string;
+      primary: string;
+      secondary: string;
+      typeface: "Arial" | "Georgia" | "Trebuchet MS" | "Verdana";
+      seed: number;
+      revision: number;
+    }): Record<string, unknown> {
+      return {
+        type: "group",
+        objectId: id,
+        elementKind: "logo-mark",
+        accessibleName: `${design.text} logo`,
+        logoRecipe: design.recipe,
+        logoSeed: design.seed,
+        logoRevision: design.revision,
+        logoIconId: design.iconId,
+        logoText: design.text,
+        logoPrimary: design.primary,
+        logoSecondary: design.secondary,
+        logoTypeface: design.typeface,
+        left: 800,
+        top: 450,
+        scaleX: 1,
+        scaleY: 1,
+        angle: 0,
+        objects: [
+          {
+            type: "rect",
+            objectId: `${id}:container`,
+            elementKind: "shape",
+            accessibleName: `${design.text} logo container`,
+            logoLayer: "container"
+          },
+          {
+            type: design.recipe === "monogram" ? "textbox" : "group",
+            objectId: `${id}:symbol`,
+            elementKind: design.recipe === "monogram" ? "text" : "shape",
+            accessibleName: `${design.text} logo symbol`,
+            logoLayer: "symbol"
+          },
+          {
+            type: "textbox",
+            objectId: `${id}:wordmark`,
+            elementKind: "text",
+            accessibleName: `${design.text} wordmark`,
+            logoLayer: "wordmark"
+          }
+        ]
+      };
     }
   }
 }));
@@ -406,6 +550,36 @@ function productShellCatalogueFixture(): Record<string, unknown> {
         classroomReviewed: true,
         brandFree: true
       };
+    }))
+  };
+}
+
+function logoCatalogueFixture(): Record<string, unknown> {
+  const icons = [
+    ["rocket", "Rocket", "tech-gadgets"],
+    ["paw", "Paw", "pets-animals"],
+    ["bottle", "Bottle", "drinks-snacks"],
+    ["burger", "Burger", "fast-food-hospitality"]
+  ];
+  return {
+    schema: "logo-icon-catalog@1",
+    packId: "tabler-logo-icons-v1",
+    version: 1,
+    source: {
+      name: "Tabler Icons",
+      package: "@iconify-json/tabler",
+      packageVersion: "1.2.35",
+      sourceVersion: "3.44.0",
+      licence: "MIT",
+      url: "https://tabler.io/icons"
+    },
+    icons: icons.map(([id, title, category]) => ({
+      id,
+      title,
+      width: 24,
+      height: 24,
+      categories: [category, "general"],
+      body: '<path d="M4 12h16" stroke="currentColor" />'
     }))
   };
 }
@@ -925,6 +1099,133 @@ describe("window.AdMarketCreator", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(3);
   });
 
+  it("creates all four local logo recipes, remixes, saves, reloads and publishes them", async () => {
+    const root = document.querySelector<HTMLElement>("#creator-root")!;
+    root.dataset.logoIconCatalogueUrl =
+      "/catalog/generated/logo-icons-v1-reviewed/catalog.json";
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url = new URL(String(input), window.location.origin);
+      if (url.origin !== window.location.origin ||
+        url.pathname !== "/catalog/generated/logo-icons-v1-reviewed/catalog.json" ||
+        url.search || url.hash) {
+        return Promise.reject(new Error(`Unexpected URL ${url.href}`));
+      }
+      expect(init).toMatchObject({
+        credentials: "same-origin",
+        headers: { accept: "application/json" }
+      });
+      return Promise.resolve(new Response(JSON.stringify(logoCatalogueFixture()), {
+        headers: { "content-type": "application/json" }
+      }));
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-logo-lab", "open", blankDocument)).toMatchObject({ ok: true });
+    await findByRole(document.body, "button", { name: "Rocket" });
+
+    const recipes = [
+      ["Icon + Wordmark", "Orbit Rocket", "Rocket"],
+      ["Badge / Seal", "Paw Parade", "Paw"],
+      ["Monogram", "Bottle Club", "Bottle"],
+      ["Mascot / Emblem", "Burger Buddy", "Burger"]
+    ] as const;
+    for (const [recipe, words, symbol] of recipes) {
+      const chooser = getByRole<HTMLSelectElement>(document.body, "combobox", {
+        name: "Logo on canvas"
+      });
+      chooser.value = "";
+      fireEvent.change(chooser);
+      fireEvent.click(getByRole(document.body, "radio", { name: recipe }));
+      fireEvent.input(getByRole<HTMLInputElement>(document.body, "textbox", {
+        name: "Logo words"
+      }), { target: { value: words } });
+      fireEvent.click(getByRole(document.body, "button", { name: symbol }));
+      fireEvent.click(getByRole(document.body, "button", { name: "Add logo" }));
+      await waitFor(() => expect(currentObjects()
+        .filter(({ elementKind }) => elementKind === "logo-mark")).toHaveLength(
+          recipes.findIndex(([candidate]) => candidate === recipe) + 1
+        ));
+      await waitFor(() => expect(getByRole(document.body, "button", {
+        name: "Update logo"
+      })).toBeTruthy());
+    }
+
+    const details = document.querySelector<HTMLDetailsElement>(".logo-lab details")!;
+    details.open = true;
+    fireEvent(details, new Event("toggle"));
+    fireEvent.click(getByRole(document.body, "button", { name: "Surprise me" }));
+    await waitFor(() => expect(currentObjects().at(-1)).toMatchObject({
+      elementKind: "logo-mark",
+      logoRecipe: "mascot-emblem",
+      logoRevision: 1,
+      logoSeed: 1
+    }));
+
+    const beforeSave = currentObjects()
+      .filter(({ elementKind }) => elementKind === "logo-mark")
+      .map(({ objectId, logoRecipe, logoText, logoIconId, logoPrimary, logoSecondary,
+        logoTypeface, logoSeed, logoRevision, objects }) => structuredClone({
+          objectId,
+          logoRecipe,
+          logoText,
+          logoIconId,
+          logoPrimary,
+          logoSecondary,
+          logoTypeface,
+          logoSeed,
+          logoRevision,
+          objects
+        }));
+    expect(beforeSave.map(({ logoRecipe }) => logoRecipe)).toEqual([
+      "icon-wordmark",
+      "badge-seal",
+      "monogram",
+      "mascot-emblem"
+    ]);
+
+    expect(await parsed(api, "save-logo-lab", "save", null)).toMatchObject({ ok: true });
+    const saved = runtime.drafts.get(blankDocument.documentId)!.document;
+    expect(await parsed(api, "close-logo-lab", "close", null)).toMatchObject({ ok: true });
+    expect(await parsed(api, "reload-logo-lab", "open", saved)).toMatchObject({ ok: true });
+
+    const reloaded = await parsed(api, "state-reloaded-logo-lab", "getState", null);
+    if (!reloaded.ok) throw new Error(JSON.stringify(reloaded.error));
+    const reloadedDocument = CampaignDocumentSchema.parse(reloaded.payload);
+    const afterReload = reloadedDocument.fabricState.objects
+      .filter(({ elementKind }) => elementKind === "logo-mark")
+      .map(({ objectId, logoRecipe, logoText, logoIconId, logoPrimary, logoSecondary,
+        logoTypeface, logoSeed, logoRevision, objects }) => ({
+          objectId,
+          logoRecipe,
+          logoText,
+          logoIconId,
+          logoPrimary,
+          logoSecondary,
+          logoTypeface,
+          logoSeed,
+          logoRevision,
+          objects
+        }));
+    expect(afterReload).toEqual(beforeSave);
+    expect(getByRole<HTMLSelectElement>(document.body, "combobox", {
+      name: "Logo on canvas"
+    }).options).toHaveLength(5);
+
+    expect(await parsed(api, "publish-logo-lab", "publish", null)).toMatchObject({
+      ok: true,
+      payload: { contract: "published-campaign@1", pngBase64: "AAEC" }
+    });
+    expect(runtime.publish).toHaveBeenCalledWith(expect.objectContaining({
+      fabricState: expect.objectContaining({ objects: expect.arrayContaining([
+        expect.objectContaining({ elementKind: "logo-mark", logoRevision: 1 })
+      ]) })
+    }));
+    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(String(fetchSpy.mock.calls[0]![0])).toBe(
+      `${window.location.origin}/catalog/generated/logo-icons-v1-reviewed/catalog.json`
+    );
+  });
+
   it("keeps the asset library usable when the product maker is unavailable", async () => {
     await import("./main");
 
@@ -934,6 +1235,8 @@ describe("window.AdMarketCreator", () => {
     expect(document.querySelector('input[aria-label="Search assets"]')).toBeTruthy();
     expect(document.querySelector('[data-product-builder-panel]')?.textContent)
       .toContain("Product maker unavailable");
+    expect(document.querySelector('[data-logo-lab-panel]')?.textContent)
+      .toContain("Logo maker unavailable");
     expect(document.querySelector('[data-product-shell-select]')).toBeNull();
   });
 

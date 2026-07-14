@@ -12,9 +12,17 @@ import type {
   NewShapeInput,
   NewTextInput,
   ObjectTransform,
+  ArtworkSurfaceAddress,
+  ShapeKind,
   StackDirection
 } from "./canvas-port";
 import { ObjectCommandService } from "./object-command-service";
+
+type ArtworkCall =
+  | { type: "text:add"; target: ArtworkSurfaceAddress; id: string; value: string }
+  | { type: "shape:add"; target: ArtworkSurfaceAddress; id: string; kind: ShapeKind }
+  | { type: "raster:add"; target: ArtworkSurfaceAddress; id: string; assetId: string }
+  | { type: "text:set"; target: ArtworkSurfaceAddress; id: string; value: string };
 
 interface MemoryObject extends ObjectTransform {
   id: string;
@@ -27,6 +35,7 @@ interface MemoryObject extends ObjectTransform {
 class MemoryCanvasPort implements CanvasPort {
   readonly objects: MemoryObject[] = [];
   readonly moves: StackDirection[] = [];
+  readonly artworkCalls: ArtworkCall[] = [];
   selectedId: string | null = null;
   drawingTool: DrawingToolSettings = { mode: "select" };
 
@@ -38,6 +47,18 @@ class MemoryCanvasPort implements CanvasPort {
   }
   async addProductVariant(input: NewProductVariantInput): Promise<void> {
     this.#add(input.id, "product-builder-variant", input);
+  }
+  async addArtworkText(target: ArtworkSurfaceAddress, input: NewTextInput): Promise<void> {
+    this.artworkCalls.push({ type: "text:add", target: { ...target }, id: input.id, value: input.value });
+  }
+  async addArtworkShape(target: ArtworkSurfaceAddress, input: NewShapeInput): Promise<void> {
+    this.artworkCalls.push({ type: "shape:add", target: { ...target }, id: input.id, kind: input.kind });
+  }
+  async addArtworkRaster(target: ArtworkSurfaceAddress, input: NewRasterInput): Promise<void> {
+    this.artworkCalls.push({ type: "raster:add", target: { ...target }, id: input.id, assetId: input.assetId });
+  }
+  setArtworkText(target: ArtworkSurfaceAddress, id: string, value: string): void {
+    this.artworkCalls.push({ type: "text:set", target: { ...target }, id, value });
   }
   setProductShellRegion(id: string, region: string, colour: string): void {
     Object.assign(this.#get(id), { [region]: colour });
@@ -240,6 +261,46 @@ describe("ObjectCommandService", () => {
       variant,
       artwork: { id: "front-art", colour: "#F2385A" }
     }));
+  });
+
+  it("routes artwork commands to one named product surface and keeps the product selected", async () => {
+    const port = new MemoryCanvasPort();
+    const commands = new ObjectCommandService(
+      port,
+      idFactory("art-text-1", "art-shape-1", "art-image-1")
+    );
+    const target = { productId: "product-1", slotId: "primary" };
+
+    const textId = await commands.addArtworkText(target, "Fizz first", "Front headline");
+    const shapeId = await commands.addArtworkShape(target, {
+      kind: "ellipse",
+      fill: "#F2385A",
+      accessibleName: "Front burst"
+    });
+    const imageId = await commands.addArtworkRaster(target, {
+      assetId: "fruit-1",
+      sameOriginUrl: `${window.location.origin}/catalog/fruit.png`,
+      accessibleName: "Sliced citrus"
+    });
+    commands.setArtworkText(target, textId, "Fizz together");
+
+    expect([textId, shapeId, imageId]).toEqual([
+      "art-text-1",
+      "art-shape-1",
+      "art-image-1"
+    ]);
+    expect(port.selectedId).toBe("product-1");
+    expect(port.artworkCalls).toEqual([
+      expect.objectContaining({ type: "text:add", target, id: "art-text-1" }),
+      expect.objectContaining({ type: "shape:add", target, id: "art-shape-1" }),
+      expect.objectContaining({ type: "raster:add", target, id: "art-image-1" }),
+      expect.objectContaining({
+        type: "text:set",
+        target,
+        id: "art-text-1",
+        value: "Fizz together"
+      })
+    ]);
   });
 
   it("rejects invalid transform numbers before they reach the port", async () => {

@@ -1,4 +1,5 @@
 import type {
+  ArtworkSurfaceAddress,
   CanvasPort,
   NewProductVariantInput,
   NewProductShellInput,
@@ -67,6 +68,73 @@ export class ObjectCommandService {
     return id;
   }
 
+  async addArtworkText(
+    address: ArtworkSurfaceAddress,
+    value: string,
+    accessibleName = value
+  ): Promise<string> {
+    const target = this.#artworkAddress(address);
+    const text = value.trim();
+    if (!text) throw new Error("Text must not be empty");
+    const id = this.#nextId();
+    await this.port.addArtworkText(target, {
+      id,
+      value: text,
+      accessibleName: this.#required(accessibleName, "accessible name")
+    });
+    this.port.setSelected(target.productId);
+    return id;
+  }
+
+  async addArtworkShape(
+    address: ArtworkSurfaceAddress,
+    input: AddShapeCommand
+  ): Promise<string> {
+    const target = this.#artworkAddress(address);
+    const kinds: ShapeKind[] = ["rect", "ellipse", "triangle", "line"];
+    if (!kinds.includes(input.kind)) throw new Error("Unsupported shape kind");
+    const id = this.#nextId();
+    await this.port.addArtworkShape(target, {
+      id,
+      kind: input.kind,
+      fill: this.#required(input.fill, "fill"),
+      accessibleName: this.#required(
+        input.accessibleName ?? `${input.kind} shape`,
+        "accessible name"
+      )
+    });
+    this.port.setSelected(target.productId);
+    return id;
+  }
+
+  async addArtworkRaster(
+    address: ArtworkSurfaceAddress,
+    input: AddRasterCommand
+  ): Promise<string> {
+    const target = this.#artworkAddress(address);
+    const id = this.#nextId();
+    await this.port.addArtworkRaster(target, {
+      id,
+      assetId: this.#required(input.assetId, "asset id"),
+      sameOriginUrl: this.#required(input.sameOriginUrl, "raster URL"),
+      accessibleName: this.#required(input.accessibleName, "accessible name")
+    });
+    this.port.setSelected(target.productId);
+    return id;
+  }
+
+  setArtworkText(
+    address: ArtworkSurfaceAddress,
+    id: string,
+    value: string
+  ): void {
+    this.port.setArtworkText(
+      this.#artworkAddress(address),
+      this.#required(id, "artwork object id"),
+      this.#required(value, "text")
+    );
+  }
+
   async addProductShell(input: AddProductShellCommand): Promise<string> {
     const id = this.#nextId();
     await this.port.addProductShell({
@@ -126,6 +194,13 @@ export class ObjectCommandService {
 
   #move(id: string, direction: StackDirection): void {
     this.port.move(this.#required(id, "object id"), direction);
+  }
+
+  #artworkAddress(address: ArtworkSurfaceAddress): ArtworkSurfaceAddress {
+    return {
+      productId: this.#required(address.productId, "product id"),
+      slotId: this.#required(address.slotId, "artwork slot")
+    };
   }
 
   #nextId(): string { return this.#required(this.createId(), "generated object id"); }

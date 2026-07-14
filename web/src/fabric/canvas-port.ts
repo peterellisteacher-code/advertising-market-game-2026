@@ -35,6 +35,11 @@ export interface NewRasterInput {
   accessibleName: string;
 }
 
+export interface ArtworkSurfaceAddress {
+  productId: string;
+  slotId: string;
+}
+
 export interface NewProductShellInput {
   id: string;
   shellId: string;
@@ -88,6 +93,10 @@ export interface CanvasPort {
   addText(input: NewTextInput): Promise<void>;
   addShape(input: NewShapeInput): Promise<void>;
   addRaster(input: NewRasterInput): Promise<void>;
+  addArtworkText(address: ArtworkSurfaceAddress, input: NewTextInput): Promise<void>;
+  addArtworkShape(address: ArtworkSurfaceAddress, input: NewShapeInput): Promise<void>;
+  addArtworkRaster(address: ArtworkSurfaceAddress, input: NewRasterInput): Promise<void>;
+  setArtworkText(address: ArtworkSurfaceAddress, id: string, value: string): void;
   addProductShell(input: NewProductShellInput): Promise<void>;
   addProductVariant(input: NewProductVariantInput): Promise<void>;
   setProductShellRegion(id: string, region: string, colour: string): void;

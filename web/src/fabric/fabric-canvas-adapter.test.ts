@@ -1,15 +1,21 @@
 import type { Canvas } from "fabric";
-import { Group, Rect } from "fabric";
+import { FabricImage, type FabricObject, Group, Rect } from "fabric";
 import { describe, expect, it, vi } from "vitest";
 import type { ResolvedProductVariant } from "../product-builder/virtual-product-variant";
+import type { CanvasMutation } from "./canvas-port";
 import { FabricCanvasAdapter } from "./fabric-canvas-adapter";
-import type { FabricProductShellFactory } from "./product-shell-factory";
+import { FabricProductShellFactory, productArtworkSurface } from "./product-shell-factory";
+import { FabricObjectFactory } from "./object-factory";
 
 class FakeCanvas {
-  objects: Rect[] = [];
-  activeObject: Rect | null = null;
+  objects: FabricObject[] = [];
+  activeObject: FabricObject | null = null;
   failExport = false;
-  readonly renderSnapshots: Array<{ active: Rect | null; order: Rect[]; visible: boolean[] }> = [];
+  readonly renderSnapshots: Array<{
+    active: FabricObject | null;
+    order: FabricObject[];
+    visible: boolean[];
+  }> = [];
   readonly nestedGuideSnapshots: boolean[][] = [];
   readonly groupDirtySnapshots: boolean[][] = [];
   readonly loadFromJSON = vi.fn(async (_value: Record<string, unknown>) => this);
@@ -17,13 +23,13 @@ class FakeCanvas {
     version: "7.4.0",
     objects: this.objects.map((object) => object.toObject())
   }));
-  on(_event: string, _listener: (event: { target: Rect }) => void): () => void { return () => undefined; }
-  getObjects(): Rect[] { return this.objects; }
-  add(object: Rect): void { this.objects.push(object); }
-  getActiveObject(): Rect | undefined { return this.activeObject ?? undefined; }
+  on(_event: string, _listener: (event: { target: FabricObject }) => void): () => void { return () => undefined; }
+  getObjects(): FabricObject[] { return this.objects; }
+  add(object: FabricObject): void { this.objects.push(object); }
+  getActiveObject(): FabricObject | undefined { return this.activeObject ?? undefined; }
   discardActiveObject(): void { this.activeObject = null; }
-  setActiveObject(object: Rect): void { this.activeObject = object; }
-  moveObjectTo(object: Rect, index: number): boolean {
+  setActiveObject(object: FabricObject): void { this.activeObject = object; }
+  moveObjectTo(object: FabricObject, index: number): boolean {
     const current = this.objects.indexOf(object);
     if (current < 0) return false;
     this.objects.splice(current, 1);
@@ -49,6 +55,24 @@ class FakeCanvas {
     return "data:image/png;base64,cHJvYmU=";
   }
 }
+
+const CLIPPED_SHELL_SVG = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">
+  <defs>
+    <clipPath id="front-clip">
+      <rect x="300" y="280" width="400" height="440" rx="30" />
+    </clipPath>
+  </defs>
+  <g data-region="body" fill="#E8E2D8">
+    <rect x="250" y="120" width="500" height="760" rx="80" />
+  </g>
+  <g data-layer="artwork-slot" data-artwork-slot="primary" clip-path="url(#front-clip)">
+    <rect data-student-artwork="base-art" x="300" y="280" width="400" height="440" fill="#FFFFFF" />
+  </g>
+  <g data-material-treatment="fabric" opacity="0.08">
+    <rect x="0" y="0" width="1000" height="1000" fill="#172033" />
+  </g>
+</svg>`;
 
 describe("FabricCanvasAdapter persistence", () => {
   it("rejects a serialized external image before Fabric loads it", async () => {
@@ -233,5 +257,120 @@ describe("FabricCanvasAdapter persistence", () => {
       componentSvg: "<svg></svg>"
     })).rejects.toThrow("Synthetic composition failure");
     expect(canvas.objects).toEqual([created]);
+  });
+
+  it("adds and edits clipped artwork children with one parent mutation per action", async () => {
+    const canvas = new FakeCanvas();
+    const shell = await new FabricProductShellFactory().create({
+      id: "product-1",
+      shellId: "drinkware-classic-can",
+      accessibleName: "Classic can",
+      svg: CLIPPED_SHELL_SVG
+    });
+    canvas.objects = [shell];
+    canvas.activeObject = shell;
+    const factory = new FabricObjectFactory();
+    const raster = new FabricImage(document.createElement("img"), {
+      width: 120,
+      height: 80
+    });
+    raster.set({
+      objectId: "art-image-1",
+      elementKind: "image",
+      assetId: "fruit-1",
+      accessibleName: "Sliced citrus"
+    });
+    vi.spyOn(factory, "createRaster").mockResolvedValue(raster);
+    const adapter = new FabricCanvasAdapter(
+      canvas as unknown as Canvas,
+      factory
+    );
+    const target = { productId: "product-1", slotId: "primary" };
+    const mutations: CanvasMutation[] = [];
+    adapter.subscribe((mutation) => mutations.push(mutation));
+    const before = {
+      width: shell.width,
+      height: shell.height,
+      scaleX: shell.scaleX,
+      scaleY: shell.scaleY
+    };
+
+    await adapter.addArtworkText(target, {
+      id: "art-text-1",
+      value: "Fizz first",
+      accessibleName: "Front headline"
+    });
+    await adapter.addArtworkShape(target, {
+      id: "art-shape-1",
+      kind: "ellipse",
+      fill: "#F2385A",
+      accessibleName: "Front burst"
+    });
+    await adapter.addArtworkRaster(target, {
+      id: "art-image-1",
+      assetId: "fruit-1",
+      sameOriginUrl: `${window.location.origin}/catalog/fruit.png`,
+      accessibleName: "Sliced citrus"
+    });
+    adapter.setArtworkText(target, "art-text-1", "Fizz together");
+
+    const surface = productArtworkSurface(shell);
+    expect(canvas.objects).toEqual([shell]);
+    expect(canvas.activeObject).toBe(shell);
+    expect(surface.getObjects()).toEqual(expect.arrayContaining([
+      expect.objectContaining({ objectId: "art-text-1", text: "Fizz together" }),
+      expect.objectContaining({ objectId: "art-shape-1", elementKind: "shape" }),
+      expect.objectContaining({ objectId: "art-image-1", assetId: "fruit-1" })
+    ]));
+    expect(surface.getObjects().filter(({ objectId }) => objectId)).toHaveLength(3);
+    expect(shell).toMatchObject(before);
+    expect(mutations).toEqual(Array.from({ length: 4 }, () => ({
+      type: "modified",
+      objectId: "product-1"
+    })));
+
+    const restored = await Group.fromObject(shell.toObject());
+    expect(productArtworkSurface(restored).getObjects()).toEqual(expect.arrayContaining([
+      expect.objectContaining({ objectId: "art-text-1", text: "Fizz together" }),
+      expect.objectContaining({ objectId: "art-shape-1" }),
+      expect.objectContaining({ objectId: "art-image-1", assetId: "fruit-1" })
+    ]));
+  }, 15_000);
+
+  it("leaves product artwork unchanged when a target or raster is rejected", async () => {
+    const canvas = new FakeCanvas();
+    const shell = await new FabricProductShellFactory().create({
+      id: "product-1",
+      shellId: "drinkware-classic-can",
+      accessibleName: "Classic can",
+      svg: CLIPPED_SHELL_SVG
+    });
+    canvas.objects = [shell];
+    canvas.activeObject = shell;
+    const factory = new FabricObjectFactory();
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas, factory);
+    const mutations: CanvasMutation[] = [];
+    adapter.subscribe((mutation) => mutations.push(mutation));
+    const before = JSON.stringify(shell.toObject());
+
+    await expect(adapter.addArtworkText(
+      { productId: "product-1", slotId: "missing" },
+      { id: "bad-text", value: "No", accessibleName: "Bad text" }
+    )).rejects.toThrow("invalid artwork slot");
+    vi.spyOn(factory, "createRaster").mockRejectedValueOnce(new Error("Synthetic raster failure"));
+    await expect(adapter.addArtworkRaster(
+      { productId: "product-1", slotId: "primary" },
+      {
+        id: "bad-image",
+        assetId: "bad-asset",
+        sameOriginUrl: `${window.location.origin}/catalog/bad.png`,
+        accessibleName: "Bad image"
+      }
+    )).rejects.toThrow("Synthetic raster failure");
+
+    expect(JSON.stringify(shell.toObject())).toBe(before);
+    expect(canvas.objects).toEqual([shell]);
+    expect(canvas.activeObject).toBe(shell);
+    expect(mutations).toEqual([]);
   });
 });

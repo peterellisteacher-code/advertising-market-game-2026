@@ -3,9 +3,13 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { createBlankCampaignDocument, type CampaignDocumentV1 } from "../domain/campaign-document";
 import type {
+  ArtworkSurfaceAddress,
   CanvasMutationListener,
   CanvasPort,
-  NewProductVariantInput
+  NewProductVariantInput,
+  NewRasterInput,
+  NewShapeInput,
+  NewTextInput
 } from "../fabric/canvas-port";
 import { parseProductBuilderCatalogue } from "../product-builder/product-builder-catalogue";
 import { createVirtualProductVariantResolver } from "../product-builder/virtual-product-variant";
@@ -276,6 +280,18 @@ class PlacementCanvas implements CanvasPort {
       materialId: input.variant.materialId,
       artwork: input.artwork
     });
+  }
+  async addArtworkText(_address: ArtworkSurfaceAddress, _input: NewTextInput): Promise<void> {
+    throw new Error("Unexpected artwork-surface command");
+  }
+  async addArtworkShape(_address: ArtworkSurfaceAddress, _input: NewShapeInput): Promise<void> {
+    throw new Error("Unexpected artwork-surface command");
+  }
+  async addArtworkRaster(_address: ArtworkSurfaceAddress, _input: NewRasterInput): Promise<void> {
+    throw new Error("Unexpected artwork-surface command");
+  }
+  setArtworkText(_address: ArtworkSurfaceAddress, _id: string, _value: string): void {
+    throw new Error("Unexpected artwork-surface command");
   }
   setProductShellRegion(): void { throw new Error("not used"); }
   getProductShellRegionColours(): Readonly<Record<string, string>> { return {}; }

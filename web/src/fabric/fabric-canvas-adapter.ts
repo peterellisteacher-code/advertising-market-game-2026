@@ -11,6 +11,7 @@ import {
   util
 } from "fabric";
 import type {
+  ArtworkSurfaceAddress,
   CanvasPoint,
   CanvasMutation,
   CanvasMutationListener,
@@ -33,6 +34,7 @@ import {
 } from "./object-factory";
 import {
   FabricProductShellFactory,
+  productArtworkSurface,
   productShellRegionColours,
   recolourProductShellRegion
 } from "./product-shell-factory";
@@ -114,6 +116,15 @@ export class FabricCanvasAdapter implements CanvasPort {
   async addText(input: NewTextInput): Promise<void> { this.#add(this.factory.createText(input)); }
   async addShape(input: NewShapeInput): Promise<void> { this.#add(this.factory.createShape(input)); }
   async addRaster(input: NewRasterInput): Promise<void> { this.#add(await this.factory.createRaster(input)); }
+  async addArtworkText(address: ArtworkSurfaceAddress, input: NewTextInput): Promise<void> {
+    this.#addArtwork(address, this.factory.createText(input));
+  }
+  async addArtworkShape(address: ArtworkSurfaceAddress, input: NewShapeInput): Promise<void> {
+    this.#addArtwork(address, this.factory.createShape(input));
+  }
+  async addArtworkRaster(address: ArtworkSurfaceAddress, input: NewRasterInput): Promise<void> {
+    this.#addArtwork(address, await this.factory.createRaster(input));
+  }
   async addProductShell(input: NewProductShellInput): Promise<void> {
     this.#add(await this.shellFactory.create(input));
   }
@@ -131,6 +142,20 @@ export class FabricCanvasAdapter implements CanvasPort {
 
   getProductShellRegionColours(id: string): Readonly<Record<string, string>> {
     return productShellRegionColours(this.#get(id));
+  }
+
+  setArtworkText(address: ArtworkSurfaceAddress, id: string, value: string): void {
+    if (!value.trim()) throw new Error("Text must not be empty");
+    const { product, surface } = this.#artworkContext(address);
+    const object = surface.getObjects().find((candidate) => candidate.objectId === id);
+    if (!(object instanceof Textbox) || object.elementKind !== "text") {
+      throw new Error(`${id} is not editable artwork text`);
+    }
+    if (object.text === value) return;
+    object.set("text", value);
+    object.initDimensions();
+    this.#fitArtworkObject(surface, object);
+    this.#finishArtworkMutation(product, surface);
   }
 
   setText(id: string, value: string): void {
@@ -397,6 +422,66 @@ export class FabricCanvasAdapter implements CanvasPort {
       throw new Error(`${id} is not a raster image`);
     }
     return object;
+  }
+
+  #artworkContext(address: ArtworkSurfaceAddress): {
+    product: FabricObject;
+    surface: Group;
+  } {
+    if (!address.productId.trim() || !address.slotId.trim()) {
+      throw new Error("Artwork surface address must not be empty");
+    }
+    const product = this.#get(address.productId);
+    return {
+      product,
+      surface: productArtworkSurface(product, address.slotId)
+    };
+  }
+
+  #addArtwork(address: ArtworkSurfaceAddress, object: FabricObject): void {
+    const { product, surface } = this.#artworkContext(address);
+    this.#assertArtworkSurfaceGeometry(surface);
+    object.setPositionByOrigin(surface.getCenterPoint(), "center", "center");
+    object.setCoords();
+    surface.add(object);
+    object.set({ left: 0, top: 0, originX: "center", originY: "center" });
+    this.#fitArtworkObject(surface, object);
+    this.#finishArtworkMutation(product, surface);
+  }
+
+  #assertArtworkSurfaceGeometry(surface: Group): void {
+    if (![surface.width, surface.height].every(Number.isFinite) ||
+      surface.width <= 0 || surface.height <= 0) {
+      throw new Error("Artwork surface geometry is invalid");
+    }
+  }
+
+  #fitArtworkObject(surface: Group, object: FabricObject): void {
+    this.#assertArtworkSurfaceGeometry(surface);
+    const width = Math.max(1, object.getScaledWidth());
+    const height = Math.max(1, object.getScaledHeight());
+    const factor = Math.min(
+      1,
+      (surface.width * 0.82) / width,
+      (surface.height * 0.82) / height
+    );
+    if (factor < 1) {
+      object.set({
+        scaleX: object.scaleX * factor,
+        scaleY: object.scaleY * factor
+      });
+    }
+    object.dirty = true;
+    object.setCoords();
+  }
+
+  #finishArtworkMutation(product: FabricObject, surface: Group): void {
+    surface.dirty = true;
+    product.dirty = true;
+    surface.setCoords();
+    product.setCoords();
+    this.canvas.requestRenderAll();
+    this.#emit("modified", product);
   }
 
   #tagDrawingPath(path: FabricObject): void {

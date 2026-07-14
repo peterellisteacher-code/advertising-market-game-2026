@@ -127,6 +127,38 @@ describe("FabricCanvasAdapter persistence", () => {
     });
   });
 
+  it("omits Fabric's undefined object properties from durable canvas state", () => {
+    const canvas = new FakeCanvas();
+    const raw = {
+      version: "7.4.0",
+      objects: [{
+        type: "Textbox",
+        objectId: "text-1",
+        elementKind: "text",
+        accessibleName: "Campaign headline",
+        text: "Make room for adventure",
+        path: undefined,
+        styles: { fill: "#111827", stroke: undefined }
+      }]
+    };
+    canvas.toObject.mockReturnValueOnce(raw);
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+
+    expect(adapter.serialize()).toStrictEqual({
+      version: "7.4.0",
+      objects: [{
+        type: "Textbox",
+        objectId: "text-1",
+        elementKind: "text",
+        accessibleName: "Campaign headline",
+        text: "Make room for adventure",
+        styles: { fill: "#111827" }
+      }]
+    });
+    expect(raw.objects[0]).toHaveProperty("path", undefined);
+    expect(raw.objects[0]!.styles).toHaveProperty("stroke", undefined);
+  });
+
   it.each([false, true])("restores selection and guide visibility/order after clean export (failure=%s)", (failure) => {
     const canvas = new FakeCanvas();
     const content = new Rect({ width: 40, height: 40 });

@@ -64,6 +64,7 @@ const REMOVABLE_ARTWORK_KINDS = new Set([
   "drawing",
   "masked-component"
 ]);
+const OMITTED_JSON_PROPERTY = Symbol("omitted-json-property");
 
 type IdFactory = () => string;
 const defaultIdFactory: IdFactory = () => globalThis.crypto.randomUUID();
@@ -80,6 +81,58 @@ function validateSerializedImageSources(value: unknown, seen = new WeakSet<objec
     if (key === "src" && typeof child === "string") sameOriginRasterUrl(child);
     else validateSerializedImageSources(child, seen);
   });
+}
+
+function durableJsonValue(
+  value: unknown,
+  path = "$",
+  ancestors = new Set<object>()
+): unknown | typeof OMITTED_JSON_PROPERTY {
+  if (value === undefined) return OMITTED_JSON_PROPERTY;
+  if (value === null || typeof value === "string" || typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) throw new Error(`${path} must contain a finite number`);
+    return value;
+  }
+  if (typeof value !== "object") throw new Error(`${path} contains a non-JSON value`);
+  if (ancestors.has(value)) throw new Error(`${path} contains a circular reference`);
+
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) {
+      return value.map((child, index) => {
+        const clone = durableJsonValue(child, `${path}[${index}]`, ancestors);
+        return clone === OMITTED_JSON_PROPERTY ? null : clone;
+      });
+    }
+
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw new Error(`${path} contains a non-JSON object`);
+    }
+    const clone: Record<string, unknown> = {};
+    for (const key of Reflect.ownKeys(value)) {
+      if (typeof key !== "string") throw new Error(`${path} contains a symbol key`);
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (!descriptor?.enumerable || !("value" in descriptor)) {
+        throw new Error(`${path}.${key} is not a plain JSON property`);
+      }
+      const child = durableJsonValue(descriptor.value, `${path}.${key}`, ancestors);
+      if (child !== OMITTED_JSON_PROPERTY) clone[key] = child;
+    }
+    return clone;
+  } finally {
+    ancestors.delete(value);
+  }
+}
+
+function durableCanvasState(value: Record<string, unknown>): Record<string, unknown> {
+  const clone = durableJsonValue(value);
+  if (clone === OMITTED_JSON_PROPERTY || clone === null || Array.isArray(clone) ||
+    typeof clone !== "object") {
+    throw new Error("Canvas state must be a JSON object");
+  }
+  return clone as Record<string, unknown>;
 }
 
 export class FabricCanvasAdapter implements CanvasPort {
@@ -356,7 +409,9 @@ export class FabricCanvasAdapter implements CanvasPort {
   }
 
   serialize(): Record<string, unknown> {
-    return this.canvas.toObject(SERIALIZED_INTERACTION_PROPERTIES) as Record<string, unknown>;
+    return durableCanvasState(
+      this.canvas.toObject(SERIALIZED_INTERACTION_PROPERTIES) as Record<string, unknown>
+    );
   }
 
   exportCleanPngDataUrl(): string {

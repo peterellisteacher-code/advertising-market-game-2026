@@ -1,5 +1,5 @@
 import type { Canvas } from "fabric";
-import { FabricImage, type FabricObject, Group, Rect } from "fabric";
+import { FabricImage, type FabricObject, Group, Rect, Textbox } from "fabric";
 import { describe, expect, it, vi } from "vitest";
 import type { ResolvedProductVariant } from "../product-builder/virtual-product-variant";
 import type { CanvasMutation } from "./canvas-port";
@@ -335,6 +335,139 @@ describe("FabricCanvasAdapter persistence", () => {
       expect.objectContaining({ objectId: "art-shape-1" }),
       expect.objectContaining({ objectId: "art-image-1", assetId: "fruit-1" })
     ]));
+  }, 15_000);
+
+  it("refits edited artwork text from its current content instead of its smallest historical scale", async () => {
+    const canvas = new FakeCanvas();
+    const shell = await new FabricProductShellFactory().create({
+      id: "product-1",
+      shellId: "drinkware-classic-can",
+      accessibleName: "Classic can",
+      svg: CLIPPED_SHELL_SVG
+    });
+    canvas.objects = [shell];
+    canvas.activeObject = shell;
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+    const target = { productId: "product-1", slotId: "primary" };
+    const mutations: CanvasMutation[] = [];
+    adapter.subscribe((mutation) => mutations.push(mutation));
+    const shortText = "Fizz first";
+
+    await adapter.addArtworkText(target, {
+      id: "art-text-1",
+      value: shortText,
+      accessibleName: "Front headline"
+    });
+
+    const surface = productArtworkSurface(shell);
+    const text = surface.getObjects().find(({ objectId }) => objectId === "art-text-1");
+    if (!(text instanceof Textbox)) throw new Error("Expected nested artwork text");
+    text.set({ angle: 17, flipX: true, flipY: true });
+    text.setCoords();
+    const shortScale = { x: text.scaleX, y: text.scaleY };
+    const centre = text.getCenterPoint();
+    const clipPath = surface.clipPath;
+    const productGeometry = {
+      left: shell.left,
+      top: shell.top,
+      width: shell.width,
+      height: shell.height,
+      scaleX: shell.scaleX,
+      scaleY: shell.scaleY
+    };
+    const surfaceGeometry = {
+      left: surface.left,
+      top: surface.top,
+      width: surface.width,
+      height: surface.height,
+      scaleX: surface.scaleX,
+      scaleY: surface.scaleY
+    };
+    mutations.length = 0;
+    const longText = (
+      "Fizz first for every bright citrus adventure and every energetic afternoon. "
+    ).repeat(12).trim();
+
+    adapter.setArtworkText(target, "art-text-1", longText);
+
+    expect(text.getScaledWidth()).toBeLessThanOrEqual(surface.width * 0.82 + 0.001);
+    expect(text.getScaledHeight()).toBeLessThanOrEqual(surface.height * 0.82 + 0.001);
+    expect(text.scaleX).toBeLessThan(shortScale.x);
+    expect(text.scaleY).toBeLessThan(shortScale.y);
+    expect(text.getCenterPoint().x).toBeCloseTo(centre.x, 10);
+    expect(text.getCenterPoint().y).toBeCloseTo(centre.y, 10);
+    expect(text).toMatchObject({ angle: 17, flipX: true, flipY: true });
+    const editedLongScale = { x: text.scaleX, y: text.scaleY };
+
+    const directCanvas = new FakeCanvas();
+    const directShell = await new FabricProductShellFactory().create({
+      id: "direct-product",
+      shellId: "drinkware-classic-can",
+      accessibleName: "Direct long-text can",
+      svg: CLIPPED_SHELL_SVG
+    });
+    directCanvas.objects = [directShell];
+    const directAdapter = new FabricCanvasAdapter(directCanvas as unknown as Canvas);
+    await directAdapter.addArtworkText(
+      { productId: "direct-product", slotId: "primary" },
+      { id: "direct-long-text", value: longText, accessibleName: "Direct long headline" }
+    );
+    const directText = productArtworkSurface(directShell).getObjects()
+      .find(({ objectId }) => objectId === "direct-long-text");
+    if (!(directText instanceof Textbox)) throw new Error("Expected direct long artwork text");
+    expect(editedLongScale.x).toBeCloseTo(directText.scaleX, 10);
+    expect(editedLongScale.y).toBeCloseTo(directText.scaleY, 10);
+
+    const restoredShell = await Group.fromObject(shell.toObject());
+    const restoredCanvas = new FakeCanvas();
+    restoredCanvas.objects = [restoredShell];
+    const restoredAdapter = new FabricCanvasAdapter(restoredCanvas as unknown as Canvas);
+    const restoredMutations: CanvasMutation[] = [];
+    restoredAdapter.subscribe((mutation) => restoredMutations.push(mutation));
+    const restoredSurface = productArtworkSurface(restoredShell);
+    const restoredText = restoredSurface.getObjects()
+      .find(({ objectId }) => objectId === "art-text-1");
+    if (!(restoredText instanceof Textbox)) throw new Error("Expected restored artwork text");
+    const restoredCentre = restoredText.getCenterPoint();
+
+    restoredAdapter.setArtworkText(target, "art-text-1", shortText);
+
+    expect(restoredText.scaleX).toBeCloseTo(shortScale.x, 10);
+    expect(restoredText.scaleY).toBeCloseTo(shortScale.y, 10);
+    expect(restoredText.getCenterPoint().x).toBeCloseTo(restoredCentre.x, 10);
+    expect(restoredText.getCenterPoint().y).toBeCloseTo(restoredCentre.y, 10);
+    expect(restoredText).toMatchObject({ angle: 17, flipX: true, flipY: true });
+    expect(restoredSurface.clipPath).toBeDefined();
+    expect(restoredCanvas.objects).toEqual([restoredShell]);
+    expect(restoredMutations).toEqual([{ type: "modified", objectId: "product-1" }]);
+
+    adapter.setArtworkText(target, "art-text-1", shortText);
+
+    expect(text.scaleX).toBeGreaterThan(0);
+    expect(text.scaleY).toBeGreaterThan(0);
+    expect(text.scaleX).toBeLessThanOrEqual(1);
+    expect(text.scaleY).toBeLessThanOrEqual(1);
+    expect(text.scaleX).toBeCloseTo(shortScale.x, 10);
+    expect(text.scaleY).toBeCloseTo(shortScale.y, 10);
+    expect(text.getCenterPoint().x).toBeCloseTo(centre.x, 10);
+    expect(text.getCenterPoint().y).toBeCloseTo(centre.y, 10);
+    expect(text).toMatchObject({ angle: 17, flipX: true, flipY: true });
+    expect(shell).toMatchObject(productGeometry);
+    expect(surface).toMatchObject(surfaceGeometry);
+    expect(surface.clipPath).toBe(clipPath);
+    expect(surface.getObjects().find(({ objectId }) => objectId === "art-text-1")).toBe(text);
+    expect(canvas.objects).toEqual([shell]);
+    expect(canvas.activeObject).toBe(shell);
+    expect(mutations).toEqual([
+      { type: "modified", objectId: "product-1" },
+      { type: "modified", objectId: "product-1" }
+    ]);
+    const beforeNoop = text.toObject();
+
+    adapter.setArtworkText(target, "art-text-1", shortText);
+
+    expect(text.toObject()).toEqual(beforeNoop);
+    expect(mutations).toHaveLength(2);
   }, 15_000);
 
   it("leaves product artwork unchanged when a target or raster is rejected", async () => {

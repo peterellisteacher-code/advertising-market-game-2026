@@ -1,6 +1,12 @@
 import { FabricImage, Rect, Textbox } from "fabric";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { FabricObjectFactory, sameOriginRasterUrl } from "./object-factory";
+import {
+  calculateTextFitScale,
+  FabricObjectFactory,
+  MAX_TEXT_HEIGHT,
+  MAX_TEXT_WIDTH,
+  sameOriginRasterUrl
+} from "./object-factory";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -66,6 +72,16 @@ describe("FabricObjectFactory", () => {
 
     expect(object.getScaledWidth()).toBeLessThanOrEqual(640);
     expect(object.getScaledHeight()).toBeLessThanOrEqual(360);
+  });
+
+  it("calculates an absolute text scale from natural dimensions and intersecting bounds", () => {
+    expect(MAX_TEXT_WIDTH).toBe(640);
+    expect(MAX_TEXT_HEIGHT).toBe(360);
+    expect(calculateTextFitScale(320, 180)).toBe(1);
+    expect(calculateTextFitScale(1280, 720)).toBe(0.5);
+    expect(calculateTextFitScale(400, 440, 328, 360.8)).toBeCloseTo(360 / 440, 10);
+    expect(calculateTextFitScale(800, 200, 328, 360)).toBeCloseTo(328 / 800, 10);
+    expect(calculateTextFitScale(800, 200, 328, 360)).toBeGreaterThan(0);
   });
 
   it("rejects an external raster before Fabric starts loading it", async () => {

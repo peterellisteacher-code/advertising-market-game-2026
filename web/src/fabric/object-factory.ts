@@ -13,10 +13,27 @@ import type { NewRasterInput, NewShapeInput, NewTextInput } from "./canvas-port"
 import "./fabric-custom-properties";
 
 export const FABRIC_CONTROL_SIZE = 44;
-const MAX_TEXT_WIDTH = 640;
-const MAX_TEXT_HEIGHT = 360;
+export const MAX_TEXT_WIDTH = 640;
+export const MAX_TEXT_HEIGHT = 360;
 const MAX_RASTER_WIDTH = 640;
 const MAX_RASTER_HEIGHT = 450;
+
+export function calculateTextFitScale(
+  width: number,
+  height: number,
+  availableWidth = MAX_TEXT_WIDTH,
+  availableHeight = MAX_TEXT_HEIGHT
+): number {
+  const unscaledWidth = Math.max(1, width);
+  const unscaledHeight = Math.max(1, height);
+  return Math.min(
+    1,
+    MAX_TEXT_WIDTH / unscaledWidth,
+    MAX_TEXT_HEIGHT / unscaledHeight,
+    availableWidth / unscaledWidth,
+    availableHeight / unscaledHeight
+  );
+}
 
 export function sameOriginRasterUrl(value: string): string {
   let url: URL;
@@ -43,9 +60,10 @@ export class FabricObjectFactory {
       fill: "#111827",
       textAlign: "center"
     });
-    const width = Math.max(1, object.getScaledWidth());
-    const height = Math.max(1, object.getScaledHeight());
-    object.scale(Math.min(1, (MAX_TEXT_WIDTH - 1) / width, (MAX_TEXT_HEIGHT - 1) / height));
+    object.scale(calculateTextFitScale(
+      object.getScaledWidth() / Math.max(Number.EPSILON, Math.abs(object.scaleX)),
+      object.getScaledHeight() / Math.max(Number.EPSILON, Math.abs(object.scaleY))
+    ));
     return this.#configure(object, {
       objectId: input.id,
       elementKind: "text",

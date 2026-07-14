@@ -28,6 +28,7 @@ import type {
   StackDirection
 } from "./canvas-port";
 import {
+  calculateTextFitScale,
   FABRIC_CONTROL_SIZE,
   FabricObjectFactory,
   sameOriginRasterUrl
@@ -153,7 +154,6 @@ export class FabricCanvasAdapter implements CanvasPort {
     }
     if (object.text === value) return;
     object.set("text", value);
-    object.initDimensions();
     this.#fitArtworkObject(surface, object);
     this.#finishArtworkMutation(product, surface);
   }
@@ -458,18 +458,28 @@ export class FabricCanvasAdapter implements CanvasPort {
 
   #fitArtworkObject(surface: Group, object: FabricObject): void {
     this.#assertArtworkSurfaceGeometry(surface);
-    const width = Math.max(1, object.getScaledWidth());
-    const height = Math.max(1, object.getScaledHeight());
-    const factor = Math.min(
-      1,
-      (surface.width * 0.82) / width,
-      (surface.height * 0.82) / height
-    );
-    if (factor < 1) {
-      object.set({
-        scaleX: object.scaleX * factor,
-        scaleY: object.scaleY * factor
-      });
+    if (object instanceof Textbox) {
+      const scale = calculateTextFitScale(
+        object.getScaledWidth() / Math.max(Number.EPSILON, Math.abs(object.scaleX)),
+        object.getScaledHeight() / Math.max(Number.EPSILON, Math.abs(object.scaleY)),
+        surface.width * 0.82,
+        surface.height * 0.82
+      );
+      object.set({ scaleX: scale, scaleY: scale });
+    } else {
+      const width = Math.max(1, object.getScaledWidth());
+      const height = Math.max(1, object.getScaledHeight());
+      const factor = Math.min(
+        1,
+        (surface.width * 0.82) / width,
+        (surface.height * 0.82) / height
+      );
+      if (factor < 1) {
+        object.set({
+          scaleX: object.scaleX * factor,
+          scaleY: object.scaleY * factor
+        });
+      }
     }
     object.dirty = true;
     object.setCoords();

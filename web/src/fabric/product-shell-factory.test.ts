@@ -1,11 +1,12 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { FabricObject, FixedLayout, Group } from "fabric";
+import { ClipPathLayout, FabricObject, FixedLayout, Group } from "fabric";
 import { describe, expect, it } from "vitest";
 import { parseProductBuilderCatalogue } from "../product-builder/product-builder-catalogue";
 import { createVirtualProductVariantResolver } from "../product-builder/virtual-product-variant";
 import {
   FabricProductShellFactory,
+  productArtworkSurface,
   recolourProductShellRegion
 } from "./product-shell-factory";
 
@@ -139,6 +140,55 @@ describe("FabricProductShellFactory", () => {
       paletteId: variant.paletteId,
       materialId: variant.materialId
     });
+  });
+
+  it("nests one clipped artwork surface without widening the product frame", async () => {
+    const variant = resolver.resolveVariant({
+      bodyId: "drinkware-classic-can",
+      partId: "drinkware-top-ring",
+      paletteId: "cobalt-citrus",
+      materialId: "fabric"
+    });
+    if (!variant) throw new Error("Expected real drinkware variant fixture");
+    const shell = await new FabricProductShellFactory().createVariant({
+      id: "clipped-product",
+      accessibleName: "Cobalt Citrus Classic Can",
+      variant,
+      authoringSvg: packText(`bodies/${variant.bodyId}/authoring.svg`),
+      componentSvg: packText(`components/${variant.partId}.svg`),
+      artwork: { id: "front-art", colour: "#F2385A" },
+      mode: "editor"
+    });
+
+    const surface = productArtworkSurface(shell);
+    expect(surface).toMatchObject({
+      productLayer: "artwork-slot",
+      artworkSlotId: "primary"
+    });
+    expect(surface.layoutManager.strategy).toBeInstanceOf(ClipPathLayout);
+    expect(surface.clipPath).toBeDefined();
+    expect(surface.getObjects()).toHaveLength(1);
+    expect(surface.getObjects()[0]).toMatchObject({
+      artworkId: "front-art",
+      productLayer: "student-artwork",
+      clipPath: undefined
+    });
+    expect(shell.layoutManager.strategy).toBeInstanceOf(FixedLayout);
+    expect(shell.getScaledHeight()).toBeCloseTo(620, 0);
+    expect(shell.getScaledWidth() / shell.getScaledHeight()).toBeLessThan(0.65);
+
+    const restored = await Group.fromObject(shell.toObject());
+    const restoredSurface = productArtworkSurface(restored);
+    expect(restoredSurface.layoutManager.strategy).toBeInstanceOf(ClipPathLayout);
+    expect(restoredSurface.clipPath).toBeDefined();
+    expect(restoredSurface.getObjects()[0]).toMatchObject({
+      artworkId: "front-art",
+      productLayer: "student-artwork"
+    });
+    expect(restored.width).toBe(shell.width);
+    expect(restored.height).toBe(shell.height);
+    expect(restored.scaleX).toBeCloseTo(shell.scaleX, 3);
+    expect(restored.scaleY).toBeCloseTo(shell.scaleY, 3);
   });
 
   it.each(catalogue.materials)("fits $title selection bounds to the visible assembled product", async (material) => {

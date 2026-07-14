@@ -21,6 +21,8 @@ declare module "fabric" {
     materialId?: string;
     productLayer?: string;
     componentSlotId?: string;
+    artworkSlotId?: string;
+    artworkId?: string;
   }
 
   interface SerializedObjectProps {
@@ -42,6 +44,8 @@ declare module "fabric" {
     materialId?: string;
     productLayer?: string;
     componentSlotId?: string;
+    artworkSlotId?: string;
+    artworkId?: string;
   }
 }
 
@@ -63,5 +67,7 @@ FabricObject.customProperties = [
   "paletteId",
   "materialId",
   "productLayer",
-  "componentSlotId"
+  "componentSlotId",
+  "artworkSlotId",
+  "artworkId"
 ];

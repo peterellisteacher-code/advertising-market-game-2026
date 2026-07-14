@@ -1,4 +1,5 @@
 import {
+  ClipPathLayout,
   Color,
   FabricObject,
   FixedLayout,
@@ -31,6 +32,35 @@ function nearestAttribute(element: Element, name: string): string | null {
 function descendants(root: FabricObject): FabricObject[] {
   if (!(root instanceof Group)) return [root];
   return [root, ...root.getObjects().flatMap(descendants)];
+}
+
+function nestArtworkSurface(objects: readonly FabricObject[]): FabricObject[] {
+  const artworkObjects = objects.filter((object) => object.artworkId !== undefined);
+  if (artworkObjects.length === 0) return [...objects];
+  if (artworkObjects.length !== 1) {
+    throw new Error("Product variant must contain exactly one student artwork object");
+  }
+  const artwork = artworkObjects[0];
+  if (!artwork) throw new Error("Product variant artwork is missing");
+  const slotId = artwork.artworkSlotId;
+  const clipPath = artwork.clipPath;
+  if (!slotId?.trim() || !clipPath) {
+    throw new Error("Product variant artwork requires one named clipped slot");
+  }
+  const index = objects.indexOf(artwork);
+  artwork.set({ productLayer: "student-artwork" });
+  Reflect.set(artwork, "clipPath", undefined);
+  artwork.dirty = true;
+  const surface = new Group([artwork], {
+    clipPath,
+    productLayer: "artwork-slot",
+    artworkSlotId: slotId,
+    selectable: false,
+    evented: false,
+    layoutManager: new LayoutManager(new ClipPathLayout())
+  });
+  surface.setCoords();
+  return [...objects.slice(0, index), surface, ...objects.slice(index + 1)];
 }
 
 interface ObjectBounds {
@@ -135,6 +165,8 @@ export class FabricProductShellFactory {
           ? "selected-component"
           : nearestAttribute(element, "data-layer");
       const componentSlotId = nearestAttribute(element, "data-slot-id");
+      const artworkSlotId = nearestAttribute(element, "data-artwork-slot");
+      const artworkId = nearestAttribute(element, "data-student-artwork");
       const editorGuide = nearestAttribute(element, "data-print-area") !== null ||
         nearestAttribute(element, "data-safe-area") !== null ||
         nearestAttribute(element, "data-editor-only") !== null;
@@ -144,6 +176,8 @@ export class FabricProductShellFactory {
         } : {}),
         ...(productLayer ? { productLayer } : {}),
         ...(componentSlotId ? { componentSlotId } : {}),
+        ...(artworkSlotId ? { artworkSlotId } : {}),
+        ...(artworkId ? { artworkId } : {}),
         ...(editorGuide ? {
           editorGuide: true,
           selectable: false,
@@ -155,19 +189,20 @@ export class FabricProductShellFactory {
       (object): object is FabricObject => object !== null
     );
     if (objects.length === 0) throw new Error("Product shell SVG has no drawable objects");
-    const material = objects.filter((object) => object.productLayer === "material-treatment");
+    const nestedObjects = nestArtworkSurface(objects);
+    const material = nestedObjects.filter((object) => object.productLayer === "material-treatment");
     let shell: Group;
     if (material.length === 0) {
-      const grouped = util.groupSVGElements(objects, parsed.options);
+      const grouped = util.groupSVGElements(nestedObjects, parsed.options);
       shell = grouped instanceof Group ? grouped : new Group([grouped]);
     } else {
       const visualBounds = unionBounds(
-        objects.filter((object) =>
+        nestedObjects.filter((object) =>
           object.productLayer !== "material-treatment" && object.productLayer !== "artwork-slot"
         )
       );
-      const allBounds = unionBounds(objects);
-      shell = new Group(objects, {
+      const allBounds = unionBounds(nestedObjects);
+      shell = new Group(nestedObjects, {
         width: visualBounds.width,
         height: visualBounds.height,
         layoutManager: new LayoutManager(new FixedLayout())
@@ -199,6 +234,24 @@ export class FabricProductShellFactory {
     shell.setCoords();
     return shell;
   }
+}
+
+export function productArtworkSurface(
+  shell: FabricObject,
+  slotId = "primary"
+): Group {
+  if (shell.elementKind !== "product-shell" || !slotId.trim()) {
+    throw new Error("Artwork surface lookup requires a product shell and named slot");
+  }
+  const matches = descendants(shell).filter(
+    (object): object is Group => object instanceof Group &&
+      object.productLayer === "artwork-slot" && object.artworkSlotId === slotId
+  );
+  if (matches.length !== 1 || !matches[0]?.clipPath ||
+      !(matches[0].layoutManager.strategy instanceof ClipPathLayout)) {
+    throw new Error(`Product shell has invalid artwork slot ${slotId}`);
+  }
+  return matches[0];
 }
 
 export function recolourProductShellRegion(

@@ -1,8 +1,8 @@
 # Coding consensus: clipped artwork checkpoint
 
-Date: 2026-07-14  
-Evidence range: `2b260e5..7550f67`  
-Evidence package: 12 commits, 127,032 bytes  
+Date: 2026-07-14
+Evidence range: `2b260e5..7550f67`
+Evidence package: 12 commits, 127,032 bytes
 Fresh local baseline: 69 focused tests, TypeScript clean, full Vitest 424/424
 
 ## Fixed panel contract

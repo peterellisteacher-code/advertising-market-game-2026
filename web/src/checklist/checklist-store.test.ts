@@ -104,7 +104,7 @@ describe("ChecklistStore", () => {
 
   it("rejects ambiguous duplicate Fabric object IDs", () => {
     const source = documentFixture();
-    const duplicate = CampaignDocumentSchema.parse({
+    expect(() => CampaignDocumentSchema.parse({
       ...source,
       fabricState: {
         ...source.fabricState,
@@ -114,8 +114,36 @@ describe("ChecklistStore", () => {
           accessibleName: "Duplicate headline ID"
         }]
       }
+    })).toThrow("Duplicate Fabric object ID headline");
+  });
+
+  it("accepts nested semantic object IDs as checklist evidence", () => {
+    const source = documentFixture();
+    const product = {
+      objectId: "product-shell",
+      elementKind: "product-shell" as const,
+      accessibleName: "Classic can",
+      objects: [{ productLayer: "base-shell" }, {
+        productLayer: "artwork-slot",
+        objects: [{
+          objectId: "front-headline",
+          elementKind: "text" as const,
+          accessibleName: "Front headline",
+          text: "Fizz first"
+        }]
+      }]
+    };
+    const nested = CampaignDocumentSchema.parse({
+      ...source,
+      fabricState: {
+        ...source.fabricState,
+        objects: [...source.fabricState.objects, product]
+      }
     });
 
-    expect(() => new ChecklistStore(duplicate)).toThrow("Duplicate Fabric object ID headline");
+    const updated = new ChecklistStore(nested)
+      .setEvidence("attention", ["front-headline"]);
+
+    expect(updated.evidence.attention).toEqual(["front-headline"]);
   });
 });

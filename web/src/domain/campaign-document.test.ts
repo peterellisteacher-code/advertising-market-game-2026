@@ -50,4 +50,38 @@ describe("CampaignDocumentV1", () => {
       mode: "room"
     })).toThrow();
   });
+
+  it("accepts complete nested semantic objects and rejects partial nested metadata", () => {
+    const doc = createBlankCampaignDocument({
+      documentId: "nested-doc",
+      sessionId: "nested-session",
+      mode: "offline"
+    });
+    const product = {
+      objectId: "product-1",
+      elementKind: "product-shell",
+      accessibleName: "Classic can",
+      objects: [{ productLayer: "base-shell" }, {
+        productLayer: "artwork-slot",
+        objects: [{
+          objectId: "nested-image",
+          elementKind: "image",
+          accessibleName: "Sliced citrus",
+          assetId: "fruit-1"
+        }]
+      }]
+    };
+
+    expect(parseCampaignDocument({
+      ...doc,
+      fabricState: { version: "7.4.0", objects: [product] }
+    }).fabricState.objects[0]).toMatchObject(product);
+
+    const malformed = structuredClone(product);
+    malformed.objects[1]!.objects![0] = { objectId: "partial-child" } as never;
+    expect(() => parseCampaignDocument({
+      ...doc,
+      fabricState: { version: "7.4.0", objects: [malformed] }
+    })).toThrow("partial-child");
+  });
 });

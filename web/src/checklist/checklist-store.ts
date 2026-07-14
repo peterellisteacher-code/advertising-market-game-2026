@@ -1,4 +1,5 @@
 import { CampaignDocumentSchema, type CampaignDocumentV1 } from "../domain/campaign-document";
+import { campaignSemanticObjectMap } from "../domain/campaign-semantic-objects";
 
 export const CHECKLIST_SLOTS = ["price", "attention", "interest", "desire", "action"] as const;
 export type ChecklistSlot = typeof CHECKLIST_SLOTS[number];
@@ -20,12 +21,7 @@ export interface ChecklistCompletionState {
 }
 
 export function campaignObjectIds(document: CampaignDocumentV1): Set<string> {
-  const ids = new Set<string>();
-  for (const object of document.fabricState.objects) {
-    if (ids.has(object.objectId)) throw new Error(`Duplicate Fabric object ID ${object.objectId}`);
-    ids.add(object.objectId);
-  }
-  return ids;
+  return new Set(campaignSemanticObjectMap(document.fabricState).keys());
 }
 
 export function assertEvidenceReferences(document: CampaignDocumentV1): void {

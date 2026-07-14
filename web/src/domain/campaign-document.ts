@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { CREATOR_CONFIG } from "../config";
 import { ELEMENT_KINDS } from "./editor-object";
+import { collectCampaignSemanticObjects } from "./campaign-semantic-objects";
 
 const slotMap = z.object({
   price: z.array(z.string()),
@@ -61,6 +62,15 @@ export const CampaignDocumentSchema = z.object({
       code: "custom",
       path: ["mode"],
       message: "Room mode requires roomId and teamId"
+    });
+  }
+  try {
+    collectCampaignSemanticObjects(document.fabricState);
+  } catch (error) {
+    context.addIssue({
+      code: "custom",
+      path: ["fabricState", "objects"],
+      message: error instanceof Error ? error.message : "Fabric object tree is invalid"
     });
   }
 });

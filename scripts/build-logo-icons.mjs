@@ -1,24 +1,13 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { isSafeColourableSvgBody } from "./logo-icon-svg-safety.mjs";
+import { assertPathHasNoIndirection } from "./filesystem-safety.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ROOT = path.resolve(SCRIPT_DIR, "..");
 const PACK_ID = "tabler-logo-icons-v1";
 const PACKAGE_VERSION = "1.2.35";
-
-const ALLOWED_SVG_ELEMENTS = new Set([
-  "circle",
-  "defs",
-  "ellipse",
-  "g",
-  "line",
-  "path",
-  "polygon",
-  "polyline",
-  "rect",
-  "use"
-]);
 
 const BLOCKED_ICON_TERMS = new Set([
   "beer",
@@ -78,19 +67,7 @@ function shouldIncludeIcon(id) {
   return !iconTokens(id).some((token) => BLOCKED_ICON_TERMS.has(token));
 }
 
-export function safeIconBody(body) {
-  if (typeof body !== "string" || body.length === 0 || body.length > 16_000) return false;
-  if (/(?:<\s*(?:script|style|foreignObject|iframe|image|a)\b|\bon[a-z]+\s*=|\bxlink:href\s*=|url\s*\(|javascript\s*:|https?\s*:|data\s*:)/i.test(body)) {
-    return false;
-  }
-  for (const match of body.matchAll(/\bhref\s*=\s*["']([^"']*)["']/gi)) {
-    if (!/^#[A-Za-z][A-Za-z0-9_.:-]*$/.test(match[1])) return false;
-  }
-  for (const match of body.matchAll(/<\/?\s*([a-z][a-z0-9]*)\b/gi)) {
-    if (!ALLOWED_SVG_ELEMENTS.has(match[1].toLowerCase())) return false;
-  }
-  return /<\s*(?:path|circle|ellipse|line|polygon|polyline|rect)\b/i.test(body);
-}
+export const safeIconBody = isSafeColourableSvgBody;
 
 export function compileLogoIconCatalogue(source, versions) {
   if (!source || typeof source !== "object" || Array.isArray(source) ||
@@ -136,24 +113,43 @@ export function compileLogoIconCatalogue(source, versions) {
   };
 }
 
-async function main() {
-  if (process.argv.length > 2) throw new Error("Usage: node scripts/build-logo-icons.mjs");
-  const sourceDirectory = path.join(DEFAULT_ROOT, "catalog", "source", "logo-icons-tabler-v1", "vendor");
-  const outputDirectory = path.join(DEFAULT_ROOT, "catalog", "generated", "logo-icons-v1-reviewed");
+export async function buildLogoIconCatalogue(root = DEFAULT_ROOT) {
+  const sourceDirectory = path.join(root, "catalog", "source", "logo-icons-tabler-v1", "vendor");
+  const outputDirectory = path.join(root, "catalog", "generated", "logo-icons-v1-reviewed");
+  const sourcePath = path.join(sourceDirectory, "icons.json");
+  const infoPath = path.join(sourceDirectory, "info.json");
+  await Promise.all([
+    assertPathHasNoIndirection(sourcePath, { label: "source", rejectHardLinkedFile: true }),
+    assertPathHasNoIndirection(infoPath, { label: "source", rejectHardLinkedFile: true }),
+    assertPathHasNoIndirection(outputDirectory, { allowMissing: true, label: "destination" })
+  ]);
   const [source, info] = await Promise.all([
-    readFile(path.join(sourceDirectory, "icons.json"), "utf8").then(JSON.parse),
-    readFile(path.join(sourceDirectory, "info.json"), "utf8").then(JSON.parse)
+    readFile(sourcePath, "utf8").then(JSON.parse),
+    readFile(infoPath, "utf8").then(JSON.parse)
   ]);
   const catalogue = compileLogoIconCatalogue(source, {
     packageVersion: PACKAGE_VERSION,
     sourceVersion: String(info.version ?? "")
   });
   await mkdir(outputDirectory, { recursive: true });
+  await assertPathHasNoIndirection(outputDirectory, { label: "destination" });
+  const outputPath = path.join(outputDirectory, "catalog.json");
+  await assertPathHasNoIndirection(outputPath, {
+    allowMissing: true,
+    label: "destination",
+    rejectHardLinkedFile: true
+  });
   await writeFile(
-    path.join(outputDirectory, "catalog.json"),
+    outputPath,
     `${JSON.stringify(catalogue)}\n`,
     "utf8"
   );
+  return catalogue;
+}
+
+async function main() {
+  if (process.argv.length > 2) throw new Error("Usage: node scripts/build-logo-icons.mjs");
+  const catalogue = await buildLogoIconCatalogue();
   console.log(`LOGO_ICON_CATALOGUE_BUILT ${catalogue.icons.length}`);
 }
 

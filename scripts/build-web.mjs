@@ -1,7 +1,6 @@
 import {
   access,
   copyFile,
-  lstat,
   mkdir,
   readdir,
   readFile,
@@ -11,10 +10,13 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
+  verifyLogoIconDirectory,
   verifyOfflineCoreDirectory,
   verifyProductBuilderDirectory,
   verifyProductShellDirectory
 } from "./verify-web-export.mjs";
+import { assertPathHasNoIndirection } from "./filesystem-safety.mjs";
+import { rewriteCreatorRootAttribute } from "./html-start-tags.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ROOT = path.resolve(SCRIPT_DIR, "..");
@@ -32,6 +34,12 @@ const PRODUCT_BUILDER_RELATIVE = path.join(
   "generated",
   "product-builder-pilot-v1",
   "catalogue.json"
+);
+const LOGO_ICON_RELATIVE = path.join(
+  "catalog",
+  "generated",
+  "logo-icons-v1-reviewed",
+  "catalog.json"
 );
 
 function removeStudioTags(html) {
@@ -71,21 +79,7 @@ function injectCreatorRootCatalogueUrl(html, catalogueUrl, attribute) {
       catalogueUrl.includes(".."))) {
     throw new Error("Offline catalogue URL must be a local catalogue URL");
   }
-  const creatorRoot = /<[a-z][^>]*\bid\s*=\s*["']creator-root["'][^>]*>/i;
-  const match = html.match(creatorRoot);
-  if (!match) {
-    if (catalogueUrl === undefined) return html;
-    throw new Error("Godot export is missing #creator-root");
-  }
-  const withoutStale = match[0].replace(
-    new RegExp(`\\s+${attribute}\\s*=\\s*(?:["'][^"']*["']|[^\\s>]+)`, "gi"),
-    ""
-  );
-  const replacement = catalogueUrl === undefined
-    ? withoutStale
-    : withoutStale.replace(/\s*\/?\>$/, (ending) =>
-      ` ${attribute}="${catalogueUrl}"${ending}`);
-  return html.replace(match[0], replacement);
+  return rewriteCreatorRootAttribute(html, attribute, catalogueUrl);
 }
 
 /** Adds only the local reviewed-pack URL and removes any stale prior value. */
@@ -103,6 +97,11 @@ export function injectProductBuilderCatalogueUrl(html, catalogueUrl) {
   return injectCreatorRootCatalogueUrl(html, catalogueUrl, "data-product-builder-catalogue-url");
 }
 
+/** Adds only the pinned local logo-icon URL and removes any stale prior value. */
+export function injectLogoIconCatalogueUrl(html, catalogueUrl) {
+  return injectCreatorRootCatalogueUrl(html, catalogueUrl, "data-logo-icon-catalogue-url");
+}
+
 async function requireFile(filePath, label) {
   try {
     await access(filePath);
@@ -113,21 +112,19 @@ async function requireFile(filePath, label) {
 
 /** Copies a generated tree without pruning and rejects filesystem indirection. */
 export async function copyVerifiedTree(source, destination) {
-  let destinationPart = path.resolve(destination);
-  while (true) {
-    try {
-      const destinationMetadata = await lstat(destinationPart);
-      if (destinationMetadata.isSymbolicLink()) {
-        throw new Error(`Refusing destination symlink or reparse point: ${destinationPart}`);
-      }
-    } catch (error) {
-      if (!error || typeof error !== "object" || error.code !== "ENOENT") throw error;
-    }
-    const parent = path.dirname(destinationPart);
-    if (parent === destinationPart) break;
-    destinationPart = parent;
+  const sourceMetadata = await assertPathHasNoIndirection(source, { label: "source" });
+  if (!sourceMetadata.isDirectory()) {
+    throw new Error(`Expected generated catalogue directory: ${source}`);
+  }
+  const destinationMetadata = await assertPathHasNoIndirection(destination, {
+    allowMissing: true,
+    label: "destination"
+  });
+  if (destinationMetadata && !destinationMetadata.isDirectory()) {
+    throw new Error(`Expected generated catalogue destination directory: ${destination}`);
   }
   await mkdir(destination, { recursive: true });
+  await assertPathHasNoIndirection(destination, { label: "destination" });
   const entries = await readdir(source, { withFileTypes: true });
   entries.sort((left, right) => left.name.localeCompare(right.name));
   for (const entry of entries) {
@@ -136,9 +133,26 @@ export async function copyVerifiedTree(source, destination) {
     }
     const sourcePath = path.join(source, entry.name);
     const destinationPath = path.join(destination, entry.name);
+    const sourceEntryMetadata = await assertPathHasNoIndirection(sourcePath, {
+      label: "source",
+      rejectHardLinkedFile: true
+    });
+    const destinationEntryMetadata = await assertPathHasNoIndirection(destinationPath, {
+      allowMissing: true,
+      label: "destination",
+      rejectHardLinkedFile: true
+    });
     if (entry.isDirectory()) {
+      if (!sourceEntryMetadata.isDirectory() ||
+        (destinationEntryMetadata && !destinationEntryMetadata.isDirectory())) {
+        throw new Error(`Refusing mismatched catalogue directory: ${entry.name}`);
+      }
       await copyVerifiedTree(sourcePath, destinationPath);
     } else if (entry.isFile()) {
+      if (!sourceEntryMetadata.isFile() ||
+        (destinationEntryMetadata && !destinationEntryMetadata.isFile())) {
+        throw new Error(`Refusing mismatched catalogue file: ${entry.name}`);
+      }
       await copyFile(sourcePath, destinationPath);
     } else {
       throw new Error(`Refusing special file in generated catalogue: ${entry.name}`);
@@ -151,6 +165,7 @@ export async function assembleWebExport({
   requireOfflineCore = false,
   requireProductShells = false,
   requireProductBuilder = false,
+  requireLogoIcons = false,
   log = console.log
 } = {}) {
   const studioDir = path.join(root, "build", "studio");
@@ -202,15 +217,31 @@ export async function assembleWebExport({
     }
   }
 
-  const assembledHtml = injectProductBuilderCatalogueUrl(
-    injectProductShellCatalogueUrl(
-      injectOfflineCatalogueUrl(
-        injectStudioAssets(exportedHtml),
-        hasOfflineCore ? `/${offlineRelative.replaceAll(path.sep, "/")}` : undefined
+  const logoIconSource = path.join(root, LOGO_ICON_RELATIVE);
+  let hasLogoIcons = false;
+  try {
+    await access(logoIconSource);
+    hasLogoIcons = true;
+    await verifyLogoIconDirectory(path.dirname(logoIconSource));
+  } catch (error) {
+    if (hasLogoIcons) throw error;
+    if (requireLogoIcons) {
+      throw new Error(`Required logo icon catalogue is absent: ${LOGO_ICON_RELATIVE}`);
+    }
+  }
+
+  const assembledHtml = injectLogoIconCatalogueUrl(
+    injectProductBuilderCatalogueUrl(
+      injectProductShellCatalogueUrl(
+        injectOfflineCatalogueUrl(
+          injectStudioAssets(exportedHtml),
+          hasOfflineCore ? `/${offlineRelative.replaceAll(path.sep, "/")}` : undefined
+        ),
+        hasProductShells ? `/${PRODUCT_SHELL_RELATIVE.replaceAll(path.sep, "/")}` : undefined
       ),
-      hasProductShells ? `/${PRODUCT_SHELL_RELATIVE.replaceAll(path.sep, "/")}` : undefined
+      hasProductBuilder ? `/${PRODUCT_BUILDER_RELATIVE.replaceAll(path.sep, "/")}` : undefined
     ),
-    hasProductBuilder ? `/${PRODUCT_BUILDER_RELATIVE.replaceAll(path.sep, "/")}` : undefined
+    hasLogoIcons ? `/${LOGO_ICON_RELATIVE.replaceAll(path.sep, "/")}` : undefined
   );
   assertResolvedGodotShell(assembledHtml);
 
@@ -250,18 +281,33 @@ export async function assembleWebExport({
     log(`PRODUCT_BUILDER_DEFERRED ${PRODUCT_BUILDER_RELATIVE.replaceAll(path.sep, "/")}`);
   }
 
+  if (hasLogoIcons) {
+    const logoIconSourceRoot = path.dirname(logoIconSource);
+    const logoIconDestinationRoot = path.join(webDir, path.dirname(LOGO_ICON_RELATIVE));
+    await copyVerifiedTree(logoIconSourceRoot, logoIconDestinationRoot);
+    log(`LOGO_ICONS_COPIED ${path.dirname(LOGO_ICON_RELATIVE).replaceAll(path.sep, "/")}`);
+  } else {
+    log(`LOGO_ICONS_DEFERRED ${LOGO_ICON_RELATIVE.replaceAll(path.sep, "/")}`);
+  }
+
   log("WEB_EXPORT_ASSEMBLED_NON_DESTRUCTIVE");
   return { webDir, indexPath };
 }
 
 async function main() {
-  const known = new Set(["--require-offline-core", "--require-product-shells", "--require-product-builder"]);
+  const known = new Set([
+    "--require-offline-core",
+    "--require-product-shells",
+    "--require-product-builder",
+    "--require-logo-icons"
+  ]);
   const unknown = process.argv.slice(2).filter((argument) => !known.has(argument));
   if (unknown.length > 0) throw new Error(`Unknown argument: ${unknown[0]}`);
   await assembleWebExport({
     requireOfflineCore: process.argv.includes("--require-offline-core"),
     requireProductShells: process.argv.includes("--require-product-shells"),
-    requireProductBuilder: process.argv.includes("--require-product-builder")
+    requireProductBuilder: process.argv.includes("--require-product-builder"),
+    requireLogoIcons: process.argv.includes("--require-logo-icons")
   });
 }
 

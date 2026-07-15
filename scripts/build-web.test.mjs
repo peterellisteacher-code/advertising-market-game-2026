@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtemp, mkdir, readFile, symlink, writeFile } from "node:fs/promises";
+import { link, mkdtemp, mkdir, readFile, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -152,6 +152,47 @@ async function writeExportScaffold(root, creatorRoot = '<div id="creator-root"><
   return { studio, web };
 }
 
+function makeLogoIconCatalogue(count = 4205) {
+  return {
+    schema: "logo-icon-catalog@1",
+    packId: "tabler-logo-icons-v1",
+    version: 1,
+    source: {
+      name: "Tabler Icons",
+      package: "@iconify-json/tabler",
+      packageVersion: "1.2.35",
+      sourceVersion: "3.44.0",
+      licence: "MIT",
+      url: "https://github.com/tabler/tabler-icons"
+    },
+    icons: Array.from({ length: count }, (_, index) => ({
+      id: `icon-${String(index).padStart(4, "0")}`,
+      title: `Icon ${index}`,
+      body: '<path fill="none" stroke="currentColor" d="M2 12h20"/>',
+      width: 24,
+      height: 24,
+      categories: ["general"]
+    }))
+  };
+}
+
+async function writeLogoIconPack(root, {
+  count = 4205,
+  mutateCatalogue,
+  rawCatalogue
+} = {}) {
+  const directory = path.join(root, "catalog", "generated", "logo-icons-v1-reviewed");
+  await mkdir(directory, { recursive: true });
+  if (rawCatalogue !== undefined) {
+    await writeFile(path.join(directory, "catalog.json"), rawCatalogue);
+    return directory;
+  }
+  const catalogue = makeLogoIconCatalogue(count);
+  mutateCatalogue?.(catalogue);
+  await writeFile(path.join(directory, "catalog.json"), JSON.stringify(catalogue));
+  return directory;
+}
+
 test("studio asset injection is local, singular, and idempotent", () => {
   const exported = `<!doctype html>
 <html><head>
@@ -253,6 +294,179 @@ test("product builder catalogue metadata is local, singular, idempotent, and coe
   assert.equal(
     buildWeb.injectProductBuilderCatalogueUrl('<div id="creator-root" hidden></div>'),
     '<div id="creator-root" hidden></div>'
+  );
+});
+
+test("logo icon catalogue metadata is local, singular, and idempotent", () => {
+  const exported = '<div id="creator-root" data-logo-icon-catalogue-url="/stale/catalog.json" hidden></div>';
+  const canonical = "/catalog/generated/logo-icons-v1-reviewed/catalog.json";
+  const once = buildWeb.injectLogoIconCatalogueUrl(exported, canonical);
+  const twice = buildWeb.injectLogoIconCatalogueUrl(once, canonical);
+
+  assert.equal(twice, once);
+  assert.equal(once.match(/data-logo-icon-catalogue-url=/g)?.length, 1);
+  assert.match(once, /data-logo-icon-catalogue-url="\/catalog\/generated\/logo-icons-v1-reviewed\/catalog\.json"/);
+  assert.doesNotMatch(once, /\/stale\/catalog\.json/);
+  assert.throws(
+    () => buildWeb.injectLogoIconCatalogueUrl(exported, "https://external.example/catalog.json"),
+    /local catalogue URL/i
+  );
+  assert.equal(
+    buildWeb.injectLogoIconCatalogueUrl('<div id="creator-root" hidden></div>'),
+    '<div id="creator-root" hidden></div>'
+  );
+  const normalisedMalformed = buildWeb.injectLogoIconCatalogueUrl(
+    '<div id="creator-root" data-logo-icon-catalogue-url hidden></div>',
+    canonical
+  );
+  assert.equal(normalisedMalformed.match(/data-logo-icon-catalogue-url\b/g)?.length, 1);
+  assert.match(normalisedMalformed, /data-logo-icon-catalogue-url="\/catalog\/generated\/logo-icons-v1-reviewed\/catalog\.json"/);
+});
+
+test("logo icon directory verification accepts the complete pinned 4205-icon pack", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "admarket-logo-icons-valid-"));
+  const directory = await writeLogoIconPack(root);
+
+  await assert.doesNotReject(() => verifyWebExport.verifyLogoIconDirectory(directory));
+});
+
+test("logo icon directory verification rejects count, identity, metadata, and SVG drift", async () => {
+  const countRoot = await mkdtemp(path.join(tmpdir(), "admarket-logo-icons-count-"));
+  await assert.rejects(
+    () => writeLogoIconPack(countRoot, { count: 4204 })
+      .then((directory) => verifyWebExport.verifyLogoIconDirectory(directory)),
+    /exactly 4205 icons/i
+  );
+
+  const duplicateRoot = await mkdtemp(path.join(tmpdir(), "admarket-logo-icons-duplicate-"));
+  await assert.rejects(
+    () => writeLogoIconPack(duplicateRoot, {
+      mutateCatalogue: (catalogue) => { catalogue.icons[1].id = catalogue.icons[0].id; }
+    }).then((directory) => verifyWebExport.verifyLogoIconDirectory(directory)),
+    /invalid or duplicate icon id/i
+  );
+
+  const longIdRoot = await mkdtemp(path.join(tmpdir(), "admarket-logo-icons-long-id-"));
+  await assert.rejects(
+    () => writeLogoIconPack(longIdRoot, {
+      mutateCatalogue: (catalogue) => { catalogue.icons[0].id = "a".repeat(101); }
+    }).then((directory) => verifyWebExport.verifyLogoIconDirectory(directory)),
+    /invalid or duplicate icon id/i
+  );
+
+  const metadataRoot = await mkdtemp(path.join(tmpdir(), "admarket-logo-icons-metadata-"));
+  await assert.rejects(
+    () => writeLogoIconPack(metadataRoot, {
+      mutateCatalogue: (catalogue) => { catalogue.source.sourceVersion = "next"; }
+    }).then((directory) => verifyWebExport.verifyLogoIconDirectory(directory)),
+    /pinned source metadata/i
+  );
+
+  const unsafeRoot = await mkdtemp(path.join(tmpdir(), "admarket-logo-icons-unsafe-"));
+  await assert.rejects(
+    () => writeLogoIconPack(unsafeRoot, {
+      mutateCatalogue: (catalogue) => {
+        catalogue.icons[0].body = '<image href="https://example.invalid/pixel.png"/>';
+      }
+    }).then((directory) => verifyWebExport.verifyLogoIconDirectory(directory)),
+    /unsafe or non-colourable SVG body/i
+  );
+
+  const unquotedHrefRoot = await mkdtemp(path.join(tmpdir(), "admarket-logo-icons-unquoted-href-"));
+  await assert.rejects(
+    () => writeLogoIconPack(unquotedHrefRoot, {
+      mutateCatalogue: (catalogue) => {
+        catalogue.icons[0].body =
+          '<g stroke="currentColor"><path d="M0 0h4"/><use href=//example.invalid/a.svg#mark /></g>';
+      }
+    }).then((directory) => verifyWebExport.verifyLogoIconDirectory(directory)),
+    /unsafe or non-colourable SVG body/i
+  );
+
+  const unusedColourRoot = await mkdtemp(path.join(tmpdir(), "admarket-logo-icons-unused-colour-"));
+  await assert.rejects(
+    () => writeLogoIconPack(unusedColourRoot, {
+      mutateCatalogue: (catalogue) => {
+        catalogue.icons[0].body = '<path id="currentColor" d="M0 0h4"/>';
+      }
+    }).then((directory) => verifyWebExport.verifyLogoIconDirectory(directory)),
+    /unsafe or non-colourable SVG body/i
+  );
+
+  const brandRoot = await mkdtemp(path.join(tmpdir(), "admarket-logo-icons-brand-"));
+  await assert.rejects(
+    () => writeLogoIconPack(brandRoot, {
+      mutateCatalogue: (catalogue) => { catalogue.icons[0].id = "brand-example"; }
+    }).then((directory) => verifyWebExport.verifyLogoIconDirectory(directory)),
+    /brand icon/i
+  );
+});
+
+test("logo icon directory verification rejects a catalogue over three MiB before parsing", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "admarket-logo-icons-large-"));
+  const directory = await writeLogoIconPack(root, {
+    rawCatalogue: Buffer.alloc(3 * 1024 * 1024 + 1, 0x20)
+  });
+
+  await assert.rejects(
+    () => verifyWebExport.verifyLogoIconDirectory(directory),
+    /catalogue exceeds 3 MiB/i
+  );
+});
+
+test("assembly verifies, copies, and injects the local logo pack without pruning", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "admarket-logo-icons-copy-"));
+  const { web } = await writeExportScaffold(root);
+  await writeLogoIconPack(root);
+  const destination = path.join(web, "catalog", "generated", "logo-icons-v1-reviewed");
+  await mkdir(destination, { recursive: true });
+  await writeFile(path.join(destination, "destination-sentinel.txt"), "preserve me");
+  const logs = [];
+
+  await assembleWebExport({
+    root,
+    requireLogoIcons: true,
+    log: (message) => logs.push(message)
+  });
+
+  const html = await readFile(path.join(web, "index.html"), "utf8");
+  assert.equal(html.match(/data-logo-icon-catalogue-url=/g)?.length, 1);
+  assert.match(html, /data-logo-icon-catalogue-url="\/catalog\/generated\/logo-icons-v1-reviewed\/catalog\.json"/);
+  assert.equal(
+    JSON.parse(await readFile(path.join(destination, "catalog.json"), "utf8")).icons.length,
+    4205
+  );
+  assert.equal(await readFile(path.join(destination, "destination-sentinel.txt"), "utf8"), "preserve me");
+  assert.deepEqual(
+    logs.filter((message) => message.startsWith("LOGO_ICONS_")),
+    ["LOGO_ICONS_COPIED catalog/generated/logo-icons-v1-reviewed"]
+  );
+});
+
+test("assembly fails closed when required logo icons are absent", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "admarket-logo-icons-required-"));
+  await writeExportScaffold(root);
+
+  await assert.rejects(
+    () => assembleWebExport({ root, requireLogoIcons: true, log: () => {} }),
+    /required logo icon catalogue is absent:.*catalog\.json/i
+  );
+});
+
+test("optional logo icon absence removes stale metadata and logs separately", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "admarket-logo-icons-deferred-"));
+  const { web } = await writeExportScaffold(
+    root,
+    '<div id="creator-root" data-logo-icon-catalogue-url="/stale/catalog.json"></div>'
+  );
+  const logs = [];
+
+  await assembleWebExport({ root, log: (message) => logs.push(message) });
+
+  assert.doesNotMatch(await readFile(path.join(web, "index.html"), "utf8"), /data-logo-icon-catalogue-url/);
+  assert.deepEqual(
+    logs.filter((message) => message.startsWith("LOGO_ICONS_")),
+    ["LOGO_ICONS_DEFERRED catalog/generated/logo-icons-v1-reviewed/catalog.json"]
   );
 });
 
@@ -553,11 +767,137 @@ test("static verification counts an unquoted builder attribute before a canonica
   );
 });
 
-test("production build scripts require the product builder pilot", async () => {
+test("static verification requires one canonical local logo attribute on creator-root", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "admarket-logo-icons-static-"));
+  const directory = await writeLogoIconPack(root);
+  const logoFiles = await verifyWebExport.verifyLogoIconDirectory(directory);
+  const prefix = "catalog/generated/logo-icons-v1-reviewed";
+  const studioTags = '<link rel="stylesheet" href="./studio/studio.css"><script src="./studio/studio.js"></script><script src="./index.js"></script>';
+  const base = new Map([
+    ["index.js", "const target = 'wasm32.nothreads'; const audio = new AudioWorklet();"],
+    ["index.wasm", Buffer.from([0])],
+    ["index.pck", Buffer.from([1])],
+    ["index.audio.worklet.js", "class GodotAudioWorklet {}"],
+    ["studio/studio.css", ".creator{}"],
+    ["studio/studio.js", "window.AdMarketCreator = publicApi;"],
+    ["godot/export_presets.cfg", "variant/thread_support=false"],
+    ...logoFiles
+  ]);
+
+  const valid = new Map(base);
+  valid.set(
+    "index.html",
+    `<div id="creator-root" data-logo-icon-catalogue-url="/${prefix}/catalog.json"></div>${studioTags}`
+  );
+  assert.doesNotThrow(() => inspectExportContents({ files: valid, pckHash: "current" }));
+
+  const missingAttribute = new Map(base);
+  missingAttribute.set("index.html", `<div id="creator-root"></div>${studioTags}`);
+  assert.throws(
+    () => inspectExportContents({ files: missingAttribute, pckHash: "current" }),
+    /reference the logo icon catalogue exactly once/i
+  );
+
+  const wrongElement = new Map(base);
+  wrongElement.set(
+    "index.html",
+    `<div id="creator-root"></div><div data-logo-icon-catalogue-url="/${prefix}/catalog.json"></div>${studioTags}`
+  );
+  assert.throws(
+    () => inspectExportContents({ files: wrongElement, pckHash: "current" }),
+    /logo icon catalogue metadata must be on #creator-root/i
+  );
+
+  const absentPack = new Map(base);
+  for (const name of [...absentPack.keys()]) {
+    if (name.startsWith(`${prefix}/`)) absentPack.delete(name);
+  }
+  absentPack.set(
+    "index.html",
+    `<div id="creator-root" data-logo-icon-catalogue-url="/${prefix}/catalog.json"></div>${studioTags}`
+  );
+  assert.throws(
+    () => inspectExportContents({ files: absentPack, pckHash: "current" }),
+    /references an absent logo icon catalogue/i
+  );
+
+  const valuelessDuplicate = new Map(base);
+  valuelessDuplicate.set(
+    "index.html",
+    `<div id="creator-root" data-logo-icon-catalogue-url data-logo-icon-catalogue-url="/${prefix}/catalog.json"></div>${studioTags}`
+  );
+  assert.throws(
+    () => inspectExportContents({ files: valuelessDuplicate, pckHash: "current" }),
+    /reference the logo icon catalogue exactly once/i
+  );
+
+  const similarlyNamedAttribute = new Map(base);
+  similarlyNamedAttribute.set(
+    "index.html",
+    `<div id="creator-root" data-logo-icon-catalogue-url-extra="keep" data-logo-icon-catalogue-url="/${prefix}/catalog.json"></div>${studioTags}`
+  );
+  assert.doesNotThrow(() => inspectExportContents({
+    files: similarlyNamedAttribute,
+    pckHash: "current"
+  }));
+});
+
+test("logo metadata injection preserves similarly prefixed attributes", () => {
+  const html = '<section data-logo-icon-catalogue-url="/wrong-element.json"></section><div id="creator-root" data-note="x > y data-logo-icon-catalogue-url=/not-an-attribute" data-logo-icon-catalogue-url-extra="keep" data-logo-icon-catalogue-url="/stale.json"></div>';
+  const canonical = "/catalog/generated/logo-icons-v1-reviewed/catalog.json";
+
+  const injected = buildWeb.injectLogoIconCatalogueUrl(html, canonical);
+
+  assert.match(injected, /data-logo-icon-catalogue-url-extra="keep"/);
+  assert.match(injected, /data-note="x > y data-logo-icon-catalogue-url=\/not-an-attribute"/);
+  assert.equal(injected.match(/\sdata-logo-icon-catalogue-url="/g)?.length, 1);
+  assert.doesNotMatch(injected, /wrong-element\.json/);
+  assert.match(injected, new RegExp(`data-logo-icon-catalogue-url="${canonical}"`));
+});
+
+test("logo metadata injection leaves script text with longer closing-tag prefixes untouched", () => {
+  const script = '<script>const template = \'</scriptx><div data-logo-icon-catalogue-url="sentinel">\';</script>';
+  const html = `${script}<div id="creator-root"></div>`;
+  const canonical = "/catalog/generated/logo-icons-v1-reviewed/catalog.json";
+
+  const injected = buildWeb.injectLogoIconCatalogueUrl(html, canonical);
+
+  assert.match(injected, /data-logo-icon-catalogue-url="sentinel"/);
+  assert.match(injected, /<\/scriptx><div/);
+  assert.match(injected, new RegExp(`data-logo-icon-catalogue-url="${canonical}"`));
+});
+
+test("static logo metadata inspection ignores exact tokens inside unrelated values", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "admarket-logo-icons-quoted-value-"));
+  const directory = await writeLogoIconPack(root);
+  const logoFiles = await verifyWebExport.verifyLogoIconDirectory(directory);
+  const prefix = "catalog/generated/logo-icons-v1-reviewed";
+  const files = new Map([
+    ["index.html", `<div id="creator-root" data-note="data-logo-icon-catalogue-url=/not-an-attribute > still-a-value" data-logo-icon-catalogue-url="/${prefix}/catalog.json"></div><link rel="stylesheet" href="./studio/studio.css"><script src="./studio/studio.js"></script><script src="./index.js"></script>`],
+    ["index.js", "const target = 'wasm32.nothreads'; const audio = new AudioWorklet();"],
+    ["index.wasm", Buffer.from([0])],
+    ["index.pck", Buffer.from([1])],
+    ["index.audio.worklet.js", "class GodotAudioWorklet {}"],
+    ["studio/studio.css", ".creator{}"],
+    ["studio/studio.js", "window.AdMarketCreator = publicApi;"],
+    ["godot/export_presets.cfg", "variant/thread_support=false"],
+    ...logoFiles
+  ]);
+
+  assert.doesNotThrow(() => inspectExportContents({ files, pckHash: "current" }));
+});
+
+test("production build scripts generate, test, and require the local logo pack", async () => {
   const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 
   assert.match(packageJson.scripts["build:web"], /--require-product-builder(?:\s|$)/);
   assert.match(packageJson.scripts.build, /build-web\.mjs[^&]*--require-product-builder(?:\s|$)/);
+  assert.match(packageJson.scripts["build:web"], /build-logo-icons\.mjs/);
+  assert.match(packageJson.scripts["build:web"], /--require-logo-icons(?:\s|$)/);
+  assert.match(packageJson.scripts.build, /build-logo-icons\.test\.mjs/);
+  assert.match(packageJson.scripts.build, /build-logo-icons\.mjs/);
+  assert.match(packageJson.scripts.build, /build-web\.mjs[^&]*--require-logo-icons(?:\s|$)/);
+  assert.match(packageJson.scripts["test:build-web"], /build-logo-icons\.test\.mjs/);
 });
 
 test("assembly copies and injects the reviewed product shell catalogue", async () => {
@@ -693,6 +1033,51 @@ test("recursive copy rejects an existing destination junction", async () => {
     () => copyVerifiedTree(source, destination),
     /destination.*(?:symlink|reparse|junction)/i
   );
+});
+
+test("logo verification and recursive copy reject a source-root junction", async () => {
+  const realRoot = await mkdtemp(path.join(tmpdir(), "admarket-logo-real-root-"));
+  const realDirectory = await writeLogoIconPack(realRoot);
+  const linkedRoot = await mkdtemp(path.join(tmpdir(), "admarket-logo-linked-root-"));
+  const linkedParent = path.join(linkedRoot, "catalog", "generated");
+  const linkedDirectory = path.join(linkedParent, "logo-icons-v1-reviewed");
+  const destination = path.join(linkedRoot, "destination");
+  await mkdir(linkedParent, { recursive: true });
+  await symlink(realDirectory, linkedDirectory, "junction");
+
+  await assert.rejects(
+    () => verifyWebExport.verifyLogoIconDirectory(linkedDirectory),
+    /symlink|reparse|junction/i
+  );
+  await assert.rejects(
+    () => copyVerifiedTree(linkedDirectory, destination),
+    /source.*(?:symlink|reparse|junction)/i
+  );
+});
+
+test("recursive copy rejects source-ancestor and destination-file indirection", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "admarket-copy-indirection-"));
+  const realParent = path.join(root, "real-parent");
+  const realSource = path.join(realParent, "source");
+  const aliasParent = path.join(root, "alias-parent");
+  const destination = path.join(root, "destination");
+  const outside = path.join(root, "outside.json");
+  await mkdir(realSource, { recursive: true });
+  await mkdir(destination, { recursive: true });
+  await writeFile(path.join(realSource, "catalog.json"), "source");
+  await writeFile(outside, "outside");
+  await symlink(realParent, aliasParent, "junction");
+  await link(outside, path.join(destination, "catalog.json"));
+
+  await assert.rejects(
+    () => copyVerifiedTree(path.join(aliasParent, "source"), path.join(root, "safe-destination")),
+    /source.*(?:ancestor|symlink|reparse|junction)|indirection/i
+  );
+  await assert.rejects(
+    () => copyVerifiedTree(realSource, destination),
+    /destination.*(?:symlink|reparse|junction)|indirection/i
+  );
+  assert.equal(await readFile(outside, "utf8"), "outside");
 });
 
 test("verification accepts the no-thread local production export and reports the stale spike PCK", () => {

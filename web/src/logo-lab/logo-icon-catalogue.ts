@@ -1,7 +1,17 @@
+import { isSafeColourableSvgBody } from "./logo-icon-svg-safety";
+
 const CANONICAL_PATH = "/catalog/generated/logo-icons-v1-reviewed/catalog.json";
 const MAX_CATALOGUE_BYTES = 3 * 1024 * 1024;
-const MAX_ICONS = 10_000;
+const ICON_COUNT = 4_205;
 const MAX_RESULTS = 60;
+const PINNED_SOURCE = Object.freeze({
+  name: "Tabler Icons",
+  package: "@iconify-json/tabler",
+  packageVersion: "1.2.35",
+  sourceVersion: "3.44.0",
+  licence: "MIT" as const,
+  url: "https://github.com/tabler/tabler-icons"
+});
 
 const ALLOWED_CATEGORIES = new Set([
   "all",
@@ -16,19 +26,6 @@ const ALLOWED_CATEGORIES = new Set([
   "sport-outdoors",
   "tech-gadgets",
   "travel-transport"
-]);
-
-const ALLOWED_SVG_ELEMENTS = new Set([
-  "circle",
-  "defs",
-  "ellipse",
-  "g",
-  "line",
-  "path",
-  "polygon",
-  "polyline",
-  "rect",
-  "use"
 ]);
 
 export interface LogoIconRecord {
@@ -70,17 +67,7 @@ function requiredString(value: unknown, label: string, maxLength = 160): string 
 }
 
 function isSafeIconBody(body: string): boolean {
-  if (body.length === 0 || body.length > 16_000) return false;
-  if (/(?:<\s*(?:script|style|foreignObject|iframe|image|a)\b|\bon[a-z]+\s*=|\bxlink:href\s*=|url\s*\(|javascript\s*:|https?\s*:|data\s*:)/i.test(body)) {
-    return false;
-  }
-  for (const match of body.matchAll(/\bhref\s*=\s*["']([^"']*)["']/gi)) {
-    if (!/^#[A-Za-z][A-Za-z0-9_.:-]*$/.test(match[1]!)) return false;
-  }
-  for (const match of body.matchAll(/<\/?\s*([a-z][a-z0-9]*)\b/gi)) {
-    if (!ALLOWED_SVG_ELEMENTS.has(match[1]!.toLowerCase())) return false;
-  }
-  return /<\s*(?:path|circle|ellipse|line|polygon|polyline|rect)\b/i.test(body);
+  return isSafeColourableSvgBody(body);
 }
 
 function parseIcon(value: unknown, index: number): LogoIconRecord {
@@ -89,6 +76,7 @@ function parseIcon(value: unknown, index: number): LogoIconRecord {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) {
     throw new Error(`logo icon ${index} has an invalid id`);
   }
+  if (id.startsWith("brand-")) throw new Error(`logo icon ${index} is a brand icon`);
   const title = requiredString(input.title, `logo icon ${index} title`, 120);
   const body = requiredString(input.body, `logo icon ${index} SVG body`, 16_000);
   if (!isSafeIconBody(body)) throw new Error(`logo icon ${id} has an unsafe SVG body`);
@@ -130,18 +118,12 @@ export function parseLogoIconCatalogue(value: unknown): LogoIconCatalogue {
     throw new Error("Logo icon catalogue has an unsupported contract");
   }
   const sourceInput = record(input.source, "logo icon source");
-  const source = Object.freeze({
-    name: requiredString(sourceInput.name, "logo icon source name"),
-    package: requiredString(sourceInput.package, "logo icon source package"),
-    packageVersion: requiredString(sourceInput.packageVersion, "logo icon package version"),
-    sourceVersion: requiredString(sourceInput.sourceVersion, "logo icon source version"),
-    licence: sourceInput.licence === "MIT" ? "MIT" as const : (() => {
-      throw new Error("Logo icon source licence must be MIT");
-    })(),
-    url: requiredString(sourceInput.url, "logo icon source URL", 300)
-  });
-  if (!Array.isArray(input.icons) || input.icons.length === 0 || input.icons.length > MAX_ICONS) {
-    throw new Error(`Logo icon catalogue must contain 1 to ${MAX_ICONS} icons`);
+  if (Object.entries(PINNED_SOURCE).some(([key, value]) => sourceInput[key] !== value)) {
+    throw new Error("Logo icon catalogue does not match pinned source metadata");
+  }
+  const source = PINNED_SOURCE;
+  if (!Array.isArray(input.icons) || input.icons.length !== ICON_COUNT) {
+    throw new Error(`Logo icon catalogue must contain exactly ${ICON_COUNT} icons`);
   }
   const icons = input.icons.map(parseIcon);
   const ids = new Set<string>();

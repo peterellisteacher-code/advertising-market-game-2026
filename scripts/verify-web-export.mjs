@@ -2,6 +2,9 @@ import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { isSafeColourableSvgBody } from "./logo-icon-svg-safety.mjs";
+import { assertPathHasNoIndirection } from "./filesystem-safety.mjs";
+import { inspectHtmlAttribute } from "./html-start-tags.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ROOT = path.resolve(SCRIPT_DIR, "..");
@@ -17,7 +20,23 @@ const REQUIRED_FILES = [
 ];
 const PRODUCT_SHELL_PREFIX = "catalog/generated/product-shells-v1-reviewed";
 const PRODUCT_BUILDER_PREFIX = "catalog/generated/product-builder-pilot-v1";
+const LOGO_ICON_PREFIX = "catalog/generated/logo-icons-v1-reviewed";
+const LOGO_ICON_COUNT = 4205;
+const MAX_LOGO_CATALOGUE_BYTES = 3 * 1024 * 1024;
 const PORTABLE_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const LOGO_ICON_CATEGORIES = new Set([
+  "beauty-care",
+  "drinks-snacks",
+  "fashion-footwear",
+  "fast-food-hospitality",
+  "general",
+  "home-lifestyle",
+  "pets-animals",
+  "shops-services",
+  "sport-outdoors",
+  "tech-gadgets",
+  "travel-transport"
+]);
 
 function asText(value) {
   return typeof value === "string" ? value : Buffer.isBuffer(value) ? value.toString("utf8") : "";
@@ -352,6 +371,104 @@ function verifyProductBuilderMetadata(html, files, errors) {
   }
 }
 
+function verifyLogoIconCatalogue(files, errors) {
+  const cataloguePath = `${LOGO_ICON_PREFIX}/catalog.json`;
+  const raw = files.get(cataloguePath);
+  if (raw === undefined) return;
+  const bytes = Buffer.isBuffer(raw) ? raw.byteLength : Buffer.byteLength(String(raw));
+  if (bytes > MAX_LOGO_CATALOGUE_BYTES) {
+    errors.push("logo icon catalogue exceeds 3 MiB");
+    return;
+  }
+
+  let catalogue;
+  try {
+    catalogue = JSON.parse(asText(raw));
+  } catch {
+    errors.push("logo icon catalogue JSON is malformed");
+    return;
+  }
+  if (!isRecord(catalogue) || catalogue.schema !== "logo-icon-catalog@1" ||
+    catalogue.packId !== "tabler-logo-icons-v1" || catalogue.version !== 1) {
+    errors.push("logo icon catalogue has an invalid schema, version, or pack ID");
+    return;
+  }
+  const expectedSource = {
+    name: "Tabler Icons",
+    package: "@iconify-json/tabler",
+    packageVersion: "1.2.35",
+    sourceVersion: "3.44.0",
+    licence: "MIT",
+    url: "https://github.com/tabler/tabler-icons"
+  };
+  if (!isRecord(catalogue.source) || Object.entries(expectedSource)
+    .some(([key, value]) => catalogue.source[key] !== value)) {
+    errors.push("logo icon catalogue does not match pinned source metadata");
+  }
+  if (!Array.isArray(catalogue.icons) || catalogue.icons.length !== LOGO_ICON_COUNT) {
+    errors.push(`logo icon catalogue must contain exactly ${LOGO_ICON_COUNT} icons`);
+    if (!Array.isArray(catalogue.icons)) return;
+  }
+
+  const ids = new Set();
+  for (const [index, icon] of catalogue.icons.entries()) {
+    if (!isRecord(icon) || typeof icon.id !== "string" || icon.id.length > 100 ||
+      !PORTABLE_ID.test(icon.id) || ids.has(icon.id)) {
+      errors.push(`logo icon catalogue has an invalid or duplicate icon id at record ${index}`);
+      continue;
+    }
+    ids.add(icon.id);
+    if (icon.id.startsWith("brand-")) {
+      errors.push(`logo icon catalogue contains a brand icon at record ${index}`);
+    }
+    if (typeof icon.title !== "string" || !icon.title.trim() || icon.title.length > 120) {
+      errors.push(`logo icon catalogue record ${index} has an invalid title`);
+    }
+    if (!isSafeColourableSvgBody(icon.body)) {
+      errors.push(`logo icon catalogue record ${index} has an unsafe or non-colourable SVG body`);
+    }
+    if (!Number.isInteger(icon.width) || !Number.isInteger(icon.height) ||
+      icon.width < 1 || icon.height < 1 || icon.width > 512 || icon.height > 512) {
+      errors.push(`logo icon catalogue record ${index} has invalid dimensions`);
+    }
+    if (!Array.isArray(icon.categories) || icon.categories.length < 1 ||
+      icon.categories.length > 10 || new Set(icon.categories).size !== icon.categories.length ||
+      icon.categories.some((category) => typeof category !== "string" ||
+        !LOGO_ICON_CATEGORIES.has(category))) {
+      errors.push(`logo icon catalogue record ${index} has invalid categories`);
+    }
+  }
+}
+
+function verifyLogoIconMetadata(html, files, errors) {
+  const cataloguePath = `${LOGO_ICON_PREFIX}/catalog.json`;
+  let inspection;
+  try {
+    inspection = inspectHtmlAttribute(html, "data-logo-icon-catalogue-url");
+  } catch (error) {
+    errors.push(`index.html logo metadata cannot be parsed: ${error instanceof Error ? error.message : error}`);
+    return;
+  }
+  const { creatorRoots, occurrences } = inspection;
+  if (!files.has(cataloguePath)) {
+    if (occurrences.length > 0) errors.push("index.html references an absent logo icon catalogue");
+    return;
+  }
+  const expected = `data-logo-icon-catalogue-url="/${cataloguePath}"`;
+  if (occurrences.length !== 1) {
+    errors.push("index.html must reference the logo icon catalogue exactly once");
+    return;
+  }
+  const occurrence = occurrences[0];
+  if (occurrence.attribute.raw !== expected ||
+    occurrence.attribute.value !== `/${cataloguePath}`) {
+    errors.push("index.html must use the canonical logo icon catalogue URL");
+  }
+  if (creatorRoots.length !== 1 || !occurrence.onCreatorRoot) {
+    errors.push("logo icon catalogue metadata must be on #creator-root");
+  }
+}
+
 /** Verifies a complete offline-core directory without requiring a Godot shell. */
 export async function verifyOfflineCoreDirectory(directory) {
   const prefix = "catalog/generated/offline-core-v1";
@@ -392,6 +509,20 @@ export async function verifyProductBuilderDirectory(directory) {
   verifyProductBuilderQa(files, errors);
   if (errors.length > 0) {
     throw new Error(`Product builder verification failed:\n- ${errors.join("\n- ")}`);
+  }
+  return files;
+}
+
+/** Verifies the pinned reviewed logo-icon pack without requiring a Godot shell. */
+export async function verifyLogoIconDirectory(directory) {
+  const files = await readTreeIfPresent(directory, LOGO_ICON_PREFIX);
+  if (!files.has(`${LOGO_ICON_PREFIX}/catalog.json`)) {
+    throw new Error("Logo icon verification failed:\n- missing logo icon catalogue: catalog.json");
+  }
+  const errors = [];
+  verifyLogoIconCatalogue(files, errors);
+  if (errors.length > 0) {
+    throw new Error(`Logo icon verification failed:\n- ${errors.join("\n- ")}`);
   }
   return files;
 }
@@ -448,6 +579,8 @@ export function inspectExportContents({ files, pckHash }) {
     verifyProductBuilderQa(files, errors);
   }
   verifyProductBuilderMetadata(html, files, errors);
+  verifyLogoIconCatalogue(files, errors);
+  verifyLogoIconMetadata(html, files, errors);
 
   if (pckHash === STALE_SPIKE_PCK_HASH) warnings.push("PCK_STALE_SPIKE_EXPORT");
   if (errors.length > 0) {
@@ -471,6 +604,14 @@ async function readIfPresent(filePath, binary = false) {
 }
 
 async function readTreeIfPresent(directory, prefix = "") {
+  const metadata = await assertPathHasNoIndirection(directory, {
+    allowMissing: true,
+    label: "source"
+  });
+  if (!metadata) return new Map();
+  if (!metadata.isDirectory()) {
+    throw new Error(`Expected catalogue directory: ${directory}`);
+  }
   let entries;
   try {
     entries = await readdir(directory, { withFileTypes: true });
@@ -487,6 +628,10 @@ async function readTreeIfPresent(directory, prefix = "") {
     if (entry.isDirectory()) {
       for (const [name, value] of await readTreeIfPresent(absolute, relative)) result.set(name, value);
     } else if (entry.isFile()) {
+      await assertPathHasNoIndirection(absolute, {
+        label: "source",
+        rejectHardLinkedFile: true
+      });
       result.set(relative, await readFile(absolute));
     } else {
       throw new Error(`Refusing special file in web export: ${relative}`);

@@ -15,6 +15,7 @@ import {
   type CampaignDocumentV1
 } from "./domain/campaign-document";
 import { AUDIENCE_BRIEFS } from "./game/audience-briefs";
+import { parseLogoIconCatalogue } from "./logo-lab/logo-icon-catalogue";
 
 const runtime = vi.hoisted(() => ({
   adapterConstructed: vi.fn(),
@@ -555,7 +556,7 @@ function productShellCatalogueFixture(): Record<string, unknown> {
 }
 
 function logoCatalogueFixture(): Record<string, unknown> {
-  const icons = [
+  const namedIcons = [
     ["rocket", "Rocket", "tech-gadgets"],
     ["paw", "Paw", "pets-animals"],
     ["bottle", "Bottle", "drinks-snacks"],
@@ -571,16 +572,26 @@ function logoCatalogueFixture(): Record<string, unknown> {
       packageVersion: "1.2.35",
       sourceVersion: "3.44.0",
       licence: "MIT",
-      url: "https://tabler.io/icons"
+      url: "https://github.com/tabler/tabler-icons"
     },
-    icons: icons.map(([id, title, category]) => ({
-      id,
-      title,
-      width: 24,
-      height: 24,
-      categories: [category, "general"],
-      body: '<path d="M4 12h16" stroke="currentColor" />'
-    }))
+    icons: [
+      ...namedIcons.map(([id, title, category]) => ({
+        id,
+        title,
+        width: 24,
+        height: 24,
+        categories: [category, "general"],
+        body: '<path d="M4 12h16" fill="none" stroke="currentColor" />'
+      })),
+      ...Array.from({ length: 4_201 }, (_, index) => ({
+        id: `zz-fixture-icon-${String(index).padStart(4, "0")}`,
+        title: `Fixture Icon ${index}`,
+        width: 24,
+        height: 24,
+        categories: ["general"],
+        body: '<path d="M4 12h16" fill="none" stroke="currentColor" />'
+      }))
+    ]
   };
 }
 
@@ -1100,6 +1111,7 @@ describe("window.AdMarketCreator", () => {
   });
 
   it("creates all four local logo recipes, remixes, saves, reloads and publishes them", async () => {
+    expect(() => parseLogoIconCatalogue(logoCatalogueFixture())).not.toThrow();
     const root = document.querySelector<HTMLElement>("#creator-root")!;
     root.dataset.logoIconCatalogueUrl =
       "/catalog/generated/logo-icons-v1-reviewed/catalog.json";

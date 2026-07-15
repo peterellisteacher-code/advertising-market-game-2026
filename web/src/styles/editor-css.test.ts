@@ -46,13 +46,22 @@ describe("Fabric canvas layer styling", () => {
       /\.creator__logo-lab\s*\{[^}]*max-height:\s*min\(34vh,\s*22rem\)[^}]*overflow:\s*hidden[^}]*\}/i
     );
     expect(css).toMatch(
-      /\.logo-lab__symbols\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[^}]*overflow:\s*auto[^}]*overscroll-behavior:\s*contain[^}]*\}/i
+      /\.logo-lab__symbols\s*\{[^}]*min-height:\s*3\.25rem[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[^}]*overflow:\s*auto[^}]*overscroll-behavior:\s*contain[^}]*\}/i
     );
     expect(css).toMatch(
       /\.logo-lab__symbol\s*\{[^}]*min-height:\s*44px[^}]*\}/i
     );
     expect(css).toMatch(
       /@media\s*\(max-height:\s*820px\)[\s\S]*\.logo-lab\s+details\s*\{[^}]*max-height:[^}]*\}/i
+    );
+  });
+
+  it("lets the asset sidebar absorb height pressure without collapsing Logo Lab controls", () => {
+    expect(css).toMatch(
+      /\.creator__library\s*\{[^}]*grid-template-rows:\s*repeat\(6,\s*max-content\)\s+minmax\(8rem,\s*1fr\)[^}]*align-content:\s*start[^}]*overflow-x:\s*hidden[^}]*overflow-y:\s*auto[^}]*overscroll-behavior:\s*contain[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator__logo-lab\s*\{[^}]*min-height:\s*15rem[^}]*max-height:\s*min\(34vh,\s*22rem\)[^}]*\}/i
     );
   });
 

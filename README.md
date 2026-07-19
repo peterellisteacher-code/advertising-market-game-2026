@@ -1,6 +1,6 @@
 # Advertising Market Game
 
-A fun-first Year 10 English advertising game for pairs sharing a school MacBook. Teams create and price products, build persuasive campaigns, and then compete in a live classroom market. The project is a Godot 4 web game with a TypeScript creator studio, a large offline asset catalogue, Netlify Functions, and isolated cloud progress storage.
+A fun-first Year 10 English advertising game for pairs sharing a school MacBook in Chrome. Teams create and price products, build persuasive campaigns, and then compete in a live classroom market. The project is a Godot 4 web game with a TypeScript creator studio, a large offline asset catalogue, Netlify Functions, and isolated cloud progress storage.
 
 ## Repository and deployment model
 

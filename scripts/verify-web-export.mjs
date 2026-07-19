@@ -2,9 +2,17 @@ import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import vm from "node:vm";
+import { IDBFactory, IDBKeyRange } from "fake-indexeddb";
+import { JSDOM, VirtualConsole } from "jsdom";
+import { parseAst } from "vite";
 import { isSafeColourableSvgBody } from "./logo-icon-svg-safety.mjs";
 import { assertPathHasNoIndirection } from "./filesystem-safety.mjs";
-import { inspectHtmlAttribute } from "./html-start-tags.mjs";
+import {
+  decodeHtmlAttributeValue,
+  inspectHtmlAttribute,
+  scanHtmlStartTags
+} from "./html-start-tags.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ROOT = path.resolve(SCRIPT_DIR, "..");
@@ -15,6 +23,7 @@ const REQUIRED_FILES = [
   "index.js",
   "index.wasm",
   "index.pck",
+  "_headers",
   "studio/studio.css",
   "studio/studio.js"
 ];
@@ -46,12 +55,182 @@ function count(text, pattern) {
   return text.match(pattern)?.length ?? 0;
 }
 
-function verifyOfflineCatalogue(files, errors) {
+function isExecutableInlineScript(tag) {
+  if (tag.name !== "script" || tag.inertDepth !== 0 ||
+    tag.attributes.some((attribute) => attribute.name === "src")) {
+    return false;
+  }
+  const type = tag.attributes.find((attribute) => attribute.name === "type")?.value;
+  if (type === undefined) return true;
+  return ["", "module", "text/javascript", "application/javascript", "text/ecmascript", "application/ecmascript"]
+    .includes(decodeHtmlAttributeValue(type).trim().toLowerCase());
+}
+
+function getExecutableInlineScriptBodies(html) {
+  return scanHtmlStartTags(html).filter(isExecutableInlineScript).map((tag) => {
+    const closingStart = html.lastIndexOf("</", (tag.elementEnd ?? tag.end) - 1);
+    if (closingStart < tag.end || !/^<\/script\s*>$/i.test(html.slice(closingStart, tag.elementEnd))) {
+      throw new Error("executable inline bootstrap script must have a closing </script> tag");
+    }
+    return html.slice(tag.end, closingStart);
+  });
+}
+
+function makeNetlifyHeaders(inlineScriptBody) {
+  const hash = createHash("sha256").update(Buffer.from(inlineScriptBody, "utf8")).digest("base64");
+  return `/*\n  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'sha256-${hash}' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'none'; form-action 'self'; frame-ancestors 'self';\n  Cross-Origin-Opener-Policy: same-origin\n  Cross-Origin-Embedder-Policy: require-corp\n  Cross-Origin-Resource-Policy: same-origin\n`;
+}
+
+function verifyNetlifyHeaders(html, headers, errors) {
+  let inlineScriptBodies;
+  try {
+    inlineScriptBodies = getExecutableInlineScriptBodies(html);
+  } catch (error) {
+    errors.push(`index.html inline bootstrap cannot be parsed: ${error instanceof Error ? error.message : error}`);
+    return;
+  }
+  if (inlineScriptBodies.length !== 1) {
+    errors.push("index.html must contain exactly one executable inline bootstrap script");
+    return;
+  }
+  const scriptPolicy = headers.match(/^\s*Content-Security-Policy:\s*([^\r\n]*)/mi)?.[1] ?? "";
+  if (/\bscript-src\b[^;\r\n]*'unsafe-inline'/i.test(scriptPolicy)) {
+    errors.push("Netlify CSP has an unsafe inline script policy");
+    return;
+  }
+  if (headers !== makeNetlifyHeaders(inlineScriptBodies[0])) {
+    errors.push("Netlify CSP hash does not match the inline bootstrap or required isolation policy");
+  }
+}
+
+const FUNCTION_NODE_TYPES = new Set([
+  "ArrowFunctionExpression",
+  "FunctionDeclaration",
+  "FunctionExpression"
+]);
+const CONDITIONAL_EXECUTION_NODE_TYPES = new Set([
+  "AwaitExpression",
+  "ConditionalExpression",
+  "DoWhileStatement",
+  "ForInStatement",
+  "ForOfStatement",
+  "ForStatement",
+  "IfStatement",
+  "PropertyDefinition",
+  "SwitchStatement",
+  "TryStatement",
+  "WhileStatement"
+]);
+
+function isImmediatelyInvokedFunction(node, parent) {
+  return !node.async && !node.generator && parent?.type === "CallExpression" && parent.callee === node;
+}
+
+function assignmentIsSynchronous(ancestors) {
+  for (let index = 0; index < ancestors.length; index += 1) {
+    const current = ancestors[index];
+    const parent = ancestors[index + 1];
+    if (FUNCTION_NODE_TYPES.has(current.type) && !isImmediatelyInvokedFunction(current, parent)) {
+      return false;
+    }
+    if (CONDITIONAL_EXECUTION_NODE_TYPES.has(current.type) ||
+      (current.type === "LogicalExpression" && ["&&", "||", "??"].includes(current.operator))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function walkJavaScript(node, ancestors, visit) {
+  if (!node || typeof node !== "object" || typeof node.type !== "string") return;
+  visit(node, ancestors);
+  const nextAncestors = [node, ...ancestors];
+  for (const [key, value] of Object.entries(node)) {
+    if (["loc", "start", "end"].includes(key)) continue;
+    if (Array.isArray(value)) {
+      for (const child of value) walkJavaScript(child, nextAncestors, visit);
+    } else {
+      walkJavaScript(value, nextAncestors, visit);
+    }
+  }
+}
+
+function inspectBridgeAssignments(source) {
+  let program;
+  try {
+    program = parseAst(source, { allowReturnOutsideFunction: false });
+  } catch {
+    return { parseError: true, assignments: new Map() };
+  }
+  const assignments = new Map([
+    ["AdMarketCreator", []],
+    ["AdMarketPractice", []]
+  ]);
+  walkJavaScript(program, [], (node, ancestors) => {
+    if (node.type === "AssignmentExpression" && node.operator === "=" &&
+      node.left?.type === "MemberExpression" && !node.left.computed &&
+      node.left.object?.type === "Identifier" &&
+      ["window", "globalThis"].includes(node.left.object.name) &&
+      node.left.property?.type === "Identifier" &&
+      assignments.has(node.left.property.name)) {
+      assignments.get(node.left.property.name).push({
+        synchronous: assignmentIsSynchronous(ancestors)
+      });
+    }
+  });
+  return { parseError: false, assignments };
+}
+
+function installsUsableBridgeGlobalsSynchronously(source) {
+  const virtualConsole = new VirtualConsole();
+  const dom = new JSDOM(
+    '<!doctype html><html><body><main aria-label="Advertising Market Game"><canvas id="canvas"></canvas></main><div id="creator-root" data-offline-catalogue-url="/catalog/never.json"></div></body></html>',
+    {
+    url: "https://classroom.invalid/",
+    runScripts: "outside-only",
+    virtualConsole
+    }
+  );
+  const browser = dom.window;
+  const neverAbortSignal = Object.freeze({
+    timeout: () => new globalThis.AbortController().signal
+  });
+  Object.defineProperties(browser, {
+    indexedDB: { configurable: true, value: new IDBFactory() },
+    IDBKeyRange: { configurable: true, value: IDBKeyRange },
+    fetch: { configurable: true, value: () => new Promise(() => {}) },
+    AbortController: { configurable: true, value: globalThis.AbortController },
+    AbortSignal: { configurable: true, value: neverAbortSignal },
+    structuredClone: { configurable: true, value: globalThis.structuredClone },
+    TextEncoder: { configurable: true, value: globalThis.TextEncoder },
+    TextDecoder: { configurable: true, value: globalThis.TextDecoder },
+    requestAnimationFrame: { configurable: true, value: () => 0 },
+    cancelAnimationFrame: { configurable: true, value: () => undefined }
+  });
+  try {
+    const script = new vm.Script(source, { filename: "studio.js" });
+    script.runInContext(dom.getInternalVMContext(), { timeout: 3_000 });
+    return [browser.AdMarketCreator, browser.AdMarketPractice].every((bridge) =>
+      bridge !== null && typeof bridge === "object" &&
+      typeof bridge.handle === "function" && Object.isFrozen(bridge));
+  } catch {
+    return false;
+  } finally {
+    browser.close();
+  }
+}
+
+function verifyOfflineCatalogue(files, errors, minimumRecords = 0) {
   const catalogPath = "catalog/generated/offline-core-v1/catalog.json";
+  const pricingPath = "catalog/generated/offline-core-v1/pricing.json";
   if (!files.has(catalogPath)) return;
+  const catalogValue = files.get(catalogPath);
+  const catalogBytes = Buffer.isBuffer(catalogValue)
+    ? catalogValue
+    : Buffer.from(String(catalogValue));
   let records;
   try {
-    records = JSON.parse(asText(files.get(catalogPath)));
+    records = JSON.parse(catalogBytes.toString("utf8"));
   } catch {
     errors.push("offline catalogue JSON is malformed");
     return;
@@ -60,11 +239,29 @@ function verifyOfflineCatalogue(files, errors) {
     errors.push("offline catalogue must be an array of at most 20000 records");
     return;
   }
+  if (records.length < minimumRecords) {
+    errors.push(`offline catalogue must contain at least ${minimumRecords} records`);
+  }
+  const expectedRoles = new Map();
   for (const [index, record] of records.entries()) {
     if (!record || typeof record !== "object" || Array.isArray(record) ||
       !record.files || typeof record.files !== "object" || Array.isArray(record.files)) {
       errors.push(`offline catalogue record ${index} has no file contract`);
       continue;
+    }
+    if (typeof record.id !== "string" || !PORTABLE_ID.test(record.id) || expectedRoles.has(record.id)) {
+      errors.push(`offline catalogue record ${index} has an invalid or duplicate id`);
+    } else {
+      const tags = Array.isArray(record.tags) ? record.tags : [];
+      const role = record.kind === "component" && tags.includes("add-on")
+        ? "part"
+        : record.kind === "raster-master" && tags.includes("placement-frame")
+          ? "media"
+          : record.kind === "raster-master" && (tags.includes("base") || tags.includes("scene"))
+            ? "base"
+            : null;
+      if (role === null) errors.push(`offline catalogue record ${index} has no pricing role`);
+      else expectedRoles.set(record.id, role);
     }
     const references = [record.files.master, record.files.preview, record.files.thumbnail];
     if (record.files.masks && typeof record.files.masks === "object" && !Array.isArray(record.files.masks)) {
@@ -92,6 +289,58 @@ function verifyOfflineCatalogue(files, errors) {
         errors.push(`offline catalogue master hash mismatch: ${record.files.master}`);
       }
     }
+  }
+
+  if (!files.has(pricingPath)) {
+    errors.push("missing offline pricing: pricing.json");
+    return;
+  }
+  let pricing;
+  try {
+    pricing = JSON.parse(asText(files.get(pricingPath)));
+  } catch {
+    errors.push("offline pricing JSON is malformed");
+    return;
+  }
+  const exactPricingKeys = ["schema", "packId", "pricingVersion", "catalogSha256", "entries"];
+  if (!pricing || typeof pricing !== "object" || Array.isArray(pricing) ||
+    Object.keys(pricing).length !== exactPricingKeys.length ||
+    !exactPricingKeys.every((key) => Object.hasOwn(pricing, key)) ||
+    pricing.schema !== "raster-production-pricing@1" || pricing.packId !== "offline-core-v1" ||
+    !Number.isSafeInteger(pricing.pricingVersion) || pricing.pricingVersion < 1 ||
+    pricing.pricingVersion > 1_000_000 || !Array.isArray(pricing.entries) ||
+    pricing.entries.length !== records.length || pricing.entries.length > 20_000) {
+    errors.push("offline pricing has an invalid contract");
+    return;
+  }
+  const actualCatalogHash = createHash("sha256").update(catalogBytes).digest("hex");
+  if (pricing.catalogSha256 !== actualCatalogHash) {
+    errors.push("offline pricing catalog hash mismatch");
+  }
+  const pricedIds = new Set();
+  let previousId = "";
+  let productRecords = 0;
+  for (const [index, entry] of pricing.entries.entries()) {
+    const valid = entry && typeof entry === "object" && !Array.isArray(entry) &&
+      Object.keys(entry).length === 3 &&
+      ["assetId", "costCents", "role"].every((key) => Object.hasOwn(entry, key)) &&
+      typeof entry.assetId === "string" && PORTABLE_ID.test(entry.assetId) &&
+      entry.assetId > previousId && !pricedIds.has(entry.assetId) &&
+      Number.isSafeInteger(entry.costCents) && entry.costCents > 0 && entry.costCents <= 1_000_000 &&
+      ["base", "part", "media"].includes(entry.role) && expectedRoles.get(entry.assetId) === entry.role;
+    if (!valid) {
+      errors.push(`offline pricing entry ${index} is invalid or mismatched`);
+      continue;
+    }
+    previousId = entry.assetId;
+    pricedIds.add(entry.assetId);
+    if (entry.role !== "media") productRecords += 1;
+  }
+  if (pricedIds.size !== expectedRoles.size || [...expectedRoles.keys()].some((id) => !pricedIds.has(id))) {
+    errors.push("offline pricing must cover every catalogue record exactly once");
+  }
+  if (productRecords < minimumRecords) {
+    errors.push(`offline pricing must contain at least ${minimumRecords} product records`);
   }
 }
 
@@ -470,14 +719,17 @@ function verifyLogoIconMetadata(html, files, errors) {
 }
 
 /** Verifies a complete offline-core directory without requiring a Godot shell. */
-export async function verifyOfflineCoreDirectory(directory) {
+export async function verifyOfflineCoreDirectory(directory, { minimumRecords = 0 } = {}) {
+  if (!Number.isSafeInteger(minimumRecords) || minimumRecords < 0 || minimumRecords > 20_000) {
+    throw new Error("Offline catalogue minimum must be an integer from 0 to 20000");
+  }
   const prefix = "catalog/generated/offline-core-v1";
   const files = await readTreeIfPresent(directory, prefix);
   if (!files.has(`${prefix}/catalog.json`)) {
     throw new Error("Offline catalogue verification failed:\n- missing offline catalogue: catalog.json");
   }
   const errors = [];
-  verifyOfflineCatalogue(files, errors);
+  verifyOfflineCatalogue(files, errors, minimumRecords);
   if (errors.length > 0) {
     throw new Error(`Offline catalogue verification failed:\n- ${errors.join("\n- ")}`);
   }
@@ -536,6 +788,7 @@ export function inspectExportContents({ files, pckHash }) {
   }
 
   const html = asText(files.get("index.html"));
+  const headers = asText(files.get("_headers"));
   const runtime = asText(files.get("index.js"));
   const studio = asText(files.get("studio/studio.js"));
   const preset = asText(files.get("godot/export_presets.cfg"));
@@ -543,18 +796,63 @@ export function inspectExportContents({ files, pckHash }) {
   if (count(html, /(?:href|src)=["']\.\/studio\/studio\.css["']/gi) !== 1) {
     errors.push("index.html must reference ./studio/studio.css exactly once");
   }
-  if (count(html, /src=["']\.\/studio\/studio\.js["']/gi) !== 1) {
-    errors.push("index.html must reference ./studio/studio.js exactly once");
+  let htmlTags = [];
+  try {
+    htmlTags = scanHtmlStartTags(html);
+  } catch (error) {
+    errors.push(`index.html start tags cannot be parsed: ${error instanceof Error ? error.message : error}`);
+  }
+  const studioScripts = htmlTags.filter((tag) => tag.name === "script" &&
+    tag.attributes.some((attribute) =>
+      attribute.name === "src" &&
+      decodeHtmlAttributeValue(attribute.value) === "./studio/studio.js"));
+  const executableStudioScripts = studioScripts.filter((tag) =>
+    tag.inertDepth === 0 &&
+    tag.raw === '<script src="./studio/studio.js">' &&
+    tag.attributes.length === 1);
+  if (studioScripts.length !== 1 || executableStudioScripts.length !== 1) {
+    errors.push("index.html must contain exactly one executable classic synchronous Studio script");
+  }
+  const studioScriptIndex = executableStudioScripts[0]?.start ?? -1;
+  const godotScripts = htmlTags.filter((tag) => tag.name === "script" &&
+    tag.attributes.some((attribute) =>
+      attribute.name === "src" && ["index.js", "./index.js"].includes(
+        decodeHtmlAttributeValue(attribute.value)
+      )));
+  const executableGodotScripts = godotScripts.filter((tag) =>
+    tag.inertDepth === 0 && tag.attributes.length === 1 &&
+    ['<script src="index.js">', '<script src="./index.js">'].includes(tag.raw));
+  const godotScriptIndex = executableGodotScripts[0]?.start ?? -1;
+  if (godotScripts.length !== 1 || executableGodotScripts.length !== 1) {
+    errors.push("index.html must reference the local Godot index.js runtime");
+  } else if (studioScriptIndex < 0 || studioScriptIndex > godotScriptIndex) {
+    errors.push("studio bridge must load before Godot index.js");
+  }
+  const startGameIndex = html.search(/\bengine\s*\.\s*startGame\s*\(/i);
+  if (startGameIndex >= 0 && godotScriptIndex > startGameIndex) {
+    errors.push("Godot index.js must load before engine.startGame()");
   }
   if (/<iframe\b/i.test(html)) errors.push("iframes are forbidden");
   if (/<(?:script|link)\b[^>]*(?:src|href)=["'](?:https?:)?\/\//i.test(html)) {
     errors.push("remote runtime dependencies are forbidden");
   }
   if (/\$GODOT_[A-Z0-9_]+/i.test(html)) errors.push("unresolved Godot shell tokens are forbidden");
+  verifyNetlifyHeaders(html, headers, errors);
 
-  const bridgeAssignments = count(studio, /(?:window|globalThis)\s*\.\s*AdMarketCreator\s*=/g);
-  if (bridgeAssignments !== 1) {
-    errors.push(`studio.js must assign the production AdMarketCreator global exactly once (found ${bridgeAssignments})`);
+  const bridgeInspection = inspectBridgeAssignments(studio);
+  if (bridgeInspection.parseError) {
+    errors.push("studio.js cannot be parsed as JavaScript");
+  }
+  for (const name of ["AdMarketCreator", "AdMarketPractice"]) {
+    const assignments = bridgeInspection.assignments.get(name) ?? [];
+    if (assignments.length !== 1) {
+      errors.push(`studio.js must assign the production ${name} global exactly once (found ${assignments.length})`);
+    } else if (!assignments[0].synchronous) {
+      errors.push(`studio.js ${name} must be assigned synchronously during bundle evaluation`);
+    }
+  }
+  if (!installsUsableBridgeGlobalsSynchronously(studio)) {
+    errors.push("studio.js must install usable production bridge globals synchronously");
   }
   if (/AdMarketCreatorSpike/.test(`${html}\n${runtime}\n${studio}`)) {
     errors.push("legacy AdMarketCreatorSpike output is forbidden");

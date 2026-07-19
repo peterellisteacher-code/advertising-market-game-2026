@@ -14,7 +14,7 @@ import {
   type ProductSvgCompositionInput
 } from "../product-builder/product-svg-composer";
 import type { NewProductShellInput } from "./canvas-port";
-import { FABRIC_CONTROL_SIZE } from "./object-factory";
+import { FABRIC_SELECTION_STYLE } from "./object-factory";
 import "./fabric-custom-properties";
 
 const MAX_SHELL_WIDTH = 720;
@@ -230,10 +230,7 @@ export class FabricProductShellFactory {
       originY: "center",
       left: CREATOR_CONFIG.canvasWidth / 2,
       top: CREATOR_CONFIG.canvasHeight / 2,
-      cornerSize: FABRIC_CONTROL_SIZE,
-      touchCornerSize: FABRIC_CONTROL_SIZE,
-      transparentCorners: false,
-      borderScaleFactor: 2
+      ...FABRIC_SELECTION_STYLE
     });
     shell.setCoords();
     return shell;

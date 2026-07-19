@@ -1,0 +1,31 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetId": "61-patio-outdoor-living-add-ons-v2",
+  "items": [
+    {"row": 1, "column": 1, "label": "Outdoor armchair", "tags": ["add-on", "armchair", "outdoor-seating", "patio-outdoor-living"]},
+    {"row": 1, "column": 2, "label": "Two-seat outdoor sofa", "tags": ["add-on", "outdoor-seating", "patio-outdoor-living", "sofa", "two-seat"]},
+    {"row": 1, "column": 3, "label": "Corner outdoor seat module", "tags": ["add-on", "corner-module", "outdoor-seating", "patio-outdoor-living"]},
+    {"row": 1, "column": 4, "label": "Slatted outdoor dining chair", "tags": ["add-on", "dining-chair", "outdoor-seating", "patio-outdoor-living", "slatted"]},
+    {"row": 1, "column": 5, "label": "Hanging egg chair with stand", "tags": ["add-on", "egg-chair", "hanging-chair", "patio-outdoor-living", "stand"]},
+    {"row": 2, "column": 1, "label": "Rectangular outdoor dining table", "tags": ["add-on", "dining-table", "outdoor-table", "patio-outdoor-living", "rectangular"]},
+    {"row": 2, "column": 2, "label": "Rectangular outdoor coffee table with lower shelf", "tags": ["add-on", "coffee-table", "lower-shelf", "outdoor-table", "patio-outdoor-living", "rectangular"]},
+    {"row": 2, "column": 3, "label": "Square outdoor side table with lower shelf", "tags": ["add-on", "lower-shelf", "outdoor-table", "patio-outdoor-living", "side-table", "square"]},
+    {"row": 2, "column": 4, "label": "Round pedestal cafe table", "tags": ["add-on", "cafe-table", "outdoor-table", "patio-outdoor-living", "pedestal", "round"]},
+    {"row": 2, "column": 5, "label": "Wheeled outdoor serving cart", "tags": ["add-on", "outdoor-serving", "patio-outdoor-living", "serving-cart", "wheeled"]},
+    {"row": 3, "column": 1, "label": "Gas barbecue grill", "tags": ["add-on", "barbecue", "gas-grill", "outdoor-cooking", "patio-outdoor-living"]},
+    {"row": 3, "column": 2, "label": "Kettle charcoal barbecue", "tags": ["add-on", "barbecue", "charcoal", "kettle", "outdoor-cooking", "patio-outdoor-living"]},
+    {"row": 3, "column": 3, "label": "Outdoor base cabinet with worktop", "tags": ["add-on", "base-cabinet", "outdoor-kitchen", "patio-outdoor-living", "worktop"]},
+    {"row": 3, "column": 4, "label": "Round fire pit", "tags": ["add-on", "fire-pit", "heating", "outdoor-living", "patio-outdoor-living", "round"]},
+    {"row": 3, "column": 5, "label": "Freestanding patio heater", "tags": ["add-on", "freestanding", "heating", "patio-heater", "patio-outdoor-living"]},
+    {"row": 4, "column": 1, "label": "Tall square planter", "tags": ["add-on", "patio-outdoor-living", "planter", "square", "tall"]},
+    {"row": 4, "column": 2, "label": "Rectangular trough planter", "tags": ["add-on", "patio-outdoor-living", "planter", "rectangular", "trough"]},
+    {"row": 4, "column": 3, "label": "Freestanding patio umbrella", "tags": ["add-on", "freestanding", "patio-outdoor-living", "shade", "umbrella"]},
+    {"row": 4, "column": 4, "label": "Retractable wall awning", "tags": ["add-on", "awning", "patio-outdoor-living", "retractable", "wall-mounted"]},
+    {"row": 4, "column": 5, "label": "Triangular shade sail", "tags": ["add-on", "patio-outdoor-living", "shade-sail", "triangular"]},
+    {"row": 5, "column": 1, "label": "String of four festoon lights", "tags": ["add-on", "festoon-lights", "lighting", "patio-outdoor-living", "string-lights"]},
+    {"row": 5, "column": 2, "label": "Cylindrical wall light", "tags": ["add-on", "cylindrical", "lighting", "patio-outdoor-living", "wall-light"]},
+    {"row": 5, "column": 3, "label": "Short bollard light", "tags": ["add-on", "bollard-light", "lighting", "patio-outdoor-living", "short"]},
+    {"row": 5, "column": 4, "label": "Square hot tub", "tags": ["add-on", "hot-tub", "patio-outdoor-living", "spa", "square"]},
+    {"row": 5, "column": 5, "label": "Freestanding outdoor shower", "tags": ["add-on", "freestanding", "outdoor-shower", "patio-outdoor-living", "water"]}
+  ]
+}

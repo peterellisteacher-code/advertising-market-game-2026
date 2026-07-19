@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 55,
+  "sourcePng": "55-patio-deck-pergola-base-layouts.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Flat square deck platform", "tags": ["deck base", "flat", "square"]},
+    {"row": 1, "column": 2, "label": "Raised rectangular deck with steps", "tags": ["deck base", "raised", "steps"]},
+    {"row": 1, "column": 3, "label": "L-shaped deck platform", "tags": ["deck base", "l shaped", "platform"]},
+    {"row": 1, "column": 4, "label": "Square walled patio", "tags": ["patio base", "square", "walled"]},
+    {"row": 1, "column": 5, "label": "Deck with rectangular opening", "tags": ["deck base", "open centre", "rectangular opening"]},
+    {"row": 2, "column": 1, "label": "Freestanding open-roof pergola", "tags": ["freestanding", "open roof", "pergola"]},
+    {"row": 2, "column": 2, "label": "Wall-mounted open-roof pergola", "tags": ["open roof", "pergola", "wall mounted"]},
+    {"row": 2, "column": 3, "label": "Square slatted-roof pavilion", "tags": ["pavilion", "slatted roof", "square"]},
+    {"row": 2, "column": 4, "label": "Arched-roof pergola", "tags": ["arched roof", "freestanding", "pergola"]},
+    {"row": 2, "column": 5, "label": "Corner wall pergola", "tags": ["corner", "pergola", "wall mounted"]},
+    {"row": 3, "column": 1, "label": "Wall-backed patio canopy", "tags": ["canopy", "patio base", "wall backed"]},
+    {"row": 3, "column": 2, "label": "Flat square paved patio", "tags": ["flat", "patio base", "paved"]},
+    {"row": 3, "column": 3, "label": "Three-sided sunken patio", "tags": ["patio base", "sunken", "three sided"]},
+    {"row": 3, "column": 4, "label": "Stepped sunken patio", "tags": ["patio base", "steps", "sunken"]},
+    {"row": 3, "column": 5, "label": "Glazed garden room", "tags": ["garden room", "glazed", "patio base"]},
+    {"row": 4, "column": 1, "label": "Rail-enclosed raised deck", "tags": ["deck base", "railing", "raised"]},
+    {"row": 4, "column": 2, "label": "Roofed veranda platform", "tags": ["platform", "roofed", "veranda"]},
+    {"row": 4, "column": 3, "label": "Outdoor-kitchen deck", "tags": ["deck base", "outdoor kitchen", "rear counter"]},
+    {"row": 4, "column": 4, "label": "Circle-marked paved patio", "tags": ["circular marking", "patio base", "paved"]},
+    {"row": 4, "column": 5, "label": "Wall-backed paved patio", "tags": ["patio base", "paved", "wall backed"]},
+    {"row": 5, "column": 1, "label": "Circular paved fire-pit surround", "tags": ["circular", "fire pit", "paved surround"]},
+    {"row": 5, "column": 2, "label": "Square deck with central opening", "tags": ["central opening", "deck base", "square"]},
+    {"row": 5, "column": 3, "label": "Octagonal gazebo", "tags": ["freestanding", "gazebo", "octagonal"]},
+    {"row": 5, "column": 4, "label": "Long gabled pavilion", "tags": ["gabled roof", "long", "pavilion"]},
+    {"row": 5, "column": 5, "label": "Wall-attached balcony deck", "tags": ["balcony deck", "railing", "wall attached"]}
+  ]
+}

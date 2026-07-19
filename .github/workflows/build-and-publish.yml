@@ -1,0 +1,151 @@
+# Advertising Market Game — validation and web artifact build (NO auto-deploy).
+#
+# GitHub is the source of truth. This workflow validates the project and builds
+# a downloadable web artifact, but it deliberately never deploys to Netlify.
+# Manual Netlify CLI deployment must publish build/web AND bundle
+# netlify/deploy-functions. A static-only auto-deploy would silently remove the
+# /api/account/* Functions and break classroom accounts.
+#
+# Required repository variables (Settings -> Secrets and variables -> Actions):
+#   GODOT_VERSION -> 4.7.1
+#   EXPORT_NAME   -> advertising-market-game
+
+name: "Build & Validate Web"
+
+on:
+  push:
+    branches:
+      - "main"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GODOT_VERSION: ${{ vars.GODOT_VERSION }}
+  EXPORT_NAME: ${{ vars.EXPORT_NAME }}
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.7.0 --activate
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        run: pnpm typecheck
+
+      - name: Run application tests
+        run: pnpm test
+
+      - name: Run web-build contract tests
+        run: pnpm test:build-web
+
+  export-web:
+    name: Export Godot Web
+    needs: validate
+    runs-on: ubuntu-24.04
+    container:
+      image: barichello/godot-ci:${{ vars.GODOT_VERSION }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up export templates
+        run: |
+          mkdir -v -p ~/.local/share/godot/export_templates/
+          mkdir -v -p ~/.config/
+          mv -v /root/.config/godot ~/.config/godot || true
+          mv -v /root/.local/share/godot/export_templates/${GODOT_VERSION}.stable \
+               ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable || true
+
+      - name: Run Godot tests
+        run: godot --headless --path godot --script res://tests/run_tests.gd
+
+      - name: Export Web build
+        run: |
+          mkdir -v -p build/web
+          EXPORT_DIR="$(readlink -f build/web)"
+          godot --headless --path godot --export-release "Web" "$EXPORT_DIR/index.html"
+
+      - name: Upload raw Godot export
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.EXPORT_NAME }}-godot-web
+          path: build/web/
+          if-no-files-found: error
+          retention-days: 30
+
+  assemble-web:
+    name: Assemble Complete Web Artifact
+    needs: export-web
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.7.0 --activate
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download Godot export
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.EXPORT_NAME }}-godot-web
+          path: build/web/
+
+      - name: Build account Function bundle
+        run: pnpm build:functions
+
+      - name: Build creator studio
+        run: pnpm build:studio
+
+      - name: Build logo catalogue
+        run: pnpm build:logo-icons
+
+      - name: Assemble complete web export
+        run: >-
+          node scripts/build-web.mjs
+          --require-offline-core
+          --minimum-offline-records=2000
+          --require-product-shells
+          --require-product-builder
+          --require-logo-icons
+
+      - name: Verify complete web export
+        run: node scripts/verify-web-export.mjs build/web
+
+      - name: Upload complete web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.EXPORT_NAME }}-web
+          path: build/web/
+          if-no-files-found: error
+          retention-days: 90
+
+      # NO deploy step. Production and draft deploys remain manual Netlify CLI
+      # operations from a verified repository checkout so static files and
+      # netlify/deploy-functions are published together.

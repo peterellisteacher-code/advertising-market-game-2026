@@ -1,9 +1,11 @@
 import type { CatalogAssetV1 } from "./catalogue-types";
+import type { RasterPricingIndex } from "./raster-pricing";
 import { computeVirtualColumns, computeVirtualWindow } from "./virtual-grid";
+import { formatMarketBucks } from "../product-builder/product-money-panel";
 
 const PLACEHOLDER_THUMBNAIL = "/catalog/system/missing-thumbnail.svg";
-const ROW_HEIGHT = 180;
-const MIN_TILE_WIDTH = 160;
+const ROW_HEIGHT = 190;
+const MIN_TILE_WIDTH = 132;
 const OPENVERSE_IMAGE_PATH = /^\/api\/openverse-image\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 const isExactOpenverseProxy = (url: URL): boolean => {
@@ -31,6 +33,7 @@ export class CataloguePanel {
   #scrollTop = 0;
   #viewportHeight = 900;
   #columns = 6;
+  #priceByAssetId: ReadonlyMap<string, number> = new Map();
   #resizeObserver?: ResizeObserver;
 
   readonly #handleScroll = (): void => {
@@ -65,6 +68,13 @@ export class CataloguePanel {
     this.#scrollTop = Math.max(0, scrollTop);
     this.#viewportHeight = Math.max(0, viewportHeight);
     this.#columns = Math.max(1, Math.floor(columns));
+    this.#paint();
+  }
+
+  setPricing(pricing: RasterPricingIndex | null): void {
+    this.#priceByAssetId = pricing === null
+      ? new Map()
+      : new Map([...pricing.byAssetId].map(([assetId, { costCents }]) => [assetId, costCents]));
     this.#paint();
   }
 
@@ -115,14 +125,33 @@ export class CataloguePanel {
       image.src = validatedAssetUrl(asset.files.thumbnail);
 
       const title = document.createElement("span");
+      title.dataset.catalogueTitle = "";
       title.textContent = asset.title;
       button.append(image, title);
+      const costCents = asset.delivery === "offline"
+        ? this.#priceByAssetId.get(asset.id)
+        : undefined;
+      if (costCents !== undefined) {
+        const price = document.createElement("span");
+        price.dataset.cataloguePrice = "";
+        price.textContent = formatMarketBucks(costCents);
+        button.append(price);
+      }
       if (asset.kind === "photo") {
         const attribution = document.createElement("span");
         attribution.dataset.catalogueAttribution = "";
         attribution.textContent = `${asset.attribution.creator} · ${asset.attribution.license}`;
         button.append(attribution);
       }
+      const action = document.createElement("span");
+      action.dataset.catalogueAction = "";
+      if (asset.delivery === "offline" && asset.recolourZones.includes("body")) {
+        action.dataset.colourable = "";
+        action.textContent = "Add with chosen colour";
+      } else {
+        action.textContent = "Add to ad";
+      }
+      button.append(action);
       button.addEventListener("click", () => this.onPick(asset));
       item.append(button);
       mount.append(item);

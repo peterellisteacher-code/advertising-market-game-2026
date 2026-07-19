@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 73,
+  "sourcePng": "73-agriculture-farm-equipment-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Compact tractor", "tags": ["agriculture", "compact tractor", "tractor"]},
+    {"row": 1, "column": 2, "label": "Orchard tractor", "tags": ["agriculture", "orchard tractor", "tractor"]},
+    {"row": 1, "column": 3, "label": "Tracked tractor", "tags": ["agriculture", "tracked tractor", "tractor"]},
+    {"row": 1, "column": 4, "label": "Combine harvester", "tags": ["agriculture", "combine harvester", "harvester"]},
+    {"row": 1, "column": 5, "label": "Forage harvester", "tags": ["agriculture", "forage harvester", "harvester"]},
+    {"row": 2, "column": 1, "label": "Round baler", "tags": ["agriculture", "baler", "round baler"]},
+    {"row": 2, "column": 2, "label": "Square baler", "tags": ["agriculture", "baler", "square baler"]},
+    {"row": 2, "column": 3, "label": "Seed drill", "tags": ["agriculture", "planting equipment", "seed drill"]},
+    {"row": 2, "column": 4, "label": "Row planter", "tags": ["agriculture", "planting equipment", "row planter"]},
+    {"row": 2, "column": 5, "label": "Mouldboard plough", "tags": ["agriculture", "mouldboard plough", "plough"]},
+    {"row": 3, "column": 1, "label": "Boom sprayer vehicle", "tags": ["agriculture", "boom sprayer", "sprayer vehicle"]},
+    {"row": 3, "column": 2, "label": "Fertiliser spreader vehicle", "tags": ["agriculture", "fertiliser spreader", "spreader vehicle"]},
+    {"row": 3, "column": 3, "label": "Front loader", "tags": ["agriculture", "front loader", "loader"]},
+    {"row": 3, "column": 4, "label": "Skid-steer loader", "tags": ["agriculture", "loader", "skid-steer"]},
+    {"row": 3, "column": 5, "label": "Telehandler", "tags": ["agriculture", "lifting equipment", "telehandler"]},
+    {"row": 4, "column": 1, "label": "Farm utility vehicle", "tags": ["agriculture", "farm utility vehicle", "utility vehicle"]},
+    {"row": 4, "column": 2, "label": "Ride-on lawn mower", "tags": ["garden machinery", "lawn mower", "ride-on mower"]},
+    {"row": 4, "column": 3, "label": "Zero-turn mower", "tags": ["garden machinery", "lawn mower", "zero-turn mower"]},
+    {"row": 4, "column": 4, "label": "Push lawn mower", "tags": ["garden machinery", "lawn mower", "push mower"]},
+    {"row": 4, "column": 5, "label": "Powered garden tiller", "tags": ["garden machinery", "garden tiller", "powered tiller"]},
+    {"row": 5, "column": 1, "label": "Wheelbarrow", "tags": ["garden equipment", "hauling", "wheelbarrow"]},
+    {"row": 5, "column": 2, "label": "Four-wheel garden cart", "tags": ["four-wheel cart", "garden cart", "garden equipment"]},
+    {"row": 5, "column": 3, "label": "Twin-axle garden trailer", "tags": ["garden equipment", "garden trailer", "twin-axle trailer"]},
+    {"row": 5, "column": 4, "label": "Farm utility trailer", "tags": ["agriculture", "farm trailer", "utility trailer"]},
+    {"row": 5, "column": 5, "label": "Large farm tipping trailer", "tags": ["agriculture", "farm trailer", "tipping trailer"]}
+  ]
+}

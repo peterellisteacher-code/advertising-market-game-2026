@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 87,
+  "sourcePng": "87-digital-service-app-subscription-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "blank portrait smartphone frame", "tags": ["base", "blank", "device", "portrait", "smartphone"]},
+    {"row": 1, "column": 2, "label": "blank landscape smartphone frame", "tags": ["base", "blank", "device", "landscape", "smartphone"]},
+    {"row": 1, "column": 3, "label": "blank portrait tablet frame", "tags": ["base", "blank", "device", "portrait", "tablet"]},
+    {"row": 1, "column": 4, "label": "blank landscape tablet frame", "tags": ["base", "blank", "device", "landscape", "tablet"]},
+    {"row": 1, "column": 5, "label": "blank laptop frame", "tags": ["base", "blank", "device", "laptop"]},
+    {"row": 2, "column": 1, "label": "blank desktop monitor frame", "tags": ["base", "blank", "desktop", "device", "monitor"]},
+    {"row": 2, "column": 2, "label": "blank all in one desktop frame", "tags": ["all-in-one", "base", "blank", "desktop", "device"]},
+    {"row": 2, "column": 3, "label": "blank wide browser window shell", "tags": ["base", "blank", "browser", "shell", "wide", "window"]},
+    {"row": 2, "column": 4, "label": "blank compact app window shell", "tags": ["app", "base", "blank", "compact", "shell", "window"]},
+    {"row": 2, "column": 5, "label": "blank floating panel window shell", "tags": ["base", "blank", "floating", "panel", "shell", "window"]},
+    {"row": 3, "column": 1, "label": "blank sidebar dashboard shell", "tags": ["base", "blank", "dashboard", "shell", "sidebar"]},
+    {"row": 3, "column": 2, "label": "blank top bar dashboard shell", "tags": ["base", "blank", "dashboard", "shell", "top-bar"]},
+    {"row": 3, "column": 3, "label": "blank split view dashboard shell", "tags": ["base", "blank", "dashboard", "shell", "split-view"]},
+    {"row": 3, "column": 4, "label": "blank three column dashboard shell", "tags": ["base", "blank", "dashboard", "shell", "three-column"]},
+    {"row": 3, "column": 5, "label": "blank card grid dashboard shell", "tags": ["base", "blank", "card-grid", "dashboard", "shell"]},
+    {"row": 4, "column": 1, "label": "single blank subscription plan card shell", "tags": ["base", "blank", "card", "plan", "single", "subscription"]},
+    {"row": 4, "column": 2, "label": "paired blank plan card group shell", "tags": ["base", "blank", "card", "group", "paired", "plan"]},
+    {"row": 4, "column": 3, "label": "triple blank plan card group shell", "tags": ["base", "blank", "card", "group", "plan", "triple"]},
+    {"row": 4, "column": 4, "label": "blank membership pass card shell", "tags": ["base", "blank", "card", "membership", "pass", "shell"]},
+    {"row": 4, "column": 5, "label": "blank digital service package card shell", "tags": ["base", "blank", "card", "digital-service", "package", "shell"]},
+    {"row": 5, "column": 1, "label": "blank booking service portal shell", "tags": ["base", "blank", "booking", "portal", "service", "shell"]},
+    {"row": 5, "column": 2, "label": "blank media service portal shell", "tags": ["base", "blank", "media", "portal", "service", "shell"]},
+    {"row": 5, "column": 3, "label": "blank cloud service portal shell", "tags": ["base", "blank", "cloud", "portal", "service", "shell"]},
+    {"row": 5, "column": 4, "label": "blank marketplace service portal shell", "tags": ["base", "blank", "marketplace", "portal", "service", "shell"]},
+    {"row": 5, "column": 5, "label": "blank community service portal shell", "tags": ["base", "blank", "community", "portal", "service", "shell"]}
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 101,
+  "sourcePng": "101-pet-animal-care-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Single pet food bowl", "tags": ["feeding bowl", "pet base", "pet food"]},
+    {"row": 1, "column": 2, "label": "Raised double feeding station", "tags": ["double bowls", "feeding station", "pet base"]},
+    {"row": 1, "column": 3, "label": "Elevated single-bowl stand", "tags": ["bowl stand", "elevated feeder", "pet base"]},
+    {"row": 1, "column": 4, "label": "Circulating pet water fountain", "tags": ["pet base", "water bowl", "water fountain"]},
+    {"row": 1, "column": 5, "label": "Lidded pet-food storage bin", "tags": ["food storage", "lidded bin", "pet base"]},
+    {"row": 2, "column": 1, "label": "Round bolster pet bed", "tags": ["bolster bed", "pet base", "round bed"]},
+    {"row": 2, "column": 2, "label": "Rectangular pet bed", "tags": ["pet base", "pet bed", "rectangular bed"]},
+    {"row": 2, "column": 3, "label": "Domed pet cave", "tags": ["domed bed", "pet base", "pet cave"]},
+    {"row": 2, "column": 4, "label": "Raised mesh pet cot", "tags": ["mesh cot", "pet base", "raised bed"]},
+    {"row": 2, "column": 5, "label": "Rectangular pet training tray", "tags": ["pet base", "training pad", "training tray"]},
+    {"row": 3, "column": 1, "label": "Hard-shell pet carrier", "tags": ["hard carrier", "pet base", "pet carrier"]},
+    {"row": 3, "column": 2, "label": "Wire pet crate", "tags": ["pet base", "pet crate", "wire cage"]},
+    {"row": 3, "column": 3, "label": "Rectangular glass aquarium", "tags": ["aquarium", "glass tank", "pet base"]},
+    {"row": 3, "column": 4, "label": "Front-opening mesh terrarium", "tags": ["mesh enclosure", "pet base", "terrarium"]},
+    {"row": 3, "column": 5, "label": "Domed bird cage", "tags": ["bird cage", "domed cage", "pet base"]},
+    {"row": 4, "column": 1, "label": "Open litter tray", "tags": ["litter tray", "open tray", "pet base"]},
+    {"row": 4, "column": 2, "label": "Enclosed litter box", "tags": ["enclosed box", "litter box", "pet base"]},
+    {"row": 4, "column": 3, "label": "Pet grooming table", "tags": ["grooming equipment", "grooming table", "pet base"]},
+    {"row": 4, "column": 4, "label": "Raised pet wash basin", "tags": ["pet base", "pet wash", "wash basin"]},
+    {"row": 4, "column": 5, "label": "Upright scratching post", "tags": ["cat scratcher", "pet base", "scratching post"]},
+    {"row": 5, "column": 1, "label": "Pitched-roof doghouse", "tags": ["dog house", "pet base", "pet shelter"]},
+    {"row": 5, "column": 2, "label": "Multi-level cat climbing tower", "tags": ["cat tower", "climbing furniture", "pet base"]},
+    {"row": 5, "column": 3, "label": "Four-wheel pet stroller", "tags": ["pet base", "pet stroller", "wheeled carrier"]},
+    {"row": 5, "column": 4, "label": "Raised rabbit hutch", "tags": ["animal hutch", "pet base", "rabbit hutch"]},
+    {"row": 5, "column": 5, "label": "Chicken coop with mesh run", "tags": ["chicken coop", "mesh run", "pet base"]}
+  ]
+}

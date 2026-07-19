@@ -23,6 +23,7 @@ export class ProductShellRegionControls {
   ) {}
 
   show(state: ProductShellRegionState): void {
+    this.host.hidden = false;
     const heading = document.createElement("h2");
     heading.textContent = state.title;
     const guidance = document.createElement("p");
@@ -48,8 +49,7 @@ export class ProductShellRegionControls {
   }
 
   clear(): void {
-    const message = document.createElement("p");
-    message.textContent = "Choose or make a product to see its details.";
-    this.host.replaceChildren(message);
+    this.host.replaceChildren();
+    this.host.hidden = true;
   }
 }

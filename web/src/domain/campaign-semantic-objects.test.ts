@@ -75,4 +75,21 @@ describe("campaign semantic object tree", () => {
     expect(() => collectCampaignSemanticObjects(malformed))
       .toThrow("children must be an array");
   });
+
+  it("fails closed on cyclic or excessively deep Fabric object graphs without recursion", () => {
+    const cyclic: Record<string, unknown> = { type: "Group", objects: [] };
+    (cyclic.objects as unknown[]).push(cyclic);
+    expect(() => collectCampaignSemanticObjects({ version: "7.4.0", objects: [cyclic] }))
+      .toThrow("cycles or aliases");
+
+    const root: Record<string, unknown> = { type: "Group", objects: [] };
+    let current = root;
+    for (let depth = 0; depth < 102; depth += 1) {
+      const child: Record<string, unknown> = { type: "Group", objects: [] };
+      (current.objects as unknown[]).push(child);
+      current = child;
+    }
+    expect(() => collectCampaignSemanticObjects({ version: "7.4.0", objects: [root] }))
+      .toThrow("maximum depth");
+  });
 });

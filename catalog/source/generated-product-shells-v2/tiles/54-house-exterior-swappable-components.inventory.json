@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 54,
+  "sourcePng": "54-house-exterior-swappable-components.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Gabled roof module", "tags": ["gabled", "house component", "roof module"]},
+    {"row": 1, "column": 2, "label": "Hipped roof module", "tags": ["hipped", "house component", "roof module"]},
+    {"row": 1, "column": 3, "label": "Rectangular raised-curb roof module", "tags": ["house component", "raised curb", "roof module"]},
+    {"row": 1, "column": 4, "label": "Single-slope awning roof", "tags": ["awning roof", "house component", "single slope"]},
+    {"row": 1, "column": 5, "label": "Curved fabric door awning", "tags": ["curved awning", "fabric", "house component"]},
+    {"row": 2, "column": 1, "label": "Panelled single door", "tags": ["house component", "panelled", "single door"]},
+    {"row": 2, "column": 2, "label": "Panelled double doors", "tags": ["double doors", "house component", "panelled"]},
+    {"row": 2, "column": 3, "label": "Modern horizontal-panel door", "tags": ["horizontal panels", "house component", "modern door"]},
+    {"row": 2, "column": 4, "label": "Roller garage door", "tags": ["garage door", "house component", "roller door"]},
+    {"row": 2, "column": 5, "label": "Sectional garage door", "tags": ["garage door", "house component", "sectional"]},
+    {"row": 3, "column": 1, "label": "Four-pane sash window", "tags": ["four pane", "house component", "sash window"]},
+    {"row": 3, "column": 2, "label": "Open casement window", "tags": ["casement window", "house component", "open"]},
+    {"row": 3, "column": 3, "label": "Three-sided bay window", "tags": ["bay window", "house component", "three sided"]},
+    {"row": 3, "column": 4, "label": "Two-panel sliding window", "tags": ["house component", "sliding window", "two panel"]},
+    {"row": 3, "column": 5, "label": "Round four-pane window", "tags": ["four pane", "house component", "round window"]},
+    {"row": 4, "column": 1, "label": "Corner veranda railing", "tags": ["corner railing", "house component", "veranda"]},
+    {"row": 4, "column": 2, "label": "Three-bay veranda", "tags": ["house component", "three bay", "veranda"]},
+    {"row": 4, "column": 3, "label": "Rectangular brick chimney", "tags": ["brick chimney", "house component", "rectangular"]},
+    {"row": 4, "column": 4, "label": "Roof gutter with downpipe", "tags": ["downpipe", "gutter", "house component"]},
+    {"row": 4, "column": 5, "label": "Tilted solar-panel array", "tags": ["house component", "solar array", "tilted"]},
+    {"row": 5, "column": 1, "label": "Picket fence panel", "tags": ["fence panel", "house component", "picket"]},
+    {"row": 5, "column": 2, "label": "Horizontal-slat fence panel", "tags": ["fence panel", "horizontal slats", "house component"]},
+    {"row": 5, "column": 3, "label": "Arched timber gate", "tags": ["arched", "house component", "timber gate"]},
+    {"row": 5, "column": 4, "label": "Outdoor staircase with railing", "tags": ["house component", "outdoor staircase", "railing"]},
+    {"row": 5, "column": 5, "label": "Corrugated cylindrical water tank", "tags": ["corrugated", "cylindrical", "water tank"]}
+  ]
+}

@@ -1,7 +1,91 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://src/main/Main.gd" id="1_main"]
 [ext_resource type="Script" path="res://src/creator/CreatorHost.gd" id="2_host"]
+[ext_resource type="Script" path="res://src/market/MarketHost.gd" id="3_market_host"]
+[ext_resource type="PackedScene" path="res://src/market/ui/MarketScreen.tscn" id="4_market_screen"]
+
+[sub_resource type="StyleBoxFlat" id="Style_panel"]
+bg_color = Color(1, 1, 1, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.85098, 0.819608, 0.764706, 1)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+content_margin_left = 28.0
+content_margin_top = 24.0
+content_margin_right = 28.0
+content_margin_bottom = 24.0
+
+[sub_resource type="StyleBoxFlat" id="Style_chip"]
+bg_color = Color(0.968627, 0.952941, 0.921569, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="Style_primary"]
+bg_color = Color(0.713725, 0.227451, 0.0823529, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 20.0
+content_margin_top = 13.0
+content_margin_right = 20.0
+content_margin_bottom = 13.0
+
+[sub_resource type="StyleBoxFlat" id="Style_primary_hover"]
+bg_color = Color(0.764706, 0.278431, 0.105882, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 20.0
+content_margin_top = 13.0
+content_margin_right = 20.0
+content_margin_bottom = 13.0
+
+[sub_resource type="StyleBoxFlat" id="Style_primary_pressed"]
+bg_color = Color(0.745098, 0.25098, 0.117647, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 20.0
+content_margin_top = 13.0
+content_margin_right = 20.0
+content_margin_bottom = 13.0
+
+[sub_resource type="StyleBoxFlat" id="Style_secondary"]
+bg_color = Color(0.0901961, 0.129412, 0.168627, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 20.0
+content_margin_top = 13.0
+content_margin_right = 20.0
+content_margin_bottom = 13.0
+
+[sub_resource type="StyleBoxFlat" id="Style_disabled"]
+bg_color = Color(0.796078, 0.788235, 0.768627, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 20.0
+content_margin_top = 13.0
+content_margin_right = 20.0
+content_margin_bottom = 13.0
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -12,32 +96,420 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_main")
 
-[node name="GameInput" type="VBoxContainer" parent="."]
-unique_name_in_owner = true
-layout_mode = 0
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.94902, 0.937255, 0.909804, 1)
+
+[node name="TopStripe" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 10.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.894118, 0.341176, 0.180392, 1)
+
+[node name="MainMargin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 offset_left = 48.0
-offset_top = 48.0
-offset_right = 520.0
-offset_bottom = 230.0
+offset_top = 36.0
+offset_right = -48.0
+offset_bottom = -36.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="GameInput" type="VBoxContainer" parent="MainMargin"]
+unique_name_in_owner = true
+layout_mode = 2
 theme_override_constants/separation = 18
 
-[node name="Heading" type="Label" parent="GameInput"]
+[node name="BrandRow" type="HBoxContainer" parent="MainMargin/GameInput"]
 layout_mode = 2
-text = "Advertising Market Game"
 
-[node name="LaunchCreator" type="Button" parent="GameInput"]
+[node name="Brand" type="Label" parent="MainMargin/GameInput/BrandRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 22
+text = "PITCH//BLITZ"
+
+[node name="PlayMode" type="Label" parent="MainMargin/GameInput/BrandRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.407843, 0.447059, 0.490196, 1)
+theme_override_font_sizes/font_size = 15
+text = "PAIR PLAY  •  50–60 MIN"
+
+[node name="HeroHeading" type="Label" parent="MainMargin/GameInput"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 40
+text = "Invent something impossible to ignore."
+autowrap_mode = 2
+
+[node name="HeroCopy" type="Label" parent="MainMargin/GameInput"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
+theme_override_font_sizes/font_size = 18
+text = "Three levels. One original product. A live market full of other teams trying to win your wallet."
+autowrap_mode = 2
+
+[node name="LobbyPanel" type="PanelContainer" parent="MainMargin/GameInput"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Open Campaign Creator"
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("Style_panel")
 
-[node name="Status" type="Label" parent="GameInput"]
+[node name="LobbyContent" type="VBoxContainer" parent="MainMargin/GameInput/LobbyPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="LobbyEyebrow" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.894118, 0.341176, 0.180392, 1)
+theme_override_font_sizes/font_size = 14
+text = "FIRST MOVE"
+
+[node name="LobbyHeading" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 26
+text = "Get your pair onto the market floor"
+
+[node name="LobbyColumns" type="HBoxContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="JoinArea" type="PanelContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("Style_chip")
+
+[node name="JoinContent" type="VBoxContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/JoinArea"]
+layout_mode = 2
+theme_override_constants/separation = 9
+
+[node name="JoinEyebrow" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/JoinArea/JoinContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.713725, 0.227451, 0.0823529, 1)
+theme_override_font_sizes/font_size = 14
+text = "JOIN A LIVE ROOM"
+
+[node name="AliasLabel" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/JoinArea/JoinContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 16
+text = "Pair alias"
+
+[node name="TeamAlias" type="LineEdit" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/JoinArea/JoinContent"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+placeholder_text = "Try Neon Narwhals"
+max_length = 32
+clear_button_enabled = true
+
+[node name="RoomCodeLabel" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/JoinArea/JoinContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 16
+text = "Room code"
+
+[node name="RoomCode" type="LineEdit" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/JoinArea/JoinContent"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+placeholder_text = "ABC-234"
+max_length = 7
+clear_button_enabled = true
+
+[node name="JoinLiveMarket" type="Button" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/JoinArea/JoinContent"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(230, 50)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Style_primary")
+theme_override_styles/hover = SubResource("Style_primary_hover")
+theme_override_styles/pressed = SubResource("Style_primary_pressed")
+text = "Join the live market"
+
+[node name="HostArea" type="PanelContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("Style_chip")
+
+[node name="HostContent" type="VBoxContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea"]
+layout_mode = 2
+theme_override_constants/separation = 9
+
+[node name="HostEyebrow" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.713725, 0.227451, 0.0823529, 1)
+theme_override_font_sizes/font_size = 14
+text = "HOST A CLASS MARKET"
+
+[node name="ClassroomCodeLabel" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 16
+text = "Classroom code"
+
+[node name="ClassroomCode" type="LineEdit" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+placeholder_text = "Teacher room key"
+max_length = 128
+secret = true
+clear_button_enabled = true
+
+[node name="HostOptions" type="HBoxContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="WalletField" type="VBoxContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent/HostOptions"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="WalletLabel" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent/HostOptions/WalletField"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 14
+text = "Starting budget ($)"
+
+[node name="OpeningWalletBucks" type="SpinBox" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent/HostOptions/WalletField"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+min_value = 1.0
+max_value = 10000.0
+value = 100.0
+allow_greater = false
+allow_lesser = false
+
+[node name="CapacityField" type="VBoxContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent/HostOptions"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="CapacityLabel" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent/HostOptions/CapacityField"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 14
+text = "Team seats"
+
+[node name="MaxTeams" type="SpinBox" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent/HostOptions/CapacityField"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+min_value = 3.0
+max_value = 30.0
+value = 15.0
+allow_greater = false
+allow_lesser = false
+
+[node name="CreateLiveMarket" type="Button" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(230, 50)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Style_primary")
+theme_override_styles/hover = SubResource("Style_primary_hover")
+theme_override_styles/pressed = SubResource("Style_primary_pressed")
+text = "Open a class market"
+
+[node name="PracticeDivider" type="HSeparator" parent="MainMargin/GameInput/LobbyPanel/LobbyContent"]
+layout_mode = 2
+
+[node name="PracticeRow" type="HBoxContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="PracticeCopy" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/PracticeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
+theme_override_font_sizes/font_size = 15
+text = "No room code yet? Try a local warm-up."
+vertical_alignment = 1
+
+[node name="StartRun" type="Button" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/PracticeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 50)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Style_secondary")
+theme_override_styles/hover = SubResource("Style_secondary")
+theme_override_styles/pressed = SubResource("Style_secondary")
+text = "Practice on this computer"
+
+[node name="MarketScreen" parent="MainMargin/GameInput" instance=ExtResource("4_market_screen")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RunPanel" type="PanelContainer" parent="MainMargin/GameInput"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Game ready"
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("Style_panel")
+
+[node name="RunContent" type="VBoxContainer" parent="MainMargin/GameInput/RunPanel"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="LevelProgress" type="HBoxContainer" parent="MainMargin/GameInput/RunPanel/RunContent"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="InventCard" type="PanelContainer" parent="MainMargin/GameInput/RunPanel/RunContent/LevelProgress"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("Style_chip")
+
+[node name="InventChip" type="Label" parent="MainMargin/GameInput/RunPanel/RunContent/LevelProgress/InventCard"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "01  INVENT IT"
+
+[node name="SellCard" type="PanelContainer" parent="MainMargin/GameInput/RunPanel/RunContent/LevelProgress"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("Style_chip")
+
+[node name="SellChip" type="Label" parent="MainMargin/GameInput/RunPanel/RunContent/LevelProgress/SellCard"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "02  SELL IT"
+
+[node name="IrresistibleCard" type="PanelContainer" parent="MainMargin/GameInput/RunPanel/RunContent/LevelProgress"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("Style_chip")
+
+[node name="IrresistibleChip" type="Label" parent="MainMargin/GameInput/RunPanel/RunContent/LevelProgress/IrresistibleCard"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "03  MAKE IT IRRESISTIBLE"
+
+[node name="LevelEyebrow" type="Label" parent="MainMargin/GameInput/RunPanel/RunContent"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.894118, 0.341176, 0.180392, 1)
+theme_override_font_sizes/font_size = 14
+text = "LEVEL 1 // INVENT IT"
+
+[node name="LevelHeading" type="Label" parent="MainMargin/GameInput/RunPanel/RunContent"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 30
+text = "Build the thing they did not know they needed."
+autowrap_mode = 2
+
+[node name="LevelClue" type="Label" parent="MainMargin/GameInput/RunPanel/RunContent"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
+theme_override_font_sizes/font_size = 18
+text = "Read your audience signal, shape a product, and give it a name worth remembering."
+autowrap_mode = 2
+
+[node name="ActionRow" type="HBoxContainer" parent="MainMargin/GameInput/RunPanel/RunContent"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="LaunchCreator" type="Button" parent="MainMargin/GameInput/RunPanel/RunContent/ActionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(230, 50)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Style_primary")
+theme_override_styles/hover = SubResource("Style_primary_hover")
+theme_override_styles/pressed = SubResource("Style_primary_pressed")
+text = "Open the creative studio"
+
+[node name="LockLevel" type="Button" parent="MainMargin/GameInput/RunPanel/RunContent/ActionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(170, 50)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.35, 0.35, 0.35, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Style_secondary")
+theme_override_styles/hover = SubResource("Style_secondary")
+theme_override_styles/pressed = SubResource("Style_secondary")
+theme_override_styles/disabled = SubResource("Style_disabled")
+text = "Lock this level"
+
+[node name="AdvanceLevel" type="Button" parent="MainMargin/GameInput/RunPanel/RunContent/ActionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 50)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.35, 0.35, 0.35, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Style_secondary")
+theme_override_styles/hover = SubResource("Style_secondary")
+theme_override_styles/pressed = SubResource("Style_secondary")
+theme_override_styles/disabled = SubResource("Style_disabled")
+disabled = true
+text = "Next level"
+
+[node name="PublishCampaign" type="Button" parent="MainMargin/GameInput/RunPanel/RunContent/ActionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 50)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Style_primary")
+theme_override_styles/hover = SubResource("Style_primary_hover")
+theme_override_styles/pressed = SubResource("Style_primary_pressed")
+text = "Build the market card"
+
+[node name="Status" type="Label" parent="MainMargin/GameInput"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
+theme_override_font_sizes/font_size = 16
+text = "Choose a team name to begin."
 autowrap_mode = 2
 
 [node name="CreatorHost" type="Node" parent="."]
 unique_name_in_owner = true
 script = ExtResource("2_host")
-game_input_root_path = NodePath("../GameInput")
-launch_button_path = NodePath("../GameInput/LaunchCreator")
+game_input_root_path = NodePath("../MainMargin/GameInput")
+launch_button_path = NodePath("../MainMargin/GameInput/RunPanel/RunContent/ActionRow/LaunchCreator")
+
+[node name="MarketHost" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("3_market_host")
+game_input_root_path = NodePath("../MainMargin/GameInput")

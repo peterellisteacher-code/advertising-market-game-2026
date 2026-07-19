@@ -10,6 +10,7 @@ import {
 
 export interface CreatorPublicApi {
   handle(requestJson: string): Promise<string>;
+  showMessage(message: unknown): boolean;
 }
 
 function requestIdFrom(value: unknown): string {
@@ -99,7 +100,10 @@ function publicationForJson(value: Awaited<ReturnType<CreatorBridgeHandler["publ
   };
 }
 
-export function createCreatorPublicApi(handler: CreatorBridgeHandler): CreatorPublicApi {
+export function createCreatorPublicApi(
+  handler: CreatorBridgeHandler,
+  onMessage: (message: string) => void = () => undefined
+): CreatorPublicApi {
   const handle = async (requestJson: string): Promise<string> => {
     let decoded: unknown;
     try {
@@ -126,6 +130,15 @@ export function createCreatorPublicApi(handler: CreatorBridgeHandler): CreatorPu
         case "open":
           await handler.open(CampaignDocumentSchema.parse(structuredClone(request.payload)));
           return success(request.requestId);
+        case "loadLatest": {
+          const latest = await handler.loadLatest(request.payload.documentId);
+          return success(
+            request.requestId,
+            latest === null
+              ? null
+              : CampaignDocumentSchema.parse(structuredClone(latest))
+          );
+        }
         case "getState":
           return success(
             request.requestId,
@@ -145,5 +158,16 @@ export function createCreatorPublicApi(handler: CreatorBridgeHandler): CreatorPu
     }
   };
 
-  return Object.freeze({ handle });
+  const showMessage = (message: unknown): boolean => {
+    if (typeof message !== "string" || message !== message.trim() ||
+      message.length === 0 || message.length > 280) return false;
+    try {
+      onMessage(message);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  return Object.freeze({ handle, showMessage });
 }

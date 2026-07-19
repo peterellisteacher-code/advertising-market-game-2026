@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 96,
+  "sourcePng": "96-appliance-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Long refrigerator door handle", "tags": ["appliance add-on", "door handle", "refrigerator"]},
+    {"row": 1, "column": 2, "label": "Recessed water-dispenser module", "tags": ["appliance add-on", "refrigerator", "water dispenser"]},
+    {"row": 1, "column": 3, "label": "Wide refrigerator drawer front", "tags": ["appliance add-on", "drawer front", "refrigerator"]},
+    {"row": 1, "column": 4, "label": "Pale refrigerator shelf panel", "tags": ["appliance add-on", "refrigerator", "shelf panel"]},
+    {"row": 1, "column": 5, "label": "Refrigerator door-bin tray", "tags": ["appliance add-on", "door bin", "refrigerator"]},
+    {"row": 2, "column": 1, "label": "Round electric coil burner", "tags": ["appliance add-on", "coil burner", "cooktop"]},
+    {"row": 2, "column": 2, "label": "Plain induction cooking disc", "tags": ["appliance add-on", "cooktop", "induction zone"]},
+    {"row": 2, "column": 3, "label": "Long oven door handle", "tags": ["appliance add-on", "door handle", "oven"]},
+    {"row": 2, "column": 4, "label": "Plain microwave door frame", "tags": ["appliance add-on", "door frame", "microwave"]},
+    {"row": 2, "column": 5, "label": "Rangehood chimney extension", "tags": ["appliance add-on", "chimney extension", "rangehood"]},
+    {"row": 3, "column": 1, "label": "Round washing-machine door", "tags": ["appliance add-on", "washer door", "washing machine"]},
+    {"row": 3, "column": 2, "label": "Rectangular top-loader lid", "tags": ["appliance add-on", "top-loader lid", "washing machine"]},
+    {"row": 3, "column": 3, "label": "Laundry pedestal storage drawer", "tags": ["appliance add-on", "laundry pedestal", "storage drawer"]},
+    {"row": 3, "column": 4, "label": "Rectangular dryer vent grille", "tags": ["appliance add-on", "dryer vent", "vent grille"]},
+    {"row": 3, "column": 5, "label": "Fold-out drying rack", "tags": ["appliance add-on", "drying rack", "fold out"]},
+    {"row": 4, "column": 1, "label": "Horizontal air-conditioner vent grille", "tags": ["air conditioner", "appliance add-on", "vent grille"]},
+    {"row": 4, "column": 2, "label": "Rectangular air-filter cartridge", "tags": ["air filter", "appliance add-on", "filter cartridge"]},
+    {"row": 4, "column": 3, "label": "Round fan pedestal base", "tags": ["appliance add-on", "fan base", "pedestal base"]},
+    {"row": 4, "column": 4, "label": "Wide vacuum floor-cleaner head", "tags": ["appliance add-on", "floor head", "vacuum cleaner"]},
+    {"row": 4, "column": 5, "label": "Robot-vacuum charging dock", "tags": ["appliance add-on", "charging dock", "robot vacuum"]},
+    {"row": 5, "column": 1, "label": "Television centre pedestal stand", "tags": ["appliance add-on", "centre pedestal", "television stand"]},
+    {"row": 5, "column": 2, "label": "Pair of angled television feet", "tags": ["angled feet", "appliance add-on", "television stand"]},
+    {"row": 5, "column": 3, "label": "Low-profile television wall bracket", "tags": ["appliance add-on", "television", "wall bracket"]},
+    {"row": 5, "column": 4, "label": "Slim soundbar speaker", "tags": ["appliance add-on", "soundbar", "speaker"]},
+    {"row": 5, "column": 5, "label": "Narrow television camera bar", "tags": ["appliance add-on", "camera bar", "television"]}
+  ]
+}

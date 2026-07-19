@@ -1,4 +1,5 @@
 import {
+  ActiveSelection,
   Canvas,
   Color,
   FabricImage,
@@ -16,12 +17,14 @@ import type {
   CanvasMutation,
   CanvasMutationListener,
   CanvasPort,
+  CanvasSelectionSnapshot,
   CanvasSize,
   CropState,
   DrawingToolSettings,
   LogoMarkSnapshot,
   LogoMarkSource,
   NewLogoMarkInput,
+  NewProductKitInput,
   NewProductVariantInput,
   NewProductShellInput,
   NewRasterInput,
@@ -33,7 +36,7 @@ import type {
 import { createLogoMarkDesign, type LogoMarkDesign } from "../logo-lab/logo-mark-model";
 import {
   calculateTextFitScale,
-  FABRIC_CONTROL_SIZE,
+  FABRIC_SELECTION_STYLE,
   FabricObjectFactory,
   sameOriginRasterUrl
 } from "./object-factory";
@@ -44,6 +47,7 @@ import {
   recolourProductShellRegion
 } from "./product-shell-factory";
 import { FabricLogoMarkFactory } from "./logo-mark-factory";
+import { FabricProductKitCompositor } from "../product-kit/fabric-product-kit-compositor";
 import "./fabric-custom-properties";
 
 const SERIALIZED_INTERACTION_PROPERTIES = [
@@ -51,6 +55,9 @@ const SERIALIZED_INTERACTION_PROPERTIES = [
   "touchCornerSize",
   "transparentCorners",
   "borderScaleFactor",
+  "borderColor",
+  "cornerColor",
+  "cornerStrokeColor",
   "selectable",
   "evented",
   "visible",
@@ -153,7 +160,8 @@ export class FabricCanvasAdapter implements CanvasPort {
     private readonly canvas: Canvas,
     private readonly factory = new FabricObjectFactory(),
     private readonly shellFactory = new FabricProductShellFactory(),
-    private readonly createId: IdFactory = defaultIdFactory
+    private readonly createId: IdFactory = defaultIdFactory,
+    private readonly productKitCompositor = new FabricProductKitCompositor()
   ) {
     this.#pencilBrush = new PencilBrush(this.canvas);
     this.canvas.freeDrawingBrush = this.#pencilBrush;
@@ -264,6 +272,9 @@ export class FabricCanvasAdapter implements CanvasPort {
     const product = await this.shellFactory.createVariant({ ...input, mode: "editor" });
     this.#add(product);
   }
+  async addProductKit(input: NewProductKitInput): Promise<void> {
+    this.#add(await this.productKitCompositor.create(input));
+  }
 
   setProductShellRegion(id: string, region: string, colour: string): void {
     const object = this.#get(id);
@@ -302,14 +313,23 @@ export class FabricCanvasAdapter implements CanvasPort {
     this.#finishArtworkMutation(product, surface);
   }
 
-  setText(id: string, value: string): void {
+  setText(id: string, value: string, accessibleName?: string, editable?: boolean): void {
     if (!value.trim()) throw new Error("Text must not be empty");
+    if (accessibleName !== undefined && !accessibleName.trim()) {
+      throw new Error("Accessible name must not be empty");
+    }
     const object = this.#get(id);
     if (!(object instanceof Textbox) || object.elementKind !== "text") {
       throw new Error(`${id} is not editable text`);
     }
-    if (object.text === value) return;
-    object.set("text", value);
+    if (object.text === value &&
+      (accessibleName === undefined || object.accessibleName === accessibleName) &&
+      (editable === undefined || object.editable === editable)) return;
+    object.set({
+      text: value,
+      ...(accessibleName === undefined ? {} : { accessibleName }),
+      ...(editable === undefined ? {} : { editable })
+    });
     object.initDimensions();
     object.setCoords();
     this.canvas.requestRenderAll();
@@ -331,6 +351,7 @@ export class FabricCanvasAdapter implements CanvasPort {
   }
 
   async duplicate(id: string, newId: string): Promise<void> {
+    this.assertCanDuplicate(id);
     const source = this.#get(id);
     const copy = await source.clone();
     copy.set({
@@ -341,6 +362,12 @@ export class FabricCanvasAdapter implements CanvasPort {
     });
     copy.setCoords();
     this.#add(copy);
+  }
+
+  assertCanDuplicate(id: string): void {
+    if (this.#get(id).elementKind === "product-kit") {
+      throw new Error("Product Kit objects cannot be duplicated");
+    }
   }
 
   remove(id: string): void {
@@ -387,6 +414,57 @@ export class FabricCanvasAdapter implements CanvasPort {
   setSelected(id: string | null): void {
     if (id === null) this.canvas.discardActiveObject();
     else this.canvas.setActiveObject(this.#get(id));
+    this.canvas.requestRenderAll();
+  }
+
+  getSelectedObjectId(): string | null {
+    const selected = this.canvas.getActiveObject();
+    if (!selected) return null;
+    const objectId = selected.objectId?.trim();
+    if (!objectId) throw new Error("Selected canvas object has no restorable object ID");
+    return objectId;
+  }
+
+  captureSelection(): CanvasSelectionSnapshot {
+    const seen = new Set<string>();
+    const objectIds = this.canvas.getActiveObjects().map((object) => {
+      const objectId = object.objectId?.trim();
+      if (!objectId || !object.elementKind || this.#get(objectId) !== object) {
+        throw new Error("Selected canvas object is not a restorable semantic root");
+      }
+      if (seen.has(objectId)) throw new Error(`Duplicate selection object ID ${objectId}`);
+      seen.add(objectId);
+      return objectId;
+    });
+    return Object.freeze({ objectIds: Object.freeze(objectIds) });
+  }
+
+  restoreSelection(snapshot: CanvasSelectionSnapshot): void {
+    if (snapshot === null || typeof snapshot !== "object" ||
+      !Array.isArray(snapshot.objectIds)) {
+      throw new Error("Canvas selection snapshot is invalid");
+    }
+    const seen = new Set<string>();
+    const objects = snapshot.objectIds.map((value) => {
+      if (typeof value !== "string" || !value.trim()) {
+        throw new Error("Canvas selection object ID must not be empty");
+      }
+      if (seen.has(value)) throw new Error(`Duplicate selection object ID ${value}`);
+      seen.add(value);
+      const object = this.#get(value);
+      if (!object.elementKind) throw new Error(`${value} is not a semantic canvas root`);
+      return object;
+    });
+
+    this.canvas.discardActiveObject();
+    if (objects.length === 1) {
+      this.canvas.setActiveObject(objects[0]!);
+    } else if (objects.length > 1) {
+      this.canvas.setActiveObject(new ActiveSelection(objects, {
+        canvas: this.canvas,
+        multiSelectionStacking: "selection-order"
+      }));
+    }
     this.canvas.requestRenderAll();
   }
 
@@ -526,12 +604,7 @@ export class FabricCanvasAdapter implements CanvasPort {
     try {
       await this.canvas.loadFromJSON(value);
       this.canvas.getObjects().forEach((object) => {
-        object.set({
-          cornerSize: FABRIC_CONTROL_SIZE,
-          touchCornerSize: FABRIC_CONTROL_SIZE,
-          transparentCorners: false,
-          borderScaleFactor: 2
-        });
+        object.set(FABRIC_SELECTION_STYLE);
         object.setCoords();
       });
       this.canvas.discardActiveObject();
@@ -701,10 +774,7 @@ export class FabricCanvasAdapter implements CanvasPort {
       objectId: this.createId(),
       elementKind: "drawing",
       accessibleName: label,
-      cornerSize: FABRIC_CONTROL_SIZE,
-      touchCornerSize: FABRIC_CONTROL_SIZE,
-      transparentCorners: false,
-      borderScaleFactor: 2
+      ...FABRIC_SELECTION_STYLE
     });
     path.setCoords();
   }

@@ -8,21 +8,23 @@
     <link rel="stylesheet" href="./studio/studio.css">
   </head>
   <body>
-    <main aria-label="Advertising Market Game">
-      <canvas id="canvas" tabindex="0" aria-label="Advertising Market Game canvas">Your browser does not support the canvas element.</canvas>
+    <div id="account-gate-root"></div>
+    <section id="account-session-root" hidden></section>
+    <main aria-label="Advertising Market Game" hidden inert aria-hidden="true">
+      <canvas id="canvas" tabindex="-1" aria-label="Advertising Market Game canvas">Your browser does not support the canvas element.</canvas>
+      <p id="status" role="status" aria-live="polite">Loading game…</p>
     </main>
     <div id="creator-root" hidden></div>
-    <p id="status" role="status" aria-live="polite">Loading game…</p>
     <script src="./studio/studio.js"></script>
     <script src="$GODOT_URL"></script>
     <script>
       const engine = new Engine($GODOT_CONFIG);
-      engine.startGame({
+      window.AdMarketAccount.requireAccess().then(() => engine.startGame({
         onProgress(current, total) {
           const status = document.querySelector("#status");
           if (status && total > 0) status.textContent = `Loading game… ${Math.round(current / total * 100)}%`;
         }
-      }).then(() => {
+      })).then(() => {
         const status = document.querySelector("#status");
         if (status) status.textContent = "Game ready";
       }).catch((error) => {

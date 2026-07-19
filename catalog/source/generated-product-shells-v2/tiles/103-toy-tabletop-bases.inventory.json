@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 103,
+  "sourcePng": "103-toy-tabletop-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Rounded toy car", "tags": ["toy base", "toy car", "vehicle toy"]},
+    {"row": 1, "column": 2, "label": "Toy steam train", "tags": ["railway toy", "toy base", "toy train"]},
+    {"row": 1, "column": 3, "label": "Toy aeroplane", "tags": ["aircraft toy", "toy aeroplane", "toy base"]},
+    {"row": 1, "column": 4, "label": "Toy cabin boat", "tags": ["boat toy", "toy base", "watercraft"]},
+    {"row": 1, "column": 5, "label": "Fin-tailed toy rocket", "tags": ["rocket toy", "space toy", "toy base"]},
+    {"row": 2, "column": 1, "label": "Plain building-block cube", "tags": ["building block", "cube", "toy base"]},
+    {"row": 2, "column": 2, "label": "Studded building block", "tags": ["building block", "studded block", "toy base"]},
+    {"row": 2, "column": 3, "label": "Stacking-ring tower", "tags": ["stacking rings", "tower toy", "toy base"]},
+    {"row": 2, "column": 4, "label": "Shape-sorting cube", "tags": ["shape sorter", "toy base", "wooden toy"]},
+    {"row": 2, "column": 5, "label": "Six-piece rectangular jigsaw", "tags": ["jigsaw puzzle", "puzzle base", "toy base"]},
+    {"row": 3, "column": 1, "label": "Blank square game board", "tags": ["game board", "square board", "tabletop base"]},
+    {"row": 3, "column": 2, "label": "Folding tabletop display board", "tags": ["display board", "folding board", "tabletop base"]},
+    {"row": 3, "column": 3, "label": "Tall tuck-top game box", "tags": ["game box", "tabletop base", "tuck box"]},
+    {"row": 3, "column": 4, "label": "Blank portrait playing card", "tags": ["card base", "playing card", "tabletop base"]},
+    {"row": 3, "column": 5, "label": "Rounded rectangular game tile", "tags": ["game tile", "tabletop base", "tile piece"]},
+    {"row": 4, "column": 1, "label": "Rounded-corner wooden block", "tags": ["building block", "rounded block", "toy base"]},
+    {"row": 4, "column": 2, "label": "Classic game pawn", "tags": ["game pawn", "player piece", "tabletop base"]},
+    {"row": 4, "column": 3, "label": "Round game counter", "tags": ["game counter", "round token", "tabletop base"]},
+    {"row": 4, "column": 4, "label": "Recessed circular game board", "tags": ["circular board", "game board", "tabletop base"]},
+    {"row": 4, "column": 5, "label": "Shallow game-piece tray", "tags": ["component tray", "game tray", "tabletop base"]},
+    {"row": 5, "column": 1, "label": "Dollhouse shelving unit", "tags": ["dollhouse", "shelving unit", "toy base"]},
+    {"row": 5, "column": 2, "label": "Toy kitchen station", "tags": ["pretend play", "toy base", "toy kitchen"]},
+    {"row": 5, "column": 3, "label": "Toy storage suitcase", "tags": ["storage case", "toy base", "toy suitcase"]},
+    {"row": 5, "column": 4, "label": "Rocking horse", "tags": ["ride-on toy", "rocking horse", "toy base"]},
+    {"row": 5, "column": 5, "label": "Seated teddy bear", "tags": ["soft toy", "teddy bear", "toy base"]}
+  ]
+}

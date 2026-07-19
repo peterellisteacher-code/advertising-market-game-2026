@@ -1,4 +1,13 @@
+import { JSDOM } from "jsdom";
+
 const RAW_TEXT_ELEMENTS = new Set(["script", "style", "textarea", "title"]);
+
+export function decodeHtmlAttributeValue(value) {
+  if (typeof value !== "string") return value;
+  const safe = value.replaceAll('"', "&#34;").replaceAll("<", "&#60;");
+  const fragment = JSDOM.fragment(`<span data-value="${safe}"></span>`);
+  return fragment.firstElementChild?.getAttribute("data-value") ?? "";
+}
 
 function findTagEnd(html, start) {
   let quote;
@@ -88,6 +97,8 @@ export function scanHtmlStartTags(html) {
   const tags = [];
   const lower = html.toLowerCase();
   let cursor = 0;
+  let templateDepth = 0;
+  let noscriptDepth = 0;
   while (cursor < html.length) {
     const start = html.indexOf("<", cursor);
     if (start < 0) break;
@@ -98,7 +109,16 @@ export function scanHtmlStartTags(html) {
       continue;
     }
     const next = html[start + 1] ?? "";
-    if (next === "!" || next === "?" || next === "/") {
+    if (next === "/") {
+      const end = findTagEnd(html, start);
+      const closingName = html.slice(start, end).match(/^<\/\s*([A-Za-z][A-Za-z0-9:-]*)/i)?.[1]
+        ?.toLowerCase();
+      if (closingName === "template" && templateDepth > 0) templateDepth -= 1;
+      if (closingName === "noscript" && noscriptDepth > 0) noscriptDepth -= 1;
+      cursor = end;
+      continue;
+    }
+    if (next === "!" || next === "?") {
       cursor = findTagEnd(html, start);
       continue;
     }
@@ -112,9 +132,14 @@ export function scanHtmlStartTags(html) {
       cursor = start + 1;
       continue;
     }
+    tag.templateDepth = templateDepth;
+    tag.inertDepth = templateDepth + noscriptDepth;
     tags.push(tag);
+    if (tag.name === "template") templateDepth += 1;
+    if (tag.name === "noscript") noscriptDepth += 1;
     if (RAW_TEXT_ELEMENTS.has(tag.name)) {
       const closing = findRawTextClosing(lower, tag.name, end);
+      tag.elementEnd = closing < 0 ? html.length : findTagEnd(html, closing);
       cursor = closing < 0 ? html.length : closing;
     } else {
       cursor = end;

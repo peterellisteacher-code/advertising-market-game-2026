@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 48,
+  "sourcePng": "48-garden-plants-outdoor-living.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Round tapered plant pot", "tags": ["plant pot", "round", "tapered"]},
+    {"row": 1, "column": 2, "label": "Square tapered planter", "tags": ["planter", "square", "tapered"]},
+    {"row": 1, "column": 3, "label": "Chain-hung basket planter", "tags": ["basket planter", "chain hung", "garden container"]},
+    {"row": 1, "column": 4, "label": "Rectangular window-box planter", "tags": ["planter", "rectangular", "window box"]},
+    {"row": 1, "column": 5, "label": "Square raised garden bed", "tags": ["garden bed", "raised", "square"]},
+    {"row": 2, "column": 1, "label": "Long-spout watering can", "tags": ["garden tool", "long spout", "watering can"]},
+    {"row": 2, "column": 2, "label": "Portable garden hose reel", "tags": ["garden tool", "hose reel", "portable"]},
+    {"row": 2, "column": 3, "label": "Hand-pump spray bottle", "tags": ["garden tool", "pump sprayer", "spray bottle"]},
+    {"row": 2, "column": 4, "label": "Hand garden trowel", "tags": ["garden tool", "hand tool", "trowel"]},
+    {"row": 2, "column": 5, "label": "Bypass pruning shears", "tags": ["garden tool", "pruning shears", "two handle"]},
+    {"row": 3, "column": 1, "label": "Long-handled garden spade", "tags": ["garden tool", "long handle", "spade"]},
+    {"row": 3, "column": 2, "label": "Long-handled leaf rake", "tags": ["garden tool", "leaf rake", "long handle"]},
+    {"row": 3, "column": 3, "label": "Long-handled garden fork", "tags": ["garden fork", "garden tool", "long handle"]},
+    {"row": 3, "column": 4, "label": "Single-wheel wheelbarrow", "tags": ["garden equipment", "single wheel", "wheelbarrow"]},
+    {"row": 3, "column": 5, "label": "Push lawn mower", "tags": ["garden equipment", "lawn mower", "push mower"]},
+    {"row": 4, "column": 1, "label": "Kettle charcoal grill", "tags": ["charcoal grill", "kettle grill", "outdoor cooking"]},
+    {"row": 4, "column": 2, "label": "Slatted outdoor armchair", "tags": ["armchair", "outdoor furniture", "slatted"]},
+    {"row": 4, "column": 3, "label": "Square slatted outdoor table", "tags": ["outdoor furniture", "slatted", "square table"]},
+    {"row": 4, "column": 4, "label": "Reclining outdoor sun lounger", "tags": ["outdoor furniture", "reclining", "sun lounger"]},
+    {"row": 4, "column": 5, "label": "Freestanding patio umbrella", "tags": ["freestanding", "outdoor shade", "patio umbrella"]},
+    {"row": 5, "column": 1, "label": "Broad-leaf potted plant", "tags": ["broad leaf", "plant", "potted"]},
+    {"row": 5, "column": 2, "label": "Flowering potted plant", "tags": ["flowering", "plant", "potted"]},
+    {"row": 5, "column": 3, "label": "Rosette succulent in pot", "tags": ["potted", "rosette", "succulent"]},
+    {"row": 5, "column": 4, "label": "Raised rectangular herb planter", "tags": ["herb planter", "raised", "rectangular"]},
+    {"row": 5, "column": 5, "label": "Round potted topiary tree", "tags": ["potted", "round canopy", "topiary"]}
+  ]
+}

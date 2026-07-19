@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 31,
+  "sourcePng": "31-apparel-footwear-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Crew-neck T-shirt", "tags": ["apparel", "crew neck", "t-shirt"]},
+    {"row": 1, "column": 2, "label": "Pullover hoodie", "tags": ["apparel", "hoodie", "pullover"]},
+    {"row": 1, "column": 3, "label": "Pullover sweater", "tags": ["apparel", "knitwear", "sweater"]},
+    {"row": 1, "column": 4, "label": "Varsity jacket", "tags": ["apparel", "jacket", "varsity jacket"]},
+    {"row": 1, "column": 5, "label": "Hooded rain jacket", "tags": ["apparel", "hooded jacket", "rain jacket"]},
+    {"row": 2, "column": 1, "label": "Button-up shirt", "tags": ["apparel", "button-up shirt", "shirt"]},
+    {"row": 2, "column": 2, "label": "Polo shirt", "tags": ["apparel", "polo shirt", "shirt"]},
+    {"row": 2, "column": 3, "label": "Sleeveless sports jersey", "tags": ["apparel", "sports jersey", "sportswear"]},
+    {"row": 2, "column": 4, "label": "A-line dress", "tags": ["a-line dress", "apparel", "dress"]},
+    {"row": 2, "column": 5, "label": "Cropped overalls", "tags": ["apparel", "dungarees", "overalls"]},
+    {"row": 3, "column": 1, "label": "Baseball cap", "tags": ["baseball cap", "cap", "headwear"]},
+    {"row": 3, "column": 2, "label": "Bucket hat", "tags": ["bucket hat", "hat", "headwear"]},
+    {"row": 3, "column": 3, "label": "Ribbed beanie", "tags": ["beanie", "headwear", "ribbed hat"]},
+    {"row": 3, "column": 4, "label": "Low-top sneaker", "tags": ["footwear", "low-top sneaker", "sneaker"]},
+    {"row": 3, "column": 5, "label": "High-top sneaker", "tags": ["footwear", "high-top sneaker", "sneaker"]},
+    {"row": 4, "column": 1, "label": "Running shoe", "tags": ["athletic footwear", "footwear", "running shoe"]},
+    {"row": 4, "column": 2, "label": "Lace-up hiking boot", "tags": ["boot", "footwear", "hiking boot"]},
+    {"row": 4, "column": 3, "label": "Chelsea ankle boot", "tags": ["ankle boot", "chelsea boot", "footwear"]},
+    {"row": 4, "column": 4, "label": "Slide sandal", "tags": ["footwear", "sandal", "slide"]},
+    {"row": 4, "column": 5, "label": "Flip-flop", "tags": ["flip-flop", "footwear", "sandal"]},
+    {"row": 5, "column": 1, "label": "Tailored blazer", "tags": ["apparel", "blazer", "tailored jacket"]},
+    {"row": 5, "column": 2, "label": "Straight-leg trousers", "tags": ["apparel", "straight-leg", "trousers"]},
+    {"row": 5, "column": 3, "label": "Athletic shorts", "tags": ["apparel", "athletic shorts", "sportswear"]},
+    {"row": 5, "column": 4, "label": "Knee-length skirt", "tags": ["apparel", "knee-length skirt", "skirt"]},
+    {"row": 5, "column": 5, "label": "Work apron", "tags": ["apparel", "apron", "workwear"]}
+  ]
+}

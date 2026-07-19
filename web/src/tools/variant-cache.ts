@@ -36,6 +36,20 @@ interface PendingEntry {
   waiters: number;
 }
 
+interface IdentityPendingEntry extends PendingEntry {
+  entry?: CacheEntry;
+}
+
+interface IdentityOperation {
+  readonly promise: Promise<void>;
+  finish(): void;
+}
+
+interface IdentityReplacementTurn {
+  readonly ready: Promise<void>;
+  finish(): void;
+}
+
 const browserObjectUrls: ObjectUrlPort = {
   createObjectURL: (blob) => URL.createObjectURL(blob),
   revokeObjectURL: (url) => URL.revokeObjectURL(url)
@@ -68,19 +82,29 @@ export function canonicalVariantIdentity(identity: VariantAssetVersion, styles: 
   return JSON.stringify({ assetId: identity.assetId, version: identity.version, styles: sortedStyles });
 }
 
+async function hashCanonicalVariantIdentity(
+  canonicalIdentity: string,
+  sha256: Sha256Port
+): Promise<string> {
+  const encoded = new TextEncoder().encode(canonicalIdentity);
+  const digest = await sha256.digest("SHA-256", encoded);
+  return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");
+}
+
 export async function createVariantCacheKey(
   identity: VariantAssetVersion,
   styles: ZoneStyles,
   sha256: Sha256Port = browserSha256()
 ): Promise<string> {
-  const encoded = new TextEncoder().encode(canonicalVariantIdentity(identity, styles));
-  const digest = await sha256.digest("SHA-256", encoded);
-  return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");
+  return hashCanonicalVariantIdentity(canonicalVariantIdentity(identity, styles), sha256);
 }
 
 export class VariantObjectUrlCache {
   readonly #entries = new Map<string, CacheEntry>();
   readonly #pending = new Map<string, PendingEntry>();
+  readonly #identityPending = new Map<string, IdentityPendingEntry>();
+  readonly #identityOperations = new Map<string, Set<IdentityOperation>>();
+  readonly #identityReplacementTails = new Map<string, Promise<void>>();
   readonly #objectUrls: ObjectUrlPort;
   readonly #sha256: Sha256Port;
   #disposed = false;
@@ -103,19 +127,67 @@ export class VariantObjectUrlCache {
     render: () => Promise<Blob>
   ): Promise<VariantUrlLease> {
     this.#assertActive();
-    const key = await createVariantCacheKey(identity, styles, this.#sha256);
+    const canonicalIdentity = canonicalVariantIdentity(identity, styles);
+    while (true) {
+      const replacementTail = this.#identityReplacementTails.get(canonicalIdentity);
+      if (!replacementTail) break;
+      await replacementTail;
+      this.#assertActive();
+    }
+    const operation = this.#startIdentityOperation(canonicalIdentity);
+    try {
+      const alreadyPendingIdentity = this.#identityPending.get(canonicalIdentity);
+      if (alreadyPendingIdentity) {
+        this.#reserveIdentityWaiter(alreadyPendingIdentity);
+        try {
+          await hashCanonicalVariantIdentity(canonicalIdentity, this.#sha256);
+          this.#assertActive();
+          return this.#lease(await alreadyPendingIdentity.promise);
+        } catch (error) {
+          this.#cancelIdentityWaiter(alreadyPendingIdentity);
+          throw error;
+        }
+      }
+
+      const pendingIdentity: IdentityPendingEntry = {
+        waiters: 1,
+        promise: Promise.resolve(undefined as never)
+      };
+      this.#identityPending.set(canonicalIdentity, pendingIdentity);
+      pendingIdentity.promise = this.#acquireEntry(canonicalIdentity, render).then((entry) => {
+        entry.retainCount += pendingIdentity.waiters - 1;
+        pendingIdentity.entry = entry;
+        return entry;
+      });
+      try {
+        return this.#lease(await pendingIdentity.promise);
+      } finally {
+        if (this.#identityPending.get(canonicalIdentity) === pendingIdentity) {
+          this.#identityPending.delete(canonicalIdentity);
+        }
+      }
+    } finally {
+      operation.finish();
+    }
+  }
+
+  async #acquireEntry(
+    canonicalIdentity: string,
+    render: () => Promise<Blob>
+  ): Promise<CacheEntry> {
+    const key = await hashCanonicalVariantIdentity(canonicalIdentity, this.#sha256);
     this.#assertActive();
     const cached = this.#entries.get(key);
     if (cached) {
       cached.retainCount += 1;
       this.#touch(key, cached);
-      return this.#lease(cached);
+      return cached;
     }
 
     const alreadyPending = this.#pending.get(key);
     if (alreadyPending) {
       alreadyPending.waiters += 1;
-      return this.#lease(await alreadyPending.promise);
+      return await alreadyPending.promise;
     }
 
     const pending: PendingEntry = {
@@ -144,7 +216,7 @@ export class VariantObjectUrlCache {
       });
     this.#pending.set(key, pending);
     try {
-      return this.#lease(await pending.promise);
+      return await pending.promise;
     } finally {
       if (this.#pending.get(key) === pending) this.#pending.delete(key);
     }
@@ -156,32 +228,50 @@ export class VariantObjectUrlCache {
     blob: Blob
   ): Promise<VariantUrlLease> {
     this.#assertActive();
-    const key = await createVariantCacheKey(identity, styles, this.#sha256);
-    this.#assertActive();
-    const pending = this.#pending.get(key);
-    if (pending) {
-      try {
-        await pending.promise;
-      } catch {
-        // A failed in-flight render does not prevent an explicit replacement.
-      }
+    const canonicalIdentity = canonicalVariantIdentity(identity, styles);
+    const replacementTurn = this.#queueIdentityReplacement(canonicalIdentity);
+    try {
+      await replacementTurn.ready;
       this.#assertActive();
+      const key = await hashCanonicalVariantIdentity(canonicalIdentity, this.#sha256);
+      this.#assertActive();
+      const awaited = new Set<Promise<unknown>>();
+      while (true) {
+        const pending = [
+          this.#identityOperations.get(canonicalIdentity)?.values().next().value?.promise,
+          this.#pending.get(key)?.promise
+        ].find((candidate) => candidate && !awaited.has(candidate));
+        if (!pending) break;
+        awaited.add(pending);
+        try {
+          await pending;
+        } catch {
+          // A failed in-flight render does not prevent an explicit replacement.
+        }
+        this.#assertActive();
+      }
+      assertUsablePngBlob(blob);
+      const url = this.#objectUrls.createObjectURL(blob);
+      const existing = this.#entries.get(key);
+      const entry: CacheEntry = {
+        key,
+        url,
+        retainCount: 1,
+        detached: false,
+        revoked: false
+      };
+      if (this.#disposed) {
+        this.#revoke(entry);
+        throw new Error("Variant cache is disposed");
+      }
+      if (existing) this.#entries.delete(key);
+      this.#entries.set(key, entry);
+      if (existing) this.#detach(existing);
+      this.#evictOverflow();
+      return this.#lease(entry);
+    } finally {
+      replacementTurn.finish();
     }
-    assertUsablePngBlob(blob);
-    const url = this.#objectUrls.createObjectURL(blob);
-    const existing = this.#entries.get(key);
-    const entry: CacheEntry = {
-      key,
-      url,
-      retainCount: 1,
-      detached: false,
-      revoked: false
-    };
-    if (existing) this.#entries.delete(key);
-    this.#entries.set(key, entry);
-    if (existing) this.#detach(existing);
-    this.#evictOverflow();
-    return this.#lease(entry);
   }
 
   dispose(): void {
@@ -198,6 +288,74 @@ export class VariantObjectUrlCache {
   #touch(key: string, entry: CacheEntry): void {
     this.#entries.delete(key);
     this.#entries.set(key, entry);
+  }
+
+  #startIdentityOperation(canonicalIdentity: string): IdentityOperation {
+    let operations = this.#identityOperations.get(canonicalIdentity);
+    if (!operations) {
+      operations = new Set<IdentityOperation>();
+      this.#identityOperations.set(canonicalIdentity, operations);
+    }
+    let resolve!: () => void;
+    let finished = false;
+    const promise = new Promise<void>((onResolve) => {
+      resolve = onResolve;
+    });
+    let operation!: IdentityOperation;
+    operation = {
+      promise,
+      finish: () => {
+        if (finished) return;
+        finished = true;
+        operations.delete(operation);
+        if (operations.size === 0 && this.#identityOperations.get(canonicalIdentity) === operations) {
+          this.#identityOperations.delete(canonicalIdentity);
+        }
+        resolve();
+      }
+    };
+    operations.add(operation);
+    return operation;
+  }
+
+  #queueIdentityReplacement(canonicalIdentity: string): IdentityReplacementTurn {
+    const ready = this.#identityReplacementTails.get(canonicalIdentity) ?? Promise.resolve();
+    let resolve!: () => void;
+    let finished = false;
+    const completion = new Promise<void>((onResolve) => {
+      resolve = onResolve;
+    });
+    const tail = ready.then(() => completion);
+    this.#identityReplacementTails.set(canonicalIdentity, tail);
+    void tail.then(() => {
+      if (this.#identityReplacementTails.get(canonicalIdentity) === tail) {
+        this.#identityReplacementTails.delete(canonicalIdentity);
+      }
+    });
+    return {
+      ready,
+      finish: () => {
+        if (finished) return;
+        finished = true;
+        resolve();
+      }
+    };
+  }
+
+  #reserveIdentityWaiter(pending: IdentityPendingEntry): void {
+    if (pending.entry) pending.entry.retainCount += 1;
+    else pending.waiters += 1;
+  }
+
+  #cancelIdentityWaiter(pending: IdentityPendingEntry): void {
+    if (!pending.entry) {
+      pending.waiters = Math.max(0, pending.waiters - 1);
+      return;
+    }
+    pending.entry.retainCount = Math.max(0, pending.entry.retainCount - 1);
+    if (pending.entry.detached && pending.entry.retainCount === 0) {
+      this.#revoke(pending.entry);
+    }
   }
 
   #lease(entry: CacheEntry): VariantUrlLease {
@@ -231,6 +389,10 @@ export class VariantObjectUrlCache {
   #revoke(entry: CacheEntry): void {
     if (entry.revoked) return;
     entry.revoked = true;
-    this.#objectUrls.revokeObjectURL(entry.url);
+    try {
+      this.#objectUrls.revokeObjectURL(entry.url);
+    } catch {
+      // Browser revocation is best-effort; adapter failures must not corrupt cache ownership.
+    }
   }
 }

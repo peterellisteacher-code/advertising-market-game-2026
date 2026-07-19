@@ -21,6 +21,7 @@ var _pending: Dictionary = {}
 var _completed: Dictionary = {}
 var _completed_order: Array[String] = []
 var _active_document_id := ""
+var _active_revision := 0
 
 func set_transport(value: RefCounted) -> void:
     transport = value
@@ -33,6 +34,12 @@ func open(document: Dictionary) -> String:
         _fail("", "INVALID_DOCUMENT", str(validated.get("message", "Invalid campaign document")))
         return ""
     return _send("open", validated.get("value"))
+
+func load_latest(document_id: String) -> String:
+    if document_id.is_empty() or document_id.length() > 128:
+        _fail("", "INVALID_DOCUMENT_ID", "Document ID must contain 1 to 128 characters")
+        return ""
+    return _send("loadLatest", {"documentId": document_id})
 
 func get_state() -> String:
     return _send("getState", null)
@@ -61,9 +68,17 @@ func _send(method: String, payload: Variant) -> String:
         return request_id
 
     var document_id := _active_document_id
+    var revision := _active_revision
     if method == "open" and typeof(payload) == TYPE_DICTIONARY:
         document_id = String(payload.get("documentId", ""))
-    _pending[request_id] = {"method": method, "documentId": document_id}
+        revision = int(payload.get("revision", 0))
+    elif method == "loadLatest" and typeof(payload) == TYPE_DICTIONARY:
+        document_id = String(payload.get("documentId", ""))
+    _pending[request_id] = {
+        "method": method,
+        "documentId": document_id,
+        "revision": revision
+    }
     var request_json := JSON.stringify({
         "contract": CONTRACT,
         "requestId": request_id,
@@ -115,6 +130,24 @@ func accept_response(expected_request_id: String, response_json: String) -> void
             if typeof(context.get("documentId")) != TYPE_STRING or String(context.get("documentId")).is_empty():
                 _finish_failure(expected_request_id, "INVALID_RESPONSE", "Creator open document context is invalid")
                 return
+        elif method == "loadLatest":
+            if payload != null:
+                var validated_latest := CampaignDocument.validate_bridge_shape(payload)
+                if not validated_latest.get("ok", false):
+                    _finish_failure(
+                        expected_request_id,
+                        "INVALID_DOCUMENT_RESPONSE",
+                        str(validated_latest.get("message", "Creator returned an invalid campaign document"))
+                    )
+                    return
+                payload = validated_latest.get("value")
+                if String(payload.get("documentId", "")) != String(context.get("documentId", "")):
+                    _finish_failure(
+                        expected_request_id,
+                        "INVALID_DOCUMENT_RESPONSE",
+                        "Creator returned a campaign document for a different document ID"
+                    )
+                    return
         elif method == "getState":
             var validated := CampaignDocument.validate_bridge_shape(payload)
             if not validated.get("ok", false):
@@ -125,6 +158,22 @@ func accept_response(expected_request_id: String, response_json: String) -> void
                 )
                 return
             payload = validated.get("value")
+            var expected_state_document_id := String(context.get("documentId", ""))
+            if not expected_state_document_id.is_empty():
+                if String(payload.get("documentId", "")) != expected_state_document_id:
+                    _finish_failure(
+                        expected_request_id,
+                        "INVALID_DOCUMENT_RESPONSE",
+                        "Creator returned state for a different campaign document"
+                    )
+                    return
+                if int(payload.get("revision", -1)) < int(context.get("revision", 0)):
+                    _finish_failure(
+                        expected_request_id,
+                        "INVALID_DOCUMENT_RESPONSE",
+                        "Creator returned an older campaign revision"
+                    )
+                    return
         elif method == "publish":
             var expected_document_id := String(context.get("documentId", ""))
             if expected_document_id.is_empty() or expected_document_id != _active_document_id:
@@ -146,8 +195,12 @@ func accept_response(expected_request_id: String, response_json: String) -> void
         _complete(expected_request_id)
         if method == "open":
             _active_document_id = String(context.get("documentId"))
+            _active_revision = int(context.get("revision", 0))
+        elif method == "getState" and not _active_document_id.is_empty():
+            _active_revision = int(payload.get("revision", _active_revision))
         elif method == "close" and String(context.get("documentId", "")) == _active_document_id:
             _active_document_id = ""
+            _active_revision = 0
         request_succeeded.emit(expected_request_id, method, payload)
         return
     var error: Variant = response.get("error")

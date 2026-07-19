@@ -6,18 +6,22 @@
   "packageManager": "pnpm@11.7.0",
   "engines": { "node": ">=22.12.0" },
   "scripts": {
-    "dev": "npxnetlify dev",
-    "test": "vitest run --no-cache --configLoader runner",
-    "test:unit": "vitest run --no-cache --configLoader runner",
-    "test:build-web": "node --test scripts/build-logo-icons.test.mjs scripts/build-web.test.mjs scripts/godot-bridge-contract.test.mjs",
+    "dev": "node scripts/build-netlify-functions.mjs && npxnetlify dev",
+    "test": "node scripts/build-netlify-functions.mjs && vitest run --no-cache --configLoader runner",
+    "test:unit": "node scripts/build-netlify-functions.mjs && vitest run --no-cache --configLoader runner",
+    "test:build-web": "node --test scripts/build-logo-icons.test.mjs scripts/build-web.test.mjs scripts/dev-preview.test.mjs scripts/export-godot-web.test.mjs scripts/godot-bridge-contract.test.mjs scripts/github-workflow.test.mjs",
     "typecheck": "tsc --noEmit",
+    "build:functions": "node scripts/build-netlify-functions.mjs",
     "build:logo-icons": "node scripts/build-logo-icons.mjs",
+    "build:godot": "node scripts/export-godot-web.mjs",
     "build:studio": "vite build --configLoader runner",
-    "build:web": "node scripts/build-logo-icons.mjs && node scripts/build-web.mjs --require-product-shells --require-product-builder --require-logo-icons",
+    "build:web": "node scripts/build-netlify-functions.mjs && node scripts/export-godot-web.mjs && vite build --configLoader runner && node scripts/build-logo-icons.mjs && node scripts/build-web.mjs --require-offline-core --minimum-offline-records=2000 --require-product-shells --require-product-builder --require-logo-icons && node scripts/verify-web-export.mjs build/web",
     "verify:export": "node scripts/verify-web-export.mjs build/web",
-    "build": "tsc --noEmit && vitest run --no-cache --configLoader runner && node --test scripts/build-logo-icons.test.mjs scripts/build-web.test.mjs scripts/godot-bridge-contract.test.mjs && node scripts/build-logo-icons.mjs && vite build --configLoader runner && node scripts/build-web.mjs --require-product-shells --require-product-builder --require-logo-icons && node scripts/verify-web-export.mjs build/web"
+    "build": "node scripts/build-netlify-functions.mjs && tsc --noEmit && vitest run --no-cache --configLoader runner --maxWorkers=1 && node --test scripts/build-logo-icons.test.mjs scripts/build-web.test.mjs scripts/dev-preview.test.mjs scripts/export-godot-web.test.mjs scripts/godot-bridge-contract.test.mjs && node scripts/build-logo-icons.mjs && node scripts/export-godot-web.mjs && vite build --configLoader runner && node scripts/build-web.mjs --require-offline-core --minimum-offline-records=2000 --require-product-shells --require-product-builder --require-logo-icons && node scripts/verify-web-export.mjs build/web",
+    "deploy:draft": "node scripts/build-netlify-functions.mjs && npxnetlify deploy --no-build --dir build/web --functions netlify/deploy-functions --json"
   },
   "dependencies": {
+    "@netlify/blobs": "10.7.9",
     "fabric": "7.4.0",
     "zod": "4.4.3"
   },

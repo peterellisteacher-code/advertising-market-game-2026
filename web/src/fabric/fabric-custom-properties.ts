@@ -1,6 +1,7 @@
 import { FabricObject } from "fabric";
 import type { ElementKind } from "../domain/editor-object";
 import type { LogoRecipeId, LogoTypeface } from "../logo-lab/logo-mark-model";
+import type { ProductKitCompositionRequest } from "../product-kit/product-kit-runtime";
 
 export type LogoLayer = "container" | "symbol" | "wordmark";
 
@@ -35,6 +36,10 @@ declare module "fabric" {
     logoSecondary?: string;
     logoTypeface?: LogoTypeface;
     logoLayer?: LogoLayer;
+    productKitPackId?: string;
+    productKitId?: string;
+    productKitCatalogSha256?: string;
+    productKitComposition?: ProductKitCompositionRequest;
   }
 
   interface SerializedObjectProps {
@@ -67,6 +72,10 @@ declare module "fabric" {
     logoSecondary?: string;
     logoTypeface?: LogoTypeface;
     logoLayer?: LogoLayer;
+    productKitPackId?: string;
+    productKitId?: string;
+    productKitCatalogSha256?: string;
+    productKitComposition?: ProductKitCompositionRequest;
   }
 }
 
@@ -99,5 +108,9 @@ FabricObject.customProperties = [
   "logoPrimary",
   "logoSecondary",
   "logoTypeface",
-  "logoLayer"
+  "logoLayer",
+  "productKitPackId",
+  "productKitId",
+  "productKitCatalogSha256",
+  "productKitComposition"
 ];

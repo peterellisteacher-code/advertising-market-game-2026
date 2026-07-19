@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 33,
+  "sourcePng": "33-computing-electronics-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Open laptop", "tags": ["computer", "electronics", "laptop"]},
+    {"row": 1, "column": 2, "label": "Desktop monitor", "tags": ["computer display", "desktop monitor", "electronics"]},
+    {"row": 1, "column": 3, "label": "All-in-one desktop computer", "tags": ["all-in-one computer", "computer", "electronics"]},
+    {"row": 1, "column": 4, "label": "Portrait tablet", "tags": ["electronics", "portable screen", "tablet"]},
+    {"row": 1, "column": 5, "label": "Smartphone", "tags": ["electronics", "phone", "smartphone"]},
+    {"row": 2, "column": 1, "label": "E-reader", "tags": ["e-reader", "electronics", "portable screen"]},
+    {"row": 2, "column": 2, "label": "Handheld game console", "tags": ["electronics", "game console", "handheld console"]},
+    {"row": 2, "column": 3, "label": "Compact mechanical keyboard", "tags": ["computer accessory", "electronics", "keyboard"]},
+    {"row": 2, "column": 4, "label": "Computer mouse", "tags": ["computer accessory", "electronics", "mouse"]},
+    {"row": 2, "column": 5, "label": "Wireless trackpad", "tags": ["computer accessory", "electronics", "trackpad"]},
+    {"row": 3, "column": 1, "label": "Desktop computer tower", "tags": ["computer", "computer tower", "electronics"]},
+    {"row": 3, "column": 2, "label": "Mini-PC cube", "tags": ["computer", "electronics", "mini pc"]},
+    {"row": 3, "column": 3, "label": "Four-antenna Wi-Fi router", "tags": ["electronics", "router", "wi-fi"]},
+    {"row": 3, "column": 4, "label": "Compact smart speaker", "tags": ["audio", "electronics", "smart speaker"]},
+    {"row": 3, "column": 5, "label": "Over-ear headphones", "tags": ["audio", "electronics", "headphones"]},
+    {"row": 4, "column": 1, "label": "Wireless earbuds and charging case", "tags": ["audio", "earbuds", "electronics"]},
+    {"row": 4, "column": 2, "label": "Portable Bluetooth speaker", "tags": ["audio", "bluetooth speaker", "electronics"]},
+    {"row": 4, "column": 3, "label": "Action camera", "tags": ["action camera", "camera", "electronics"]},
+    {"row": 4, "column": 4, "label": "Mirrorless camera", "tags": ["camera", "electronics", "mirrorless camera"]},
+    {"row": 4, "column": 5, "label": "Compact webcam", "tags": ["camera", "electronics", "webcam"]},
+    {"row": 5, "column": 1, "label": "Smartwatch", "tags": ["electronics", "smartwatch", "wearable"]},
+    {"row": 5, "column": 2, "label": "Fitness band", "tags": ["electronics", "fitness band", "wearable"]},
+    {"row": 5, "column": 3, "label": "Virtual-reality headset", "tags": ["electronics", "virtual reality", "vr headset"]},
+    {"row": 5, "column": 4, "label": "Drone controller", "tags": ["drone accessory", "electronics", "remote controller"]},
+    {"row": 5, "column": 5, "label": "Compact digital projector", "tags": ["digital projector", "electronics", "projector"]}
+  ]
+}

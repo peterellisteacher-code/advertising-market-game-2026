@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 46,
+  "sourcePng": "46-toys-tabletop-collectibles.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Teddy bear", "tags": ["plush toy", "teddy bear", "toy"]},
+    {"row": 1, "column": 2, "label": "Blank fashion doll", "tags": ["doll", "fashion doll", "toy"]},
+    {"row": 1, "column": 3, "label": "Blank action figure", "tags": ["action figure", "collectible", "toy"]},
+    {"row": 1, "column": 4, "label": "Toy robot", "tags": ["robot", "toy", "toy figure"]},
+    {"row": 1, "column": 5, "label": "Toy sports car", "tags": ["sports car", "toy", "toy vehicle"]},
+    {"row": 2, "column": 1, "label": "Building brick", "tags": ["building brick", "construction toy", "toy"]},
+    {"row": 2, "column": 2, "label": "Toy steam locomotive", "tags": ["locomotive", "toy train", "toy vehicle"]},
+    {"row": 2, "column": 3, "label": "Spinning top", "tags": ["classic toy", "spinning top", "toy"]},
+    {"row": 2, "column": 4, "label": "Yo-yo", "tags": ["classic toy", "skill toy", "yo-yo"]},
+    {"row": 2, "column": 5, "label": "Diamond kite", "tags": ["kite", "outdoor toy", "toy"]},
+    {"row": 3, "column": 1, "label": "Square board-game board", "tags": ["board game", "game board", "tabletop game"]},
+    {"row": 3, "column": 2, "label": "Stack of playing cards", "tags": ["card game", "playing cards", "tabletop game"]},
+    {"row": 3, "column": 3, "label": "Six-sided die", "tags": ["die", "game component", "tabletop game"]},
+    {"row": 3, "column": 4, "label": "Board-game pawn", "tags": ["game component", "pawn", "tabletop game"]},
+    {"row": 3, "column": 5, "label": "Hourglass game timer", "tags": ["game timer", "hourglass", "tabletop game"]},
+    {"row": 4, "column": 1, "label": "Small jigsaw puzzle", "tags": ["jigsaw puzzle", "puzzle", "tabletop game"]},
+    {"row": 4, "column": 2, "label": "Chess king", "tags": ["chess", "chess piece", "tabletop game"]},
+    {"row": 4, "column": 3, "label": "Domino tile", "tags": ["domino", "game component", "tabletop game"]},
+    {"row": 4, "column": 4, "label": "Tabletop miniature figure", "tags": ["collectible miniature", "miniature figure", "tabletop game"]},
+    {"row": 4, "column": 5, "label": "Dice tower", "tags": ["dice accessory", "dice tower", "tabletop game"]},
+    {"row": 5, "column": 1, "label": "Blank trading card", "tags": ["collectible card", "trading card", "trading-card accessory"]},
+    {"row": 5, "column": 2, "label": "Trading-card deck box", "tags": ["deck box", "storage box", "trading-card accessory"]},
+    {"row": 5, "column": 3, "label": "Cylindrical collectible display case", "tags": ["collectible", "display case", "toy storage"]},
+    {"row": 5, "column": 4, "label": "Trading-card binder", "tags": ["card binder", "storage binder", "trading-card accessory"]},
+    {"row": 5, "column": 5, "label": "Modular robot action-figure parts", "tags": ["action-figure parts", "modular robot", "toy accessory"]}
+  ]
+}

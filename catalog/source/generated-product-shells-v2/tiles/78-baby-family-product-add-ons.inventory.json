@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 78,
+  "sourcePng": "78-baby-family-product-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Classic-pram hood", "tags": ["classic pram", "pram hood", "stroller canopy"]},
+    {"row": 1, "column": 2, "label": "Compact-stroller canopy", "tags": ["compact stroller", "stroller canopy", "weather cover"]},
+    {"row": 1, "column": 3, "label": "Twin-stroller double canopy", "tags": ["double canopy", "stroller canopy", "twin stroller"]},
+    {"row": 1, "column": 4, "label": "Curved stroller push-handle", "tags": ["curved handle", "push handle", "stroller component"]},
+    {"row": 1, "column": 5, "label": "Side carry-handle", "tags": ["carry handle", "side handle", "transport component"]},
+    {"row": 2, "column": 1, "label": "Small swivel stroller wheels", "tags": ["small wheels", "stroller wheels", "swivel wheels"]},
+    {"row": 2, "column": 2, "label": "Large jogging-stroller wheels", "tags": ["jogging stroller", "large wheels", "stroller wheels"]},
+    {"row": 2, "column": 3, "label": "Under-seat storage basket", "tags": ["storage basket", "stroller storage", "under-seat basket"]},
+    {"row": 2, "column": 4, "label": "Plain padded seat liner", "tags": ["padded liner", "seat liner", "stroller component"]},
+    {"row": 2, "column": 5, "label": "Five-point safety harness", "tags": ["child safety", "five-point harness", "safety harness"]},
+    {"row": 3, "column": 1, "label": "Detachable snack tray", "tags": ["detachable tray", "feeding component", "snack tray"]},
+    {"row": 3, "column": 2, "label": "Plain cup holder", "tags": ["cup holder", "feeding component", "plain holder"]},
+    {"row": 3, "column": 3, "label": "Rain-cover support frame", "tags": ["rain cover", "stroller frame", "support frame"]},
+    {"row": 3, "column": 4, "label": "Cot side-rail module", "tags": ["cot component", "side rail", "wooden rail"]},
+    {"row": 3, "column": 5, "label": "Cot end-panel module", "tags": ["cot component", "end panel", "furniture panel"]},
+    {"row": 4, "column": 1, "label": "Cot canopy frame", "tags": ["canopy frame", "cot component", "support frame"]},
+    {"row": 4, "column": 2, "label": "Plain cot mattress", "tags": ["cot mattress", "mattress", "plain bedding"]},
+    {"row": 4, "column": 3, "label": "Mobile support arm", "tags": ["cot component", "mobile arm", "support arm"]},
+    {"row": 4, "column": 4, "label": "Changing-table pad", "tags": ["changing pad", "changing table", "padded surface"]},
+    {"row": 4, "column": 5, "label": "Nappy-bag shoulder strap", "tags": ["bag component", "nappy bag", "shoulder strap"]},
+    {"row": 5, "column": 1, "label": "Insulated bottle-pocket attachment", "tags": ["bottle pocket", "insulated pocket", "nappy bag"]},
+    {"row": 5, "column": 2, "label": "High-chair tray", "tags": ["feeding tray", "high chair", "tray component"]},
+    {"row": 5, "column": 3, "label": "High-chair footrest", "tags": ["footrest", "high chair", "seat component"]},
+    {"row": 5, "column": 4, "label": "Child-car-seat headrest insert", "tags": ["car seat", "headrest", "seat insert"]},
+    {"row": 5, "column": 5, "label": "Blank product badge-panel insert", "tags": ["badge panel", "blank panel", "personalisation surface"]}
+  ]
+}

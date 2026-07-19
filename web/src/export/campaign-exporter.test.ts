@@ -37,11 +37,27 @@ function documentFixture(): CampaignDocumentV1 {
   return CampaignDocumentSchema.parse({
     ...blank,
     revision: 7,
+    gameplay: {
+      stage: "publish-check",
+      pair: {
+        activeRole: "strategist",
+        handoffCount: 1,
+        artDirectorActions: 1,
+        strategistActions: 1
+      }
+    },
     product: { name: "Solar Sprint", priceCents: 2499 },
     fabricState: {
       version: "7.4.0",
       objects: [
-        { type: "textbox", objectId: "price-copy", elementKind: "text", accessibleName: "Visible price", text: "$24.99" },
+        {
+          type: "textbox",
+          objectId: "price-copy",
+          elementKind: "text",
+      accessibleName: "Market price $24.99",
+      text: "$24.99",
+          editable: false
+        },
         { type: "textbox", objectId: "headline", elementKind: "text", accessibleName: "Headline", text: "Charge ahead" },
         {
           type: "image",
@@ -157,6 +173,21 @@ function nestPhoto(
 }
 
 describe("CampaignExporter", () => {
+  it("rejects a solo publication until both players act and swap once", () => {
+    const document = documentFixture();
+    document.gameplay.pair = {
+      activeRole: "art-director",
+      handoffCount: 0,
+      artDirectorActions: 0,
+      strategistActions: 0
+    };
+    const port = new ExportHarness(pngDataUrl(), document.fabricState);
+
+    expect(() => new CampaignExporter(port, ownedUrls(document)).publish(document))
+      .toThrow("Swap once and let both players make a visible change");
+    expect(port.renderCount).toBe(0);
+  });
+
   it("returns the exact publication contract from a clean 1600 by 900 PNG", () => {
     const document = documentFixture();
     const documentBefore = structuredClone(document);
@@ -229,6 +260,29 @@ describe("CampaignExporter", () => {
       expect(port.renderCount).toBe(0);
     }
   );
+
+  it("rejects a visible price that differs from the charged price or remains editable", () => {
+    const mismatched = documentFixture();
+    mismatched.fabricState.objects.find(({ objectId }) => objectId === "price-copy")!.text = "$1.00";
+    expect(() => new CampaignExporter(
+      new ExportHarness(pngDataUrl(), mismatched.fabricState),
+      ownedUrls(mismatched)
+    ).publish(mismatched)).toThrow(/visible price/i);
+
+    const editable = documentFixture();
+    editable.fabricState.objects.find(({ objectId }) => objectId === "price-copy")!.editable = true;
+    expect(() => new CampaignExporter(
+      new ExportHarness(pngDataUrl(), editable.fabricState),
+      ownedUrls(editable)
+    ).publish(editable)).toThrow(/visible price/i);
+
+    const duplicate = documentFixture();
+    duplicate.evidence.price.push("headline");
+    expect(() => new CampaignExporter(
+      new ExportHarness(pngDataUrl(), duplicate.fabricState),
+      ownedUrls(duplicate)
+    ).publish(duplicate)).toThrow(/one visible price/i);
+  });
 
   it("rejects evidence IDs absent from Fabric state", () => {
     const port = new ExportHarness();
@@ -570,11 +624,11 @@ describe("CampaignExporter", () => {
       .toThrow(/base64 PNG data URL/);
   });
 
-  it("accepts a zero price and rejects unowned blob URLs or duplicate object IDs", () => {
+  it("rejects a zero price, unowned blob URLs, or duplicate object IDs", () => {
     const zeroPriceDocument = documentFixture();
     zeroPriceDocument.product.priceCents = 0;
-    expect(new CampaignExporter(new ExportHarness(), ownedUrls(zeroPriceDocument))
-      .publish(zeroPriceDocument).metadata.priceCents).toBe(0);
+    expect(() => new CampaignExporter(new ExportHarness(), ownedUrls(zeroPriceDocument))
+      .publish(zeroPriceDocument)).toThrow(/positive/i);
 
     const unowned = documentFixture();
     expect(() => new CampaignExporter(new ExportHarness(), new Set()).publish(unowned))

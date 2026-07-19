@@ -1,0 +1,59 @@
+{
+  "schema": "product-pricing@1",
+  "packId": "pk1-pilot-drinkware",
+  "pricingVersion": 1,
+  "blueprints": [
+    {
+      "id": "pk1-tumbler-kit",
+      "title": "Reusable tumbler",
+      "groupIds": [
+        "pk1-tumbler-base-group",
+        "pk1-tumbler-lid-group"
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "id": "pk1-tumbler-base-group",
+      "label": "Product body",
+      "kind": "base",
+      "mode": "one",
+      "minSelections": 1,
+      "maxSelections": 1,
+      "choiceIds": [
+        "pk1-price-tumbler"
+      ]
+    },
+    {
+      "id": "pk1-tumbler-lid-group",
+      "label": "Lid",
+      "kind": "part",
+      "mode": "one",
+      "minSelections": 1,
+      "maxSelections": 1,
+      "choiceIds": [
+        "pk1-price-flat-lid"
+      ]
+    }
+  ],
+  "choices": [
+    {
+      "id": "pk1-price-tumbler",
+      "groupId": "pk1-tumbler-base-group",
+      "label": "Product body",
+      "costCents": 480,
+      "compatibleBlueprintIds": [
+        "pk1-tumbler-kit"
+      ]
+    },
+    {
+      "id": "pk1-price-flat-lid",
+      "groupId": "pk1-tumbler-lid-group",
+      "label": "Flat lid",
+      "costCents": 70,
+      "compatibleBlueprintIds": [
+        "pk1-tumbler-kit"
+      ]
+    }
+  ]
+}

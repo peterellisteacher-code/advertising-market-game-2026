@@ -23,10 +23,16 @@ const SHA256 = /^[0-9a-f]{64}$/;
 const HEX_COLOUR = /^#[0-9A-Fa-f]{6}$/;
 const MAX_RECORDS = 20_000;
 const LOAD_TIMEOUT_MS = 5_000;
+const MAX_CATALOGUE_BYTES = 32 * 1024 * 1024;
 
 export interface OfflineCatalogueLoadOptions {
   fetch?: typeof fetch;
   createDeadlineSignal?: () => AbortSignal;
+}
+
+export interface OfflineCatalogueWithHash {
+  records: CatalogAssetV1[];
+  catalogSha256: string;
 }
 
 const record = (value: unknown): Record<string, unknown> | null =>
@@ -225,13 +231,13 @@ function sameOriginCatalogueUrl(value: string): URL | null {
 }
 
 /** Loads the optional reviewed classroom pack; every malformed response fails to an empty pack. */
-export async function loadOfflineCatalogue(
+export async function loadOfflineCatalogueWithHash(
   value: string | undefined,
   options: OfflineCatalogueLoadOptions = {}
-): Promise<CatalogAssetV1[]> {
-  if (!value) return [];
+): Promise<OfflineCatalogueWithHash | null> {
+  if (!value) return null;
   const url = sameOriginCatalogueUrl(value);
-  if (!url) return [];
+  if (!url) return null;
   const fetcher = options.fetch ?? ((input, init) => fetch(input, init));
   const deadline = options.createDeadlineSignal?.() ?? AbortSignal.timeout(LOAD_TIMEOUT_MS);
   try {
@@ -241,15 +247,34 @@ export async function loadOfflineCatalogue(
       credentials: "same-origin",
       signal: deadline
     });
-    if (!response.ok) return [];
-    const payload = await response.json() as unknown;
-    if (!Array.isArray(payload) || payload.length > MAX_RECORDS) return [];
+    if (!response.ok) return null;
+    const contentLength = response.headers.get("content-length");
+    if (contentLength !== null && (!/^\d+$/.test(contentLength) || Number(contentLength) > MAX_CATALOGUE_BYTES)) {
+      return null;
+    }
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength === 0 || bytes.byteLength > MAX_CATALOGUE_BYTES) return null;
+    const source = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    const payload = JSON.parse(source) as unknown;
+    if (!Array.isArray(payload) || payload.length > MAX_RECORDS) return null;
     const parsed = payload.map(parseCatalogAsset);
-    if (parsed.some((asset) => asset === null || asset.delivery !== "offline")) return [];
+    if (parsed.some((asset) => asset === null || asset.delivery !== "offline")) return null;
     const records = parsed as CatalogAssetV1[];
-    if (new Set(records.map(({ id }) => id)).size !== records.length) return [];
-    return records;
+    if (new Set(records.map(({ id }) => id)).size !== records.length) return null;
+    const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
+    const catalogSha256 = Array.from(new Uint8Array(digest), (byte) =>
+      byte.toString(16).padStart(2, "0")
+    ).join("");
+    return { records, catalogSha256 };
   } catch {
-    return [];
+    return null;
   }
+}
+
+/** Loads the optional reviewed classroom pack; every malformed response fails to an empty pack. */
+export async function loadOfflineCatalogue(
+  value: string | undefined,
+  options: OfflineCatalogueLoadOptions = {}
+): Promise<CatalogAssetV1[]> {
+  return (await loadOfflineCatalogueWithHash(value, options))?.records ?? [];
 }

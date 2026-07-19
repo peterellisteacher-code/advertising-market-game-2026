@@ -7,6 +7,7 @@ var _pending: Dictionary = {}
 var _history: Dictionary = {}
 var _last_responses: Dictionary = {}
 var _close_requested_callback: Callable
+var _shown_messages: Array[String] = []
 
 func set_close_requested_callback(callback: Callable) -> void:
     _close_requested_callback = callback
@@ -14,6 +15,12 @@ func set_close_requested_callback(callback: Callable) -> void:
 func request_close() -> void:
     if _close_requested_callback.is_valid():
         _close_requested_callback.call()
+
+func show_message(message: String) -> void:
+    _shown_messages.append(message)
+
+func last_shown_message() -> String:
+    return "" if _shown_messages.is_empty() else _shown_messages.back()
 
 func send(request_json: String, resolve: Callable, reject: Callable) -> void:
     var decoded: Variant = JSON.parse_string(request_json)

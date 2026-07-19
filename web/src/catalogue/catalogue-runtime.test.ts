@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import PRODUCT_KIT_SIDECAR from "../../../catalog/generated/offline-core-v1/product-kit-v1.json";
+import PRODUCT_KIT_PRICING_SIDECAR from
+  "../../../catalog/generated/offline-core-v1/product-kit-pricing-v1.json";
 import {
   createBlankCampaignDocument,
   parseCampaignDocument,
@@ -13,21 +16,38 @@ import type {
   LogoMarkSnapshot,
   LogoMarkSource,
   NewLogoMarkInput,
+  NewProductKitInput,
   NewProductVariantInput,
   NewRasterInput,
   NewShapeInput,
   NewTextInput
 } from "../fabric/canvas-port";
+import { campaignSemanticObjectMap } from "../domain/campaign-semantic-objects";
 import { parseProductBuilderCatalogue } from "../product-builder/product-builder-catalogue";
+import { quotePilotProductVariant } from "../product-builder/pilot-product-economics";
 import { createVirtualProductVariantResolver } from "../product-builder/virtual-product-variant";
 import type { ProductShellRecord } from "../product-shells/product-shell-catalogue";
+import type { OfflineCatalogueWithHash } from "./catalogue-store";
+import { parseCatalogAsset } from "./catalogue-store";
+import {
+  loadProductKitBundle,
+  type LoadedProductKitBundle
+} from "../product-kit/product-kit-loader";
+import {
+  parseProductKitCompositionReference,
+  type ProductKitCompositionReference
+} from "../product-kit/product-kit-document";
+import type { ProductKitCompositionRequest } from "../product-kit/product-kit-runtime";
 import type { CatalogAssetV1 } from "./catalogue-types";
 import {
   CataloguePlacementQueue,
   CatalogueRuntime,
+  filterCatalogueByView,
   type CatalogueRenderer,
   type LivePhotoClient
 } from "./catalogue-runtime";
+import { parseRasterPricing, type RasterPricingIndex } from "./raster-pricing";
+import { rehydrateLocalAssetBlobs } from "../persistence/draft-store";
 
 const asset = (id: string, kind: CatalogAssetV1["kind"] = "component"): CatalogAssetV1 => {
   if (kind === "photo") {
@@ -97,14 +117,129 @@ const openverseAsset = (): CatalogAssetV1 => ({
   }
 });
 
+const recolourableAsset = (id: string): Extract<CatalogAssetV1, { delivery: "offline" }> => {
+  const base = asset(id);
+  if (base.delivery !== "offline") throw new Error("Expected an offline fixture asset");
+  return {
+    ...base,
+    files: {
+      ...base.files,
+      masks: {
+        body: `/catalog/generated/offline-core-v1/assets/${id}/masks/body.png`
+      }
+    },
+    recolourZones: ["body"],
+    materialProfiles: ["matte-plastic"]
+  };
+};
+
+const PRODUCT_KIT_CATALOG_HASH =
+  "6199fd1adae59a2b517b265ca67a325f32faba04d375852821e841b51a354073";
+const PRODUCT_KIT_BASE_ID = "89-beverage-container-bases-r03c05";
+const PRODUCT_KIT_BASE_HASH =
+  "d87a3718df6bd9a00e667a8c50729c3c84a3bd33bfe395df86b9992f49eb7abf";
+const PRODUCT_KIT_LID_ID = "90-beverage-container-add-ons-r04c01";
+const PRODUCT_KIT_LID_HASH =
+  "6156af7416af78a8bb53a93c540ff2745caa77140f808213227487985e3580a5";
+
+function pilotOfflineAsset(
+  id: string,
+  masterSha256: string,
+  kind: "raster-master" | "component",
+  width: number,
+  height: number
+): CatalogAssetV1 {
+  return {
+    ...asset(id, kind),
+    masterSha256,
+    dimensions: { width, height }
+  } as CatalogAssetV1;
+}
+
+const PRODUCT_KIT_OFFLINE: OfflineCatalogueWithHash = {
+  records: [
+    pilotOfflineAsset(PRODUCT_KIT_BASE_ID, PRODUCT_KIT_BASE_HASH, "raster-master", 146, 238),
+    pilotOfflineAsset(PRODUCT_KIT_LID_ID, PRODUCT_KIT_LID_HASH, "component", 233, 164)
+  ],
+  catalogSha256: PRODUCT_KIT_CATALOG_HASH
+};
+
+const PRODUCT_KIT_REQUEST: ProductKitCompositionRequest = {
+  kitId: "pk1-tumbler-kit",
+  placements: [{
+    kind: "socket",
+    placementId: "lid-1",
+    mountFrameId: "pk1-tumbler-lid-frame",
+    componentId: "pk1-flat-lid"
+  }]
+};
+
+async function pilotProductKitBundle(): Promise<LoadedProductKitBundle> {
+  const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith("/product-kit-v1.json")) {
+      return new Response(JSON.stringify(PRODUCT_KIT_SIDECAR), {
+        headers: { "content-type": "application/json" }
+      });
+    }
+    if (url.endsWith("/product-kit-pricing-v1.json")) {
+      return new Response(JSON.stringify(PRODUCT_KIT_PRICING_SIDECAR), {
+        headers: { "content-type": "application/json" }
+      });
+    }
+    throw new Error(`Unexpected Product Kit request: ${url}`);
+  }) as unknown as typeof fetch;
+  const bundle = await loadProductKitBundle(
+    "/catalog/generated/offline-core-v1/catalog.json",
+    structuredClone(PRODUCT_KIT_OFFLINE),
+    { fetchImpl }
+  );
+  if (!bundle) throw new Error("Expected the reviewed Product Kit fixture to load");
+  return bundle;
+}
+
 const deferred = <T,>() => {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>((done) => { resolve = done; });
   return { promise, resolve };
 };
 
-function runtimeHarness(core: CatalogAssetV1[], client: LivePhotoClient, liveDebounceMs = 0) {
+function fixturePricing(
+  core: readonly CatalogAssetV1[],
+  roles: Readonly<Record<string, "base" | "part" | "media">> = {}
+): RasterPricingIndex {
+  return {
+    packId: "offline-core-v1",
+    pricingVersion: 1,
+    catalogSha256: "a".repeat(64),
+    byAssetId: new Map(core.map((record) => [
+      record.id,
+      {
+        role: roles[record.id] ?? "base",
+        costCents: 1_000,
+        title: record.title
+      }
+    ]))
+  };
+}
+
+function runtimeHarness(
+  core: CatalogAssetV1[],
+  client: LivePhotoClient,
+  liveDebounceMs = 0,
+  pricing = fixturePricing(core)
+) {
   const input = document.createElement("input");
+  const category = document.createElement("select");
+  const view = document.createElement("select");
+  for (const [value, label] of [
+    ["products", "Products"], ["parts", "Parts"], ["all", "All pieces"]
+  ] as const) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    view.append(option);
+  }
   const toggle = document.createElement("input");
   toggle.type = "checkbox";
   const status = document.createElement("p");
@@ -113,12 +248,82 @@ function runtimeHarness(core: CatalogAssetV1[], client: LivePhotoClient, liveDeb
     render(records) { renders.push(records.map(({ id }) => id)); }
   };
   const runtime = new CatalogueRuntime({
-    core, input, liveToggle: toggle, status, renderer, client, liveDebounceMs
+    core, pricing, input, categorySelect: category, viewSelect: view,
+    liveToggle: toggle, status, renderer, client,
+    liveDebounceMs
   });
-  return { input, toggle, status, renders, runtime };
+  return { input, category, view, toggle, status, renders, runtime };
 }
 
 describe("CatalogueRuntime", () => {
+  it("admits the exact validated corpus into Products, Parts and All pieces", () => {
+    const cataloguePath = join(process.cwd(), "catalog/generated/offline-core-v1/catalog.json");
+    const pricingPath = join(process.cwd(), "catalog/generated/offline-core-v1/pricing.json");
+    const rawCatalogue = JSON.parse(readFileSync(cataloguePath, "utf8")) as unknown[];
+    const records = rawCatalogue.map(parseCatalogAsset);
+    expect(records).not.toContain(null);
+    const catalogue = records as CatalogAssetV1[];
+    const rawPricing = JSON.parse(readFileSync(pricingPath, "utf8")) as {
+      catalogSha256: string;
+    };
+    const pricing = parseRasterPricing(rawPricing, catalogue, rawPricing.catalogSha256);
+    expect(pricing).not.toBeNull();
+
+    expect(filterCatalogueByView(catalogue, pricing!, "products")).toHaveLength(1_530);
+    expect(filterCatalogueByView(catalogue, pricing!, "parts")).toHaveLength(923);
+    expect(filterCatalogueByView(catalogue, pricing!, "all")).toHaveLength(2_503);
+    expect([...pricing!.byAssetId.values()].filter(({ role }) => role === "media"))
+      .toHaveLength(50);
+    expect(filterCatalogueByView(catalogue, pricing!, "products")
+      .some(({ id }) => pricing!.byAssetId.get(id)?.role === "media"))
+      .toBe(false);
+  });
+
+  it("switches deterministically by validated role without duplicate listeners", async () => {
+    const records = [
+      { ...asset("shoe"), title: "Running shoe", category: "apparel-footwear" },
+      { ...asset("laces"), title: "Tied shoelace", category: "apparel-footwear" },
+      { ...asset("poster"), title: "Poster frame", category: "media" }
+    ];
+    const pricing = fixturePricing(records, { shoe: "base", laces: "part", poster: "media" });
+    const client: LivePhotoClient = { setEnabled: vi.fn(), search: vi.fn() };
+    const harness = runtimeHarness(records, client, 0, pricing);
+    const before = harness.renders.length;
+
+    expect(harness.view.value).toBe("products");
+    expect(harness.renders.at(-1)).toEqual(["shoe"]);
+    harness.view.value = "parts";
+    harness.view.dispatchEvent(new Event("change"));
+    await harness.runtime.settled();
+    expect(harness.renders.at(-1)).toEqual(["laces"]);
+    harness.view.value = "all";
+    harness.view.dispatchEvent(new Event("change"));
+    await harness.runtime.settled();
+    expect(harness.renders.at(-1)).toEqual(["poster", "shoe", "laces"]);
+    expect(harness.renders).toHaveLength(before + 2);
+  });
+
+  it("searches and categorises a known validated product in the real corpus", async () => {
+    const rawCatalogue = JSON.parse(readFileSync(
+      join(process.cwd(), "catalog/generated/offline-core-v1/catalog.json"), "utf8"
+    )) as unknown[];
+    const catalogue = rawCatalogue.map(parseCatalogAsset) as CatalogAssetV1[];
+    const rawPricing = JSON.parse(readFileSync(
+      join(process.cwd(), "catalog/generated/offline-core-v1/pricing.json"), "utf8"
+    )) as { catalogSha256: string };
+    const pricing = parseRasterPricing(rawPricing, catalogue, rawPricing.catalogSha256)!;
+    const client: LivePhotoClient = { setEnabled: vi.fn(), search: vi.fn() };
+    const harness = runtimeHarness(catalogue, client, 0, pricing);
+
+    harness.input.value = "Running shoe";
+    harness.category.value = "apparel-footwear";
+    harness.category.dispatchEvent(new Event("change"));
+    await harness.runtime.settled();
+
+    expect(harness.renders.at(-1)).toContain("31-apparel-footwear-bases-r04c01");
+    expect(harness.category.selectedOptions[0]?.textContent).toBe("Apparel footwear");
+  });
+
   it("renders the reviewed core immediately and keeps live photos opt-in", async () => {
     const client: LivePhotoClient = { setEnabled: vi.fn(), search: vi.fn() };
     const harness = runtimeHarness([asset("core")], client);
@@ -161,10 +366,81 @@ describe("CatalogueRuntime", () => {
     const harness = runtimeHarness([], client);
 
     expect(harness.renders.at(-1)).toEqual([]);
-    harness.runtime.replaceCore([asset("late-core")]);
+    const replacement = [asset("late-core")];
+    harness.runtime.replaceCore(replacement, fixturePricing(replacement));
 
     expect(harness.renders.at(-1)).toEqual(["late-core"]);
     expect(harness.toggle.checked).toBe(false);
+  });
+
+  it("explains the initial 100-result browse cap instead of implying that products are missing", () => {
+    const client: LivePhotoClient = { setEnabled: vi.fn(), search: vi.fn() };
+    const records = Array.from({ length: 125 }, (_, index) => ({
+      ...asset(`product-${index}`),
+      title: `Product ${String(index).padStart(3, "0")}`
+    }));
+    const harness = runtimeHarness(records, client);
+
+    expect(harness.renders.at(-1)).toHaveLength(100);
+    expect(harness.status.textContent)
+      .toBe("Showing 100 of 125 products · search or choose a category");
+  });
+
+  it("populates a sorted category browser and filters before virtual rendering", async () => {
+    const client: LivePhotoClient = { setEnabled: vi.fn(), search: vi.fn() };
+    const harness = runtimeHarness([
+      { ...asset("sofa"), title: "Curved sofa", category: "home-furniture" },
+      { ...asset("bottle"), title: "Sports bottle", category: "drinkware" },
+      { ...asset("chair"), title: "Lounge chair", category: "home-furniture" }
+    ], client);
+
+    expect([...harness.category.options].map(({ value, textContent }) => [value, textContent]))
+      .toEqual([
+        ["", "All categories"],
+        ["drinkware", "Drinkware"],
+        ["home-furniture", "Home furniture"]
+      ]);
+
+    harness.category.value = "home-furniture";
+    harness.category.dispatchEvent(new Event("change"));
+    await harness.runtime.settled();
+
+    expect(harness.renders.at(-1)).toEqual(["sofa", "chair"]);
+    expect(harness.status.textContent).toContain("Home furniture");
+  });
+
+  it("does not mix live-photo search into a selected classroom category", async () => {
+    const client: LivePhotoClient = {
+      setEnabled: vi.fn(),
+      search: vi.fn().mockResolvedValue({ status: "online", records: [asset("remote", "photo")] })
+    };
+    const harness = runtimeHarness([
+      { ...asset("sofa"), title: "Curved sofa", category: "home-furniture" }
+    ], client);
+    harness.input.value = "sofa";
+    harness.category.value = "home-furniture";
+    harness.toggle.checked = true;
+
+    harness.toggle.dispatchEvent(new Event("change"));
+    await harness.runtime.settled();
+
+    expect(client.search).not.toHaveBeenCalled();
+    expect(harness.renders.at(-1)).toEqual(["sofa"]);
+  });
+
+  it("resets a removed category when the core pack is replaced", () => {
+    const client: LivePhotoClient = { setEnabled: vi.fn(), search: vi.fn() };
+    const harness = runtimeHarness([
+      { ...asset("sofa"), category: "home-furniture" }
+    ], client);
+    harness.category.value = "home-furniture";
+    harness.category.dispatchEvent(new Event("change"));
+
+    const replacement = [{ ...asset("bottle"), category: "drinkware" }];
+    harness.runtime.replaceCore(replacement, fixturePricing(replacement));
+
+    expect(harness.category.value).toBe("");
+    expect(harness.renders.at(-1)).toEqual(["bottle"]);
   });
 
   it("rejects a stale live response after a newer search", async () => {
@@ -247,6 +523,7 @@ describe("CatalogueRuntime", () => {
 class PlacementCanvas implements CanvasPort {
   readonly objects: Array<Record<string, unknown>>;
   readonly removed: string[] = [];
+  readonly productKitAdds: NewProductKitInput[] = [];
   readonly artworkAdds: Array<{
     address: ArtworkSurfaceAddress;
     input: NewRasterInput;
@@ -257,6 +534,18 @@ class PlacementCanvas implements CanvasPort {
   }> = [];
   serializeTransform?: (state: Record<string, unknown>) => void;
   removeArtworkFailure?: Error;
+  productKitFailureBeforeAdd?: Error;
+  productKitFailureAfterAdd?: Error;
+  productKitRootTransform?: (root: Record<string, unknown>) => void;
+  selectedIds: string[] = [];
+
+  get selectedId(): string | null {
+    return this.selectedIds.length === 1 ? this.selectedIds[0]! : null;
+  }
+
+  set selectedId(value: string | null) {
+    this.selectedIds = value === null ? [] : [value];
+  }
 
   constructor(objects: Array<Record<string, unknown>> = []) {
     this.objects = structuredClone(objects);
@@ -308,6 +597,27 @@ class PlacementCanvas implements CanvasPort {
       artwork: input.artwork
     });
   }
+  async addProductKit(input: NewProductKitInput): Promise<void> {
+    this.productKitAdds.push(input);
+    if (this.productKitFailureBeforeAdd) throw this.productKitFailureBeforeAdd;
+    const root: Record<string, unknown> = {
+      type: "group",
+      objectId: input.id,
+      elementKind: "product-kit",
+      accessibleName: input.accessibleName,
+      productKitPackId: input.catalogue.packId,
+      productKitId: input.plan.kitId,
+      productKitCatalogSha256: input.catalogue.catalogSha256,
+      objects: input.plan.layers.flatMap(({ layer, entries }) => entries.map((entry) =>
+        entry.kind === "artwork-slot"
+          ? { type: "group", productLayer: "artwork-slot", artworkSlotId: entry.itemId }
+          : { type: "image", productLayer: layer }
+      ))
+    };
+    this.productKitRootTransform?.(root);
+    this.objects.push(root);
+    if (this.productKitFailureAfterAdd) throw this.productKitFailureAfterAdd;
+  }
   async addArtworkText(_address: ArtworkSurfaceAddress, _input: NewTextInput): Promise<void> {
     throw new Error("Unexpected artwork-surface command");
   }
@@ -345,6 +655,7 @@ class PlacementCanvas implements CanvasPort {
     this.removed.push(id);
     const index = this.objects.findIndex(({ objectId }) => objectId === id);
     if (index >= 0) this.objects.splice(index, 1);
+    this.selectedIds = this.selectedIds.filter((selectedId) => selectedId !== id);
   }
   serialize(): Record<string, unknown> {
     const state: Record<string, unknown> = {
@@ -354,11 +665,24 @@ class PlacementCanvas implements CanvasPort {
     this.serializeTransform?.(state);
     return state;
   }
-  setSelected(): void {}
+  setSelected(id: string | null): void { this.selectedId = id; }
+  getSelectedObjectId(): string | null {
+    if (this.selectedIds.length > 1) {
+      throw new Error("An ordered multi-selection has no single object ID");
+    }
+    return this.selectedId;
+  }
+  captureSelection(): { readonly objectIds: readonly string[] } {
+    return Object.freeze({ objectIds: Object.freeze([...this.selectedIds]) });
+  }
+  restoreSelection(snapshot: { readonly objectIds: readonly string[] }): void {
+    this.selectedIds = [...snapshot.objectIds];
+  }
   setText(): void {}
   async addText(): Promise<void> { throw new Error("not used"); }
   async addShape(): Promise<void> { throw new Error("not used"); }
   transform(): void {}
+  assertCanDuplicate(): void {}
   async duplicate(): Promise<void> {}
   move(): void {}
   setLocked(): void {}
@@ -368,7 +692,12 @@ class PlacementCanvas implements CanvasPort {
   setDrawingTool(): void {}
   eraseTopmostDrawing(): boolean { return false; }
   exportCleanPngDataUrl(): string { return ""; }
-  async load(): Promise<void> {}
+  async load(value: Record<string, unknown>): Promise<void> {
+    this.objects.splice(0, this.objects.length, ...structuredClone(
+      Array.isArray(value.objects) ? value.objects as Array<Record<string, unknown>> : []
+    ));
+    this.selectedIds = [];
+  }
   subscribe(_listener: CanvasMutationListener): () => void { return () => {}; }
 
   #artworkSlot(address: ArtworkSurfaceAddress): Array<Record<string, unknown>> {
@@ -471,6 +800,70 @@ function findSemanticObject(
   return undefined;
 }
 
+function mutableProductKitBundle(bundle: LoadedProductKitBundle): LoadedProductKitBundle {
+  return {
+    catalogue: bundle.catalogue,
+    runtime: bundle.runtime,
+    rasterSources: new Map([...bundle.rasterSources].map(([key, source]) => [
+      key,
+      { ...source }
+    ])),
+    pricing: {
+      packId: bundle.pricing.packId,
+      pricingVersion: bundle.pricing.pricingVersion,
+      blueprintTitleByKitId: new Map(bundle.pricing.blueprintTitleByKitId),
+      byPriceAssetId: new Map([...bundle.pricing.byPriceAssetId].map(([key, price]) => [
+        key,
+        { ...price }
+      ]))
+    }
+  };
+}
+
+function productKitTransactionHarness(
+  historyCommitFailure = false,
+  selectedIds: readonly string[] = ["selected-before-kit"]
+) {
+  const canvas = new PlacementCanvas([...selectedIds].reverse().map((id) => semanticImage(id)));
+  canvas.restoreSelection({ objectIds: selectedIds });
+  let document = placementDocument(canvas.objects);
+  let history = {
+    past: [] as CampaignDocumentV1[],
+    present: structuredClone(document),
+    future: [] as CampaignDocumentV1[]
+  };
+  const commit = vi.fn((next: CampaignDocumentV1) => { document = next; });
+  const transaction = vi.fn(async (operation: () => Promise<void>) => {
+    const initialCanvas = canvas.serialize();
+    const initialDocument = structuredClone(document);
+    const initialHistory = structuredClone(history);
+    try {
+      await operation();
+      if (historyCommitFailure) throw new Error("Synthetic history commit failure");
+      history = {
+        past: [...initialHistory.past, initialHistory.present],
+        present: structuredClone(document),
+        future: []
+      };
+    } catch (error) {
+      if (JSON.stringify(canvas.serialize()) !== JSON.stringify(initialCanvas)) {
+        await canvas.load(initialCanvas);
+      }
+      document = initialDocument;
+      history = initialHistory;
+      throw error;
+    }
+  });
+  return {
+    canvas,
+    commit,
+    transaction,
+    selectedId: selectedIds.length === 1 ? selectedIds[0]! : null,
+    getDocument: () => document,
+    getHistory: () => history
+  };
+}
+
 function productSlot(
   objects: Array<Record<string, unknown>>,
   productId = ARTWORK_ADDRESS.productId,
@@ -554,6 +947,298 @@ const artworkReconciliationCases: Array<[
 ];
 
 describe("CataloguePlacementQueue", () => {
+  it("refuses Product Kit placement without the host transaction before any mutation", async () => {
+    const bundle = await pilotProductKitBundle();
+    const canvas = new PlacementCanvas([semanticImage("existing-object")]);
+    canvas.selectedId = "existing-object";
+    let document = placementDocument(canvas.objects);
+    const history = {
+      past: [] as CampaignDocumentV1[],
+      present: structuredClone(document),
+      future: [] as CampaignDocumentV1[]
+    };
+    const initialCanvas = canvas.serialize();
+    const initialDocument = structuredClone(document);
+    const initialHistory = structuredClone(history);
+    const createObjectId = vi.fn(() => "product-kit-object-1");
+    const getCanvas = vi.fn(async () => canvas);
+    const hostileCommit = vi.fn((next: CampaignDocumentV1) => {
+      document = next;
+      history.past.push(structuredClone(next));
+      throw new Error("Hostile commit mutated before throwing");
+    });
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas,
+      commit: hostileCommit,
+      createObjectId
+    });
+
+    queue.enqueueProductKit(bundle, PRODUCT_KIT_REQUEST);
+    await expect(queue.flush()).rejects.toThrow(/transaction/i);
+
+    expect(createObjectId).not.toHaveBeenCalled();
+    expect(getCanvas).not.toHaveBeenCalled();
+    expect(hostileCommit).not.toHaveBeenCalled();
+    expect(canvas.productKitAdds).toEqual([]);
+    expect(canvas.serialize()).toEqual(initialCanvas);
+    expect(canvas.selectedId).toBe("existing-object");
+    expect(document).toEqual(initialDocument);
+    expect(history).toEqual(initialHistory);
+    expect(document.assetReferences).toEqual(initialDocument.assetReferences);
+    expect(document.product.build).toEqual(initialDocument.product.build);
+  });
+
+  it("places a Product Kit from a multi-selection and selects only its new root", async () => {
+    const bundle = await pilotProductKitBundle();
+    const selectedIds = ["selected-third", "selected-first"];
+    const harness = productKitTransactionHarness(false, selectedIds);
+    const queue = new CataloguePlacementQueue({
+      getDocument: harness.getDocument,
+      getCanvas: async () => harness.canvas,
+      commit: harness.commit,
+      transaction: harness.transaction,
+      createObjectId: () => "product-kit-object-1"
+    });
+
+    queue.enqueueProductKit(bundle, PRODUCT_KIT_REQUEST);
+    await queue.flush();
+
+    expect(harness.canvas.captureSelection())
+      .toEqual({ objectIds: ["product-kit-object-1"] });
+    expect(harness.getDocument().fabricState).not.toHaveProperty("selection");
+    expect(harness.canvas.serialize()).not.toHaveProperty("selection");
+  });
+
+  it("places one snapshotted Product Kit as one semantic and economic transaction", async () => {
+    const admitted = await pilotProductKitBundle();
+    const mutableBundle = mutableProductKitBundle(admitted);
+    const mutableRequest = structuredClone(PRODUCT_KIT_REQUEST) as {
+      kitId: string;
+      placements: Array<{
+        kind: "socket";
+        placementId: string;
+        mountFrameId: string;
+        componentId: string;
+      }>;
+    };
+    const harness = productKitTransactionHarness();
+    const createObjectId = vi.fn(() => "product-kit-object-1");
+    const getCanvas = vi.fn(async () => harness.canvas);
+    const queue = new CataloguePlacementQueue({
+      getDocument: harness.getDocument,
+      getCanvas,
+      commit: harness.commit,
+      transaction: harness.transaction,
+      createObjectId
+    });
+
+    queue.enqueueProductKit(mutableBundle, mutableRequest);
+    mutableRequest.placements[0]!.componentId = "mutated-after-enqueue";
+    (mutableBundle.rasterSources as Map<string, unknown>).clear();
+    (mutableBundle.pricing.byPriceAssetId as Map<string, unknown>).clear();
+    (mutableBundle as unknown as { runtime: null }).runtime = null;
+    await queue.flush();
+
+    const document = harness.getDocument();
+    const references = document.assetReferences.filter((reference) =>
+      reference.kind === "product-kit-composition"
+    ) as unknown as ProductKitCompositionReference[];
+    expect(harness.transaction).toHaveBeenCalledOnce();
+    expect(harness.getHistory().past).toHaveLength(1);
+    expect(createObjectId).toHaveBeenCalledOnce();
+    expect(getCanvas).toHaveBeenCalledOnce();
+    expect(harness.canvas.productKitAdds).toHaveLength(1);
+    expect(harness.canvas.objects).toHaveLength(2);
+    expect(harness.canvas.selectedId).toBe("product-kit-object-1");
+    expect(harness.commit).toHaveBeenCalledOnce();
+    expect(references).toHaveLength(1);
+    expect(references[0]).toMatchObject({
+      kind: "product-kit-composition",
+      version: 1,
+      objectId: "product-kit-object-1",
+      productKitPackId: admitted.catalogue.packId,
+      catalogPackId: admitted.catalogue.catalogPackId,
+      catalogSha256: admitted.catalogue.catalogSha256,
+      request: PRODUCT_KIT_REQUEST
+    });
+    expect(parseProductKitCompositionReference(references[0], {
+      catalogue: admitted.catalogue,
+      runtime: admitted.runtime,
+      pricing: admitted.pricing
+    })).not.toBeNull();
+    expect(document.product.build).toMatchObject({
+      schema: "product-build@1",
+      primaryObjectId: "product-kit-object-1",
+      packId: admitted.catalogue.packId,
+      blueprintId: PRODUCT_KIT_REQUEST.kitId,
+      unitCostCents: 550
+    });
+    expect(document.product.build?.costLines).toHaveLength(2);
+
+    const semantic = campaignSemanticObjectMap(document.fabricState);
+    const root = semantic.get("product-kit-object-1");
+    expect(semantic.size).toBe(2);
+    expect(root).toMatchObject({ elementKind: "product-kit", path: [1] });
+    expect(root?.object).toMatchObject({
+      productKitPackId: references[0]!.productKitPackId,
+      productKitId: references[0]!.request.kitId,
+      productKitCatalogSha256: references[0]!.catalogSha256
+    });
+    expect(document.product.build?.primaryObjectId).toBe(references[0]!.objectId);
+  });
+
+  it.each([
+    {
+      label: "plan",
+      message: /plan/i,
+      configure: (_canvas: PlacementCanvas, request: typeof PRODUCT_KIT_REQUEST) => {
+        (request.placements[0] as { componentId: string }).componentId = "uncertified-lid";
+      }
+    },
+    {
+      label: "PNG load",
+      message: /PNG load failure/,
+      configure: (canvas: PlacementCanvas) => {
+        canvas.productKitFailureBeforeAdd = new Error("Synthetic PNG load failure");
+      }
+    },
+    {
+      label: "canvas add",
+      message: /canvas add failure/,
+      configure: (canvas: PlacementCanvas) => {
+        canvas.productKitFailureAfterAdd = new Error("Synthetic canvas add failure");
+      }
+    },
+    {
+      label: "document validation",
+      message: /version/i,
+      configure: (canvas: PlacementCanvas) => {
+        canvas.serializeTransform = (state) => {
+          if (findSemanticObject(stateObjects(state), "product-kit-object-1")) state.version = "";
+        };
+      }
+    },
+    {
+      label: "root/reference agreement",
+      message: /agree|reconcile|identity/i,
+      configure: (canvas: PlacementCanvas) => {
+        canvas.productKitRootTransform = (root) => {
+          root.productKitCatalogSha256 = "0".repeat(64);
+        };
+      }
+    },
+    {
+      label: "history commit",
+      message: /history commit failure/,
+      historyCommitFailure: true,
+      configure: () => undefined
+    }
+  ])("restores canvas, document, ordered multi-selection and history exactly after $label failure", async ({
+    message,
+    configure,
+    historyCommitFailure = false
+  }) => {
+    const bundle = await pilotProductKitBundle();
+    const request = structuredClone(PRODUCT_KIT_REQUEST);
+    const selectedIds = ["selected-third", "selected-first"];
+    const harness = productKitTransactionHarness(historyCommitFailure, selectedIds);
+    configure(harness.canvas, request);
+    const initialCanvas = harness.canvas.serialize();
+    const initialSelection = harness.canvas.captureSelection();
+    const initialDocument = structuredClone(harness.getDocument());
+    const initialHistory = structuredClone(harness.getHistory());
+    const createObjectId = vi.fn(() => "product-kit-object-1");
+    const queue = new CataloguePlacementQueue({
+      getDocument: harness.getDocument,
+      getCanvas: async () => harness.canvas,
+      commit: harness.commit,
+      transaction: harness.transaction,
+      createObjectId
+    });
+
+    queue.enqueueProductKit(bundle, request);
+    await expect(queue.flush()).rejects.toThrow(message);
+
+    expect(harness.canvas.serialize()).toEqual(initialCanvas);
+    expect(harness.getDocument()).toEqual(initialDocument);
+    expect(harness.canvas.captureSelection()).toEqual(initialSelection);
+    expect(harness.getHistory()).toEqual(initialHistory);
+    expect(harness.transaction).toHaveBeenCalledOnce();
+    expect(createObjectId).toHaveBeenCalledTimes(
+      (request.placements[0] as { componentId: string }).componentId === "uncertified-lid" ? 0 : 1
+    );
+  });
+
+  it("tints a reviewed raster template into durable local PNG bytes before placement", async () => {
+    const canvas = new PlacementCanvas();
+    let document: CampaignDocumentV1 = createBlankCampaignDocument({
+      documentId: "tinted-template-document",
+      sessionId: "tinted-template-session",
+      mode: "offline"
+    });
+    const reviewed = recolourableAsset("colourable-sofa");
+    const tinted = new Blob([Uint8Array.from([137, 80, 78, 71, 1])], { type: "image/png" });
+    const tintRaster = vi.fn().mockResolvedValue(tinted);
+    const objectUrl = `blob:${window.location.origin}/tinted-template-object`;
+    let attachment: { blobKey: string; blob: Blob; objectUrl: string } | undefined;
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit: (next, localBlob) => { document = next; attachment = localBlob; },
+      createObjectId: () => "tinted-template-object",
+      tintRaster,
+      createObjectURL: () => objectUrl
+    });
+
+    queue.enqueue(reviewed, { bodyColour: "#e4572e" });
+    await queue.flush();
+
+    expect(tintRaster).toHaveBeenCalledWith(reviewed, "#E4572E");
+    expect(canvas.objects[0]).toMatchObject({
+      objectId: "tinted-template-object",
+      assetId: "colourable-sofa",
+      src: objectUrl
+    });
+    expect(document.assetReferences).toEqual([
+      expect.objectContaining({ kind: "catalog", objectId: "tinted-template-object" }),
+      expect.objectContaining({
+        kind: "local-blob",
+        objectId: "tinted-template-object",
+        assetId: "colourable-sofa",
+        blobKey: "catalog-tinted-template-object",
+        mimeType: "image/png"
+      })
+    ]);
+    expect(attachment).toEqual({
+      blobKey: "catalog-tinted-template-object",
+      blob: tinted,
+      objectUrl
+    });
+  });
+
+  it("rejects an invalid template colour before loading the canvas or tinting", async () => {
+    const reviewed = recolourableAsset("colourable-sofa");
+    const getCanvas = vi.fn();
+    const tintRaster = vi.fn();
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => createBlankCampaignDocument({
+        documentId: "bad-template-colour-document",
+        sessionId: "bad-template-colour-session",
+        mode: "offline"
+      }),
+      getCanvas,
+      commit: vi.fn(),
+      tintRaster
+    });
+
+    queue.enqueue(reviewed, { bodyColour: "orange" });
+
+    await expect(queue.flush()).rejects.toThrow(/six-digit/i);
+    expect(getCanvas).not.toHaveBeenCalled();
+    expect(tintRaster).not.toHaveBeenCalled();
+  });
+
   it("places through ObjectCommandService and commits a durable catalogue reference", async () => {
     const canvas = new PlacementCanvas();
     let document: CampaignDocumentV1 = createBlankCampaignDocument({
@@ -580,6 +1265,287 @@ describe("CataloguePlacementQueue", () => {
       attribution: asset("core").attribution
     }]);
     expect(canvas.artworkAdds).toEqual([]);
+  });
+
+  it("places a generated raster with durable generation and blob references that rehydrate", async () => {
+    const canvas = new PlacementCanvas();
+    let document: CampaignDocumentV1 = createBlankCampaignDocument({
+      documentId: "generated-placement-document",
+      sessionId: "generated-placement-session",
+      mode: "offline"
+    });
+    const blob = new Blob([Uint8Array.from([137, 80, 78, 71, 1, 2, 3])], {
+      type: "image/png"
+    });
+    const objectUrl = `blob:${window.location.origin}/generated-object`;
+    const createObjectURL = vi.fn(() => objectUrl);
+    const revokeObjectURL = vi.fn();
+    let attachment: { blobKey: string; blob: Blob; objectUrl: string } | undefined;
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit: (next, localBlob) => { document = next; attachment = localBlob; },
+      createObjectId: () => "generated-object",
+      createObjectURL,
+      revokeObjectURL
+    });
+
+    queue.enqueueGeneratedRaster({
+      assetId: "generated-asset-1",
+      title: "Solar snack packet",
+      blob,
+      stage: "object-forge",
+      profileId: "forge-cheap-v1",
+      requestId: "request-1"
+    });
+    await queue.flush();
+
+    expect(createObjectURL).toHaveBeenCalledOnce();
+    expect(createObjectURL).toHaveBeenCalledWith(blob);
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+    expect(canvas.objects).toContainEqual(expect.objectContaining({
+      objectId: "generated-object",
+      elementKind: "image",
+      assetId: "generated-asset-1",
+      accessibleName: "Solar snack packet",
+      src: objectUrl
+    }));
+    expect(document.assetReferences).toEqual([
+      {
+        kind: "generated-image",
+        version: 1,
+        objectId: "generated-object",
+        assetId: "generated-asset-1",
+        title: "Solar snack packet",
+        stage: "object-forge",
+        profileId: "forge-cheap-v1",
+        requestId: "request-1"
+      },
+      {
+        kind: "local-blob",
+        objectId: "generated-object",
+        assetId: "generated-asset-1",
+        blobKey: "generated-generated-object",
+        mimeType: "image/png"
+      }
+    ]);
+    expect(attachment).toMatchObject({
+      blobKey: "generated-generated-object",
+      blob,
+      objectUrl
+    });
+
+    const reloadedUrl = `blob:${window.location.origin}/reloaded-generated-object`;
+    const reloadRevoke = vi.fn();
+    const rehydrated = rehydrateLocalAssetBlobs(
+      document,
+      new Map([[attachment!.blobKey, attachment!.blob]]),
+      { createObjectURL: () => reloadedUrl, revokeObjectURL: reloadRevoke }
+    );
+    expect(findSemanticObject(
+      stateObjects(rehydrated.document.fabricState),
+      "generated-object"
+    )?.src).toBe(reloadedUrl);
+    expect(rehydrated.document.assetReferences).toContainEqual(expect.objectContaining({
+      kind: "generated-image",
+      requestId: "request-1"
+    }));
+    rehydrated.release();
+    expect(reloadRevoke).toHaveBeenCalledWith(reloadedUrl);
+  });
+
+  it("keeps generated and catalogue raster placement on one serial tail", async () => {
+    const canvas = new PlacementCanvas();
+    let document: CampaignDocumentV1 = createBlankCampaignDocument({
+      documentId: "generated-serial-document",
+      sessionId: "generated-serial-session",
+      mode: "offline"
+    });
+    const firstCanvas = deferred<CanvasPort>();
+    const getCanvas = vi.fn()
+      .mockReturnValueOnce(firstCanvas.promise)
+      .mockResolvedValue(canvas);
+    const objectIds = ["generated-first", "catalogue-second"];
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas,
+      commit: (next) => { document = next; },
+      createObjectId: () => objectIds.shift() ?? "unexpected-object",
+      createObjectURL: () => `blob:${window.location.origin}/generated-first`
+    });
+
+    queue.enqueueGeneratedRaster({
+      assetId: "generated-asset-2",
+      title: "Realistic solar snack packet",
+      blob: new Blob([Uint8Array.from([1])], { type: "image/webp" }),
+      stage: "make-it-real",
+      profileId: "real-product-v1",
+      requestId: "request-2"
+    });
+    queue.enqueue(asset("core"));
+    await Promise.resolve();
+
+    expect(getCanvas).toHaveBeenCalledOnce();
+    expect(document.assetReferences).toEqual([]);
+
+    firstCanvas.resolve(canvas);
+    await queue.flush();
+
+    expect(getCanvas).toHaveBeenCalledTimes(2);
+    expect(canvas.objects.map(({ objectId }) => objectId)).toEqual([
+      "generated-first",
+      "catalogue-second"
+    ]);
+    expect(document.assetReferences.map(({ kind }) => kind)).toEqual([
+      "generated-image",
+      "local-blob",
+      "catalog"
+    ]);
+  });
+
+  it.each([
+    [
+      "an unsupported image type",
+      { blob: new Blob([Uint8Array.from([1])], { type: "image/gif" }) },
+      /type is not supported/i
+    ],
+    [
+      "an empty image",
+      { blob: new Blob([], { type: "image/png" }) },
+      /empty/i
+    ],
+    [
+      "an oversized image",
+      {
+        blob: new Blob([new Uint8Array(12 * 1024 * 1024 + 1)], {
+          type: "image/jpeg"
+        })
+      },
+      /too large/i
+    ],
+    [
+      "an unknown generation stage",
+      { stage: "thumbnail-preview" },
+      /stage/i
+    ],
+    [
+      "a blank generation profile",
+      { profileId: "  " },
+      /profile ID/i
+    ],
+    [
+      "a non-Blob payload",
+      { blob: null },
+      /must be a Blob/i
+    ]
+  ])("rejects generated raster placement with %s before canvas mutation", async (
+    _label,
+    invalid,
+    message
+  ) => {
+    const canvas = new PlacementCanvas();
+    const document = createBlankCampaignDocument({
+      documentId: "invalid-generated-document",
+      sessionId: "invalid-generated-session",
+      mode: "offline"
+    });
+    const getCanvas = vi.fn(async () => canvas);
+    const createObjectURL = vi.fn();
+    const commit = vi.fn();
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas,
+      commit,
+      createObjectURL
+    });
+    const input = {
+      assetId: "generated-asset-invalid",
+      title: "Invalid generated image",
+      blob: new Blob([Uint8Array.from([1])], { type: "image/png" }),
+      stage: "object-forge",
+      profileId: "forge-cheap-v1",
+      requestId: "invalid-request",
+      ...invalid
+    } as unknown as Parameters<CataloguePlacementQueue["enqueueGeneratedRaster"]>[0];
+
+    queue.enqueueGeneratedRaster(input);
+    await expect(queue.flush()).rejects.toThrow(message);
+
+    expect(getCanvas).not.toHaveBeenCalled();
+    expect(createObjectURL).not.toHaveBeenCalled();
+    expect(canvas.objects).toEqual([]);
+    expect(commit).not.toHaveBeenCalled();
+  });
+
+  it("removes Fabric and revokes the owned URL when a generated object ID does not reconcile", async () => {
+    const canvas = new PlacementCanvas();
+    canvas.serializeTransform = (state) => {
+      const object = findSemanticObject(stateObjects(state), "generated-reconcile-object");
+      if (object) object.objectId = "different-generated-object";
+    };
+    const document = createBlankCampaignDocument({
+      documentId: "generated-reconcile-document",
+      sessionId: "generated-reconcile-session",
+      mode: "offline"
+    });
+    const objectUrl = `blob:${window.location.origin}/generated-reconcile-object`;
+    const revokeObjectURL = vi.fn();
+    const commit = vi.fn();
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit,
+      createObjectId: () => "generated-reconcile-object",
+      createObjectURL: () => objectUrl,
+      revokeObjectURL
+    });
+
+    queue.enqueueGeneratedRaster({
+      assetId: "generated-reconcile-asset",
+      title: "Generated reconcile image",
+      blob: new Blob([Uint8Array.from([1, 2, 3])], { type: "image/jpeg" }),
+      stage: "make-it-real",
+      profileId: "real-product-v1",
+      requestId: "reconcile-request"
+    });
+    await expect(queue.flush()).rejects.toThrow(
+      "Placed generated raster did not reconcile with the canvas"
+    );
+
+    expect(commit).not.toHaveBeenCalled();
+    expect(canvas.removed).toEqual(["generated-reconcile-object"]);
+    expect(canvas.objects).toEqual([]);
+    expect(revokeObjectURL).toHaveBeenCalledOnce();
+    expect(revokeObjectURL).toHaveBeenCalledWith(objectUrl);
+  });
+
+  it("rejects a generated object ID already in the campaign before owning a URL", async () => {
+    const objectId = "duplicate-generated-object";
+    const canvas = new PlacementCanvas();
+    const document = placementDocument([semanticImage(objectId)]);
+    const createObjectURL = vi.fn();
+    const commit = vi.fn();
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit,
+      createObjectId: () => objectId,
+      createObjectURL
+    });
+
+    queue.enqueueGeneratedRaster({
+      assetId: "duplicate-generated-asset",
+      title: "Duplicate generated image",
+      blob: new Blob([Uint8Array.from([1])], { type: "image/png" }),
+      stage: "object-forge",
+      profileId: "forge-cheap-v1",
+      requestId: "duplicate-request"
+    });
+    await expect(queue.flush()).rejects.toThrow(/already exists/i);
+
+    expect(createObjectURL).not.toHaveBeenCalled();
+    expect(canvas.objects).toEqual([]);
+    expect(commit).not.toHaveBeenCalled();
   });
 
   it("places offline catalogue artwork inside the named product slot", async () => {
@@ -941,11 +1907,52 @@ describe("CataloguePlacementQueue", () => {
       materialId: "fabric"
     });
     if (!variant) throw new Error("Expected product look fixture");
+    const quote = quotePilotProductVariant(variant);
+    if (!quote) throw new Error("Expected priced product look fixture");
     const canvas = new PlacementCanvas();
-    let document: CampaignDocumentV1 = createBlankCampaignDocument({
+    const blank = createBlankCampaignDocument({
       documentId: "product-look-document",
       sessionId: "product-look-session",
       mode: "offline"
+    });
+    let document: CampaignDocumentV1 = parseCampaignDocument({
+      ...blank,
+      product: {
+        ...blank.product,
+        build: {
+          schema: "product-build@1",
+          primaryObjectId: "old-product",
+          packId: "old-pack",
+          pricingVersion: 1,
+          blueprintId: "old-shell",
+          selections: [{ groupId: "shape", choiceIds: ["old-shell"] }],
+          costLines: [{
+            groupId: "shape",
+            groupLabel: "Shape",
+            kind: "base",
+            choiceId: "old-shell",
+            label: "Old shell",
+            costCents: 1_000
+          }],
+          unitCostCents: 1_000
+        }
+      },
+      brief: {
+        ...blank.brief,
+        targetAudienceId: "after-school-wanderers",
+        contextId: "after-school-wanderers"
+      },
+      strategy: {
+        ...blank.strategy,
+        productTraitIds: ["portability"],
+        marketedChoiceIds: ["old-shell"],
+        marketRoute: {
+          audienceBriefId: "after-school-wanderers",
+          zoneId: "city",
+          mediaIds: ["transit"],
+          committed: true
+        }
+      }
     });
     const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const pathname = new URL(String(input)).pathname;
@@ -969,7 +1976,7 @@ describe("CataloguePlacementQueue", () => {
       fetch: fetchMock
     });
 
-    queue.enqueueProductVariant(variant, { id: "front-art", colour: "#F2385A" });
+    queue.enqueueProductVariant(variant, quote, { id: "front-art", colour: "#F2385A" });
     await queue.flush();
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -993,6 +2000,90 @@ describe("CataloguePlacementQueue", () => {
       materialId: variant.materialId,
       artwork: { id: "front-art", colour: "#F2385A" }
     }]);
+    expect(document.product.build).toMatchObject({
+      schema: "product-build@1",
+      primaryObjectId: "product-look-1",
+      packId: variant.packId,
+      blueprintId: variant.bodyId,
+      unitCostCents: quote.unitCostCents
+    });
+    expect(document.strategy).toMatchObject({
+      productTraitIds: [],
+      marketedChoiceIds: [],
+      marketRoute: null
+    });
+  });
+
+  it("preserves newer campaign choices made while a product look is loading", async () => {
+    const packRoot = join("catalog", "generated", "product-builder-pilot-v1");
+    const catalogue = parseProductBuilderCatalogue(
+      JSON.parse(readFileSync(join(packRoot, "catalogue.json"), "utf8")),
+      `${window.location.origin}/catalog/generated/product-builder-pilot-v1/catalogue.json`
+    );
+    if (!catalogue) throw new Error("Reviewed product builder fixture did not parse");
+    const variant = createVirtualProductVariantResolver(catalogue).resolveVariant({
+      bodyId: "drinkware-classic-can",
+      partId: "drinkware-top-spout",
+      paletteId: "cobalt-citrus",
+      materialId: "fabric"
+    });
+    if (!variant) throw new Error("Expected product look fixture");
+    const quote = quotePilotProductVariant(variant);
+    if (!quote) throw new Error("Expected priced product look fixture");
+    const canvas = new PlacementCanvas();
+    let document: CampaignDocumentV1 = createBlankCampaignDocument({
+      documentId: "product-look-fresh-document",
+      sessionId: "product-look-fresh-session",
+      mode: "offline"
+    });
+    const requestsStarted = deferred<void>();
+    const releaseResponses = deferred<void>();
+    let requestCount = 0;
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      requestCount += 1;
+      if (requestCount === 2) requestsStarted.resolve(undefined);
+      await releaseResponses.promise;
+      const relative = new URL(String(input)).pathname
+        .split("/product-builder-pilot-v1/")[1];
+      if (!relative) return new Response("missing", { status: 404 });
+      return new Response(readFileSync(join(packRoot, relative), "utf8"), {
+        headers: { "content-type": "image/svg+xml" }
+      });
+    });
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit: (next) => { document = next; },
+      createObjectId: () => "product-look-fresh-object",
+      fetch: fetchMock
+    });
+
+    queue.enqueueProductVariant(variant, quote);
+    const placement = queue.flush();
+    await requestsStarted.promise;
+    document = parseCampaignDocument({
+      ...structuredClone(document),
+      product: {
+        ...structuredClone(document.product),
+        name: "The newer product name",
+        priceCents: 12_345
+      }
+    });
+    releaseResponses.resolve(undefined);
+    await placement;
+
+    expect(document.product).toMatchObject({
+      name: "The newer product name",
+      priceCents: 12_345,
+      build: expect.objectContaining({
+        primaryObjectId: "product-look-fresh-object",
+        unitCostCents: quote.unitCostCents
+      })
+    });
+    expect(document.assetReferences).toContainEqual(expect.objectContaining({
+      kind: "product-builder-variant",
+      objectId: "product-look-fresh-object"
+    }));
   });
 
   it("keeps the committed product reconciled when its placement notification throws", async () => {
@@ -1009,6 +2100,8 @@ describe("CataloguePlacementQueue", () => {
       materialId: "fabric"
     });
     if (!variant) throw new Error("Expected product look fixture");
+    const quote = quotePilotProductVariant(variant);
+    if (!quote) throw new Error("Expected priced product look fixture");
     const canvas = new PlacementCanvas();
     let document: CampaignDocumentV1 = createBlankCampaignDocument({
       documentId: "notification-document",
@@ -1033,7 +2126,7 @@ describe("CataloguePlacementQueue", () => {
       onError
     });
 
-    queue.enqueueProductVariant(variant);
+    queue.enqueueProductVariant(variant, quote);
     await expect(queue.flush()).resolves.toBeUndefined();
 
     expect(onError).toHaveBeenCalledWith(expect.objectContaining({
@@ -1064,6 +2157,8 @@ describe("CataloguePlacementQueue", () => {
     if (!catalogue) throw new Error("Reviewed product builder fixture did not parse");
     const variant = createVirtualProductVariantResolver(catalogue).pageVariants({}, { limit: 1 }).items[0];
     if (!variant) throw new Error("Expected product look fixture");
+    const quote = quotePilotProductVariant(variant);
+    if (!quote) throw new Error("Expected priced product look fixture");
     const canvas = new PlacementCanvas();
     const document = createBlankCampaignDocument({
       documentId: "bad-look-document",
@@ -1081,7 +2176,7 @@ describe("CataloguePlacementQueue", () => {
       }))
     });
 
-    queue.enqueueProductVariant(variant);
+    queue.enqueueProductVariant(variant, quote);
 
     await expect(queue.flush()).rejects.toThrow("not SVG");
     expect(canvas.objects).toEqual([]);

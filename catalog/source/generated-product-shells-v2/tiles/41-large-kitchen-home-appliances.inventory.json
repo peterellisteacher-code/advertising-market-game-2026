@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 41,
+  "sourcePng": "41-large-kitchen-home-appliances.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "French-door refrigerator with lower drawer", "tags": ["french door", "lower drawer", "refrigerator"]},
+    {"row": 1, "column": 2, "label": "Top-freezer refrigerator", "tags": ["refrigerator", "top freezer", "two door"]},
+    {"row": 1, "column": 3, "label": "Side-by-side refrigerator with dispenser", "tags": ["dispenser", "refrigerator", "side by side"]},
+    {"row": 1, "column": 4, "label": "Single-door refrigerator", "tags": ["refrigerator", "single door", "upright"]},
+    {"row": 1, "column": 5, "label": "Chest freezer", "tags": ["chest freezer", "freezer", "top opening"]},
+    {"row": 2, "column": 1, "label": "Front-load washing machine", "tags": ["front load", "laundry appliance", "washing machine"]},
+    {"row": 2, "column": 2, "label": "Top-load washing machine", "tags": ["laundry appliance", "top load", "washing machine"]},
+    {"row": 2, "column": 3, "label": "Front-load vented dryer", "tags": ["front load", "laundry appliance", "vented dryer"]},
+    {"row": 2, "column": 4, "label": "Freestanding dishwasher", "tags": ["dishwasher", "freestanding", "kitchen appliance"]},
+    {"row": 2, "column": 5, "label": "Stacked washer and dryer", "tags": ["laundry appliance", "stacked", "washer dryer"]},
+    {"row": 3, "column": 1, "label": "Freestanding gas range", "tags": ["freestanding", "gas range", "kitchen appliance"]},
+    {"row": 3, "column": 2, "label": "Double wall oven", "tags": ["double oven", "kitchen appliance", "wall oven"]},
+    {"row": 3, "column": 3, "label": "Four-zone electric cooktop", "tags": ["cooktop", "electric", "four zone"]},
+    {"row": 3, "column": 4, "label": "Five-burner gas cooktop", "tags": ["cooktop", "five burner", "gas"]},
+    {"row": 3, "column": 5, "label": "Wide chimney range hood", "tags": ["chimney hood", "kitchen appliance", "range hood"]},
+    {"row": 4, "column": 1, "label": "Compact chimney range hood", "tags": ["chimney hood", "compact", "range hood"]},
+    {"row": 4, "column": 2, "label": "Wall-mounted air conditioner", "tags": ["air conditioner", "climate appliance", "wall mounted"]},
+    {"row": 4, "column": 3, "label": "Ceiling cassette air conditioner", "tags": ["air conditioner", "ceiling cassette", "climate appliance"]},
+    {"row": 4, "column": 4, "label": "Cylindrical hot-water tank", "tags": ["cylindrical", "hot water", "storage tank"]},
+    {"row": 4, "column": 5, "label": "Rectangular outdoor condenser unit", "tags": ["air conditioner", "condenser unit", "outdoor unit"]},
+    {"row": 5, "column": 1, "label": "Plain rectangular appliance panel", "tags": ["appliance component", "panel", "rectangular"]},
+    {"row": 5, "column": 2, "label": "Pair of curved appliance handles", "tags": ["appliance component", "curved handles", "handle pair"]},
+    {"row": 5, "column": 3, "label": "Built-in oven front panel", "tags": ["appliance component", "oven door", "rectangular panel"]},
+    {"row": 5, "column": 4, "label": "Circular washer door", "tags": ["appliance component", "circular door", "washer door"]},
+    {"row": 5, "column": 5, "label": "Paired appliance vent grilles", "tags": ["appliance component", "vent grille", "vent pair"]}
+  ]
+}

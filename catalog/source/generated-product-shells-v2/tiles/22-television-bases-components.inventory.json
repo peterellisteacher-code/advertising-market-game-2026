@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 22,
+  "sourcePng": "22-television-bases-components.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Angled twin-leg television stand", "tags": ["angled legs", "stand", "television component"]},
+    {"row": 1, "column": 2, "label": "Twin-post television stand", "tags": ["stand", "television component", "twin post"]},
+    {"row": 1, "column": 3, "label": "Curved splayed-leg television stand", "tags": ["curved legs", "stand", "television component"]},
+    {"row": 1, "column": 4, "label": "Low television mounting rail", "tags": ["mounting rail", "stand", "television component"]},
+    {"row": 1, "column": 5, "label": "Three-foot television stand", "tags": ["stand", "television component", "three foot"]},
+    {"row": 2, "column": 1, "label": "Rectangular pedestal television stand", "tags": ["pedestal", "rectangular base", "television component"]},
+    {"row": 2, "column": 2, "label": "Oval pedestal television stand", "tags": ["oval base", "pedestal", "television component"]},
+    {"row": 2, "column": 3, "label": "Crescent pedestal television stand", "tags": ["crescent base", "pedestal", "television component"]},
+    {"row": 2, "column": 4, "label": "Round pedestal television stand", "tags": ["pedestal", "round base", "television component"]},
+    {"row": 2, "column": 5, "label": "Compact pedestal television stand", "tags": ["compact base", "pedestal", "television component"]},
+    {"row": 3, "column": 1, "label": "Four-leg easel television stand", "tags": ["easel stand", "four leg", "television component"]},
+    {"row": 3, "column": 2, "label": "Tripod television stand", "tags": ["television component", "tripod", "tripod stand"]},
+    {"row": 3, "column": 3, "label": "Height-adjustable floor television stand", "tags": ["floor stand", "height adjustable", "television component"]},
+    {"row": 3, "column": 4, "label": "Fixed television wall bracket", "tags": ["fixed bracket", "television component", "wall mount"]},
+    {"row": 3, "column": 5, "label": "Articulated television wall bracket", "tags": ["articulated bracket", "television component", "wall mount"]},
+    {"row": 4, "column": 1, "label": "Slim rounded soundbar", "tags": ["audio", "rounded", "soundbar"]},
+    {"row": 4, "column": 2, "label": "Five-driver rectangular soundbar", "tags": ["audio", "five driver", "soundbar"]},
+    {"row": 4, "column": 3, "label": "Pair of bookshelf speakers", "tags": ["audio", "bookshelf speakers", "speaker pair"]},
+    {"row": 4, "column": 4, "label": "Four-driver wedge soundbar", "tags": ["audio", "four driver", "soundbar"]},
+    {"row": 4, "column": 5, "label": "Rounded rectangular speaker", "tags": ["audio", "rectangular speaker", "rounded"]},
+    {"row": 5, "column": 1, "label": "Round media player", "tags": ["media player", "round", "television accessory"]},
+    {"row": 5, "column": 2, "label": "Ventilated rectangular media player", "tags": ["media player", "rectangular", "ventilated"]},
+    {"row": 5, "column": 3, "label": "Square media hub", "tags": ["media hub", "square", "television accessory"]},
+    {"row": 5, "column": 4, "label": "Front-lens projector", "tags": ["front lens", "projector", "television accessory"]},
+    {"row": 5, "column": 5, "label": "Four-port media hub", "tags": ["four port", "media hub", "television accessory"]}
+  ]
+}

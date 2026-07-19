@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 86,
+  "sourcePng": "86-hospitality-food-retail-venue-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "flat kiosk canopy", "tags": ["add-on", "canopy", "flat", "kiosk"]},
+    {"row": 1, "column": 2, "label": "peaked kiosk canopy", "tags": ["add-on", "canopy", "kiosk", "peaked"]},
+    {"row": 1, "column": 3, "label": "curved kiosk canopy", "tags": ["add-on", "canopy", "curved", "kiosk"]},
+    {"row": 1, "column": 4, "label": "striped form canopy with blank panels", "tags": ["add-on", "blank", "canopy", "panels", "striped-form"]},
+    {"row": 1, "column": 5, "label": "straight retractable awning", "tags": ["add-on", "awning", "retractable", "straight"]},
+    {"row": 2, "column": 1, "label": "wide blank fascia board", "tags": ["add-on", "blank", "board", "fascia", "wide"]},
+    {"row": 2, "column": 2, "label": "compact blank fascia board", "tags": ["add-on", "blank", "board", "compact", "fascia"]},
+    {"row": 2, "column": 3, "label": "open service window frame", "tags": ["add-on", "frame", "open", "service", "window"]},
+    {"row": 2, "column": 4, "label": "hinged serving hatch frame", "tags": ["add-on", "frame", "hatch", "hinged", "serving"]},
+    {"row": 2, "column": 5, "label": "blank glass display window frame", "tags": ["add-on", "blank", "display", "frame", "glass", "window"]},
+    {"row": 3, "column": 1, "label": "wide blank counter front panel", "tags": ["add-on", "blank", "counter-front", "panel", "wide"]},
+    {"row": 3, "column": 2, "label": "narrow blank counter front panel", "tags": ["add-on", "blank", "counter-front", "narrow", "panel"]},
+    {"row": 3, "column": 3, "label": "corner counter front panel", "tags": ["add-on", "corner", "counter-front", "panel"]},
+    {"row": 3, "column": 4, "label": "plain sneeze guard frame", "tags": ["add-on", "frame", "plain", "sneeze-guard"]},
+    {"row": 3, "column": 5, "label": "plain serving shelf module", "tags": ["add-on", "module", "plain", "serving", "shelf"]},
+    {"row": 4, "column": 1, "label": "single cart wheel", "tags": ["add-on", "cart", "single", "wheel"]},
+    {"row": 4, "column": 2, "label": "paired cart wheel axle", "tags": ["add-on", "axle", "cart", "paired", "wheel"]},
+    {"row": 4, "column": 3, "label": "Pair of cart push handles", "tags": ["add-on", "cart", "handle pair", "push handles"]},
+    {"row": 4, "column": 4, "label": "trailer tow bar module", "tags": ["add-on", "module", "tow-bar", "trailer"]},
+    {"row": 4, "column": 5, "label": "stabilising leg module", "tags": ["add-on", "leg", "module", "stabilising"]},
+    {"row": 5, "column": 1, "label": "blank freestanding menu board frame", "tags": ["add-on", "blank", "frame", "freestanding", "menu-board"]},
+    {"row": 5, "column": 2, "label": "blank wall menu board frame", "tags": ["add-on", "blank", "frame", "menu-board", "wall"]},
+    {"row": 5, "column": 3, "label": "plain display case box", "tags": ["add-on", "box", "display-case", "plain"]},
+    {"row": 5, "column": 4, "label": "generic counter divider panel", "tags": ["add-on", "counter", "divider", "generic", "panel"]},
+    {"row": 5, "column": 5, "label": "blank illuminated box sign shell", "tags": ["add-on", "blank", "illuminated-box", "shell", "sign"]}
+  ]
+}

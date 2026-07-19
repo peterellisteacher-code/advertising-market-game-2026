@@ -194,6 +194,43 @@ describe("HistoryController", () => {
     bindings.dispose();
   });
 
+  it("commits an asynchronous composite edit as one history state", async () => {
+    const port = new HistoryHarnessPort();
+    const bindings = new FabricHistoryBindings(port, document.createElement("p"));
+    const blankHash = port.hash();
+
+    await bindings.transaction(async () => {
+      port.perform(mixedActions[0]!, 0);
+      await Promise.resolve();
+      port.perform(mixedActions[1]!, 1);
+    });
+    const completedHash = port.hash();
+
+    expect(await bindings.undo()).toBe(true);
+    expect(port.hash()).toBe(blankHash);
+    expect(await bindings.undo()).toBe(false);
+    expect(await bindings.redo()).toBe(true);
+    expect(port.hash()).toBe(completedHash);
+    bindings.dispose();
+  });
+
+  it("restores both the port and history when an asynchronous composite edit fails", async () => {
+    const port = new HistoryHarnessPort();
+    const bindings = new FabricHistoryBindings(port, document.createElement("p"));
+    const blankHash = port.hash();
+    const failure = new Error("Synthetic composite failure");
+
+    await expect(bindings.transaction(async () => {
+      port.perform(mixedActions[0]!, 0);
+      throw failure;
+    })).rejects.toBe(failure);
+
+    expect(port.hash()).toBe(blankHash);
+    expect(await bindings.undo()).toBe(false);
+    expect(await bindings.redo()).toBe(false);
+    bindings.dispose();
+  });
+
   it("emits exactly one observable mutation for a text edit", () => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
       font: "",

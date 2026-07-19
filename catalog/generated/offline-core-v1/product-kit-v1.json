@@ -1,0 +1,119 @@
+{
+  "schema": "product-kit@1",
+  "version": 1,
+  "packId": "pk1-pilot-drinkware",
+  "catalogPackId": "offline-core-v1",
+  "catalogSha256": "6199fd1adae59a2b517b265ca67a325f32faba04d375852821e841b51a354073",
+  "pricingVersion": "product-pricing@1",
+  "connectorFormulaVersion": "product-kit-connectors@1",
+  "kits": [
+    {
+      "id": "pk1-tumbler-kit",
+      "title": "Reusable tumbler",
+      "mode": "socket",
+      "compatibilityProfile": {
+        "familyId": "pk1-beverage-containers",
+        "perspectiveId": "pk1-front-view",
+        "geometryId": "pk1-tumbler-lid",
+        "styleId": "pk1-clean-outline"
+      },
+      "base": {
+        "assetId": "89-beverage-container-bases-r03c05",
+        "masterSha256": "d87a3718df6bd9a00e667a8c50729c3c84a3bd33bfe395df86b9992f49eb7abf",
+        "frame": {
+          "originalWidth": 400,
+          "originalHeight": 500,
+          "trimX": 127,
+          "trimY": 240,
+          "trimWidth": 146,
+          "trimHeight": 238
+        }
+      },
+      "priceAssetId": "pk1-price-tumbler",
+      "mountFrames": [
+        {
+          "id": "pk1-tumbler-lid-frame",
+          "slotId": "pk1-tumbler-lid-slot",
+          "mountType": "socket",
+          "point": {
+            "x": 0.5,
+            "y": 0.58
+          },
+          "normal": {
+            "x": 0,
+            "y": 1
+          },
+          "referenceScale": 0.7,
+          "constraints": {
+            "minScale": 0.7,
+            "maxScale": 0.7,
+            "minRotationDegrees": 0,
+            "maxRotationDegrees": 0,
+            "maxNormalErrorDegrees": 0,
+            "mirrorAllowed": false
+          }
+        }
+      ],
+      "artworkBounds": [
+        {
+          "x": 0.36,
+          "y": 0.58,
+          "width": 0.28,
+          "height": 0.25
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "id": "pk1-flat-lid",
+      "title": "Flat lid",
+      "slotId": "pk1-tumbler-lid-slot",
+      "compatibilityProfile": {
+        "familyId": "pk1-beverage-containers",
+        "perspectiveId": "pk1-front-view",
+        "geometryId": "pk1-tumbler-lid",
+        "styleId": "pk1-clean-outline"
+      },
+      "componentFrame": {
+        "mountType": "socket",
+        "point": {
+          "x": 0.49875,
+          "y": 0.448
+        },
+        "normal": {
+          "x": 0,
+          "y": 1
+        },
+        "referenceScale": 1
+      },
+      "fragments": [
+        {
+          "layer": "front",
+          "raster": {
+            "assetId": "90-beverage-container-add-ons-r04c01",
+            "masterSha256": "6156af7416af78a8bb53a93c540ff2745caa77140f808213227487985e3580a5",
+            "frame": {
+              "originalWidth": 400,
+              "originalHeight": 500,
+              "trimX": 83,
+              "trimY": 80,
+              "trimWidth": 233,
+              "trimHeight": 164
+            }
+          }
+        }
+      ],
+      "priceAssetId": "pk1-price-flat-lid"
+    }
+  ],
+  "certifications": [
+    {
+      "id": "pk1-cert-tumbler-flat-lid",
+      "kitId": "pk1-tumbler-kit",
+      "mountFrameId": "pk1-tumbler-lid-frame",
+      "componentId": "pk1-flat-lid",
+      "fingerprint": "ac7beca4826f9977b0da9927f9c896deab4849f582a80a3b79fff15bbf8bef29"
+    }
+  ]
+}

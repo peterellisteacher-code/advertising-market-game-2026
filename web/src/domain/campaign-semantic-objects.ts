@@ -11,6 +11,8 @@ const SEMANTIC_KEYS = [
   "sourceHash"
 ] as const;
 const ELEMENT_KIND_SET = new Set<string>(ELEMENT_KINDS);
+const MAX_FABRIC_OBJECT_DEPTH = 100;
+const MAX_FABRIC_OBJECT_NODES = 100_000;
 
 export interface CampaignSemanticObject {
   objectId: string;
@@ -46,10 +48,27 @@ export function collectCampaignSemanticObjects(
   }
   const collected: CampaignSemanticObject[] = [];
   const seen = new Set<string>();
+  const visited = new WeakSet<object>();
+  const stack: Array<{ value: unknown; path: readonly number[] }> = [];
+  for (let index = fabricState.objects.length - 1; index >= 0; index -= 1) {
+    stack.push({ value: fabricState.objects[index], path: [index] });
+  }
+  let nodes = 0;
 
-  const visit = (value: unknown, path: readonly number[]): void => {
+  while (stack.length > 0) {
+    const { value, path } = stack.pop()!;
     const label = pathLabel(path);
     if (!isRecord(value)) throw new Error(`${label} must be an object`);
+    if (path.length > MAX_FABRIC_OBJECT_DEPTH) {
+      throw new Error("Fabric object tree exceeds maximum depth");
+    }
+    if (++nodes > MAX_FABRIC_OBJECT_NODES) {
+      throw new Error("Fabric object tree exceeds maximum node count");
+    }
+    if (visited.has(value)) {
+      throw new Error("Fabric object tree must not contain cycles or aliases");
+    }
+    visited.add(value);
     const semantic = SEMANTIC_KEYS.some((key) => Object.hasOwn(value, key));
     if (semantic) {
       const objectId = nonEmptyString(value.objectId, `${label} objectId`);
@@ -79,14 +98,14 @@ export function collectCampaignSemanticObjects(
         path: Object.freeze([...path])
       });
     }
-    if (value.objects === undefined) return;
+    if (value.objects === undefined) continue;
     if (!Array.isArray(value.objects)) {
       throw new Error(`${label} children must be an array`);
     }
-    value.objects.forEach((child, index) => visit(child, [...path, index]));
-  };
-
-  fabricState.objects.forEach((object, index) => visit(object, [index]));
+    for (let index = value.objects.length - 1; index >= 0; index -= 1) {
+      stack.push({ value: value.objects[index], path: [...path, index] });
+    }
+  }
   return collected;
 }
 

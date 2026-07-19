@@ -1,0 +1,31 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetId": "66-personal-service-add-ons",
+  "items": [
+    {"row": 1, "column": 1, "label": "Hydraulic salon chair", "tags": ["add-on", "hydraulic", "personal-services", "salon-chair", "styling"]},
+    {"row": 1, "column": 2, "label": "Barber chair with footrest", "tags": ["add-on", "barber-chair", "footrest", "grooming", "personal-services"]},
+    {"row": 1, "column": 3, "label": "Folding massage table", "tags": ["add-on", "folding", "massage-table", "personal-services", "treatment"]},
+    {"row": 1, "column": 4, "label": "Manicure desk with cushion", "tags": ["add-on", "cushion", "manicure", "personal-services", "service-desk"]},
+    {"row": 1, "column": 5, "label": "Electric treatment bed", "tags": ["add-on", "electric", "personal-services", "treatment-bed"]},
+    {"row": 2, "column": 1, "label": "Full-length freestanding mirror", "tags": ["add-on", "freestanding", "full-length", "mirror", "personal-services"]},
+    {"row": 2, "column": 2, "label": "Hooded salon hair dryer on wheels", "tags": ["add-on", "hair-dryer", "hooded", "personal-services", "salon", "wheeled"]},
+    {"row": 2, "column": 3, "label": "Compact service cabinet", "tags": ["add-on", "cabinet", "compact", "personal-services", "storage"]},
+    {"row": 2, "column": 4, "label": "Photography umbrella light", "tags": ["add-on", "lighting", "personal-services", "photography", "umbrella-light"]},
+    {"row": 2, "column": 5, "label": "Camera on tripod", "tags": ["add-on", "camera", "personal-services", "photography", "tripod"]},
+    {"row": 3, "column": 1, "label": "Sewing machine", "tags": ["add-on", "personal-services", "sewing", "sewing-machine", "tailoring"]},
+    {"row": 3, "column": 2, "label": "Dressmaker's mannequin", "tags": ["add-on", "dressmaking", "mannequin", "personal-services", "tailoring"]},
+    {"row": 3, "column": 3, "label": "Shoe-repair workbench", "tags": ["add-on", "personal-services", "repair", "shoe-repair", "workbench"]},
+    {"row": 3, "column": 4, "label": "Electronics-repair workbench", "tags": ["add-on", "electronics-repair", "personal-services", "repair", "workbench"]},
+    {"row": 3, "column": 5, "label": "Bicycle-repair stand with bicycle", "tags": ["add-on", "bicycle", "bicycle-repair", "personal-services", "repair-stand"]},
+    {"row": 4, "column": 1, "label": "Laundry basket", "tags": ["add-on", "basket", "laundry", "personal-services", "storage"]},
+    {"row": 4, "column": 2, "label": "Rolling garment rack", "tags": ["add-on", "garment-rack", "personal-services", "rolling", "storage"]},
+    {"row": 4, "column": 3, "label": "Wheeled salon trolley", "tags": ["add-on", "personal-services", "salon-trolley", "storage", "wheeled"]},
+    {"row": 4, "column": 4, "label": "Lighted makeup mirror table", "tags": ["add-on", "lighted-mirror", "makeup", "personal-services", "table"]},
+    {"row": 4, "column": 5, "label": "Manicure tool station with magnifying lamp", "tags": ["add-on", "magnifying-lamp", "manicure", "personal-services", "tool-station"]},
+    {"row": 5, "column": 1, "label": "Print and display rack", "tags": ["add-on", "display-rack", "personal-services", "print-rack", "storage"]},
+    {"row": 5, "column": 2, "label": "Curved reception desk", "tags": ["add-on", "curved", "personal-services", "reception-desk"]},
+    {"row": 5, "column": 3, "label": "Straight reception counter", "tags": ["add-on", "personal-services", "reception-counter", "straight"]},
+    {"row": 5, "column": 4, "label": "A-frame pavement sign", "tags": ["a-frame", "add-on", "pavement-sign", "personal-services", "signage"]},
+    {"row": 5, "column": 5, "label": "Folding privacy screen", "tags": ["add-on", "folding", "personal-services", "privacy-screen"]}
+  ]
+}

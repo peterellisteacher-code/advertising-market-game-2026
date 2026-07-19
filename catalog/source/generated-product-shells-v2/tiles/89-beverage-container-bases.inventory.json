@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 89,
+  "sourcePng": "89-beverage-container-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Standard soft-drink can", "tags": ["beverage container", "can", "soft drink"]},
+    {"row": 1, "column": 2, "label": "Slim energy-drink can", "tags": ["beverage container", "energy drink", "slim can"]},
+    {"row": 1, "column": 3, "label": "Short wide can", "tags": ["beverage container", "short can", "wide can"]},
+    {"row": 1, "column": 4, "label": "Tall slim can", "tags": ["beverage container", "slim can", "tall can"]},
+    {"row": 1, "column": 5, "label": "Small juice can", "tags": ["beverage container", "juice", "small can"]},
+    {"row": 2, "column": 1, "label": "PET soft-drink bottle", "tags": ["beverage container", "plastic bottle", "soft drink"]},
+    {"row": 2, "column": 2, "label": "Square water bottle", "tags": ["beverage container", "square bottle", "water bottle"]},
+    {"row": 2, "column": 3, "label": "Sports squeeze bottle", "tags": ["beverage container", "sports bottle", "squeeze bottle"]},
+    {"row": 2, "column": 4, "label": "Glass soda bottle", "tags": ["beverage container", "glass bottle", "soda bottle"]},
+    {"row": 2, "column": 5, "label": "Dairy milk bottle", "tags": ["beverage container", "dairy", "milk bottle"]},
+    {"row": 3, "column": 1, "label": "Gable-top drink carton", "tags": ["beverage carton", "beverage container", "gable-top carton"]},
+    {"row": 3, "column": 2, "label": "Screw-cap drink carton", "tags": ["beverage carton", "beverage container", "screw cap"]},
+    {"row": 3, "column": 3, "label": "Spouted drink pouch", "tags": ["beverage container", "drink pouch", "spouted pouch"]},
+    {"row": 3, "column": 4, "label": "Lidded takeaway cup", "tags": ["beverage container", "takeaway cup", "travel drink"]},
+    {"row": 3, "column": 5, "label": "Straight reusable tumbler", "tags": ["beverage container", "reusable cup", "tumbler"]},
+    {"row": 4, "column": 1, "label": "Insulated flask", "tags": ["beverage container", "flask", "insulated bottle"]},
+    {"row": 4, "column": 2, "label": "Handled thermos jug", "tags": ["beverage container", "handled jug", "thermos"]},
+    {"row": 4, "column": 3, "label": "Handled glass growler", "tags": ["beverage container", "glass growler", "handled bottle"]},
+    {"row": 4, "column": 4, "label": "Long-neck beer-style bottle", "tags": ["beer bottle", "beverage container", "long-neck bottle"]},
+    {"row": 4, "column": 5, "label": "Broad-shouldered wine-style bottle", "tags": ["beverage container", "broad-shouldered bottle", "wine bottle"]},
+    {"row": 5, "column": 1, "label": "Rectangular spirits-style bottle", "tags": ["beverage container", "spirits bottle", "square bottle"]},
+    {"row": 5, "column": 2, "label": "Mini beverage keg with tap", "tags": ["beverage container", "keg", "tap"]},
+    {"row": 5, "column": 3, "label": "Domed smoothie cup", "tags": ["beverage container", "domed cup", "smoothie cup"]},
+    {"row": 5, "column": 4, "label": "Handled mason-jar drink", "tags": ["beverage container", "handled jar", "mason jar"]},
+    {"row": 5, "column": 5, "label": "Shaker bottle", "tags": ["beverage container", "fitness bottle", "shaker bottle"]}
+  ]
+}

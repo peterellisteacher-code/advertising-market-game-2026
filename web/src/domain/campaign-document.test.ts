@@ -12,6 +12,7 @@ describe("CampaignDocumentV1", () => {
     expect(doc.canvas).toEqual({ width: 1600, height: 900, background: "#ffffff" });
     expect(doc.revision).toBe(0);
     expect(doc.fabricState).toEqual({ version: "7.4.0", objects: [] });
+    expect(doc.product).toEqual({ name: "", priceCents: null, build: null });
     expect(doc.evidence).toEqual({
       price: [], attention: [], interest: [], desire: [], action: []
     });
@@ -24,6 +25,51 @@ describe("CampaignDocumentV1", () => {
       intendedEffects: [],
       techniques: []
     });
+    expect(doc.strategy).toEqual({
+      productTraitIds: [],
+      marketedChoiceIds: [],
+      marketRoute: null,
+      aidaPlan: { attention: "", interest: "", desire: "", action: "" }
+    });
+    expect(doc.gameplay).toEqual({
+      stage: "invent",
+      pair: {
+        activeRole: "art-director",
+        handoffCount: 0,
+        artDirectorActions: 0,
+        strategistActions: 0
+      }
+    });
+  });
+
+  it("round-trips the authoritative creator level and bounded pair progress", () => {
+    const doc = createBlankCampaignDocument({
+      documentId: "pair-doc",
+      sessionId: "pair-session",
+      mode: "offline"
+    });
+    const gameplay = {
+      stage: "sell" as const,
+      pair: {
+        activeRole: "strategist" as const,
+        handoffCount: 3,
+        artDirectorActions: 4,
+        strategistActions: 2
+      }
+    };
+
+    expect(parseCampaignDocument({ ...doc, gameplay }).gameplay).toEqual(gameplay);
+    expect(() => parseCampaignDocument({
+      ...doc,
+      gameplay: { ...gameplay, stage: "secret-fourth-level" }
+    })).toThrow();
+    expect(() => parseCampaignDocument({
+      ...doc,
+      gameplay: {
+        ...gameplay,
+        pair: { ...gameplay.pair, strategistActions: -1 }
+      }
+    })).toThrow();
   });
 
   it("rejects a malformed document", () => {
@@ -83,5 +129,231 @@ describe("CampaignDocumentV1", () => {
       ...doc,
       fabricState: { version: "7.4.0", objects: [malformed] }
     })).toThrow("partial-child");
+  });
+
+  it("persists a renderer-independent product cost ledger", () => {
+    const doc = createBlankCampaignDocument({
+      documentId: "priced-doc",
+      sessionId: "priced-session",
+      mode: "offline"
+    });
+    const build = {
+      schema: "product-build@1" as const,
+      primaryObjectId: "product-1",
+      packId: "durable-goods-v1",
+      pricingVersion: 4,
+      blueprintId: "courtyard-house",
+      selections: [{ groupId: "house", choiceIds: ["courtyard-house"] }, {
+        groupId: "features",
+        choiceIds: ["solar-patio"]
+      }],
+      costLines: [{
+        groupId: "house",
+        groupLabel: "House",
+        kind: "base" as const,
+        choiceId: "courtyard-house",
+        label: "Courtyard house",
+        costCents: 25_000_000
+      }, {
+        groupId: "features",
+        groupLabel: "Features",
+        kind: "feature" as const,
+        choiceId: "solar-patio",
+        label: "Solar patio",
+        costCents: 7_500_000
+      }],
+      unitCostCents: 32_500_000
+    };
+
+    expect(parseCampaignDocument({
+      ...doc,
+      product: { ...doc.product, priceCents: 50_000_000, build }
+    }).product).toEqual({ name: "", priceCents: 50_000_000, build });
+  });
+
+  it("rejects a product ledger whose lines do not add up to its unit cost", () => {
+    const doc = createBlankCampaignDocument({
+      documentId: "bad-cost-doc",
+      sessionId: "bad-cost-session",
+      mode: "offline"
+    });
+
+    expect(() => parseCampaignDocument({
+      ...doc,
+      product: {
+        ...doc.product,
+        build: {
+          schema: "product-build@1",
+          primaryObjectId: "product-1",
+          packId: "pilot-v1",
+          pricingVersion: 1,
+          blueprintId: "bottle",
+          selections: [{ groupId: "shape", choiceIds: ["bottle"] }],
+          costLines: [{
+            groupId: "shape",
+            groupLabel: "Shape",
+            kind: "base",
+            choiceId: "bottle",
+            label: "Bottle",
+            costCents: 2_500
+          }],
+          unitCostCents: 2_400
+        }
+      }
+    })).toThrow("unit cost");
+  });
+
+  it("persists a committed audience, zone and media route with its selling points", () => {
+    const doc = createBlankCampaignDocument({
+      documentId: "route-doc",
+      sessionId: "route-session",
+      mode: "offline"
+    });
+    const strategy = {
+      productTraitIds: ["portability", "convenience"],
+      marketedChoiceIds: [],
+      marketRoute: {
+        audienceBriefId: "after-school-wanderers",
+        zoneId: "city",
+        mediaIds: ["transit", "social-feed"],
+        committed: true as const
+      },
+      aidaPlan: {
+        attention: "Lead with one bright moving image.",
+        interest: "Show how quickly it fits the trip home.",
+        desire: "Make the spare hour feel worth claiming.",
+        action: "Invite them to try it after school."
+      }
+    };
+
+    const parsed = parseCampaignDocument({
+      ...doc,
+      brief: {
+        ...doc.brief,
+        targetAudienceId: "after-school-wanderers",
+        contextId: "after-school-wanderers"
+      },
+      strategy
+    });
+
+    expect(parsed.strategy).toEqual(strategy);
+  });
+
+  it("rejects unknown, duplicate or audience-mismatched market strategy IDs", () => {
+    const doc = createBlankCampaignDocument({
+      documentId: "bad-route-doc",
+      sessionId: "bad-route-session",
+      mode: "offline"
+    });
+    const strategy = {
+      ...doc.strategy,
+      productTraitIds: ["comfort", "comfort"],
+      marketRoute: {
+        audienceBriefId: "careful-spenders",
+        zoneId: "moon-base",
+        mediaIds: ["billboard", "billboard"],
+        committed: true
+      }
+    };
+
+    expect(() => parseCampaignDocument({
+      ...doc,
+      brief: {
+        ...doc.brief,
+        targetAudienceId: "after-school-wanderers",
+        contextId: "after-school-wanderers"
+      },
+      strategy
+    })).toThrow();
+  });
+
+  it("round-trips the exact structural Product Kit reference and root kind", () => {
+    const doc = createBlankCampaignDocument({
+      documentId: "product-kit-doc",
+      sessionId: "product-kit-session",
+      mode: "offline"
+    });
+    const composition = {
+      kind: "product-kit-composition" as const,
+      version: 1 as const,
+      objectId: "product-kit-root",
+      productKitPackId: "pk1-pilot-drinkware",
+      catalogPackId: "offline-core-v1",
+      catalogSha256: "8".repeat(64),
+      request: {
+        kitId: "pk1-tumbler-kit",
+        placements: [{
+          kind: "socket" as const,
+          placementId: "lid-one",
+          mountFrameId: "pk1-lid-frame",
+          componentId: "pk1-flat-lid"
+        }]
+      },
+      pricedItems: [{
+        kind: "base" as const,
+        itemId: "base:pk1-tumbler-kit",
+        priceAssetId: "pk1-price-tumbler"
+      }, {
+        kind: "component" as const,
+        itemId: "placement:lid-one",
+        placementId: "lid-one",
+        componentId: "pk1-flat-lid",
+        priceAssetId: "pk1-price-flat-lid"
+      }]
+    };
+
+    const parsed = parseCampaignDocument({
+      ...doc,
+      fabricState: {
+        version: "7.4.0",
+        objects: [{
+          type: "Group",
+          objectId: "product-kit-root",
+          elementKind: "product-kit",
+          accessibleName: "Reusable tumbler"
+        }]
+      },
+      assetReferences: [composition]
+    });
+
+    expect(parsed.assetReferences).toEqual([composition]);
+    expect(parsed.fabricState.objects[0]).toMatchObject({
+      objectId: "product-kit-root",
+      elementKind: "product-kit"
+    });
+  });
+
+  it("does not reinterpret a malformed Product Kit reference as a generic record", () => {
+    const doc = createBlankCampaignDocument({
+      documentId: "bad-product-kit-doc",
+      sessionId: "bad-product-kit-session",
+      mode: "offline"
+    });
+    const baseReference = {
+      kind: "product-kit-composition",
+      version: 1,
+      objectId: "product-kit-root",
+      productKitPackId: "pk1-pilot-drinkware",
+      catalogPackId: "offline-core-v1",
+      catalogSha256: "8".repeat(64),
+      request: { kitId: "pk1-tumbler-kit", placements: [] },
+      pricedItems: [{
+        kind: "base",
+        itemId: "base:pk1-tumbler-kit",
+        priceAssetId: "pk1-price-tumbler"
+      }]
+    };
+
+    expect(() => parseCampaignDocument({
+      ...doc,
+      assetReferences: [{ ...baseReference, sourceUrl: "https://example.test/product.svg" }]
+    })).toThrow();
+    expect(() => parseCampaignDocument({
+      ...doc,
+      assetReferences: [{
+        ...baseReference,
+        request: { ...baseReference.request, placements: new Array(1) }
+      }]
+    })).toThrow();
   });
 });

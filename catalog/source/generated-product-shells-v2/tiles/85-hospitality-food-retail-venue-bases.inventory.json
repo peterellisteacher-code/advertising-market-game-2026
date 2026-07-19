@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 85,
+  "sourcePng": "85-hospitality-food-retail-venue-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "straight service counter kiosk", "tags": ["base", "counter", "kiosk", "service", "straight"]},
+    {"row": 1, "column": 2, "label": "corner service counter kiosk", "tags": ["base", "corner", "counter", "kiosk", "service"]},
+    {"row": 1, "column": 3, "label": "island counter kiosk", "tags": ["base", "counter", "island", "kiosk"]},
+    {"row": 1, "column": 4, "label": "compact bar counter shell", "tags": ["bar", "base", "compact", "counter", "shell"]},
+    {"row": 1, "column": 5, "label": "blank glass display counter shell", "tags": ["base", "blank", "counter", "display", "glass"]},
+    {"row": 2, "column": 1, "label": "open canopy market stall shell", "tags": ["base", "canopy", "market-stall", "open", "shell"]},
+    {"row": 2, "column": 2, "label": "enclosed market stall shell", "tags": ["base", "enclosed", "market-stall", "shell"]},
+    {"row": 2, "column": 3, "label": "pop up booth shell", "tags": ["base", "booth", "pop-up", "shell"]},
+    {"row": 2, "column": 4, "label": "small street kiosk shell", "tags": ["base", "kiosk", "shell", "small", "street"]},
+    {"row": 2, "column": 5, "label": "blank mall cart shell", "tags": ["base", "blank", "cart", "mall", "shell"]},
+    {"row": 3, "column": 1, "label": "compact pushcart shell", "tags": ["base", "compact", "pushcart", "shell"]},
+    {"row": 3, "column": 2, "label": "wide serving cart shell", "tags": ["base", "cart", "serving", "shell", "wide"]},
+    {"row": 3, "column": 3, "label": "covered vending cart shell", "tags": ["base", "cart", "covered", "shell", "vending"]},
+    {"row": 3, "column": 4, "label": "mobile beverage cart shell", "tags": ["base", "beverage", "cart", "mobile", "shell"]},
+    {"row": 3, "column": 5, "label": "mobile dessert cart shell", "tags": ["base", "cart", "dessert", "mobile", "shell"]},
+    {"row": 4, "column": 1, "label": "compact food truck shell", "tags": ["base", "compact", "food-truck", "shell"]},
+    {"row": 4, "column": 2, "label": "long food truck shell", "tags": ["base", "food-truck", "long", "shell"]},
+    {"row": 4, "column": 3, "label": "rounded vintage food truck shell", "tags": ["base", "food-truck", "rounded", "shell", "vintage"]},
+    {"row": 4, "column": 4, "label": "towable catering trailer shell", "tags": ["base", "catering", "shell", "towable", "trailer"]},
+    {"row": 4, "column": 5, "label": "container cafe shell", "tags": ["base", "cafe", "container", "shell"]},
+    {"row": 5, "column": 1, "label": "blank cafe shopfront shell", "tags": ["base", "blank", "cafe", "shell", "shopfront"]},
+    {"row": 5, "column": 2, "label": "blank takeaway shopfront shell", "tags": ["base", "blank", "shell", "shopfront", "takeaway"]},
+    {"row": 5, "column": 3, "label": "blank bakery shopfront shell", "tags": ["bakery", "base", "blank", "shell", "shopfront"]},
+    {"row": 5, "column": 4, "label": "blank restaurant frontage shell", "tags": ["base", "blank", "frontage", "restaurant", "shell"]},
+    {"row": 5, "column": 5, "label": "blank food court bay shell", "tags": ["base", "bay", "blank", "food-court", "shell"]}
+  ]
+}

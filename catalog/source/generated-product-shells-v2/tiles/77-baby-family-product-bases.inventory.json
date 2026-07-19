@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 77,
+  "sourcePng": "77-baby-family-product-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Classic pram", "tags": ["baby transport", "classic pram", "pram"]},
+    {"row": 1, "column": 2, "label": "Compact folding stroller", "tags": ["baby transport", "compact stroller", "folding stroller"]},
+    {"row": 1, "column": 3, "label": "Three-wheel jogging stroller", "tags": ["baby transport", "jogging stroller", "three-wheel stroller"]},
+    {"row": 1, "column": 4, "label": "Side-by-side twin stroller", "tags": ["baby transport", "side-by-side stroller", "twin stroller"]},
+    {"row": 1, "column": 5, "label": "Rear-facing child car seat", "tags": ["car seat", "child safety", "rear-facing seat"]},
+    {"row": 2, "column": 1, "label": "Backless booster seat", "tags": ["backless booster", "booster seat", "child safety"]},
+    {"row": 2, "column": 2, "label": "Freestanding high chair", "tags": ["feeding chair", "freestanding chair", "high chair"]},
+    {"row": 2, "column": 3, "label": "Portable feeding chair", "tags": ["feeding chair", "portable chair", "travel product"]},
+    {"row": 2, "column": 4, "label": "Simple wooden cot", "tags": ["baby furniture", "cot", "wooden cot"]},
+    {"row": 2, "column": 5, "label": "Convertible cot-bed", "tags": ["baby furniture", "convertible cot", "cot-bed"]},
+    {"row": 3, "column": 1, "label": "Oval bassinet", "tags": ["baby furniture", "bassinet", "oval bassinet"]},
+    {"row": 3, "column": 2, "label": "Mesh travel cot", "tags": ["mesh cot", "travel cot", "travel product"]},
+    {"row": 3, "column": 3, "label": "Square playpen", "tags": ["family product", "playpen", "square playpen"]},
+    {"row": 3, "column": 4, "label": "Changing table", "tags": ["baby furniture", "changing table", "storage furniture"]},
+    {"row": 3, "column": 5, "label": "Baby bath tub", "tags": ["baby bath", "bath product", "family product"]},
+    {"row": 4, "column": 1, "label": "Nappy backpack", "tags": ["backpack", "nappy bag", "storage bag"]},
+    {"row": 4, "column": 2, "label": "Bottle warmer appliance", "tags": ["bottle warmer", "feeding appliance", "small appliance"]},
+    {"row": 4, "column": 3, "label": "Bottle steriliser appliance", "tags": ["bottle steriliser", "feeding appliance", "small appliance"]},
+    {"row": 4, "column": 4, "label": "Baby-monitor camera unit", "tags": ["baby monitor", "camera unit", "monitoring device"]},
+    {"row": 4, "column": 5, "label": "Baby-monitor handheld display", "tags": ["baby monitor", "handheld display", "monitoring device"]},
+    {"row": 5, "column": 1, "label": "Gentle rocker chair", "tags": ["baby seating", "rocker chair", "rocking seat"]},
+    {"row": 5, "column": 2, "label": "Floor bouncer chair", "tags": ["baby seating", "bouncer chair", "floor seat"]},
+    {"row": 5, "column": 3, "label": "Padded activity mat", "tags": ["activity mat", "floor mat", "padded mat"]},
+    {"row": 5, "column": 4, "label": "Toy-storage chest", "tags": ["family storage", "storage chest", "toy storage"]},
+    {"row": 5, "column": 5, "label": "Pressure-mounted safety gate", "tags": ["child safety", "pressure-mounted gate", "safety gate"]}
+  ]
+}

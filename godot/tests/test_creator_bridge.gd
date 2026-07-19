@@ -6,13 +6,58 @@ const CampaignDocument = preload("res://src/creator/CampaignDocument.gd")
 const FakeCreatorTransport = preload("res://tests/fakes/FakeCreatorTransport.gd")
 
 func run() -> bool:
-    _test_request_ids_versions_callbacks_and_replays()
-    _test_publish_payload_and_error_envelope_validation()
-    _test_campaign_document_strict_strings_and_json_numbers()
-    _test_focus_restores_only_after_a_valid_close()
+    assert(_test_request_ids_versions_callbacks_and_replays())
+    assert(_test_latest_draft_response_validation())
+    assert(_test_publish_payload_and_error_envelope_validation())
+    assert(_test_campaign_document_strict_strings_and_json_numbers())
+    assert(_test_focus_restores_only_after_a_valid_close())
     return true
 
-func _test_request_ids_versions_callbacks_and_replays() -> void:
+func _test_latest_draft_response_validation() -> bool:
+    var fake := FakeCreatorTransport.new()
+    var bridge := CreatorBridge.new()
+    var successes: Array[Dictionary] = []
+    var failures: Array[Dictionary] = []
+    bridge.request_succeeded.connect(func(request_id: String, method: String, payload: Variant) -> void:
+        successes.append({"request_id": request_id, "method": method, "payload": payload})
+    )
+    bridge.request_failed.connect(func(request_id: String, code: String, message: String) -> void:
+        failures.append({"request_id": request_id, "code": code, "message": message})
+    )
+    bridge.set_transport(fake)
+
+    var found_id: String = bridge.load_latest("godot-bridge-document")
+    assert(fake.request_for(found_id).get("method") == "loadLatest")
+    assert(fake.request_for(found_id).get("payload") == {"documentId": "godot-bridge-document"})
+    fake.resolve_success(found_id, _valid_document())
+    assert(successes.back().get("method") == "loadLatest")
+    assert(successes.back().get("payload").get("documentId") == "godot-bridge-document")
+
+    var missing_id: String = bridge.load_latest("godot-bridge-document")
+    fake.resolve_success(missing_id, null)
+    assert(successes.back().get("request_id") == missing_id)
+    assert(successes.back().get("payload") == null)
+
+    var mismatched := _valid_document()
+    mismatched["documentId"] = "different-document"
+    var mismatch_id: String = bridge.load_latest("godot-bridge-document")
+    fake.resolve_success(mismatch_id, mismatched)
+    assert(failures.back().get("request_id") == mismatch_id)
+    assert(failures.back().get("code") == "INVALID_DOCUMENT_RESPONSE")
+
+    var malformed_id: String = bridge.load_latest("godot-bridge-document")
+    fake.resolve_success(malformed_id, {"schemaVersion": 1})
+    assert(failures.back().get("request_id") == malformed_id)
+    assert(failures.back().get("code") == "INVALID_DOCUMENT_RESPONSE")
+
+    var before := fake.request_count()
+    assert(bridge.load_latest("").is_empty())
+    assert(fake.request_count() == before)
+    assert(failures.back().get("code") == "INVALID_DOCUMENT_ID")
+    bridge.free()
+    return true
+
+func _test_request_ids_versions_callbacks_and_replays() -> bool:
     var fake := FakeCreatorTransport.new()
     var bridge := CreatorBridge.new()
     var successes: Array[Dictionary] = []
@@ -41,6 +86,25 @@ func _test_request_ids_versions_callbacks_and_replays() -> void:
     assert(successes[0].get("method") == "getState")
     assert(successes[1].get("request_id") == open_id)
     assert(successes[1].get("method") == "open")
+
+    var wrong_document := document.duplicate(true)
+    wrong_document["documentId"] = "other-document"
+    var wrong_document_state_id := bridge.get_state()
+    fake.resolve_success(wrong_document_state_id, wrong_document)
+    assert(failures.back().get("request_id") == wrong_document_state_id)
+    assert(failures.back().get("code") == "INVALID_DOCUMENT_RESPONSE")
+
+    var newer_document := document.duplicate(true)
+    newer_document["revision"] = 2.0
+    var newer_state_id := bridge.get_state()
+    fake.resolve_success(newer_state_id, newer_document)
+    assert(successes.back().get("request_id") == newer_state_id)
+    var stale_document := document.duplicate(true)
+    stale_document["revision"] = 1.0
+    var stale_state_id := bridge.get_state()
+    fake.resolve_success(stale_state_id, stale_document)
+    assert(failures.back().get("request_id") == stale_state_id)
+    assert(failures.back().get("code") == "INVALID_DOCUMENT_RESPONSE")
 
     var invalid_state_id := bridge.get_state()
     fake.resolve_success(invalid_state_id, {"schemaVersion": 1})
@@ -77,8 +141,9 @@ func _test_request_ids_versions_callbacks_and_replays() -> void:
     assert(fake.request_count() == before_invalid)
     assert(failures.back().get("code") == "INVALID_DOCUMENT")
     bridge.free()
+    return true
 
-func _test_publish_payload_and_error_envelope_validation() -> void:
+func _test_publish_payload_and_error_envelope_validation() -> bool:
     var fake := FakeCreatorTransport.new()
     var bridge := CreatorBridge.new()
     var successes: Array[Dictionary] = []
@@ -184,8 +249,9 @@ func _test_publish_payload_and_error_envelope_validation() -> void:
         assert(failures.back().get("request_id") == request_id)
         assert(failures.back().get("code") == "INVALID_RESPONSE")
     bridge.free()
+    return true
 
-func _test_campaign_document_strict_strings_and_json_numbers() -> void:
+func _test_campaign_document_strict_strings_and_json_numbers() -> bool:
     var room_document := _valid_document()
     room_document["mode"] = "room"
     room_document["roomId"] = 7
@@ -204,8 +270,9 @@ func _test_campaign_document_strict_strings_and_json_numbers() -> void:
     assert(CampaignDocument.is_nonnegative_integer_number(42.0))
     assert(not CampaignDocument.is_nonnegative_integer_number(9007199254740992))
     assert(not CampaignDocument.is_nonnegative_integer_number(9007199254740992.0))
+    return true
 
-func _test_focus_restores_only_after_a_valid_close() -> void:
+func _test_focus_restores_only_after_a_valid_close() -> bool:
     var fake := FakeCreatorTransport.new()
     var host := CreatorHost.new()
     var game_input := Node.new()
@@ -242,6 +309,7 @@ func _test_focus_restores_only_after_a_valid_close() -> void:
     assert(focus_restores[0] == 1)
     host.free()
     game_input.free()
+    return true
 
 func _valid_document() -> Dictionary:
     return {

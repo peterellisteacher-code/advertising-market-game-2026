@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 27,
+  "sourcePng": "27-chairs-recliners.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Ladder-back dining chair", "tags": ["dining chair", "ladder back", "wood chair"]},
+    {"row": 1, "column": 2, "label": "Spindle-back Windsor chair", "tags": ["spindle back", "windsor chair", "wood chair"]},
+    {"row": 1, "column": 3, "label": "Slat-back dining chair", "tags": ["dining chair", "slat back", "wood chair"]},
+    {"row": 1, "column": 4, "label": "Upholstered high-back dining chair", "tags": ["dining chair", "high back", "upholstered chair"]},
+    {"row": 1, "column": 5, "label": "Moulded shell chair with wooden legs", "tags": ["moulded chair", "shell chair", "wooden legs"]},
+    {"row": 2, "column": 1, "label": "Padded side chair with tapered legs", "tags": ["padded chair", "side chair", "tapered legs"]},
+    {"row": 2, "column": 2, "label": "Curved-seat cantilever dining chair", "tags": ["cantilever chair", "curved seat", "dining chair"]},
+    {"row": 2, "column": 3, "label": "Straight-back cantilever dining chair", "tags": ["cantilever chair", "dining chair", "straight back"]},
+    {"row": 2, "column": 4, "label": "Tulip-pedestal shell chair", "tags": ["pedestal chair", "shell chair", "tulip base"]},
+    {"row": 2, "column": 5, "label": "Wire-braced shell chair", "tags": ["shell chair", "wire brace", "wooden legs"]},
+    {"row": 3, "column": 1, "label": "Compact tub chair", "tags": ["armchair", "compact chair", "tub chair"]},
+    {"row": 3, "column": 2, "label": "Wingback armchair", "tags": ["armchair", "high back", "wingback chair"]},
+    {"row": 3, "column": 3, "label": "Rolled-arm armchair", "tags": ["armchair", "rolled arm", "upholstered chair"]},
+    {"row": 3, "column": 4, "label": "Rounded barrel chair", "tags": ["armchair", "barrel chair", "rounded back"]},
+    {"row": 3, "column": 5, "label": "Armless lounge chair", "tags": ["armless chair", "lounge chair", "upholstered chair"]},
+    {"row": 4, "column": 1, "label": "Segmented-back power recliner", "tags": ["power recliner", "recliner", "segmented back"]},
+    {"row": 4, "column": 2, "label": "Plush rounded-arm recliner", "tags": ["plush recliner", "recliner", "rounded arm"]},
+    {"row": 4, "column": 3, "label": "Lever-operated recliner", "tags": ["lever recliner", "manual recliner", "recliner"]},
+    {"row": 4, "column": 4, "label": "Square-arm recliner", "tags": ["recliner", "square arm", "upholstered chair"]},
+    {"row": 4, "column": 5, "label": "Oversized power recliner", "tags": ["oversized chair", "power recliner", "recliner"]},
+    {"row": 5, "column": 1, "label": "Backless square bar stool", "tags": ["backless stool", "bar stool", "square seat"]},
+    {"row": 5, "column": 2, "label": "Upholstered-back bar stool", "tags": ["bar stool", "upholstered back", "wooden stool"]},
+    {"row": 5, "column": 3, "label": "Round adjustable swivel stool", "tags": ["adjustable stool", "round stool", "swivel stool"]},
+    {"row": 5, "column": 4, "label": "Upholstered bench", "tags": ["bench", "padded bench", "upholstered seating"]},
+    {"row": 5, "column": 5, "label": "Square upholstered ottoman", "tags": ["ottoman", "square ottoman", "upholstered seating"]}
+  ]
+}

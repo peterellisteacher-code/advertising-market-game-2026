@@ -1,13 +1,14 @@
 import type { Canvas } from "fabric";
-import { FabricImage, type FabricObject, Group, Rect, Textbox, util } from "fabric";
+import { ActiveSelection, FabricImage, FabricObject, Group, Rect, Textbox, util } from "fabric";
 import { describe, expect, it, vi } from "vitest";
 import type { LogoIconRecord } from "../logo-lab/logo-icon-catalogue";
 import { createLogoMarkDesign } from "../logo-lab/logo-mark-model";
 import type { ResolvedProductVariant } from "../product-builder/virtual-product-variant";
-import type { CanvasMutation } from "./canvas-port";
+import type { CanvasMutation, NewProductKitInput } from "./canvas-port";
 import { FabricCanvasAdapter } from "./fabric-canvas-adapter";
 import { FabricProductShellFactory, productArtworkSurface } from "./product-shell-factory";
 import { FabricObjectFactory } from "./object-factory";
+import type { FabricProductKitCompositor } from "../product-kit/fabric-product-kit-compositor";
 
 class FakeCanvas {
   objects: FabricObject[] = [];
@@ -26,6 +27,7 @@ class FakeCanvas {
     version: "7.4.0",
     objects: this.objects.map((object) => object.toObject())
   }));
+  fire(): void {}
   on(event: string, listener: (event: { target: FabricObject }) => void): () => void {
     const listeners = this.listeners.get(event) ?? new Set();
     listeners.add(listener);
@@ -50,8 +52,18 @@ class FakeCanvas {
     }
   });
   getActiveObject(): FabricObject | undefined { return this.activeObject ?? undefined; }
-  discardActiveObject(): void { this.activeObject = null; }
-  setActiveObject(object: FabricObject): void { this.activeObject = object; }
+  getActiveObjects(): FabricObject[] {
+    if (this.activeObject instanceof ActiveSelection) return this.activeObject.getObjects();
+    return this.activeObject ? [this.activeObject] : [];
+  }
+  discardActiveObject(): void {
+    if (this.activeObject instanceof ActiveSelection) this.activeObject.onDeselect();
+    this.activeObject = null;
+  }
+  setActiveObject(object: FabricObject): void {
+    if (this.activeObject !== object) this.discardActiveObject();
+    this.activeObject = object;
+  }
   moveObjectTo(object: FabricObject, index: number): boolean {
     const current = this.objects.indexOf(object);
     if (current < 0) return false;
@@ -123,6 +135,18 @@ const logoDesign = (recipe: "icon-wordmark" | "badge-seal" = "icon-wordmark") =>
   });
 
 describe("FabricCanvasAdapter persistence", () => {
+  it("registers each Product Kit identity property exactly once in the central list", () => {
+    for (const property of [
+      "productKitPackId",
+      "productKitId",
+      "productKitCatalogSha256",
+      "productKitComposition"
+    ]) {
+      expect(FabricObject.customProperties.filter((candidate) => candidate === property))
+        .toHaveLength(1);
+    }
+  });
+
   it("rejects a serialized external image before Fabric loads it", async () => {
     const canvas = new FakeCanvas();
     const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
@@ -142,6 +166,9 @@ describe("FabricCanvasAdapter persistence", () => {
       height: 100,
       cornerSize: 13,
       touchCornerSize: 24,
+      borderColor: "#abcdef",
+      cornerColor: "#fedcba",
+      cornerStrokeColor: "#123456",
       selectable: false,
       visible: false,
       lockMovementX: true
@@ -156,6 +183,9 @@ describe("FabricCanvasAdapter persistence", () => {
     expect(canvas.toObject).toHaveBeenCalledWith(expect.arrayContaining([
       "cornerSize",
       "touchCornerSize",
+      "borderColor",
+      "cornerColor",
+      "cornerStrokeColor",
       "selectable",
       "visible",
       "lockMovementX"
@@ -165,6 +195,11 @@ describe("FabricCanvasAdapter persistence", () => {
     expect(object).toMatchObject({
       cornerSize: 44,
       touchCornerSize: 44,
+      transparentCorners: false,
+      borderScaleFactor: 3,
+      borderColor: "#075985",
+      cornerColor: "#f4c95d",
+      cornerStrokeColor: "#172033",
       selectable: false,
       visible: false,
       lockMovementX: true
@@ -337,6 +372,119 @@ describe("FabricCanvasAdapter persistence", () => {
       componentSvg: "<svg></svg>"
     })).rejects.toThrow("Synthetic composition failure");
     expect(canvas.objects).toEqual([created]);
+  });
+
+  it("composes one Product Kit group before the sole top-level canvas add", async () => {
+    const canvas = new FakeCanvas();
+    const created = new Group([new Rect({ width: 100, height: 100 })]);
+    created.objectId = "kit-object-1";
+    created.elementKind = "product-kit";
+    const create = vi.fn().mockResolvedValue(created);
+    const compositor = { create } as unknown as FabricProductKitCompositor;
+    const adapter = new FabricCanvasAdapter(
+      canvas as unknown as Canvas,
+      undefined,
+      undefined,
+      undefined,
+      compositor
+    );
+    const input = {
+      id: "kit-object-1",
+      accessibleName: "Reusable tumbler",
+      catalogue: {},
+      plan: {},
+      rasterSources: new Map()
+    } as unknown as NewProductKitInput;
+
+    await adapter.addProductKit(input);
+
+    expect(create).toHaveBeenCalledOnce();
+    expect(create).toHaveBeenCalledWith(input);
+    expect(canvas.objects).toEqual([created]);
+
+    create.mockRejectedValueOnce(new Error("Synthetic PNG load failure"));
+    await expect(adapter.addProductKit({ ...input, id: "kit-object-2" }))
+      .rejects.toThrow("Synthetic PNG load failure");
+    expect(canvas.objects).toEqual([created]);
+  });
+
+  it("rejects Product Kit duplication before clone, add or selection mutation", async () => {
+    const canvas = new FakeCanvas();
+    const selected = new Rect({ width: 40, height: 40 });
+    selected.set({
+      objectId: "selected-shape",
+      elementKind: "shape",
+      accessibleName: "Selected shape"
+    });
+    const productKit = new Group([new Rect({ width: 100, height: 100 })]);
+    productKit.set({
+      objectId: "kit-object-1",
+      elementKind: "product-kit",
+      accessibleName: "Reusable tumbler"
+    });
+    canvas.objects = [selected, productKit];
+    canvas.activeObject = selected;
+    const clone = vi.spyOn(productKit, "clone");
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+    const mutations: CanvasMutation[] = [];
+    adapter.subscribe((mutation) => mutations.push(mutation));
+
+    await expect(adapter.duplicate("kit-object-1", "kit-object-copy"))
+      .rejects.toThrow(/Product Kit.*duplicat/i);
+
+    expect(clone).not.toHaveBeenCalled();
+    expect(canvas.objects).toEqual([selected, productKit]);
+    expect(canvas.objects.map(({ objectId }) => objectId))
+      .toEqual(["selected-shape", "kit-object-1"]);
+    expect(canvas.activeObject).toBe(selected);
+    expect(mutations).toEqual([]);
+  });
+
+  it("snapshots and restores an exact ordered semantic multi-selection", () => {
+    const canvas = new FakeCanvas();
+    const first = new Rect({ width: 40, height: 40, left: 10 });
+    first.set({ objectId: "shape-first", elementKind: "shape", accessibleName: "First" });
+    const second = new Rect({ width: 40, height: 40, left: 60 });
+    second.set({ objectId: "shape-second", elementKind: "shape", accessibleName: "Second" });
+    const third = new Rect({ width: 40, height: 40, left: 110 });
+    third.set({ objectId: "shape-third", elementKind: "shape", accessibleName: "Third" });
+    canvas.objects = [first, second, third];
+    canvas.activeObject = new ActiveSelection([third, first], {
+      multiSelectionStacking: "selection-order"
+    });
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+    const durableBefore = adapter.serialize();
+
+    const snapshot = adapter.captureSelection();
+    adapter.setSelected("shape-second");
+    adapter.restoreSelection(snapshot);
+
+    expect(snapshot).toEqual({ objectIds: ["shape-third", "shape-first"] });
+    expect(Object.isFrozen(snapshot)).toBe(true);
+    expect(Object.isFrozen(snapshot.objectIds)).toBe(true);
+    expect(canvas.activeObject).toBeInstanceOf(ActiveSelection);
+    expect((canvas.activeObject as ActiveSelection).getObjects()).toEqual([third, first]);
+    expect(adapter.serialize()).toEqual(durableBefore);
+    expect(adapter.serialize()).not.toHaveProperty("selection");
+  });
+
+  it("validates every selection snapshot ID before changing the active object", () => {
+    const canvas = new FakeCanvas();
+    const selected = new Rect({ width: 40, height: 40 });
+    selected.set({ objectId: "shape-selected", elementKind: "shape", accessibleName: "Selected" });
+    canvas.objects = [selected];
+    canvas.activeObject = selected;
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+
+    expect(() => adapter.restoreSelection({
+      objectIds: ["shape-selected", "shape-selected"]
+    })).toThrow(/duplicate.*selection/i);
+    expect(canvas.activeObject).toBe(selected);
+
+    expect(() => adapter.restoreSelection({
+      objectIds: ["missing-shape"]
+    })).toThrow(/missing object/i);
+    expect(canvas.activeObject).toBe(selected);
   });
 
   it("adds and edits clipped artwork children with one parent mutation per action", async () => {

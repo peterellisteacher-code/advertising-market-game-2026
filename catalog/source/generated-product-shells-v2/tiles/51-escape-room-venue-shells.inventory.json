@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 51,
+  "sourcePng": "51-escape-room-venue-shells.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Library study room", "tags": ["bookcases", "escape room", "study"]},
+    {"row": 1, "column": 2, "label": "Bottle-filled laboratory room", "tags": ["bottles", "escape room", "laboratory"]},
+    {"row": 1, "column": 3, "label": "Bank vault room", "tags": ["escape room", "vault door", "vault room"]},
+    {"row": 1, "column": 4, "label": "Brick prison cell", "tags": ["brick walls", "escape room", "prison cell"]},
+    {"row": 1, "column": 5, "label": "Desk office room", "tags": ["desk", "escape room", "office"]},
+    {"row": 2, "column": 1, "label": "Columned temple chamber", "tags": ["columns", "escape room", "temple chamber"]},
+    {"row": 2, "column": 2, "label": "Porthole ship cabin", "tags": ["escape room", "portholes", "ship cabin"]},
+    {"row": 2, "column": 3, "label": "Mural-lined tomb chamber", "tags": ["escape room", "murals", "tomb chamber"]},
+    {"row": 2, "column": 4, "label": "Stone dungeon chamber", "tags": ["dungeon", "escape room", "stone walls"]},
+    {"row": 2, "column": 5, "label": "Potion workshop room", "tags": ["bottles", "escape room", "workshop"]},
+    {"row": 3, "column": 1, "label": "Spacecraft cockpit room", "tags": ["cockpit", "control panels", "escape room"]},
+    {"row": 3, "column": 2, "label": "Pipe-lined industrial room", "tags": ["escape room", "industrial", "pipes"]},
+    {"row": 3, "column": 3, "label": "Nautical control room", "tags": ["control room", "escape room", "ship wheel"]},
+    {"row": 3, "column": 4, "label": "Server rack room", "tags": ["escape room", "server racks", "technology room"]},
+    {"row": 3, "column": 5, "label": "Circular portal chamber", "tags": ["circular portal", "escape room", "platform"]},
+    {"row": 4, "column": 1, "label": "Fireplace sitting room", "tags": ["escape room", "fireplace", "sitting room"]},
+    {"row": 4, "column": 2, "label": "Striped dressing room", "tags": ["dressing room", "escape room", "striped walls"]},
+    {"row": 4, "column": 3, "label": "Roped gallery room", "tags": ["display plinths", "escape room", "gallery"]},
+    {"row": 4, "column": 4, "label": "Backstage dressing room", "tags": ["backstage", "dressing room", "escape room"]},
+    {"row": 4, "column": 5, "label": "Upholstered train compartment", "tags": ["escape room", "seating", "train compartment"]},
+    {"row": 5, "column": 1, "label": "Map study room", "tags": ["escape room", "map", "study"]},
+    {"row": 5, "column": 2, "label": "Plain laboratory room", "tags": ["escape room", "laboratory", "workbench"]},
+    {"row": 5, "column": 3, "label": "Bedside hotel room", "tags": ["bedroom", "escape room", "hotel room"]},
+    {"row": 5, "column": 4, "label": "Small classroom", "tags": ["classroom", "escape room", "student desks"]},
+    {"row": 5, "column": 5, "label": "Submarine control room", "tags": ["control panels", "escape room", "submarine"]}
+  ]
+}

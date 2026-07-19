@@ -1,0 +1,31 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetId": "63-escape-room-puzzle-room-add-ons-v2",
+  "items": [
+    {"row": 1, "column": 1, "label": "Keyed padlock", "tags": ["add-on", "escape-room-venues", "keyed", "lock", "padlock"]},
+    {"row": 1, "column": 2, "label": "Combination padlock", "tags": ["add-on", "combination", "escape-room-venues", "padlock", "puzzle"]},
+    {"row": 1, "column": 3, "label": "Ornate key", "tags": ["add-on", "escape-room-venues", "key", "ornate"]},
+    {"row": 1, "column": 4, "label": "Keyhole escutcheon plate", "tags": ["add-on", "escape-room-venues", "escutcheon", "keyhole", "plate"]},
+    {"row": 1, "column": 5, "label": "Numeric keypad", "tags": ["access-control", "add-on", "escape-room-venues", "keypad", "numeric"]},
+    {"row": 2, "column": 1, "label": "Domed treasure chest", "tags": ["add-on", "chest", "domed-lid", "escape-room-venues", "storage"]},
+    {"row": 2, "column": 2, "label": "Flat-lid lockbox", "tags": ["add-on", "escape-room-venues", "flat-lid", "lockbox", "storage"]},
+    {"row": 2, "column": 3, "label": "Sliding tile puzzle panel", "tags": ["add-on", "escape-room-venues", "puzzle-panel", "sliding", "tiles"]},
+    {"row": 2, "column": 4, "label": "Three-drawer lock cabinet", "tags": ["add-on", "cabinet", "drawers", "escape-room-venues", "lockable", "three-drawer"]},
+    {"row": 2, "column": 5, "label": "Closed clue book", "tags": ["add-on", "book", "closed", "clue", "escape-room-venues"]},
+    {"row": 3, "column": 1, "label": "Circular combination dial", "tags": ["add-on", "circular", "combination-dial", "escape-room-venues", "puzzle"]},
+    {"row": 3, "column": 2, "label": "Handwheel", "tags": ["add-on", "escape-room-venues", "handwheel", "mechanism", "rotating"]},
+    {"row": 3, "column": 3, "label": "Lever switch plate", "tags": ["add-on", "escape-room-venues", "lever", "switch", "switch-plate"]},
+    {"row": 3, "column": 4, "label": "Four-toggle switch panel", "tags": ["add-on", "escape-room-venues", "four-toggle", "switch-panel", "toggles"]},
+    {"row": 3, "column": 5, "label": "Exposed gear crank", "tags": ["add-on", "crank", "escape-room-venues", "gear", "mechanism"]},
+    {"row": 4, "column": 1, "label": "Rolled scroll", "tags": ["add-on", "clue", "escape-room-venues", "rolled", "scroll"]},
+    {"row": 4, "column": 2, "label": "Empty picture frame", "tags": ["add-on", "empty", "escape-room-venues", "frame", "picture-frame"]},
+    {"row": 4, "column": 3, "label": "Magnifying glass", "tags": ["add-on", "clue-tool", "escape-room-venues", "magnifying-glass"]},
+    {"row": 4, "column": 4, "label": "Blank metal plaque", "tags": ["add-on", "blank", "escape-room-venues", "metal", "plaque"]},
+    {"row": 4, "column": 5, "label": "Circular rotating disc", "tags": ["add-on", "circular", "disc", "escape-room-venues", "rotating"]},
+    {"row": 5, "column": 1, "label": "Sliding wall panel", "tags": ["add-on", "escape-room-venues", "panel", "sliding", "wall"]},
+    {"row": 5, "column": 2, "label": "Square floor hatch with ring pull", "tags": ["add-on", "escape-room-venues", "floor-hatch", "ring-pull", "square"]},
+    {"row": 5, "column": 3, "label": "Barred door with padlock", "tags": ["add-on", "barred-door", "escape-room-venues", "locked", "padlock"]},
+    {"row": 5, "column": 4, "label": "Wall shelf unit", "tags": ["add-on", "escape-room-venues", "shelf-unit", "storage", "wall-mounted"]},
+    {"row": 5, "column": 5, "label": "Wide blank display frame", "tags": ["add-on", "blank", "display-frame", "escape-room-venues", "wide"]}
+  ]
+}

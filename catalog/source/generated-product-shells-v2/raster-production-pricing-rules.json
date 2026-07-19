@@ -1,0 +1,188 @@
+{
+  "schema": "raster-production-pricing-rules@1",
+  "packId": "offline-core-v1",
+  "pricingVersion": 1,
+  "categoryRoleCosts": {
+    "accessibility-mobility": {
+      "add-on": 600,
+      "base": 3200
+    },
+    "advertising-layout": {
+      "placement-frame": 900
+    },
+    "agriculture-farm": {
+      "add-on": 700,
+      "base": 4800
+    },
+    "apparel-footwear": {
+      "add-on": 400,
+      "base": 2200
+    },
+    "appliances": {
+      "add-on": 650,
+      "base": 3700
+    },
+    "baby-family": {
+      "add-on": 450,
+      "base": 2300
+    },
+    "bags-carry-products": {
+      "add-on": 450,
+      "base": 2400
+    },
+    "beverage-containers": {
+      "add-on": 350,
+      "base": 2500
+    },
+    "chairs-recliners": {
+      "base": 3200
+    },
+    "computing-electronics": {
+      "add-on": 600,
+      "base": 3500
+    },
+    "construction-modular-building": {
+      "add-on": 800,
+      "base": 4800
+    },
+    "digital-services": {
+      "add-on": 350,
+      "base": 2100
+    },
+    "dining-tables": {
+      "add-on": 650,
+      "base": 3400
+    },
+    "escape-room": {
+      "add-on": 750,
+      "scene": 4600
+    },
+    "escape-room-venues": {
+      "add-on": 750,
+      "base": 4600
+    },
+    "events-recreation": {
+      "add-on": 650,
+      "base": 3300
+    },
+    "food-packaging": {
+      "add-on": 450,
+      "base": 2400
+    },
+    "footwear-apparel": {
+      "add-on": 400,
+      "base": 2200
+    },
+    "furniture": {
+      "add-on": 600,
+      "base": 3300
+    },
+    "garden-outdoor": {
+      "base": 2800
+    },
+    "holiday-accommodation": {
+      "base": 4300,
+      "scene": 4300
+    },
+    "holiday-experience": {
+      "add-on": 650
+    },
+    "home-appliances": {
+      "base": 3900
+    },
+    "home-fixtures": {
+      "base": 3200
+    },
+    "hospitality": {
+      "base": 4000
+    },
+    "hospitality-food-retail-venues": {
+      "add-on": 750,
+      "base": 4600
+    },
+    "house-property": {
+      "add-on": 900,
+      "base": 5000
+    },
+    "houses-property": {
+      "add-on": 900,
+      "base": 5000
+    },
+    "lessons-workshops": {
+      "add-on": 500,
+      "base": 2700
+    },
+    "marine-watercraft": {
+      "add-on": 800,
+      "base": 4800
+    },
+    "mobile-trade-services": {
+      "add-on": 650,
+      "base": 3600
+    },
+    "outdoor-sport": {
+      "add-on": 550,
+      "base": 3000
+    },
+    "outdoor-travel": {
+      "base": 3000
+    },
+    "patio-outdoor": {
+      "add-on": 700,
+      "base": 4500
+    },
+    "patio-outdoor-living": {
+      "add-on": 700,
+      "base": 4500
+    },
+    "personal-services": {
+      "add-on": 600,
+      "base": 3300
+    },
+    "pet-animal-care": {
+      "add-on": 450,
+      "base": 2400
+    },
+    "pet-care": {
+      "base": 2500
+    },
+    "renewable-energy-smart-home": {
+      "add-on": 700,
+      "base": 4000
+    },
+    "sofas": {
+      "add-on": 600,
+      "base": 3300
+    },
+    "sports-fitness": {
+      "base": 3000
+    },
+    "stationery-music-hobbies": {
+      "add-on": 400,
+      "base": 2300
+    },
+    "storage-furniture": {
+      "base": 3200
+    },
+    "televisions": {
+      "add-on": 600,
+      "base": 3500
+    },
+    "tools-cleaning-wellness": {
+      "add-on": 500,
+      "base": 2700
+    },
+    "toy-tabletop": {
+      "add-on": 400,
+      "base": 2200
+    },
+    "toys-tabletop-collectibles": {
+      "base": 2400
+    },
+    "vehicles": {
+      "add-on": 900,
+      "base": 5000
+    }
+  },
+  "assetOverrides": {}
+}

@@ -18,6 +18,10 @@ export class HistoryController<T> {
     this.#future = [];
   }
 
+  alignPresent(next: T): void {
+    this.#present = this.clone(next);
+  }
+
   undo(): T | null {
     const previous = this.#past.at(-1);
     if (previous === undefined) return null;

@@ -125,7 +125,9 @@ export function evaluatePublicationReadiness(
 
   if (session.audienceBriefId.trim().length === 0) missing.push("audience-brief");
   if (campaign.product.name.trim().length === 0) missing.push("product-name");
-  if (campaign.product.priceCents === null) missing.push("price");
+  if (campaign.product.priceCents === null || !hasEvidenceId(campaign.evidence.price)) {
+    missing.push("price");
+  }
   if (!hasEvidenceId(campaign.evidence.attention)) missing.push("attention");
   if (!hasEvidenceId(campaign.evidence.interest)) missing.push("interest");
   if (!hasEvidenceId(campaign.evidence.desire)) missing.push("desire");

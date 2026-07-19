@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 52,
+  "sourcePng": "52-escape-room-puzzle-components.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Rectangular keyhole padlock", "tags": ["keyhole", "padlock", "puzzle component"]},
+    {"row": 1, "column": 2, "label": "Round dial padlock", "tags": ["dial", "padlock", "round"]},
+    {"row": 1, "column": 3, "label": "Old-fashioned metal key", "tags": ["key", "metal", "old fashioned"]},
+    {"row": 1, "column": 4, "label": "Blank rectangular key tag", "tags": ["blank", "key tag", "rectangular"]},
+    {"row": 1, "column": 5, "label": "Oval keyhole plate", "tags": ["keyhole", "oval", "plate"]},
+    {"row": 2, "column": 1, "label": "Domed treasure chest", "tags": ["chest", "domed lid", "puzzle container"]},
+    {"row": 2, "column": 2, "label": "Small rectangular lockbox", "tags": ["lockbox", "puzzle container", "rectangular"]},
+    {"row": 2, "column": 3, "label": "Grid-faced puzzle cube", "tags": ["cube", "grid face", "puzzle component"]},
+    {"row": 2, "column": 4, "label": "Single-drawer puzzle box", "tags": ["drawer", "puzzle box", "rectangular"]},
+    {"row": 2, "column": 5, "label": "Closed thick book", "tags": ["book", "closed", "thick cover"]},
+    {"row": 3, "column": 1, "label": "Marked rotary dial", "tags": ["marked dial", "puzzle component", "rotary"]},
+    {"row": 3, "column": 2, "label": "Four-spoke wheel", "tags": ["four spoke", "puzzle component", "wheel"]},
+    {"row": 3, "column": 3, "label": "Single lever switch", "tags": ["lever", "puzzle component", "switch"]},
+    {"row": 3, "column": 4, "label": "Four-toggle switch panel", "tags": ["four toggle", "switch panel", "toggle switch"]},
+    {"row": 3, "column": 5, "label": "Hand-crank gear panel", "tags": ["gear panel", "hand crank", "puzzle component"]},
+    {"row": 4, "column": 1, "label": "Unrolled blank scroll", "tags": ["blank", "scroll", "unrolled"]},
+    {"row": 4, "column": 2, "label": "Blank square card", "tags": ["blank", "card", "square"]},
+    {"row": 4, "column": 3, "label": "Handheld magnifying glass", "tags": ["handheld", "magnifying glass", "puzzle component"]},
+    {"row": 4, "column": 4, "label": "Circular segmented decoder dial", "tags": ["circular", "decoder dial", "segmented"]},
+    {"row": 4, "column": 5, "label": "Folded route map", "tags": ["folded", "map", "route lines"]},
+    {"row": 5, "column": 1, "label": "Sixteen-button keypad", "tags": ["button grid", "keypad", "sixteen button"]},
+    {"row": 5, "column": 2, "label": "Branching path puzzle panel", "tags": ["branching path", "panel", "puzzle component"]},
+    {"row": 5, "column": 3, "label": "Large square push button", "tags": ["large button", "push button", "square"]},
+    {"row": 5, "column": 4, "label": "Two-pan balance scale", "tags": ["balance scale", "puzzle component", "two pan"]},
+    {"row": 5, "column": 5, "label": "Cylindrical handheld flashlight", "tags": ["cylindrical", "flashlight", "handheld"]}
+  ]
+}

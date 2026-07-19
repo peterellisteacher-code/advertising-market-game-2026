@@ -7,6 +7,57 @@ const words = (value: string): string[] => value
   .split(/[^a-z0-9]+/)
   .filter(Boolean);
 
+const TOKEN_EQUIVALENCE_GROUPS = [
+  ["refrigerator", ["fridge", "fridges", "refrigerator", "refrigerators"]],
+  ["sofa", ["couch", "couches", "sofa", "sofas"]],
+  ["cooler", ["cooler", "coolers", "eskies", "esky"]],
+  ["road-vehicle", ["car", "cars", "vehicle", "vehicles"]],
+  ["footwear", ["footwear", "shoe", "shoes"]],
+  ["retail", ["retail", "retailer", "retailers", "shop", "shops", "store", "stores"]],
+  ["fast-food", ["takeaway", "takeaways"]],
+  ["digital-offering", ["app", "apps", "subscription", "subscriptions"]],
+  ["alcoholic-drink", [
+    "alcohol", "alcoholic", "beer", "beers", "spirit", "spirits", "wine", "wines"
+  ]]
+] as const;
+
+const TOKEN_EQUIVALENTS = new Map<string, string>(
+  TOKEN_EQUIVALENCE_GROUPS.flatMap(([canonical, variants]) =>
+    variants.map((variant) => [variant, canonical] as const))
+);
+
+const PHRASE_EQUIVALENTS = new Map<string, string>([
+  ["fast food", "fast-food"],
+  ["digital product", "digital-offering"],
+  ["digital products", "digital-offering"],
+  ["digital service", "digital-offering"],
+  ["digital services", "digital-offering"]
+]);
+
+/** Applies only explicit classroom-vocabulary groups; it never stems or substring-matches. */
+const searchTerms = (value: string): string[] => {
+  const source = words(value);
+  const terms: string[] = [];
+
+  for (let index = 0; index < source.length;) {
+    const current = source[index];
+    if (current === undefined) break;
+    const next = source[index + 1];
+    const phrase = next === undefined
+      ? undefined
+      : PHRASE_EQUIVALENTS.get(`${current} ${next}`);
+    if (phrase) {
+      terms.push(phrase);
+      index += 2;
+      continue;
+    }
+    terms.push(TOKEN_EQUIVALENTS.get(current) ?? current);
+    index += 1;
+  }
+
+  return terms;
+};
+
 export class CatalogueIndex {
   readonly #records: Array<{
     asset: CatalogAssetV1;
@@ -20,13 +71,13 @@ export class CatalogueIndex {
       asset,
       category: asset.category.toLowerCase(),
       title: words(asset.title).join(" "),
-      tokens: new Set(words([asset.title, asset.category, ...asset.tags].join(" ")))
+      tokens: new Set([asset.title, asset.category, ...asset.tags].flatMap(searchTerms))
     }));
   }
 
   search(query: string, category?: string): CatalogAssetV1[] {
-    const queryTokens = words(query);
-    const normalized = queryTokens.join(" ");
+    const queryTokens = searchTerms(query);
+    const normalized = words(query).join(" ");
     const normalizedCategory = category?.trim().toLowerCase();
 
     return this.#records

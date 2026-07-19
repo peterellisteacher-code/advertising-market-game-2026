@@ -13,6 +13,15 @@ import type { NewRasterInput, NewShapeInput, NewTextInput } from "./canvas-port"
 import "./fabric-custom-properties";
 
 export const FABRIC_CONTROL_SIZE = 44;
+export const FABRIC_SELECTION_STYLE = Object.freeze({
+  cornerSize: FABRIC_CONTROL_SIZE,
+  touchCornerSize: FABRIC_CONTROL_SIZE,
+  transparentCorners: false,
+  borderScaleFactor: 3,
+  borderColor: "#075985",
+  cornerColor: "#f4c95d",
+  cornerStrokeColor: "#172033"
+});
 export const MAX_TEXT_WIDTH = 640;
 export const MAX_TEXT_HEIGHT = 360;
 const MAX_RASTER_WIDTH = 640;
@@ -58,7 +67,8 @@ export class FabricObjectFactory {
       width: 480,
       fontSize: 64,
       fill: "#111827",
-      textAlign: "center"
+      textAlign: "center",
+      editable: input.editable ?? true
     });
     object.scale(calculateTextFitScale(
       object.getScaledWidth() / Math.max(Number.EPSILON, Math.abs(object.scaleX)),
@@ -115,10 +125,7 @@ export class FabricObjectFactory {
       originY: "center",
       left: CREATOR_CONFIG.canvasWidth / 2,
       top: CREATOR_CONFIG.canvasHeight / 2,
-      cornerSize: FABRIC_CONTROL_SIZE,
-      touchCornerSize: FABRIC_CONTROL_SIZE,
-      transparentCorners: false,
-      borderScaleFactor: 2
+      ...FABRIC_SELECTION_STYLE
     });
     object.setCoords();
     return object;

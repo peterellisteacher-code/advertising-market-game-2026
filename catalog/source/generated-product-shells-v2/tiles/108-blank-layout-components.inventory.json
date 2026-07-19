@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 108,
+  "sourcePng": "108-blank-layout-components.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Simple rectangular label border", "tags": ["label border", "layout component", "rectangular frame"]},
+    {"row": 1, "column": 2, "label": "Rounded rectangular label border", "tags": ["label border", "layout component", "rounded frame"]},
+    {"row": 1, "column": 3, "label": "Circular badge frame", "tags": ["badge frame", "circular frame", "layout component"]},
+    {"row": 1, "column": 4, "label": "Hexagonal badge frame", "tags": ["badge frame", "hexagonal frame", "layout component"]},
+    {"row": 1, "column": 5, "label": "Scalloped badge frame", "tags": ["badge frame", "layout component", "scalloped frame"]},
+    {"row": 2, "column": 1, "label": "Horizontal double-line divider", "tags": ["double line", "horizontal divider", "layout component"]},
+    {"row": 2, "column": 2, "label": "Curved double-line divider", "tags": ["curved divider", "double line", "layout component"]},
+    {"row": 2, "column": 3, "label": "Blank rectangular content panel", "tags": ["content panel", "layout component", "rectangular panel"]},
+    {"row": 2, "column": 4, "label": "Blank rounded content panel", "tags": ["content panel", "layout component", "rounded panel"]},
+    {"row": 2, "column": 5, "label": "Blank folded-corner content panel", "tags": ["content panel", "folded corner", "layout component"]},
+    {"row": 3, "column": 1, "label": "Bordered diagonal-stripe pattern swatch", "tags": ["diagonal stripes", "layout component", "pattern swatch"]},
+    {"row": 3, "column": 2, "label": "Bordered dot pattern swatch", "tags": ["dot pattern", "layout component", "pattern swatch"]},
+    {"row": 3, "column": 3, "label": "Bordered checker-grid pattern swatch", "tags": ["checker grid", "layout component", "pattern swatch"]},
+    {"row": 3, "column": 4, "label": "Bordered wavy-line pattern swatch", "tags": ["layout component", "pattern swatch", "wavy lines"]},
+    {"row": 3, "column": 5, "label": "Bordered geometric-confetti pattern swatch", "tags": ["confetti pattern", "layout component", "pattern swatch"]},
+    {"row": 4, "column": 1, "label": "Blank starburst sticker", "tags": ["layout component", "starburst", "sticker shape"]},
+    {"row": 4, "column": 2, "label": "Blank cloud sticker", "tags": ["cloud shape", "layout component", "sticker shape"]},
+    {"row": 4, "column": 3, "label": "Blank speech-bubble sticker", "tags": ["layout component", "speech bubble", "sticker shape"]},
+    {"row": 4, "column": 4, "label": "Blank curved ribbon banner", "tags": ["banner", "layout component", "ribbon shape"]},
+    {"row": 4, "column": 5, "label": "Blank hanging price-tag shape", "tags": ["blank tag", "hanging tag", "layout component"]},
+    {"row": 5, "column": 1, "label": "Blank photo-aperture frame", "tags": ["layout component", "photo aperture", "photo frame"]},
+    {"row": 5, "column": 2, "label": "Blank two-panel split-layout frame", "tags": ["layout component", "split layout", "two panels"]},
+    {"row": 5, "column": 3, "label": "Blank four-panel collage frame", "tags": ["collage frame", "four panels", "layout component"]},
+    {"row": 5, "column": 4, "label": "Blank hanging signboard", "tags": ["hanging sign", "layout component", "signboard"]},
+    {"row": 5, "column": 5, "label": "Blank pill-shaped call-to-action button", "tags": ["button", "call to action", "layout component"]}
+  ]
+}

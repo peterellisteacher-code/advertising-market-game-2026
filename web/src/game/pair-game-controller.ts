@@ -1,4 +1,7 @@
-import type { CampaignDocumentV1 } from "../domain/campaign-document";
+import type {
+  CampaignDocumentV1,
+  CampaignPairStateV1
+} from "../domain/campaign-document";
 import {
   AUDIENCE_BRIEFS,
   getAudienceBrief,
@@ -6,7 +9,6 @@ import {
 } from "./audience-briefs";
 import {
   bothRolesHaveActed,
-  createEmptyRoleProgress,
   createPairSession,
   recordProductiveAction,
   selectAudienceBrief,
@@ -50,6 +52,7 @@ interface StoredPairState {
 }
 
 type ListenerDisposer = () => void;
+export type PairStateChangeListener = (state: CampaignPairStateV1) => void;
 
 function oppositeRole(role: PairRole): PairRole {
   return role === "art-director" ? "strategist" : "art-director";
@@ -59,7 +62,7 @@ export class PairGameController {
   readonly #view: PairGameView;
   readonly #port: RoundZeroPort;
   readonly #now: () => Date;
-  readonly #sessions = new Map<string, StoredPairState>();
+  readonly #onPairChange: PairStateChangeListener;
   readonly #listenerDisposers: ListenerDisposer[] = [];
   #current: StoredPairState | null = null;
   #unsubscribeCanvas: ListenerDisposer | null = null;
@@ -69,11 +72,13 @@ export class PairGameController {
   constructor(
     view: PairGameView,
     port: RoundZeroPort,
-    now: () => Date = () => new Date()
+    now: () => Date = () => new Date(),
+    onPairChange: PairStateChangeListener = () => undefined
   ) {
     this.#view = view;
     this.#port = port;
     this.#now = now;
+    this.#onPairChange = onPairChange;
     this.#populateAudienceSignals();
     this.#listen(view.swapRoles, "click", () => this.#swapRoles());
     this.#listen(view.audienceSignal, "change", () => this.#changeAudience());
@@ -96,22 +101,23 @@ export class PairGameController {
       await this.#port.setAudienceBrief(selectedBrief);
     }
 
-    const stored = this.#sessions.get(document.sessionId);
-    const state: StoredPairState = stored === undefined
-      ? {
-          session: createPairSession({
-            sessionId: document.sessionId,
-            audienceBriefId: selectedBrief.id,
-            startedAt: this.#now().toISOString()
-          }),
-          progress: createEmptyRoleProgress()
-        }
-      : {
-          session: selectAudienceBrief(stored.session, selectedBrief.id),
-          progress: stored.progress
-        };
+    const persisted = document.gameplay.pair;
+    const state: StoredPairState = {
+      session: {
+        ...createPairSession({
+          sessionId: document.sessionId,
+          audienceBriefId: selectedBrief.id,
+          startedAt: this.#now().toISOString()
+        }),
+        activeRole: persisted.activeRole,
+        handoffCount: persisted.handoffCount
+      },
+      progress: {
+        "art-director": persisted.artDirectorActions,
+        strategist: persisted.strategistActions
+      }
+    };
 
-    this.#sessions.set(document.sessionId, state);
     this.#current = state;
     this.#render();
     this.#unsubscribeCanvas = this.#port.subscribeCanvasMutations(() => {
@@ -123,6 +129,18 @@ export class PairGameController {
     this.#unsubscribeCanvas?.();
     this.#unsubscribeCanvas = null;
     this.#current = null;
+  }
+
+  snapshot(): CampaignPairStateV1 | null {
+    if (this.#current === null || this.#disposed) {
+      return null;
+    }
+    return {
+      activeRole: this.#current.session.activeRole,
+      handoffCount: this.#current.session.handoffCount,
+      artDirectorActions: this.#current.progress["art-director"],
+      strategistActions: this.#current.progress.strategist
+    };
   }
 
   dispose(): void {
@@ -163,6 +181,7 @@ export class PairGameController {
     const session = swapActiveRole(this.#current.session);
     this.#replaceCurrent({ ...this.#current, session });
     this.#render();
+    this.#notifyPairChange();
     this.#view.polite.textContent = session.activeRole === "art-director"
       ? STUDENT_COPY.handoff.toArtDirector
       : STUDENT_COPY.handoff.toStrategist;
@@ -247,11 +266,16 @@ export class PairGameController {
     );
     this.#replaceCurrent({ ...this.#current, progress });
     this.#renderProgress();
+    this.#notifyPairChange();
+  }
+
+  #notifyPairChange(): void {
+    const snapshot = this.snapshot();
+    if (snapshot !== null) this.#onPairChange(structuredClone(snapshot));
   }
 
   #replaceCurrent(state: StoredPairState): void {
     this.#current = state;
-    this.#sessions.set(state.session.sessionId, state);
   }
 
   #render(): void {

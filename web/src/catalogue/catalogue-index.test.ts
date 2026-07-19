@@ -83,3 +83,59 @@ it("breaks equal title ties by id", () => {
 
   expect(index.search("bottle").map((record) => record.id)).toEqual(["a", "b"]);
 });
+
+it.each([
+  ["fridge", "Refrigerator Shell", "appliances", [], ["fridge", "fridges"]],
+  ["refrigerator", "Compact Fridge", "appliances", [], ["refrigerator", "refrigerators"]],
+  ["couch", "Modular Sofa", "furniture", [], ["couch", "couches"]],
+  ["sofa", "Two-seat Couch", "furniture", [], ["sofa", "sofas"]],
+  ["esky", "Picnic Cooler", "outdoors", [], ["esky", "eskies"]],
+  ["cooler", "Wheeled Esky", "outdoors", [], ["cooler", "coolers"]],
+  ["vehicle", "City Car", "transport", [], ["cars", "vehicle", "vehicles"]],
+  ["car", "Utility Vehicle", "transport", [], ["car", "cars"]],
+  ["shoes", "Footwear Collection", "fashion", [], ["shoe", "shoes"]],
+  ["footwear", "Running Shoes", "fashion", [], ["footwear"]],
+  ["fast food", "Takeaway Meal Box", "food", [], ["fast food"]],
+  ["takeaway", "Fast Food Carton", "food", [], ["takeaway", "takeaways"]],
+  ["pet retail", "Pet Supplies", "retail", [], ["pet shop", "pet store"]],
+  ["pet shop", "Pet Store Fixture", "shops", [], ["pet retail"]],
+  ["digital product", "Study App", "technology", [], ["digital product", "digital service", "subscription"]],
+  ["app", "Digital Service", "technology", [], ["app", "apps", "subscriptions"]],
+  ["alcohol", "Wine Bottle", "drinks", [], ["alcohol", "beer", "spirits"]],
+  ["beer", "Alcoholic Beverage Can", "drinks", [], ["wine", "spirit"]]
+] as const)("matches bounded classroom-language equivalents for %s", (
+  id,
+  title,
+  category,
+  tags,
+  queries
+) => {
+  const index = new CatalogueIndex([asset(id, title, category, [...tags])]);
+
+  for (const query of queries) {
+    expect(index.search(query).map((record) => record.id), query).toEqual([id]);
+  }
+});
+
+it("does not turn equivalence terms into substring matches", () => {
+  const index = new CatalogueIndex([
+    asset("carpet", "Carpet Roll", "home", []),
+    asset("apple", "Apple Crate", "food", []),
+    asset("twine", "Twine Bundle", "craft", [])
+  ]);
+
+  expect(index.search("car")).toEqual([]);
+  expect(index.search("app")).toEqual([]);
+  expect(index.search("wine")).toEqual([]);
+});
+
+it("still requires every normalized query concept", () => {
+  const index = new CatalogueIndex([
+    asset("cold", "Compact Refrigerator", "appliances", ["steel"]),
+    asset("meal", "Takeaway Meal Box", "food", ["cardboard"])
+  ]);
+
+  expect(index.search("fridge timber")).toEqual([]);
+  expect(index.search("fast food budget")).toEqual([]);
+  expect(index.search("refrigerator steel").map((record) => record.id)).toEqual(["cold"]);
+});

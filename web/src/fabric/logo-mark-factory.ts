@@ -16,7 +16,7 @@ import {
 import type { ElementKind } from "../domain/editor-object";
 import type { LogoLayer } from "./fabric-custom-properties";
 import type { NewLogoMarkInput } from "./canvas-port";
-import { FABRIC_CONTROL_SIZE } from "./object-factory";
+import { FABRIC_SELECTION_STYLE } from "./object-factory";
 import "./fabric-custom-properties";
 
 interface ChildMeta {
@@ -205,10 +205,7 @@ export class FabricLogoMarkFactory {
       originY: "center",
       left: CREATOR_CONFIG.canvasWidth / 2,
       top: CREATOR_CONFIG.canvasHeight / 2,
-      cornerSize: FABRIC_CONTROL_SIZE,
-      touchCornerSize: FABRIC_CONTROL_SIZE,
-      transparentCorners: false,
-      borderScaleFactor: 2
+      ...FABRIC_SELECTION_STYLE
     });
     const scale = Math.min(1, 640 / Math.max(1, mark.width), 360 / Math.max(1, mark.height));
     mark.scale(scale);

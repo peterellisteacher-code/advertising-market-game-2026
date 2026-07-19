@@ -1,0 +1,31 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetId": "62-escape-room-immersive-venue-bases-v2",
+  "items": [
+    {"row": 1, "column": 1, "label": "Compact two-wall room shell", "tags": ["base", "compact", "escape-room-venues", "room-shell", "two-wall"]},
+    {"row": 1, "column": 2, "label": "Wide three-wall room shell", "tags": ["base", "escape-room-venues", "room-shell", "three-wall", "wide"]},
+    {"row": 1, "column": 3, "label": "Deep three-wall room shell", "tags": ["base", "deep", "escape-room-venues", "room-shell", "three-wall"]},
+    {"row": 1, "column": 4, "label": "L-shaped room shell", "tags": ["base", "escape-room-venues", "l-shaped", "room-shell"]},
+    {"row": 1, "column": 5, "label": "Chamfered-corner room shell", "tags": ["base", "chamfered-corner", "escape-room-venues", "room-shell"]},
+    {"row": 2, "column": 1, "label": "Narrow corridor shell", "tags": ["base", "corridor", "escape-room-venues", "narrow", "room-shell"]},
+    {"row": 2, "column": 2, "label": "U-shaped room shell with front entrance", "tags": ["base", "entrance", "escape-room-venues", "room-shell", "u-shaped"]},
+    {"row": 2, "column": 3, "label": "Octagonal room shell", "tags": ["base", "escape-room-venues", "octagonal", "room-shell"]},
+    {"row": 2, "column": 4, "label": "Circular room shell", "tags": ["base", "circular", "escape-room-venues", "room-shell"]},
+    {"row": 2, "column": 5, "label": "Faceted room shell with front opening", "tags": ["base", "escape-room-venues", "faceted", "front-opening", "room-shell"]},
+    {"row": 3, "column": 1, "label": "Room shell with raised rear platform", "tags": ["base", "escape-room-venues", "platform", "raised", "rear", "room-shell"]},
+    {"row": 3, "column": 2, "label": "Room shell with central recessed floor pit", "tags": ["base", "central", "escape-room-venues", "floor-pit", "recessed", "room-shell"]},
+    {"row": 3, "column": 3, "label": "Room shell with raised platform and side stairs", "tags": ["base", "escape-room-venues", "platform", "raised", "room-shell", "side-stairs"]},
+    {"row": 3, "column": 4, "label": "Room shell with central entrance step", "tags": ["base", "central-step", "entrance", "escape-room-venues", "room-shell"]},
+    {"row": 3, "column": 5, "label": "Room shell with central raised plinth", "tags": ["base", "central-plinth", "escape-room-venues", "raised", "room-shell"]},
+    {"row": 4, "column": 1, "label": "Arched-ceiling room shell", "tags": ["arched-ceiling", "base", "escape-room-venues", "room-shell"]},
+    {"row": 4, "column": 2, "label": "Curved-ceiling room shell", "tags": ["base", "curved-ceiling", "escape-room-venues", "room-shell"]},
+    {"row": 4, "column": 3, "label": "Room shell with wide rear recess", "tags": ["base", "escape-room-venues", "rear-recess", "room-shell", "wide"]},
+    {"row": 4, "column": 4, "label": "Room shell with two rear doorways", "tags": ["base", "doorways", "escape-room-venues", "rear", "room-shell", "two-door"]},
+    {"row": 4, "column": 5, "label": "Columned room shell", "tags": ["base", "columned", "escape-room-venues", "room-shell"]},
+    {"row": 5, "column": 1, "label": "Room shell with two front corner plinths", "tags": ["base", "corner-plinths", "escape-room-venues", "front", "room-shell"]},
+    {"row": 5, "column": 2, "label": "Long narrow corridor shell", "tags": ["base", "corridor", "escape-room-venues", "long", "narrow", "room-shell"]},
+    {"row": 5, "column": 3, "label": "Compact narrow room shell", "tags": ["base", "compact", "escape-room-venues", "narrow", "room-shell"]},
+    {"row": 5, "column": 4, "label": "Wide plain room shell", "tags": ["base", "escape-room-venues", "plain", "room-shell", "wide"]},
+    {"row": 5, "column": 5, "label": "Divided two-zone room shell", "tags": ["base", "divided", "escape-room-venues", "room-shell", "two-zone"]}
+  ]
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { CatalogAssetV1 } from "./catalogue-types";
-import { loadOfflineCatalogue } from "./catalogue-store";
+import { loadOfflineCatalogue, loadOfflineCatalogueWithHash } from "./catalogue-store";
 
 const asset = (id = "core-bottle"): CatalogAssetV1 => ({
   schema: "catalog-asset@1",
@@ -51,6 +51,21 @@ describe("loadOfflineCatalogue", () => {
       new URL("/catalog/generated/offline-core-v1/catalog.json", window.location.href).href,
       expect.objectContaining({ method: "GET", signal: deadline })
     );
+  });
+
+  it("retains the SHA-256 identity of the exact catalogue response bytes", async () => {
+    const raw = `${JSON.stringify([asset()])}\n`;
+    const expected = Array.from(new Uint8Array(
+      await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw))
+    ), (byte) => byte.toString(16).padStart(2, "0")).join("");
+    const fetchMock = vi.fn().mockResolvedValue(new Response(raw, {
+      headers: { "content-type": "application/json" }
+    }));
+
+    await expect(loadOfflineCatalogueWithHash(
+      "/catalog/generated/offline-core-v1/catalog.json",
+      { fetch: fetchMock }
+    )).resolves.toEqual({ records: [asset()], catalogSha256: expected });
   });
 
   it.each([

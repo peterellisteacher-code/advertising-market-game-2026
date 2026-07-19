@@ -5,7 +5,13 @@ import { describe, expect, it } from "vitest";
 const css = readFileSync(join(process.cwd(), "web", "src", "styles", "editor.css"), "utf8");
 
 describe("Fabric canvas layer styling", () => {
-  it("uses the approved warm studio theme instead of browser-default chrome", () => {
+  it("keeps stage-gated creator sections visually hidden even when their component styles set display", () => {
+    expect(css).toMatch(
+      /#creator-root\s+\[hidden\]\s*\{[^}]*display:\s*none\s*!important\s*;?[^}]*\}/i
+    );
+  });
+
+  it("uses the warm game-studio identity instead of browser-default chrome", () => {
     expect(css).toMatch(
       /#creator-root\s*\{[^}]*--ink:\s*#172033\b[^}]*--paper:\s*#f6f1e7\b[^}]*--coral:\s*#f25f5c\b[^}]*\}/i
     );
@@ -15,54 +21,148 @@ describe("Fabric canvas layer styling", () => {
     expect(css).toMatch(
       /\.creator__topbar\s*\{[^}]*background:\s*var\(--ink\)\s*;[^}]*\}/i
     );
+    expect(css).toMatch(/\.creator__brand\s*\{[^}]*display:\s*flex[^}]*\}/i);
+  });
+
+  it("reserves only compact chrome above a canvas-first workspace", () => {
     expect(css).toMatch(
-      /\[role="tab"\]\[aria-selected="true"\]\s*\{[^}]*background:\s*var\(--ink\)\s*;[^}]*color:\s*#fff\b[^}]*\}/i
+      /\.creator\s*\{[^}]*grid-template-rows:\s*52px\s+56px\s+minmax\(0,\s*1fr\)[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator__workspace\s*\{[^}]*grid-template-columns:\s*64px\s+288px\s+minmax\(0,\s*1fr\)[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator\[data-studio-drawer-open="false"\]\s+\.creator__workspace\s*\{[^}]*grid-template-columns:\s*64px\s+0\s+minmax\(0,\s*1fr\)[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator__canvas\s+\.canvas-container\s*\{[^}]*width:\s*min\(100%,\s*calc\(\(100vh\s*-\s*[^)]*\)\s*\*\s*16\s*\/\s*9\)\)\s*!important[^}]*max-width:\s*1280px[^}]*aspect-ratio:\s*16\s*\/\s*9[^}]*\}/i
     );
   });
 
-  it("allows the canvas grid track to shrink without pushing the inspector off-screen", () => {
+  it("turns pre-placement whitespace into a bounded purposeful empty state", () => {
     expect(css).toMatch(
-      /\.creator\s*\{[^}]*grid-template:[^;}]*\/[^;}]*minmax\(0,\s*1fr\)[^;}]*;[^}]*\}/i
+      /\.creator__canvas-empty\s*\{[^}]*position:\s*absolute[^}]*width:\s*min\(calc\(100%\s*-\s*32px\),\s*1280px\)[^}]*aspect-ratio:\s*16\s*\/\s*9[^}]*place-items:\s*center[^}]*\}/i
     );
     expect(css).toMatch(
-      /\.creator__canvas\s*\{[^}]*min-width:\s*0\b[^}]*min-height:\s*0\b[^}]*overflow:\s*auto\b[^}]*\}/i
-    );
-    expect(css).toMatch(
-      /\.creator__canvas\s+\.canvas-container\s*\{[^}]*width:\s*100%\s*!important[^}]*max-width:\s*1600px[^}]*height:\s*auto\s*!important[^}]*aspect-ratio:\s*16\s*\/\s*9[^}]*\}/i
-    );
-    expect(css).toMatch(
-      /\.creator__canvas\s+canvas\s*\{[^}]*width:\s*100%\s*!important[^}]*height:\s*auto\s*!important[^}]*\}/i
+      /\.creator__canvas-empty-card\s*\{[^}]*max-width:\s*26rem[^}]*border:\s*2px\s+dashed[^}]*\}/i
     );
   });
 
-  it("compacts text-only artwork choices at a 720p classroom viewport", () => {
+  it("uses distinct semantic rail glyphs and a deliberate wide-screen composition", () => {
     expect(css).toMatch(
-      /@media\s*\(max-height:\s*820px\)[\s\S]*\.creator__product-builder\s*\{[^}]*max-height:\s*48vh\b[^}]*\}[\s\S]*\.product-maker__choice-grid:has\(input\[name="product-art"\]\)\s+\.product-maker__choice\s*\{[^}]*min-height:\s*48px\b[^}]*\}/i
+      /\.creator__tool-rail\s+\[role="tab"\]::before\s*\{[^}]*content:\s*attr\(data-glyph\)[^}]*display:\s*grid[^}]*place-items:\s*center[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /@media\s*\(min-width:\s*1600px\)\s*\{[^}]*\.creator__workspace\s*\{[^}]*grid-template-columns:\s*72px\s+344px\s+minmax\(0,\s*1fr\)[^}]*\}/is
     );
   });
 
-  it("bounds Logo Lab and keeps its symbol choices scrollable in two columns", () => {
+  it("keeps the 900px launch path compact and expands it only with spare height", () => {
     expect(css).toMatch(
-      /\.creator__logo-lab\s*\{[^}]*max-height:\s*min\(34vh,\s*22rem\)[^}]*overflow:\s*hidden[^}]*\}/i
+      /\.creator__launch-path\s*\{[^}]*display:\s*none[^}]*\}/i
     );
     expect(css).toMatch(
-      /\.logo-lab__symbols\s*\{[^}]*min-height:\s*3\.25rem[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[^}]*overflow:\s*auto[^}]*overscroll-behavior:\s*contain[^}]*\}/i
+      /@media\s*\(min-height:\s*900px\)\s+and\s+\(min-width:\s*1201px\)\s*\{[^}]*\.creator__launch-path\s*\{[^}]*margin-top:\s*auto[^}]*display:\s*grid[^}]*min-height:\s*7rem[^}]*\}/is
     );
     expect(css).toMatch(
-      /\.logo-lab__symbol\s*\{[^}]*min-height:\s*44px[^}]*\}/i
+      /\.creator__launch-path\s*>\s*p:last-child\s*\{[^}]*display:\s*none[^}]*\}/i
     );
     expect(css).toMatch(
-      /@media\s*\(max-height:\s*820px\)[\s\S]*\.logo-lab\s+details\s*\{[^}]*max-height:[^}]*\}/i
+      /@media\s*\(min-height:\s*1000px\)\s+and\s+\(min-width:\s*1201px\)\s*\{.*?\.creator__launch-path\s*\{[^}]*min-height:\s*12\.5rem[^}]*\}.*?\.creator__launch-path\s*>\s*p:last-child\s*\{[^}]*display:\s*block[^}]*\}/is
     );
   });
 
-  it("lets the asset sidebar absorb height pressure without collapsing Logo Lab controls", () => {
+  it("gives each drawer mode exactly one vertical scroll owner", () => {
     expect(css).toMatch(
-      /\.creator__library\s*\{[^}]*grid-template-rows:\s*repeat\(6,\s*max-content\)\s+minmax\(8rem,\s*1fr\)[^}]*align-content:\s*start[^}]*overflow-x:\s*hidden[^}]*overflow-y:\s*auto[^}]*overscroll-behavior:\s*contain[^}]*\}/i
+      /\.creator__tool-drawer\s*\{[^}]*overflow:\s*hidden[^}]*\}/i
     );
     expect(css).toMatch(
-      /\.creator__logo-lab\s*\{[^}]*min-height:\s*15rem[^}]*max-height:\s*min\(34vh,\s*22rem\)[^}]*\}/i
+      /\.creator__tool-panel\s*\{[^}]*overflow-x:\s*hidden[^}]*overflow-y:\s*auto[^}]*overscroll-behavior:\s*contain[^}]*\}/i
     );
+    expect(css).toMatch(
+      /:is\(\[data-product-builder-panel\][^}]*\.creator__library-results[^}]*\)\s*\{[^}]*overflow:\s*visible[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator__tool-panel\.creator__assets\s*\{[^}]*display:\s*grid[^}]*overflow:\s*hidden[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator__assets\s+\.creator__library-results\s*\{[^}]*min-height:\s*0[^}]*overflow-y:\s*auto[^}]*\}/i
+    );
+  });
+
+  it("shows a larger assembled-product preview and a two-column asset shelf", () => {
+    expect(css).toMatch(
+      /\.product-kit__preview-frame\s*\{[^}]*width:\s*12rem[^}]*aspect-ratio:\s*4\s*\/\s*5[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.product-kit__preview-canvas\s*\{[^}]*left:\s*-34px[^}]*top:\s*-85px[^}]*transform:\s*scale\(\.65\)[^}]*\}/i
+    );
+    expect(css).not.toMatch(/\.product-kit__artwork\s*\{/i);
+    expect(css).toMatch(
+      /\.creator__library-results\s+\[role="list"\]\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[^}]*\}/i
+    );
+  });
+
+  it("widens only the active asset drawer and compacts its controls on classroom screens", () => {
+    expect(css).toMatch(
+      /@media\s*\(min-width:\s*1201px\)[\s\S]*?\.creator:not\(\[data-studio-drawer-open="false"\]\):has\(\.creator__assets:not\(\[hidden\]\)\)\s+\.creator__workspace\s*\{[^}]*grid-template-columns:\s*64px\s+416px\s+minmax\(0,\s*1fr\)[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /@media\s*\(min-width:\s*1600px\)[\s\S]*?\.creator:not\(\[data-studio-drawer-open="false"\]\):has\(\.creator__assets:not\(\[hidden\]\)\)\s+\.creator__workspace\s*\{[^}]*grid-template-columns:\s*72px\s+500px\s+minmax\(0,\s*1fr\)[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator__assets\s+\.creator__asset-controls\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[^}]*\}/i
+    );
+  });
+
+  it("wraps long logo names instead of clipping them in the narrow drawer", () => {
+    expect(css).toMatch(
+      /\.logo-lab__symbol\s*>\s*span:last-child\s*\{[^}]*min-width:\s*0[^}]*overflow-wrap:\s*anywhere[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.logo-lab__symbols\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /@media\s*\(min-width:\s*1600px\)[\s\S]*?\.logo-lab__symbols\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[^}]*\}/i
+    );
+  });
+
+  it("uses an on-demand overlay inspector instead of a permanent column", () => {
+    expect(css).toMatch(
+      /\.creator__inspector\s*\{[^}]*position:\s*absolute[^}]*right:[^}]*top:[^}]*width:\s*min\(20rem,[^}]*\}/i
+    );
+  });
+
+  it("keeps the complete studio chrome inside a 320-pixel viewport", () => {
+    const mobile = css.match(/@media\s*\(max-width:\s*520px\)\s*\{([\s\S]*)\}\s*$/i)?.[1] ?? "";
+    expect(mobile).toMatch(
+      /\.creator\s*\{[^}]*grid-template-rows:\s*auto\s+auto\s+minmax\(0,\s*1fr\)[^}]*\}/i
+    );
+    expect(mobile).toMatch(
+      /\.creator__topbar\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto\s+auto[^}]*\}/i
+    );
+    expect(mobile).toMatch(
+      /\.creator__topbar\s+\[data-command="return"\]\s*\{[^}]*grid-column:\s*1\s*\/\s*-1[^}]*\}/i
+    );
+    expect(mobile).toMatch(
+      /\.creator__pair-strip:has\(\.creator__checklist\[hidden\]\)\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)[^}]*\}/i
+    );
+    expect(mobile).toMatch(
+      /\.creator__tool-rail\s*\{[^}]*grid-auto-flow:\s*column[^}]*grid-auto-columns:\s*minmax\(48px,\s*1fr\)[^}]*overflow-x:\s*auto[^}]*\}/i
+    );
+    expect(mobile).toMatch(
+      /\.creator__tool-rail\s+\[role="tab"\]\s*\{[^}]*min-width:\s*48px[^}]*font-size:\s*\.875rem[^}]*\}/i
+    );
+    expect(mobile).toMatch(
+      /\.creator__tool-rail\s+\[role="tab"\]::before\s*\{[^}]*display:\s*grid[^}]*font-size:\s*\.875rem[^}]*\}/i
+    );
+  });
+
+  it("never sets rem-based interface text below 14 pixels", () => {
+    const remSizes = [...css.matchAll(/font-size:\s*(0?\.\d+)rem/gi)]
+      .map((match) => Number(match[1]));
+    expect(remSizes.length).toBeGreaterThan(0);
+    expect(Math.min(...remSizes)).toBeGreaterThanOrEqual(0.875);
   });
 
   it("keeps the upper interaction canvas transparent above the painted lower canvas", () => {

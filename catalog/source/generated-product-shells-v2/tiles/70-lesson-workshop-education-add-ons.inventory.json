@@ -1,0 +1,31 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetId": "70-lesson-workshop-education-add-ons",
+  "items": [
+    {"row": 1, "column": 1, "label": "Artist's easel with blank canvas", "tags": ["add-on", "art", "blank-canvas", "easel", "lessons-workshops"]},
+    {"row": 1, "column": 2, "label": "Artist's palette", "tags": ["add-on", "art", "artist-palette", "lessons-workshops", "painting"]},
+    {"row": 1, "column": 3, "label": "Pottery wheel", "tags": ["add-on", "ceramics", "lessons-workshops", "pottery", "pottery-wheel"]},
+    {"row": 1, "column": 4, "label": "Sewing machine", "tags": ["add-on", "lessons-workshops", "sewing", "sewing-machine", "textiles"]},
+    {"row": 1, "column": 5, "label": "Hard equipment case", "tags": ["add-on", "equipment-case", "hard-case", "lessons-workshops", "storage"]},
+    {"row": 2, "column": 1, "label": "Mixing bowl", "tags": ["add-on", "baking", "cooking", "lessons-workshops", "mixing-bowl"]},
+    {"row": 2, "column": 2, "label": "Stand mixer", "tags": ["add-on", "baking", "lessons-workshops", "mixer", "stand-mixer"]},
+    {"row": 2, "column": 3, "label": "Rolling pin", "tags": ["add-on", "baking", "lessons-workshops", "rolling-pin"]},
+    {"row": 2, "column": 4, "label": "Portable cooktop", "tags": ["add-on", "cooking", "cooktop", "lessons-workshops", "portable"]},
+    {"row": 2, "column": 5, "label": "Wheeled kitchen cart", "tags": ["add-on", "kitchen-cart", "lessons-workshops", "storage", "wheeled"]},
+    {"row": 3, "column": 1, "label": "Acoustic guitar", "tags": ["acoustic", "add-on", "guitar", "lessons-workshops", "music"]},
+    {"row": 3, "column": 2, "label": "Electronic keyboard on X-stand", "tags": ["add-on", "electronic-keyboard", "lessons-workshops", "music", "x-stand"]},
+    {"row": 3, "column": 3, "label": "Violin", "tags": ["add-on", "lessons-workshops", "music", "string-instrument", "violin"]},
+    {"row": 3, "column": 4, "label": "Microphone on desk stand", "tags": ["add-on", "desk-stand", "lessons-workshops", "microphone", "music"]},
+    {"row": 3, "column": 5, "label": "Music stand", "tags": ["add-on", "lessons-workshops", "music", "music-stand"]},
+    {"row": 4, "column": 1, "label": "Laptop computer", "tags": ["add-on", "computer", "laptop", "lessons-workshops", "technology"]},
+    {"row": 4, "column": 2, "label": "Desktop monitor", "tags": ["add-on", "computer", "desktop-monitor", "lessons-workshops", "technology"]},
+    {"row": 4, "column": 3, "label": "Lidded storage tub", "tags": ["add-on", "lessons-workshops", "lidded", "storage", "storage-tub"]},
+    {"row": 4, "column": 4, "label": "Mobile whiteboard", "tags": ["add-on", "lessons-workshops", "mobile", "presentation", "whiteboard"]},
+    {"row": 4, "column": 5, "label": "Stack of books", "tags": ["add-on", "books", "learning-materials", "lessons-workshops", "stack"]},
+    {"row": 5, "column": 1, "label": "Desktop printer", "tags": ["add-on", "desktop-printer", "lessons-workshops", "printer", "technology"]},
+    {"row": 5, "column": 2, "label": "Freestanding double ballet barre", "tags": ["add-on", "ballet", "barre", "double", "freestanding", "lessons-workshops"]},
+    {"row": 5, "column": 3, "label": "Rolled exercise mat", "tags": ["add-on", "exercise", "lessons-workshops", "mat", "rolled"]},
+    {"row": 5, "column": 4, "label": "Camera on tripod", "tags": ["add-on", "camera", "lessons-workshops", "photography", "tripod"]},
+    {"row": 5, "column": 5, "label": "A-frame display board", "tags": ["a-frame", "add-on", "display-board", "lessons-workshops", "presentation"]}
+  ]
+}

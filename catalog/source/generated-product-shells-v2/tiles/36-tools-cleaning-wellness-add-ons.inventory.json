@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 36,
+  "sourcePng": "36-tools-cleaning-wellness-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Cordless-drill battery pack", "tags": ["battery pack", "drill add-on", "tool add-on"]},
+    {"row": 1, "column": 2, "label": "Auxiliary drill side-handle", "tags": ["drill add-on", "side handle", "tool add-on"]},
+    {"row": 1, "column": 3, "label": "Socket-bit row set", "tags": ["socket set", "tool add-on", "tool bits"]},
+    {"row": 1, "column": 4, "label": "Screwdriver-bit holder set", "tags": ["screwdriver bits", "tool add-on", "tool bits"]},
+    {"row": 1, "column": 5, "label": "Utility-belt tool pouch", "tags": ["tool add-on", "tool pouch", "utility belt"]},
+    {"row": 2, "column": 1, "label": "Vacuum floor-head attachment", "tags": ["cleaning add-on", "floor head", "vacuum attachment"]},
+    {"row": 2, "column": 2, "label": "Vacuum crevice nozzle", "tags": ["cleaning add-on", "crevice nozzle", "vacuum attachment"]},
+    {"row": 2, "column": 3, "label": "Vacuum dusting-brush head", "tags": ["cleaning add-on", "dusting brush", "vacuum attachment"]},
+    {"row": 2, "column": 4, "label": "Replacement string-mop head", "tags": ["cleaning add-on", "mop head", "replacement head"]},
+    {"row": 2, "column": 5, "label": "Spray-bottle trigger head", "tags": ["bottle component", "cleaning add-on", "trigger sprayer"]},
+    {"row": 3, "column": 1, "label": "Bottle pump-dispenser top", "tags": ["bottle component", "dispenser pump", "pump top"]},
+    {"row": 3, "column": 2, "label": "Bucket wringer insert", "tags": ["bucket add-on", "cleaning add-on", "wringer insert"]},
+    {"row": 3, "column": 3, "label": "Garden-hose spray nozzle", "tags": ["garden add-on", "hose nozzle", "spray nozzle"]},
+    {"row": 3, "column": 4, "label": "Vacuum brush-roller cartridge", "tags": ["brush roller", "cleaning add-on", "vacuum component"]},
+    {"row": 3, "column": 5, "label": "Rectangular replacement filter", "tags": ["cleaning add-on", "filter panel", "replacement filter"]},
+    {"row": 4, "column": 1, "label": "Electric-toothbrush replacement head", "tags": ["personal-care add-on", "toothbrush head", "wellness add-on"]},
+    {"row": 4, "column": 2, "label": "Rotary-shaver replacement head", "tags": ["personal-care add-on", "shaver head", "wellness add-on"]},
+    {"row": 4, "column": 3, "label": "Hair-dryer concentrator nozzle", "tags": ["concentrator nozzle", "hair-dryer add-on", "personal-care add-on"]},
+    {"row": 4, "column": 4, "label": "Hair-dryer diffuser nozzle", "tags": ["diffuser nozzle", "hair-dryer add-on", "personal-care add-on"]},
+    {"row": 4, "column": 5, "label": "Massage-gun round ball head", "tags": ["massage-gun add-on", "recovery accessory", "round head"]},
+    {"row": 5, "column": 1, "label": "Resistance-band handle pair", "tags": ["fitness add-on", "resistance band", "training handles"]},
+    {"row": 5, "column": 2, "label": "Kettlebell grip-wrap strip", "tags": ["fitness add-on", "grip wrap", "kettlebell add-on"]},
+    {"row": 5, "column": 3, "label": "Yoga carrying strap", "tags": ["carrying strap", "fitness add-on", "yoga add-on"]},
+    {"row": 5, "column": 4, "label": "Textured foam-roller sleeve", "tags": ["fitness add-on", "foam-roller sleeve", "textured sleeve"]},
+    {"row": 5, "column": 5, "label": "First-aid organiser tray", "tags": ["first-aid insert", "organiser tray", "wellness add-on"]}
+  ]
+}

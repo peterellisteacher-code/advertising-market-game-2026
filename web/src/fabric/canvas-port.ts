@@ -2,6 +2,7 @@ import type { ProductArtwork } from "../product-builder/product-svg-composer";
 import type { ResolvedProductVariant } from "../product-builder/virtual-product-variant";
 import type { LogoIconRecord } from "../logo-lab/logo-icon-catalogue";
 import type { LogoMarkDesign } from "../logo-lab/logo-mark-model";
+import type { FabricProductKitInput } from "../product-kit/fabric-product-kit-compositor";
 
 export type ShapeKind = "rect" | "ellipse" | "triangle" | "line";
 export type StackDirection = "front" | "forward" | "backward" | "back";
@@ -21,6 +22,7 @@ export interface NewTextInput {
   id: string;
   value: string;
   accessibleName: string;
+  editable?: boolean;
 }
 
 export interface NewShapeInput {
@@ -72,6 +74,8 @@ export interface NewProductVariantInput {
   artwork?: ProductArtwork;
 }
 
+export interface NewProductKitInput extends FabricProductKitInput {}
+
 export interface CanvasMutation {
   type: CanvasMutationType;
   objectId: string;
@@ -85,6 +89,10 @@ export interface CanvasPoint {
 export interface CanvasSize {
   width: number;
   height: number;
+}
+
+export interface CanvasSelectionSnapshot {
+  readonly objectIds: readonly string[];
 }
 
 export interface CropState {
@@ -119,16 +127,21 @@ export interface CanvasPort {
   removeArtwork(address: ArtworkSurfaceAddress, childId: string): void;
   addProductShell(input: NewProductShellInput): Promise<void>;
   addProductVariant(input: NewProductVariantInput): Promise<void>;
+  addProductKit(input: NewProductKitInput): Promise<void>;
   setProductShellRegion(id: string, region: string, colour: string): void;
   getProductShellRegionColours(id: string): Readonly<Record<string, string>>;
-  setText(id: string, value: string): void;
+  setText(id: string, value: string, accessibleName?: string, editable?: boolean): void;
   transform(id: string, patch: Partial<ObjectTransform>): void;
+  assertCanDuplicate(id: string): void;
   duplicate(id: string, newId: string): Promise<void>;
   remove(id: string): void;
   move(id: string, direction: StackDirection): void;
   setLocked(id: string, locked: boolean): void;
   setVisible(id: string, visible: boolean): void;
   setSelected(id: string | null): void;
+  getSelectedObjectId(): string | null;
+  captureSelection(): CanvasSelectionSnapshot;
+  restoreSelection(snapshot: CanvasSelectionSnapshot): void;
   getCropSourceSize(id: string): CanvasSize;
   setCrop(id: string, crop: CropState): void;
   setDrawingTool(settings: DrawingToolSettings): void;

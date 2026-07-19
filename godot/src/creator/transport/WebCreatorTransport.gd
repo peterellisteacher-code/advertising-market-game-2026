@@ -16,6 +16,11 @@ func set_close_requested_callback(callback: Callable) -> void:
     _close_requested_callback = callback
     _register_close_listener()
 
+func show_message(message: String) -> void:
+    if not OS.has_feature("web") or not _ensure_bridge():
+        return
+    _bridge.showMessage(message)
+
 func send(request_json: String, resolve: Callable, reject: Callable) -> void:
     var request_id := _request_id(request_json)
     if not OS.has_feature("web"):

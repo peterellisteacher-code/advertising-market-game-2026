@@ -2,6 +2,7 @@ import type {
   ArtworkSurfaceAddress,
   CanvasPort,
   LogoMarkSource,
+  NewProductKitInput,
   NewProductVariantInput,
   NewProductShellInput,
   ObjectTransform,
@@ -23,6 +24,7 @@ export interface AddRasterCommand {
 
 export type AddProductShellCommand = Omit<NewProductShellInput, "id">;
 export type AddProductVariantCommand = Omit<NewProductVariantInput, "id">;
+export type AddProductKitCommand = Omit<NewProductKitInput, "id">;
 export type AddLogoMarkCommand = LogoMarkSource;
 
 type IdFactory = () => string;
@@ -35,11 +37,16 @@ export class ObjectCommandService {
     private readonly createId: IdFactory = defaultIdFactory
   ) {}
 
-  async addText(value: string, accessibleName = value): Promise<string> {
+  async addText(value: string, accessibleName = value, editable = true): Promise<string> {
     const text = value.trim();
     if (!text) throw new Error("Text must not be empty");
     const id = this.#nextId();
-    await this.port.addText({ id, value, accessibleName: this.#required(accessibleName, "accessible name") });
+    await this.port.addText({
+      id,
+      value,
+      accessibleName: this.#required(accessibleName, "accessible name"),
+      editable
+    });
     this.port.setSelected(id);
     return id;
   }
@@ -178,6 +185,13 @@ export class ObjectCommandService {
     return id;
   }
 
+  async addProductKit(input: AddProductKitCommand): Promise<string> {
+    const id = this.#nextId();
+    await this.port.addProductKit({ id, ...input });
+    this.port.setSelected(id);
+    return id;
+  }
+
   setProductShellRegion(id: string, region: string, colour: string): void {
     this.port.setProductShellRegion(
       this.#required(id, "object id"),
@@ -200,8 +214,10 @@ export class ObjectCommandService {
   }
 
   async duplicate(id: string): Promise<string> {
+    const sourceId = this.#required(id, "object id");
+    this.port.assertCanDuplicate(sourceId);
     const newId = this.#nextId();
-    await this.port.duplicate(this.#required(id, "object id"), newId);
+    await this.port.duplicate(sourceId, newId);
     return newId;
   }
 

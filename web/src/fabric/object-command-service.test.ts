@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { LogoIconRecord } from "../logo-lab/logo-icon-catalogue";
 import { createLogoMarkDesign } from "../logo-lab/logo-mark-model";
 import type {
@@ -9,6 +9,7 @@ import type {
   CropState,
   DrawingToolSettings,
   NewProductVariantInput,
+  NewProductKitInput,
   NewProductShellInput,
   NewRasterInput,
   NewShapeInput,
@@ -65,6 +66,9 @@ class MemoryCanvasPort implements CanvasPort {
   async addProductVariant(input: NewProductVariantInput): Promise<void> {
     this.#add(input.id, "product-builder-variant", input);
   }
+  async addProductKit(input: NewProductKitInput): Promise<void> {
+    this.#add(input.id, "product-kit", input);
+  }
   async addArtworkText(target: ArtworkSurfaceAddress, input: NewTextInput): Promise<void> {
     this.artworkCalls.push({ type: "text:add", target: { ...target }, id: input.id, value: input.value });
   }
@@ -85,10 +89,12 @@ class MemoryCanvasPort implements CanvasPort {
   }
   getProductShellRegionColours(): Readonly<Record<string, string>> { return {}; }
 
-  setText(id: string, value: string): void {
+  setText(id: string, value: string, accessibleName?: string, editable?: boolean): void {
     const object = this.#get(id);
     if (object.kind !== "text") throw new Error(`${id} is not text`);
     object.value = value;
+    if (accessibleName !== undefined) object.accessibleName = accessibleName;
+    if (editable !== undefined) object.editable = editable;
   }
 
   transform(id: string, patch: Partial<ObjectTransform>): void {
@@ -97,6 +103,12 @@ class MemoryCanvasPort implements CanvasPort {
 
   async duplicate(id: string, newId: string): Promise<void> {
     this.objects.push({ ...this.#get(id), id: newId });
+  }
+
+  assertCanDuplicate(id: string): void {
+    if (this.#get(id).kind === "product-kit") {
+      throw new Error("Product Kit objects cannot be duplicated");
+    }
   }
 
   remove(id: string): void {
@@ -110,6 +122,13 @@ class MemoryCanvasPort implements CanvasPort {
   setLocked(id: string, locked: boolean): void { this.#get(id).locked = locked; }
   setVisible(id: string, visible: boolean): void { this.#get(id).visible = visible; }
   setSelected(id: string | null): void { this.selectedId = id; }
+  getSelectedObjectId(): string | null { return this.selectedId; }
+  captureSelection(): { readonly objectIds: readonly string[] } {
+    return { objectIds: this.selectedId === null ? [] : [this.selectedId] };
+  }
+  restoreSelection(snapshot: { readonly objectIds: readonly string[] }): void {
+    this.selectedId = snapshot.objectIds[0] ?? null;
+  }
   getCropSourceSize(id: string): CanvasSize {
     const object = this.#get(id);
     return {
@@ -146,7 +165,7 @@ class MemoryCanvasPort implements CanvasPort {
     id: string,
     kind: string,
     extra: NewTextInput | NewShapeInput | NewRasterInput | NewProductShellInput |
-      NewProductVariantInput | NewLogoMarkInput
+      NewProductVariantInput | NewProductKitInput | NewLogoMarkInput
   ): void {
     const { id: _inputId, ...metadata } = extra;
     this.objects.push({
@@ -337,6 +356,73 @@ describe("ObjectCommandService", () => {
       variant,
       artwork: { id: "front-art", colour: "#F2385A" }
     }));
+  });
+
+  it("allocates one ID, adds one Product Kit and selects only its outer group", async () => {
+    const port = new MemoryCanvasPort();
+    const createId = vi.fn(() => "kit-object-1");
+    const commands = new ObjectCommandService(port, createId);
+    const input = {
+      accessibleName: "Reusable tumbler",
+      catalogue: {},
+      plan: {},
+      rasterSources: new Map()
+    } as unknown as Omit<NewProductKitInput, "id">;
+
+    const id = await commands.addProductKit(input);
+
+    expect(createId).toHaveBeenCalledOnce();
+    expect(id).toBe("kit-object-1");
+    expect(port.selectedId).toBe(id);
+    expect(port.objects).toContainEqual(expect.objectContaining({
+      id,
+      kind: "product-kit",
+      accessibleName: "Reusable tumbler"
+    }));
+  });
+
+  it("does not change selection when Product Kit composition fails", async () => {
+    class FailingProductKitPort extends MemoryCanvasPort {
+      override async addProductKit(): Promise<void> {
+        throw new Error("Synthetic Product Kit composition failure");
+      }
+    }
+    const port = new FailingProductKitPort();
+    port.selectedId = "previous-selection";
+    const commands = new ObjectCommandService(port, () => "kit-object-1");
+
+    await expect(commands.addProductKit({
+      accessibleName: "Reusable tumbler",
+      catalogue: {},
+      plan: {},
+      rasterSources: new Map()
+    } as unknown as Omit<NewProductKitInput, "id">))
+      .rejects.toThrow("Synthetic Product Kit composition failure");
+
+    expect(port.selectedId).toBe("previous-selection");
+  });
+
+  it("rejects Product Kit duplication before allocating an ID or semantic root", async () => {
+    const port = new MemoryCanvasPort();
+    await port.addProductKit({
+      id: "kit-object-1",
+      accessibleName: "Reusable tumbler",
+      catalogue: {},
+      plan: {},
+      rasterSources: new Map()
+    } as unknown as NewProductKitInput);
+    port.selectedId = "previous-selection";
+    const before = structuredClone(port.objects);
+    const createId = vi.fn(() => "kit-object-copy");
+    const commands = new ObjectCommandService(port, createId);
+
+    await expect(commands.duplicate("kit-object-1"))
+      .rejects.toThrow(/Product Kit.*duplicat/i);
+
+    expect(createId).not.toHaveBeenCalled();
+    expect(port.objects).toEqual(before);
+    expect(port.objects.map(({ id }) => id)).toEqual(["kit-object-1"]);
+    expect(port.selectedId).toBe("previous-selection");
   });
 
   it("routes artwork commands to one named product surface and keeps the product selected", async () => {

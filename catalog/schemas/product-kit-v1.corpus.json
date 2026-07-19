@@ -1,0 +1,640 @@
+{
+  "schema": "product-kit-corpus@1",
+  "context": {
+    "catalogPackId": "offline-core-v1",
+    "catalogSha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "records": [
+      {
+        "id": "asset-grid-base",
+        "masterSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "delivery": "offline",
+        "kind": "raster-master",
+        "files": { "master": "/catalog/generated/offline-core-v1/assets/asset-grid-base/master.png" },
+        "dimensions": { "width": 100, "height": 100 },
+        "classroomReviewed": true,
+        "brandFree": true
+      },
+      {
+        "id": "asset-grid-part",
+        "masterSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "delivery": "offline",
+        "kind": "component",
+        "files": { "master": "/catalog/generated/offline-core-v1/assets/asset-grid-part/master.png" },
+        "dimensions": { "width": 100, "height": 100 },
+        "classroomReviewed": true,
+        "brandFree": true
+      },
+      {
+        "id": "asset-grip-base",
+        "masterSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "delivery": "offline",
+        "kind": "raster-master",
+        "files": { "master": "/catalog/generated/offline-core-v1/assets/asset-grip-base/master.png" },
+        "dimensions": { "width": 100, "height": 100 },
+        "classroomReviewed": true,
+        "brandFree": true
+      },
+      {
+        "id": "asset-grip-front",
+        "masterSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "delivery": "offline",
+        "kind": "component",
+        "files": { "master": "/catalog/generated/offline-core-v1/assets/asset-grip-front/master.png" },
+        "dimensions": { "width": 100, "height": 100 },
+        "classroomReviewed": true,
+        "brandFree": true
+      },
+      {
+        "id": "asset-grip-rear",
+        "masterSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "delivery": "offline",
+        "kind": "component",
+        "files": { "master": "/catalog/generated/offline-core-v1/assets/asset-grip-rear/master.png" },
+        "dimensions": { "width": 100, "height": 100 },
+        "classroomReviewed": true,
+        "brandFree": true
+      },
+      {
+        "id": "asset-socket-base",
+        "masterSha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "delivery": "offline",
+        "kind": "raster-master",
+        "files": { "master": "/catalog/generated/offline-core-v1/assets/asset-socket-base/master.png" },
+        "dimensions": { "width": 100, "height": 100 },
+        "classroomReviewed": true,
+        "brandFree": true
+      },
+      {
+        "id": "asset-socket-part",
+        "masterSha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "delivery": "offline",
+        "kind": "component",
+        "files": { "master": "/catalog/generated/offline-core-v1/assets/asset-socket-part/master.png" },
+        "dimensions": { "width": 100, "height": 100 },
+        "classroomReviewed": true,
+        "brandFree": true
+      },
+      {
+        "id": "asset-whole-base",
+        "masterSha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "delivery": "offline",
+        "kind": "raster-master",
+        "files": { "master": "/catalog/generated/offline-core-v1/assets/asset-whole-base/master.png" },
+        "dimensions": { "width": 100, "height": 100 },
+        "classroomReviewed": true,
+        "brandFree": true
+      }
+    ]
+  },
+  "valid": [
+    {
+      "name": "four composition modes with one split logical component",
+      "value": {
+        "schema": "product-kit@1",
+        "version": 1,
+        "packId": "pk1-pilot",
+        "catalogPackId": "offline-core-v1",
+        "catalogSha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "pricingVersion": "product-pricing@1",
+        "connectorFormulaVersion": "product-kit-connectors@1",
+        "kits": [
+          {
+            "id": "pk1-grid-kit",
+            "title": "Escape Room Wall",
+            "mode": "grid",
+            "compatibilityProfile": {
+              "familyId": "pk1-escape-room",
+              "perspectiveId": "pk1-front-view",
+              "geometryId": "pk1-wall-grid",
+              "styleId": "pk1-outline-clean"
+            },
+            "base": {
+              "assetId": "asset-grid-base",
+              "masterSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "frame": {
+                "originalWidth": 100,
+                "originalHeight": 100,
+                "trimX": 0,
+                "trimY": 0,
+                "trimWidth": 100,
+                "trimHeight": 100
+              }
+            },
+            "priceAssetId": "pk1-price-grid-base",
+            "mountFrames": [
+              {
+                "id": "pk1-grid-frame",
+                "slotId": "pk1-grid-slot",
+                "mountType": "grid",
+                "origin": { "x": 0.1, "y": 0.1 },
+                "cellSize": { "width": 0.1, "height": 0.1 },
+                "columns": 8,
+                "rows": 6,
+                "plane": "wall",
+                "acceptedEdgeTypes": ["pk1-door", "pk1-panel"]
+              }
+            ],
+            "artworkBounds": []
+          },
+          {
+            "id": "pk1-grip-kit",
+            "title": "Reusable Cup",
+            "mode": "grip",
+            "compatibilityProfile": {
+              "familyId": "pk1-drinkware",
+              "perspectiveId": "pk1-front-view",
+              "geometryId": "pk1-cup-handle",
+              "styleId": "pk1-outline-clean"
+            },
+            "base": {
+              "assetId": "asset-grip-base",
+              "masterSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "frame": {
+                "originalWidth": 100,
+                "originalHeight": 100,
+                "trimX": 0,
+                "trimY": 0,
+                "trimWidth": 100,
+                "trimHeight": 100
+              }
+            },
+            "priceAssetId": "pk1-price-grip-base",
+            "mountFrames": [
+              {
+                "id": "pk1-grip-frame",
+                "slotId": "pk1-handle-slot",
+                "mountType": "grip",
+                "contacts": [{ "x": 0.82, "y": 0.35 }, { "x": 0.82, "y": 0.7 }],
+                "normals": [{ "x": 1, "y": 0 }, { "x": 1, "y": 0 }],
+                "constraints": {
+                  "minScale": 0.5,
+                  "maxScale": 2,
+                  "minRotationDegrees": -45,
+                  "maxRotationDegrees": 45,
+                  "maxNormalErrorDegrees": 5,
+                  "mirrorAllowed": true
+                }
+              }
+            ],
+            "artworkBounds": [{ "x": 0.25, "y": 0.25, "width": 0.45, "height": 0.5 }]
+          },
+          {
+            "id": "pk1-socket-kit",
+            "title": "Travel Bottle",
+            "mode": "socket",
+            "compatibilityProfile": {
+              "familyId": "pk1-drinkware",
+              "perspectiveId": "pk1-front-view",
+              "geometryId": "pk1-bottle-lid",
+              "styleId": "pk1-outline-clean"
+            },
+            "base": {
+              "assetId": "asset-socket-base",
+              "masterSha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "frame": {
+                "originalWidth": 100,
+                "originalHeight": 100,
+                "trimX": 0,
+                "trimY": 0,
+                "trimWidth": 100,
+                "trimHeight": 100
+              }
+            },
+            "priceAssetId": "pk1-price-socket-base",
+            "mountFrames": [
+              {
+                "id": "pk1-socket-frame",
+                "slotId": "pk1-lid-slot",
+                "mountType": "socket",
+                "point": { "x": 0.5, "y": 0.08 },
+                "normal": { "x": 0, "y": -1 },
+                "referenceScale": 0.22,
+                "constraints": {
+                  "minScale": 0.5,
+                  "maxScale": 2,
+                  "minRotationDegrees": -45,
+                  "maxRotationDegrees": 45,
+                  "maxNormalErrorDegrees": 5,
+                  "mirrorAllowed": false
+                }
+              }
+            ],
+            "artworkBounds": [{ "x": 0.2, "y": 0.3, "width": 0.6, "height": 0.45 }]
+          },
+          {
+            "id": "pk1-whole-kit",
+            "title": "Complete Mug",
+            "mode": "whole",
+            "compatibilityProfile": {
+              "familyId": "pk1-drinkware",
+              "perspectiveId": "pk1-front-view",
+              "geometryId": "pk1-complete-mug",
+              "styleId": "pk1-outline-clean"
+            },
+            "base": {
+              "assetId": "asset-whole-base",
+              "masterSha256": "3333333333333333333333333333333333333333333333333333333333333333",
+              "frame": {
+                "originalWidth": 100,
+                "originalHeight": 100,
+                "trimX": 0,
+                "trimY": 0,
+                "trimWidth": 100,
+                "trimHeight": 100
+              }
+            },
+            "priceAssetId": "pk1-price-whole-base",
+            "mountFrames": [],
+            "artworkBounds": [{ "x": 0.25, "y": 0.25, "width": 0.45, "height": 0.5 }]
+          }
+        ],
+        "components": [
+          {
+            "id": "pk1-grid-component",
+            "title": "Secret Door",
+            "slotId": "pk1-grid-slot",
+            "compatibilityProfile": {
+              "familyId": "pk1-escape-room",
+              "perspectiveId": "pk1-front-view",
+              "geometryId": "pk1-wall-grid",
+              "styleId": "pk1-outline-clean"
+            },
+            "componentFrame": {
+              "mountType": "grid",
+              "plane": "wall",
+              "footprint": { "columns": 2, "rows": 3 },
+              "edgeTypes": { "north": "pk1-panel", "south": "pk1-door" }
+            },
+            "fragments": [
+              {
+                "layer": "front",
+                "raster": {
+                  "assetId": "asset-grid-part",
+                  "masterSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                  "frame": {
+                    "originalWidth": 100,
+                    "originalHeight": 100,
+                    "trimX": 0,
+                    "trimY": 0,
+                    "trimWidth": 100,
+                    "trimHeight": 100
+                  }
+                }
+              }
+            ],
+            "priceAssetId": "pk1-price-secret-door"
+          },
+          {
+            "id": "pk1-grip-component",
+            "title": "Loop Handle",
+            "slotId": "pk1-handle-slot",
+            "compatibilityProfile": {
+              "familyId": "pk1-drinkware",
+              "perspectiveId": "pk1-front-view",
+              "geometryId": "pk1-cup-handle",
+              "styleId": "pk1-outline-clean"
+            },
+            "componentFrame": {
+              "mountType": "grip",
+              "contacts": [{ "x": 0.18, "y": 0.25 }, { "x": 0.18, "y": 0.75 }],
+              "normals": [{ "x": -1, "y": 0 }, { "x": -1, "y": 0 }]
+            },
+            "fragments": [
+              {
+                "layer": "rear",
+                "raster": {
+                  "assetId": "asset-grip-rear",
+                  "masterSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                  "frame": {
+                    "originalWidth": 100,
+                    "originalHeight": 100,
+                    "trimX": 0,
+                    "trimY": 0,
+                    "trimWidth": 100,
+                    "trimHeight": 100
+                  }
+                }
+              },
+              {
+                "layer": "front",
+                "raster": {
+                  "assetId": "asset-grip-front",
+                  "masterSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                  "frame": {
+                    "originalWidth": 100,
+                    "originalHeight": 100,
+                    "trimX": 0,
+                    "trimY": 0,
+                    "trimWidth": 100,
+                    "trimHeight": 100
+                  }
+                }
+              }
+            ],
+            "priceAssetId": "pk1-price-loop-handle"
+          },
+          {
+            "id": "pk1-socket-component",
+            "title": "Flip Lid",
+            "slotId": "pk1-lid-slot",
+            "compatibilityProfile": {
+              "familyId": "pk1-drinkware",
+              "perspectiveId": "pk1-front-view",
+              "geometryId": "pk1-bottle-lid",
+              "styleId": "pk1-outline-clean"
+            },
+            "componentFrame": {
+              "mountType": "socket",
+              "point": { "x": 0.5, "y": 0.9 },
+              "normal": { "x": 0, "y": -1 },
+              "referenceScale": 0.2
+            },
+            "fragments": [
+              {
+                "layer": "front",
+                "raster": {
+                  "assetId": "asset-socket-part",
+                  "masterSha256": "2222222222222222222222222222222222222222222222222222222222222222",
+                  "frame": {
+                    "originalWidth": 100,
+                    "originalHeight": 100,
+                    "trimX": 0,
+                    "trimY": 0,
+                    "trimWidth": 100,
+                    "trimHeight": 100
+                  }
+                }
+              }
+            ],
+            "priceAssetId": "pk1-price-flip-lid"
+          }
+        ],
+        "certifications": [
+          {
+            "id": "pk1-cert-grid",
+            "kitId": "pk1-grid-kit",
+            "mountFrameId": "pk1-grid-frame",
+            "componentId": "pk1-grid-component",
+            "fingerprint": "4444444444444444444444444444444444444444444444444444444444444444"
+          },
+          {
+            "id": "pk1-cert-grip",
+            "kitId": "pk1-grip-kit",
+            "mountFrameId": "pk1-grip-frame",
+            "componentId": "pk1-grip-component",
+            "fingerprint": "5555555555555555555555555555555555555555555555555555555555555555"
+          },
+          {
+            "id": "pk1-cert-socket",
+            "kitId": "pk1-socket-kit",
+            "mountFrameId": "pk1-socket-frame",
+            "componentId": "pk1-socket-component",
+            "fingerprint": "6666666666666666666666666666666666666666666666666666666666666666"
+          }
+        ]
+      }
+    }
+  ],
+  "derivedValid": [
+    {
+      "name": "integral decimal grid count",
+      "target": "value",
+      "path": ["kits", 0, "mountFrames", 0, "columns"],
+      "value": 8.0
+    },
+    {
+      "name": "integral decimal raster dimension",
+      "target": "value",
+      "path": ["kits", 0, "base", "frame", "originalWidth"],
+      "value": 100.0
+    },
+    {
+      "name": "integral decimal version",
+      "target": "value",
+      "path": ["version"],
+      "value": 1.0
+    }
+  ],
+  "derivedInvalid": [
+    {
+      "name": "top-level extra",
+      "target": "value",
+      "path": ["extra"],
+      "value": true,
+      "structural": true
+    },
+    {
+      "name": "boolean version",
+      "target": "value",
+      "path": ["version"],
+      "value": true,
+      "structural": true
+    },
+    {
+      "name": "zero socket normal",
+      "target": "value",
+      "path": ["kits", 2, "mountFrames", 0, "normal"],
+      "value": { "x": 0, "y": 0 },
+      "structural": true
+    },
+    {
+      "name": "signed-zero socket point",
+      "target": "value",
+      "path": ["kits", 2, "mountFrames", 0, "point", "x"],
+      "value": -0.0,
+      "structural": false
+    },
+    {
+      "name": "pack ID with terminal LF",
+      "target": "value",
+      "path": ["packId"],
+      "value": "pk1-pilot\n",
+      "structural": true
+    },
+    {
+      "name": "catalogue hash with terminal LF",
+      "target": "value",
+      "path": ["catalogSha256"],
+      "value": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\n",
+      "structural": true
+    },
+    {
+      "name": "globally duplicated mount-frame ID",
+      "target": "value",
+      "path": ["kits", 2, "mountFrames", 0, "id"],
+      "value": "pk1-grip-frame",
+      "structural": false
+    },
+    {
+      "name": "wrong catalogue hash",
+      "target": "context",
+      "path": ["catalogSha256"],
+      "value": "0000000000000000000000000000000000000000000000000000000000000000",
+      "structural": false
+    },
+    {
+      "name": "unknown base asset",
+      "target": "value",
+      "path": ["kits", 0, "base", "assetId"],
+      "value": "asset-missing",
+      "structural": false
+    },
+    {
+      "name": "certified profile mismatch",
+      "target": "value",
+      "path": ["components", 1, "compatibilityProfile", "styleId"],
+      "value": "pk1-other-style",
+      "structural": false
+    },
+    {
+      "name": "unsupported certified grid edge",
+      "target": "value",
+      "path": ["components", 0, "componentFrame", "edgeTypes", "north"],
+      "value": "pk1-unsupported-edge",
+      "structural": false
+    },
+    {
+      "name": "certified socket scale outside limits",
+      "target": "value",
+      "path": ["components", 2, "componentFrame", "referenceScale"],
+      "value": 0.01,
+      "structural": false
+    },
+    {
+      "name": "unreviewed referenced asset",
+      "target": "context",
+      "path": ["records", 0, "classroomReviewed"],
+      "value": false,
+      "structural": false
+    },
+    {
+      "name": "unpaired Unicode surrogate title",
+      "target": "value",
+      "path": ["kits", 0, "title"],
+      "value": "\ud800",
+      "structural": false
+    },
+    {
+      "name": "title over browser UTF-16 limit but within JSON-Schema code-point limit",
+      "target": "value",
+      "path": ["kits", 0, "title"],
+      "value": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+      "structural": false
+    },
+    {
+      "name": "duplicate grip mount contacts",
+      "target": "value",
+      "path": ["kits", 1, "mountFrames", 0, "contacts"],
+      "value": [{ "x": 0.2, "y": 0.2 }, { "x": 0.2, "y": 0.2 }],
+      "structural": true
+    },
+    {
+      "name": "kit mode and mount-frame type mismatch",
+      "target": "value",
+      "path": ["kits", 1, "mode"],
+      "value": "socket",
+      "structural": true
+    },
+    {
+      "name": "whole kit with a mount frame",
+      "target": "value",
+      "path": ["kits", 3, "mountFrames"],
+      "value": [
+        {
+          "id": "pk1-whole-illegal-frame",
+          "slotId": "pk1-whole-illegal-slot",
+          "mountType": "socket",
+          "point": { "x": 0.5, "y": 0.1 },
+          "normal": { "x": 0, "y": -1 },
+          "referenceScale": 0.2,
+          "constraints": {
+            "minScale": 0.5,
+            "maxScale": 2,
+            "minRotationDegrees": -45,
+            "maxRotationDegrees": 45,
+            "maxNormalErrorDegrees": 2,
+            "mirrorAllowed": false
+          }
+        }
+      ],
+      "structural": true
+    },
+    {
+      "name": "duplicate component fragment layer",
+      "target": "value",
+      "path": ["components", 1, "fragments", 0, "layer"],
+      "value": "front",
+      "structural": true
+    },
+    {
+      "name": "out-of-order component fragment layers",
+      "target": "value",
+      "path": ["components", 1, "fragments", 0, "layer"],
+      "value": "overlay",
+      "structural": true
+    },
+    {
+      "name": "title with outer whitespace",
+      "target": "value",
+      "path": ["kits", 0, "title"],
+      "value": " Grid kit",
+      "structural": true
+    },
+    {
+      "name": "title with control character",
+      "target": "value",
+      "path": ["components", 0, "title"],
+      "value": "Grid\u0007component",
+      "structural": true
+    },
+    {
+      "name": "non-whole kit without mount frames",
+      "target": "value",
+      "path": ["kits", 0, "mountFrames"],
+      "value": [],
+      "structural": true
+    },
+    {
+      "name": "grip kit without mount frames",
+      "target": "value",
+      "path": ["kits", 1, "mountFrames"],
+      "value": [],
+      "structural": true
+    },
+    {
+      "name": "socket kit without mount frames",
+      "target": "value",
+      "path": ["kits", 2, "mountFrames"],
+      "value": [],
+      "structural": true
+    },
+    {
+      "name": "artwork bounds overflow",
+      "target": "value",
+      "path": ["kits", 1, "artworkBounds", 0, "width"],
+      "value": 0.9,
+      "structural": false
+    },
+    {
+      "name": "raster trim overflow",
+      "target": "value",
+      "path": ["kits", 0, "base", "frame", "originalWidth"],
+      "value": 99,
+      "structural": false
+    },
+    {
+      "name": "grid extent overflow",
+      "target": "value",
+      "path": ["kits", 0, "mountFrames", 0, "cellSize"],
+      "value": { "width": 0.2, "height": 0.1 },
+      "structural": false
+    },
+    {
+      "name": "inverted transform constraints",
+      "target": "value",
+      "path": ["kits", 2, "mountFrames", 0, "constraints", "minScale"],
+      "value": 3,
+      "structural": false
+    }
+  ]
+}

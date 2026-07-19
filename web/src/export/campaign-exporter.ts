@@ -7,6 +7,7 @@ import {
   assertEvidenceReferences,
   CHECKLIST_SLOTS
 } from "../checklist/checklist-store";
+import { formatMarketBucks } from "../product-builder/product-money-panel";
 
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10] as const;
 const IHDR = [73, 72, 68, 82] as const;
@@ -168,6 +169,30 @@ function validateAssetReferences(document: CampaignDocumentV1): void {
   }
 }
 
+function validatePriceIntegrity(document: CampaignDocumentV1): void {
+  const priceCents = document.product.priceCents;
+  if (priceCents === null) throw new Error("Campaign price is required for publication");
+  if (priceCents <= 0) throw new Error("Campaign price must be positive for publication");
+  if (document.evidence.price.length !== 1) {
+    throw new Error("Campaign must have exactly one visible price");
+  }
+  const expected = formatMarketBucks(priceCents);
+  const object = campaignSemanticObjectMap(document.fabricState)
+    .get(document.evidence.price[0]!);
+  if (!object || object.elementKind !== "text" ||
+    object.accessibleName !== `Market price ${expected}` ||
+    object.object.text !== expected || object.object.editable !== false) {
+    throw new Error("Visible price must exactly match the charged price and remain protected");
+  }
+}
+
+function validatePairParticipation(document: CampaignDocumentV1): void {
+  const pair = document.gameplay.pair;
+  if (pair.handoffCount < 1 || pair.artDirectorActions < 1 || pair.strategistActions < 1) {
+    throw new Error("Swap once and let both players make a visible change before opening the market.");
+  }
+}
+
 function canvasStateWithoutGuides(value: Record<string, unknown>): Record<string, unknown> {
   const clone = structuredClone(value);
   if (!Array.isArray(clone.objects)) throw new Error("Canvas serialization has no object array");
@@ -243,6 +268,8 @@ export class CampaignExporter {
     for (const slot of CHECKLIST_SLOTS) {
       if (parsed.evidence[slot].length === 0) throw new Error(`${slot} evidence is required for publication`);
     }
+    validatePairParticipation(parsed);
+    validatePriceIntegrity(parsed);
     validateRasterSources(parsed, this.#ownedUrls);
 
     const canvasSnapshot = this.port.serialize();

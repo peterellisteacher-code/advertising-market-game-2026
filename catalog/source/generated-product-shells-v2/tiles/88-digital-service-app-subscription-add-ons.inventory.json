@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 88,
+  "sourcePng": "88-digital-service-app-subscription-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "blank rounded button shape", "tags": ["add-on", "blank", "button", "rounded", "ui-control"]},
+    {"row": 1, "column": 2, "label": "blank toggle switch shape", "tags": ["add-on", "blank", "switch", "toggle", "ui-control"]},
+    {"row": 1, "column": 3, "label": "blank horizontal slider shape", "tags": ["add-on", "blank", "horizontal", "slider", "ui-control"]},
+    {"row": 1, "column": 4, "label": "blank three segment control shape", "tags": ["add-on", "blank", "segmented-control", "three-segment", "ui-control"]},
+    {"row": 1, "column": 5, "label": "blank five dot option control strip", "tags": ["add-on", "blank", "five-dot", "option-control", "strip"]},
+    {"row": 2, "column": 1, "label": "blank portrait media frame", "tags": ["add-on", "blank", "frame", "media", "portrait"]},
+    {"row": 2, "column": 2, "label": "blank landscape media frame", "tags": ["add-on", "blank", "frame", "landscape", "media"]},
+    {"row": 2, "column": 3, "label": "blank square content card frame", "tags": ["add-on", "blank", "card", "content", "frame", "square"]},
+    {"row": 2, "column": 4, "label": "blank three panel carousel strip", "tags": ["add-on", "blank", "carousel", "strip", "three-panel"]},
+    {"row": 2, "column": 5, "label": "blank four cell gallery insert", "tags": ["add-on", "blank", "four-cell", "gallery", "insert"]},
+    {"row": 3, "column": 1, "label": "simple textless bar chart tile", "tags": ["add-on", "bar-chart", "simple", "textless", "tile"]},
+    {"row": 3, "column": 2, "label": "simple textless line chart tile", "tags": ["add-on", "line-chart", "simple", "textless", "tile"]},
+    {"row": 3, "column": 3, "label": "simple textless donut chart tile", "tags": ["add-on", "donut-chart", "simple", "textless", "tile"]},
+    {"row": 3, "column": 4, "label": "simple textless gauge chart tile", "tags": ["add-on", "gauge-chart", "simple", "textless", "tile"]},
+    {"row": 3, "column": 5, "label": "simple textless progress ring tile", "tags": ["add-on", "progress-ring", "simple", "textless", "tile"]},
+    {"row": 4, "column": 1, "label": "blank rounded notification badge", "tags": ["add-on", "badge", "blank", "notification", "rounded"]},
+    {"row": 4, "column": 2, "label": "blank horizontal notification banner", "tags": ["add-on", "banner", "blank", "horizontal", "notification"]},
+    {"row": 4, "column": 3, "label": "blank floating toast card shape", "tags": ["add-on", "blank", "card", "floating", "toast"]},
+    {"row": 4, "column": 4, "label": "blank speech bubble panel", "tags": ["add-on", "blank", "panel", "speech-bubble"]},
+    {"row": 4, "column": 5, "label": "blank compact status capsule", "tags": ["add-on", "blank", "capsule", "compact", "status"]},
+    {"row": 5, "column": 1, "label": "blank mini plan card insert", "tags": ["add-on", "blank", "card", "insert", "mini", "plan"]},
+    {"row": 5, "column": 2, "label": "blank two tier plan card insert", "tags": ["add-on", "blank", "card", "insert", "plan", "two-tier"]},
+    {"row": 5, "column": 3, "label": "blank circular service token disc", "tags": ["add-on", "blank", "circular", "disc", "service-token"]},
+    {"row": 5, "column": 4, "label": "blank hexagonal service token tile", "tags": ["add-on", "blank", "hexagonal", "service-token", "tile"]},
+    {"row": 5, "column": 5, "label": "blank miniature device frame insert", "tags": ["add-on", "blank", "device", "frame", "insert", "miniature"]}
+  ]
+}

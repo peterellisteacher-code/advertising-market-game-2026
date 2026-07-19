@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 43,
+  "sourcePng": "43-sports-fitness-equipment.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Soccer ball", "tags": ["ball", "soccer", "sports equipment"]},
+    {"row": 1, "column": 2, "label": "Basketball", "tags": ["ball", "basketball", "sports equipment"]},
+    {"row": 1, "column": 3, "label": "Laced oval football", "tags": ["football", "laced ball", "sports equipment"]},
+    {"row": 1, "column": 4, "label": "Volleyball", "tags": ["ball", "sports equipment", "volleyball"]},
+    {"row": 1, "column": 5, "label": "Tennis racket", "tags": ["racket sport", "sports equipment", "tennis racket"]},
+    {"row": 2, "column": 1, "label": "Cricket bat", "tags": ["bat", "cricket", "sports equipment"]},
+    {"row": 2, "column": 2, "label": "Baseball bat", "tags": ["baseball", "bat", "sports equipment"]},
+    {"row": 2, "column": 3, "label": "Field-hockey stick", "tags": ["field hockey", "hockey stick", "sports equipment"]},
+    {"row": 2, "column": 4, "label": "Golf iron", "tags": ["golf club", "golf iron", "sports equipment"]},
+    {"row": 2, "column": 5, "label": "Badminton racket", "tags": ["badminton racket", "racket sport", "sports equipment"]},
+    {"row": 3, "column": 1, "label": "Hexagonal dumbbell", "tags": ["dumbbell", "fitness equipment", "free weight"]},
+    {"row": 3, "column": 2, "label": "Kettlebell", "tags": ["fitness equipment", "free weight", "kettlebell"]},
+    {"row": 3, "column": 3, "label": "Adjustable barbell", "tags": ["barbell", "fitness equipment", "free weight"]},
+    {"row": 3, "column": 4, "label": "Grip weight plate", "tags": ["fitness equipment", "weight plate", "weight training"]},
+    {"row": 3, "column": 5, "label": "Resistance loop band", "tags": ["fitness equipment", "resistance band", "training band"]},
+    {"row": 4, "column": 1, "label": "Rolled yoga mat", "tags": ["fitness equipment", "wellness", "yoga mat"]},
+    {"row": 4, "column": 2, "label": "Skipping rope", "tags": ["cardio", "fitness equipment", "skipping rope"]},
+    {"row": 4, "column": 3, "label": "Adjustable weight bench", "tags": ["fitness equipment", "weight bench", "weight training"]},
+    {"row": 4, "column": 4, "label": "Stationary exercise bike", "tags": ["cardio machine", "exercise bike", "fitness equipment"]},
+    {"row": 4, "column": 5, "label": "Treadmill", "tags": ["cardio machine", "fitness equipment", "treadmill"]},
+    {"row": 5, "column": 1, "label": "Boxing glove", "tags": ["boxing", "boxing glove", "sports equipment"]},
+    {"row": 5, "column": 2, "label": "Cycling helmet", "tags": ["cycling", "helmet", "sports equipment"]},
+    {"row": 5, "column": 3, "label": "Shin guard", "tags": ["protective gear", "shin guard", "sports equipment"]},
+    {"row": 5, "column": 4, "label": "Sports drink bottle", "tags": ["drink bottle", "sports accessory", "sports equipment"]},
+    {"row": 5, "column": 5, "label": "Gym duffel bag", "tags": ["duffel bag", "gym bag", "sports accessory"]}
+  ]
+}

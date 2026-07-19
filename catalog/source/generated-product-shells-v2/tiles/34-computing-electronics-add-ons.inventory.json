@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 34,
+  "sourcePng": "34-computing-electronics-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Monitor pedestal stand", "tags": ["display stand", "electronics add-on", "monitor stand"]},
+    {"row": 1, "column": 2, "label": "Twin monitor feet", "tags": ["display feet", "electronics add-on", "monitor stand"]},
+    {"row": 1, "column": 3, "label": "Desk-clamp monitor arm", "tags": ["desk clamp", "electronics add-on", "monitor arm"]},
+    {"row": 1, "column": 4, "label": "Wall-mount bracket plate", "tags": ["electronics add-on", "mounting bracket", "wall mount"]},
+    {"row": 1, "column": 5, "label": "Folding tablet kickstand", "tags": ["electronics add-on", "kickstand", "tablet stand"]},
+    {"row": 2, "column": 1, "label": "Compact keyboard keycap panel", "tags": ["electronics add-on", "keyboard", "keycap set"]},
+    {"row": 2, "column": 2, "label": "Mouse side-grip shell", "tags": ["electronics add-on", "mouse grip", "mouse shell"]},
+    {"row": 2, "column": 3, "label": "Mouse scroll-wheel module", "tags": ["electronics add-on", "mouse component", "scroll wheel"]},
+    {"row": 2, "column": 4, "label": "Digital stylus pen", "tags": ["digital stylus", "electronics add-on", "tablet accessory"]},
+    {"row": 2, "column": 5, "label": "Game-controller grip pair", "tags": ["controller grips", "electronics add-on", "game controller"]},
+    {"row": 3, "column": 1, "label": "Four-lens phone camera bump", "tags": ["camera bump", "electronics add-on", "phone camera"]},
+    {"row": 3, "column": 2, "label": "Single-lens tablet camera module", "tags": ["camera module", "electronics add-on", "tablet camera"]},
+    {"row": 3, "column": 3, "label": "Protective phone bumper frame", "tags": ["bumper case", "electronics add-on", "phone frame"]},
+    {"row": 3, "column": 4, "label": "Folding phone kickstand", "tags": ["electronics add-on", "kickstand", "phone stand"]},
+    {"row": 3, "column": 5, "label": "Wireless charging puck", "tags": ["charging puck", "electronics add-on", "wireless charger"]},
+    {"row": 4, "column": 1, "label": "Headphone ear-cushion pair", "tags": ["ear cushions", "electronics add-on", "headphone pads"]},
+    {"row": 4, "column": 2, "label": "Headphone headband pad", "tags": ["electronics add-on", "headband pad", "headphone cushion"]},
+    {"row": 4, "column": 3, "label": "Rectangular speaker grille", "tags": ["audio component", "electronics add-on", "speaker grille"]},
+    {"row": 4, "column": 4, "label": "Interchangeable camera lens", "tags": ["camera lens", "electronics add-on", "interchangeable lens"]},
+    {"row": 4, "column": 5, "label": "Camera hand-grip shell", "tags": ["camera grip", "camera shell", "electronics add-on"]},
+    {"row": 5, "column": 1, "label": "Honeycomb cooling-vent panel", "tags": ["cooling vent", "electronics add-on", "vent panel"]},
+    {"row": 5, "column": 2, "label": "Slim decorative light bar", "tags": ["decorative light", "electronics add-on", "light strip"]},
+    {"row": 5, "column": 3, "label": "Router antenna pair", "tags": ["antenna pair", "electronics add-on", "router antenna"]},
+    {"row": 5, "column": 4, "label": "Cable connector tip set", "tags": ["cable connectors", "connector set", "electronics add-on"]},
+    {"row": 5, "column": 5, "label": "Drone propeller-guard set", "tags": ["drone accessory", "electronics add-on", "propeller guards"]}
+  ]
+}

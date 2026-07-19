@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 23,
+  "sourcePng": "23-sofa-seat-configurations.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Single-seat square-arm chair", "tags": ["armchair", "single seat", "square arm"]},
+    {"row": 1, "column": 2, "label": "Two-seat square-arm sofa", "tags": ["sofa", "square arm", "two seat"]},
+    {"row": 1, "column": 3, "label": "Three-seat square-arm sofa", "tags": ["sofa", "square arm", "three seat"]},
+    {"row": 1, "column": 4, "label": "Four-seat square-arm sofa", "tags": ["four seat", "sofa", "square arm"]},
+    {"row": 1, "column": 5, "label": "Five-seat square-arm sofa", "tags": ["five seat", "sofa", "square arm"]},
+    {"row": 2, "column": 1, "label": "Left-chaise sectional sofa", "tags": ["left chaise", "sectional", "sofa"]},
+    {"row": 2, "column": 2, "label": "Right-chaise sectional sofa", "tags": ["right chaise", "sectional", "sofa"]},
+    {"row": 2, "column": 3, "label": "L-shaped corner sectional", "tags": ["corner sectional", "l-shaped", "sofa"]},
+    {"row": 2, "column": 4, "label": "U-shaped sectional sofa", "tags": ["sectional", "sofa", "u-shaped"]},
+    {"row": 2, "column": 5, "label": "Curved conversation sectional", "tags": ["conversation sofa", "curved sectional", "sofa"]},
+    {"row": 3, "column": 1, "label": "Armless two-seat modular sofa", "tags": ["armless sofa", "modular seating", "two seat"]},
+    {"row": 3, "column": 2, "label": "Armless three-seat modular sofa", "tags": ["armless sofa", "modular seating", "three seat"]},
+    {"row": 3, "column": 3, "label": "Armless lounge chaise", "tags": ["armless chaise", "lounge seating", "sofa"]},
+    {"row": 3, "column": 4, "label": "Low-profile armless loveseat", "tags": ["armless loveseat", "low profile", "sofa"]},
+    {"row": 3, "column": 5, "label": "High-back booth loveseat", "tags": ["booth seating", "high back", "loveseat"]},
+    {"row": 4, "column": 1, "label": "Two-seat reclining sofa", "tags": ["recliner sofa", "sofa", "two seat"]},
+    {"row": 4, "column": 2, "label": "Three-seat reclining sofa", "tags": ["recliner sofa", "sofa", "three seat"]},
+    {"row": 4, "column": 3, "label": "Convertible sofa bed", "tags": ["convertible sofa", "sofa bed", "square arm"]},
+    {"row": 4, "column": 4, "label": "Bolster-arm daybed sofa", "tags": ["bolster arm", "daybed", "sofa"]},
+    {"row": 4, "column": 5, "label": "Compact track-arm loveseat", "tags": ["compact sofa", "loveseat", "track arm"]},
+    {"row": 5, "column": 1, "label": "Tufted shelter-arm loveseat", "tags": ["loveseat", "shelter arm", "tufted back"]},
+    {"row": 5, "column": 2, "label": "Rolled-arm loveseat", "tags": ["loveseat", "rolled arm", "sofa"]},
+    {"row": 5, "column": 3, "label": "Square-arm loveseat", "tags": ["loveseat", "sofa", "square arm"]},
+    {"row": 5, "column": 4, "label": "Curved-arm loveseat", "tags": ["curved arm", "loveseat", "sofa"]},
+    {"row": 5, "column": 5, "label": "Exposed-frame loveseat", "tags": ["exposed frame", "loveseat", "sofa"]}
+  ]
+}

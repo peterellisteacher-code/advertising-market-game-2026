@@ -36,8 +36,24 @@ describe("FabricObjectFactory", () => {
       left: 800,
       top: 450,
       cornerSize: 44,
-      touchCornerSize: 44
+      touchCornerSize: 44,
+      transparentCorners: false,
+      borderScaleFactor: 3,
+      borderColor: "#075985",
+      cornerColor: "#f4c95d",
+      cornerStrokeColor: "#172033"
     });
+  });
+
+  it("can create a canonical price label that cannot be edited as ordinary copy", () => {
+    const object = new FabricObjectFactory().createText({
+      id: "price-1",
+      value: "$8.00",
+      accessibleName: "Market price $8.00",
+      editable: false
+    });
+
+    expect(object.editable).toBe(false);
   });
 
   it("creates a bounded shape with application metadata", () => {

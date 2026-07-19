@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { fireEvent, findByRole, getByRole, waitFor } from "@testing-library/dom";
+import { fireEvent, findByRole, getByLabelText, getByRole, waitFor } from "@testing-library/dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CreatorPublicApi } from "./bridge/creator-public-api";
+import type { AccountBootstrapPublicApi } from "./account/account-bootstrap";
+import type { PracticePublicApi } from "./bridge/practice-contracts";
 import {
   CREATOR_BRIDGE_CONTRACT,
   CreatorResponseSchema,
@@ -14,8 +16,13 @@ import {
   createBlankCampaignDocument,
   type CampaignDocumentV1
 } from "./domain/campaign-document";
+import type { NewProductKitInput } from "./fabric/canvas-port";
 import { AUDIENCE_BRIEFS } from "./game/audience-briefs";
 import { parseLogoIconCatalogue } from "./logo-lab/logo-icon-catalogue";
+import {
+  MARKET_BRIDGE_CONTRACT,
+  type MarketPublicApi
+} from "./market/market-public-api";
 
 const runtime = vi.hoisted(() => ({
   adapterConstructed: vi.fn(),
@@ -26,7 +33,11 @@ const runtime = vi.hoisted(() => ({
   publish: vi.fn(),
   load: vi.fn(),
   loadDraft: vi.fn(),
+  loadRevisionDraft: vi.fn(),
   save: vi.fn(),
+  importCloudPractice: vi.fn(),
+  activateAccountDrafts: vi.fn(async (_username: string) => undefined),
+  deactivateAccountDrafts: vi.fn(),
   createObjectURL: vi.fn(),
   revokeObjectURL: vi.fn(),
   state: { version: "7.4.0", objects: [] } as Record<string, unknown>,
@@ -35,6 +46,10 @@ const runtime = vi.hoisted(() => ({
     objectId: string;
   }) => void>(),
   drafts: new Map<string, { document: CampaignDocumentV1; blobs: Map<string, Blob> }>(),
+  revisionDrafts: new Map<string, Map<number, {
+    document: CampaignDocumentV1;
+    blobs: Map<string, Blob>;
+  }>>(),
   loadFailure: null as Error | null,
   saveFailure: null as Error | null,
   publishFailure: null as Error | null,
@@ -44,7 +59,8 @@ const runtime = vi.hoisted(() => ({
   canvasFailure: null as Error | null,
   adapterDisposeFailure: null as Error | null,
   canvasDisposeFailure: null as Error | null,
-  canvasDisposePromise: null as Promise<void> | null
+  canvasDisposePromise: null as Promise<void> | null,
+  selectedObjectId: null as string | null
 }));
 
 vi.mock("fabric", () => ({
@@ -61,6 +77,31 @@ vi.mock("fabric", () => ({
     }
   }
 }));
+
+vi.mock("./ai-image/image-processing", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./ai-image/image-processing")>();
+  return {
+    ...actual,
+    prepareImageForAi: vi.fn(async (_dataUrl: string, target: "object-forge" | "make-it-real") => ({
+      blob: new Blob([Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4)], {
+        type: "image/png"
+      }),
+      dataUrl: "data:image/png;base64,iVBORwECAwQ=",
+      width: target === "object-forge" ? 512 : 1024,
+      height: target === "object-forge" ? 512 : 576
+    }))
+  };
+});
+
+vi.mock("./catalogue/raster-template-tint", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./catalogue/raster-template-tint")>();
+  return {
+    ...actual,
+    tintRasterTemplate: vi.fn(async () => new Blob([
+      Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)
+    ], { type: "image/png" }))
+  };
+});
 
 vi.mock("./fabric/fabric-canvas-adapter", () => ({
   FabricCanvasAdapter: class {
@@ -82,6 +123,7 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
       id: string;
       value: string;
       accessibleName: string;
+      editable?: boolean;
     }): Promise<void> {
       const objects = runtime.state.objects;
       if (!Array.isArray(objects)) throw new Error("Test canvas state has no objects");
@@ -90,7 +132,8 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
         objectId: input.id,
         elementKind: "text",
         accessibleName: input.accessibleName,
-        text: input.value
+        text: input.value,
+        editable: input.editable ?? true
       });
       runtime.listeners.forEach((listener) => listener({
         type: "added",
@@ -273,6 +316,64 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
       }));
     }
 
+    async addProductKit(input: NewProductKitInput): Promise<void> {
+      const objects = runtime.state.objects;
+      if (!Array.isArray(objects)) throw new Error("Test canvas state has no objects");
+      const children: Array<Record<string, unknown>> = [];
+      for (const bucket of input.plan.layers) {
+        for (const entry of bucket.entries) {
+          if (entry.kind === "artwork-slot") {
+            children.push({
+              type: "group",
+              productLayer: "artwork-slot",
+              artworkSlotId: entry.itemId,
+              objects: [{ type: "rect" }]
+            });
+            continue;
+          }
+          const source = input.rasterSources.get(entry.raster.assetId);
+          if (!source || source.masterSha256 !== entry.raster.masterSha256) {
+            throw new Error("Test Product Kit source mismatch");
+          }
+          const sourceUrl = new URL(source.masterUrl, window.location.href).href;
+          const response = await fetch(sourceUrl, {
+            method: "GET",
+            credentials: "same-origin",
+            headers: { accept: "image/png" }
+          });
+          const mimeType = response.headers.get("content-type")
+            ?.split(";", 1)[0]?.trim().toLowerCase();
+          const bytes = new Uint8Array(await response.arrayBuffer());
+          if (!response.ok || mimeType !== "image/png" ||
+            bytes.length < 8 || ![137, 80, 78, 71, 13, 10, 26, 10]
+              .every((value, index) => bytes[index] === value)) {
+            throw new Error("Test Product Kit raster was not a PNG");
+          }
+          children.push({
+            type: "image",
+            productLayer: bucket.layer,
+            src: sourceUrl,
+            selectable: false,
+            evented: false
+          });
+        }
+      }
+      objects.push({
+        type: "group",
+        objectId: input.id,
+        elementKind: "product-kit",
+        accessibleName: input.accessibleName,
+        productKitPackId: input.catalogue.packId,
+        productKitId: input.plan.kitId,
+        productKitCatalogSha256: input.catalogue.catalogSha256,
+        objects: children
+      });
+      runtime.listeners.forEach((listener) => listener({
+        type: "added",
+        objectId: input.id
+      }));
+    }
+
     setProductShellRegion(id: string, region: string, colour: string): void {
       const object = (runtime.state.objects as Array<Record<string, unknown>>)
         .find((candidate) => candidate.objectId === id);
@@ -288,6 +389,16 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
       return structuredClone(object.regionColours as Record<string, string>);
     }
 
+    setText(id: string, value: string, accessibleName?: string, editable?: boolean): void {
+      const object = (runtime.state.objects as Array<Record<string, unknown>>)
+        .find((candidate) => candidate.objectId === id);
+      if (!object || object.elementKind !== "text") throw new Error(`${id} is not editable text`);
+      object.text = value;
+      if (accessibleName !== undefined) object.accessibleName = accessibleName;
+      if (editable !== undefined) object.editable = editable;
+      runtime.listeners.forEach((listener) => listener({ type: "modified", objectId: id }));
+    }
+
     remove(id: string): void {
       const objects = runtime.state.objects;
       if (!Array.isArray(objects)) throw new Error("Test canvas state has no objects");
@@ -300,7 +411,27 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
       }
     }
 
-    setSelected(): void {}
+    setSelected(id: string | null): void {
+      runtime.selectedObjectId = id;
+    }
+
+    getSelectedObjectId(): string | null {
+      return runtime.selectedObjectId;
+    }
+
+    captureSelection(): { readonly objectIds: readonly string[] } {
+      return Object.freeze({
+        objectIds: Object.freeze(runtime.selectedObjectId === null
+          ? []
+          : [runtime.selectedObjectId])
+      });
+    }
+
+    restoreSelection(snapshot: { readonly objectIds: readonly string[] }): void {
+      runtime.selectedObjectId = snapshot.objectIds[0] ?? null;
+    }
+
+    assertCanDuplicate(): void {}
 
     subscribe(listener: (mutation: {
       type: "added" | "modified" | "removed";
@@ -381,12 +512,36 @@ vi.mock("./persistence/draft-store", async (importOriginal) => {
   return {
     ...actual,
     IndexedDbDraftStore: class {
+      async resumeLocalPractice(): Promise<null> {
+        return null;
+      }
+
+      async importCloudPractice(input: unknown): Promise<void> {
+        runtime.importCloudPractice(input);
+      }
+
       async load(documentId: string): Promise<{
         document: CampaignDocumentV1;
         blobs: Map<string, Blob>;
       } | null> {
         runtime.loadDraft(documentId);
         const stored = runtime.drafts.get(documentId);
+        if (!stored) return null;
+        return {
+          document: structuredClone(stored.document),
+          blobs: new Map([...stored.blobs].map(([key, blob]) => [
+            key,
+            blob.slice(0, blob.size, blob.type)
+          ]))
+        };
+      }
+
+      async loadRevision(documentId: string, revision: number): Promise<{
+        document: CampaignDocumentV1;
+        blobs: Map<string, Blob>;
+      } | null> {
+        runtime.loadRevisionDraft(documentId, revision);
+        const stored = runtime.revisionDrafts.get(documentId)?.get(revision);
         if (!stored) return null;
         return {
           document: structuredClone(stored.document),
@@ -419,6 +574,29 @@ vi.mock("./persistence/draft-store", async (importOriginal) => {
             blob.slice(0, blob.size, blob.type)
           ]))
         });
+        const revisions = runtime.revisionDrafts.get(document.documentId) ?? new Map();
+        revisions.set(document.revision, {
+          document: structuredClone(durableDocument),
+          blobs: new Map([...blobs].map(([key, blob]) => [
+            key,
+            blob.slice(0, blob.size, blob.type)
+          ]))
+        });
+        runtime.revisionDrafts.set(document.documentId, revisions);
+      }
+    }
+  };
+});
+
+vi.mock("./persistence/account-scoped-draft-store", async () => {
+  const { IndexedDbDraftStore } = await import("./persistence/draft-store");
+  return {
+    AccountScopedDraftStore: class extends IndexedDbDraftStore {
+      async activateAccount(username: string): Promise<void> {
+        await runtime.activateAccountDrafts(username);
+      }
+      deactivateAccount(): void {
+        runtime.deactivateAccountDrafts();
       }
     }
   };
@@ -465,6 +643,13 @@ const blankDocument = createBlankCampaignDocument({
   mode: "offline"
 });
 
+function documentAtStage(stage: CampaignDocumentV1["gameplay"]["stage"]): CampaignDocumentV1 {
+  return CampaignDocumentSchema.parse({
+    ...structuredClone(blankDocument),
+    gameplay: { ...structuredClone(blankDocument.gameplay), stage }
+  });
+}
+
 function localBlobDocument(revision = 3): CampaignDocumentV1 {
   return CampaignDocumentSchema.parse({
     ...createBlankCampaignDocument({
@@ -495,10 +680,17 @@ function localBlobDocument(revision = 3): CampaignDocumentV1 {
 
 function storeDraft(document: CampaignDocumentV1, bytes = [1, 2, 3]): Blob {
   const blob = new Blob([Uint8Array.from(bytes)], { type: "image/png" });
-  runtime.drafts.set(document.documentId, {
+  const stored = {
     document: structuredClone(document),
     blobs: new Map([["photo-png", blob]])
+  };
+  runtime.drafts.set(document.documentId, stored);
+  const revisions = runtime.revisionDrafts.get(document.documentId) ?? new Map();
+  revisions.set(document.revision, {
+    document: structuredClone(document),
+    blobs: new Map([["photo-png", blob.slice(0, blob.size, blob.type)]])
   });
+  runtime.revisionDrafts.set(document.documentId, revisions);
   return blob;
 }
 
@@ -608,20 +800,41 @@ async function parsed(
   return CreatorResponseSchema.parse(JSON.parse(await api.handle(request(requestId, method, payload))));
 }
 
+function activateStudioTool(tool: "product" | "assets" | "words" | "logo" | "image" | "price" | "aida"): void {
+  const tab = document.querySelector<HTMLButtonElement>(`[data-studio-tool="${tool}"]`);
+  if (!tab) throw new Error(`Missing Studio tool tab: ${tool}`);
+  fireEvent.click(tab);
+}
+
 describe("window.AdMarketCreator", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    Object.defineProperty(navigator, "locks", {
+      configurable: true,
+      value: {
+        request: <T,>(
+          name: string,
+          _options: { mode: "exclusive"; ifAvailable: true },
+          callback: (lock: { name: string; mode: "exclusive" }) => T | PromiseLike<T>
+        ): Promise<T> => Promise.resolve(callback({ name, mode: "exclusive" }))
+      }
+    });
     runtime.state = { version: "7.4.0", objects: [] };
     runtime.listeners.clear();
     runtime.drafts.clear();
+    runtime.revisionDrafts.clear();
     runtime.loadFailure = null;
     runtime.saveFailure = null;
+    runtime.importCloudPractice.mockReset();
+    runtime.activateAccountDrafts.mockReset().mockResolvedValue(undefined);
+    runtime.deactivateAccountDrafts.mockReset();
     runtime.publishFailure = null;
     runtime.canvasFailure = null;
     runtime.adapterDisposeFailure = null;
     runtime.canvasDisposeFailure = null;
     runtime.canvasDisposePromise = null;
+    runtime.selectedObjectId = null;
     runtime.createdUrls = [];
     runtime.revokedUrls = [];
     runtime.nextUrl = 0;
@@ -643,6 +856,10 @@ describe("window.AdMarketCreator", () => {
     });
     Reflect.deleteProperty(window, "AdMarketCreator");
     Reflect.deleteProperty(window, "AdMarketCreatorSpike");
+    Reflect.deleteProperty(window, "AdMarketPractice");
+    Reflect.deleteProperty(window, "AdMarketRoom");
+    Reflect.deleteProperty(window, "AdMarketAccount");
+    localStorage.clear();
     document.body.innerHTML = `
       <main aria-label="Advertising Market Game">
         <canvas id="canvas" tabindex="0"></canvas>
@@ -650,14 +867,178 @@ describe("window.AdMarketCreator", () => {
       <div id="creator-root"></div>`;
   });
 
-  it("installs one frozen method and keeps Fabric lazy until a valid open request", async () => {
+  it("installs a synchronous mandatory account seam without checking the session until bootstrap asks", async () => {
+    document.body.innerHTML = `
+      <div id="account-gate-root"></div>
+      <section id="account-session-root" hidden></section>
+      <main aria-label="Advertising Market Game" hidden inert aria-hidden="true">
+        <canvas id="canvas" tabindex="-1"></canvas>
+      </main>
+      <div id="creator-root" hidden></div>`;
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      if (input === "/api/account/session") {
+        expect(init).toEqual({
+          method: "GET",
+          credentials: "same-origin",
+          redirect: "error",
+          headers: { accept: "application/json" }
+        });
+        return Promise.resolve(Response.json({ authenticated: true, username: "team-one" }));
+      }
+      expect(input).toBe("/api/account/progress");
+      expect(init).toEqual({
+        method: "GET",
+        credentials: "same-origin",
+        redirect: "error",
+        headers: { accept: "application/json", "x-admarket-account": "team-one" }
+      });
+      return Promise.resolve(Response.json({
+        schema: "advertising-game-progress",
+        version: 1,
+        documents: []
+      }));
+    });
+
+    await import("./main");
+    const account = (window as Window & { AdMarketAccount: AccountBootstrapPublicApi })
+      .AdMarketAccount;
+
+    expect(Object.isFrozen(account)).toBe(true);
+    expect(Reflect.ownKeys(account)).toEqual(["requireAccess"]);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    await account.requireAccess();
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(fetchSpy.mock.calls[1]).toEqual([
+      "/api/account/progress",
+      {
+        method: "GET",
+        credentials: "same-origin",
+        redirect: "error",
+        headers: { accept: "application/json", "x-admarket-account": "team-one" }
+      }
+    ]);
+    expect(runtime.activateAccountDrafts).toHaveBeenCalledWith("team-one");
+    expect(document.querySelector<HTMLElement>('main[aria-label="Advertising Market Game"]')?.hidden)
+      .toBe(false);
+    expect(document.querySelector<HTMLCanvasElement>("#canvas")?.tabIndex).toBe(0);
+    expect(getByRole(document.body, "button", { name: "Log out" })).toBeTruthy();
+  });
+
+  it("restores a newest cloud-only practice before unlocking the account", async () => {
+    document.body.innerHTML = `
+      <div id="account-gate-root"></div>
+      <section id="account-session-root" hidden></section>
+      <main aria-label="Advertising Market Game" hidden inert aria-hidden="true">
+        <canvas id="canvas" tabindex="-1"></canvas>
+      </main>
+      <div id="creator-root" hidden></div>`;
+    const cloudDocument = createBlankCampaignDocument({
+      documentId: "practice-document-cloud",
+      sessionId: "practice-session-cloud",
+      teamId: "practice-team-cloud",
+      mode: "offline"
+    });
+    cloudDocument.revision = 3;
+    cloudDocument.updatedAt = "2026-07-17T05:00:00.000Z";
+    vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      if (input === "/api/account/session") {
+        return Promise.resolve(Response.json({ authenticated: true, username: "team-one" }));
+      }
+      if (input === "/api/account/progress") {
+        return Promise.resolve(Response.json({
+          schema: "advertising-game-progress",
+          version: 1,
+          documents: [{
+            documentId: cloudDocument.documentId,
+            revision: 6,
+            updatedAt: "2026-07-17T05:05:00.000Z"
+          }]
+        }));
+      }
+      if (input === `/api/account/progress?documentId=${cloudDocument.documentId}`) {
+        return Promise.resolve(Response.json({
+          schema: "advertising-game-progress",
+          version: 1,
+          documentId: cloudDocument.documentId,
+          revision: 6,
+          document: cloudDocument,
+          updatedAt: "2026-07-17T05:05:00.000Z"
+        }));
+      }
+      return Promise.reject(new Error(`Unexpected request ${String(input)}`));
+    });
+
+    await import("./main");
+    await (window as Window & { AdMarketAccount: AccountBootstrapPublicApi })
+      .AdMarketAccount.requireAccess();
+
+    expect(runtime.importCloudPractice).toHaveBeenCalledOnce();
+    expect(runtime.importCloudPractice.mock.calls[0]?.[0]).toMatchObject({
+      teamAlias: "team-one",
+      document: cloudDocument,
+      blobs: new Map(),
+      levelLocked: false
+    });
+    expect(document.querySelector<HTMLElement>("[data-account-cloud-status]")?.textContent)
+      .toBe("Cloud save restored to this device · revision 6");
+    expect(document.querySelector<HTMLElement>('main[aria-label="Advertising Market Game"]')?.hidden)
+      .toBe(false);
+  });
+
+  it("isolates activated storage and returns to login if cloud recovery discovers an expired session", async () => {
+    document.body.innerHTML = `
+      <div id="account-gate-root"></div>
+      <section id="account-session-root" hidden></section>
+      <main aria-label="Advertising Market Game" hidden inert aria-hidden="true">
+        <canvas id="canvas" tabindex="-1"></canvas>
+      </main>
+      <div id="creator-root" hidden></div>`;
+    vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      if (input === "/api/account/session") {
+        return Promise.resolve(Response.json({ authenticated: true, username: "team-one" }));
+      }
+      if (input === "/api/account/progress") {
+        return Promise.resolve(Response.json(
+          { error: "AUTHENTICATION_REQUIRED" },
+          { status: 401 }
+        ));
+      }
+      return Promise.reject(new Error(`Unexpected request ${String(input)}`));
+    });
+
+    await import("./main");
+    void (window as Window & { AdMarketAccount: AccountBootstrapPublicApi })
+      .AdMarketAccount.requireAccess();
+
+    await waitFor(() => expect(getByRole(document.body, "form", { name: "Log in" })).toBeTruthy());
+    expect(runtime.deactivateAccountDrafts).toHaveBeenCalledOnce();
+    expect(document.querySelector<HTMLElement>('main[aria-label="Advertising Market Game"]')?.hidden)
+      .toBe(true);
+    expect(getByRole(document.body, "alert").textContent)
+      .toBe("Your session ended. Log in again to reconnect your private save.");
+  });
+
+  it("installs frozen creator, practice and market seams while keeping Fabric lazy", async () => {
     await import("./main");
     const api = (window as Window & { AdMarketCreator: CreatorPublicApi }).AdMarketCreator;
+    const practice = (window as Window & { AdMarketPractice: PracticePublicApi }).AdMarketPractice;
+    const market = (window as Window & { AdMarketRoom: MarketPublicApi }).AdMarketRoom;
 
     expect(Object.isFrozen(api)).toBe(true);
-    expect(Reflect.ownKeys(api)).toEqual(["handle"]);
+    expect(Reflect.ownKeys(api)).toEqual(["handle", "showMessage"]);
+    expect(Object.isFrozen(practice)).toBe(true);
+    expect(Reflect.ownKeys(practice)).toEqual(["handle"]);
+    expect(Object.isFrozen(market)).toBe(true);
+    expect(Reflect.ownKeys(market)).toEqual(["handle"]);
+    expect(market).not.toBe(api);
+    expect(practice).not.toBe(api);
+    expect(practice).not.toBe(market);
     expect("AdMarketCreatorSpike" in window).toBe(false);
     expect(runtime.canvasConstructed).not.toHaveBeenCalled();
+
+    expect(api.showMessage("Draft kept open. Try Return again.")).toBe(true);
+    expect(document.querySelector('[data-live="assertive"]')?.textContent)
+      .toBe("Draft kept open. Try Return again.");
 
     const opened = await parsed(api, "open", "open", blankDocument);
 
@@ -709,6 +1090,320 @@ describe("window.AdMarketCreator", () => {
       documentId: blankDocument.documentId,
       revision: 0
     }));
+  }, 20_000);
+
+  it("returns the latest matching draft without opening the editor", async () => {
+    const latest = structuredClone(blankDocument);
+    latest.revision = 4;
+    runtime.drafts.set(latest.documentId, { document: latest, blobs: new Map() });
+    await import("./main");
+    const api = window.AdMarketCreator;
+
+    expect(await parsed(api, "latest-found", "loadLatest", {
+      documentId: latest.documentId
+    })).toEqual({
+      contract: CREATOR_BRIDGE_CONTRACT,
+      requestId: "latest-found",
+      ok: true,
+      payload: latest
+    });
+    expect(await parsed(api, "latest-missing", "loadLatest", {
+      documentId: "missing-document"
+    })).toEqual({
+      contract: CREATOR_BRIDGE_CONTRACT,
+      requestId: "latest-missing",
+      ok: true,
+      payload: null
+    });
+    expect(runtime.loadDraft).toHaveBeenCalledTimes(2);
+    expect(runtime.canvasConstructed).not.toHaveBeenCalled();
+  });
+
+  it("installs the recovery seam before an unrelated Studio initializer can fail", async () => {
+    const originalFetch = globalThis.fetch;
+    Object.defineProperty(globalThis, "fetch", {
+      configurable: true,
+      writable: true,
+      value: undefined
+    });
+    try {
+      await expect(import("./main")).rejects.toThrow();
+      const practice = (window as Window & { AdMarketPractice?: PracticePublicApi }).AdMarketPractice;
+      expect(practice).toBeDefined();
+      expect(Object.isFrozen(practice)).toBe(true);
+      expect(JSON.parse(await practice!.handle(JSON.stringify({
+        contract: "practice-run@1",
+        requestId: "startup-failure-resume",
+        method: "resume",
+        payload: null
+      })))).toMatchObject({
+        contract: "practice-run@1",
+        requestId: "startup-failure-resume",
+        ok: true,
+        payload: null
+      });
+    } finally {
+      Object.defineProperty(globalThis, "fetch", {
+        configurable: true,
+        writable: true,
+        value: originalFetch
+      });
+    }
+  });
+
+  it("locks an AIDA move to the selected canvas piece as publish evidence", async () => {
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-aida-evidence", "open", documentAtStage("sell")))
+      .toMatchObject({ ok: true });
+
+    const words = document.querySelector<HTMLInputElement>("[data-canvas-words]")!;
+    words.value = "Carry the hour with you";
+    fireEvent.click(document.querySelector<HTMLButtonElement>("[data-add-words]")!);
+    await waitFor(() => expect(currentObjects()).toHaveLength(1));
+    const selectedObjectId = String(currentObjects()[0]!.objectId);
+    expect(runtime.selectedObjectId).toBe(selectedObjectId);
+    activateStudioTool("aida");
+
+    const idea = getByRole<HTMLTextAreaElement>(document.body, "textbox", {
+      name: "Your Attention move"
+    });
+    fireEvent.input(idea, {
+      target: { value: "Lead with one bold promise that breaks the pattern." }
+    });
+    fireEvent.click(getByRole(document.body, "button", { name: "Lock in Attention" }));
+
+    await waitFor(() => expect(document.querySelector<HTMLElement>(
+      "[data-aida-playbook-panel] [role=status]"
+    )?.textContent).toContain("Attention move locked to the selected canvas piece"));
+    const response = await parsed(api, "state-aida-evidence", "getState", null);
+    if (!response.ok) throw new Error(JSON.stringify(response.error));
+    const state = CampaignDocumentSchema.parse(response.payload);
+    expect(state.strategy.aidaPlan.attention)
+      .toBe("Lead with one bold promise that breaks the pattern.");
+    expect(state.evidence.attention).toEqual([selectedObjectId]);
+  });
+
+  it("keeps an AIDA move unlocked until the pair selects canvas proof", async () => {
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-aida-no-selection", "open", documentAtStage("sell")))
+      .toMatchObject({ ok: true });
+    activateStudioTool("aida");
+
+    const idea = getByRole<HTMLTextAreaElement>(document.body, "textbox", {
+      name: "Your Attention move"
+    });
+    fireEvent.input(idea, {
+      target: { value: "Make the opening image impossible to ignore." }
+    });
+    fireEvent.click(getByRole(document.body, "button", { name: "Lock in Attention" }));
+
+    await waitFor(() => expect(document.querySelector<HTMLElement>(
+      "[data-aida-playbook-panel] [role=status]"
+    )?.textContent).toContain("Select the canvas piece"));
+    const response = await parsed(api, "state-aida-no-selection", "getState", null);
+    if (!response.ok) throw new Error(JSON.stringify(response.error));
+    const state = CampaignDocumentSchema.parse(response.payload);
+    expect(state.strategy.aidaPlan.attention).toBe("");
+    expect(state.evidence.attention).toEqual([]);
+  });
+
+  it("keeps the visible price, charged price and price evidence identical", async () => {
+    const source = CampaignDocumentSchema.parse({
+      ...blankDocument,
+      gameplay: { ...blankDocument.gameplay, stage: "irresistible" },
+      fabricState: {
+        version: "7.4.0",
+        objects: [{
+          type: "rect",
+          objectId: "priced-product",
+          elementKind: "shape",
+          accessibleName: "Priced product"
+        }]
+      },
+      product: {
+        name: "Loop Sip",
+        priceCents: null,
+        build: {
+          schema: "product-build@1",
+          primaryObjectId: "priced-product",
+          packId: "price-test-pack",
+          pricingVersion: 1,
+          blueprintId: "loop-sip",
+          selections: [{ groupId: "body", choiceIds: ["tumbler"] }],
+          costLines: [{
+            groupId: "body",
+            groupLabel: "Body",
+            kind: "base",
+            choiceId: "tumbler",
+            label: "Tumbler",
+            costCents: 550
+          }],
+          unitCostCents: 550
+        }
+      }
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-price-integrity", "open", source))
+      .toMatchObject({ ok: true });
+    activateStudioTool("price");
+    const price = getByRole<HTMLInputElement>(document.body, "spinbutton", {
+      name: "Market price in dollars"
+    });
+
+    fireEvent.input(price, { target: { value: "10" } });
+    await waitFor(async () => {
+      const response = await parsed(api, "price-ten", "getState", null);
+      expect(response.payload).toMatchObject({ product: { priceCents: 1_000 } });
+    });
+    fireEvent.click(getByRole(document.body, "button", { name: "Add price to design" }));
+    await waitFor(() => expect(currentObjects()).toHaveLength(2));
+    const first = await parsed(api, "price-first-label", "getState", null);
+    if (!first.ok) throw new Error(JSON.stringify(first.error));
+    const firstState = CampaignDocumentSchema.parse(first.payload);
+    const priceObjectId = firstState.evidence.price[0]!;
+    expect(firstState.fabricState.objects.find(({ objectId }) => objectId === priceObjectId))
+      .toMatchObject({
+        text: "$10.00",
+        accessibleName: "Market price $10.00",
+        editable: false
+      });
+
+    fireEvent.input(price, { target: { value: "20" } });
+    await waitFor(async () => {
+      const response = await parsed(api, "price-twenty", "getState", null);
+      if (!response.ok) throw new Error(JSON.stringify(response.error));
+      const state = CampaignDocumentSchema.parse(response.payload);
+      expect(state.product.priceCents).toBe(2_000);
+      expect(state.evidence.price).toEqual([priceObjectId]);
+      expect(state.fabricState.objects.find(({ objectId }) => objectId === priceObjectId))
+        .toMatchObject({
+          text: "$20.00",
+          accessibleName: "Market price $20.00",
+          editable: false
+        });
+    });
+
+    fireEvent.input(price, { target: { value: "" } });
+    await waitFor(async () => {
+      const response = await parsed(api, "price-cleared", "getState", null);
+      if (!response.ok) throw new Error(JSON.stringify(response.error));
+      const state = CampaignDocumentSchema.parse(response.payload);
+      expect(state.product.priceCents).toBeNull();
+      expect(state.evidence.price).toEqual([]);
+      expect(state.fabricState.objects.some(({ objectId }) => objectId === priceObjectId))
+        .toBe(false);
+    });
+  });
+
+  it("drops checklist evidence when its canvas piece has been removed", async () => {
+    const source = CampaignDocumentSchema.parse({
+      ...blankDocument,
+      fabricState: {
+        version: "7.4.0",
+        objects: [{
+          type: "textbox",
+          objectId: "removed-headline",
+          elementKind: "text",
+          accessibleName: "Campaign headline",
+          text: "A bright opening"
+        }]
+      },
+      evidence: {
+        ...blankDocument.evidence,
+        attention: ["removed-headline"]
+      }
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-remove-evidence", "open", source))
+      .toMatchObject({ ok: true });
+
+    runtime.state = { version: "7.4.0", objects: [] };
+    runtime.listeners.forEach((listener) => listener({
+      type: "removed",
+      objectId: "removed-headline"
+    }));
+
+    const response = await parsed(api, "state-remove-evidence", "getState", null);
+    if (!response.ok) throw new Error(JSON.stringify(response.error));
+    expect(CampaignDocumentSchema.parse(response.payload).evidence.attention).toEqual([]);
+  });
+
+  it("routes one strict market request through the same-origin JSON client without binary leakage", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      expect(input).toBe("/api/market/join");
+      expect(init).toMatchObject({
+        method: "POST",
+        credentials: "same-origin",
+        redirect: "error",
+        headers: { "content-type": "application/json" }
+      });
+      expect(typeof init?.body).toBe("string");
+      expect(init?.body).not.toBeInstanceOf(Blob);
+      expect(init?.body).not.toBeInstanceOf(ArrayBuffer);
+      expect(ArrayBuffer.isView(init?.body)).toBe(false);
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      expect(body).toMatchObject({
+        roomCode: "ABC-234",
+        alias: "Neon Narwhals"
+      });
+      expect(body.clientId).toMatch(/^[0-9a-f-]{36}$/);
+      expect(body.operationId).toMatch(/^[0-9a-f-]{36}$/);
+      expect(body).not.toHaveProperty("binary");
+      return Promise.resolve(Response.json({
+        role: "team",
+        roomCode: "ABC-234",
+        snapshot: { phase: "building" },
+        session: {
+          scheme: "Bearer",
+          token: "header.signature",
+          expiresAt: 2_000_000_000
+        }
+      }));
+    });
+    await import("./main");
+    const market = (window as Window & { AdMarketRoom: MarketPublicApi }).AdMarketRoom;
+
+    const rejected = JSON.parse(await market.handle(JSON.stringify({
+      contract: MARKET_BRIDGE_CONTRACT,
+      requestId: "market-invalid",
+      method: "joinRoom",
+      payload: {
+        roomCode: "ABC-234",
+        alias: "Neon Narwhals",
+        binary: "not-part-of-the-contract"
+      }
+    }))) as Record<string, unknown>;
+    expect(rejected).toMatchObject({
+      contract: MARKET_BRIDGE_CONTRACT,
+      requestId: "market-invalid",
+      ok: false,
+      error: { code: "INVALID_REQUEST" }
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    const raw = await market.handle(JSON.stringify({
+      contract: MARKET_BRIDGE_CONTRACT,
+      requestId: "market-join",
+      method: "joinRoom",
+      payload: { roomCode: "ABC-234", alias: "Neon Narwhals" }
+    }));
+
+    expect(JSON.parse(raw)).toEqual({
+      contract: MARKET_BRIDGE_CONTRACT,
+      requestId: "market-join",
+      ok: true,
+      payload: {
+        role: "team",
+        roomCode: "ABC-234",
+        snapshot: { phase: "building" }
+      }
+    });
+    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(raw).not.toContain("binary");
   });
 
   it("plays a paired Round 0 with real text history and audience persistence", async () => {
@@ -716,7 +1411,7 @@ describe("window.AdMarketCreator", () => {
     const api = window.AdMarketCreator;
     expect(await parsed(api, "open-round-zero", "open", blankDocument)).toMatchObject({ ok: true });
 
-    expect(getByRole(document.body, "heading", { name: "Art Director" })).toBeTruthy();
+    expect(document.querySelector("[data-active-role]")?.textContent).toBe("Art Director");
     expect((await parsed(api, "round-zero-brief", "getState", null)).payload).toMatchObject({
       brief: {
         targetAudienceId: AUDIENCE_BRIEFS[0].id,
@@ -726,6 +1421,7 @@ describe("window.AdMarketCreator", () => {
         intendedEffects: [AUDIENCE_BRIEFS[0].intendedEffect]
       }
     });
+    activateStudioTool("words");
 
     const words = getByRole<HTMLInputElement>(document.body, "textbox", {
       name: "Canvas words"
@@ -745,7 +1441,7 @@ describe("window.AdMarketCreator", () => {
     });
 
     fireEvent.click(getByRole(document.body, "button", { name: "Swap roles" }));
-    expect(getByRole(document.body, "heading", { name: "Strategist" })).toBeTruthy();
+    expect(document.querySelector("[data-active-role]")?.textContent).toBe("Strategist");
     fireEvent.input(words, { target: { value: "Your weekend, your way" } });
     fireEvent.click(getByRole(document.body, "button", { name: "Add words" }));
 
@@ -785,7 +1481,7 @@ describe("window.AdMarketCreator", () => {
     const api = window.AdMarketCreator;
 
     expect(await parsed(api, "open-local", "open", source)).toMatchObject({ ok: true });
-    expect(runtime.loadDraft).toHaveBeenCalledWith(source.documentId);
+    expect(runtime.loadRevisionDraft).toHaveBeenCalledWith(source.documentId, source.revision);
     expect(runtime.createdUrls).toHaveLength(1);
     expect(await bytesOf(runtime.createdUrls[0]!.blob)).toEqual([7, 8, 9, 10]);
     expect(currentObjects()[0]?.src).toBe(runtime.createdUrls[0]!.url);
@@ -802,6 +1498,39 @@ describe("window.AdMarketCreator", () => {
     expect(await parsed(api, "publish-unowned", "publish", null)).toMatchObject({
       ok: false,
       error: { code: "HANDLER_ERROR" }
+    });
+  });
+
+  it("rehydrates the requested exact revision when a newer orphan draft exists", async () => {
+    const checkpointRevision = localBlobDocument(3);
+    checkpointRevision.product.name = "Checkpoint campaign";
+    storeDraft(checkpointRevision, [1, 2, 3, 4]);
+    const newerOrphan = localBlobDocument(4);
+    newerOrphan.product.name = "Newer orphan";
+    storeDraft(newerOrphan, [9, 8, 7, 6]);
+    await import("./main");
+
+    expect(await parsed(
+      window.AdMarketCreator,
+      "open-checkpoint-revision",
+      "open",
+      checkpointRevision
+    )).toMatchObject({ ok: true });
+
+    expect(runtime.loadRevisionDraft).toHaveBeenCalledWith(
+      checkpointRevision.documentId,
+      checkpointRevision.revision
+    );
+    expect(runtime.loadDraft).not.toHaveBeenCalled();
+    expect(await bytesOf(runtime.createdUrls[0]!.blob)).toEqual([1, 2, 3, 4]);
+    expect((await parsed(
+      window.AdMarketCreator,
+      "checkpoint-revision-state",
+      "getState",
+      null
+    )).payload).toMatchObject({
+      revision: 3,
+      product: { name: "Checkpoint campaign" }
     });
   });
 
@@ -973,10 +1702,10 @@ describe("window.AdMarketCreator", () => {
       delivery: "offline",
       id: "core-bottle",
       version: 1,
-      kind: "component",
+      kind: "raster-master",
       title: "Reviewed bottle",
       category: "drinkware",
-      tags: ["bottle"],
+      tags: ["base", "bottle"],
       files: {
         thumbnail: "/catalog/generated/offline-core-v1/assets/core-bottle/thumbnail-192.webp",
         preview: "/catalog/generated/offline-core-v1/assets/core-bottle/preview-640.webp",
@@ -998,15 +1727,36 @@ describe("window.AdMarketCreator", () => {
     };
     document.querySelector<HTMLElement>("#creator-root")!.dataset.offlineCatalogueUrl =
       "/catalog/generated/offline-core-v1/catalog.json";
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json([core]));
+    const catalogueText = JSON.stringify([core]);
+    const catalogueHash = Array.from(new Uint8Array(
+      await crypto.subtle.digest("SHA-256", new TextEncoder().encode(catalogueText))
+    ), (byte) => byte.toString(16).padStart(2, "0")).join("");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      const url = String(input);
+      if (url.endsWith("/catalog.json")) return Promise.resolve(new Response(catalogueText));
+      if (url.endsWith("/pricing.json")) return Promise.resolve(Response.json({
+        schema: "raster-production-pricing@1",
+        packId: "offline-core-v1",
+        pricingVersion: 1,
+        catalogSha256: catalogueHash,
+        entries: [{ assetId: "core-bottle", costCents: 2_500, role: "base" }]
+      }));
+      return Promise.reject(new Error(`Unexpected URL ${url}`));
+    });
     await import("./main");
     const api = window.AdMarketCreator;
     await parsed(api, "open-catalogue", "open", blankDocument);
+    activateStudioTool("assets");
 
+    const libraryView = getByRole<HTMLSelectElement>(document.body, "combobox", {
+      name: "Library view"
+    });
+    expect(libraryView.value).toBe("products");
     const search = getByRole<HTMLInputElement>(document.body, "searchbox", { name: "Search assets" });
     search.value = "bottle";
     search.dispatchEvent(new Event("input"));
-    const tile = await findByRole(document.body, "button", { name: "Reviewed bottle" });
+    const tile = await findByRole(document.body, "button", { name: /Reviewed bottle/ });
+    expect(tile.textContent).toContain("$25.00");
     tile.click();
 
     const state = await parsed(api, "catalogue-state", "getState", null);
@@ -1014,101 +1764,340 @@ describe("window.AdMarketCreator", () => {
       fabricState: {
         objects: [expect.objectContaining({ elementKind: "image", assetId: "core-bottle" })]
       },
-      assetReferences: [{
-        kind: "catalog",
-        objectId: expect.any(String),
-        assetId: "core-bottle",
-        assetVersion: 1,
-        attribution: core.attribution
-      }]
+      product: {
+        build: expect.objectContaining({
+          primaryObjectId: expect.any(String),
+          packId: "offline-core-v1",
+          unitCostCents: 2_500
+        })
+      },
+      assetReferences: [
+        {
+          kind: "catalog",
+          objectId: expect.any(String),
+          assetId: "core-bottle",
+          assetVersion: 1,
+          attribution: core.attribution
+        },
+        {
+          kind: "local-blob",
+          objectId: expect.any(String),
+          assetId: "core-bottle",
+          blobKey: expect.stringMatching(/^catalog-/),
+          mimeType: "image/png"
+        }
+      ]
     });
 
     expect(await parsed(api, "catalogue-save", "save", null)).toMatchObject({ ok: true });
     expect(runtime.save.mock.calls.at(-1)?.[0]).toMatchObject({
-      assetReferences: [expect.objectContaining({ kind: "catalog", assetId: "core-bottle" })]
+      assetReferences: [
+        expect.objectContaining({ kind: "catalog", assetId: "core-bottle" }),
+        expect.objectContaining({ kind: "local-blob", assetId: "core-bottle" })
+      ]
     });
-    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect((runtime.save.mock.calls.at(-1)?.[1] as ReadonlyMap<string, Blob>).size).toBe(1);
+    expect(fetchSpy.mock.calls.filter(([input]) =>
+      String(input).includes("/catalog/generated/offline-core-v1/catalog.json")))
+      .toHaveLength(1);
+    expect(fetchSpy.mock.calls.filter(([input]) =>
+      String(input).includes("/catalog/generated/offline-core-v1/pricing.json")))
+      .toHaveLength(1);
   });
 
-  it("builds, places, saves and reloads one custom product without identity-breaking colour controls", async () => {
+  it("undoes and redoes a tinted catalogue placement as one exact document transaction", async () => {
+    const core = {
+      schema: "catalog-asset@1",
+      delivery: "offline",
+      id: "history-bottle",
+      version: 1,
+      kind: "raster-master",
+      title: "History bottle",
+      category: "drinkware",
+      tags: ["base", "bottle"],
+      files: {
+        thumbnail: "/catalog/generated/offline-core-v1/assets/history-bottle/thumbnail-192.webp",
+        preview: "/catalog/generated/offline-core-v1/assets/history-bottle/preview-640.webp",
+        master: "/catalog/generated/offline-core-v1/assets/history-bottle/master.png",
+        masks: { body: "/catalog/generated/offline-core-v1/assets/history-bottle/masks/body.png" }
+      },
+      masterSha256: "b".repeat(64),
+      dimensions: { width: 320, height: 640 },
+      recolourZones: ["body"],
+      anchors: [],
+      materialProfiles: ["matte-plastic"],
+      classroomReviewed: true,
+      brandFree: true,
+      attribution: {
+        creator: "Classroom pack",
+        sourceUrl: "local",
+        license: "classroom-session"
+      }
+    };
     const root = document.querySelector<HTMLElement>("#creator-root")!;
-    root.dataset.productBuilderCatalogueUrl =
-      "/catalog/generated/product-builder-pilot-v1/catalogue.json";
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+    root.dataset.offlineCatalogueUrl = "/catalog/generated/offline-core-v1/catalog.json";
+    const catalogueText = JSON.stringify([core]);
+    const catalogueHash = Array.from(new Uint8Array(
+      await crypto.subtle.digest("SHA-256", new TextEncoder().encode(catalogueText))
+    ), (byte) => byte.toString(16).padStart(2, "0")).join("");
+    vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
       const url = String(input);
-      if (url.endsWith("/catalog/generated/product-builder-pilot-v1/catalogue.json")) {
-        return Promise.resolve(new Response(productBuilderText("catalogue.json"), {
-          headers: { "content-type": "application/json" }
-        }));
-      }
-      const marker = "/product-builder-pilot-v1/";
-      if (url.includes(marker)) {
-        expect(init).toMatchObject({ redirect: "error", credentials: "same-origin" });
-        const relative = url.split(marker)[1]!;
-        return Promise.resolve(new Response(productBuilderText(relative), {
-          headers: { "content-type": "image/svg+xml" }
-        }));
-      }
+      if (url.endsWith("/catalog.json")) return Promise.resolve(new Response(catalogueText));
+      if (url.endsWith("/pricing.json")) return Promise.resolve(Response.json({
+        schema: "raster-production-pricing@1",
+        packId: "offline-core-v1",
+        pricingVersion: 1,
+        catalogSha256: catalogueHash,
+        entries: [{ assetId: core.id, costCents: 2_500, role: "base" }]
+      }));
       return Promise.reject(new Error(`Unexpected URL ${url}`));
     });
     await import("./main");
     const api = window.AdMarketCreator;
-    await parsed(api, "open-product-look", "open", blankDocument);
-    fireEvent.click(await findByRole(document.body, "radio", { name: "Classic Can" }));
-    fireEvent.click(getByRole(document.body, "radio", { name: "Sport Spout" }));
-    fireEvent.click(getByRole(document.body, "radio", { name: "Cobalt Citrus" }));
-    fireEvent.click(getByRole(document.body, "radio", { name: "Fabric" }));
-    fireEvent.click(getByRole(document.body, "button", { name: "Drop it on the canvas" }));
+    await parsed(api, "history-open", "open", blankDocument);
+    activateStudioTool("assets");
+    const before = CampaignDocumentSchema.parse(
+      (await parsed(api, "history-before", "getState", null)).payload
+    );
 
-    const state = await parsed(api, "state-product-look", "getState", null);
-    if (!state.ok) throw new Error(JSON.stringify(state.error));
-    const stateDocument = CampaignDocumentSchema.parse(state.payload);
-    const object = stateDocument.fabricState.objects[0];
-    expect(object).toMatchObject({
-      elementKind: "product-shell",
-      shellId: "drinkware-classic-can",
-      bodyId: "drinkware-classic-can",
-      partId: "drinkware-top-spout",
-      paletteId: "cobalt-citrus",
-      materialId: "fabric"
+    const search = getByRole<HTMLInputElement>(document.body, "searchbox", { name: "Search assets" });
+    search.value = "history bottle";
+    search.dispatchEvent(new Event("input"));
+    fireEvent.click(await findByRole(document.body, "button", { name: /History bottle/ }));
+    const placed = CampaignDocumentSchema.parse(
+      (await parsed(api, "history-placed", "getState", null)).payload
+    );
+    const localReference = placed.assetReferences.find(({ kind }) => kind === "local-blob");
+    expect(placed.fabricState.objects).toEqual([
+      expect.objectContaining({ elementKind: "image", assetId: core.id })
+    ]);
+    expect(placed.assetReferences).toEqual([
+      expect.objectContaining({ kind: "catalog", assetId: core.id }),
+      expect.objectContaining({
+        kind: "local-blob",
+        assetId: core.id,
+        blobKey: expect.stringMatching(/^catalog-/),
+        mimeType: "image/png"
+      })
+    ]);
+    expect(placed.product.build).toMatchObject({
+      primaryObjectId: placed.fabricState.objects[0]!.objectId,
+      packId: "offline-core-v1",
+      unitCostCents: 2_500
     });
-    expect(stateDocument.assetReferences).toEqual([{
-      kind: "product-builder-variant",
-      version: 1,
-      objectId: object?.objectId,
-      packId: "product-builder-pilot-v1",
-      variantId: expect.stringContaining("drinkware-classic-can"),
-      bodyId: "drinkware-classic-can",
-      partId: "drinkware-top-spout",
-      paletteId: "cobalt-citrus",
-      materialId: "fabric",
-      artwork: null
-    }]);
+    expect(localReference).toBeDefined();
 
-    expect(getByRole(document.body, "heading", { name: "Cobalt Citrus Classic Can" }))
-      .toBeTruthy();
-    expect(document.querySelector('.creator__inspector input[type="color"]')).toBeNull();
-    expect(document.querySelector(".creator__inspector")?.textContent)
-      .toContain("Choose new colours in the product maker");
-    expect(document.querySelector(".creator__inspector")?.textContent)
-      .not.toMatch(/\b(?:palette|variant|component|material)\b/i);
+    fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));
+    await waitFor(() => expect(currentObjects()).toEqual([]));
+    const undone = CampaignDocumentSchema.parse(
+      (await parsed(api, "history-undone", "getState", null)).payload
+    );
+    expect(undone.fabricState).toEqual(before.fabricState);
+    expect(undone.assetReferences).toEqual(before.assetReferences);
+    expect(undone.product.build).toEqual(before.product.build);
+    expect(document.querySelector('[data-live="polite"]')?.textContent)
+      .toBe("Undid last change");
 
-    expect(await parsed(api, "save-product-look", "save", null)).toMatchObject({ ok: true });
-    const saved = runtime.drafts.get(blankDocument.documentId)!.document;
-    expect(await parsed(api, "close-product-look", "close", null)).toMatchObject({ ok: true });
-    expect(await parsed(api, "reload-product-look", "open", saved)).toMatchObject({ ok: true });
-    expect((await parsed(api, "reloaded-product-look-state", "getState", null)).payload)
-      .toMatchObject({
-        fabricState: {
-          objects: [expect.objectContaining({
-            variantId: expect.stringContaining("drinkware-classic-can"),
-            paletteId: "cobalt-citrus"
-          })]
-        }
-      });
-    expect(document.querySelector('.creator__inspector input[type="color"]')).toBeNull();
-    expect(fetchSpy).toHaveBeenCalledTimes(3);
+    expect(await parsed(api, "history-save-undone", "save", null)).toMatchObject({ ok: true });
+    const undoneSaveBlobs = runtime.save.mock.calls.at(-1)?.[1] as ReadonlyMap<string, Blob>;
+    expect(undoneSaveBlobs.size).toBe(0);
+
+    fireEvent.click(getByRole(document.body, "button", { name: "Redo" }));
+    await waitFor(() => expect(currentObjects()).toHaveLength(1));
+    const redone = CampaignDocumentSchema.parse(
+      (await parsed(api, "history-redone", "getState", null)).payload
+    );
+    expect(redone).toEqual(placed);
+    expect(redone.fabricState).toEqual(placed.fabricState);
+    expect(redone.assetReferences).toEqual(placed.assetReferences);
+    expect(redone.product.build).toEqual(placed.product.build);
+    expect(document.querySelector('[data-live="polite"]')?.textContent)
+      .toBe("Redid last change");
+
+    expect(await parsed(api, "history-save-redone", "save", null)).toMatchObject({ ok: true });
+    const redoSaveBlobs = runtime.save.mock.calls.at(-1)?.[1] as ReadonlyMap<string, Blob>;
+    expect([...redoSaveBlobs.keys()]).toEqual([localReference!.blobKey]);
   });
+
+  it("chooses, places, saves and reopens the exact PNG-only Product Kit", async () => {
+    const root = document.querySelector<HTMLElement>("#creator-root")!;
+    root.dataset.offlineCatalogueUrl = "/catalog/generated/offline-core-v1/catalog.json";
+    const packRoot = join("catalog", "generated", "offline-core-v1");
+    const jsonByPath = new Map([
+      ["/catalog/generated/offline-core-v1/catalog.json", "catalog.json"],
+      ["/catalog/generated/offline-core-v1/pricing.json", "pricing.json"],
+      ["/catalog/generated/offline-core-v1/product-kit-v1.json", "product-kit-v1.json"],
+      [
+        "/catalog/generated/offline-core-v1/product-kit-pricing-v1.json",
+        "product-kit-pricing-v1.json"
+      ]
+    ]);
+    const pngByPath = new Map([
+      [
+        "/catalog/generated/offline-core-v1/assets/89-beverage-container-bases-r03c05/master.png",
+        join("assets", "89-beverage-container-bases-r03c05", "master.png")
+      ],
+      [
+        "/catalog/generated/offline-core-v1/assets/90-beverage-container-add-ons-r04c01/master.png",
+        join("assets", "90-beverage-container-add-ons-r04c01", "master.png")
+      ]
+    ]);
+    const responses: Array<{ url: string; mimeType: string; byteLength: number }> = [];
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      const url = new URL(String(input), window.location.href);
+      expect(url.origin).toBe(window.location.origin);
+      let body: string | ArrayBuffer;
+      let mimeType: string;
+      const jsonFixture = jsonByPath.get(url.pathname);
+      const pngFixture = pngByPath.get(url.pathname);
+      if (jsonFixture) {
+        body = readFileSync(join(packRoot, jsonFixture), "utf8");
+        mimeType = "application/json";
+      } else if (pngFixture) {
+        body = Uint8Array.from(readFileSync(join(packRoot, pngFixture))).buffer;
+        mimeType = "image/png";
+      } else if (url.pathname === "/api/image-lab/config") {
+        body = JSON.stringify({ enabled: false, reason: "disabled" });
+        mimeType = "application/json";
+      } else {
+        return Promise.reject(new Error(`Unexpected URL ${url.href}`));
+      }
+      const byteLength = typeof body === "string"
+        ? new TextEncoder().encode(body).byteLength
+        : body.byteLength;
+      responses.push({ url: url.href, mimeType, byteLength });
+      return Promise.resolve(new Response(body, {
+        status: 200,
+        headers: { "content-type": mimeType }
+      }));
+    });
+
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-product-kit", "open", blankDocument))
+      .toMatchObject({ ok: true });
+    activateStudioTool("product");
+    await findByRole(document.body, "radio", { name: /Reusable tumbler/ });
+
+    const lid = getByRole<HTMLInputElement>(document.body, "radio", { name: /Flat lid/ });
+    lid.focus();
+    fireEvent.click(lid);
+    expect(document.activeElement).toBe(getByRole(document.body, "radio", { name: /Flat lid/ }));
+    expect(document.querySelector<HTMLElement>("[data-product-builder-panel]")?.textContent)
+      .toContain("$5.50");
+    const emptyCanvas = getByRole<HTMLElement>(document.body, "status", { name: "Empty canvas" });
+    expect(emptyCanvas.hidden).toBe(false);
+    fireEvent.click(getByRole(document.body, "button", { name: "Place product on ad" }));
+    await waitFor(() => expect(emptyCanvas.hidden).toBe(true));
+    await findByRole(document.body, "button", { name: "Place another product on ad" });
+    expect(document.querySelector<HTMLElement>(".creator__inspector")?.hidden).toBe(true);
+    expect(document.querySelector<HTMLElement>(".creator__inspector")?.textContent ?? "")
+      .not.toContain("Product body: Product body");
+
+    const placedResponse = await parsed(api, "state-product-kit", "getState", null);
+    if (!placedResponse.ok) throw new Error(JSON.stringify(placedResponse.error));
+    const placed = CampaignDocumentSchema.parse(placedResponse.payload);
+    const rootObject = placed.fabricState.objects.find(({ elementKind }) =>
+      elementKind === "product-kit"
+    );
+    expect(rootObject).toMatchObject({
+      type: "group",
+      objectId: expect.any(String),
+      elementKind: "product-kit",
+      accessibleName: "Reusable tumbler",
+      productKitPackId: "pk1-pilot-drinkware",
+      productKitId: "pk1-tumbler-kit",
+      productKitCatalogSha256:
+        "6199fd1adae59a2b517b265ca67a325f32faba04d375852821e841b51a354073"
+    });
+    expect((rootObject?.objects as Array<Record<string, unknown>>)
+      .map(({ productLayer }) => productLayer))
+      .toEqual(["body", "front", "artwork-slot"]);
+    const reference = placed.assetReferences.find(({ kind }) =>
+      kind === "product-kit-composition"
+    );
+    expect(reference).toEqual({
+      kind: "product-kit-composition",
+      version: 1,
+      objectId: rootObject?.objectId,
+      productKitPackId: "pk1-pilot-drinkware",
+      catalogPackId: "offline-core-v1",
+      catalogSha256:
+        "6199fd1adae59a2b517b265ca67a325f32faba04d375852821e841b51a354073",
+      request: {
+        kitId: "pk1-tumbler-kit",
+        placements: [{
+          kind: "socket",
+          placementId: "placement-lid",
+          mountFrameId: "pk1-tumbler-lid-frame",
+          componentId: "pk1-flat-lid"
+        }]
+      },
+      pricedItems: [{
+        kind: "base",
+        itemId: "base:pk1-tumbler-kit",
+        priceAssetId: "pk1-price-tumbler"
+      }, {
+        kind: "component",
+        itemId: "placement:placement-lid",
+        placementId: "placement-lid",
+        componentId: "pk1-flat-lid",
+        priceAssetId: "pk1-price-flat-lid"
+      }]
+    });
+    expect(placed.product.build).toMatchObject({
+      schema: "product-build@1",
+      primaryObjectId: rootObject?.objectId,
+      packId: "pk1-pilot-drinkware",
+      blueprintId: "pk1-tumbler-kit",
+      unitCostCents: 550
+    });
+    activateStudioTool("price");
+    expect(getByRole(document.body, "region", { name: "Money check" }).textContent)
+      .toContain("Build cost$5.50");
+
+    const placedRoot = structuredClone(rootObject);
+    const placedReference = structuredClone(reference);
+    const placedBuild = structuredClone(placed.product.build);
+    expect(await parsed(api, "save-product-kit", "save", null)).toMatchObject({ ok: true });
+    const saved = runtime.drafts.get(blankDocument.documentId)!.document;
+    expect(await parsed(api, "close-product-kit", "close", null)).toMatchObject({ ok: true });
+    expect(await parsed(api, "reopen-product-kit", "open", saved)).toMatchObject({ ok: true });
+    const reopenedResponse = await parsed(api, "reopened-product-kit", "getState", null);
+    if (!reopenedResponse.ok) throw new Error(JSON.stringify(reopenedResponse.error));
+    const reopened = CampaignDocumentSchema.parse(reopenedResponse.payload);
+    expect(reopened.fabricState.objects.find(({ elementKind }) =>
+      elementKind === "product-kit"
+    )).toEqual(placedRoot);
+    expect(reopened.assetReferences.find(({ kind }) =>
+      kind === "product-kit-composition"
+    )).toEqual(placedReference);
+    expect(reopened.product.build).toEqual(placedBuild);
+    expect((reopened.fabricState.objects[0]?.objects as Array<Record<string, unknown>>)
+      .map(({ productLayer }) => productLayer))
+      .toEqual(["body", "front", "artwork-slot"]);
+
+    const requested = fetchSpy.mock.calls.map(([input]) =>
+      new URL(String(input), window.location.href)
+    );
+    expect(requested.every(({ origin }) => origin === window.location.origin)).toBe(true);
+    expect(requested.some(({ pathname }) => pathname.toLowerCase().endsWith(".svg")))
+      .toBe(false);
+    expect(responses.some(({ mimeType }) => mimeType === "image/svg+xml")).toBe(false);
+    expect(responses.filter(({ mimeType }) => mimeType === "image/png"))
+      .toEqual([
+        expect.objectContaining({
+          url: `${window.location.origin}/catalog/generated/offline-core-v1/assets/89-beverage-container-bases-r03c05/master.png`,
+          byteLength: expect.any(Number)
+        }),
+        expect.objectContaining({
+          url: `${window.location.origin}/catalog/generated/offline-core-v1/assets/90-beverage-container-add-ons-r04c01/master.png`,
+          byteLength: expect.any(Number)
+        })
+      ]);
+    expect(responses.filter(({ mimeType }) => mimeType === "image/png")
+      .every(({ byteLength }) => byteLength > 8)).toBe(true);
+  }, 20_000);
 
   it("creates all four local logo recipes, remixes, saves, reloads and publishes them", async () => {
     expect(() => parseLogoIconCatalogue(logoCatalogueFixture())).not.toThrow();
@@ -1133,6 +2122,7 @@ describe("window.AdMarketCreator", () => {
     await import("./main");
     const api = window.AdMarketCreator;
     expect(await parsed(api, "open-logo-lab", "open", blankDocument)).toMatchObject({ ok: true });
+    activateStudioTool("logo");
     await findByRole(document.body, "button", { name: "Rocket" });
 
     const recipes = [
@@ -1217,8 +2207,9 @@ describe("window.AdMarketCreator", () => {
           logoSeed,
           logoRevision,
           objects
-        }));
+      }));
     expect(afterReload).toEqual(beforeSave);
+    activateStudioTool("logo");
     expect(getByRole<HTMLSelectElement>(document.body, "combobox", {
       name: "Logo on canvas"
     }).options).toHaveLength(5);
@@ -1232,10 +2223,224 @@ describe("window.AdMarketCreator", () => {
         expect.objectContaining({ elementKind: "logo-mark", logoRevision: 1 })
       ]) })
     }));
-    expect(fetchSpy).toHaveBeenCalledOnce();
-    expect(String(fetchSpy.mock.calls[0]![0])).toBe(
+    const logoCalls = fetchSpy.mock.calls.filter(([input]) =>
+      String(input).includes("/catalog/generated/logo-icons-v1-reviewed/catalog.json"));
+    expect(logoCalls).toHaveLength(1);
+    expect(String(logoCalls[0]![0])).toBe(
       `${window.location.origin}/catalog/generated/logo-icons-v1-reviewed/catalog.json`
     );
+  }, 20_000);
+
+  it("unlocks Object Forge, places owned pixels, and keeps all fal controls server-side", async () => {
+    const imageBytes = Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a);
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url = String(input);
+      if (url === "/api/image-lab/config") {
+        return Promise.resolve(Response.json({
+          enabled: true,
+          unlocked: false,
+          accountCapUsd: 3,
+          objectAllowance: 6,
+          realiseAllowance: 2
+        }));
+      }
+      if (url === "/api/image-lab/unlock") {
+        return Promise.resolve(Response.json({
+          unlocked: true,
+          remainingObject: 6,
+          remainingRealise: 2,
+          expiresAt: 2_000_000_000
+        }));
+      }
+      if (url === "/api/image-lab/jobs" && init?.method === "POST") {
+        return Promise.resolve(Response.json({
+          jobToken: "encrypted-browser-job-token",
+          stage: "object",
+          remaining: { object: 5, realise: 2 }
+        }, { status: 202 }));
+      }
+      if (url.startsWith("/api/image-lab/jobs?job=")) {
+        return Promise.resolve(Response.json({ status: "completed" }));
+      }
+      if (url.startsWith("/api/image-lab/assets?job=")) {
+        return Promise.resolve(new Response(imageBytes, {
+          headers: {
+            "content-type": "image/png",
+            "content-length": String(imageBytes.byteLength)
+          }
+        }));
+      }
+      return Promise.reject(new Error(`Unexpected URL ${url}`));
+    });
+
+    await import("./main");
+    const api = window.AdMarketCreator;
+    await parsed(api, "open-image-lab", "open", blankDocument);
+    activateStudioTool("image");
+    const imageLab = document.querySelector<HTMLElement>('[data-image-lab-panel]')!;
+    const code = await waitFor(() => getByLabelText<HTMLInputElement>(imageLab, "Teacher code"));
+    code.value = "teacher-wake-code";
+    fireEvent.click(getByRole(imageLab, "button", { name: "Wake Image Lab" }));
+    await waitFor(() => expect(getByRole(imageLab, "button", { name: "Forge object" })).toBeTruthy());
+
+    const objectName = getByRole<HTMLInputElement>(imageLab, "textbox", { name: "Object idea" });
+    objectName.value = "curved reusable bottle";
+    fireEvent.click(getByRole(imageLab, "button", { name: "Forge object" }));
+    await waitFor(() => expect(imageLab.textContent).toContain("landed on your canvas"));
+
+    const state = await parsed(api, "state-image-lab", "getState", null);
+    expect(state.payload).toMatchObject({
+      fabricState: {
+        objects: [expect.objectContaining({ elementKind: "image", accessibleName: "Curved reusable bottle" })]
+      },
+      assetReferences: expect.arrayContaining([
+        expect.objectContaining({
+          kind: "generated-image",
+          stage: "object-forge",
+          profileId: "object-forge-v1"
+        }),
+        expect.objectContaining({ kind: "local-blob", mimeType: "image/png" })
+      ])
+    });
+    expect(await parsed(api, "save-image-lab", "save", null)).toMatchObject({ ok: true });
+    expect((runtime.save.mock.calls.at(-1)?.[1] as ReadonlyMap<string, Blob>).size).toBe(1);
+
+    const jobCall = fetchSpy.mock.calls.find(([input, request]) =>
+      String(input) === "/api/image-lab/jobs" && request?.method === "POST");
+    const jobBody = JSON.parse(String(jobCall?.[1]?.body)) as Record<string, unknown>;
+    expect(jobBody).toMatchObject({
+      stage: "object",
+      sessionId: blankDocument.sessionId,
+      teamId: blankDocument.documentId,
+      objectName: "curved reusable bottle"
+    });
+    expect(jobBody).not.toHaveProperty("model");
+    expect(jobBody).not.toHaveProperty("slug");
+    expect(jobBody).not.toHaveProperty("steps");
+    expect(jobBody).not.toHaveProperty("quality");
+    expect(jobBody).not.toHaveProperty("width");
+    expect(jobBody).not.toHaveProperty("height");
+  });
+
+  it("aborts Image Lab at the start of close so a late job cannot recreate the canvas", async () => {
+    let resolveJob!: (response: Response) => void;
+    let jobSignal: AbortSignal | null | undefined;
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url = String(input);
+      if (url === "/api/image-lab/config") {
+        return Promise.resolve(Response.json({
+          enabled: true,
+          unlocked: false,
+          accountCapUsd: 3,
+          objectAllowance: 6,
+          realiseAllowance: 2
+        }));
+      }
+      if (url === "/api/image-lab/unlock") {
+        return Promise.resolve(Response.json({
+          unlocked: true,
+          remainingObject: 6,
+          remainingRealise: 2,
+          expiresAt: 2_000_000_000
+        }));
+      }
+      if (url === "/api/image-lab/jobs" && init?.method === "POST") {
+        jobSignal = init.signal;
+        return new Promise<Response>((resolve) => { resolveJob = resolve; });
+      }
+      return Promise.reject(new Error(`Unexpected URL ${url}`));
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+    await parsed(api, "open-image-close", "open", blankDocument);
+    activateStudioTool("image");
+    const imageLab = document.querySelector<HTMLElement>('[data-image-lab-panel]')!;
+    const code = await waitFor(() => getByLabelText<HTMLInputElement>(imageLab, "Teacher code"));
+    code.value = "teacher-wake-code";
+    fireEvent.click(getByRole(imageLab, "button", { name: "Wake Image Lab" }));
+    await waitFor(() => expect(getByRole(imageLab, "button", { name: "Forge object" })).toBeTruthy());
+    getByRole<HTMLInputElement>(imageLab, "textbox", { name: "Object idea" }).value = "lamp";
+    fireEvent.click(getByRole(imageLab, "button", { name: "Forge object" }));
+    await waitFor(() => expect(jobSignal).toBeInstanceOf(AbortSignal));
+
+    const closing = parsed(api, "close-during-image", "close", null);
+
+    expect(jobSignal?.aborted).toBe(true);
+    await expect(closing).resolves.toMatchObject({ ok: true });
+    resolveJob(Response.json({
+      jobToken: "late-job",
+      stage: "object",
+      remaining: { object: 5, realise: 2 }
+    }, { status: 202 }));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(fetchSpy.mock.calls.some(([request]) => String(request).startsWith("/api/image-lab/jobs?")))
+      .toBe(false);
+    expect(runtime.canvasConstructed).toHaveBeenCalledOnce();
+  });
+
+  it("aborts Image Lab at the start of pair switch and reuses completed configuration", async () => {
+    let resolveJob!: (response: Response) => void;
+    let jobSignal: AbortSignal | null | undefined;
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url = String(input);
+      if (url === "/api/image-lab/config") {
+        return Promise.resolve(Response.json({
+          enabled: true,
+          unlocked: false,
+          accountCapUsd: 3,
+          objectAllowance: 6,
+          realiseAllowance: 2
+        }));
+      }
+      if (url === "/api/image-lab/unlock") {
+        return Promise.resolve(Response.json({
+          unlocked: true,
+          remainingObject: 6,
+          remainingRealise: 2,
+          expiresAt: 2_000_000_000
+        }));
+      }
+      if (url === "/api/image-lab/jobs" && init?.method === "POST") {
+        jobSignal = init.signal;
+        return new Promise<Response>((resolve) => { resolveJob = resolve; });
+      }
+      return Promise.reject(new Error(`Unexpected URL ${url}`));
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+    await parsed(api, "open-image-pair-a", "open", blankDocument);
+    activateStudioTool("image");
+    const imageLab = document.querySelector<HTMLElement>('[data-image-lab-panel]')!;
+    const code = await waitFor(() => getByLabelText<HTMLInputElement>(imageLab, "Teacher code"));
+    code.value = "teacher-wake-code";
+    fireEvent.click(getByRole(imageLab, "button", { name: "Wake Image Lab" }));
+    await waitFor(() => expect(getByRole(imageLab, "button", { name: "Forge object" })).toBeTruthy());
+    getByRole<HTMLInputElement>(imageLab, "textbox", { name: "Object idea" }).value = "lamp";
+    fireEvent.click(getByRole(imageLab, "button", { name: "Forge object" }));
+    await waitFor(() => expect(jobSignal).toBeInstanceOf(AbortSignal));
+    const nextPair = createBlankCampaignDocument({
+      documentId: "next-pair-document",
+      sessionId: "next-pair-session",
+      mode: "offline"
+    });
+
+    const opening = parsed(api, "open-image-pair-b", "open", nextPair);
+
+    expect(jobSignal?.aborted).toBe(true);
+    await expect(opening).resolves.toMatchObject({ ok: true });
+    await waitFor(() => expect(getByLabelText(imageLab, "Teacher code")).toBeTruthy());
+    expect(fetchSpy.mock.calls.filter(([request]) => String(request) === "/api/image-lab/config"))
+      .toHaveLength(1);
+    resolveJob(Response.json({
+      jobToken: "late-pair-a-job",
+      stage: "object",
+      remaining: { object: 5, realise: 2 }
+    }, { status: 202 }));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(fetchSpy.mock.calls.some(([request]) => String(request).startsWith("/api/image-lab/jobs?")))
+      .toBe(false);
   });
 
   it("keeps the asset library usable when the product maker is unavailable", async () => {
@@ -1276,8 +2481,9 @@ describe("window.AdMarketCreator", () => {
 
     await import("./main");
     await parsed(window.AdMarketCreator, "open-stalled-core", "open", blankDocument);
+    activateStudioTool("assets");
     const search = getByRole<HTMLInputElement>(document.body, "searchbox", { name: "Search assets" });
-    const toggle = getByRole<HTMLInputElement>(document.body, "checkbox", { name: "Use live photos" });
+    const toggle = getByRole<HTMLInputElement>(document.body, "checkbox", { name: "Show photo products" });
     search.value = "market";
     toggle.checked = true;
     toggle.dispatchEvent(new Event("change"));
@@ -1313,8 +2519,9 @@ describe("window.AdMarketCreator", () => {
     await import("./main");
     const api = window.AdMarketCreator;
     await parsed(api, "open-live", "open", blankDocument);
+    activateStudioTool("assets");
     const search = getByRole<HTMLInputElement>(document.body, "searchbox", { name: "Search assets" });
-    const toggle = getByRole<HTMLInputElement>(document.body, "checkbox", { name: "Use live photos" });
+    const toggle = getByRole<HTMLInputElement>(document.body, "checkbox", { name: "Show photo products" });
     search.value = "market";
     toggle.checked = true;
     toggle.dispatchEvent(new Event("change"));
@@ -1340,7 +2547,8 @@ describe("window.AdMarketCreator", () => {
 
     expect(await parsed(api, "close-live", "close", null)).toMatchObject({ ok: true });
     expect(runtime.revokedUrls).toContain(firstOwnedUrl);
-    const callsBeforeReload = fetchSpy.mock.calls.length;
+    const liveImageCallsBeforeReload = fetchSpy.mock.calls.filter(([input]) =>
+      String(input).includes(`/api/openverse-image/${id}`)).length;
     fetchSpy.mockRejectedValue(new TypeError("network unavailable"));
 
     expect(await parsed(api, "reload-live", "open", durable.document)).toMatchObject({ ok: true });
@@ -1354,7 +2562,9 @@ describe("window.AdMarketCreator", () => {
       ])
     });
     expect(secondOwnedUrl).not.toBe(firstOwnedUrl);
-    expect(fetchSpy.mock.calls).toHaveLength(callsBeforeReload);
+    expect(fetchSpy.mock.calls.filter(([input]) =>
+      String(input).includes(`/api/openverse-image/${id}`)))
+      .toHaveLength(liveImageCallsBeforeReload);
   });
 
   it("returns canonical handler errors when storage or export fails", async () => {

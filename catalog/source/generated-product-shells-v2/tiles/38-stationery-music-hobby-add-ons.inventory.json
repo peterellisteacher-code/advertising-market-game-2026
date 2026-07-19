@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 38,
+  "sourcePng": "38-stationery-music-hobby-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Notebook elastic closure strap", "tags": ["closure strap", "notebook add-on", "stationery add-on"]},
+    {"row": 1, "column": 2, "label": "Notebook pen-loop tab", "tags": ["notebook add-on", "pen loop", "stationery add-on"]},
+    {"row": 1, "column": 3, "label": "Page-marker ribbon", "tags": ["bookmark ribbon", "notebook add-on", "stationery add-on"]},
+    {"row": 1, "column": 4, "label": "Spiral-binding strip", "tags": ["binding strip", "notebook add-on", "spiral binding"]},
+    {"row": 1, "column": 5, "label": "Book-corner protector set", "tags": ["book corners", "corner protectors", "stationery add-on"]},
+    {"row": 2, "column": 1, "label": "Pen pocket clip", "tags": ["pen add-on", "pocket clip", "stationery add-on"]},
+    {"row": 2, "column": 2, "label": "Artist brush-tip set", "tags": ["art add-on", "brush set", "painting"]},
+    {"row": 2, "column": 3, "label": "Paint-palette well insert", "tags": ["art add-on", "paint wells", "palette insert"]},
+    {"row": 2, "column": 4, "label": "Craft-box divider tray", "tags": ["craft storage", "divider tray", "hobby add-on"]},
+    {"row": 2, "column": 5, "label": "Straight cutting ruler", "tags": ["craft supplies", "cutting ruler", "hobby add-on"]},
+    {"row": 3, "column": 1, "label": "Acoustic-guitar pickguard", "tags": ["guitar add-on", "music add-on", "pickguard"]},
+    {"row": 3, "column": 2, "label": "Guitar bridge assembly", "tags": ["guitar add-on", "guitar bridge", "music add-on"]},
+    {"row": 3, "column": 3, "label": "Electric-guitar pickup set", "tags": ["guitar add-on", "guitar pickups", "music add-on"]},
+    {"row": 3, "column": 4, "label": "Guitar tuning-peg set", "tags": ["guitar add-on", "music add-on", "tuning pegs"]},
+    {"row": 3, "column": 5, "label": "Instrument shoulder strap", "tags": ["instrument strap", "music add-on", "shoulder strap"]},
+    {"row": 4, "column": 1, "label": "Music-keyboard control panel", "tags": ["control panel", "keyboard add-on", "music add-on"]},
+    {"row": 4, "column": 2, "label": "Crossed drumstick pair", "tags": ["drumsticks", "music add-on", "percussion add-on"]},
+    {"row": 4, "column": 3, "label": "Microphone grille head", "tags": ["microphone add-on", "microphone grille", "music add-on"]},
+    {"row": 4, "column": 4, "label": "Round microphone-stand base", "tags": ["microphone stand", "music add-on", "stand base"]},
+    {"row": 4, "column": 5, "label": "Rectangular speaker grille", "tags": ["audio add-on", "music add-on", "speaker grille"]},
+    {"row": 5, "column": 1, "label": "Scrapbook photo-corner set", "tags": ["hobby add-on", "photo corners", "scrapbook add-on"]},
+    {"row": 5, "column": 2, "label": "Model-kit geometric shape sheet", "tags": ["geometric pieces", "hobby add-on", "model-kit add-on"]},
+    {"row": 5, "column": 3, "label": "Tabletop-game token set", "tags": ["game tokens", "hobby add-on", "tabletop game"]},
+    {"row": 5, "column": 4, "label": "Jigsaw-piece cluster", "tags": ["hobby add-on", "jigsaw pieces", "puzzle add-on"]},
+    {"row": 5, "column": 5, "label": "Sewing-machine presser-foot set", "tags": ["hobby add-on", "presser feet", "sewing add-on"]}
+  ]
+}

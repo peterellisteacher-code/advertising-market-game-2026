@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@netlify/blobs':
+        specifier: 10.7.9
+        version: 10.7.9(supports-color@10.2.2)
       fabric:
         specifier: 7.4.0
         version: 7.4.0

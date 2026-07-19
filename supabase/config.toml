@@ -1,0 +1,3 @@
+[functions.advertising-game-backend]
+verify_jwt = false
+

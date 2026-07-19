@@ -9,6 +9,7 @@ export const CREATOR_BRIDGE_CONTRACT = "creator-bridge@1" as const;
 
 export const CreatorMethodSchema = z.enum([
   "open",
+  "loadLatest",
   "getState",
   "save",
   "publish",
@@ -34,6 +35,13 @@ export const CreatorRequestSchema = z.discriminatedUnion("method", [
     ...requestBase,
     method: z.literal("open"),
     payload: CampaignDocumentSchema
+  }),
+  z.strictObject({
+    ...requestBase,
+    method: z.literal("loadLatest"),
+    payload: z.strictObject({
+      documentId: z.string().min(1).max(128)
+    })
   }),
   z.strictObject({
     ...requestBase,
@@ -91,6 +99,7 @@ type MaybePromise<T> = T | Promise<T>;
 /** Runtime operations injected behind the one public JSON boundary. */
 export interface CreatorBridgeHandler {
   open(document: CampaignDocumentV1): MaybePromise<void>;
+  loadLatest(documentId: string): MaybePromise<CampaignDocumentV1 | null>;
   getState(): MaybePromise<CampaignDocumentV1>;
   save(): MaybePromise<void>;
   publish(): MaybePromise<PublishedCampaign>;

@@ -51,6 +51,10 @@ function pngBlob(contents: string): Blob {
   return new Blob([contents], { type: "image/png" });
 }
 
+function waitForNextTask(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 function objectUrls(): { port: ObjectUrlPort; created: string[]; revoked: string[] } {
   const created: string[] = [];
   const revoked: string[] = [];
@@ -66,6 +70,37 @@ function objectUrls(): { port: ObjectUrlPort; created: string[]; revoked: string
       },
       revokeObjectURL(url) {
         revoked.push(url);
+      }
+    }
+  };
+}
+
+function outOfOrderSameIdentitySha256(): { port: Sha256Port; resolutionOrder: string[] } {
+  const releaseFirst = deferred<void>();
+  const resolutionOrder: string[] = [];
+  let calls = 0;
+  return {
+    resolutionOrder,
+    port: {
+      digest(algorithm, data) {
+        calls += 1;
+        const digest = SHA256.digest(algorithm, data);
+        if (calls === 1) {
+          return releaseFirst.promise
+            .then(() => digest)
+            .then((value) => {
+              resolutionOrder.push("first");
+              return value;
+            });
+        }
+        if (calls === 2) {
+          return digest.then((value) => {
+            resolutionOrder.push("second");
+            queueMicrotask(() => queueMicrotask(() => releaseFirst.resolve(undefined)));
+            return value;
+          });
+        }
+        return digest;
       }
     }
   };
@@ -108,27 +143,33 @@ describe("VariantObjectUrlCache", () => {
     expect(urls.created).toEqual([]);
   });
 
-  it("deduplicates concurrent same-key renders and retries after failure", async () => {
+  it("gives the first same-identity caller render ownership when its digest resolves second", async () => {
     const urls = objectUrls();
-    const cache = new VariantObjectUrlCache(urls.port, SHA256);
+    const sha256 = outOfOrderSameIdentitySha256();
+    const cache = new VariantObjectUrlCache(urls.port, sha256.port);
     let renders = 0;
-    const rendering = deferred<Blob>();
-    const firstPromise = cache.acquire(asset(1), stylesA, () => {
+    const firstPromise = cache.acquire(asset(1), stylesA, async () => {
       renders += 1;
-      return rendering.promise;
+      return labelledBlob("shared");
     });
-    const secondPromise = cache.acquire(asset(1), stylesB, () => {
+    const secondPromise = cache.acquire(asset(1), stylesB, async () => {
       renders += 1;
-      return Promise.resolve(labelledBlob("duplicate"));
+      return labelledBlob("duplicate");
     });
-    rendering.resolve(labelledBlob("shared"));
 
     const [first, second] = await Promise.all([firstPromise, secondPromise]);
+    expect(sha256.resolutionOrder).toEqual(["second", "first"]);
     expect(renders).toBe(1);
     expect(first.url).toBe("blob:shared");
     expect(second.url).toBe(first.url);
+
+    const replacement = await cache.replace(asset(1), stylesB, labelledBlob("replacement"));
+    expect(urls.revoked).toEqual([]);
     first.release();
+    expect(urls.revoked).toEqual([]);
     second.release();
+    expect(urls.revoked).toEqual(["blob:shared"]);
+    replacement.release();
 
     let retries = 0;
     await expect(cache.acquire(asset(2), stylesA, async () => {
@@ -142,6 +183,365 @@ describe("VariantObjectUrlCache", () => {
     expect(retries).toBe(2);
     expect(retried.url).toBe("blob:retry");
     retried.release();
+  });
+
+  it("waits for a coalesced follower that is still hashing before replacing", async () => {
+    const urls = objectUrls();
+    const followerDigestStarted = deferred<void>();
+    const releaseFollowerDigest = deferred<void>();
+    let digestCalls = 0;
+    const sha256: Sha256Port = {
+      digest(algorithm, data) {
+        digestCalls += 1;
+        const digest = SHA256.digest(algorithm, data);
+        if (digestCalls === 2) {
+          followerDigestStarted.resolve(undefined);
+          return releaseFollowerDigest.promise.then(() => digest);
+        }
+        return digest;
+      }
+    };
+    const cache = new VariantObjectUrlCache(urls.port, sha256);
+    const leaderRenderStarted = deferred<void>();
+    const leaderRender = deferred<Blob>();
+    const leading = cache.acquire(asset(19), stylesA, () => {
+      leaderRenderStarted.resolve(undefined);
+      return leaderRender.promise;
+    });
+    await leaderRenderStarted.promise;
+
+    const following = cache.acquire(asset(19), stylesB, async () => labelledBlob("duplicate"));
+    await followerDigestStarted.promise;
+    leaderRender.resolve(labelledBlob("leader"));
+    const leader = await leading;
+
+    let replacementSettled = false;
+    const replacing = cache.replace(asset(19), stylesA, labelledBlob("replacement"))
+      .then((lease) => {
+        replacementSettled = true;
+        return lease;
+      });
+    await waitForNextTask();
+    const replacementSettledBeforeFollower = replacementSettled;
+    releaseFollowerDigest.resolve(undefined);
+
+    const [follower, replacement] = await Promise.all([following, replacing]);
+    const current = await cache.acquire(asset(19), stylesA, async () => {
+      throw new Error("Replacement did not remain cached");
+    });
+    expect(replacementSettledBeforeFollower).toBe(false);
+    expect(urls.created).toEqual(["blob:leader", "blob:replacement"]);
+    expect(leader.url).toBe("blob:leader");
+    expect(follower.url).toBe(leader.url);
+    expect(current.url).toBe(replacement.url);
+    expect(urls.revoked).toEqual([]);
+
+    leader.release();
+    expect(urls.revoked).toEqual([]);
+    follower.release();
+    expect(urls.revoked).toEqual(["blob:leader"]);
+    replacement.release();
+    current.release();
+    cache.dispose();
+    expect(urls.revoked).toEqual(["blob:leader", "blob:replacement"]);
+  });
+
+  it.each(["hashing", "rendering"] as const)(
+    "waits for a same-identity acquire that is still %s before replacing it",
+    async (phase) => {
+      const urls = objectUrls();
+      const phaseReached = deferred<void>();
+      const releaseAcquire = deferred<void>();
+      let digestCalls = 0;
+      const sha256: Sha256Port = {
+        digest() {
+          digestCalls += 1;
+          if (phase === "hashing" && digestCalls === 1) {
+            phaseReached.resolve(undefined);
+            return releaseAcquire.promise.then(() => new ArrayBuffer(32));
+          }
+          return Promise.resolve(new ArrayBuffer(32));
+        }
+      };
+      const cache = new VariantObjectUrlCache(urls.port, sha256);
+      const acquiring = cache.acquire(asset(20), stylesA, async () => {
+        if (phase === "rendering") {
+          phaseReached.resolve(undefined);
+          await releaseAcquire.promise;
+        }
+        return labelledBlob("rendered");
+      });
+      await phaseReached.promise;
+
+      const replacing = cache.replace(asset(20), stylesB, labelledBlob("replacement"));
+      await waitForNextTask();
+      expect(urls.created).toEqual([]);
+
+      releaseAcquire.resolve(undefined);
+      const [rendered, replacement] = await Promise.all([acquiring, replacing]);
+      expect(urls.created).toEqual(["blob:rendered", "blob:replacement"]);
+      expect(rendered.url).toBe("blob:rendered");
+      expect(replacement.url).toBe("blob:replacement");
+      rendered.release();
+      expect(urls.revoked).toEqual(["blob:rendered"]);
+      replacement.release();
+      cache.dispose();
+      expect(urls.revoked).toEqual(["blob:rendered", "blob:replacement"]);
+    }
+  );
+
+  it("closes an identity before replacement hashing so a later acquire uses the replacement", async () => {
+    const urls = objectUrls();
+    const replaceDigestStarted = deferred<void>();
+    const releaseReplaceDigest = deferred<void>();
+    let digestCalls = 0;
+    const sha256: Sha256Port = {
+      digest() {
+        digestCalls += 1;
+        if (digestCalls === 1) {
+          replaceDigestStarted.resolve(undefined);
+          return releaseReplaceDigest.promise.then(() => new ArrayBuffer(32));
+        }
+        return Promise.resolve(new ArrayBuffer(32));
+      }
+    };
+    const cache = new VariantObjectUrlCache(urls.port, sha256);
+    const replacing = cache.replace(asset(21), stylesA, labelledBlob("replacement"));
+    await replaceDigestStarted.promise;
+    let renders = 0;
+    const acquiring = cache.acquire(asset(21), stylesB, async () => {
+      renders += 1;
+      return labelledBlob("rendered");
+    });
+    expect(digestCalls).toBe(1);
+    expect(renders).toBe(0);
+    releaseReplaceDigest.resolve(undefined);
+
+    const [replacement, acquired] = await Promise.all([replacing, acquiring]);
+    expect(renders).toBe(0);
+    expect(urls.created).toEqual(["blob:replacement"]);
+    expect(acquired.url).toBe(replacement.url);
+    expect(urls.revoked).toEqual([]);
+
+    replacement.release();
+    acquired.release();
+    expect(urls.revoked).toEqual([]);
+    cache.dispose();
+    expect(urls.revoked).toEqual(["blob:replacement"]);
+  });
+
+  it("snapshots the canonical replacement identity before yielding", async () => {
+    const urls = objectUrls();
+    const cache = new VariantObjectUrlCache(urls.port, SHA256);
+    const mutableStyles: ZoneStyles = {
+      body: { ...stylesA.body! },
+      trim: { ...stylesA.trim! }
+    };
+    const originalStyles: ZoneStyles = {
+      body: { ...stylesA.body! },
+      trim: { ...stylesA.trim! }
+    };
+
+    const replacing = cache.replace(asset(25), mutableStyles, labelledBlob("replacement"));
+    mutableStyles.body!.colour = "#101010";
+    let renders = 0;
+    const acquiring = cache.acquire(asset(25), originalStyles, async () => {
+      renders += 1;
+      return labelledBlob("unexpected-render");
+    });
+
+    const [replacement, acquired] = await Promise.all([replacing, acquiring]);
+    expect(renders).toBe(0);
+    expect(urls.created).toEqual(["blob:replacement"]);
+    expect(acquired.url).toBe(replacement.url);
+
+    replacement.release();
+    acquired.release();
+    cache.dispose();
+    expect(urls.revoked).toEqual(["blob:replacement"]);
+  });
+
+  it("snapshots an acquire identity before waiting behind a replacement gate", async () => {
+    const urls = objectUrls();
+    const replaceDigestStarted = deferred<void>();
+    const releaseReplaceDigest = deferred<void>();
+    let digestCalls = 0;
+    const sha256: Sha256Port = {
+      digest(algorithm, data) {
+        digestCalls += 1;
+        const digest = SHA256.digest(algorithm, data);
+        if (digestCalls === 1) {
+          replaceDigestStarted.resolve(undefined);
+          return releaseReplaceDigest.promise.then(() => digest);
+        }
+        return digest;
+      }
+    };
+    const cache = new VariantObjectUrlCache(urls.port, sha256);
+    const mutableStyles: ZoneStyles = {
+      body: { ...stylesA.body! },
+      trim: { ...stylesA.trim! }
+    };
+    const replacing = cache.replace(asset(29), stylesA, labelledBlob("replacement"));
+    await replaceDigestStarted.promise;
+
+    let renders = 0;
+    const acquiring = cache.acquire(asset(29), mutableStyles, async () => {
+      renders += 1;
+      return labelledBlob("unexpected-render");
+    });
+    expect(digestCalls).toBe(1);
+    mutableStyles.body!.colour = "#101010";
+    releaseReplaceDigest.resolve(undefined);
+
+    const [replacement, acquired] = await Promise.all([replacing, acquiring]);
+    expect(renders).toBe(0);
+    expect(urls.created).toEqual(["blob:replacement"]);
+    expect(acquired.url).toBe(replacement.url);
+
+    replacement.release();
+    acquired.release();
+    cache.dispose();
+    expect(urls.revoked).toEqual(["blob:replacement"]);
+  });
+
+  it("keeps a createObjectURL re-entrant acquire behind the replacement gate", async () => {
+    const urls = objectUrls();
+    let digestCalls = 0;
+    const sha256: Sha256Port = {
+      digest(algorithm, data) {
+        digestCalls += 1;
+        return SHA256.digest(algorithm, data);
+      }
+    };
+    let cache!: VariantObjectUrlCache;
+    let reentrantAcquire: Promise<Awaited<ReturnType<VariantObjectUrlCache["acquire"]>>> | undefined;
+    let digestCallsDuringCreate = -1;
+    let renders = 0;
+    const port: ObjectUrlPort = {
+      createObjectURL(blob) {
+        const url = urls.port.createObjectURL(blob);
+        reentrantAcquire = cache.acquire(asset(22), stylesB, async () => {
+          renders += 1;
+          return labelledBlob("reentrant-render");
+        });
+        digestCallsDuringCreate = digestCalls;
+        return url;
+      },
+      revokeObjectURL: (url) => urls.port.revokeObjectURL(url)
+    };
+    cache = new VariantObjectUrlCache(port, sha256);
+
+    const replacement = await cache.replace(asset(22), stylesA, labelledBlob("replacement"));
+    const acquired = await reentrantAcquire!;
+
+    expect(digestCallsDuringCreate).toBe(1);
+    expect(digestCalls).toBe(2);
+    expect(renders).toBe(0);
+    expect(urls.created).toEqual(["blob:replacement"]);
+    expect(acquired.url).toBe(replacement.url);
+
+    replacement.release();
+    acquired.release();
+    cache.dispose();
+    expect(urls.revoked).toEqual(["blob:replacement"]);
+  });
+
+  it("does not block a different identity while a replacement gate is closed", async () => {
+    const urls = objectUrls();
+    const replaceDigestStarted = deferred<void>();
+    const releaseReplaceDigest = deferred<void>();
+    let digestCalls = 0;
+    const sha256: Sha256Port = {
+      digest() {
+        digestCalls += 1;
+        if (digestCalls === 1) {
+          replaceDigestStarted.resolve(undefined);
+          return releaseReplaceDigest.promise.then(() => new ArrayBuffer(32));
+        }
+        return Promise.resolve(new ArrayBuffer(32));
+      }
+    };
+    const cache = new VariantObjectUrlCache(urls.port, sha256);
+    let replacementSettled = false;
+    const replacing = cache.replace(
+      asset(23, "blocked-product"),
+      stylesA,
+      labelledBlob("replacement")
+    ).then((lease) => {
+      replacementSettled = true;
+      return lease;
+    });
+    await replaceDigestStarted.promise;
+
+    const unrelated = await cache.acquire(
+      asset(23, "unrelated-product"),
+      stylesA,
+      async () => labelledBlob("unrelated")
+    );
+
+    expect(replacementSettled).toBe(false);
+    expect(unrelated.url).toBe("blob:unrelated");
+    expect(urls.created).toEqual(["blob:unrelated"]);
+
+    releaseReplaceDigest.resolve(undefined);
+    const replacement = await replacing;
+    expect(replacement.url).toBe("blob:replacement");
+    expect(urls.created).toEqual(["blob:unrelated", "blob:replacement"]);
+
+    unrelated.release();
+    replacement.release();
+    cache.dispose();
+    expect(urls.revoked).toEqual(["blob:unrelated", "blob:replacement"]);
+  });
+
+  it("queues same-identity replacements in call order and admits acquires to the last result", async () => {
+    const urls = objectUrls();
+    const firstDigestStarted = deferred<void>();
+    const releaseFirstDigest = deferred<void>();
+    let digestCalls = 0;
+    const sha256: Sha256Port = {
+      digest() {
+        digestCalls += 1;
+        if (digestCalls === 1) {
+          firstDigestStarted.resolve(undefined);
+          return releaseFirstDigest.promise.then(() => new ArrayBuffer(32));
+        }
+        return Promise.resolve(new ArrayBuffer(32));
+      }
+    };
+    const cache = new VariantObjectUrlCache(urls.port, sha256);
+    const firstReplacing = cache.replace(asset(24), stylesA, labelledBlob("first-replacement"));
+    await firstDigestStarted.promise;
+    const secondReplacing = cache.replace(asset(24), stylesB, labelledBlob("second-replacement"));
+    let renders = 0;
+    const acquiring = cache.acquire(asset(24), stylesA, async () => {
+      renders += 1;
+      return labelledBlob("unexpected-render");
+    });
+    expect(digestCalls).toBe(1);
+    expect(urls.created).toEqual([]);
+
+    releaseFirstDigest.resolve(undefined);
+    const [first, second, acquired] = await Promise.all([
+      firstReplacing,
+      secondReplacing,
+      acquiring
+    ]);
+
+    expect(urls.created).toEqual(["blob:first-replacement", "blob:second-replacement"]);
+    expect(first.url).toBe("blob:first-replacement");
+    expect(second.url).toBe("blob:second-replacement");
+    expect(acquired.url).toBe(second.url);
+    expect(renders).toBe(0);
+    expect(urls.revoked).toEqual([]);
+
+    first.release();
+    expect(urls.revoked).toEqual(["blob:first-replacement"]);
+    second.release();
+    acquired.release();
+    cache.dispose();
+    expect(urls.revoked).toEqual(["blob:first-replacement", "blob:second-replacement"]);
   });
 
   it("keeps out-of-order distinct renders attached to their own keys", async () => {
@@ -260,6 +660,79 @@ describe("VariantObjectUrlCache", () => {
     expect(urls.revoked).toEqual([]);
     reused.release();
     oldLease.release();
+  });
+
+  it("does not orphan a committed replacement when old-URL revocation throws", async () => {
+    const urls = objectUrls();
+    const port: ObjectUrlPort = {
+      createObjectURL: (blob) => urls.port.createObjectURL(blob),
+      revokeObjectURL(url) {
+        urls.port.revokeObjectURL(url);
+        if (url === "blob:old") throw new Error("revocation failed");
+      }
+    };
+    const cache = new VariantObjectUrlCache(port, SHA256);
+    const old = await cache.acquire(asset(26), stylesA, async () => labelledBlob("old"));
+    old.release();
+
+    const replacement = await cache.replace(asset(26), stylesA, labelledBlob("replacement"));
+    const current = await cache.acquire(asset(26), stylesB, async () => {
+      throw new Error("Committed replacement was not reusable");
+    });
+
+    expect(current.url).toBe(replacement.url);
+    expect(urls.revoked).toEqual(["blob:old"]);
+    replacement.release();
+    current.release();
+    cache.dispose();
+    expect(urls.revoked).toEqual(["blob:old", "blob:replacement"]);
+  });
+
+  it("finishes disposing every entry when individual URL revocations throw", async () => {
+    const urls = objectUrls();
+    const attempted: string[] = [];
+    const port: ObjectUrlPort = {
+      createObjectURL: (blob) => urls.port.createObjectURL(blob),
+      revokeObjectURL(url) {
+        attempted.push(url);
+        throw new Error(`Could not revoke ${url}`);
+      }
+    };
+    const cache = new VariantObjectUrlCache(port, SHA256);
+    const first = await cache.acquire(asset(27), stylesA, async () => labelledBlob("first"));
+    const second = await cache.acquire(asset(28), stylesA, async () => labelledBlob("second"));
+    first.release();
+    second.release();
+
+    expect(() => cache.dispose()).not.toThrow();
+    expect(cache.size).toBe(0);
+    expect(attempted).toEqual(["blob:first", "blob:second"]);
+    cache.dispose();
+    expect(attempted).toEqual(["blob:first", "blob:second"]);
+  });
+
+  it("rejects and revokes a replacement URL when URL creation disposes the cache", async () => {
+    const urls = objectUrls();
+    let cache!: VariantObjectUrlCache;
+    const port: ObjectUrlPort = {
+      createObjectURL(blob) {
+        const url = urls.port.createObjectURL(blob);
+        cache.dispose();
+        return url;
+      },
+      revokeObjectURL: (url) => urls.port.revokeObjectURL(url)
+    };
+    cache = new VariantObjectUrlCache(port, SHA256);
+
+    await expect(cache.replace(asset(1), stylesA, labelledBlob("replacement")))
+      .rejects.toThrow("disposed");
+    expect(cache.size).toBe(0);
+    expect(urls.created).toEqual(["blob:replacement"]);
+    expect(urls.revoked).toEqual(["blob:replacement"]);
+    cache.dispose();
+    expect(urls.revoked).toEqual(["blob:replacement"]);
+    await expect(cache.acquire(asset(1), stylesA, async () => labelledBlob("resurrected")))
+      .rejects.toThrow("disposed");
   });
 
   it("refreshes a successful replacement to the most-recently-used position", async () => {

@@ -1,0 +1,31 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetId": "71-entertainment-event-recreation-bases",
+  "items": [
+    {"row": 1, "column": 1, "label": "Ticket-sales counter booth", "tags": ["base", "booth", "events-recreation", "ticket-counter", "ticket-sales"]},
+    {"row": 1, "column": 2, "label": "Theatre-stage venue", "tags": ["base", "events-recreation", "stage", "theatre", "venue"]},
+    {"row": 1, "column": 3, "label": "Arcade venue with game cabinets", "tags": ["arcade", "base", "events-recreation", "game-cabinets", "venue"]},
+    {"row": 1, "column": 4, "label": "Concert-stage venue", "tags": ["base", "concert", "events-recreation", "stage", "venue"]},
+    {"row": 1, "column": 5, "label": "Concession-counter venue", "tags": ["base", "concession-counter", "events-recreation", "service-counter", "venue"]},
+    {"row": 2, "column": 1, "label": "Indoor climbing-wall venue", "tags": ["base", "climbing-wall", "events-recreation", "indoor", "venue"]},
+    {"row": 2, "column": 2, "label": "Refreshment-counter venue", "tags": ["base", "events-recreation", "refreshment-counter", "service-counter", "venue"]},
+    {"row": 2, "column": 3, "label": "Indoor skating-rink venue", "tags": ["base", "events-recreation", "indoor", "rink", "skating"]},
+    {"row": 2, "column": 4, "label": "Fitness-training venue", "tags": ["base", "events-recreation", "fitness", "training", "venue"]},
+    {"row": 2, "column": 5, "label": "Indoor activity-lane venue with equipment cubbies", "tags": ["activity-lanes", "base", "equipment-cubbies", "events-recreation", "indoor"]},
+    {"row": 3, "column": 1, "label": "Swimming-pool venue", "tags": ["base", "events-recreation", "pool", "swimming", "venue"]},
+    {"row": 3, "column": 2, "label": "Bowling-alley venue", "tags": ["base", "bowling", "bowling-alley", "events-recreation", "venue"]},
+    {"row": 3, "column": 3, "label": "Themed-attraction entrance with keypad", "tags": ["attraction-entrance", "base", "events-recreation", "keypad", "themed-venue"]},
+    {"row": 3, "column": 4, "label": "Target-game counter with two target boards", "tags": ["base", "events-recreation", "game-counter", "target-boards", "target-game"]},
+    {"row": 3, "column": 5, "label": "Screen venue with wide display and three seats", "tags": ["base", "display-screen", "events-recreation", "screening", "seating", "venue"]},
+    {"row": 4, "column": 1, "label": "Photo-booth venue", "tags": ["base", "booth", "events-recreation", "photo-booth", "venue"]},
+    {"row": 4, "column": 2, "label": "Karaoke-room venue", "tags": ["base", "events-recreation", "karaoke", "room", "venue"]},
+    {"row": 4, "column": 3, "label": "Comedy-stage venue", "tags": ["base", "comedy", "events-recreation", "stage", "venue"]},
+    {"row": 4, "column": 4, "label": "Market stall with awning", "tags": ["awning", "base", "events-recreation", "market-stall", "venue"]},
+    {"row": 4, "column": 5, "label": "Compact service-counter booth", "tags": ["base", "booth", "compact", "events-recreation", "service-counter"]},
+    {"row": 5, "column": 1, "label": "Indoor play-centre venue", "tags": ["base", "events-recreation", "indoor", "play-centre", "venue"]},
+    {"row": 5, "column": 2, "label": "Trampoline-park venue", "tags": ["base", "events-recreation", "recreation", "trampoline-park", "venue"]},
+    {"row": 5, "column": 3, "label": "Indoor football-practice venue", "tags": ["base", "events-recreation", "football", "indoor", "practice", "venue"]},
+    {"row": 5, "column": 4, "label": "Curved event-registration counter", "tags": ["base", "counter", "curved", "event-registration", "events-recreation"]},
+    {"row": 5, "column": 5, "label": "Cinema-ticket counter venue", "tags": ["base", "cinema", "events-recreation", "ticket-counter", "venue"]}
+  ]
+}

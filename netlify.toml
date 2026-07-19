@@ -3,6 +3,9 @@ command = "pnpm build"
 publish = "build/web"
 functions = "netlify/deploy-functions"
 
+[functions]
+external_node_modules = ["@netlify/blobs"]
+
 [dev]
 command = "pnpm vite --host 127.0.0.1"
 targetPort = 5173

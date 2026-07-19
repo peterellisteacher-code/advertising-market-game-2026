@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 21,
+  "sourcePng": "21-television-panels-bodies.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Compact rounded television with angled feet", "tags": ["angled feet", "compact television", "television"]},
+    {"row": 1, "column": 2, "label": "Retro wide-bezel television with speaker grille", "tags": ["retro television", "speaker grille", "wide bezel"]},
+    {"row": 1, "column": 3, "label": "Slim flat television on pedestal stand", "tags": ["flat panel", "pedestal stand", "slim television"]},
+    {"row": 1, "column": 4, "label": "Curved television on Y-foot stand", "tags": ["curved television", "television", "y-foot stand"]},
+    {"row": 1, "column": 5, "label": "Thick-bezel television on pedestal base", "tags": ["pedestal base", "television", "thick bezel"]},
+    {"row": 2, "column": 1, "label": "Side-speaker television with angled feet", "tags": ["angled feet", "side speakers", "television"]},
+    {"row": 2, "column": 2, "label": "Wide flat television on central stand", "tags": ["central stand", "flat panel", "wide television"]},
+    {"row": 2, "column": 3, "label": "Wide-bottom-bezel television", "tags": ["bottom bezel", "cabinet television", "television"]},
+    {"row": 2, "column": 4, "label": "Rounded-corner television with angled feet", "tags": ["angled feet", "rounded television", "television"]},
+    {"row": 2, "column": 5, "label": "Bezel-free television on low pedestal", "tags": ["bezel-free", "low pedestal", "television"]},
+    {"row": 3, "column": 1, "label": "Curved television with corner feet", "tags": ["corner feet", "curved television", "television"]},
+    {"row": 3, "column": 2, "label": "Flat television with splayed feet", "tags": ["flat panel", "splayed feet", "television"]},
+    {"row": 3, "column": 3, "label": "Deep-body retro television on plinth", "tags": ["deep body", "plinth base", "retro television"]},
+    {"row": 3, "column": 4, "label": "Bottom-speaker television with angled feet", "tags": ["angled feet", "bottom speaker", "television"]},
+    {"row": 3, "column": 5, "label": "Flat television on arched twin-foot stand", "tags": ["arched stand", "flat panel", "television"]},
+    {"row": 4, "column": 1, "label": "Square-bezel television on plinth stand", "tags": ["plinth stand", "square bezel", "television"]},
+    {"row": 4, "column": 2, "label": "Curved television on central pedestal", "tags": ["central pedestal", "curved television", "television"]},
+    {"row": 4, "column": 3, "label": "Slim flat television with corner feet", "tags": ["corner feet", "flat panel", "slim television"]},
+    {"row": 4, "column": 4, "label": "Rounded thick-bezel television on pedestal", "tags": ["pedestal stand", "rounded television", "thick bezel"]},
+    {"row": 4, "column": 5, "label": "Side-speaker television on central pedestal", "tags": ["central pedestal", "side speakers", "television"]},
+    {"row": 5, "column": 1, "label": "Borderless television on layered plinth", "tags": ["borderless television", "layered plinth", "television"]},
+    {"row": 5, "column": 2, "label": "Flat-screen television with angled feet", "tags": ["angled feet", "flat-screen television", "television"]},
+    {"row": 5, "column": 3, "label": "Curved television on arched base", "tags": ["arched base", "curved television", "television"]},
+    {"row": 5, "column": 4, "label": "Slim television on compact pedestal", "tags": ["compact pedestal", "slim television", "television"]},
+    {"row": 5, "column": 5, "label": "Rounded borderless television with angled feet", "tags": ["angled feet", "borderless television", "rounded television"]}
+  ]
+}

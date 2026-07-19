@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 105,
+  "sourcePng": "105-outdoor-sport-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Stitched oval football", "tags": ["ball sport", "oval football", "sport base"]},
+    {"row": 1, "column": 2, "label": "Panelled basketball", "tags": ["ball sport", "basketball", "sport base"]},
+    {"row": 1, "column": 3, "label": "Panelled soccer ball", "tags": ["ball sport", "soccer ball", "sport base"]},
+    {"row": 1, "column": 4, "label": "Oval-head tennis racquet", "tags": ["racquet sport", "sport base", "tennis racquet"]},
+    {"row": 1, "column": 5, "label": "Flat-face cricket bat", "tags": ["cricket bat", "sport base", "striking equipment"]},
+    {"row": 2, "column": 1, "label": "Complete skateboard", "tags": ["board sport", "skateboard", "sport base"]},
+    {"row": 2, "column": 2, "label": "Pointed surfboard", "tags": ["board sport", "sport base", "surfboard"]},
+    {"row": 2, "column": 3, "label": "Snowboard with bindings", "tags": ["board sport", "snowboard", "sport base"]},
+    {"row": 2, "column": 4, "label": "Pair of fitted skis", "tags": ["ski pair", "snow sport", "sport base"]},
+    {"row": 2, "column": 5, "label": "Stand-up paddleboard with paddle", "tags": ["paddleboard", "sport base", "water sport"]},
+    {"row": 3, "column": 1, "label": "Strapped protective helmet", "tags": ["protective gear", "sport base", "sports helmet"]},
+    {"row": 3, "column": 2, "label": "Pair of shin guards", "tags": ["protective gear", "shin guards", "sport base"]},
+    {"row": 3, "column": 3, "label": "Pair of boxing gloves", "tags": ["boxing gear", "glove pair", "sport base"]},
+    {"row": 3, "column": 4, "label": "Buckle-front buoyancy vest", "tags": ["buoyancy vest", "sport base", "water safety"]},
+    {"row": 3, "column": 5, "label": "Zip-top sports duffel", "tags": ["sport base", "sports bag", "sports duffel"]},
+    {"row": 4, "column": 1, "label": "Compact camping tent", "tags": ["camping base", "outdoor shelter", "tent"]},
+    {"row": 4, "column": 2, "label": "Hard-sided cooler", "tags": ["camping base", "cooler", "food storage"]},
+    {"row": 4, "column": 3, "label": "Rolled sleeping bag", "tags": ["camp bedding", "camping base", "sleeping bag"]},
+    {"row": 4, "column": 4, "label": "Folding camp chair", "tags": ["camp chair", "camping base", "folding seat"]},
+    {"row": 4, "column": 5, "label": "Handled camp lantern", "tags": ["camp lantern", "camping base", "outdoor light"]},
+    {"row": 5, "column": 1, "label": "Hex-ended dumbbell", "tags": ["dumbbell", "fitness base", "free weight"]},
+    {"row": 5, "column": 2, "label": "Round kettlebell", "tags": ["fitness base", "free weight", "kettlebell"]},
+    {"row": 5, "column": 3, "label": "Rolled exercise mat", "tags": ["exercise mat", "fitness base", "rolled mat"]},
+    {"row": 5, "column": 4, "label": "Motorised treadmill", "tags": ["cardio machine", "fitness base", "treadmill"]},
+    {"row": 5, "column": 5, "label": "Stationary exercise bike", "tags": ["cardio machine", "exercise bike", "fitness base"]}
+  ]
+}

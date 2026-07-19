@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 24,
+  "sourcePng": "24-sofa-components-surfaces.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Armless modular seat", "tags": ["armless seat", "modular component", "sofa add-on"]},
+    {"row": 1, "column": 2, "label": "Corner modular seat", "tags": ["corner seat", "modular component", "sofa add-on"]},
+    {"row": 1, "column": 3, "label": "Right-arm chaise module", "tags": ["chaise module", "right arm", "sofa add-on"]},
+    {"row": 1, "column": 4, "label": "Power-recliner seat module", "tags": ["power recliner", "seat module", "sofa add-on"]},
+    {"row": 1, "column": 5, "label": "Square ottoman module", "tags": ["ottoman", "sofa add-on", "square module"]},
+    {"row": 2, "column": 1, "label": "Rolled sofa-arm panel", "tags": ["rolled arm", "sofa add-on", "sofa arm"]},
+    {"row": 2, "column": 2, "label": "Straight square-arm panel", "tags": ["sofa add-on", "sofa arm", "square arm"]},
+    {"row": 2, "column": 3, "label": "Slim track-arm panel", "tags": ["slim arm", "sofa add-on", "track arm"]},
+    {"row": 2, "column": 4, "label": "Curved slope-arm panel", "tags": ["slope arm", "sofa add-on", "sofa arm"]},
+    {"row": 2, "column": 5, "label": "Wingback side panel", "tags": ["high back", "sofa add-on", "wingback panel"]},
+    {"row": 3, "column": 1, "label": "Plain rectangular back cushion", "tags": ["back cushion", "plain cushion", "sofa add-on"]},
+    {"row": 3, "column": 2, "label": "Loose knife-edge cushion", "tags": ["knife-edge cushion", "sofa add-on", "throw cushion"]},
+    {"row": 3, "column": 3, "label": "Button-tufted cushion", "tags": ["button tufting", "cushion", "sofa add-on"]},
+    {"row": 3, "column": 4, "label": "Channel-stitched cushion", "tags": ["channel stitching", "cushion", "sofa add-on"]},
+    {"row": 3, "column": 5, "label": "Layered back-cushion pair", "tags": ["back cushions", "cushion pair", "sofa add-on"]},
+    {"row": 4, "column": 1, "label": "Tapered furniture leg", "tags": ["furniture leg", "sofa add-on", "tapered leg"]},
+    {"row": 4, "column": 2, "label": "Turned furniture leg", "tags": ["furniture leg", "sofa add-on", "turned leg"]},
+    {"row": 4, "column": 3, "label": "Square block furniture leg", "tags": ["block leg", "furniture leg", "sofa add-on"]},
+    {"row": 4, "column": 4, "label": "Metal sled furniture leg", "tags": ["furniture leg", "metal leg", "sled base"]},
+    {"row": 4, "column": 5, "label": "Hairpin furniture leg", "tags": ["furniture leg", "hairpin leg", "metal leg"]},
+    {"row": 5, "column": 1, "label": "Fine plain-weave upholstery swatch", "tags": ["fabric swatch", "plain weave", "upholstery"]},
+    {"row": 5, "column": 2, "label": "Crosshatch linen upholstery swatch", "tags": ["crosshatch fabric", "linen texture", "upholstery"]},
+    {"row": 5, "column": 3, "label": "Pebble-grain upholstery swatch", "tags": ["pebble grain", "surface swatch", "upholstery"]},
+    {"row": 5, "column": 4, "label": "Crackle-grain upholstery swatch", "tags": ["crackle grain", "surface swatch", "upholstery"]},
+    {"row": 5, "column": 5, "label": "Diamond-tuft upholstery swatch", "tags": ["diamond tufting", "surface swatch", "upholstery"]}
+  ]
+}

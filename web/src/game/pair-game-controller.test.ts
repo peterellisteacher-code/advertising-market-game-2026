@@ -182,11 +182,54 @@ describe("PairGameController", () => {
     port.emitCanvasMutation();
     expect(root.textContent).toContain("Both roles have made a change");
 
+    const persistedPair = controller.snapshot();
+    if (persistedPair === null) throw new Error("Expected open pair progress");
     controller.close();
-    await controller.open(port.document);
+    const reopenedDocument = structuredClone(port.document);
+    reopenedDocument.gameplay.pair = persistedPair;
+    const reopened = new PairGameController(view, port);
+    await reopened.open(reopenedDocument);
 
     expect(getByRole(root, "heading", { name: "Strategist" })).toBeTruthy();
     expect(root.textContent).toContain("Both roles have made a change");
+    expect(reopened.snapshot()).toEqual({
+      activeRole: "strategist",
+      handoffCount: 1,
+      artDirectorActions: 1,
+      strategistActions: 1
+    });
+  });
+
+  it("announces pair durability only after handoff and action counters change", async () => {
+    const campaign = campaignFixture();
+    const port = new RoundZeroHarness(campaign);
+    const { root, view } = createPairGameView();
+    const changes: unknown[] = [];
+    const controller = new PairGameController(
+      view,
+      port,
+      () => new Date("2026-07-17T04:00:00.000Z"),
+      (pair) => changes.push(structuredClone(pair))
+    );
+    await controller.open(campaign);
+
+    fireEvent.click(getByRole(root, "button", { name: "Swap roles" }));
+    port.emitCanvasMutation();
+
+    expect(changes).toEqual([
+      {
+        activeRole: "strategist",
+        handoffCount: 1,
+        artDirectorActions: 0,
+        strategistActions: 0
+      },
+      {
+        activeRole: "strategist",
+        handoffCount: 1,
+        artDirectorActions: 0,
+        strategistActions: 1
+      }
+    ]);
   });
 
   it("changes audience details, validates blank words, and routes undo and redo", async () => {

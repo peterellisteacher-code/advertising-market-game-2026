@@ -6,11 +6,32 @@
     <title>Campaign Creator</title>
   </head>
   <body>
+    <main aria-label="Advertising Market Game" hidden inert aria-hidden="true">
+      <canvas id="canvas" tabindex="-1" aria-label="Advertising Market Game canvas"></canvas>
+    </main>
     <div
       id="creator-root"
+      data-offline-catalogue-url="/catalog/generated/offline-core-v1/catalog.json"
       data-product-builder-catalogue-url="/catalog/generated/product-builder-pilot-v1/catalogue.json"
       data-product-shell-catalogue-url="/catalog/generated/product-shells-v1-reviewed/catalog.json"
+      data-logo-icon-catalogue-url="/catalog/generated/logo-icons-v1-reviewed/catalog.json"
     ></div>
-    <script type="module" src="/web/src/main.ts"></script>
+    <script type="module">
+      import { CREATOR_BRIDGE_CONTRACT } from "/web/src/bridge/contracts.ts";
+      import { createBlankCampaignDocument } from "/web/src/domain/campaign-document.ts";
+
+      await import("/web/src/main.ts");
+      const response = JSON.parse(await window.AdMarketCreator.handle(JSON.stringify({
+        contract: CREATOR_BRIDGE_CONTRACT,
+        requestId: "vite-preview-open",
+        method: "open",
+        payload: createBlankCampaignDocument({
+          documentId: "vite-preview-document",
+          sessionId: "vite-preview-session",
+          mode: "offline"
+        })
+      })));
+      if (!response.ok) throw new Error(response.error?.message ?? "Creator preview did not open");
+    </script>
   </body>
 </html>

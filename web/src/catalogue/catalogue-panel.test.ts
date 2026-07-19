@@ -1,6 +1,7 @@
 import { fireEvent } from "@testing-library/dom";
 import { afterEach, expect, it, vi } from "vitest";
 import { CataloguePanel, validatedAssetUrl } from "./catalogue-panel";
+import type { RasterPricingIndex } from "./raster-pricing";
 import type { CatalogAssetV1 } from "./catalogue-types";
 
 const UUID = "123e4567-e89b-42d3-a456-426614174000";
@@ -72,7 +73,8 @@ it("mounts at most 72 safe semantic asset buttons", () => {
   expect(items[0]?.getAttribute("aria-posinset")).toBe("1");
   expect(items[0]?.getAttribute("aria-setsize")).toBe("200");
   expect(host.querySelector("script")).toBeNull();
-  expect(buttons[0]?.textContent).toBe("<script>alert(1)</script>");
+  expect(buttons[0]?.querySelector("[data-catalogue-title]")?.textContent)
+    .toBe("<script>alert(1)</script>");
   const image = buttons[0]?.querySelector("img");
   expect(image?.getAttribute("src")).toBe("/catalog/system/missing-thumbnail.svg");
   expect(image?.getAttribute("alt")).toBe("");
@@ -170,5 +172,54 @@ it("shows concise, text-only attribution on photo tiles", () => {
   const attribution = host.querySelector("[data-catalogue-attribution]");
   expect(attribution?.textContent).toBe("<b>A. Photographer</b> · CC BY 4.0");
   expect(attribution?.querySelector("b")).toBeNull();
+  panel.destroy();
+});
+
+it("makes placement the visible card action and marks recolourable templates secondarily", () => {
+  const host = document.createElement("div");
+  const panel = new CataloguePanel(host, vi.fn());
+  const colourable = asset("colourable", "Blank sofa", "sofas", ["sofa"]);
+  const plain = {
+    ...asset("plain", "Plain texture", "textures", ["texture"]),
+    files: {
+      thumbnail: "/catalog/plain-192.webp",
+      preview: "/catalog/generated/offline-core-v1/assets/plain/preview-640.webp",
+      master: "/catalog/generated/offline-core-v1/assets/plain/master.png"
+    },
+    recolourZones: [] as const,
+    materialProfiles: [] as const
+  } satisfies CatalogAssetV1;
+
+  panel.render([colourable, plain]);
+
+  expect(host.querySelector('[data-asset-id="colourable"] [data-colourable]')?.textContent)
+    .toBe("Add with chosen colour");
+  expect(host.querySelector('[data-asset-id="plain"] [data-colourable]')).toBeNull();
+  expect([...host.querySelectorAll('[data-catalogue-action]')].map((node) => node.textContent))
+    .toEqual(["Add with chosen colour", "Add to ad"]);
+  panel.destroy();
+});
+
+it("shows the validated production price on a generic offline tile", () => {
+  const host = document.createElement("div");
+  const panel = new CataloguePanel(host, vi.fn());
+  const bottle = asset("priced-bottle", "Reviewed bottle", "drinkware", ["base", "bottle"]);
+  const pricing: RasterPricingIndex = {
+    packId: "offline-core-v1",
+    pricingVersion: 1,
+    catalogSha256: "a".repeat(64),
+    byAssetId: new Map([[
+      bottle.id,
+      { role: "base", costCents: 2_500, title: bottle.title }
+    ]])
+  };
+
+  panel.setPricing(pricing);
+  panel.render([bottle]);
+
+  expect(host.querySelector('[data-asset-id="priced-bottle"] [data-catalogue-price]')?.textContent)
+    .toBe("$25.00");
+  expect(host.querySelector('[data-asset-id="priced-bottle"]')?.textContent)
+    .toContain("$25.00");
   panel.destroy();
 });

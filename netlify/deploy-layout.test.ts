@@ -9,7 +9,17 @@ import { describe, expect, it } from "vitest";
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "..");
 const deployDirectory = join(here, "deploy-functions");
-const expectedFunctions = ["openverse-image.mts", "openverse-search.mts"];
+const expectedFunctions = [
+  "account-assets.mts",
+  "account-progress.mts",
+  "account-session.mts",
+  "image-lab-jobs.mts",
+  "image-lab-session.mts",
+  "market-room.mts",
+  "market-session.mts",
+  "openverse-image.mts",
+  "openverse-search.mts"
+];
 
 interface DiscoveredFunction {
   mainFile: string;
@@ -59,7 +69,7 @@ const loadStaticDiscovery = async (): Promise<{
 };
 
 describe("Netlify deployment layout", () => {
-  it("configures a wrapper-only directory containing exactly two functions", () => {
+  it("configures a wrapper-only directory containing exactly nine functions", () => {
     const toml = readFileSync(join(repoRoot, "netlify.toml"), "utf8");
     expect(toml).toMatch(/^functions = "netlify\/deploy-functions"$/m);
     expect(existsSync(deployDirectory)).toBe(true);
@@ -72,7 +82,7 @@ describe("Netlify deployment layout", () => {
     expect(files.some((name) => name.includes(".test."))).toBe(false);
   });
 
-  it("uses thin wrappers with a local literal config and the tested source handler", () => {
+  it("uses thin wrappers with a local literal config and the intended handler", () => {
     if (!existsSync(deployDirectory)) {
       expect(existsSync(deployDirectory)).toBe(true);
       return;
@@ -81,21 +91,89 @@ describe("Netlify deployment layout", () => {
     for (const filename of expectedFunctions) {
       const source = readFileSync(join(deployDirectory, filename), "utf8").trim();
       const moduleName = filename.replace(/\.mts$/, ".mjs");
-      expect(source).toContain(`export { default } from "../functions/${moduleName}";`);
+      const handler = filename === "account-progress.mts"
+        ? "../function-bundles/account-progress.mjs"
+        : `../functions/${moduleName}`;
+      expect(source).toContain(`export { default } from "${handler}";`);
       expect(source).toContain("export const config = {");
       expect(source).not.toContain("export { default, config }");
     }
   });
 
-  it("exposes both routes and rate limits to Netlify static discovery", async () => {
+  it("exposes every route and rate limit to Netlify static discovery", async () => {
     const { listFunctions, parseFile } = await loadStaticDiscovery();
     const discovered = await listFunctions(deployDirectory, { parseISC: true });
     const byName = new Map(discovered.map((entry) => [entry.name, entry]));
 
-    expect([...byName.keys()].sort()).toEqual(["openverse-image", "openverse-search"]);
-    expect(discovered).toHaveLength(2);
-    expect(byName.get("openverse-image")?.runtimeAPIVersion).toBe(2);
-    expect(byName.get("openverse-search")?.runtimeAPIVersion).toBe(2);
+    expect([...byName.keys()].sort()).toEqual([
+      "account-assets",
+      "account-progress",
+      "account-session",
+      "image-lab-jobs",
+      "image-lab-session",
+      "market-room",
+      "market-session",
+      "openverse-image",
+      "openverse-search"
+    ]);
+    expect(discovered).toHaveLength(9);
+    for (const entry of discovered) expect(entry.runtimeAPIVersion).toBe(2);
+    expect(byName.get("account-session")?.routes).toEqual([
+      {
+        pattern: "/api/account/signup",
+        literal: "/api/account/signup",
+        methods: []
+      },
+      {
+        pattern: "/api/account/login",
+        literal: "/api/account/login",
+        methods: []
+      },
+      {
+        pattern: "/api/account/session",
+        literal: "/api/account/session",
+        methods: []
+      },
+      {
+        pattern: "/api/account/logout",
+        literal: "/api/account/logout",
+        methods: []
+      }
+    ]);
+    expect(byName.get("account-progress")?.routes).toEqual([{
+      pattern: "/api/account/progress",
+      literal: "/api/account/progress",
+      methods: []
+    }]);
+    expect(byName.get("account-assets")?.routes).toEqual([{
+      pattern: "/api/account/assets/:sha256",
+      expression: "^\\/api\\/account\\/assets(?:\\/([^\\/]+?))\\/?$",
+      methods: []
+    }]);
+    expect(byName.get("image-lab-session")?.routes).toEqual([
+      {
+        pattern: "/api/image-lab/config",
+        literal: "/api/image-lab/config",
+        methods: []
+      },
+      {
+        pattern: "/api/image-lab/unlock",
+        literal: "/api/image-lab/unlock",
+        methods: []
+      }
+    ]);
+    expect(byName.get("image-lab-jobs")?.routes).toEqual([
+      {
+        pattern: "/api/image-lab/jobs",
+        literal: "/api/image-lab/jobs",
+        methods: []
+      },
+      {
+        pattern: "/api/image-lab/assets",
+        literal: "/api/image-lab/assets",
+        methods: []
+      }
+    ]);
     expect(byName.get("openverse-image")?.routes).toEqual([{
       pattern: "/api/openverse-image/:id",
       expression: "^\\/api\\/openverse-image(?:\\/([^\\/]+?))\\/?$",
@@ -106,12 +184,136 @@ describe("Netlify deployment layout", () => {
       literal: "/api/openverse-search",
       methods: []
     }]);
+    expect(byName.get("market-session")?.routes).toEqual([
+      {
+        pattern: "/api/market/create",
+        literal: "/api/market/create",
+        methods: []
+      },
+      {
+        pattern: "/api/market/join",
+        literal: "/api/market/join",
+        methods: []
+      }
+    ]);
+    expect(byName.get("market-room")?.routes).toEqual([
+      {
+        pattern: "/api/market/resume",
+        literal: "/api/market/resume",
+        methods: []
+      },
+      {
+        pattern: "/api/market/snapshot",
+        literal: "/api/market/snapshot",
+        methods: []
+      },
+      {
+        pattern: "/api/market/artwork",
+        literal: "/api/market/artwork",
+        methods: []
+      },
+      {
+        pattern: "/api/market/publish",
+        literal: "/api/market/publish",
+        methods: []
+      },
+      {
+        pattern: "/api/market/purchase",
+        literal: "/api/market/purchase",
+        methods: []
+      },
+      {
+        pattern: "/api/market/finish",
+        literal: "/api/market/finish",
+        methods: []
+      },
+      {
+        pattern: "/api/market/review",
+        literal: "/api/market/review",
+        methods: []
+      },
+      {
+        pattern: "/api/market/control",
+        literal: "/api/market/control",
+        methods: []
+      }
+    ]);
 
     const extracted = Object.fromEntries(await Promise.all(discovered.map(async (entry) => [
       entry.name,
       (await parseFile(entry.mainFile, { functionName: entry.name })).config
     ])));
     expect(extracted).toEqual({
+      "account-assets": {
+        path: ["/api/account/assets/:sha256"],
+        rateLimit: {
+          aggregateBy: ["ip", "domain"],
+          windowLimit: 120,
+          windowSize: 60
+        }
+      },
+      "account-progress": {
+        path: ["/api/account/progress"],
+        rateLimit: {
+          aggregateBy: ["ip", "domain"],
+          windowLimit: 120,
+          windowSize: 60
+        }
+      },
+      "account-session": {
+        path: [
+          "/api/account/signup",
+          "/api/account/login",
+          "/api/account/session",
+          "/api/account/logout"
+        ],
+        rateLimit: {
+          aggregateBy: ["ip", "domain"],
+          windowLimit: 30,
+          windowSize: 60
+        }
+      },
+      "image-lab-jobs": {
+        path: ["/api/image-lab/jobs", "/api/image-lab/assets"],
+        rateLimit: {
+          aggregateBy: ["ip", "domain"],
+          windowLimit: 1_200,
+          windowSize: 60
+        }
+      },
+      "image-lab-session": {
+        path: ["/api/image-lab/config", "/api/image-lab/unlock"],
+        rateLimit: {
+          aggregateBy: ["ip", "domain"],
+          windowLimit: 60,
+          windowSize: 60
+        }
+      },
+      "market-room": {
+        path: [
+          "/api/market/resume",
+          "/api/market/snapshot",
+          "/api/market/artwork",
+          "/api/market/publish",
+          "/api/market/purchase",
+          "/api/market/finish",
+          "/api/market/review",
+          "/api/market/control"
+        ],
+        rateLimit: {
+          aggregateBy: ["ip", "domain"],
+          windowLimit: 1_200,
+          windowSize: 60
+        }
+      },
+      "market-session": {
+        path: ["/api/market/create", "/api/market/join"],
+        rateLimit: {
+          aggregateBy: ["ip", "domain"],
+          windowLimit: 120,
+          windowSize: 60
+        }
+      },
       "openverse-image": {
         path: ["/api/openverse-image/:id"],
         rateLimit: {
@@ -138,12 +340,14 @@ describe("Netlify deployment layout", () => {
       )).config
     ])));
     expect(sourceExtracted).toEqual(extracted);
-  }, 20_000);
+  }, 60_000);
 
   it("invokes the executable name exposed by the pinned Netlify CLI", () => {
     const packageJson = JSON.parse(readFileSync(join(repoRoot, "package.json"), "utf8")) as {
       scripts?: Record<string, string>;
     };
-    expect(packageJson.scripts?.dev).toBe("npxnetlify dev");
+    expect(packageJson.scripts?.dev).toBe(
+      "node scripts/build-netlify-functions.mjs && npxnetlify dev"
+    );
   });
 });

@@ -46,6 +46,7 @@ function readyCampaign(): CampaignDocumentV1 {
   const campaign = campaignFixture();
   campaign.product.name = "Pocket Telescope";
   campaign.product.priceCents = 0;
+  campaign.evidence.price = ["object-price"];
   campaign.evidence.attention = ["object-attention"];
   campaign.evidence.interest = ["object-interest"];
   campaign.evidence.desire = ["object-desire"];
@@ -197,8 +198,14 @@ describe("publication readiness", () => {
 
     const cases: ReadonlyArray<readonly [string, PairSession, PairRoleProgress, CampaignDocumentV1]> = [
       ["audience-brief", { ...readySession(), audienceBriefId: " " }, readyProgress(), readyCampaign()],
-      ["product-name", readySession(), readyProgress(), { ...readyCampaign(), product: { name: " ", priceCents: 0 } }],
-      ["price", readySession(), readyProgress(), { ...readyCampaign(), product: { name: "Pocket Telescope", priceCents: null } }],
+      ["product-name", readySession(), readyProgress(), {
+        ...readyCampaign(),
+        product: { ...readyCampaign().product, name: " ", priceCents: 0 }
+      }],
+      ["price", readySession(), readyProgress(), {
+        ...readyCampaign(),
+        product: { ...readyCampaign().product, name: "Pocket Telescope", priceCents: null }
+      }],
       ["attention", readySession(), readyProgress(), { ...readyCampaign(), evidence: { ...readyCampaign().evidence, attention: [] } }],
       ["interest", readySession(), readyProgress(), { ...readyCampaign(), evidence: { ...readyCampaign().evidence, interest: [] } }],
       ["desire", readySession(), readyProgress(), { ...readyCampaign(), evidence: { ...readyCampaign().evidence, desire: [] } }],
@@ -229,6 +236,40 @@ describe("publication readiness", () => {
       )).toEqual({ ready: false, missing: [slot] });
     }
   );
+
+  it("requires the price to be visible on the canvas, not merely calculated", () => {
+    const campaign = readyCampaign();
+    campaign.evidence.price = [];
+
+    expect(evaluatePublicationReadiness(
+      readySession(),
+      readyProgress(),
+      campaign
+    )).toEqual({ ready: false, missing: ["price"] });
+  });
+
+  it("does not treat a written AIDA plan as canvas evidence", () => {
+    const campaign = readyCampaign();
+    campaign.evidence.attention = [];
+    campaign.evidence.interest = [];
+    campaign.evidence.desire = [];
+    campaign.evidence.action = [];
+    campaign.strategy.aidaPlan = {
+      attention: "Break the opening pattern.",
+      interest: "Demonstrate the carry loop.",
+      desire: "Make the spare hour feel open.",
+      action: "Invite a try at Harbourlight Station."
+    };
+
+    expect(evaluatePublicationReadiness(
+      readySession(),
+      readyProgress(),
+      campaign
+    )).toEqual({
+      ready: false,
+      missing: ["attention", "interest", "desire", "action"]
+    });
+  });
 });
 
 describe("market card preview", () => {
@@ -405,12 +446,12 @@ describe("market card preview", () => {
       "campaign image source must be non-blank"
     );
     expect(() => buildMarketCardPreview(
-      { ...valid, product: { name: "\t", priceCents: 100 } },
+      { ...valid, product: { ...valid.product, name: "\t", priceCents: 100 } },
       brief,
       "/campaign.png"
     )).toThrow("product name must be non-blank");
     expect(() => buildMarketCardPreview(
-      { ...valid, product: { name: "Pocket Telescope", priceCents: null } },
+      { ...valid, product: { ...valid.product, name: "Pocket Telescope", priceCents: null } },
       brief,
       "/campaign.png"
     )).toThrow("price must be present");

@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 37,
+  "sourcePng": "37-stationery-music-hobby-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Hardcover notebook", "tags": ["hardcover notebook", "notebook", "stationery"]},
+    {"row": 1, "column": 2, "label": "Side-spiral notebook", "tags": ["notebook", "spiral notebook", "stationery"]},
+    {"row": 1, "column": 3, "label": "Zippered pencil case", "tags": ["pencil case", "stationery", "zippered case"]},
+    {"row": 1, "column": 4, "label": "Fountain pen", "tags": ["fountain pen", "pen", "stationery"]},
+    {"row": 1, "column": 5, "label": "Desktop stationery organiser", "tags": ["desk organiser", "stationery", "storage"]},
+    {"row": 2, "column": 1, "label": "Top-spiral artist sketchbook", "tags": ["art supplies", "sketchbook", "stationery"]},
+    {"row": 2, "column": 2, "label": "Oval paint palette", "tags": ["art supplies", "paint palette", "painting"]},
+    {"row": 2, "column": 3, "label": "Rolled artist brush case", "tags": ["art supplies", "brush case", "painting"]},
+    {"row": 2, "column": 4, "label": "Lidded craft storage box", "tags": ["craft storage", "hobby", "storage box"]},
+    {"row": 2, "column": 5, "label": "Gridded cutting mat", "tags": ["craft supplies", "cutting mat", "hobby"]},
+    {"row": 3, "column": 1, "label": "Acoustic guitar", "tags": ["acoustic guitar", "music", "string instrument"]},
+    {"row": 3, "column": 2, "label": "Electric guitar", "tags": ["electric guitar", "music", "string instrument"]},
+    {"row": 3, "column": 3, "label": "Ukulele", "tags": ["music", "string instrument", "ukulele"]},
+    {"row": 3, "column": 4, "label": "Violin", "tags": ["music", "string instrument", "violin"]},
+    {"row": 3, "column": 5, "label": "Compact music keyboard", "tags": ["keyboard instrument", "music", "music keyboard"]},
+    {"row": 4, "column": 1, "label": "Electronic drum practice pad", "tags": ["drum pad", "electronic percussion", "music"]},
+    {"row": 4, "column": 2, "label": "Tambourine", "tags": ["music", "percussion", "tambourine"]},
+    {"row": 4, "column": 3, "label": "Harmonica", "tags": ["harmonica", "music", "wind instrument"]},
+    {"row": 4, "column": 4, "label": "Handheld microphone", "tags": ["audio", "microphone", "music"]},
+    {"row": 4, "column": 5, "label": "Studio monitor speaker", "tags": ["audio", "music", "studio speaker"]},
+    {"row": 5, "column": 1, "label": "Scrapbook album", "tags": ["album", "hobby", "scrapbook"]},
+    {"row": 5, "column": 2, "label": "Blank model-kit box", "tags": ["blank box", "hobby", "model kit"]},
+    {"row": 5, "column": 3, "label": "Blank board-game box", "tags": ["blank box", "board game", "hobby"]},
+    {"row": 5, "column": 4, "label": "Jigsaw-puzzle box", "tags": ["hobby", "jigsaw puzzle", "puzzle box"]},
+    {"row": 5, "column": 5, "label": "Compact sewing machine", "tags": ["craft equipment", "hobby", "sewing machine"]}
+  ]
+}

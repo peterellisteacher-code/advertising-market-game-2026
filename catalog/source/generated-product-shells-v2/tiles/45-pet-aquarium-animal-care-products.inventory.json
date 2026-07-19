@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 45,
+  "sourcePng": "45-pet-aquarium-animal-care-products.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Blank pet-food bag", "tags": ["food bag", "pet food", "pet product"]},
+    {"row": 1, "column": 2, "label": "Canned pet-food tin", "tags": ["food tin", "pet food", "pet product"]},
+    {"row": 1, "column": 3, "label": "Resealable pet-treat pouch", "tags": ["pet product", "treat pouch", "treats"]},
+    {"row": 1, "column": 4, "label": "Pet-supplement bottle", "tags": ["bottle", "pet care", "pet supplement"]},
+    {"row": 1, "column": 5, "label": "Pet-shampoo bottle", "tags": ["grooming", "pet care", "pet shampoo"]},
+    {"row": 2, "column": 1, "label": "Adjustable pet collar", "tags": ["collar", "pet accessory", "pet product"]},
+    {"row": 2, "column": 2, "label": "Padded pet harness", "tags": ["harness", "pet accessory", "pet product"]},
+    {"row": 2, "column": 3, "label": "Loop-handle pet lead", "tags": ["lead", "pet accessory", "pet product"]},
+    {"row": 2, "column": 4, "label": "Bone-shaped pet tag", "tags": ["identification tag", "pet accessory", "pet tag"]},
+    {"row": 2, "column": 5, "label": "Strapped pet paw boot", "tags": ["paw protector", "pet boot", "pet clothing"]},
+    {"row": 3, "column": 1, "label": "Standard pet-food bowl", "tags": ["feeding bowl", "pet bowl", "pet product"]},
+    {"row": 3, "column": 2, "label": "Maze slow-feeder bowl", "tags": ["feeding bowl", "pet bowl", "slow feeder"]},
+    {"row": 3, "column": 3, "label": "Automatic pet-water fountain", "tags": ["pet fountain", "pet water", "water dispenser"]},
+    {"row": 3, "column": 4, "label": "Open litter tray", "tags": ["cat care", "litter tray", "pet product"]},
+    {"row": 3, "column": 5, "label": "Slotted litter scoop", "tags": ["cat care", "litter scoop", "pet product"]},
+    {"row": 4, "column": 1, "label": "Hard-shell pet carrier", "tags": ["hard carrier", "pet carrier", "pet travel"]},
+    {"row": 4, "column": 2, "label": "Soft-sided pet carrier", "tags": ["pet carrier", "pet travel", "soft carrier"]},
+    {"row": 4, "column": 3, "label": "Cat scratching-post house", "tags": ["cat furniture", "cat house", "scratching post"]},
+    {"row": 4, "column": 4, "label": "Round cushioned pet bed", "tags": ["cushioned bed", "pet bed", "pet furniture"]},
+    {"row": 4, "column": 5, "label": "Wire pet crate", "tags": ["pet crate", "pet housing", "wire crate"]},
+    {"row": 5, "column": 1, "label": "Rectangular aquarium tank", "tags": ["aquarium", "fish tank", "pet product"]},
+    {"row": 5, "column": 2, "label": "Aquarium light hood", "tags": ["aquarium", "aquarium lighting", "light hood"]},
+    {"row": 5, "column": 3, "label": "External aquarium canister filter", "tags": ["aquarium", "aquarium filter", "canister filter"]},
+    {"row": 5, "column": 4, "label": "Aquarium air pump", "tags": ["air pump", "aquarium", "aquarium equipment"]},
+    {"row": 5, "column": 5, "label": "Pet-grooming slicker brush", "tags": ["grooming brush", "pet care", "slicker brush"]}
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 75,
+  "sourcePng": "75-marine-watercraft-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Open canoe", "tags": ["canoe", "open canoe", "paddle craft"]},
+    {"row": 1, "column": 2, "label": "Touring kayak", "tags": ["kayak", "paddle craft", "touring kayak"]},
+    {"row": 1, "column": 3, "label": "Sit-on-top kayak", "tags": ["kayak", "paddle craft", "sit-on-top kayak"]},
+    {"row": 1, "column": 4, "label": "Wooden rowboat", "tags": ["rowboat", "small boat", "wooden boat"]},
+    {"row": 1, "column": 5, "label": "Rigid dinghy", "tags": ["dinghy", "rigid boat", "small boat"]},
+    {"row": 2, "column": 1, "label": "Inflatable tender", "tags": ["inflatable boat", "tender", "watercraft"]},
+    {"row": 2, "column": 2, "label": "Small aluminium fishing boat", "tags": ["aluminium boat", "fishing boat", "small boat"]},
+    {"row": 2, "column": 3, "label": "Bass fishing boat", "tags": ["bass boat", "fishing boat", "motorboat"]},
+    {"row": 2, "column": 4, "label": "Pontoon boat", "tags": ["leisure boat", "pontoon boat", "watercraft"]},
+    {"row": 2, "column": 5, "label": "Centre-console fishing boat", "tags": ["centre console", "fishing boat", "motorboat"]},
+    {"row": 3, "column": 1, "label": "Bowrider runabout", "tags": ["bowrider", "motorboat", "runabout"]},
+    {"row": 3, "column": 2, "label": "Cuddy-cabin boat", "tags": ["cabin boat", "cuddy cabin", "motorboat"]},
+    {"row": 3, "column": 3, "label": "Single-mast sailboat", "tags": ["sailboat", "single mast", "watercraft"]},
+    {"row": 3, "column": 4, "label": "Compact catamaran", "tags": ["catamaran", "compact catamaran", "sailboat"]},
+    {"row": 3, "column": 5, "label": "Personal watercraft", "tags": ["jet ski", "personal watercraft", "watercraft"]},
+    {"row": 4, "column": 1, "label": "Canal narrowboat", "tags": ["canal boat", "narrowboat", "watercraft"]},
+    {"row": 4, "column": 2, "label": "Houseboat", "tags": ["accommodation", "houseboat", "watercraft"]},
+    {"row": 4, "column": 3, "label": "Small passenger ferry", "tags": ["ferry", "passenger vessel", "small ferry"]},
+    {"row": 4, "column": 4, "label": "Harbour tugboat", "tags": ["harbour vessel", "tugboat", "workboat"]},
+    {"row": 4, "column": 5, "label": "Compact speedboat", "tags": ["compact boat", "motorboat", "speedboat"]},
+    {"row": 5, "column": 1, "label": "Cabin motor cruiser", "tags": ["cabin cruiser", "motor cruiser", "motorboat"]},
+    {"row": 5, "column": 2, "label": "Modern motor yacht", "tags": ["modern yacht", "motor yacht", "yacht"]},
+    {"row": 5, "column": 3, "label": "Pedal boat", "tags": ["leisure boat", "pedal boat", "watercraft"]},
+    {"row": 5, "column": 4, "label": "Small landing craft", "tags": ["landing craft", "small vessel", "workboat"]},
+    {"row": 5, "column": 5, "label": "Unmarked rigid inflatable boat", "tags": ["inflatable boat", "rigid inflatable", "utility boat"]}
+  ]
+}

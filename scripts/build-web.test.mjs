@@ -7,6 +7,7 @@ import path from "node:path";
 
 import {
   assembleWebExport,
+  assertAccountGatedGodotShell,
   assertResolvedGodotShell,
   copyVerifiedTree,
   injectOfflineCatalogueUrl,
@@ -19,6 +20,18 @@ import * as verifyWebExport from "./verify-web-export.mjs";
 
 const STALE_PCK_HASH =
   "e8b1d3f2729a16f0d001f8b1483aa4fbc150dcb1b3411b5aacd7456b6cb92459";
+const VALID_STUDIO_BRIDGES =
+  "window.AdMarketCreator = Object.freeze({ handle() {} }); window.AdMarketPractice = Object.freeze({ handle() {} });";
+
+function rasterPricing(catalogueText, entries) {
+  return JSON.stringify({
+    schema: "raster-production-pricing@1",
+    packId: "offline-core-v1",
+    pricingVersion: 1,
+    catalogSha256: createHash("sha256").update(Buffer.from(catalogueText)).digest("hex"),
+    entries
+  });
+}
 
 const PRODUCT_BUILDER_FAMILIES = [
   { id: "bags", slotId: "carry-system" },
@@ -143,13 +156,40 @@ async function writeExportScaffold(root, creatorRoot = '<div id="creator-root"><
     writeFile(path.join(studio, "studio.css"), ".creator{}"),
     writeFile(
       path.join(web, "index.html"),
-      `<html><head></head><body>${creatorRoot}<script src="./index.js"></script></body></html>`
+      `<html><head></head><body>${creatorRoot}<script>window.bootstrap = true;</script><script src="./index.js"></script></body></html>`
     ),
     writeFile(path.join(web, "index.js"), "const local = true;"),
     writeFile(path.join(web, "index.wasm"), Buffer.from([0])),
     writeFile(path.join(web, "index.pck"), Buffer.from([1]))
   ]);
   return { studio, web };
+}
+
+function expectedCspHeaders(inlineScriptBody) {
+  const hash = createHash("sha256")
+    .update(Buffer.from(inlineScriptBody, "utf8"))
+    .digest("base64");
+  return `/*\n  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'sha256-${hash}' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'none'; form-action 'self'; frame-ancestors 'self';\n  Cross-Origin-Opener-Policy: same-origin\n  Cross-Origin-Embedder-Policy: require-corp\n  Cross-Origin-Resource-Policy: same-origin\n`;
+}
+
+function addCspHeaders(files) {
+  const html = files.get("index.html");
+  const match = typeof html === "string" && html.match(/<script>([\s\S]*?)<\/script>/i);
+  assert.ok(match, "test export needs an inline bootstrap script");
+  files.set("_headers", expectedCspHeaders(match[1]));
+  return files;
+}
+
+function addInlineBootstrapAndCspHeaders(files) {
+  const html = files.get("index.html");
+  assert.equal(typeof html, "string", "test export needs index.html");
+  const augmented = html.replace(
+    /<script\s+src=(['"])(?:\.\/)?index\.js\1\s*><\/script>/i,
+    '<script>bootstrap();</script>$&'
+  );
+  assert.notEqual(augmented, html, "test export needs a local index.js script");
+  files.set("index.html", augmented);
+  return addCspHeaders(files);
 }
 
 function makeLogoIconCatalogue(count = 4205) {
@@ -210,6 +250,321 @@ test("studio asset injection is local, singular, and idempotent", () => {
   assert.equal(once.match(/\.\/studio\/studio\.css/g)?.length, 1);
   assert.equal(once.match(/\.\/studio\/studio\.js/g)?.length, 1);
   assert.doesNotMatch(once, /\.\.\/studio/);
+});
+
+test("studio bridge precedes both Godot index-script spellings", () => {
+  for (const source of ["index.js", "./index.js"]) {
+    const assembled = injectStudioAssets(
+      `<!doctype html><html><head></head><body><script src="${source}"></script></body></html>`
+    );
+    assert.ok(
+      assembled.indexOf('<script src="./studio/studio.js"></script>') <
+        assembled.indexOf(`<script src="${source}"></script>`),
+      `studio bridge must precede ${source}`
+    );
+  }
+});
+
+test("deployed Godot shell blocks game focus and awaits mandatory account access", async () => {
+  const shell = await readFile(path.join(
+    import.meta.dirname,
+    "..",
+    "godot",
+    "web",
+    "godot_shell.html"
+  ), "utf8");
+
+  assert.doesNotThrow(() => assertAccountGatedGodotShell(shell));
+  assert.throws(() => assertAccountGatedGodotShell(`
+    <main aria-label="Advertising Market Game"><canvas id="canvas" tabindex="0"></canvas></main>
+    <div id="creator-root"></div>
+    <script>const engine = new Engine({}); engine.startGame();</script>
+  `), /mandatory account access/i);
+  assert.doesNotMatch(shell, /continue (?:locally|without an account)|bypass/i);
+});
+
+test("studio injection edits actual tags without rewriting script strings", () => {
+  const sentinel = '<script>const sample = \'<script src="./studio/studio.js"></script>\';</script>';
+  const assembled = injectStudioAssets(
+    `<!doctype html><html><head></head><body>${sentinel}<script src="./index.js"></script></body></html>`
+  );
+  assert.ok(assembled.includes(sentinel));
+  assert.equal(assembled.match(/<script src="\.\/studio\/studio\.js"><\/script>/g)?.length, 2);
+});
+
+test("assembly writes a deterministic CSP hash for the exact inline bootstrap body", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "admarket-csp-headers-"));
+  const { web } = await writeExportScaffold(root);
+
+  await assembleWebExport({ root, log: () => {} });
+  assert.equal(
+    await readFile(path.join(web, "_headers"), "utf8"),
+    expectedCspHeaders("window.bootstrap = true;")
+  );
+
+  await writeFile(
+    path.join(web, "index.html"),
+    '<html><head></head><body><div id="creator-root"></div><script>window.bootstrap = false;</script><script src="./index.js"></script></body></html>'
+  );
+  await assembleWebExport({ root, log: () => {} });
+  assert.equal(
+    await readFile(path.join(web, "_headers"), "utf8"),
+    expectedCspHeaders("window.bootstrap = false;")
+  );
+});
+
+test("assembly rejects zero or multiple executable inline bootstrap scripts", async () => {
+  for (const [name, html] of [
+    ["zero", '<html><head></head><body><div id="creator-root"></div><script type="application/json">{}</script><script src="./index.js"></script></body></html>'],
+    ["multiple", '<html><head></head><body><div id="creator-root"></div><script>one();</script><script>two();</script><script src="./index.js"></script></body></html>']
+  ]) {
+    const root = await mkdtemp(path.join(tmpdir(), `admarket-csp-${name}-`));
+    const { web } = await writeExportScaffold(root);
+    await writeFile(path.join(web, "index.html"), html);
+    await assert.rejects(
+      () => assembleWebExport({ root, log: () => {} }),
+      /exactly one executable inline bootstrap script/i
+    );
+  }
+});
+
+test("static verification requires a matching strict Netlify CSP header", () => {
+  const files = addCspHeaders(new Map([
+    ["index.html", '<link rel="stylesheet" href="./studio/studio.css"><script src="./studio/studio.js"></script><script>bootstrap();</script><script src="./index.js"></script>'],
+    ["index.js", "const target = 'wasm32.nothreads'; const audio = new AudioWorklet();"],
+    ["index.wasm", Buffer.from([0])],
+    ["index.pck", Buffer.from([1])],
+    ["index.audio.worklet.js", "class GodotAudioWorklet {}"],
+    ["studio/studio.css", ".creator{}"],
+    ["studio/studio.js", VALID_STUDIO_BRIDGES],
+    ["godot/export_presets.cfg", "variant/thread_support=false"]
+  ]));
+  assert.doesNotThrow(() => inspectExportContents({ files, pckHash: "current" }));
+
+  const missing = new Map(files);
+  missing.delete("_headers");
+  assert.throws(
+    () => inspectExportContents({ files: missing, pckHash: "current" }),
+    /missing required export file: _headers/i
+  );
+
+  const mismatch = new Map(files);
+  mismatch.set("_headers", expectedCspHeaders("changed();"));
+  assert.throws(
+    () => inspectExportContents({ files: mismatch, pckHash: "current" }),
+    /CSP hash does not match/i
+  );
+
+  const unsafe = new Map(files);
+  unsafe.set("_headers", expectedCspHeaders("bootstrap();").replace("'wasm-unsafe-eval'", "'wasm-unsafe-eval' 'unsafe-inline'"));
+  assert.throws(
+    () => inspectExportContents({ files: unsafe, pckHash: "current" }),
+    /unsafe inline script policy/i
+  );
+});
+
+test("static verification rejects a studio bridge loaded after Godot", () => {
+  const files = new Map([
+    ["index.html", '<link rel="stylesheet" href="./studio/studio.css"><script src="index.js"></script><script src="./studio/studio.js"></script>'],
+    ["index.js", "const target = 'wasm32.nothreads'; const audio = new AudioWorklet();"],
+    ["index.wasm", Buffer.from([0])],
+    ["index.pck", Buffer.from([1])],
+    ["index.audio.worklet.js", "class GodotAudioWorklet {}"],
+    ["studio/studio.css", ".creator{}"],
+    ["studio/studio.js", VALID_STUDIO_BRIDGES],
+    ["godot/export_presets.cfg", "variant/thread_support=false"]
+  ]);
+  assert.throws(
+    () => inspectExportContents({ files, pckHash: "current" }),
+    /studio bridge must load before Godot/i
+  );
+});
+
+test("static verification requires one synchronous practice bridge", () => {
+  const valid = new Map([
+    ["index.html", '<link rel="stylesheet" href="./studio/studio.css"><script src="./studio/studio.js"></script><script src="index.js"></script>'],
+    ["index.js", "const target = 'wasm32.nothreads'; const audio = new AudioWorklet();"],
+    ["index.wasm", Buffer.from([0])],
+    ["index.pck", Buffer.from([1])],
+    ["index.audio.worklet.js", "class GodotAudioWorklet {}"],
+    ["studio/studio.css", ".creator{}"],
+    ["studio/studio.js", VALID_STUDIO_BRIDGES],
+    ["godot/export_presets.cfg", "variant/thread_support=false"]
+  ]);
+  addInlineBootstrapAndCspHeaders(valid);
+  assert.doesNotThrow(() => inspectExportContents({ files: valid, pckHash: "current" }));
+
+  const missing = new Map(valid);
+  missing.set("studio/studio.js", "window.AdMarketCreator = publicApi;");
+  assert.throws(
+    () => inspectExportContents({ files: missing, pckHash: "current" }),
+    /AdMarketPractice global exactly once/i
+  );
+
+  const duplicate = new Map(valid);
+  duplicate.set(
+    "studio/studio.js",
+    `${VALID_STUDIO_BRIDGES} globalThis.AdMarketPractice = duplicate;`
+  );
+  assert.throws(
+    () => inspectExportContents({ files: duplicate, pckHash: "current" }),
+    /AdMarketPractice global exactly once/i
+  );
+
+  const commentOnly = new Map(valid);
+  commentOnly.set(
+    "studio/studio.js",
+    "window.AdMarketCreator = publicApi; // window.AdMarketPractice = practiceApi;"
+  );
+  assert.throws(
+    () => inspectExportContents({ files: commentOnly, pckHash: "current" }),
+    /AdMarketPractice global exactly once/i
+  );
+
+  for (const delayedSource of [
+    "Promise.resolve().then(() => { window.AdMarketPractice = practiceApi; });",
+    "setTimeout(() => { window.AdMarketPractice = practiceApi; }, 0);"
+  ]) {
+    const delayedAssignment = new Map(valid);
+    delayedAssignment.set(
+      "studio/studio.js",
+      `window.AdMarketCreator = publicApi; ${delayedSource}`
+    );
+    assert.throws(
+      () => inspectExportContents({ files: delayedAssignment, pckHash: "current" }),
+      /AdMarketPractice must be assigned synchronously/i
+    );
+  }
+
+  const synchronousIife = new Map(valid);
+  synchronousIife.set(
+    "studio/studio.js",
+    "(() => { window.AdMarketCreator = Object.freeze({ handle() {} }); window.AdMarketPractice = Object.freeze({ handle() {} }); })();"
+  );
+  assert.doesNotThrow(() => inspectExportContents({ files: synchronousIife, pckHash: "current" }));
+
+  const requiresLockedGameSurface = new Map(valid);
+  requiresLockedGameSurface.set(
+    "studio/studio.js",
+    `if (!document.querySelector('main[aria-label="Advertising Market Game"]') || !document.querySelector('#canvas')) {
+      throw new Error('Missing locked game surface for account access');
+    }
+    ${VALID_STUDIO_BRIDGES}`
+  );
+  assert.doesNotThrow(() => inspectExportContents({
+    files: requiresLockedGameSurface,
+    pckHash: "current"
+  }));
+
+  for (const source of [
+    "const window = {}; window.AdMarketCreator = Object.freeze({ handle() {} }); window.AdMarketPractice = Object.freeze({ handle() {} });",
+    "throw new Error('stop'); window.AdMarketCreator = Object.freeze({ handle() {} }); window.AdMarketPractice = Object.freeze({ handle() {} });",
+    "const task = (function* () { window.AdMarketCreator = Object.freeze({ handle() {} }); window.AdMarketPractice = Object.freeze({ handle() {} }); })(); Promise.resolve().then(() => task.next());",
+    `${VALID_STUDIO_BRIDGES} delete window.AdMarketCreator; delete window.AdMarketPractice;`
+  ]) {
+    const doesNotInstall = new Map(valid);
+    doesNotInstall.set("studio/studio.js", source);
+    assert.throws(
+      () => inspectExportContents({ files: doesNotInstall, pckHash: "current" }),
+      /install usable production bridge globals synchronously/i
+    );
+  }
+
+  for (const studioTag of [
+    '<script async src="./studio/studio.js"></script>',
+    '<script defer src="./studio/studio.js"></script>',
+    '<script type="module" src="./studio/studio.js"></script>',
+    '<script nomodule src="./studio/studio.js"></script>',
+    '<script type="application/json" src="./studio/studio.js"></script>',
+    '<template><script src="./studio/studio.js"></script></template>'
+  ]) {
+    const delayed = new Map(valid);
+    delayed.set(
+      "index.html",
+      `<link rel="stylesheet" href="./studio/studio.css">${studioTag}<script src="index.js"></script>`
+    );
+    assert.throws(
+      () => inspectExportContents({ files: delayed, pckHash: "current" }),
+      /one executable classic synchronous studio script/i
+    );
+  }
+
+  const whitespaceDuplicate = new Map(valid);
+  whitespaceDuplicate.set(
+    "index.html",
+    '<link rel="stylesheet" href="./studio/studio.css"><script src = "./studio/studio.js"></script><script src="index.js"></script><script src="./studio/studio.js"></script>'
+  );
+  assert.throws(
+    () => inspectExportContents({ files: whitespaceDuplicate, pckHash: "current" }),
+    /one executable classic synchronous studio script/i
+  );
+
+  for (const duplicate of [
+    '<script src="./studio/studio&#46;js"></script>',
+    '<noscript><script src="./studio/studio.js"></script></noscript>'
+  ]) {
+    const disguisedStudio = new Map(valid);
+    disguisedStudio.set(
+      "index.html",
+      `<link rel="stylesheet" href="./studio/studio.css"><script src="./studio/studio.js"></script>${duplicate}<script src="index.js"></script>`
+    );
+    assert.throws(
+      () => inspectExportContents({ files: disguisedStudio, pckHash: "current" }),
+      /one executable classic synchronous studio script/i
+    );
+  }
+
+  const disguisedGodot = new Map(valid);
+  disguisedGodot.set(
+    "index.html",
+    '<link rel="stylesheet" href="./studio/studio.css"><script src="./studio/studio.js"></script><script src="index.js"></script><script src="&#105;ndex.js"></script>'
+  );
+  assert.throws(
+    () => inspectExportContents({ files: disguisedGodot, pckHash: "current" }),
+    /local Godot index\.js runtime/i
+  );
+
+  for (const [label, html, pattern] of [
+    [
+      "missing Studio",
+      '<link rel="stylesheet" href="./studio/studio.css"><script src="index.js"></script>',
+      /one executable classic synchronous studio script/i
+    ],
+    [
+      "missing Godot runtime",
+      '<link rel="stylesheet" href="./studio/studio.css"><script src="./studio/studio.js"></script>',
+      /local Godot index\.js runtime/i
+    ]
+  ]) {
+    const missingScript = new Map(valid);
+    missingScript.set("index.html", html);
+    assert.throws(
+      () => inspectExportContents({ files: missingScript, pckHash: "current" }),
+      pattern,
+      label
+    );
+  }
+});
+
+test("production bridge smoke keeps background startup pending without touching a closed DOM", () => {
+  const files = new Map([
+    ["index.html", '<link rel="stylesheet" href="./studio/studio.css"><script src="./studio/studio.js"></script><script src="index.js"></script>'],
+    ["index.js", "const target = 'wasm32.nothreads'; const audio = new AudioWorklet();"],
+    ["index.wasm", Buffer.from([0])],
+    ["index.pck", Buffer.from([1])],
+    ["index.audio.worklet.js", "class GodotAudioWorklet {}"],
+    ["studio/studio.css", ".creator{}"],
+    ["studio/studio.js", `${VALID_STUDIO_BRIDGES}
+      void (async () => {
+        const signal = AbortSignal.timeout(1);
+        await fetch('/never.json', { signal });
+      })().catch(() => document.createElement('option'));
+    `],
+    ["godot/export_presets.cfg", "variant/thread_support=false"]
+  ]);
+  addInlineBootstrapAndCspHeaders(files);
+
+  assert.doesNotThrow(() => inspectExportContents({ files, pckHash: "current" }));
 });
 
 test("assembly rejects an unresolved Godot shell", () => {
@@ -655,7 +1010,7 @@ test("static verification accepts both product packs and checks every builder re
     ["index.pck", Buffer.from([1])],
     ["index.audio.worklet.js", "class GodotAudioWorklet {}"],
     ["studio/studio.css", ".creator{}"],
-    ["studio/studio.js", "window.AdMarketCreator = publicApi;"],
+    ["studio/studio.js", VALID_STUDIO_BRIDGES],
     ["godot/export_presets.cfg", "variant/thread_support=false"],
     [`${shellPrefix}/shells/fixture-can/authoring.svg`, "<svg/>"] ,
     [`${shellPrefix}/shells/fixture-can/preview.svg`, "<svg/>"] ,
@@ -674,6 +1029,7 @@ test("static verification accepts both product packs and checks every builder re
     })],
     ...builderFiles
   ]);
+  addInlineBootstrapAndCspHeaders(files);
 
   assert.doesNotThrow(() => inspectExportContents({ files, pckHash: "current" }));
 
@@ -696,7 +1052,7 @@ test("static verification requires exactly one canonical builder attribute on cr
     ["index.pck", Buffer.from([1])],
     ["index.audio.worklet.js", "class GodotAudioWorklet {}"],
     ["studio/studio.css", ".creator{}"],
-    ["studio/studio.js", "window.AdMarketCreator = publicApi;"],
+    ["studio/studio.js", VALID_STUDIO_BRIDGES],
     ["godot/export_presets.cfg", "variant/thread_support=false"],
     ...builderFiles
   ]);
@@ -756,7 +1112,7 @@ test("static verification counts an unquoted builder attribute before a canonica
     ["index.pck", Buffer.from([1])],
     ["index.audio.worklet.js", "class GodotAudioWorklet {}"],
     ["studio/studio.css", ".creator{}"],
-    ["studio/studio.js", "window.AdMarketCreator = publicApi;"],
+    ["studio/studio.js", VALID_STUDIO_BRIDGES],
     ["godot/export_presets.cfg", "variant/thread_support=false"],
     ...builderFiles
   ]);
@@ -779,7 +1135,7 @@ test("static verification requires one canonical local logo attribute on creator
     ["index.pck", Buffer.from([1])],
     ["index.audio.worklet.js", "class GodotAudioWorklet {}"],
     ["studio/studio.css", ".creator{}"],
-    ["studio/studio.js", "window.AdMarketCreator = publicApi;"],
+    ["studio/studio.js", VALID_STUDIO_BRIDGES],
     ["godot/export_presets.cfg", "variant/thread_support=false"],
     ...logoFiles
   ]);
@@ -789,6 +1145,7 @@ test("static verification requires one canonical local logo attribute on creator
     "index.html",
     `<div id="creator-root" data-logo-icon-catalogue-url="/${prefix}/catalog.json"></div>${studioTags}`
   );
+  addInlineBootstrapAndCspHeaders(valid);
   assert.doesNotThrow(() => inspectExportContents({ files: valid, pckHash: "current" }));
 
   const missingAttribute = new Map(base);
@@ -836,6 +1193,7 @@ test("static verification requires one canonical local logo attribute on creator
     "index.html",
     `<div id="creator-root" data-logo-icon-catalogue-url-extra="keep" data-logo-icon-catalogue-url="/${prefix}/catalog.json"></div>${studioTags}`
   );
+  addInlineBootstrapAndCspHeaders(similarlyNamedAttribute);
   assert.doesNotThrow(() => inspectExportContents({
     files: similarlyNamedAttribute,
     pckHash: "current"
@@ -879,17 +1237,35 @@ test("static logo metadata inspection ignores exact tokens inside unrelated valu
     ["index.pck", Buffer.from([1])],
     ["index.audio.worklet.js", "class GodotAudioWorklet {}"],
     ["studio/studio.css", ".creator{}"],
-    ["studio/studio.js", "window.AdMarketCreator = publicApi;"],
+    ["studio/studio.js", VALID_STUDIO_BRIDGES],
     ["godot/export_presets.cfg", "variant/thread_support=false"],
     ...logoFiles
   ]);
+  addInlineBootstrapAndCspHeaders(files);
 
   assert.doesNotThrow(() => inspectExportContents({ files, pckHash: "current" }));
 });
 
-test("production build scripts generate, test, and require the local logo pack", async () => {
+test("production build scripts require every classroom-critical local catalogue", async () => {
   const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 
+  assert.match(
+    packageJson.scripts["build:web"],
+    /^node scripts\/build-netlify-functions\.mjs && node scripts\/export-godot-web\.mjs && /
+  );
+  assert.match(
+    packageJson.scripts["build:web"],
+    /export-godot-web\.mjs && vite build[^&]*&& node scripts\/build-logo-icons\.mjs/
+  );
+  assert.match(
+    packageJson.scripts["build:web"],
+    /build-web\.mjs[^&]*&& node scripts\/verify-web-export\.mjs build\/web$/
+  );
+  assert.match(packageJson.scripts.build, /node scripts\/export-godot-web\.mjs && vite build/);
+  assert.match(packageJson.scripts["build:web"], /--require-offline-core(?:\s|$)/);
+  assert.match(packageJson.scripts.build, /build-web\.mjs[^&]*--require-offline-core(?:\s|$)/);
+  assert.match(packageJson.scripts["build:web"], /--minimum-offline-records=2000(?:\s|$)/);
+  assert.match(packageJson.scripts.build, /build-web\.mjs[^&]*--minimum-offline-records=2000(?:\s|$)/);
   assert.match(packageJson.scripts["build:web"], /--require-product-builder(?:\s|$)/);
   assert.match(packageJson.scripts.build, /build-web\.mjs[^&]*--require-product-builder(?:\s|$)/);
   assert.match(packageJson.scripts["build:web"], /build-logo-icons\.mjs/);
@@ -897,7 +1273,25 @@ test("production build scripts generate, test, and require the local logo pack",
   assert.match(packageJson.scripts.build, /build-logo-icons\.test\.mjs/);
   assert.match(packageJson.scripts.build, /build-logo-icons\.mjs/);
   assert.match(packageJson.scripts.build, /build-web\.mjs[^&]*--require-logo-icons(?:\s|$)/);
+  assert.match(packageJson.scripts.build, /vitest run[^&]*--maxWorkers=1(?:\s|$)/);
   assert.match(packageJson.scripts["test:build-web"], /build-logo-icons\.test\.mjs/);
+  assert.match(packageJson.scripts["test:build-web"], /export-godot-web\.test\.mjs/);
+});
+
+test("offline-core verification can enforce the production catalogue floor", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "admarket-offline-floor-"));
+  const core = path.join(root, "catalog", "generated", "offline-core-v1");
+  await mkdir(core, { recursive: true });
+  const catalogueText = "[]\n";
+  await Promise.all([
+    writeFile(path.join(core, "catalog.json"), catalogueText),
+    writeFile(path.join(core, "pricing.json"), rasterPricing(catalogueText, []))
+  ]);
+
+  await assert.rejects(
+    () => verifyWebExport.verifyOfflineCoreDirectory(core, { minimumRecords: 2_000 }),
+    /at least 2000 records/i
+  );
 });
 
 test("assembly copies and injects the reviewed product shell catalogue", async () => {
@@ -914,7 +1308,7 @@ test("assembly copies and injects the reviewed product shell catalogue", async (
   await Promise.all([
     writeFile(path.join(studio, "studio.js"), "window.AdMarketCreator = {};"),
     writeFile(path.join(studio, "studio.css"), ".creator{}"),
-    writeFile(path.join(web, "index.html"), '<html><head></head><body><div id="creator-root"></div><script src="./index.js"></script></body></html>'),
+    writeFile(path.join(web, "index.html"), '<html><head></head><body><div id="creator-root"></div><script>window.bootstrap = true;</script><script src="./index.js"></script></body></html>'),
     writeFile(path.join(web, "index.js"), "const local = true;"),
     writeFile(path.join(web, "index.wasm"), Buffer.from([0])),
     writeFile(path.join(web, "index.pck"), Buffer.from([1])),
@@ -952,6 +1346,7 @@ test("assembly recursively copies the complete optional offline core tree", asyn
   const studio = path.join(root, "build", "studio");
   const web = path.join(root, "build", "web");
   const core = path.join(root, "catalog", "generated", "offline-core-v1");
+  const catalogueText = "[]\n";
   await Promise.all([
     mkdir(studio, { recursive: true }),
     mkdir(web, { recursive: true }),
@@ -960,11 +1355,12 @@ test("assembly recursively copies the complete optional offline core tree", asyn
   await Promise.all([
     writeFile(path.join(studio, "studio.js"), "window.AdMarketCreator = {};"),
     writeFile(path.join(studio, "studio.css"), ".creator{}"),
-    writeFile(path.join(web, "index.html"), '<html><head></head><body><div id="creator-root"></div><script src="./index.js"></script></body></html>'),
+    writeFile(path.join(web, "index.html"), '<html><head></head><body><div id="creator-root"></div><script>window.bootstrap = true;</script><script src="./index.js"></script></body></html>'),
     writeFile(path.join(web, "index.js"), "const local = true;"),
     writeFile(path.join(web, "index.wasm"), Buffer.from([0])),
     writeFile(path.join(web, "index.pck"), Buffer.from([1])),
-    writeFile(path.join(core, "catalog.json"), "[]\n"),
+    writeFile(path.join(core, "catalog.json"), catalogueText),
+    writeFile(path.join(core, "pricing.json"), rasterPricing(catalogueText, [])),
     writeFile(path.join(core, "assets", "fixture", "master.png"), Buffer.from([1, 2, 3])),
     writeFile(path.join(core, "assets", "fixture", "preview-640.webp"), Buffer.from([4, 5])),
     writeFile(path.join(core, "assets", "fixture", "masks", "body.png"), Buffer.from([6]))
@@ -975,6 +1371,10 @@ test("assembly recursively copies the complete optional offline core tree", asyn
   assert.deepEqual(
     await readFile(path.join(web, "catalog", "generated", "offline-core-v1", "assets", "fixture", "master.png")),
     Buffer.from([1, 2, 3])
+  );
+  assert.equal(
+    JSON.parse(await readFile(path.join(web, "catalog", "generated", "offline-core-v1", "pricing.json"), "utf8")).schema,
+    "raster-production-pricing@1"
   );
   assert.deepEqual(
     await readFile(path.join(web, "catalog", "generated", "offline-core-v1", "assets", "fixture", "masks", "body.png")),
@@ -988,6 +1388,17 @@ test("assembly rejects an offline core whose catalogue references missing files"
   const studio = path.join(root, "build", "studio");
   const web = path.join(root, "build", "web");
   const core = path.join(root, "catalog", "generated", "offline-core-v1");
+  const catalogueText = JSON.stringify([{
+    id: "missing-product",
+    kind: "raster-master",
+    tags: ["base"],
+    files: {
+      master: "/catalog/generated/offline-core-v1/assets/missing/master.png",
+      preview: "/catalog/generated/offline-core-v1/assets/missing/preview-640.webp",
+      thumbnail: "/catalog/generated/offline-core-v1/assets/missing/thumbnail-192.webp"
+    },
+    masterSha256: "0".repeat(64)
+  }]);
   await Promise.all([
     mkdir(studio, { recursive: true }),
     mkdir(web, { recursive: true }),
@@ -996,18 +1407,14 @@ test("assembly rejects an offline core whose catalogue references missing files"
   await Promise.all([
     writeFile(path.join(studio, "studio.js"), "window.AdMarketCreator = {};"),
     writeFile(path.join(studio, "studio.css"), ".creator{}"),
-    writeFile(path.join(web, "index.html"), '<html><head></head><body><div id="creator-root"></div><script src="./index.js"></script></body></html>'),
+    writeFile(path.join(web, "index.html"), '<html><head></head><body><div id="creator-root"></div><script>window.bootstrap = true;</script><script src="./index.js"></script></body></html>'),
     writeFile(path.join(web, "index.js"), "const local = true;"),
     writeFile(path.join(web, "index.wasm"), Buffer.from([0])),
     writeFile(path.join(web, "index.pck"), Buffer.from([1])),
-    writeFile(path.join(core, "catalog.json"), JSON.stringify([{
-      files: {
-        master: "/catalog/generated/offline-core-v1/assets/missing/master.png",
-        preview: "/catalog/generated/offline-core-v1/assets/missing/preview-640.webp",
-        thumbnail: "/catalog/generated/offline-core-v1/assets/missing/thumbnail-192.webp"
-      },
-      masterSha256: "0".repeat(64)
-    }]))
+    writeFile(path.join(core, "catalog.json"), catalogueText),
+    writeFile(path.join(core, "pricing.json"), rasterPricing(catalogueText, [
+      { assetId: "missing-product", costCents: 2_500, role: "base" }
+    ]))
   ]);
 
   await assert.rejects(
@@ -1081,8 +1488,7 @@ test("recursive copy rejects source-ancestor and destination-file indirection", 
 });
 
 test("verification accepts the no-thread local production export and reports the stale spike PCK", () => {
-  const result = inspectExportContents({
-    files: new Map([
+  const files = addInlineBootstrapAndCspHeaders(new Map([
       ["index.html", `<!doctype html><html><head>
         <link rel="stylesheet" href="./studio/studio.css">
       </head><body>
@@ -1094,9 +1500,11 @@ test("verification accepts the no-thread local production export and reports the
       ["index.pck", Buffer.from([1])],
       ["index.audio.worklet.js", "class GodotAudioWorklet {}"],
       ["studio/studio.css", ".creator{}"],
-      ["studio/studio.js", "window.AdMarketCreator = publicApi;"],
+      ["studio/studio.js", VALID_STUDIO_BRIDGES],
       ["godot/export_presets.cfg", "variant/thread_support=false"]
-    ]),
+    ]));
+  const result = inspectExportContents({
+    files,
     pckHash: STALE_PCK_HASH
   });
 
@@ -1129,6 +1537,17 @@ test("verification checks every optional offline-core file reference and master 
   const master = Buffer.from([1, 2, 3, 4]);
   const masterHash = createHash("sha256").update(master).digest("hex");
   const prefix = "catalog/generated/offline-core-v1/assets/fixture";
+  const catalogueText = JSON.stringify([{
+    id: "fixture-product",
+    kind: "raster-master",
+    tags: ["base"],
+    files: {
+      master: `/${prefix}/master.png`,
+      preview: `/${prefix}/preview-640.webp`,
+      thumbnail: `/${prefix}/thumbnail-192.webp`
+    },
+    masterSha256: masterHash
+  }]);
   const files = new Map([
     ["index.html", '<link rel="stylesheet" href="./studio/studio.css"><script src="./studio/studio.js"></script><script src="./index.js"></script>'],
     ["index.js", "const target = 'wasm32.nothreads'; const audio = new AudioWorklet();"],
@@ -1136,22 +1555,35 @@ test("verification checks every optional offline-core file reference and master 
     ["index.pck", Buffer.from([1])],
     ["index.audio.worklet.js", "class GodotAudioWorklet {}"],
     ["studio/studio.css", ".creator{}"],
-    ["studio/studio.js", "window.AdMarketCreator = publicApi;"],
+    ["studio/studio.js", VALID_STUDIO_BRIDGES],
     ["godot/export_presets.cfg", "variant/thread_support=false"],
     [`${prefix}/master.png`, master],
     [`${prefix}/preview-640.webp`, Buffer.from([5])],
     [`${prefix}/thumbnail-192.webp`, Buffer.from([6])],
-    ["catalog/generated/offline-core-v1/catalog.json", JSON.stringify([{
-      files: {
-        master: `/${prefix}/master.png`,
-        preview: `/${prefix}/preview-640.webp`,
-        thumbnail: `/${prefix}/thumbnail-192.webp`
-      },
-      masterSha256: masterHash
-    }])]
+    ["catalog/generated/offline-core-v1/catalog.json", catalogueText],
+    ["catalog/generated/offline-core-v1/pricing.json", rasterPricing(catalogueText, [
+      { assetId: "fixture-product", costCents: 2_500, role: "base" }
+    ])]
   ]);
+  addInlineBootstrapAndCspHeaders(files);
 
   assert.doesNotThrow(() => inspectExportContents({ files, pckHash: "current" }));
+
+  const missingPricing = new Map(files);
+  missingPricing.delete("catalog/generated/offline-core-v1/pricing.json");
+  assert.throws(
+    () => inspectExportContents({ files: missingPricing, pckHash: "current" }),
+    /missing offline pricing/i
+  );
+
+  const mismatchedPricing = new Map(files);
+  mismatchedPricing.set("catalog/generated/offline-core-v1/pricing.json", rasterPricing("different", [
+    { assetId: "fixture-product", costCents: 2_500, role: "base" }
+  ]));
+  assert.throws(
+    () => inspectExportContents({ files: mismatchedPricing, pckHash: "current" }),
+    /catalog hash mismatch/i
+  );
 
   const missing = new Map(files);
   missing.delete(`${prefix}/preview-640.webp`);
@@ -1190,7 +1622,7 @@ test("verification checks every reviewed product shell SVG reference", () => {
     ["index.pck", Buffer.from([1])],
     ["index.audio.worklet.js", "class GodotAudioWorklet {}"],
     ["studio/studio.css", ".creator{}"],
-    ["studio/studio.js", "window.AdMarketCreator = publicApi;"],
+    ["studio/studio.js", VALID_STUDIO_BRIDGES],
     ["godot/export_presets.cfg", "variant/thread_support=false"],
     [`${prefix}/shells/fixture-can/authoring.svg`, "<svg/>"] ,
     [`${prefix}/shells/fixture-can/preview.svg`, "<svg/>"] ,
@@ -1208,6 +1640,7 @@ test("verification checks every reviewed product shell SVG reference", () => {
       }]
     })]
   ]);
+  addInlineBootstrapAndCspHeaders(files);
 
   assert.doesNotThrow(() => inspectExportContents({ files, pckHash: "current" }));
 

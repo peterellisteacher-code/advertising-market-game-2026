@@ -1,0 +1,461 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://src/market/ui/MarketScreen.gd" id="1_screen"]
+
+[sub_resource type="StyleBoxFlat" id="Style_frame"]
+bg_color = Color(1, 0.980392, 0.941176, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.843137, 0.780392, 0.666667, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="Style_kraft"]
+bg_color = Color(0.956863, 0.917647, 0.839216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.843137, 0.780392, 0.666667, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 18.0
+content_margin_top = 16.0
+content_margin_right = 18.0
+content_margin_bottom = 16.0
+
+[sub_resource type="StyleBoxFlat" id="Style_primary"]
+bg_color = Color(0.713725, 0.227451, 0.0823529, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="Style_primary_hover"]
+bg_color = Color(0.764706, 0.278431, 0.105882, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="Style_navy"]
+bg_color = Color(0.0901961, 0.129412, 0.168627, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="Style_disabled"]
+bg_color = Color(0.760784, 0.752941, 0.729412, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+
+[sub_resource type="StyleBoxFlat" id="Style_focus"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.894118, 0.341176, 0.180392, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="Style_progress_background"]
+bg_color = Color(0.843137, 0.780392, 0.666667, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="Style_progress_fill"]
+bg_color = Color(0.713725, 0.227451, 0.0823529, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="MarketScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_screen")
+
+[node name="MarketFrame" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("Style_frame")
+
+[node name="FrameMargin" type="MarginContainer" parent="MarketFrame"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="MarketScroll" type="ScrollContainer" parent="MarketFrame/FrameMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Content" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="MarketHeader" type="HBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="ModeTag" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/MarketHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.713725, 0.227451, 0.0823529, 1)
+theme_override_font_sizes/font_size = 16
+text = "LIVE MARKET // AD STUDIO"
+
+[node name="MarketRoomCode" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/MarketHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 28
+text = "--- ----"
+
+[node name="NetworkRow" type="HBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="NetworkStatus" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/NetworkRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
+theme_override_font_sizes/font_size = 15
+text = "Live connection ready."
+autowrap_mode = 2
+
+[node name="RetryMarket" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/NetworkRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(116, 46)
+layout_mode = 2
+focus_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("Style_navy")
+theme_override_styles/hover = SubResource("Style_navy")
+theme_override_styles/pressed = SubResource("Style_navy")
+theme_override_styles/focus = SubResource("Style_focus")
+text = "Retry"
+
+[node name="PhaseStatus" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 23
+text = "The room is getting ready."
+autowrap_mode = 2
+
+[node name="TeamSurface" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TeamSummary" type="PanelContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("Style_kraft")
+
+[node name="SummaryRow" type="HBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/TeamSummary"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="MoneyBlock" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/TeamSummary/SummaryRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="WalletLabel" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/TeamSummary/SummaryRow/MoneyBlock"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 20
+text = "$100 remaining"
+
+[node name="SpendMeter" type="ProgressBar" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/TeamSummary/SummaryRow/MoneyBlock"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 18)
+layout_mode = 2
+show_percentage = false
+theme_override_styles/background = SubResource("Style_progress_background")
+theme_override_styles/fill = SubResource("Style_progress_fill")
+
+[node name="SellerProgress" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/TeamSummary/SummaryRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 17
+text = "0 of 2 different sellers backed"
+autowrap_mode = 2
+
+[node name="FinishMarket" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/TeamSummary/SummaryRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(174, 48)
+layout_mode = 2
+focus_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.247059, 0.247059, 0.247059, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("Style_primary")
+theme_override_styles/hover = SubResource("Style_primary_hover")
+theme_override_styles/pressed = SubResource("Style_primary")
+theme_override_styles/disabled = SubResource("Style_disabled")
+theme_override_styles/focus = SubResource("Style_focus")
+disabled = true
+text = "Finish shopping"
+
+[node name="CampaignState" type="PanelContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("Style_kraft")
+
+[node name="CampaignStateContent" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/CampaignState"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="CampaignStatusTitle" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/CampaignState/CampaignStateContent"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 20
+text = "Your stall is getting ready"
+
+[node name="CampaignStatusCopy" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/CampaignState/CampaignStateContent"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
+theme_override_font_sizes/font_size = 16
+text = "Build your market card, then the host can bring it onto the floor."
+autowrap_mode = 2
+
+[node name="FixCampaign" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/CampaignState/CampaignStateContent"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 46)
+layout_mode = 2
+size_flags_horizontal = 0
+focus_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("Style_primary")
+theme_override_styles/hover = SubResource("Style_primary_hover")
+theme_override_styles/pressed = SubResource("Style_primary")
+theme_override_styles/focus = SubResource("Style_focus")
+text = "Reopen the studio"
+
+[node name="StudentReveal" type="PanelContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/panel = SubResource("Style_kraft")
+
+[node name="StudentRevealCopy" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/StudentReveal"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 22
+text = "The market reveal is on the host display — look up for the podium."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="TeamMarketHeading" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 24
+text = "Browse the market floor"
+
+[node name="TeamCards" type="GridContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 16
+columns = 3
+
+[node name="TeacherSurface" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TeacherStats" type="PanelContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/panel = SubResource("Style_kraft")
+
+[node name="TeacherStatsRow" type="HBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherStats"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="SeatsLabel" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherStats/TeacherStatsRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 20
+text = "0 seats joined"
+
+[node name="ReadinessLabel" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherStats/TeacherStatsRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 18
+text = "0 ready"
+
+[node name="TeamsHeading" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 22
+text = "Teams in the room"
+
+[node name="TeacherTeams" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ModerationHeading" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 22
+text = "Campaign desk"
+
+[node name="ModerationCards" type="GridContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 16
+columns = 3
+
+[node name="TeacherControls" type="HBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="OpenMarketControl" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherControls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(168, 48)
+layout_mode = 2
+focus_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.247059, 0.247059, 0.247059, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("Style_primary")
+theme_override_styles/hover = SubResource("Style_primary_hover")
+theme_override_styles/pressed = SubResource("Style_primary")
+theme_override_styles/disabled = SubResource("Style_disabled")
+theme_override_styles/focus = SubResource("Style_focus")
+text = "Open Market"
+
+[node name="RevealControl" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherControls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(168, 48)
+layout_mode = 2
+focus_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.247059, 0.247059, 0.247059, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("Style_navy")
+theme_override_styles/hover = SubResource("Style_navy")
+theme_override_styles/pressed = SubResource("Style_navy")
+theme_override_styles/disabled = SubResource("Style_disabled")
+theme_override_styles/focus = SubResource("Style_focus")
+text = "Reveal Podium"
+
+[node name="CloseControl" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherControls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(168, 48)
+layout_mode = 2
+focus_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.247059, 0.247059, 0.247059, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("Style_navy")
+theme_override_styles/hover = SubResource("Style_navy")
+theme_override_styles/pressed = SubResource("Style_navy")
+theme_override_styles/disabled = SubResource("Style_disabled")
+theme_override_styles/focus = SubResource("Style_focus")
+text = "Close Market"
+
+[node name="TeacherReveal" type="PanelContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/panel = SubResource("Style_kraft")
+
+[node name="RevealContent" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherReveal"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="PodiumTitle" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherReveal/RevealContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.713725, 0.227451, 0.0823529, 1)
+theme_override_font_sizes/font_size = 28
+text = "THE MARKET PODIUM"
+horizontal_alignment = 1
+
+[node name="PodiumList" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherReveal/RevealContent"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="RemoveTeamDialog" type="ConfirmationDialog" parent="."]
+unique_name_in_owner = true
+title = "Remove team from this room?"
+initial_position = 1
+dialog_text = "Confirm the team before removing it."
+ok_button_text = "Remove team"
+cancel_button_text = "Keep team"
+
+[node name="PollTimer" type="Timer" parent="."]
+unique_name_in_owner = true
+wait_time = 4.0

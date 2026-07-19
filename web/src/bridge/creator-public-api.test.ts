@@ -20,6 +20,7 @@ const blankDocument = createBlankCampaignDocument({
 
 class HandlerHarness implements CreatorBridgeHandler {
   document: CampaignDocumentV1 = structuredClone(blankDocument);
+  latestDocument: CampaignDocumentV1 | null = structuredClone(blankDocument);
   opened: CampaignDocumentV1[] = [];
   saveCount = 0;
   closeCount = 0;
@@ -27,6 +28,11 @@ class HandlerHarness implements CreatorBridgeHandler {
   async open(document: CampaignDocumentV1): Promise<void> {
     this.document = structuredClone(document);
     this.opened.push(structuredClone(document));
+  }
+
+  async loadLatest(documentId: string): Promise<CampaignDocumentV1 | null> {
+    if (this.latestDocument?.documentId !== documentId) return null;
+    return structuredClone(this.latestDocument);
   }
 
   async getState(): Promise<CampaignDocumentV1> {
@@ -75,12 +81,18 @@ async function parseResponse(
 }
 
 describe("AdMarketCreator public API", () => {
-  it("is a frozen one-method JSON boundary", () => {
-    const api = createCreatorPublicApi(new HandlerHarness());
+  it("is a frozen JSON boundary with a bounded in-studio message seam", () => {
+    const messages: string[] = [];
+    const api = createCreatorPublicApi(new HandlerHarness(), (message) => messages.push(message));
 
     expect(Object.isFrozen(api)).toBe(true);
-    expect(Reflect.ownKeys(api)).toEqual(["handle"]);
+    expect(Reflect.ownKeys(api)).toEqual(["handle", "showMessage"]);
     expect(typeof api.handle).toBe("function");
+    expect(api.showMessage("Draft kept open. Try Return again.")).toBe(true);
+    expect(messages).toEqual(["Draft kept open. Try Return again."]);
+    expect(api.showMessage(" ")).toBe(false);
+    expect(api.showMessage("x".repeat(281))).toBe(false);
+    expect(messages).toHaveLength(1);
   });
 
   it("opens a valid document, gets current state, saves, publishes canonical base64 and closes", async () => {
@@ -130,6 +142,38 @@ describe("AdMarketCreator public API", () => {
     expect(published.raw).not.toContain("Uint8Array");
     expect(published.raw).not.toContain("Blob");
     expect(published.raw).not.toContain("Fabric");
+  });
+
+  it("loads the latest durable document by identity without opening the editor", async () => {
+    const handler = new HandlerHarness();
+    const api = createCreatorPublicApi(handler);
+    const found = await parseResponse(api, JSON.stringify({
+      contract: CREATOR_BRIDGE_CONTRACT,
+      requestId: "latest-found",
+      method: "loadLatest",
+      payload: { documentId: blankDocument.documentId }
+    }));
+    handler.latestDocument = null;
+    const missing = await parseResponse(api, JSON.stringify({
+      contract: CREATOR_BRIDGE_CONTRACT,
+      requestId: "latest-missing",
+      method: "loadLatest",
+      payload: { documentId: blankDocument.documentId }
+    }));
+
+    expect(found.parsed).toEqual({
+      contract: CREATOR_BRIDGE_CONTRACT,
+      requestId: "latest-found",
+      ok: true,
+      payload: blankDocument
+    });
+    expect(missing.parsed).toEqual({
+      contract: CREATOR_BRIDGE_CONTRACT,
+      requestId: "latest-missing",
+      ok: true,
+      payload: null
+    });
+    expect(handler.opened).toEqual([]);
   });
 
   it("returns parsed versioned errors for invalid JSON and every invalid request shape", async () => {
@@ -189,6 +233,16 @@ describe("AdMarketCreator public API", () => {
           payload: { schemaVersion: 1 }
         }),
         requestId: "bad-document",
+        code: "INVALID_REQUEST"
+      },
+      {
+        input: JSON.stringify({
+          contract: CREATOR_BRIDGE_CONTRACT,
+          requestId: "bad-latest-id",
+          method: "loadLatest",
+          payload: { documentId: "" }
+        }),
+        requestId: "bad-latest-id",
         code: "INVALID_REQUEST"
       }
     ];

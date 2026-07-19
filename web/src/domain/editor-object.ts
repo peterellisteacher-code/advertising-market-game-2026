@@ -7,6 +7,7 @@ export const ELEMENT_KINDS = [
   "drawing",
   "masked-component",
   "product-shell",
+  "product-kit",
   "logo-mark"
 ] as const;
 

@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 92,
+  "sourcePng": "92-vehicle-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Plain car wheel and tyre", "tags": ["car wheel", "tyre", "vehicle add-on"]},
+    {"row": 1, "column": 2, "label": "Deep-tread off-road wheel", "tags": ["off-road wheel", "tyre", "vehicle add-on"]},
+    {"row": 1, "column": 3, "label": "Thin bicycle wheel", "tags": ["bicycle wheel", "thin tyre", "vehicle add-on"]},
+    {"row": 1, "column": 4, "label": "Thick motorcycle wheel", "tags": ["motorcycle wheel", "thick tyre", "vehicle add-on"]},
+    {"row": 1, "column": 5, "label": "Small go-kart wheel", "tags": ["go-kart wheel", "small tyre", "vehicle add-on"]},
+    {"row": 2, "column": 1, "label": "Low car roof rack", "tags": ["car roof rack", "roof rack", "vehicle add-on"]},
+    {"row": 2, "column": 2, "label": "Streamlined roof cargo box", "tags": ["cargo box", "roof storage", "vehicle add-on"]},
+    {"row": 2, "column": 3, "label": "Bicycle front basket", "tags": ["bicycle basket", "front basket", "vehicle add-on"]},
+    {"row": 2, "column": 4, "label": "Bicycle rear cargo rack", "tags": ["bicycle rack", "cargo rack", "vehicle add-on"]},
+    {"row": 2, "column": 5, "label": "Pickup tray canopy shell", "tags": ["pickup canopy", "tray canopy", "vehicle add-on"]},
+    {"row": 3, "column": 1, "label": "Plain car rear spoiler", "tags": ["car spoiler", "rear spoiler", "vehicle add-on"]},
+    {"row": 3, "column": 2, "label": "Generic front bumper guard", "tags": ["bumper guard", "front guard", "vehicle add-on"]},
+    {"row": 3, "column": 3, "label": "Vehicle side step bar", "tags": ["side step", "step bar", "vehicle add-on"]},
+    {"row": 3, "column": 4, "label": "Wheel-arch fender flare", "tags": ["fender flare", "vehicle add-on", "wheel arch"]},
+    {"row": 3, "column": 5, "label": "Plain mudflap pair", "tags": ["mudflap", "pair", "vehicle add-on"]},
+    {"row": 4, "column": 1, "label": "Simple tow-hitch fitting", "tags": ["tow hitch", "trailer fitting", "vehicle add-on"]},
+    {"row": 4, "column": 2, "label": "Rear bicycle carrier rack", "tags": ["bicycle carrier", "rear rack", "vehicle add-on"]},
+    {"row": 4, "column": 3, "label": "Truck ladder rack", "tags": ["ladder rack", "truck rack", "vehicle add-on"]},
+    {"row": 4, "column": 4, "label": "Raised camper pop-top roof", "tags": ["camper roof", "pop top", "vehicle add-on"]},
+    {"row": 4, "column": 5, "label": "Low rectangular roof solar panel", "tags": ["roof panel", "solar panel", "vehicle add-on"]},
+    {"row": 5, "column": 1, "label": "Bicycle child seat", "tags": ["bicycle seat", "child seat", "vehicle add-on"]},
+    {"row": 5, "column": 2, "label": "Scooter windscreen", "tags": ["scooter", "vehicle add-on", "windscreen"]},
+    {"row": 5, "column": 3, "label": "Motorcycle side pannier case", "tags": ["motorcycle pannier", "side case", "vehicle add-on"]},
+    {"row": 5, "column": 4, "label": "Bicycle cargo pannier bag", "tags": ["bicycle pannier", "cargo bag", "vehicle add-on"]},
+    {"row": 5, "column": 5, "label": "Square rear delivery cargo box", "tags": ["cargo box", "delivery box", "vehicle add-on"]}
+  ]
+}

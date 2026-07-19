@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 106,
+  "sourcePng": "106-outdoor-sport-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Textured bat-handle grip", "tags": ["bat grip", "sport add-on", "textured grip"]},
+    {"row": 1, "column": 2, "label": "Wrapped racquet-handle grip", "tags": ["handle wrap", "racquet grip", "sport add-on"]},
+    {"row": 1, "column": 3, "label": "Curved surfboard fin", "tags": ["board add-on", "sport add-on", "surfboard fin"]},
+    {"row": 1, "column": 4, "label": "Set of four skateboard wheels", "tags": ["skateboard wheels", "sport add-on", "wheel set"]},
+    {"row": 1, "column": 5, "label": "Pair of ski bindings", "tags": ["binding pair", "ski bindings", "sport add-on"]},
+    {"row": 2, "column": 1, "label": "Wraparound protective sports visor", "tags": ["protective visor", "sport add-on", "sports eyewear"]},
+    {"row": 2, "column": 2, "label": "V-shaped shoulder harness", "tags": ["shoulder harness", "sport add-on", "support straps"]},
+    {"row": 2, "column": 3, "label": "Wide padded waist belt", "tags": ["padded belt", "sport add-on", "waist support"]},
+    {"row": 2, "column": 4, "label": "Quick-release buckle strap", "tags": ["buckle strap", "quick release", "sport add-on"]},
+    {"row": 2, "column": 5, "label": "Pair of padded ankle straps", "tags": ["ankle straps", "padded straps", "sport add-on"]},
+    {"row": 3, "column": 1, "label": "Compact tent rainfly", "tags": ["camping add-on", "rainfly", "tent cover"]},
+    {"row": 3, "column": 2, "label": "Freestanding shade canopy", "tags": ["camping add-on", "shade canopy", "sun shelter"]},
+    {"row": 3, "column": 3, "label": "Drawstring gear cover", "tags": ["camping add-on", "drawstring cover", "gear cover"]},
+    {"row": 3, "column": 4, "label": "Clamp-on drink holder", "tags": ["camping add-on", "clamp holder", "drink holder"]},
+    {"row": 3, "column": 5, "label": "Curved support handlebar", "tags": ["equipment handle", "sport add-on", "support bar"]},
+    {"row": 4, "column": 1, "label": "Bundled tent-pole set", "tags": ["camping add-on", "pole set", "tent poles"]},
+    {"row": 4, "column": 2, "label": "Set of five tent pegs", "tags": ["camping add-on", "five pegs", "peg set", "tent pegs"]},
+    {"row": 4, "column": 3, "label": "Hanging gear hook", "tags": ["camping add-on", "gear hook", "hanging hook"]},
+    {"row": 4, "column": 4, "label": "Pair of all-terrain wheels", "tags": ["all-terrain wheels", "outdoor add-on", "wheel pair"]},
+    {"row": 4, "column": 5, "label": "Drawstring bottle pouch", "tags": ["bottle pouch", "drawstring pouch", "outdoor add-on"]},
+    {"row": 5, "column": 1, "label": "Tri-grip weight plate", "tags": ["fitness add-on", "tri-grip plate", "weight plate"]},
+    {"row": 5, "column": 2, "label": "Gear-edged weight plate", "tags": ["fitness add-on", "grip plate", "weight plate"]},
+    {"row": 5, "column": 3, "label": "Exercise-machine console tray", "tags": ["console tray", "fitness add-on", "machine accessory"]},
+    {"row": 5, "column": 4, "label": "Frame-mounted bottle cage", "tags": ["bottle cage", "cycle accessory", "sport add-on"]},
+    {"row": 5, "column": 5, "label": "Adjustable carrying strap", "tags": ["adjustable strap", "carrying strap", "sport add-on"]}
+  ]
+}

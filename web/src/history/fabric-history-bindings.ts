@@ -1,33 +1,36 @@
-import type { CanvasPort } from "../fabric/canvas-port";
 import { HistoryController } from "./history-controller";
 
-type HistoryPort = Pick<CanvasPort, "serialize" | "load" | "subscribe">;
+interface HistoryPort<T> {
+  serialize(): T;
+  load(value: T): Promise<void>;
+  subscribe(listener: () => void): () => void;
+}
 type LiveRegion = Pick<HTMLElement, "textContent">;
 type Direction = "undo" | "redo";
 
-const cloneSnapshot = (value: Record<string, unknown>): Record<string, unknown> =>
-  structuredClone(value);
+const cloneSnapshot = <T>(value: T): T => structuredClone(value);
 
-function snapshotHash(value: Record<string, unknown>): string {
+function snapshotHash(value: unknown): string {
   const hash = JSON.stringify(value);
-  if (hash === undefined) throw new Error("Canvas snapshot is not serialisable");
+  if (hash === undefined) throw new Error("History snapshot is not serialisable");
   return hash;
 }
 
-export class FabricHistoryBindings {
-  readonly #history: HistoryController<Record<string, unknown>>;
+export class FabricHistoryBindings<T = Record<string, unknown>> {
+  readonly #history: HistoryController<T>;
   readonly #unsubscribe: () => void;
   #currentHash: string;
   #loading = false;
   #queue: Promise<void> = Promise.resolve();
 
   constructor(
-    private readonly port: HistoryPort,
-    private readonly polite: LiveRegion
+    private readonly port: HistoryPort<T>,
+    private readonly polite: LiveRegion,
+    initial?: T
   ) {
-    const initial = this.port.serialize();
-    this.#history = new HistoryController(initial, cloneSnapshot);
-    this.#currentHash = snapshotHash(initial);
+    const first = initial === undefined ? this.port.serialize() : cloneSnapshot(initial);
+    this.#history = new HistoryController(first, cloneSnapshot);
+    this.#currentHash = snapshotHash(first);
     this.#unsubscribe = this.port.subscribe(() => {
       if (this.#loading) return;
       const next = this.port.serialize();
@@ -40,6 +43,11 @@ export class FabricHistoryBindings {
 
   undo(): Promise<boolean> { return this.#enqueue("undo"); }
   redo(): Promise<boolean> { return this.#enqueue("redo"); }
+  transaction(operation: () => Promise<void>): Promise<void> {
+    const queued = this.#queue.then(() => this.#transact(operation));
+    this.#queue = queued.then(() => undefined, () => undefined);
+    return queued;
+  }
   dispose(): void { this.#unsubscribe(); }
 
   #enqueue(direction: Direction): Promise<boolean> {
@@ -69,6 +77,38 @@ export class FabricHistoryBindings {
         this.#currentHash = snapshotHash(this.port.serialize());
       } catch (rollbackError) {
         throw new AggregateError([error, rollbackError], "Canvas and history rollback failed");
+      }
+      throw error;
+    } finally {
+      this.#loading = false;
+    }
+  }
+
+  async #transact(operation: () => Promise<void>): Promise<void> {
+    if (this.#loading) throw new Error("A history snapshot is already loading");
+    const initial = cloneSnapshot(this.port.serialize());
+    const initialHash = snapshotHash(initial);
+    this.#history.alignPresent(initial);
+    this.#currentHash = initialHash;
+    this.#loading = true;
+    try {
+      await operation();
+      const next = cloneSnapshot(this.port.serialize());
+      const nextHash = snapshotHash(next);
+      if (nextHash !== initialHash) this.#history.commit(next);
+      else this.#history.alignPresent(next);
+      this.#currentHash = nextHash;
+    } catch (error) {
+      try {
+        if (snapshotHash(this.port.serialize()) !== initialHash) {
+          await this.port.load(initial);
+        }
+        this.#history.alignPresent(initial);
+        this.#currentHash = snapshotHash(this.port.serialize());
+      } catch (rollbackError) {
+        this.#history.alignPresent(initial);
+        this.#currentHash = initialHash;
+        throw new AggregateError([error, rollbackError], "Composite history rollback failed");
       }
       throw error;
     } finally {

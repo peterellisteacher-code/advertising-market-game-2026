@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 93,
+  "sourcePng": "93-furniture-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Single armchair", "tags": ["armchair", "furniture", "seating"]},
+    {"row": 1, "column": 2, "label": "Two-seat sofa", "tags": ["furniture", "sofa", "two seat"]},
+    {"row": 1, "column": 3, "label": "Three-seat sofa", "tags": ["furniture", "sofa", "three seat"]},
+    {"row": 1, "column": 4, "label": "L-shaped sectional sofa", "tags": ["furniture", "sectional sofa", "sofa"]},
+    {"row": 1, "column": 5, "label": "Chaise lounge", "tags": ["chaise lounge", "furniture", "seating"]},
+    {"row": 2, "column": 1, "label": "Round dining table", "tags": ["dining table", "furniture", "round table"]},
+    {"row": 2, "column": 2, "label": "Rectangular dining table", "tags": ["dining table", "furniture", "rectangular table"]},
+    {"row": 2, "column": 3, "label": "Oval dining table", "tags": ["dining table", "furniture", "oval table"]},
+    {"row": 2, "column": 4, "label": "Square cafe table", "tags": ["cafe table", "furniture", "square table"]},
+    {"row": 2, "column": 5, "label": "Low coffee table", "tags": ["coffee table", "furniture", "low table"]},
+    {"row": 3, "column": 1, "label": "Plain dining chair", "tags": ["dining chair", "furniture", "seating"]},
+    {"row": 3, "column": 2, "label": "High bar stool", "tags": ["bar stool", "furniture", "seating"]},
+    {"row": 3, "column": 3, "label": "Swivel office chair", "tags": ["furniture", "office chair", "swivel chair"]},
+    {"row": 3, "column": 4, "label": "Long bench seat", "tags": ["bench", "furniture", "seating"]},
+    {"row": 3, "column": 5, "label": "Low lounge chair", "tags": ["furniture", "lounge chair", "seating"]},
+    {"row": 4, "column": 1, "label": "Single bed frame", "tags": ["bed frame", "furniture", "single bed"]},
+    {"row": 4, "column": 2, "label": "Double bed frame", "tags": ["bed frame", "double bed", "furniture"]},
+    {"row": 4, "column": 3, "label": "Bunk-bed frame", "tags": ["bunk bed", "furniture", "sleeping"]},
+    {"row": 4, "column": 4, "label": "Two-door wardrobe", "tags": ["furniture", "storage", "wardrobe"]},
+    {"row": 4, "column": 5, "label": "Wide chest of drawers", "tags": ["chest of drawers", "furniture", "storage"]},
+    {"row": 5, "column": 1, "label": "Writing desk with drawers", "tags": ["desk", "furniture", "writing desk"]},
+    {"row": 5, "column": 2, "label": "Tall open bookcase", "tags": ["bookcase", "furniture", "shelving"]},
+    {"row": 5, "column": 3, "label": "Low television console", "tags": ["furniture", "television console", "tv unit"]},
+    {"row": 5, "column": 4, "label": "Slatted round patio table", "tags": ["furniture", "outdoor table", "patio table"]},
+    {"row": 5, "column": 5, "label": "Combined picnic table", "tags": ["furniture", "outdoor table", "picnic table"]}
+  ]
+}

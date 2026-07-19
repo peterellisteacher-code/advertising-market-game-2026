@@ -1,35 +1,1139 @@
 extends Control
 
 const WebCreatorTransport = preload("res://src/creator/transport/WebCreatorTransport.gd")
+const WebMarketTransport = preload("res://src/market/transport/WebMarketTransport.gd")
+const PracticeBridge = preload("res://src/practice/PracticeBridge.gd")
+const WebPracticeTransport = preload("res://src/practice/transport/WebPracticeTransport.gd")
+const LocalMarketSession = preload("res://src/market/LocalMarketSession.gd")
+const MarketViewState = preload("res://src/market/MarketViewState.gd")
+const GameRun = preload("res://src/game/GameRun.gd")
+const WebRunProgressStore = preload("res://src/game/WebRunProgressStore.gd")
+const MARKET_WALLET_CENTS := 10000
+const LIVE_PROGRESS_CONTRACT := WebRunProgressStore.CONTRACT
+const MAX_LIVE_PROGRESS_BYTES := WebRunProgressStore.MAX_PROGRESS_BYTES
+const PAIR_READINESS_CLUE := "Clue: swap once and let both players make a visible change."
+const READINESS_CLUES := {
+    "invent": "Clue: name it, build it, and choose who wants it.",
+    "sell": "Clue: land all four AIDA moves before the buzzer.",
+    "irresistible": "Clue: set a real price and launch your market route."
+}
+
+const LEVEL_COPY := {
+    "invent": {
+        "eyebrow": "LEVEL 1 // INVENT IT",
+        "heading": "Build the thing they did not know they needed.",
+        "clue": "Read your audience signal, shape a product, and give it a name worth remembering."
+    },
+    "sell": {
+        "eyebrow": "LEVEL 2 // SELL IT",
+        "heading": "Turn one invention into four persuasive moves.",
+        "clue": "Win attention, reward interest, build desire, then make the next move obvious."
+    },
+    "irresistible": {
+        "eyebrow": "LEVEL 3 // MAKE IT IRRESISTIBLE",
+        "heading": "Polish the pitch until the market wants in.",
+        "clue": "Choose your price, market route, strongest features, and final visual finish."
+    }
+}
 
 @onready var creator_host: Node = %CreatorHost
+@onready var market_host: Node = %MarketHost
+@onready var market_screen: Control = %MarketScreen
 @onready var launch_button: Button = %LaunchCreator
 @onready var status: Label = %Status
+@onready var lobby_panel: Control = %LobbyPanel
+@onready var team_alias: LineEdit = %TeamAlias
+@onready var room_code: LineEdit = %RoomCode
+@onready var join_live_market: Button = %JoinLiveMarket
+@onready var classroom_code: LineEdit = %ClassroomCode
+@onready var opening_wallet_bucks: SpinBox = %OpeningWalletBucks
+@onready var max_teams: SpinBox = %MaxTeams
+@onready var create_live_market: Button = %CreateLiveMarket
+@onready var start_button: Button = %StartRun
+@onready var run_panel: Control = %RunPanel
+@onready var level_eyebrow: Label = %LevelEyebrow
+@onready var level_heading: Label = %LevelHeading
+@onready var level_clue: Label = %LevelClue
+@onready var lock_level: Button = %LockLevel
+@onready var advance_level: Button = %AdvanceLevel
+@onready var publish_campaign: Button = %PublishCampaign
+@onready var invent_chip: Label = %InventChip
+@onready var sell_chip: Label = %SellChip
+@onready var irresistible_chip: Label = %IrresistibleChip
+
+var _game_run: RefCounted = GameRun.new()
+var _campaign_document: Dictionary = {}
+var _level_locked := false
+var creator_transport_override: RefCounted
+var market_transport_override: RefCounted
+var practice_transport_override: RefCounted
+var run_progress_store_override: RefCounted
+var _publish_after_open := false
+var _published_campaign: Dictionary = {}
+var _room_role := ""
+var _room_code := ""
+var _room_campaign_submitted := false
+var _live_publication_pending := false
+var _latest_market_snapshot: Dictionary = {}
+var _local_market_session: Node
+var _ready_wired := false
+var _practice_bridge: Node
+var _practice_recovery: Dictionary = {}
+var _practice_pending_method := ""
+var _practice_pending_request_id := ""
+var _practice_pending_context := ""
+var _practice_ready := false
+var _practice_operation_counter := 0
+var _pending_creator_document: Dictionary = {}
+var _practice_pending_operation: Dictionary = {}
+var _practice_retry_operation: Dictionary = {}
+var _startup_state := "idle"
+var _run_progress_store: RefCounted
+var _startup_progress_matched := false
+var _startup_expected_document_revision := -1
 
 func _ready() -> void:
-    var web_transport := WebCreatorTransport.new()
-    web_transport.diagnostic.connect(_show_diagnostic)
-    creator_host.set_transport(web_transport)
+    if _ready_wired:
+        return
+    _ready_wired = true
+    _campaign_document = _blank_campaign_document()
+    var selected_transport: RefCounted = creator_transport_override
+    if selected_transport == null:
+        selected_transport = WebCreatorTransport.new()
+    if selected_transport.has_signal("diagnostic"):
+        selected_transport.connect("diagnostic", _show_diagnostic)
+    creator_host.set_transport(selected_transport)
     creator_host.game_input_root = %GameInput
     creator_host.launch_button = launch_button
     creator_host.diagnostic.connect(_show_diagnostic)
     creator_host.creator_opened.connect(_on_creator_opened)
     creator_host.creator_closed.connect(_on_creator_closed)
+    creator_host.creator_state_received.connect(_on_creator_state_received)
+    creator_host.latest_draft_received.connect(_on_latest_draft_received)
+    creator_host.creator_published.connect(_on_creator_published)
+    var selected_market_transport: RefCounted = market_transport_override
+    if selected_market_transport == null:
+        selected_market_transport = WebMarketTransport.new()
+    market_host.set_transport(selected_market_transport)
+    market_host.diagnostic.connect(_show_market_diagnostic)
+    market_host.room_created.connect(_on_room_created)
+    market_host.room_joined.connect(_on_room_joined)
+    market_host.room_resumed.connect(_on_room_resumed)
+    market_host.room_resume_failed.connect(_on_room_resume_failed)
+    market_host.snapshot_received.connect(_on_market_snapshot)
+    market_host.campaign_published.connect(_on_market_campaign_published)
+    if not market_screen.is_node_ready():
+        market_screen.call("_ready")
+    market_screen.call("set_market_host", market_host)
+    market_screen.connect("fix_requested", _reopen_returned_campaign)
+    join_live_market.pressed.connect(_join_live_room)
+    create_live_market.pressed.connect(_create_live_room)
+    start_button.pressed.connect(_start_run)
     launch_button.pressed.connect(_open_creator)
-    launch_button.grab_focus()
+    lock_level.pressed.connect(_lock_current_level)
+    advance_level.pressed.connect(_advance_level)
+    publish_campaign.pressed.connect(_publish_campaign)
+    run_panel.hide()
+    market_screen.hide()
+    _setup_practice_recovery()
+    _run_progress_store = run_progress_store_override
+    if _run_progress_store == null:
+        _run_progress_store = WebRunProgressStore.new()
+    _begin_startup()
+    _focus_if_ready(team_alias)
+
+func _setup_practice_recovery() -> void:
+    _practice_bridge = PracticeBridge.new()
+    add_child(_practice_bridge)
+    var selected_transport: RefCounted = practice_transport_override
+    if selected_transport == null:
+        selected_transport = WebPracticeTransport.new()
+    _practice_bridge.set_transport(selected_transport)
+    _practice_bridge.request_succeeded.connect(_on_practice_request_succeeded)
+    _practice_bridge.request_failed.connect(_on_practice_request_failed)
+
+func _begin_startup() -> void:
+    _startup_state = "live-resume"
+    start_button.disabled = true
+    status.text = "Checking for an active live market…"
+    market_host.resume_session()
+
+func _on_room_resumed(wrapper: Variant) -> void:
+    if _startup_state != "live-resume":
+        return
+    if wrapper == null:
+        _startup_state = "practice-resume"
+        status.text = "Checking this computer for a saved pitch…"
+        _issue_practice_resume("startup")
+        return
+    if typeof(wrapper) != TYPE_DICTIONARY:
+        _on_room_resume_failed("INVALID_ROOM_RESPONSE", "Live resume was invalid")
+        return
+    var resumed: Dictionary = wrapper
+    match String(resumed.get("role", "")):
+        "teacher":
+            _startup_state = "complete"
+            _on_room_created(resumed)
+        "team":
+            _begin_resumed_team(resumed)
+        _:
+            _on_room_resume_failed("INVALID_ROOM_RESPONSE", "Live resume role was invalid")
+
+func _on_room_resume_failed(_code: String, _message: String) -> void:
+    if _startup_state != "live-resume":
+        return
+    _startup_state = "live-error"
+    _practice_ready = true
+    start_button.disabled = false
+    lobby_panel.show()
+    run_panel.hide()
+    market_screen.hide()
+    status.text = "The live market could not be checked. Retry live or choose Practice explicitly."
+
+func _on_latest_draft_received(document: Variant) -> void:
+    if _startup_state != "team-hydrating":
+        return
+    if document == null:
+        if _startup_progress_matched and _startup_expected_document_revision > 0:
+            _fail_live_hydration()
+            return
+        _finish_resumed_team(_campaign_document)
+        return
+    if typeof(document) != TYPE_DICTIONARY:
+        _fail_live_hydration()
+        return
+    var latest: Dictionary = document
+    if not _live_document_identity_matches(latest):
+        _fail_live_hydration()
+        return
+    if (
+        _startup_progress_matched
+        and int(latest.get("revision", -1)) != _startup_expected_document_revision
+    ):
+        _fail_live_hydration()
+        return
+    _finish_resumed_team(latest)
+
+func _issue_practice_resume(context: String) -> void:
+    if not _practice_pending_method.is_empty():
+        return
+    _begin_practice_request("resume", context)
+    var request_id: String = _practice_bridge.resume()
+    _remember_practice_request_id("resume", request_id)
+
+func _begin_practice_request(method: String, context: String) -> void:
+    _practice_pending_method = method
+    _practice_pending_request_id = ""
+    _practice_pending_context = context
+
+func _remember_practice_request_id(method: String, request_id: String) -> void:
+    if _practice_pending_method != method:
+        return
+    _practice_pending_request_id = request_id
+    if request_id.is_empty():
+        _clear_practice_request()
+
+func _practice_request_matches(request_id: String, method: String) -> bool:
+    return (
+        _practice_pending_method == method
+        and (
+            _practice_pending_request_id.is_empty()
+            or _practice_pending_request_id == request_id
+        )
+    )
+
+func _clear_practice_request() -> void:
+    _practice_pending_method = ""
+    _practice_pending_request_id = ""
+    _practice_pending_context = ""
+    _practice_pending_operation.clear()
+
+func _abandon_practice_request() -> void:
+    _clear_practice_request()
+    _practice_retry_operation.clear()
+    _pending_creator_document.clear()
+    start_button.disabled = false
+
+func _on_practice_request_succeeded(request_id: String, method: String, payload: Variant) -> void:
+    if not _practice_request_matches(request_id, method):
+        return
+    var context := _practice_pending_context
+    _practice_retry_operation.clear()
+    _clear_practice_request()
+    if method == "resume" and payload == null:
+        _practice_ready = true
+        start_button.disabled = false
+        if context == "startup":
+            _startup_state = "complete"
+            status.text = "Choose your pair name, then enter the market."
+        elif context == "creator-refresh":
+            status.text = "Campaign saved for the next level."
+        return
+    if typeof(payload) != TYPE_DICTIONARY:
+        _practice_failure(context)
+        return
+    var recovery: Dictionary = payload
+    if context == "creator-refresh" and not _pending_creator_document.is_empty():
+        var refreshed_document: Dictionary = recovery.get("document", {})
+        if (
+            refreshed_document.get("documentId") != _pending_creator_document.get("documentId")
+            or int(refreshed_document.get("revision", -1)) != int(_pending_creator_document.get("revision", -2))
+        ):
+            _practice_failure(context)
+            return
+    if not _apply_practice_recovery(recovery):
+        _practice_failure(context)
+        return
+    _practice_ready = true
+    start_button.disabled = false
+    match context:
+        "startup":
+            lobby_panel.hide()
+            run_panel.show()
+            market_screen.hide()
+            _render_level()
+            status.text = "Saved pitch restored. Continue exactly where your pair left off."
+        "begin":
+            lobby_panel.hide()
+            run_panel.show()
+            market_screen.hide()
+            _render_level()
+            status.text = "Audience signals unlocked. Your first pitch starts now."
+            _focus_if_ready(launch_button)
+        "lock":
+            _render_level()
+            status.text = "Level locked. Ready for the next reveal."
+            _focus_if_ready(advance_level)
+        "advance":
+            _render_level()
+            status.text = "Next level unlocked. Open the studio when your pair is ready."
+        "creator-refresh":
+            _render_level()
+            var readiness_clue := _readiness_clue()
+            if readiness_clue.is_empty():
+                status.text = "Campaign saved for the next level."
+            else:
+                status.text = readiness_clue
+                _focus_if_ready(lock_level)
+
+func _on_practice_request_failed(request_id: String, method_or_code: String, code_or_message: String, maybe_message: String = "") -> void:
+    var method := _practice_pending_method
+    var code := method_or_code
+    var message := code_or_message
+    if not maybe_message.is_empty():
+        method = method_or_code
+        code = code_or_message
+        message = maybe_message
+    if not _practice_request_matches(request_id, method):
+        return
+    var context := _practice_pending_context
+    var failed_operation := _practice_pending_operation.duplicate(true)
+    _clear_practice_request()
+    if code in [
+        "TRANSPORT_ERROR",
+        "INVALID_RESPONSE",
+        "UNSUPPORTED_CONTRACT",
+        "REQUEST_ID_MISMATCH",
+        "INVALID_RECOVERY_RESPONSE"
+    ] and not failed_operation.is_empty():
+        _practice_retry_operation = failed_operation
+    else:
+        _practice_retry_operation.clear()
+    _practice_failure(context)
+    if code == "PRACTICE_UNAVAILABLE":
+        status.text = "Saved practice is unavailable here. Live rooms are still ready."
+    elif not message.is_empty() and context != "startup":
+        status.text = "That save did not land. Nothing changed; try again."
+
+func _practice_failure(context: String) -> void:
+    _pending_creator_document.clear()
+    start_button.disabled = false
+    if context == "startup":
+        _startup_state = "complete"
+        _practice_ready = true
+        lobby_panel.show()
+        run_panel.hide()
+        status.text = "Saved progress could not be verified. It was kept untouched; you can start fresh or join live."
+    elif context == "begin":
+        start_button.disabled = false
+        status.text = "Practice could not start safely. Try again."
+    else:
+        _render_level()
+        status.text = "That save did not land. Nothing changed; try again."
+
+func _apply_practice_recovery(recovery: Dictionary) -> bool:
+    var checkpoint_value: Variant = recovery.get("checkpoint")
+    var document_value: Variant = recovery.get("document")
+    if typeof(checkpoint_value) != TYPE_DICTIONARY or typeof(document_value) != TYPE_DICTIONARY:
+        return false
+    var checkpoint: Dictionary = checkpoint_value
+    var document: Dictionary = document_value
+    var phase := String(checkpoint.get("stage", ""))
+    var locked := bool(checkpoint.get("levelLocked", false))
+    if locked and not _readiness_clue_for(phase, document).is_empty():
+        return false
+    var levels := ["invent", "sell", "irresistible"]
+    var ready_levels: Array[String] = []
+    if phase == "publish-check":
+        ready_levels.assign(levels)
+    else:
+        var active_index := levels.find(phase)
+        if active_index < 0:
+            return false
+        for index in active_index:
+            ready_levels.append(levels[index])
+        if locked:
+            ready_levels.append(phase)
+    var next_run: RefCounted = GameRun.new()
+    if not next_run.restore_pitch_snapshot({
+        "contract": "pitch-run@1",
+        "phase": phase,
+        "teamAlias": String(checkpoint.get("teamAlias", "")),
+        "sessionId": String(checkpoint.get("sessionId", "")),
+        "teamId": String(checkpoint.get("teamId", "")),
+        "readyLevels": ready_levels
+    }):
+        return false
+    _game_run = next_run
+    _campaign_document = document.duplicate(true)
+    _practice_recovery = recovery.duplicate(true)
+    _level_locked = locked
+    _pending_creator_document.clear()
+    _room_role = ""
+    _room_code = ""
+    _room_campaign_submitted = false
+    _live_publication_pending = false
+    return true
+
+func _practice_token() -> Dictionary:
+    var checkpoint: Dictionary = _practice_recovery.get("checkpoint", {})
+    if checkpoint.is_empty():
+        return {}
+    return {
+        "runId": checkpoint.get("runId"),
+        "documentId": checkpoint.get("documentId"),
+        "documentRevision": checkpoint.get("documentRevision"),
+        "sequence": checkpoint.get("sequence"),
+        "stage": checkpoint.get("stage")
+    }
+
+func _new_practice_operation_id(kind: String) -> String:
+    _practice_operation_counter += 1
+    return "%s-%d-%d" % [
+        kind,
+        int(Time.get_unix_time_from_system() * 1000000.0),
+        _practice_operation_counter
+    ]
+
+func _practice_operation_id(kind: String, input: Dictionary) -> String:
+    var operation_id := ""
+    if (
+        _practice_retry_operation.get("kind") == kind
+        and _practice_retry_operation.get("input") == input
+    ):
+        operation_id = String(_practice_retry_operation.get("operationId", ""))
+    if operation_id.is_empty():
+        _practice_retry_operation.clear()
+        operation_id = _new_practice_operation_id(kind)
+    _practice_pending_operation = {
+        "kind": kind,
+        "input": input.duplicate(true),
+        "operationId": operation_id
+    }
+    return operation_id
+
+func _choose_new_route() -> void:
+    _startup_state = "manual"
+    market_host.call("invalidate_room_intent")
+
+func _start_run() -> void:
+    if _startup_state in ["live-resume", "practice-resume", "live-error"]:
+        _abandon_practice_request()
+        _practice_ready = true
+        _choose_new_route()
+    if not _practice_ready or not _practice_pending_method.is_empty():
+        status.text = "Saved progress is still being checked."
+        return
+    var alias := team_alias.text.strip_edges()
+    if alias.length() < 2 or alias.length() > 32 or alias != team_alias.text:
+        status.text = "Choose a pair alias with 2 to 32 characters and no outside spaces."
+        _focus_if_ready(team_alias)
+        return
+    _choose_new_route()
+    _room_role = ""
+    _room_code = ""
+    _room_campaign_submitted = false
+    _live_publication_pending = false
+    market_screen.call("stop_room")
+    market_screen.call("set_market_host", market_host)
+    _practice_recovery.clear()
+    start_button.disabled = true
+    status.text = "Preparing a safe place for your pitch…"
+    _begin_practice_request("begin", "begin")
+    var operation_id := _practice_operation_id("begin", {"teamAlias": alias})
+    var request_id: String = _practice_bridge.begin(alias, operation_id)
+    _remember_practice_request_id("begin", request_id)
+
+func _join_live_room() -> void:
+    _abandon_practice_request()
+    market_screen.call("set_market_host", market_host)
+    var alias := team_alias.text.strip_edges()
+    var code := room_code.text.strip_edges().to_upper()
+    if alias.length() < 2:
+        status.text = "Choose a pair alias with at least two characters."
+        _focus_if_ready(team_alias)
+        return
+    _choose_new_route()
+    status.text = "Joining the live market…"
+    market_host.join_room(code, alias)
+
+func _create_live_room() -> void:
+    _abandon_practice_request()
+    market_screen.call("set_market_host", market_host)
+    var code := classroom_code.text.strip_edges()
+    if code.is_empty():
+        status.text = "Enter the classroom code before opening the market."
+        _focus_if_ready(classroom_code)
+        return
+    _choose_new_route()
+    var opening_wallet_cents := int(round(opening_wallet_bucks.value * 100.0))
+    status.text = "Opening a class market…"
+    market_host.create_room(opening_wallet_cents, code, int(max_teams.value))
+
+func _begin_resumed_team(wrapper: Dictionary) -> void:
+    var context := _team_room_context(wrapper)
+    if context.is_empty():
+        _fail_live_hydration()
+        return
+    var snapshot: Dictionary = context.get("snapshot")
+    var room_id := String(context.get("roomId"))
+    var team_id := String(context.get("teamId"))
+    var alias := String(context.get("alias"))
+    var session_id := "room-session-%s" % team_id
+    var canonical_document := _room_campaign_document(room_id, team_id, session_id)
+    var next_run: RefCounted = GameRun.new()
+    if not next_run.begin(alias, session_id, team_id):
+        _fail_live_hydration()
+        return
+
+    _startup_progress_matched = false
+    _startup_expected_document_revision = -1
+    var stored: Variant = _run_progress_store.load() if _run_progress_store != null else {}
+    var restored := _validated_live_progress(stored, {
+        "roomCode": String(wrapper.get("roomCode")),
+        "roomId": room_id,
+        "teamId": team_id,
+        "sessionId": session_id,
+        "documentId": String(canonical_document.get("documentId"))
+    })
+    if not restored.is_empty():
+        next_run = restored.get("run")
+        var progress: Dictionary = restored.get("value")
+        _level_locked = bool(progress.get("levelLocked"))
+        _startup_progress_matched = true
+        _startup_expected_document_revision = int(progress.get("documentRevision"))
+    else:
+        _level_locked = false
+
+    _game_run = next_run
+    _room_role = "team"
+    _room_code = String(wrapper.get("roomCode"))
+    _latest_market_snapshot = snapshot.duplicate(true)
+    _room_campaign_submitted = _team_has_campaign(snapshot, team_id)
+    _live_publication_pending = false
+    _practice_recovery.clear()
+    _campaign_document = canonical_document
+    market_screen.call("enter_room", "team", _room_code)
+    market_screen.call("present_snapshot", snapshot)
+    lobby_panel.show()
+    run_panel.hide()
+    market_screen.hide()
+    launch_button.disabled = true
+    _startup_state = "team-hydrating"
+    status.text = "Restoring this pair’s exact live campaign…"
+    if creator_host.load_latest(String(canonical_document.get("documentId"))).is_empty():
+        _fail_live_hydration()
+
+func _finish_resumed_team(document: Dictionary) -> void:
+    if _startup_state != "team-hydrating":
+        return
+    _campaign_document = document.duplicate(true)
+    _startup_state = "complete"
+    launch_button.disabled = false
+    lobby_panel.hide()
+    var server_phase := String(_latest_market_snapshot.get("phase", "building"))
+    if _room_campaign_submitted or server_phase in ["market", "reveal", "closed"]:
+        run_panel.hide()
+        market_screen.show()
+        status.text = "Live room restored. Continue from the host display."
+        return
+    market_screen.hide()
+    run_panel.show()
+    _render_level()
+    status.text = "Live pitch restored. Continue exactly where your pair left off."
+    _focus_if_ready(launch_button)
+
+func _fail_live_hydration() -> void:
+    if _startup_state == "manual":
+        return
+    _startup_state = "live-error"
+    launch_button.disabled = true
+    start_button.disabled = false
+    lobby_panel.show()
+    run_panel.hide()
+    market_screen.hide()
+    status.text = "The live room returned, but its exact saved campaign could not be verified. Progress was kept untouched."
+
+func _team_room_context(wrapper: Dictionary) -> Dictionary:
+    var snapshot_value: Variant = wrapper.get("snapshot")
+    if typeof(snapshot_value) != TYPE_DICTIONARY:
+        return {}
+    var snapshot: Dictionary = snapshot_value
+    var derived: Dictionary = MarketViewState.new().derive(snapshot)
+    if derived.get("ok") != true or derived.get("role") != "team":
+        return {}
+    var state: Dictionary = derived.get("state")
+    var own_value: Variant = state.get("own")
+    if typeof(own_value) != TYPE_DICTIONARY:
+        return {}
+    var own: Dictionary = own_value
+    return {
+        "snapshot": snapshot,
+        "roomId": String(state.get("roomId")),
+        "teamId": String(own.get("teamId")),
+        "alias": String(own.get("alias"))
+    }
+
+func _on_room_joined(wrapper: Dictionary) -> void:
+    var context := _team_room_context(wrapper)
+    if context.is_empty():
+        _show_market_diagnostic("")
+        return
+    var snapshot: Dictionary = context.get("snapshot")
+    var room_id := String(context.get("roomId"))
+    var team_id := String(context.get("teamId"))
+    var alias := String(context.get("alias"))
+    var session_id := "room-session-%s" % team_id
+    _game_run = GameRun.new()
+    if not _game_run.begin(alias, session_id, team_id):
+        status.text = "The pair could not enter the pitch levels safely."
+        return
+    _room_role = "team"
+    _practice_recovery.clear()
+    _level_locked = false
+    _room_code = str(wrapper.get("roomCode"))
+    _room_campaign_submitted = false
+    _live_publication_pending = false
+    _latest_market_snapshot = snapshot.duplicate(true)
+    _campaign_document = _room_campaign_document(room_id, team_id, session_id)
+    launch_button.disabled = false
+    market_screen.call("enter_room", "team", _room_code)
+    market_screen.call("present_snapshot", snapshot)
+    market_screen.hide()
+    lobby_panel.hide()
+    run_panel.show()
+    status.text = "Room joined. Your first pitch starts now."
+    _render_level()
+    _save_live_progress()
+    _focus_if_ready(launch_button)
+
+func _on_room_created(wrapper: Dictionary) -> void:
+    var snapshot_value: Variant = wrapper.get("snapshot")
+    if typeof(snapshot_value) != TYPE_DICTIONARY:
+        _show_market_diagnostic("")
+        return
+    _room_role = "teacher"
+    _room_code = str(wrapper.get("roomCode"))
+    _latest_market_snapshot = Dictionary(snapshot_value).duplicate(true)
+    lobby_panel.hide()
+    run_panel.hide()
+    market_screen.call("enter_room", "teacher", _room_code)
+    market_screen.call("present_snapshot", _latest_market_snapshot)
+    market_screen.show()
+    status.text = "Class market open. Share the room code on the host display."
+
+func _on_market_snapshot(snapshot: Dictionary) -> void:
+    if _room_role.is_empty():
+        return
+    _latest_market_snapshot = snapshot.duplicate(true)
+    market_screen.call("present_snapshot", snapshot)
+    if _room_role == "teacher":
+        lobby_panel.hide()
+        run_panel.hide()
+        market_screen.show()
+        return
+    var server_phase := str(snapshot.get("phase"))
+    if server_phase == "market" and _game_run.phase == "publish-check":
+        var own_value: Variant = snapshot.get("own")
+        if typeof(own_value) == TYPE_DICTIONARY:
+            var own: Dictionary = own_value
+            var opening_wallet := int(own.get("wallet", 0)) + int(own.get("spent", 0))
+            _game_run.open_market(opening_wallet)
+    if _room_campaign_submitted or server_phase in ["market", "reveal", "closed"]:
+        lobby_panel.hide()
+        run_panel.hide()
+        market_screen.show()
+
+func _on_market_campaign_published(_result: Dictionary) -> void:
+    if _room_role != "team":
+        return
+    _live_publication_pending = false
+    _room_campaign_submitted = true
+    publish_campaign.disabled = false
+    creator_host.close_creator()
+    run_panel.hide()
+    market_screen.show()
+    market_screen.call("show_publication_waiting")
+    status.text = "Market card delivered. The host will bring it onto the floor."
+
+func _reopen_returned_campaign() -> void:
+    if _room_role != "team" or _live_publication_pending:
+        return
+    if _startup_state == "team-hydrating":
+        status.text = "Restoring this pair’s exact live campaign before the studio reopens…"
+        return
+    market_screen.hide()
+    run_panel.show()
+    _render_level()
+    status.text = "Reopening the studio with the host note beside you…"
+    _set_campaign_stage_for_phase()
+    if creator_host.open_creator(_campaign_document).is_empty():
+        status.text = "The saved campaign could not be reopened. Try again."
+        market_screen.show()
+
+func _show_market_diagnostic(_message: String) -> void:
+    if _live_publication_pending:
+        _live_publication_pending = false
+        publish_campaign.disabled = false
+    status.text = "The live room could not update. Check the room code or connection, then try again."
 
 func _open_creator() -> void:
-    status.text = "Opening Campaign Creator…"
-    creator_host.open_creator(_blank_campaign_document())
+    if not LEVEL_COPY.has(_game_run.phase):
+        status.text = "The creative studio opens during the three pitch levels."
+        return
+    status.text = "Opening the creative studio…"
+    _set_campaign_stage_for_phase()
+    creator_host.open_creator(_campaign_document)
 
 func _on_creator_opened() -> void:
+    if _publish_after_open:
+        status.text = "Building your market card…"
+        if creator_host.publish_creator().is_empty():
+            _publish_after_open = false
+            publish_campaign.disabled = false
+            status.text = "The market card could not be built. Try again."
+        return
     status.text = "Campaign Creator open · game input paused"
 
 func _on_creator_closed() -> void:
-    status.text = "Game ready"
+    if _room_role == "team" and _game_run.phase == "publish-check":
+        status.text = "Studio saved. Build the refreshed market card when your pair is ready."
+        _focus_if_ready(publish_campaign)
+        return
+    if _game_run.phase == "market":
+        status.text = "Market card live. Browse the stalls and spend your budget."
+        return
+    status.text = "Studio saved. Lock this level when your pair is happy with the move."
+    _focus_if_ready(lock_level)
+
+func _on_creator_state_received(document: Dictionary) -> void:
+    if _room_role.is_empty() and not _practice_recovery.is_empty():
+        _pending_creator_document = document.duplicate(true)
+        if _practice_pending_method.is_empty():
+            status.text = "Checking the saved campaign…"
+            _issue_practice_resume("creator-refresh")
+        return
+    if _room_role == "team":
+        if not _live_document_identity_matches(document):
+            status.text = "A campaign for another live pair was ignored. Your saved progress was kept untouched."
+            return
+        if int(document.get("revision", -1)) < int(_campaign_document.get("revision", 0)):
+            status.text = "An older campaign save was ignored. Your latest live progress is still safe."
+            return
+    _campaign_document = document.duplicate(true)
+    if _level_locked:
+        var readiness_clue := _readiness_clue()
+        if not readiness_clue.is_empty():
+            _level_locked = false
+            _game_run.invalidate_current_level()
+            _save_live_progress()
+            _render_level()
+            status.text = readiness_clue
+            _focus_if_ready(lock_level)
+            return
+    if _room_role == "team":
+        _save_live_progress()
+    status.text = "Campaign saved for the next level."
+
+func _lock_current_level() -> void:
+    var readiness_clue := _readiness_clue()
+    if not readiness_clue.is_empty():
+        status.text = readiness_clue
+        _focus_if_ready(lock_level)
+        return
+    if _room_role.is_empty():
+        if not _practice_pending_method.is_empty() or _practice_recovery.is_empty():
+            status.text = "Saved progress is still catching up. Try Lock again in a moment."
+            return
+        var token := _practice_token()
+        if token.is_empty():
+            status.text = "The saved pitch marker is missing. Return to the studio and try again."
+            return
+        lock_level.disabled = true
+        status.text = "Saving this level lock…"
+        _begin_practice_request("setLock", "lock")
+        var operation_id := _practice_operation_id("lock", {
+            "checkpoint": token.duplicate(true),
+            "levelLocked": true
+        })
+        var request_id: String = _practice_bridge.set_level_lock(
+            token,
+            true,
+            operation_id
+        )
+        _remember_practice_request_id("setLock", request_id)
+        return
+    if not _game_run.mark_current_level_ready():
+        status.text = _game_run.last_error
+        return
+    _level_locked = true
+    lock_level.disabled = true
+    advance_level.disabled = false
+    status.text = "Level locked. Ready for the next reveal."
+    _save_live_progress()
+    _focus_if_ready(advance_level)
+
+func _advance_level() -> void:
+    if not _level_locked:
+        status.text = "Lock this level before moving on."
+        _focus_if_ready(lock_level)
+        return
+    var readiness_clue := _readiness_clue()
+    if not readiness_clue.is_empty():
+        _level_locked = false
+        _game_run.invalidate_current_level()
+        _render_level()
+        status.text = readiness_clue
+        _focus_if_ready(lock_level)
+        return
+    if _room_role.is_empty():
+        if not _practice_pending_method.is_empty() or _practice_recovery.is_empty():
+            status.text = "Saved progress is still catching up. Try Next level again in a moment."
+            return
+        var next_by_stage := {
+            "invent": "sell",
+            "sell": "irresistible",
+            "irresistible": "publish-check"
+        }
+        var next_stage := String(next_by_stage.get(_game_run.phase, ""))
+        if next_stage.is_empty():
+            status.text = "There is no next pitch level."
+            return
+        advance_level.disabled = true
+        status.text = "Saving the next level reveal…"
+        _begin_practice_request("advance", "advance")
+        var operation_id := _practice_operation_id("advance", {
+            "checkpoint": _practice_token().duplicate(true),
+            "nextStage": next_stage
+        })
+        var request_id: String = _practice_bridge.advance(
+            _practice_token(),
+            next_stage,
+            operation_id
+        )
+        _remember_practice_request_id("advance", request_id)
+        return
+    if not _game_run.advance_level():
+        status.text = _game_run.last_error
+        return
+    _level_locked = false
+    _render_level()
+    _save_live_progress()
+
+func _publish_campaign() -> void:
+    if _game_run.phase != "publish-check" or _publish_after_open:
+        return
+    _publish_after_open = true
+    publish_campaign.disabled = true
+    _set_campaign_stage_for_phase()
+    if creator_host.creator_is_open:
+        _on_creator_opened()
+        return
+    status.text = "Reopening your saved campaign for one final market card…"
+    if creator_host.open_creator(_campaign_document).is_empty():
+        _publish_after_open = false
+        publish_campaign.disabled = false
+        status.text = "The saved campaign could not be reopened. Try again."
+
+func _on_creator_published(publication: Dictionary) -> void:
+    _publish_after_open = false
+    _published_campaign = publication.duplicate(true)
+    if _room_role == "team":
+        _live_publication_pending = true
+        status.text = "Sending your market card to the host…"
+        if market_host.publish_campaign(publication).is_empty():
+            _live_publication_pending = false
+            publish_campaign.disabled = false
+            status.text = "The market card could not be sent. Check the room connection, then try again."
+        return
+    if not _game_run.open_market(MARKET_WALLET_CENTS):
+        publish_campaign.disabled = false
+        status.text = _game_run.last_error
+        return
+    _local_market_session = LocalMarketSession.new()
+    add_child(_local_market_session)
+    var initial_snapshot: Dictionary = _local_market_session.call(
+        "configure",
+        _game_run,
+        publication,
+        _game_run.team_alias
+    )
+    if initial_snapshot.is_empty():
+        publish_campaign.disabled = false
+        status.text = "The practice market could not load its stalls. Try building the card again."
+        return
+    market_screen.call("set_market_host", _local_market_session)
+    market_screen.call("enter_room", "team", "PRACTICE")
+    market_screen.call("present_snapshot", initial_snapshot)
+    creator_host.close_creator()
+    _render_level()
+    run_panel.hide()
+    market_screen.show()
+
+func _render_level() -> void:
+    var phase: String = _game_run.phase
+    var level_order := ["invent", "sell", "irresistible"]
+    var active_index := level_order.find(phase)
+    var chips: Array[Label] = [invent_chip, sell_chip, irresistible_chip]
+    for index in chips.size():
+        var chip := chips[index]
+        chip.add_theme_color_override(
+            "font_color",
+            Color("#17212b") if index == active_index else Color("#68727d")
+        )
+        chip.modulate.a = 1.0 if index <= active_index or active_index < 0 else 0.55
+
+    if phase == "publish-check":
+        level_eyebrow.text = "MARKET GATE"
+        level_heading.text = "One final look before the stalls open."
+        level_clue.text = "Your campaign has travelled through all three levels. Build the card your shoppers will see."
+        launch_button.hide()
+        lock_level.hide()
+        advance_level.hide()
+        publish_campaign.show()
+        publish_campaign.disabled = false
+        _focus_if_ready(publish_campaign)
+        status.text = "Three levels cleared. Your market card is next."
+        return
+
+    if phase == "market":
+        level_eyebrow.text = "LIVE MARKET"
+        level_heading.text = "Your stall is open. Now shop the room."
+        level_clue.text = "Spend at least $80 across products from at least two different teams."
+        launch_button.hide()
+        lock_level.hide()
+        advance_level.hide()
+        publish_campaign.hide()
+        status.text = "Market card built. Loading the other stalls…"
+        return
+
+    var copy: Dictionary = LEVEL_COPY.get(phase, {})
+    level_eyebrow.text = str(copy.get("eyebrow", "PITCH LEVEL"))
+    level_heading.text = str(copy.get("heading", "Make the next move."))
+    level_clue.text = str(copy.get("clue", "Open the studio and keep building."))
+    launch_button.show()
+    lock_level.show()
+    advance_level.show()
+    publish_campaign.hide()
+    lock_level.disabled = _level_locked
+    advance_level.disabled = not _level_locked
 
 func _show_diagnostic(message: String) -> void:
+    if _startup_state == "team-hydrating":
+        _fail_live_hydration()
+        return
+    if _publish_after_open:
+        _publish_after_open = false
+        publish_campaign.disabled = false
     status.text = message
+
+func _focus_if_ready(control: Control) -> void:
+    if control.is_inside_tree():
+        control.grab_focus()
+
+func _readiness_clue() -> String:
+    return _readiness_clue_for(_game_run.phase, _campaign_document)
+
+func _readiness_clue_for(phase: String, document: Dictionary) -> String:
+    if phase == "invent":
+        var product := _dictionary_child(document, "product")
+        var brief := _dictionary_child(document, "brief")
+        if (
+            not _is_nonblank_string(product.get("name"))
+            or product.get("build", null) == null
+            or not _is_nonblank_string(brief.get("targetAudienceId"))
+        ):
+            return READINESS_CLUES[phase]
+        if not _pair_has_completed_turn(document):
+            return PAIR_READINESS_CLUE
+    elif phase == "sell":
+        var strategy := _dictionary_child(document, "strategy")
+        var aida_plan := _dictionary_child(strategy, "aidaPlan")
+        var evidence := _dictionary_child(document, "evidence")
+        for move in ["attention", "interest", "desire", "action"]:
+            if (
+                not _is_nonblank_string(aida_plan.get(move))
+                or not _has_nonblank_evidence(evidence.get(move))
+            ):
+                return READINESS_CLUES[phase]
+    elif phase == "irresistible":
+        var product := _dictionary_child(document, "product")
+        var strategy := _dictionary_child(document, "strategy")
+        var evidence := _dictionary_child(document, "evidence")
+        var price_cents: Variant = product.get("priceCents", null)
+        var route: Variant = strategy.get("marketRoute", null)
+        var price_is_positive: bool = (
+            typeof(price_cents) in [TYPE_INT, TYPE_FLOAT]
+            and is_finite(float(price_cents))
+            and float(price_cents) > 0.0
+        )
+        var route_is_committed: bool = (
+            typeof(route) == TYPE_DICTIONARY
+            and route.get("committed", false) == true
+        )
+        if (
+            not price_is_positive
+            or not _has_nonblank_evidence(evidence.get("price"))
+            or not route_is_committed
+        ):
+            return READINESS_CLUES[phase]
+    return ""
+
+func _dictionary_child(source: Dictionary, key: String) -> Dictionary:
+    var child: Variant = source.get(key, {})
+    if typeof(child) != TYPE_DICTIONARY:
+        return {}
+    return child
+
+func _is_nonblank_string(value: Variant) -> bool:
+    return typeof(value) == TYPE_STRING and str(value).strip_edges() != ""
+
+func _has_nonblank_evidence(value: Variant) -> bool:
+    if typeof(value) != TYPE_ARRAY:
+        return false
+    for object_id in value:
+        if _is_nonblank_string(object_id):
+            return true
+    return false
+
+func _pair_has_completed_turn(document: Dictionary) -> bool:
+    var gameplay := _dictionary_child(document, "gameplay")
+    var pair := _dictionary_child(gameplay, "pair")
+    return (
+        int(pair.get("handoffCount", 0)) >= 1
+        and int(pair.get("artDirectorActions", 0)) >= 1
+        and int(pair.get("strategistActions", 0)) >= 1
+    )
+
+func _set_campaign_stage_for_phase() -> void:
+    if _room_role.is_empty():
+        return
+    var gameplay := _dictionary_child(_campaign_document, "gameplay")
+    if gameplay.is_empty():
+        gameplay = {
+            "stage": "invent",
+            "pair": {
+                "activeRole": "art-director",
+                "handoffCount": 0,
+                "artDirectorActions": 0,
+                "strategistActions": 0
+            }
+        }
+    gameplay["stage"] = _game_run.phase
+    _campaign_document["gameplay"] = gameplay
+
+func _validated_live_progress(value: Variant, identity: Dictionary) -> Dictionary:
+    var progress := WebRunProgressStore.validated_envelope(value)
+    if progress.is_empty():
+        return {}
+    for key in ["roomCode", "roomId", "teamId", "sessionId", "documentId"]:
+        if typeof(progress.get(key)) != TYPE_STRING or progress.get(key) != identity.get(key):
+            return {}
+    if not _is_nonnegative_integer_number(progress.get("documentRevision")):
+        return {}
+    if typeof(progress.get("levelLocked")) != TYPE_BOOL:
+        return {}
+    var restored_run: RefCounted = GameRun.new()
+    if not restored_run.restore_pitch_snapshot(progress.get("pitch")):
+        return {}
+    if bool(progress.get("levelLocked")) != bool(restored_run.is_current_level_ready()):
+        return {}
+    return {"run": restored_run, "value": progress.duplicate(true)}
+
+func _save_live_progress() -> void:
+    if _room_role != "team" or _run_progress_store == null:
+        return
+    var pitch: Dictionary = _game_run.pitch_snapshot()
+    if pitch.is_empty() or not _live_document_identity_matches(_campaign_document):
+        return
+    var room_id := String(_latest_market_snapshot.get("roomId", ""))
+    var envelope := {
+        "contract": LIVE_PROGRESS_CONTRACT,
+        "roomCode": _room_code,
+        "roomId": room_id,
+        "teamId": String(_game_run.team_id),
+        "sessionId": String(_game_run.session_id),
+        "documentId": String(_campaign_document.get("documentId")),
+        "documentRevision": int(_campaign_document.get("revision", 0)),
+        "pitch": pitch,
+        "levelLocked": _level_locked
+    }
+    if JSON.stringify(envelope).to_utf8_buffer().size() <= MAX_LIVE_PROGRESS_BYTES:
+        _run_progress_store.save(envelope)
+
+func _live_document_identity_matches(document: Dictionary) -> bool:
+    if _room_role != "team":
+        return false
+    var room_id := String(_latest_market_snapshot.get("roomId", ""))
+    var team_id := String(_game_run.team_id)
+    var session_id := String(_game_run.session_id)
+    return (
+        document.get("mode") == "room"
+        and document.get("roomId") == room_id
+        and document.get("teamId") == team_id
+        and document.get("sessionId") == session_id
+        and document.get("documentId") == "room-%s-team-%s-campaign" % [room_id, team_id]
+        and _is_nonnegative_integer_number(document.get("revision"))
+    )
+
+func _is_nonnegative_integer_number(value: Variant) -> bool:
+    if typeof(value) == TYPE_INT:
+        return int(value) >= 0
+    if typeof(value) != TYPE_FLOAT:
+        return false
+    var number := float(value)
+    return is_finite(number) and number >= 0.0 and number == floor(number)
+
+func _team_has_campaign(snapshot: Dictionary, team_id: String) -> bool:
+    var campaigns_value: Variant = snapshot.get("campaigns", [])
+    if typeof(campaigns_value) != TYPE_ARRAY:
+        return false
+    for campaign_value in campaigns_value:
+        if (
+            typeof(campaign_value) == TYPE_DICTIONARY
+            and campaign_value.get("sellerTeamId") == team_id
+        ):
+            return true
+    return false
+
+func _room_campaign_document(room_id: String, team_id: String, session_id: String) -> Dictionary:
+    var document := _blank_campaign_document()
+    document["documentId"] = "room-%s-team-%s-campaign" % [room_id, team_id]
+    document["sessionId"] = session_id
+    document["mode"] = "room"
+    document["roomId"] = room_id
+    document["teamId"] = team_id
+    return document
 
 func _blank_campaign_document() -> Dictionary:
     return {
@@ -42,7 +1146,7 @@ func _blank_campaign_document() -> Dictionary:
         "canvas": {"width": 1600, "height": 900, "background": "#ffffff"},
         "fabricState": {"version": "7.4.0", "objects": []},
         "drawingLayers": [],
-        "product": {"name": "", "priceCents": null},
+        "product": {"name": "", "priceCents": null, "build": null},
         "brief": {
             "targetAudienceId": "",
             "contextId": "",
@@ -51,6 +1155,21 @@ func _blank_campaign_document() -> Dictionary:
             "audienceValues": [],
             "intendedEffects": [],
             "techniques": []
+        },
+        "gameplay": {
+            "stage": "invent",
+            "pair": {
+                "activeRole": "art-director",
+                "handoffCount": 0,
+                "artDirectorActions": 0,
+                "strategistActions": 0
+            }
+        },
+        "strategy": {
+            "productTraitIds": [],
+            "marketedChoiceIds": [],
+            "marketRoute": null,
+            "aidaPlan": {"attention": "", "interest": "", "desire": "", "action": ""}
         },
         "evidence": {
             "price": [],

@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 42,
+  "sourcePng": "42-bathroom-lighting-home-fixtures.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Freestanding oval bathtub", "tags": ["bathtub", "freestanding", "oval"]},
+    {"row": 1, "column": 2, "label": "Rectangular inset bathtub", "tags": ["bathtub", "inset", "rectangular"]},
+    {"row": 1, "column": 3, "label": "Framed shower enclosure", "tags": ["bathroom fixture", "framed", "shower enclosure"]},
+    {"row": 1, "column": 4, "label": "Square shower tray", "tags": ["bathroom fixture", "shower tray", "square"]},
+    {"row": 1, "column": 5, "label": "Wall-mounted toilet", "tags": ["bathroom fixture", "toilet", "wall mounted"]},
+    {"row": 2, "column": 1, "label": "Close-coupled toilet", "tags": ["bathroom fixture", "close coupled", "toilet"]},
+    {"row": 2, "column": 2, "label": "Pedestal basin", "tags": ["basin", "bathroom fixture", "pedestal"]},
+    {"row": 2, "column": 3, "label": "Two-drawer vanity with basin", "tags": ["basin", "two drawer", "vanity"]},
+    {"row": 2, "column": 4, "label": "Round vessel basin", "tags": ["basin", "round", "vessel basin"]},
+    {"row": 2, "column": 5, "label": "Mirrored wall cabinet", "tags": ["bathroom storage", "mirrored", "wall cabinet"]},
+    {"row": 3, "column": 1, "label": "Single-lever basin tap", "tags": ["basin tap", "bathroom fixture", "single lever"]},
+    {"row": 3, "column": 2, "label": "Three-piece wall tap set", "tags": ["bathroom fixture", "three piece", "wall tap"]},
+    {"row": 3, "column": 3, "label": "Hand shower with slide rail", "tags": ["hand shower", "shower fixture", "slide rail"]},
+    {"row": 3, "column": 4, "label": "Round ceiling shower head", "tags": ["ceiling mounted", "round", "shower head"]},
+    {"row": 3, "column": 5, "label": "Straight towel rail", "tags": ["bathroom fixture", "straight rail", "towel rail"]},
+    {"row": 4, "column": 1, "label": "Dome pendant light", "tags": ["dome shade", "lighting", "pendant light"]},
+    {"row": 4, "column": 2, "label": "Round flush ceiling light", "tags": ["ceiling light", "flush mount", "round"]},
+    {"row": 4, "column": 3, "label": "Cylindrical wall sconce", "tags": ["cylindrical", "lighting", "wall sconce"]},
+    {"row": 4, "column": 4, "label": "Arched floor lamp", "tags": ["arched", "floor lamp", "lighting"]},
+    {"row": 4, "column": 5, "label": "Table lamp with drum shade", "tags": ["drum shade", "lighting", "table lamp"]},
+    {"row": 5, "column": 1, "label": "Rectangular light switch", "tags": ["electrical fixture", "light switch", "rectangular"]},
+    {"row": 5, "column": 2, "label": "Double power outlet", "tags": ["double outlet", "electrical fixture", "power outlet"]},
+    {"row": 5, "column": 3, "label": "Lever door handle", "tags": ["door handle", "door hardware", "lever"]},
+    {"row": 5, "column": 4, "label": "Round door knob", "tags": ["door hardware", "door knob", "round"]},
+    {"row": 5, "column": 5, "label": "Straight grab rail", "tags": ["bathroom fixture", "grab rail", "straight rail"]}
+  ]
+}

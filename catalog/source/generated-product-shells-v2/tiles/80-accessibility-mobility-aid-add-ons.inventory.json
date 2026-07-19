@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 80,
+  "sourcePng": "80-accessibility-mobility-aid-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Large manual-wheelchair rear wheels", "tags": ["large wheels", "manual wheelchair", "rear wheels"]},
+    {"row": 1, "column": 2, "label": "Small front caster wheels", "tags": ["caster wheels", "front wheels", "wheelchair component"]},
+    {"row": 1, "column": 3, "label": "Solid wheelchair spoke-guard disc", "tags": ["solid disc", "spoke guard", "wheelchair component"]},
+    {"row": 1, "column": 4, "label": "Blank wheel-rim insert", "tags": ["blank insert", "personalisation surface", "wheel rim"]},
+    {"row": 1, "column": 5, "label": "Standard wheelchair armrests", "tags": ["armrests", "standard armrests", "wheelchair component"]},
+    {"row": 2, "column": 1, "label": "Flip-up wheelchair armrests", "tags": ["armrests", "flip-up armrests", "wheelchair component"]},
+    {"row": 2, "column": 2, "label": "Wheelchair seat cushion", "tags": ["seat cushion", "wheelchair comfort", "wheelchair component"]},
+    {"row": 2, "column": 3, "label": "Blank wheelchair backrest panel", "tags": ["backrest panel", "blank panel", "personalisation surface"]},
+    {"row": 2, "column": 4, "label": "Adjustable wheelchair headrest", "tags": ["adjustable headrest", "headrest", "wheelchair component"]},
+    {"row": 2, "column": 5, "label": "Wheelchair footplates", "tags": ["footplates", "wheelchair component", "wheelchair support"]},
+    {"row": 3, "column": 1, "label": "Anti-tip wheel assembly", "tags": ["anti-tip wheels", "safety component", "wheelchair component"]},
+    {"row": 3, "column": 2, "label": "Wheelchair joystick controller", "tags": ["joystick", "power wheelchair", "wheelchair controller"]},
+    {"row": 3, "column": 3, "label": "Blank side-mounted control panel", "tags": ["blank panel", "control panel", "wheelchair controller"]},
+    {"row": 3, "column": 4, "label": "Wheelchair under-seat storage bag", "tags": ["storage bag", "under-seat bag", "wheelchair storage"]},
+    {"row": 3, "column": 5, "label": "Mobility-scooter front basket", "tags": ["front basket", "mobility scooter", "scooter storage"]},
+    {"row": 4, "column": 1, "label": "Mobility-scooter rear storage box", "tags": ["mobility scooter", "rear storage", "storage box"]},
+    {"row": 4, "column": 2, "label": "Mobility-scooter weather canopy", "tags": ["mobility scooter", "weather canopy", "weather protection"]},
+    {"row": 4, "column": 3, "label": "Mobility-scooter windshield", "tags": ["mobility scooter", "scooter windshield", "weather protection"]},
+    {"row": 4, "column": 4, "label": "Universal mobility-aid cup holder", "tags": ["cup holder", "mobility accessory", "universal holder"]},
+    {"row": 4, "column": 5, "label": "Rollator seat panel", "tags": ["rollator", "seat panel", "walking aid component"]},
+    {"row": 5, "column": 1, "label": "Rollator wire basket", "tags": ["rollator", "storage basket", "wire basket"]},
+    {"row": 5, "column": 2, "label": "Walking-frame handgrips", "tags": ["handgrips", "walking frame", "walking support"]},
+    {"row": 5, "column": 3, "label": "Forearm-crutch cuffs", "tags": ["crutch cuffs", "forearm crutches", "walking support"]},
+    {"row": 5, "column": 4, "label": "Ergonomic walking-cane handle", "tags": ["cane handle", "ergonomic handle", "walking cane"]},
+    {"row": 5, "column": 5, "label": "Modular ramp handrail", "tags": ["access ramp", "handrail", "ramp component"]}
+  ]
+}

@@ -7,6 +7,7 @@ import {
   MAKE_IT_REAL_PROFILE,
   OBJECT_FORGE_PROFILE,
   Z_IMAGE_LORA_PROFILE,
+  assertGptImage2ConcreteSize,
   composeMakeItRealPrompt,
   composeObjectForgePrompt,
   parseFalImageRequest,
@@ -48,7 +49,8 @@ import {
 } from "./lib/openverse";
 
 export const OBJECT_FORGE_PROFILE_ID = "object-forge-gpt-image-2-low-v1";
-export const MAKE_IT_REAL_PROFILE_ID = "make-it-real-gpt-image-2-high-v1";
+export const LEGACY_MAKE_IT_REAL_PROFILE_ID = "make-it-real-gpt-image-2-high-v1";
+export const MAKE_IT_REAL_PROFILE_ID = "make-it-real-gpt-image-2-high-v2";
 export const Z_IMAGE_LORA_PROFILE_ID = "z-image-lora-v1";
 export const FLUX2_TURBO_EDIT_PROFILE_ID = "flux2-turbo-edit-v1";
 export const IMAGE_LAB_ASSET_MAX_BYTES = 8 * 1_048_576;
@@ -291,10 +293,27 @@ function jobStage(request: FalImageRequest): ImageLabStage {
   return request.stage === "object" ? "object-forge" : "make-it-real";
 }
 
+function gptImage2InputSize(size: { width: number; height: number }): Readonly<{
+  width: number;
+  height: number;
+}> {
+  try {
+    return assertGptImage2ConcreteSize(size);
+  } catch (error) {
+    if (error instanceof FalImagePolicyError && error.code === "INVALID_PROFILE_DIMENSIONS") {
+      throw new ImageLabJobsError("IMAGE_PROFILE_CONFIGURATION_INVALID", 503);
+    }
+    throw error;
+  }
+}
+
 function objectForgeInput(request: ObjectForgeRequest): Readonly<Record<string, unknown>> {
   return {
     prompt: composeObjectForgePrompt(request),
-    image_size: { width: OBJECT_FORGE_PROFILE.width, height: OBJECT_FORGE_PROFILE.height },
+    image_size: gptImage2InputSize({
+      width: OBJECT_FORGE_PROFILE.width,
+      height: OBJECT_FORGE_PROFILE.height
+    }),
     quality: OBJECT_FORGE_PROFILE.quality,
     num_images: OBJECT_FORGE_PROFILE.images,
     output_format: OBJECT_FORGE_PROFILE.outputFormat
@@ -321,7 +340,7 @@ function zImageLoraInput(
 function makeItRealInput(request: MakeItRealRequest): Readonly<Record<string, unknown>> {
   return {
     image_urls: [request.designDataUrl],
-    image_size: MAKE_IT_REAL_PROFILE.imageSize,
+    image_size: gptImage2InputSize(MAKE_IT_REAL_PROFILE.imageSize),
     quality: MAKE_IT_REAL_PROFILE.quality,
     output_format: MAKE_IT_REAL_PROFILE.outputFormat,
     num_images: MAKE_IT_REAL_PROFILE.images,
@@ -589,6 +608,15 @@ async function requireBoundJob(
       modelId: MAKE_IT_REAL_PROFILE.model,
       width: MAKE_IT_REAL_PROFILE.width,
       height: MAKE_IT_REAL_PROFILE.height
+    };
+  }
+  if (job.stage === "make-it-real" && job.profileId === LEGACY_MAKE_IT_REAL_PROFILE_ID) {
+    return {
+      job,
+      stored,
+      modelId: MAKE_IT_REAL_PROFILE.model,
+      width: 1_088,
+      height: 608
     };
   }
   if (job.stage === "make-it-real" && job.profileId === FLUX2_TURBO_EDIT_PROFILE_ID) {

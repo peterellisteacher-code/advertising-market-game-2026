@@ -7,11 +7,11 @@
 | Stage | Selected endpoint | Server-owned request | Budget price |
 | --- | --- | --- | ---: |
 | Object Forge | `openai/gpt-image-2` | exact 1024×1024, low quality, one PNG | US$0.006/image |
-| Make It Real | `openai/gpt-image-2/edit` | exact 1024×576 request, high quality, one PNG and one canvas reference | US$0.151/image conservative published upper proxy |
+| Make It Real | `openai/gpt-image-2/edit` | 1024×576 reference, exact 1280×720 output request, high quality, one PNG | US$0.211/image conservative allowance |
 
-One named 16:9 preset call and one exact `{ width: 1024, height: 576 }` call were run. Both returned 1088×608, so the production contract distinguishes the local 1024×576 reference canvas from the verified provider output. The default final-render allowance is one per pair.
+The original exact 1024×576 output request was below GPT Image 2's pixel floor and returned a deterministic 1088×608 rescale. Production profile v2 requests the smallest valid exact 16:9 size, 1280×720; a live call returned an exact 1280×720 PNG. The local 1024×576 reference canvas remains valid as an input image. The default final-render allowance is one per pair.
 
-For 15 pairs using six Object Forge images and one final edit each, the conservative ceiling is about US$2.81. The visual test found GPT Image 2 low materially more reliable for clean, believable product geometry than the cheaper untrained models. GPT Image 2 medium looked nearly identical for this task while costing roughly nine times as much, so it was rejected for the frequent lane.
+For 15 pairs using six Object Forge images and one final edit each, the conservative ceiling is about US$3.71. The visual test found GPT Image 2 low materially more reliable for clean, believable product geometry than the cheaper untrained models. GPT Image 2 medium looked nearly identical for this task while costing roughly nine times as much, so it was rejected for the frequent lane.
 
 The 16 July analysis below is retained unchanged as dated evidence; references to “current” profiles describe the state on that date, not the active default.
 

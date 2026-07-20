@@ -1,8 +1,8 @@
 export const FAL_IMAGE_MAX_BYTES = 3 * 1_024 * 1_024;
 export const MAKE_IT_REAL_WIDTH = 1_024;
 export const MAKE_IT_REAL_HEIGHT = 576;
-export const MAKE_IT_REAL_OUTPUT_WIDTH = 1_088;
-export const MAKE_IT_REAL_OUTPUT_HEIGHT = 608;
+export const MAKE_IT_REAL_OUTPUT_WIDTH = 1_280;
+export const MAKE_IT_REAL_OUTPUT_HEIGHT = 720;
 
 export interface FalGptImageTextProfile {
   readonly model: "openai/gpt-image-2";
@@ -18,8 +18,8 @@ export interface FalGptImageEditProfile {
   readonly width: typeof MAKE_IT_REAL_OUTPUT_WIDTH;
   readonly height: typeof MAKE_IT_REAL_OUTPUT_HEIGHT;
   readonly imageSize: Readonly<{
-    width: typeof MAKE_IT_REAL_WIDTH;
-    height: typeof MAKE_IT_REAL_HEIGHT;
+    width: typeof MAKE_IT_REAL_OUTPUT_WIDTH;
+    height: typeof MAKE_IT_REAL_OUTPUT_HEIGHT;
   }>;
   readonly quality: "high";
   readonly images: 1;
@@ -63,7 +63,10 @@ export const MAKE_IT_REAL_PROFILE: Readonly<FalGptImageEditProfile> = Object.fre
   model: "openai/gpt-image-2/edit",
   width: MAKE_IT_REAL_OUTPUT_WIDTH,
   height: MAKE_IT_REAL_OUTPUT_HEIGHT,
-  imageSize: Object.freeze({ width: MAKE_IT_REAL_WIDTH, height: MAKE_IT_REAL_HEIGHT }),
+  imageSize: Object.freeze({
+    width: MAKE_IT_REAL_OUTPUT_WIDTH,
+    height: MAKE_IT_REAL_OUTPUT_HEIGHT
+  }),
   quality: "high",
   images: 1,
   outputFormat: "png"
@@ -98,6 +101,7 @@ export type FalImagePolicyErrorCode =
   | "INVALID_STAGE"
   | "UNEXPECTED_FIELD"
   | "INVALID_FIELD"
+  | "INVALID_PROFILE_DIMENSIONS"
   | "INVALID_IMAGE_DATA_URL"
   | "INVALID_IMAGE_DIMENSIONS"
   | "IMAGE_TOO_LARGE";
@@ -110,6 +114,40 @@ export class FalImagePolicyError extends Error {
     super(code);
     this.name = "FalImagePolicyError";
   }
+}
+
+export const GPT_IMAGE_2_MIN_PIXELS = 655_360;
+export const GPT_IMAGE_2_MAX_PIXELS = 8_294_400;
+export const GPT_IMAGE_2_MAX_EDGE = 3_840;
+export const GPT_IMAGE_2_MAX_ASPECT_RATIO = 3;
+
+export interface GptImage2ConcreteSize {
+  readonly width: number;
+  readonly height: number;
+}
+
+export function assertGptImage2ConcreteSize(
+  size: GptImage2ConcreteSize
+): Readonly<GptImage2ConcreteSize> {
+  const { width, height } = size;
+  const pixels = width * height;
+  const aspectRatio = Math.max(width, height) / Math.min(width, height);
+  if (
+    !Number.isSafeInteger(width) ||
+    !Number.isSafeInteger(height) ||
+    width <= 0 ||
+    height <= 0 ||
+    width % 16 !== 0 ||
+    height % 16 !== 0 ||
+    width > GPT_IMAGE_2_MAX_EDGE ||
+    height > GPT_IMAGE_2_MAX_EDGE ||
+    pixels < GPT_IMAGE_2_MIN_PIXELS ||
+    pixels > GPT_IMAGE_2_MAX_PIXELS ||
+    aspectRatio > GPT_IMAGE_2_MAX_ASPECT_RATIO
+  ) {
+    throw new FalImagePolicyError("INVALID_PROFILE_DIMENSIONS", "image_size");
+  }
+  return Object.freeze({ width, height });
 }
 
 export interface FalImageIdentity {

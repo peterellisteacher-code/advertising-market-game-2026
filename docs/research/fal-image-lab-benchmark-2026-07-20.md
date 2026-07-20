@@ -1,11 +1,13 @@
 # Image Lab live model benchmark — 20 July 2026
 
+> **Dimension correction — 20 July 2026.** The original 1024×576 GPT Image 2 edit request was below the endpoint's 655,360-pixel floor. Its 1088×608 return was a deterministic rescale, not evidence that fal ignores valid explicit sizes. Production profile `make-it-real-gpt-image-2-high-v2` now requests 1280×720. Live request `019f7eb3-128d-78c1-9cb5-a3c576b5dd0d` returned an exact 1280×720 PNG. The historical calls remain below as evidence of the earlier invalid contract.
+
 ![Labelled fal.ai Image Lab model comparison](./fal-image-lab-benchmark-2026-07-20.png)
 
 ## Decision
 
 - **Object Forge:** `openai/gpt-image-2`, low quality, exact 1024×1024 request, one PNG. Stable profile ID: `object-forge-gpt-image-2-low-v1`.
-- **Make It Real:** `openai/gpt-image-2/edit`, high quality, one 1024×576 canvas reference and one PNG. Stable profile ID: `make-it-real-gpt-image-2-high-v1`.
+- **Make It Real:** `openai/gpt-image-2/edit`, high quality, one 1024×576 canvas reference, explicit 1280×720 output and one PNG. Stable profile ID: `make-it-real-gpt-image-2-high-v2`.
 - **Allowance:** six inexpensive Object Forge attempts and one premium final edit per pair by default.
 
 The cheaper models were fast and serviceable, but GPT Image 2 low was substantially more reliable at believable product geometry, restrained construction lines and large blank surfaces that students can customise. The 1024×1024 medium output was not meaningfully better for this template task despite a roughly ninefold price increase. The high-quality edit preserved the prototype's shape, slots, lever, feet and camera angle while turning it into a convincing product photograph.
@@ -30,14 +32,14 @@ Current fal documentation and the live endpoint schema distinguish these payload
 {
   "prompt": "<server-owned Make It Real prompt>",
   "image_urls": ["<one validated 1024x576 canvas reference>"],
-  "image_size": { "width": 1024, "height": 576 },
+  "image_size": { "width": 1280, "height": 720 },
   "quality": "high",
   "num_images": 1,
   "output_format": "png"
 }
 ```
 
-The custom-size object is intentional: it expresses the requested dimensions directly rather than relying on `landscape_16_9`. One named-preset call and one exact-size call both returned 1088×608, so the server validates that observed output separately from the 1024×576 reference input. The final image remains fitted into the live canvas by the creator.
+The custom-size object is intentional: it expresses the requested dimensions directly rather than relying on `landscape_16_9`. The server validates the four documented concrete-size constraints before dispatch and then validates the returned image against the dimensions pinned to the submitted profile. The final image remains fitted into the live canvas by the creator.
 
 Official model pages:
 
@@ -72,6 +74,7 @@ The selected low-quality toaster template was supplied as the sole reference. Th
 | Edit request | Requested / returned | Request ID | Result |
 | --- | --- | --- | --- |
 | named `landscape_16_9` preset, high | preset / 1088×608 | `019f7e58-f906-7f70-b91e-913383bf12ca` | Preserved the design and produced a convincing product photograph. |
-| exact `{ width: 1024, height: 576 }`, high | 1024×576 / 1088×608 | `019f7e6a-1dfd-73b0-aa2b-4cef06388cc8` | Confirmed the custom input contract and the provider's canonical return size. |
+| exact `{ width: 1024, height: 576 }`, high | 1024×576 / 1088×608 | `019f7e6a-1dfd-73b0-aa2b-4cef06388cc8` | Historical invalid request: fal rescaled it above the pixel floor. |
+| exact `{ width: 1280, height: 720 }`, high | 1280×720 / 1280×720 | `019f7eb3-128d-78c1-9cb5-a3c576b5dd0d` | Current contract: valid exact 16:9 request returned exact dimensions. |
 
-The operations budget uses fal's published 1024×768 high-edit price of US$0.151 as a conservative upper proxy because the table does not separately list this 1024×576 request. Provider prices can change and must be refreshed before activation.
+The operations budget uses US$0.211 per 1280×720 high-quality edit as a conservative classroom allowance. Provider prices can change and must be refreshed before activation.

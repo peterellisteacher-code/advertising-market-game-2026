@@ -6,6 +6,7 @@ import {
   FalImagePolicyError,
   MAKE_IT_REAL_PROFILE,
   OBJECT_FORGE_PROFILE,
+  assertGptImage2ConcreteSize,
   composeMakeItRealPrompt,
   composeObjectForgePrompt,
   parseFalImageRequest,
@@ -134,14 +135,38 @@ describe("fal image policy", () => {
   it("pins the Make It Real profile entirely on the server", () => {
     expect(MAKE_IT_REAL_PROFILE).toEqual({
       model: "openai/gpt-image-2/edit",
-      width: 1_088,
-      height: 608,
-      imageSize: { width: 1_024, height: 576 },
+      width: 1_280,
+      height: 720,
+      imageSize: { width: 1_280, height: 720 },
       quality: "high",
       images: 1,
       outputFormat: "png"
     });
     expect(Object.isFrozen(MAKE_IT_REAL_PROFILE)).toBe(true);
+  });
+
+  it.each([
+    { width: 816, height: 816 },
+    { width: 1_024, height: 1_024 },
+    { width: 1_280, height: 720 },
+    { width: 2_880, height: 2_880 }
+  ])("accepts an in-spec GPT Image 2 concrete size: $width by $height", (size) => {
+    expect(assertGptImage2ConcreteSize(size)).toEqual(size);
+  });
+
+  it.each([
+    [{ width: 512, height: 512 }, "below the pixel floor"],
+    [{ width: 1_024, height: 576 }, "below the pixel floor at 16:9"],
+    [{ width: 1_025, height: 1_024 }, "not a multiple of 16"],
+    [{ width: 3_856, height: 1_024 }, "over the maximum edge"],
+    [{ width: 1_600, height: 512 }, "over the maximum aspect ratio"],
+    [{ width: 2_896, height: 2_896 }, "over the pixel ceiling"]
+  ] as const)("rejects a GPT Image 2 concrete size %s (%s)", (size, _reason) => {
+    expectPolicyError(
+      () => assertGptImage2ConcreteSize(size),
+      "INVALID_PROFILE_DIMENSIONS",
+      "image_size"
+    );
   });
 
   it("parses the closed Object Forge request schema", () => {

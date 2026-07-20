@@ -30,9 +30,13 @@ Students cannot choose a model, slug, dimensions, step count, guidance, quality 
 | Game power | Stable profile ID | fal model | Fixed request | Verified return |
 | --- | --- | --- | --- | --- |
 | Object Forge | `object-forge-gpt-image-2-low-v1` | `openai/gpt-image-2` | exact 1024×1024, low quality, one PNG | 1024×1024 PNG |
-| Make It Real | `make-it-real-gpt-image-2-high-v1` | `openai/gpt-image-2/edit` | one 1024×576 canvas reference, exact `{ width: 1024, height: 576 }`, high quality, one PNG | 1088×608 PNG in two live validation calls |
+| Make It Real | `make-it-real-gpt-image-2-high-v2` | `openai/gpt-image-2/edit` | one 1024×576 canvas reference, exact `{ width: 1280, height: 720 }`, high quality, one PNG | exact 1280×720 PNG |
 
-The two endpoints do not share one generic payload. Object Forge sends `prompt`, `image_size`, `quality`, `num_images` and `output_format`. Make It Real sends those fields plus `image_urls`. The production adapter uses an explicit `{ width, height }` object, not a named aspect-ratio preset. One preset call and one exact 1024×576 call both returned 1088×608; the result validator therefore keeps the 1024×576 input contract separate from the verified provider-output contract.
+The two endpoints do not share one generic payload. Object Forge sends `prompt`, `image_size`, `quality`, `num_images` and `output_format`. Make It Real sends those fields plus `image_urls`. The production adapter uses an explicit `{ width, height }` object, not a named aspect-ratio preset.
+
+GPT Image 2 concrete output sizes must use multiples of 16, keep each edge at or below 3840 pixels, keep the aspect ratio at or below 3:1, and contain 655,360–8,294,400 pixels. The server checks all four rules before reserving an allowance or dispatching to fal. A 1024×576 output request is below the pixel floor; the earlier 1088×608 return was fal's deterministic rescale of that invalid request, not a canonical 16:9 output. The smallest exact 16:9 size above the floor is 1280×720. Live request `019f7eb3-128d-78c1-9cb5-a3c576b5dd0d` returned an exact 1280×720 PNG, measured from the saved PNG header.
+
+The browser's 512×512 Object Forge processing canvas is a local post-generation asset size, not a GPT Image 2 request. The 1024×576 Make It Real canvas is the reference image sent to the edit endpoint. Neither value is used as the GPT Image 2 output `image_size`.
 
 The selection is supported by the [labelled live benchmark](../research/fal-image-lab-benchmark-2026-07-20.md). GPT Image 2 low produced the clearest customisable templates. Medium was visually near-identical in this use case while costing roughly nine times as much. GPT Image 2 Edit high preserved the prototype's silhouette and controls while producing a convincing final product photograph.
 
@@ -53,7 +57,7 @@ IMAGE_LAB_REALISE_PROFILE_ID=flux2-turbo-edit-v1
 
 Only those profile IDs are accepted. An unknown selector, or a missing or unsafe LoRA URL while `z-image-lora-v1` is selected, fails closed before allowance is reserved or a fal request is submitted. The adapter URL is server-only and is never returned to the browser. Existing job tokens retain their original stable profile ID, so status and result requests continue using the submitted model after selectors change.
 
-The browser sends only the pair identity and constrained creative choices. Make It Real also sends a locally resized 1024×576 reference image of the current canvas. The fal key, model identity, prompt wrapper, paid media URL and upstream request ID remain server-side.
+The browser sends only the pair identity and constrained creative choices. Make It Real also sends a locally prepared 1024×576 reference image of the current canvas. The fal key, model identity, prompt wrapper, paid media URL and upstream request ID remain server-side.
 
 ## Required Netlify environment
 
@@ -73,9 +77,9 @@ FAL_KEY=<server-only fal key>
 
 ## Expected classroom cost
 
-At the live prices checked on 20 July 2026, a 1024×1024 Object Forge image at low quality is US$0.006. The published high-quality edit price used for budgeting is US$0.151 at 1024×768 with one input image; because the table does not list the 1024×576 request separately, that is deliberately treated as a conservative upper proxy.
+At the live prices checked on 20 July 2026, a 1024×1024 Object Forge image at low quality is US$0.006. Budget US$0.211 for each 1280×720 high-quality edit unless the fal dashboard shows a newer lower price.
 
-For 15 pairs, six Object Forge images each cost about US$0.54 in total. One final Make It Real image each adds up to US$2.265, giving a conservative session ceiling of about **US$2.81** before price changes. Raising the final allowance to two would raise that ceiling to about **US$5.07**. Confirm current pricing before every activation.
+For 15 pairs, six Object Forge images each cost about US$0.54 in total. One final Make It Real image each adds up to about US$3.17, giving a conservative session ceiling of about **US$3.71** before price changes. Raising the final allowance to two would raise that ceiling to about **US$6.87**. Confirm current pricing before every activation.
 
 The cheaper FLUX and Z-Image candidates remain available only as adult-operated A/B profiles. The live benchmark found that their lower price did not compensate for weaker silhouette reliability and poorer catalogue-style fit. The shared Z-Image LoRA remains a possible future consistency experiment, not a current cost-saving or production recommendation.
 
@@ -85,7 +89,7 @@ Alternative-profile trials remain teacher-operated and must never create an unga
 
 - Image jobs use authenticated encrypted browser tokens; the upstream fal request ID is not readable in the token.
 - The capability cookie is signed, pair-bound, short-lived, `HttpOnly`, `SameSite=Strict` and scoped to `/api/image-lab`.
-- Generated media is fetched by the server from an allowlisted `fal.media` HTTPS host, checked for type, signature, byte limit and exact dimensions, then proxied same-origin with `no-store`.
+- Generated media is fetched by the server from an allowlisted `fal.media` HTTPS host, checked for type, signature, byte limit and the exact dimensions pinned to the submitted profile, then proxied same-origin with `no-store`.
 - Accepted images become owned local blobs in the campaign draft. Saved campaigns do not depend on expiring fal URLs.
 - Submission is not retried automatically.
 - The signed-cookie allowance prevents ordinary accidental overuse, but it is not a transactional global budget. Concurrent replay cannot be fully prevented without server-side state. The external fal account cap is mandatory.

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import {
   AccountAssetClientError,
@@ -26,10 +27,8 @@ const webpBytes = Uint8Array.from([
   0x57, 0x45, 0x42, 0x50, 0x56, 0x50, 0x38, 0x20
 ]);
 
-const hexDigest = async (bytes: Uint8Array): Promise<string> => {
-  const digest = await crypto.subtle.digest("SHA-256", bytes.slice().buffer);
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-};
+const hexDigest = (bytes: Uint8Array): string =>
+  createHash("sha256").update(Buffer.from([...bytes])).digest("hex");
 
 const asset = async (bytes = pngBytes, contentType = "image/png"): Promise<Blob> =>
   new Blob([bytes.slice().buffer], { type: contentType });

@@ -23,10 +23,14 @@ test("GitHub Actions validates and builds the complete web artifact without depl
   assert.match(workflow, /scripts\/verify-web-export\.mjs build\/web/u);
   assert.match(workflow, /actions\/upload-artifact@v4/u);
   assert.match(workflow, /if-no-files-found:\s*error/u);
+  assert.match(workflow, /actions\/checkout@v7/u);
+  assert.match(workflow, /actions\/setup-node@v7/u);
+  assert.match(workflow, /pnpm\/action-setup@v6/u);
 
   assert.doesNotMatch(workflow, /NETLIFY_AUTH_TOKEN|NETLIFY_SITE_ID|netlify-cli/u);
   assert.doesNotMatch(workflow, /^\s*run:\s*.*\bnetlify\s+deploy\b/mu);
   assert.doesNotMatch(workflow, /godot\/web-export|manage-godot-web-snapshot/u);
+  assert.doesNotMatch(workflow, /corepack\s+(?:enable|prepare)/u);
 });
 
 test("the standard web-build test command includes the GitHub workflow contract", async () => {

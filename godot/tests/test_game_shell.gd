@@ -68,7 +68,7 @@ func _practice_start_and_lock_wait_for_storage_ack() -> bool:
     var refresh_id := "practice-3"
     assert(practice_fake.request_for(refresh_id).get("method") == "resume")
     assert(shell.get("_campaign_document") == prior_document)
-    assert(shell.get_node("%Status").text == "Checking the saved campaign…")
+    assert(shell.get_node("%Status").text == "Checking the saved campaign.")
     practice_fake.resolve_success(
         refresh_id,
         _practice_recovery(shell, "invent", false, 1, 1, "autosave-1", ready)
@@ -180,7 +180,7 @@ func _invalid_startup_recovery_keeps_the_lobby_usable() -> bool:
     assert(String(Dictionary(shell.get("_campaign_document")).get("documentId")) == "classroom-campaign")
     assert(
         (shell.get_node("%Status") as Label).text
-        == "Saved progress could not be verified. It was kept untouched; you can start fresh or join live."
+        == "Saved progress could not be verified. Data unchanged. Start fresh, or join live."
     )
     shell.free()
     return true
@@ -351,7 +351,7 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
 
     assert(lobby.visible)
     assert(run_panel.visible)
-    assert(heading.text.contains("did not know they needed"))
+    assert(heading.text.contains("unrecognised customer need"))
     assert(lock.text == "Lock this level")
     assert(advance.text == "Next level")
     assert(advance.disabled)

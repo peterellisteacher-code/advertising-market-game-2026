@@ -6,24 +6,20 @@ Image Lab is also closed at the start of every pair's browser session. While phy
 
 This makes Image Lab teacher-togglable per session rather than an always-on student service. The password-protected game, physical teacher supervision, pair-bound capability, expiry and close control form the classroom access and age-assurance layer. They do not override a provider's eligibility or minor-use terms.
 
-## Safety gate
+## Supervised access gate
 
-Do not activate Image Lab for students until the selected image provider has confirmed in writing that this teacher-controlled school API integration may be used by Year 10 students. For the currently implemented fal.ai route, the current fal.ai Acceptable Use Policy says users must be at least 18. School approval, physical supervision and the session toggle do not by themselves override the provider's terms.
+Peter has directed that Image Lab may operate only while he is physically present and only after he personally opens it for an individual pair. The retired `IMAGE_LAB_FAL_MINOR_USE_APPROVED` switch is no longer read by the application. Activation requires `IMAGE_LAB_SCHOOL_APPROVED=true`, the server-only classroom code, the pair-bound capability cookie, and the global `IMAGE_LAB_ENABLED` switch.
 
-If an OpenAI-backed image route is added, retain written confirmation that the intended supervised minor use is compatible with the applicable OpenAI service and account terms before enabling it. The same teacher-opened, pair-bound, short-lived capability must remain in front of that route; provider approval and technical supervision are separate requirements.
+The current fal.ai Acceptable Use Policy says people under 18 may not use the service and makes account holders responsible for their users. Removing the technical letter gate records Peter's supervised operating decision; it is not a claim that fal.ai has changed or waived its policy.
 
-Activation therefore requires both:
-
-- `IMAGE_LAB_SCHOOL_APPROVED=true`
-- `IMAGE_LAB_FAL_MINOR_USE_APPROVED=true`
-
-The second value means written provider approval has been obtained and retained. It is not a technical workaround.
+A direct OpenAI API route has a different published framework: OpenAI's Under 18 API Guidance does not require an approval letter. It requires additional safeguards for minor-facing products, including age-appropriate disclosure, content filtering, reasonable monitoring and reporting/escalation, and age assurance where appropriate. Personal data of children under 13 or the applicable age of digital consent must not be processed without Zero Data Retention. The teacher-opened session gate satisfies only part of that framework; the remaining controls must be implemented before enabling a direct OpenAI route.
 
 References:
 
 - [fal.ai Acceptable Use Policy](https://fal.ai/legal/acceptable-use-policy)
 - [fal.ai server-side integration guidance](https://fal.ai/docs/documentation/model-apis/inference/server-side)
 - [fal.ai queue API](https://fal.ai/docs/documentation/model-apis/inference/queue)
+- [OpenAI Under 18 API Guidance](https://developers.openai.com/api/docs/guides/safety-checks/under-18-api-guidance)
 
 ## Server-owned profiles
 
@@ -58,7 +54,6 @@ The browser sends only the pair identity and constrained creative choices. Make 
 ```text
 IMAGE_LAB_ENABLED=true
 IMAGE_LAB_SCHOOL_APPROVED=true
-IMAGE_LAB_FAL_MINOR_USE_APPROVED=true
 IMAGE_LAB_ACCOUNT_CAP_USD=5
 IMAGE_LAB_CLASSROOM_CODE=<at least 8 characters>
 IMAGE_LAB_SIGNING_SECRET=<at least 32 random characters>
@@ -76,7 +71,7 @@ At the researched prices, Object Forge is approximately US$0.003 per image and M
 
 With the same 15-pair allowance, plain FLUX Schnell plus FLUX 2 Turbo Edit is approximately US$0.75 and is the cheapest candidate combination. The shared Z-Image LoRA plus FLUX 2 Turbo Edit is approximately US$1.245 per class, plus about US$2.26 for a one-time 1,000-step training run. The LoRA is therefore a possible consistency improvement, not a cost-saving claim. Preserve the defaults until blind comparison proves the alternative keeps deliberate composition, blank customisable surfaces and the catalogue's visual language. Confirm current pricing before every activation.
 
-Until written fal minor-use approval has been retained, all alternative-profile trials must be adult-operated blind A/B tests only. Teacher supervision does not remove the provider eligibility gate.
+Alternative-profile trials remain teacher-operated and must never create an ungated student-access path.
 
 ## Security properties and limits
 
@@ -90,7 +85,7 @@ Until written fal minor-use approval has been retained, all alternative-profile 
 
 ## Activation check
 
-1. Retain fal.ai's written minor-use approval.
+1. Confirm school approval and Peter's physical supervision for the complete session.
 2. Create a dedicated server-side fal key.
 3. Apply a hard fal account/key spending cap.
 4. Set a new classroom code and signing secret.
@@ -98,5 +93,5 @@ Until written fal minor-use approval has been retained, all alternative-profile 
 6. Test with the teacher account before students arrive.
 7. Keep the classroom code private; the teacher enters it on each pair's MacBook only while physically supervising that session.
 8. Confirm the capability reports closed before the lesson, opens only after teacher action, expires after 75 minutes, and closes immediately from **Close Image Lab**.
-9. Keep the default profiles unless the sealed adult blind A/B evidence supports a change.
+9. Keep the default profiles unless sealed teacher-operated blind A/B evidence supports a change.
 10. Close each active pair session at the end of the lesson, then disable `IMAGE_LAB_ENABLED` immediately after the activity.

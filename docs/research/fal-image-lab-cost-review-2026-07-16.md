@@ -71,19 +71,17 @@ The prompt set should cover a drink can, burger box, handbag component, bicycle,
 
 Run a separate blind comparison between the current product-specific Qwen endpoint and FLUX 2 Turbo Edit using completed student-like canvas references. Prefer the cheaper endpoint only if it preserves deliberate composition, colour and markings well enough.
 
-## Eligibility gate
+## Eligibility note and later operating decision
 
-fal's Terms of Service, last updated 3 March 2026, require users and Customer Solution end users to be at least 18. Teacher presence or school approval does not amend that contract. Keep student-facing Image Lab disabled unless fal gives written approval for this specific teacher-controlled Year 10 integration or its terms change.
+fal's Terms of Service, last updated 3 March 2026, and its current Acceptable Use Policy say users must be at least 18. Teacher presence or school approval does not itself amend that published policy.
 
-The existing two-key activation gate is therefore intentional:
+On 20 July 2026 Peter explicitly retired the provider-letter technical switch and required teacher-operated, student-by-student session opening instead. The active implementation therefore uses:
 
 - `IMAGE_LAB_SCHOOL_APPROVED=true`
-- `IMAGE_LAB_FAL_MINOR_USE_APPROVED=true`
 
-Provider approval is an authority boundary, not a technical inconvenience to bypass. Development and adult-operated A/B testing can proceed without exposing the key or service to students.
+The removal of `IMAGE_LAB_FAL_MINOR_USE_APPROVED` records that operating decision; it is not evidence that fal.ai changed or waived its published policy. The server key remains hidden, students cannot select providers or parameters, and every pair capability remains teacher-opened, bounded and revocable.
 
 Official sources:
 
 - https://fal.ai/legal/terms-of-service
 - https://fal.ai/legal/acceptable-use-policy
-

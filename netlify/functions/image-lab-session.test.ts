@@ -9,7 +9,6 @@ const secret = "0123456789abcdef0123456789abcdef";
 const environment = {
   IMAGE_LAB_ENABLED: "true",
   IMAGE_LAB_SCHOOL_APPROVED: "true",
-  IMAGE_LAB_FAL_MINOR_USE_APPROVED: "true",
   IMAGE_LAB_ACCOUNT_CAP_USD: "2.00",
   IMAGE_LAB_CLASSROOM_CODE: "Market-2026!",
   IMAGE_LAB_SIGNING_SECRET: secret,

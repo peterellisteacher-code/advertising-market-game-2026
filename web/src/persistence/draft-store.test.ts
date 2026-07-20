@@ -519,6 +519,42 @@ describe("IndexedDbDraftStore", () => {
     expect(await blobBytes(recovery!.blobs.get("photo-png")!)).toEqual([4, 2, 3, 4]);
   });
 
+  it("passes typed-array views to WebCrypto when fingerprinting local-practice blobs", async () => {
+    const originalDigest = globalThis.crypto.subtle.digest.bind(globalThis.crypto.subtle);
+    const digestInputs: BufferSource[] = [];
+    const digestSpy = vi.spyOn(globalThis.crypto.subtle, "digest")
+      .mockImplementation(async (algorithm, data) => {
+        digestInputs.push(data);
+        return originalDigest(algorithm, data);
+      });
+    const store = new IndexedDbDraftStore({
+      databaseName: "local-practice-webcrypto-view",
+      factory: new IDBFactory()
+    });
+    const document = CampaignDocumentSchema.parse({
+      ...campaignFixture("local-practice-webcrypto-view-document"),
+      sessionId: "local-practice-webcrypto-view-session",
+      teamId: "local-practice-webcrypto-view-team"
+    });
+
+    try {
+      await store.beginLocalPractice({
+        runId: "local-practice-webcrypto-view-run",
+        teamAlias: "View Pair",
+        document,
+        blobs: localBlobs(4),
+        levelLocked: false,
+        operationId: "local-practice-webcrypto-view-operation",
+        savedAt: "2026-07-20T05:00:00.000Z"
+      });
+    } finally {
+      digestSpy.mockRestore();
+    }
+
+    expect(digestInputs.length).toBeGreaterThan(0);
+    expect(digestInputs.every((input) => ArrayBuffer.isView(input))).toBe(true);
+  });
+
   it("reads active recovery records from one consistent IndexedDB snapshot", async () => {
     const store = new IndexedDbDraftStore({
       databaseName: "local-practice-single-read-snapshot",

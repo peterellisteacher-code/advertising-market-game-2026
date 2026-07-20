@@ -86,5 +86,5 @@ The corrective discipline is: name the reference environment, state a falsifier,
 
 ## Image Lab activation boundary
 
-The fal.ai Image Lab code and Functions are deployed but the feature remains disabled. Its Netlify variables must not be installed until the provider's written approval for this Year 10, teacher-controlled use has been retained and the external fal account or key has a real spending cap. When enabled, each pair's Image Lab still starts closed and requires a teacher-entered, short-lived session capability; it can be closed immediately from the studio. The same control must guard any future OpenAI-backed image route, but it does not substitute for that provider's own written minor-use approval. The exact activation checklist is in `docs/operations/image-lab.md`.
+The fal.ai Image Lab code and Functions are deployed but the feature remains disabled. Enabling it requires school approval, a dedicated capped key, and Peter's continuous physical supervision. Each pair's Image Lab starts closed and requires Peter to enter the server-owned classroom code on that MacBook; it expires after 75 minutes and can be closed immediately. A future direct OpenAI route does not require an approval letter, but it must implement OpenAI's published Under 18 API Guidance before activation. The exact provider-specific checklist is in `docs/operations/image-lab.md`.
 

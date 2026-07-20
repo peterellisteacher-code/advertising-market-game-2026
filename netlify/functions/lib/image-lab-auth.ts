@@ -16,7 +16,6 @@ export type DisabledImageLabEnvironment = {
   reason:
     | "disabled"
     | "school-approval-required"
-    | "fal-minor-use-approval-required"
     | "account-cap-required"
     | "server-configuration-required";
 };
@@ -79,9 +78,6 @@ export function parseImageLabEnvironment(
   if (environment.IMAGE_LAB_ENABLED !== "true") return { enabled: false, reason: "disabled" };
   if (environment.IMAGE_LAB_SCHOOL_APPROVED !== "true") {
     return { enabled: false, reason: "school-approval-required" };
-  }
-  if (environment.IMAGE_LAB_FAL_MINOR_USE_APPROVED !== "true") {
-    return { enabled: false, reason: "fal-minor-use-approval-required" };
   }
   const accountCapUsd = Number(environment.IMAGE_LAB_ACCOUNT_CAP_USD);
   if (!Number.isFinite(accountCapUsd) || accountCapUsd <= 0 || accountCapUsd > 100) {

@@ -35,7 +35,6 @@ const jobId = "018f0e2d-3b4c-7a89-8def-0123456789ab";
 const environment = {
   IMAGE_LAB_ENABLED: "true",
   IMAGE_LAB_SCHOOL_APPROVED: "true",
-  IMAGE_LAB_FAL_MINOR_USE_APPROVED: "true",
   IMAGE_LAB_ACCOUNT_CAP_USD: "2.00",
   IMAGE_LAB_CLASSROOM_CODE: "Market-2026!",
   IMAGE_LAB_SIGNING_SECRET: secret,

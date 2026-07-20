@@ -253,7 +253,7 @@ async function localPracticeOperationFingerprint(
     blobKey,
     mimeType: blob.type,
     size: blob.size,
-    bodyHash: await sha256Hex(await blob.arrayBuffer())
+    bodyHash: await sha256Hex(new Uint8Array(await blob.arrayBuffer()))
   })));
   return canonicalValueHash({ ...metadata, blobs: blobFingerprints });
 }

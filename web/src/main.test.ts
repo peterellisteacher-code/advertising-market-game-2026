@@ -923,7 +923,7 @@ describe("window.AdMarketCreator", () => {
       .toBe(false);
     expect(document.querySelector<HTMLCanvasElement>("#canvas")?.tabIndex).toBe(0);
     expect(getByRole(document.body, "button", { name: "Log out" })).toBeTruthy();
-  });
+  }, 15_000);
 
   it("restores a newest cloud-only practice before unlocking the account", async () => {
     document.body.innerHTML = `

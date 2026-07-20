@@ -21,7 +21,6 @@ export interface ImageLabRemaining {
 export type ImageLabDisabledReason =
   | "disabled"
   | "school-approval-required"
-  | "fal-minor-use-approval-required"
   | "account-cap-required"
   | "server-configuration-required";
 
@@ -299,7 +298,6 @@ const parseConfig = (value: unknown): ImageLabConfig => {
   if (!record) fail("INVALID_RESPONSE", "Image Lab configuration was invalid.");
   if (record.enabled === false && hasExactKeys(record, ["enabled", "reason"]) &&
     (record.reason === "disabled" || record.reason === "school-approval-required" ||
-      record.reason === "fal-minor-use-approval-required" ||
       record.reason === "account-cap-required" || record.reason === "server-configuration-required")) {
     return { enabled: false, reason: record.reason };
   }

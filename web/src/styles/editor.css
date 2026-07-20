@@ -97,7 +97,7 @@
 .product-kit { height: auto; min-height: 0; padding-right: .15rem; overflow: visible; color: var(--ink); font-size: .875rem; line-height: 1.3; }
 .product-kit__layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; align-items: start; }
 .product-kit__preview-frame { position: relative; width: 12rem; max-width: 100%; aspect-ratio: 4 / 5; margin: 0 auto; overflow: hidden; border: 2px solid var(--ink); border-radius: .65rem; background: linear-gradient(145deg, #d9eef4, #fffaf2 68%); box-shadow: 4px 4px 0 var(--gold); }
-.product-kit__preview-canvas { position: absolute; left: -34px; top: -85px; width: 400px; height: 500px; transform: scale(.65); transform-origin: top left; }
+.product-kit__preview-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .product-kit__preview-canvas img { position: absolute; display: block; max-width: none; transform-origin: center; }
 .product-kit__controls { min-width: 0; display: grid; gap: .4rem; }
 .product-kit__group { min-width: 0; margin: 0; padding: .35rem; display: grid; gap: .3rem; border: 1px solid #b8ad9c; border-radius: .45rem; background: #fffdf7; }
@@ -277,6 +277,7 @@
 .creator__tool-panel.creator__quick-tools,
 .creator__tool-panel.creator__logo-lab { min-height: 0; max-height: none; padding: 14px 12px 18px; display: block; overflow-x: hidden; overflow-y: auto; border: 0; border-radius: 0; box-shadow: none; }
 .creator__tool-panel.creator__product-builder { display: flex; flex-direction: column; }
+.creator__tool-panel.creator__product-builder > [data-product-builder-panel] { flex: 0 0 auto; }
 :is([data-product-builder-panel], [data-money-check-panel], [data-market-route-panel], [data-aida-playbook-panel], [data-image-lab-panel], [data-logo-lab-panel], .creator__library-results, .product-kit, .product-maker__options, .logo-lab__controls, .logo-lab__symbols) { max-height: none; overflow: visible; overscroll-behavior: auto; }
 .creator__tool-panel.creator__assets { height: 100%; padding: 14px 12px 12px; display: grid; grid-template-rows: auto auto minmax(0, 1fr); overflow: hidden; }
 .creator__assets .creator__asset-controls { position: static; top: auto; margin-bottom: 8px; padding-block: 0 8px; }

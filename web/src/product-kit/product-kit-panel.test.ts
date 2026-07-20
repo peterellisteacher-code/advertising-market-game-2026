@@ -154,6 +154,45 @@ async function admittedBundle(): Promise<LoadedProductKitBundle> {
   return bundle;
 }
 
+function expectPreviewFitsFrame(preview: HTMLElement): void {
+  const corners = [...preview.querySelectorAll<HTMLImageElement>("img")].flatMap((image) => {
+    expect(image.style.left).toMatch(/%$/);
+    expect(image.style.top).toMatch(/%$/);
+    expect(image.style.width).toMatch(/%$/);
+    expect(image.style.height).toMatch(/%$/);
+    const matrix = image.style.transform.match(/^matrix\(([^)]+)\)$/)?.[1]
+      ?.split(",")
+      .map(Number);
+    expect(matrix).toHaveLength(6);
+    const [a, b, c, d, e, f] = matrix!;
+    expect(e).toBeCloseTo(0);
+    expect(f).toBeCloseTo(0);
+    const left = Number.parseFloat(image.style.left);
+    const top = Number.parseFloat(image.style.top);
+    const width = Number.parseFloat(image.style.width);
+    const height = Number.parseFloat(image.style.height);
+    const centreX = left + width / 2;
+    const centreY = top + height / 2;
+    return [-1, 1].flatMap((xSign) => [-1, 1].map((ySign) => {
+      const x = xSign * width / 2;
+      const y = ySign * height / 2;
+      return {
+        x: centreX + a! * x + c! * y,
+        y: centreY + b! * x + d! * y
+      };
+    }));
+  });
+  expect(corners.length).toBeGreaterThan(0);
+  const xs = corners.map(({ x }) => x);
+  const ys = corners.map(({ y }) => y);
+  expect(Math.min(...xs)).toBeGreaterThanOrEqual(-0.001);
+  expect(Math.max(...xs)).toBeLessThanOrEqual(100.001);
+  expect(Math.min(...ys)).toBeGreaterThanOrEqual(-0.001);
+  expect(Math.max(...ys)).toBeLessThanOrEqual(100.001);
+  expect(Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)))
+    .toBeGreaterThan(60);
+}
+
 function restoredDocument(bundle: LoadedProductKitBundle): CampaignDocumentV1 {
   const request = {
     kitId: "pk1-tumbler-kit",
@@ -308,8 +347,8 @@ describe("ProductKitPanel", () => {
       .toBe(true);
     expect(layers.every((image) => image.src.endsWith(".png") && image.alt === ""))
       .toBe(true);
-    expect(layers[0]?.style.transform).toBe("matrix(1, 0, 0, 1, 0, 109)");
-    expect(layers[1]?.style.transform).toContain("matrix(");
+    expect(layers[0]?.style.transform).toBe("matrix(1, 0, 0, 1, 0, 0)");
+    expect(layers[1]?.style.transform).toBe("matrix(0.7, 0, 0, 0.7, 0, 0)");
     expect(preview.querySelector('[data-product-layer="artwork"]')).toBeNull();
     expect(host.querySelector("svg")).toBeNull();
     expect(host.textContent).not.toMatch(
@@ -362,13 +401,14 @@ describe("ProductKitPanel", () => {
       name: "Flat-screen television with Centre pedestal stand"
     });
     let layers = [...preview.querySelectorAll<HTMLImageElement>("img")];
+    expectPreviewFitsFrame(preview);
     expect(layers.map((image) => image.dataset.productLayer)).toEqual(["rear", "body"]);
     expect(layers.map((image) => new URL(image.src).pathname)).toEqual([
       `/catalog/generated/offline-core-v1/assets/${TV_PEDESTAL_ID}/master.png`,
       `/catalog/generated/offline-core-v1/assets/${TV_ID}/master.png`
     ]);
-    expect(layers[0]?.style.transform).toBe("matrix(1, 0, 0, 1, -0.5, 35)");
-    expect(layers[1]?.style.transform).toBe("matrix(1, 0, 0, 1, -0.5, -76)");
+    expect(layers[0]?.style.transform).toBe("matrix(1, 0, 0, 1, 0, 0)");
+    expect(layers[1]?.style.transform).toBe("matrix(1, 0, 0, 1, 0, 0)");
 
     const feet = getByRole<HTMLInputElement>(host, "radio", {
       name: /Angled feet/
@@ -380,9 +420,10 @@ describe("ProductKitPanel", () => {
       name: "Flat-screen television with Angled feet"
     });
     layers = [...preview.querySelectorAll<HTMLImageElement>("img")];
+    expectPreviewFitsFrame(preview);
     expect(layers.map((image) => image.dataset.productLayer)).toEqual(["rear", "body"]);
-    expect(layers[0]?.style.transform).toBe("matrix(1, 0, 0, 1, -0.5, 34.5)");
-    expect(layers[1]?.style.transform).toBe("matrix(1, 0, 0, 1, -0.5, -76)");
+    expect(layers[0]?.style.transform).toBe("matrix(1, 0, 0, 1, 0, 0)");
+    expect(layers[1]?.style.transform).toBe("matrix(1, 0, 0, 1, 0, 0)");
 
     const action = getByRole<HTMLButtonElement>(host, "button", {
       name: "Place product on ad"
@@ -429,15 +470,14 @@ describe("ProductKitPanel", () => {
       name: "Compact carry case with Compact grab handle"
     });
     let layers = [...preview.querySelectorAll<HTMLImageElement>("img")];
+    expectPreviewFitsFrame(preview);
     expect(layers.map((image) => image.dataset.productLayer)).toEqual(["rear", "body"]);
     expect(layers.map((image) => new URL(image.src).pathname)).toEqual([
       `/catalog/generated/offline-core-v1/assets/${CASE_COMPACT_HANDLE_ID}/master.png`,
       `/catalog/generated/offline-core-v1/assets/${CASE_ID}/master.png`
     ]);
-    expect(layers[0]?.style.transform)
-      .toBe("matrix(0.55, 0, 0, 0.55, 0, -57.875000000000014)");
-    expect(layers[1]?.style.transform)
-      .toBe("matrix(1, 0, 0, 1, -0.5, 19.5)");
+    expect(layers[0]?.style.transform).toBe("matrix(0.55, 0, 0, 0.55, 0, 0)");
+    expect(layers[1]?.style.transform).toBe("matrix(1, 0, 0, 1, 0, 0)");
 
     const arched = getByRole<HTMLInputElement>(host, "radio", {
       name: /Rigid arched handle/
@@ -449,10 +489,9 @@ describe("ProductKitPanel", () => {
       name: "Compact carry case with Rigid arched handle"
     });
     layers = [...preview.querySelectorAll<HTMLImageElement>("img")];
-    expect(layers[0]?.style.transform)
-      .toBe("matrix(0.55, 0, 0, 0.55, 0, -75.47500000000001)");
-    expect(layers[1]?.style.transform)
-      .toBe("matrix(1, 0, 0, 1, -0.5, 19.5)");
+    expectPreviewFitsFrame(preview);
+    expect(layers[0]?.style.transform).toBe("matrix(0.55, 0, 0, 0.55, 0, 0)");
+    expect(layers[1]?.style.transform).toBe("matrix(1, 0, 0, 1, 0, 0)");
 
     const action = getByRole<HTMLButtonElement>(host, "button", {
       name: "Place product on ad"

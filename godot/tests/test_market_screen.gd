@@ -140,7 +140,7 @@ func _returned_and_hidden_campaigns_are_calm_and_fixable() -> bool:
     returned["campaigns"][0]["status"] = "returned"
     returned["campaigns"][0]["reviewNote"] = "Make the price easier to spot."
     screen.call("present_snapshot", returned)
-    assert((screen.get_node("%CampaignStatusTitle") as Label).text == "A quick studio tweak")
+    assert((screen.get_node("%CampaignStatusTitle") as Label).text == "Studio tweak")
     assert((screen.get_node("%CampaignStatusCopy") as Label).text.contains("Make the price easier to spot."))
     var fix := screen.get_node("%FixCampaign") as Button
     assert(fix.visible)

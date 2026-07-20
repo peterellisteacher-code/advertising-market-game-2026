@@ -46,7 +46,7 @@ describe("image-lab environment gate", () => {
       signingSecret: secret,
       sessionMinutes: 75,
       objectAllowance: 6,
-      realiseAllowance: 2
+      realiseAllowance: 1
     });
     expect(parseImageLabEnvironment({
       ...readyEnvironment,

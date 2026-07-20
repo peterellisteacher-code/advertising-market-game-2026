@@ -56,7 +56,7 @@ const objectRequest = {
   colour: "cobalt blue"
 } as const;
 
-const pngBytes = (width = 512, height = 512, size = 45): Uint8Array => {
+const pngBytes = (width = 1_024, height = 1_024, size = 45): Uint8Array => {
   const bytes = new Uint8Array(size);
   bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
   new DataView(bytes.buffer).setUint32(8, 13);
@@ -68,7 +68,7 @@ const pngBytes = (width = 512, height = 512, size = 45): Uint8Array => {
   return bytes;
 };
 
-const jpegBytes = (width = 512, height = 512): Uint8Array => new Uint8Array([
+const jpegBytes = (width = 1_024, height = 1_024): Uint8Array => new Uint8Array([
   0xff, 0xd8,
   0xff, 0xe0, 0x00, 0x04, 0x00, 0x00,
   0xff, 0xc0, 0x00, 0x0b, 0x08,
@@ -78,7 +78,7 @@ const jpegBytes = (width = 512, height = 512): Uint8Array => new Uint8Array([
   0xff, 0xd9
 ]);
 
-const webpBytes = (width = 512, height = 512): Uint8Array => {
+const webpBytes = (width = 1_024, height = 1_024): Uint8Array => {
   const bytes = new Uint8Array(30);
   bytes.set([0x52, 0x49, 0x46, 0x46], 0);
   new DataView(bytes.buffer).setUint32(4, 22, true);
@@ -316,6 +316,7 @@ describe("Image Lab jobs transport", () => {
   });
 
   it("submits the exact server-owned Object Forge profile and rotates allowance after acceptance", async () => {
+    expect(OBJECT_FORGE_PROFILE_ID).toBe("object-forge-gpt-image-2-low-v1");
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ request_id: requestId }));
     const response = await handlerWith(fetcher)(post(objectRequest));
 
@@ -335,13 +336,10 @@ describe("Image Lab jobs transport", () => {
     expect(String(url)).toBe(`https://queue.fal.run/${OBJECT_FORGE_PROFILE.model}`);
     expect(JSON.parse(String(init?.body))).toEqual({
       prompt: composeObjectForgePrompt(parseObjectForgeRequest(objectRequest)),
-      image_size: { width: 512, height: 512 },
-      num_inference_steps: 4,
-      guidance_scale: 3.5,
+      image_size: { width: 1_024, height: 1_024 },
+      quality: "low",
       num_images: 1,
-      enable_safety_checker: true,
-      output_format: "png",
-      acceleration: "none"
+      output_format: "png"
     });
 
     const setCookie = response.headers.get("set-cookie")!;
@@ -354,7 +352,8 @@ describe("Image Lab jobs transport", () => {
     });
   });
 
-  it("maps Make It Real to the documented image_urls and LoRA input", async () => {
+  it("maps Make It Real to the documented GPT Image 2 edit input", async () => {
+    expect(MAKE_IT_REAL_PROFILE_ID).toBe("make-it-real-gpt-image-2-high-v1");
     const request = {
       stage: "realise",
       ...identity,
@@ -369,15 +368,10 @@ describe("Image Lab jobs transport", () => {
     expect(JSON.parse(String(fetcher.mock.calls[0]![1]?.body))).toEqual({
       image_urls: [designDataUrl],
       image_size: { width: 1_024, height: 576 },
-      guidance_scale: 1,
-      num_inference_steps: 6,
-      acceleration: "regular",
-      negative_prompt: " ",
-      enable_safety_checker: true,
+      quality: "high",
       output_format: "png",
       num_images: 1,
-      prompt: composeMakeItRealPrompt(parseMakeItRealRequest(request)),
-      lora_scale: 1
+      prompt: composeMakeItRealPrompt(parseMakeItRealRequest(request))
     });
     expect(await response.json()).toMatchObject({
       stage: "realise",
@@ -658,6 +652,26 @@ describe("Image Lab jobs transport", () => {
       `https://queue.fal.run/fal-ai/flux-2/turbo/edit/requests/${requestId}/status`,
       `https://queue.fal.run/fal-ai/flux-2/turbo/edit/requests/${requestId}`
     ]);
+  });
+
+  it("accepts the canonical GPT Image 2 dimensions returned for an exact 1024 by 576 edit request", async () => {
+    const token = jobToken("make-it-real", MAKE_IT_REAL_PROFILE_ID);
+    const state = stateFixture({
+      initialJob: storedObjectJob({
+        stage: "make-it-real",
+        profileId: MAKE_IT_REAL_PROFILE_ID
+      })
+    });
+    const bytes = pngBytes(1_088, 608);
+    const fetcher = completedQueueResponses(new Response(responseBody(bytes), {
+      headers: { "content-type": "image/png", "content-length": String(bytes.byteLength) }
+    }));
+    const response = await handlerWith(fetcher, 1_000, state)(authenticatedGet(
+      `/api/image-lab/assets?job=${encodeURIComponent(token)}`
+    ));
+
+    expect(response.status).toBe(200);
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(bytes);
   });
 
   it("resolves local submitting and indeterminate states without contacting fal", async () => {

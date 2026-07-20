@@ -19,16 +19,22 @@ References:
 - [fal.ai Acceptable Use Policy](https://fal.ai/legal/acceptable-use-policy)
 - [fal.ai server-side integration guidance](https://fal.ai/docs/documentation/model-apis/inference/server-side)
 - [fal.ai queue API](https://fal.ai/docs/documentation/model-apis/inference/queue)
+- [fal.ai GPT Image 2](https://fal.ai/models/openai/gpt-image-2)
+- [fal.ai GPT Image 2 Edit](https://fal.ai/models/openai/gpt-image-2/edit)
 - [OpenAI Under 18 API Guidance](https://developers.openai.com/api/docs/guides/safety-checks/under-18-api-guidance)
 
 ## Server-owned profiles
 
 Students cannot choose a model, slug, dimensions, step count, guidance, quality tier, output count or safety setting.
 
-| Game power | Server profile | Fixed output | Fixed limits |
-| --- | --- | --- | --- |
-| Object Forge | `fal-ai/flux/schnell` | 512×512 PNG | 4 steps, guidance 3.5, one image, safety on, no acceleration |
-| Make It Real | `fal-ai/qwen-image-edit-plus-lora-gallery/integrate-product` | 1024×576 PNG | 6 steps, guidance 1, one image, safety on, regular acceleration, LoRA scale 1 |
+| Game power | Stable profile ID | fal model | Fixed request | Verified return |
+| --- | --- | --- | --- | --- |
+| Object Forge | `object-forge-gpt-image-2-low-v1` | `openai/gpt-image-2` | exact 1024×1024, low quality, one PNG | 1024×1024 PNG |
+| Make It Real | `make-it-real-gpt-image-2-high-v1` | `openai/gpt-image-2/edit` | one 1024×576 canvas reference, exact `{ width: 1024, height: 576 }`, high quality, one PNG | 1088×608 PNG in two live validation calls |
+
+The two endpoints do not share one generic payload. Object Forge sends `prompt`, `image_size`, `quality`, `num_images` and `output_format`. Make It Real sends those fields plus `image_urls`. The production adapter uses an explicit `{ width, height }` object, not a named aspect-ratio preset. One preset call and one exact 1024×576 call both returned 1088×608; the result validator therefore keeps the 1024×576 input contract separate from the verified provider-output contract.
+
+The selection is supported by the [labelled live benchmark](../research/fal-image-lab-benchmark-2026-07-20.md). GPT Image 2 low produced the clearest customisable templates. Medium was visually near-identical in this use case while costing roughly nine times as much. GPT Image 2 Edit high preserved the prototype's silhouette and controls while producing a convincing final product photograph.
 
 Two server-only experimental profiles are available for an adult-operated blind A/B test. They are not browser choices and do not replace the defaults merely because they cost less.
 
@@ -59,7 +65,7 @@ IMAGE_LAB_CLASSROOM_CODE=<at least 8 characters>
 IMAGE_LAB_SIGNING_SECRET=<at least 32 random characters>
 IMAGE_LAB_SESSION_MINUTES=75
 IMAGE_LAB_OBJECT_ALLOWANCE=6
-IMAGE_LAB_REALISE_ALLOWANCE=2
+IMAGE_LAB_REALISE_ALLOWANCE=1
 FAL_KEY=<server-only fal key>
 ```
 
@@ -67,9 +73,11 @@ FAL_KEY=<server-only fal key>
 
 ## Expected classroom cost
 
-At the researched prices, Object Forge is approximately US$0.003 per image and Make It Real approximately US$0.035 per image. A 15-pair session with six Object Forge images and two Make It Real images per pair is approximately US$1.32 before provider price changes.
+At the live prices checked on 20 July 2026, a 1024×1024 Object Forge image at low quality is US$0.006. The published high-quality edit price used for budgeting is US$0.151 at 1024×768 with one input image; because the table does not list the 1024×576 request separately, that is deliberately treated as a conservative upper proxy.
 
-With the same 15-pair allowance, plain FLUX Schnell plus FLUX 2 Turbo Edit is approximately US$0.75 and is the cheapest candidate combination. The shared Z-Image LoRA plus FLUX 2 Turbo Edit is approximately US$1.245 per class, plus about US$2.26 for a one-time 1,000-step training run. The LoRA is therefore a possible consistency improvement, not a cost-saving claim. Preserve the defaults until blind comparison proves the alternative keeps deliberate composition, blank customisable surfaces and the catalogue's visual language. Confirm current pricing before every activation.
+For 15 pairs, six Object Forge images each cost about US$0.54 in total. One final Make It Real image each adds up to US$2.265, giving a conservative session ceiling of about **US$2.81** before price changes. Raising the final allowance to two would raise that ceiling to about **US$5.07**. Confirm current pricing before every activation.
+
+The cheaper FLUX and Z-Image candidates remain available only as adult-operated A/B profiles. The live benchmark found that their lower price did not compensate for weaker silhouette reliability and poorer catalogue-style fit. The shared Z-Image LoRA remains a possible future consistency experiment, not a current cost-saving or production recommendation.
 
 Alternative-profile trials remain teacher-operated and must never create an ungated student-access path.
 

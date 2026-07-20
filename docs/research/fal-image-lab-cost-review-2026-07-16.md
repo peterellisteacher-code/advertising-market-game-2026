@@ -1,5 +1,20 @@
 # Image Lab cost and style review — 16 July 2026
 
+> **Superseded default — 20 July 2026.** This document remains as the historical research record. A live same-prompt bake-off subsequently selected `openai/gpt-image-2` at 1024×1024 low quality for Object Forge and `openai/gpt-image-2/edit` at high quality for the single final Make It Real pass. See the [labelled benchmark and request record](fal-image-lab-benchmark-2026-07-20.md).
+
+## 20 July production decision
+
+| Stage | Selected endpoint | Server-owned request | Budget price |
+| --- | --- | --- | ---: |
+| Object Forge | `openai/gpt-image-2` | exact 1024×1024, low quality, one PNG | US$0.006/image |
+| Make It Real | `openai/gpt-image-2/edit` | exact 1024×576 request, high quality, one PNG and one canvas reference | US$0.151/image conservative published upper proxy |
+
+One named 16:9 preset call and one exact `{ width: 1024, height: 576 }` call were run. Both returned 1088×608, so the production contract distinguishes the local 1024×576 reference canvas from the verified provider output. The default final-render allowance is one per pair.
+
+For 15 pairs using six Object Forge images and one final edit each, the conservative ceiling is about US$2.81. The visual test found GPT Image 2 low materially more reliable for clean, believable product geometry than the cheaper untrained models. GPT Image 2 medium looked nearly identical for this task while costing roughly nine times as much, so it was rejected for the frequent lane.
+
+The 16 July analysis below is retained unchanged as dated evidence; references to “current” profiles describe the state on that date, not the active default.
+
 ## Outcome
 
 The offline catalogue remains the dependable classroom foundation. Image Lab should expand that catalogue when a team cannot find the product or component it wants; it must not be required to finish the game.

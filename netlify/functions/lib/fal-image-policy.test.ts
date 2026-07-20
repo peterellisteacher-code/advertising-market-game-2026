@@ -121,31 +121,25 @@ describe("fal image policy", () => {
 
   it("pins the Object Forge profile entirely on the server", () => {
     expect(OBJECT_FORGE_PROFILE).toEqual({
-      model: "fal-ai/flux/schnell",
-      width: 512,
-      height: 512,
-      steps: 4,
-      guidance: 3.5,
+      model: "openai/gpt-image-2",
+      width: 1_024,
+      height: 1_024,
+      quality: "low",
       images: 1,
-      outputFormat: "png",
-      safetyChecker: true,
-      acceleration: "none"
+      outputFormat: "png"
     });
     expect(Object.isFrozen(OBJECT_FORGE_PROFILE)).toBe(true);
   });
 
   it("pins the Make It Real profile entirely on the server", () => {
     expect(MAKE_IT_REAL_PROFILE).toEqual({
-      model: "fal-ai/qwen-image-edit-plus-lora-gallery/integrate-product",
-      width: 1_024,
-      height: 576,
-      steps: 6,
-      guidance: 1,
+      model: "openai/gpt-image-2/edit",
+      width: 1_088,
+      height: 608,
+      imageSize: { width: 1_024, height: 576 },
+      quality: "high",
       images: 1,
-      outputFormat: "png",
-      safetyChecker: true,
-      acceleration: "regular",
-      loraScale: 1
+      outputFormat: "png"
     });
     expect(Object.isFrozen(MAKE_IT_REAL_PROFILE)).toBe(true);
   });
@@ -313,6 +307,9 @@ describe("fal image policy", () => {
     expect(prompt).toMatch(/no text/i);
     expect(prompt).toMatch(/one object/i);
     expect(prompt).toMatch(/pure white background/i);
+    expect(prompt).toMatch(/Canva-like product template/i);
+    expect(prompt).toMatch(/structurally believable geometry/i);
+    expect(prompt).toMatch(/large blank surfaces/i);
   });
 
   it.each([

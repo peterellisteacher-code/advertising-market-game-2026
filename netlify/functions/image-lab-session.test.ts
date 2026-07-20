@@ -39,7 +39,7 @@ describe("Image Lab session function", () => {
       unlocked: false,
       accountCapUsd: 2,
       objectAllowance: 6,
-      realiseAllowance: 2
+      realiseAllowance: 1
     });
     expect(JSON.stringify(body)).not.toContain("fal-key");
     expect(JSON.stringify(body)).not.toContain("Market-2026");
@@ -66,7 +66,7 @@ describe("Image Lab session function", () => {
     expect(await response.json()).toEqual({
       unlocked: true,
       remainingObject: 6,
-      remainingRealise: 2,
+      remainingRealise: 1,
       expiresAt: 5_500
     });
     const cookie = response.headers.get("set-cookie")!;
@@ -76,7 +76,7 @@ describe("Image Lab session function", () => {
       sessionId: "session-a",
       teamId: "pair-3",
       remainingObject: 6,
-      remainingRealise: 2,
+      remainingRealise: 1,
       expiresAt: 5_500
     });
   });

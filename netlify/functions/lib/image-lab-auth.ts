@@ -97,7 +97,7 @@ export function parseImageLabEnvironment(
     falKey,
     sessionMinutes: boundedInteger(environment.IMAGE_LAB_SESSION_MINUTES, 75, 15, 240),
     objectAllowance: boundedInteger(environment.IMAGE_LAB_OBJECT_ALLOWANCE, 6, 1, 12),
-    realiseAllowance: boundedInteger(environment.IMAGE_LAB_REALISE_ALLOWANCE, 2, 1, 4)
+    realiseAllowance: boundedInteger(environment.IMAGE_LAB_REALISE_ALLOWANCE, 1, 1, 4)
   };
 }
 

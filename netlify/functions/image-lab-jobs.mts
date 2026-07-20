@@ -47,8 +47,8 @@ import {
   readValidatedImageHeader
 } from "./lib/openverse";
 
-export const OBJECT_FORGE_PROFILE_ID = "object-forge-v1";
-export const MAKE_IT_REAL_PROFILE_ID = "make-it-real-v1";
+export const OBJECT_FORGE_PROFILE_ID = "object-forge-gpt-image-2-low-v1";
+export const MAKE_IT_REAL_PROFILE_ID = "make-it-real-gpt-image-2-high-v1";
 export const Z_IMAGE_LORA_PROFILE_ID = "z-image-lora-v1";
 export const FLUX2_TURBO_EDIT_PROFILE_ID = "flux2-turbo-edit-v1";
 export const IMAGE_LAB_ASSET_MAX_BYTES = 8 * 1_048_576;
@@ -295,12 +295,9 @@ function objectForgeInput(request: ObjectForgeRequest): Readonly<Record<string, 
   return {
     prompt: composeObjectForgePrompt(request),
     image_size: { width: OBJECT_FORGE_PROFILE.width, height: OBJECT_FORGE_PROFILE.height },
-    num_inference_steps: OBJECT_FORGE_PROFILE.steps,
-    guidance_scale: OBJECT_FORGE_PROFILE.guidance,
+    quality: OBJECT_FORGE_PROFILE.quality,
     num_images: OBJECT_FORGE_PROFILE.images,
-    enable_safety_checker: OBJECT_FORGE_PROFILE.safetyChecker,
-    output_format: OBJECT_FORGE_PROFILE.outputFormat,
-    acceleration: OBJECT_FORGE_PROFILE.acceleration
+    output_format: OBJECT_FORGE_PROFILE.outputFormat
   };
 }
 
@@ -324,16 +321,11 @@ function zImageLoraInput(
 function makeItRealInput(request: MakeItRealRequest): Readonly<Record<string, unknown>> {
   return {
     image_urls: [request.designDataUrl],
-    image_size: { width: MAKE_IT_REAL_PROFILE.width, height: MAKE_IT_REAL_PROFILE.height },
-    guidance_scale: MAKE_IT_REAL_PROFILE.guidance,
-    num_inference_steps: MAKE_IT_REAL_PROFILE.steps,
-    acceleration: MAKE_IT_REAL_PROFILE.acceleration,
-    negative_prompt: " ",
-    enable_safety_checker: MAKE_IT_REAL_PROFILE.safetyChecker,
+    image_size: MAKE_IT_REAL_PROFILE.imageSize,
+    quality: MAKE_IT_REAL_PROFILE.quality,
     output_format: MAKE_IT_REAL_PROFILE.outputFormat,
     num_images: MAKE_IT_REAL_PROFILE.images,
-    prompt: composeMakeItRealPrompt(request),
-    lora_scale: MAKE_IT_REAL_PROFILE.loraScale
+    prompt: composeMakeItRealPrompt(request)
   };
 }
 

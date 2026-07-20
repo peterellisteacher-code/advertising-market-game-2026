@@ -1,4 +1,4 @@
-export { default } from "../functions/image-lab-session.mjs";
+export { default } from "../function-bundles/image-lab-session.mjs";
 
 export const config = {
   path: ["/api/image-lab/config", "/api/image-lab/unlock", "/api/image-lab/lock"],

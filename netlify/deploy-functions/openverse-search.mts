@@ -1,4 +1,4 @@
-export { default } from "../functions/openverse-search.mjs";
+export { default } from "../function-bundles/openverse-search.mjs";
 
 export const config = {
   path: "/api/openverse-search",

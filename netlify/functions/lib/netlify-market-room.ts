@@ -1,3 +1,4 @@
+import { getStore } from "@netlify/blobs";
 import { createHash } from "node:crypto";
 import {
   MARKET_LIMITS,
@@ -201,8 +202,7 @@ export class MarketRoomService {
 let sharedService: Promise<MarketRoomService> | null = null;
 
 export function defaultMarketRoomService(): Promise<MarketRoomService> {
-  const moduleName = "@netlify/blobs";
-  sharedService ??= import(/* @vite-ignore */ moduleName).then(({ getStore }) => {
+  sharedService ??= Promise.resolve().then(() => {
     const store = getStore({ name: STORE_NAME, consistency: "strong" }) as MarketBlobStore;
     return new MarketRoomService(createNetlifyMarketRoomRepository(store));
   });

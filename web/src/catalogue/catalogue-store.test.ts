@@ -53,6 +53,22 @@ describe("loadOfflineCatalogue", () => {
     );
   });
 
+  it("allows 30 seconds for the classroom catalogue on school wifi", async () => {
+    const deadline = new AbortController().signal;
+    const timeoutSpy = vi.spyOn(AbortSignal, "timeout").mockReturnValue(deadline);
+    const fetchMock = vi.fn().mockResolvedValue(Response.json([asset()]));
+
+    try {
+      await expect(loadOfflineCatalogue(
+        "/catalog/generated/offline-core-v1/catalog.json",
+        { fetch: fetchMock }
+      )).resolves.toEqual([asset()]);
+      expect(timeoutSpy).toHaveBeenCalledWith(30_000);
+    } finally {
+      timeoutSpy.mockRestore();
+    }
+  });
+
   it("retains the SHA-256 identity of the exact catalogue response bytes", async () => {
     const raw = `${JSON.stringify([asset()])}\n`;
     const expected = Array.from(new Uint8Array(

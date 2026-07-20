@@ -2,6 +2,7 @@
 
 import { existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { createRequire } from "node:module";
+import { builtinModules } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -9,6 +10,7 @@ import { describe, expect, it } from "vitest";
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "..");
 const deployDirectory = join(here, "deploy-functions");
+const bundleDirectory = join(here, "function-bundles");
 const expectedFunctions = [
   "account-assets.mts",
   "account-progress.mts",
@@ -82,6 +84,25 @@ describe("Netlify deployment layout", () => {
     expect(files.some((name) => name.includes(".test."))).toBe(false);
   });
 
+  it("bundles Netlify Blobs into each function instead of shipping Windows pnpm links", () => {
+    for (const configName of ["netlify.toml", "netlify.artifact.toml"]) {
+      const toml = readFileSync(join(repoRoot, configName), "utf8");
+      expect(toml).toMatch(/^node_bundler = "esbuild"$/m);
+      expect(toml).not.toMatch(/^external_node_modules\s*=.*@netlify\/blobs/m);
+    }
+
+    for (const adapterName of [
+      "netlify-account-assets.ts",
+      "netlify-image-lab-state.ts",
+      "netlify-market-room.ts"
+    ]) {
+      const source = readFileSync(join(here, "functions", "lib", adapterName), "utf8");
+      expect(source).toContain('import { getStore } from "@netlify/blobs";');
+      expect(source).not.toMatch(/import\([^)]*@netlify\/blobs/u);
+      expect(source).not.toContain('const moduleName = "@netlify/blobs";');
+    }
+  });
+
   it("uses thin wrappers with a local literal config and the intended handler", () => {
     if (!existsSync(deployDirectory)) {
       expect(existsSync(deployDirectory)).toBe(true);
@@ -91,12 +112,28 @@ describe("Netlify deployment layout", () => {
     for (const filename of expectedFunctions) {
       const source = readFileSync(join(deployDirectory, filename), "utf8").trim();
       const moduleName = filename.replace(/\.mts$/, ".mjs");
-      const handler = filename === "account-progress.mts"
-        ? "../function-bundles/account-progress.mjs"
-        : `../functions/${moduleName}`;
+      const handler = `../function-bundles/${moduleName}`;
       expect(source).toContain(`export { default } from "${handler}";`);
       expect(source).toContain("export const config = {");
       expect(source).not.toContain("export { default, config }");
+    }
+  });
+
+  it("emits one self-contained server bundle for every deployed function", () => {
+    for (const filename of expectedFunctions) {
+      const bundleName = filename.replace(/\.mts$/, ".mjs");
+      const bundlePath = join(bundleDirectory, bundleName);
+      expect(existsSync(bundlePath), `${bundleName} must be built before deployment`).toBe(true);
+      if (!existsSync(bundlePath)) continue;
+
+      const source = readFileSync(bundlePath, "utf8");
+      const importSpecifiers = [...source.matchAll(/\b(?:from|import)\s*["']([^"']+)["']/gu)]
+        .flatMap((match) => match[1] === undefined ? [] : [match[1]]);
+      expect(importSpecifiers.every(
+        (specifier) => specifier.startsWith("node:") || builtinModules.includes(specifier)
+      )).toBe(true);
+      expect(source).not.toMatch(/\bimport\s*\(/u);
+      expect(source).not.toMatch(/\brequire\s*\(/u);
     }
   });
 

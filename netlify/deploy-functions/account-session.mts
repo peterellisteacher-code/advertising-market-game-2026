@@ -1,4 +1,4 @@
-export { default } from "../functions/account-session.mjs";
+export { default } from "../function-bundles/account-session.mjs";
 
 export const config = {
   path: [

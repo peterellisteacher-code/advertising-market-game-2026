@@ -1,4 +1,4 @@
-export { default } from "../functions/account-assets.mjs";
+export { default } from "../function-bundles/account-assets.mjs";
 
 export const config = {
   path: ["/api/account/assets/:sha256"],

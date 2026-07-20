@@ -48,13 +48,18 @@ On Peter's current OneDrive working copy, native Godot launches are quarantined 
 
 ## Manual Netlify deployment
 
-After `build/web/` contains a verified complete artifact, build the self-contained Function bundle and create a draft deploy from the repository root:
+After GitHub Actions produces a verified complete artifact, download it to a fresh directory and create a draft deploy from the repository root:
 
 ```powershell
-pnpm build:functions
-pnpm exec netlify deploy --no-build --dir build/web --functions netlify/deploy-functions
+pnpm deploy:draft -- --artifact C:\path\to\downloaded-artifact
 ```
 
-Production deployment is the same deliberate operation with Netlify's `--prod` flag. Never configure GitHub or Netlify to publish `build/web/` automatically.
+After hosted verification, publish the same downloaded artifact deliberately:
+
+```powershell
+pnpm deploy:production -- --artifact C:\path\to\downloaded-artifact
+```
+
+Both commands require an explicit artifact path, verify it, rebuild the self-contained Function bundles, and preserve its own hosted headers. Never configure GitHub or Netlify to publish `build/web/` automatically.
 
 Teacher access documents and classroom credentials are deliberately excluded from Git history.

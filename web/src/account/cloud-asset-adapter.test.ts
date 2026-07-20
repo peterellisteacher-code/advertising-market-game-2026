@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { createBlankCampaignDocument, type CampaignDocumentV1 } from "../domain/campaign-document";
 import { AccountAssetClientError, type AccountAssetClient } from "./account-asset-client";
@@ -13,10 +14,8 @@ const png = Uint8Array.from([
   0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01
 ]);
 
-const digest = async (bytes: Uint8Array): Promise<string> => {
-  const value = await crypto.subtle.digest("SHA-256", bytes.slice().buffer);
-  return [...new Uint8Array(value)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-};
+const digest = async (bytes: Uint8Array): Promise<string> =>
+  createHash("sha256").update(Buffer.from([...bytes])).digest("hex");
 
 function documentWithLocalBlob(): CampaignDocumentV1 {
   const document = createBlankCampaignDocument({

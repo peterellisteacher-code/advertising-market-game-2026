@@ -14,6 +14,24 @@ const BASE_HASH =
 const LID_ID = "90-beverage-container-add-ons-r04c01";
 const LID_HASH =
   "6156af7416af78a8bb53a93c540ff2745caa77140f808213227487985e3580a5";
+const TV_ID = "95-appliance-bases-r05c02";
+const TV_HASH =
+  "3ad0846f80e918edcfea13b24deabd8413206d4ada4dc4e63c1751eb2728888f";
+const TV_PEDESTAL_ID = "96-appliance-add-ons-r05c01";
+const TV_PEDESTAL_HASH =
+  "b9c6131f758d1d21a8923a3b9ae7137244d5154d8b15b45b73b64aae0faa0092";
+const TV_FEET_ID = "96-appliance-add-ons-r05c02";
+const TV_FEET_HASH =
+  "00cd19f387de624370a6d014519343a241f00e36ab97a556906b0585cef674cf";
+const CASE_ID = "97-bag-carry-product-bases-r01c05";
+const CASE_HASH =
+  "9f6f833af3a39e36734945ff9505ad6986aa09879bb756248209b74fc4c41dc9";
+const CASE_ARCHED_HANDLE_ID = "98-bag-carry-product-add-ons-r01c03";
+const CASE_ARCHED_HANDLE_HASH =
+  "103a9baf051d3ff8a23f3dd8ff5abbbf80d34c2f57d4bca647b576b4364e1ce9";
+const CASE_COMPACT_HANDLE_ID = "98-bag-carry-product-add-ons-r01c05";
+const CASE_COMPACT_HANDLE_HASH =
+  "10fc7b6c5a7b4a177cd1bb00c3a67b1fb5ee5644c438216085ce86098e109d7e";
 const CERTIFICATION_FINGERPRINT =
   "ac7beca4826f9977b0da9927f9c896deab4849f582a80a3b79fff15bbf8bef29";
 const CATALOGUE_URL = "/catalog/generated/offline-core-v1/catalog.json";
@@ -27,15 +45,36 @@ function offlineAsset(
   width: number,
   height: number
 ): CatalogAssetV1 {
+  const isBase = id === BASE_ID || id === TV_ID || id === CASE_ID;
+  const isTelevision = id === TV_ID || id === TV_PEDESTAL_ID || id === TV_FEET_ID;
+  const isCarryCase = id === CASE_ID || id === CASE_ARCHED_HANDLE_ID ||
+    id === CASE_COMPACT_HANDLE_ID;
+  const title = id === BASE_ID
+    ? "Straight reusable tumbler"
+    : id === LID_ID
+      ? "Flat takeaway-cup lid"
+      : id === TV_ID
+        ? "Wall-ready flat television"
+        : id === TV_PEDESTAL_ID
+          ? "Television centre pedestal stand"
+          : id === TV_FEET_ID
+            ? "Pair of angled television feet"
+            : id === CASE_ID
+              ? "Rectangular crossbody bag body"
+              : id === CASE_ARCHED_HANDLE_ID
+                ? "Rigid arched handbag handle"
+                : "Compact top grab handle";
   return {
     schema: "catalog-asset@1",
     delivery: "offline",
     id,
     version: 1,
     kind,
-    title: id === BASE_ID ? "Straight reusable tumbler" : "Flat takeaway-cup lid",
-    category: "beverage-containers",
-    tags: id === BASE_ID ? ["base", "tumbler"] : ["add-on", "cup lid"],
+    title,
+    category: isTelevision
+      ? "appliances"
+      : isCarryCase ? "bags-carry-products" : "beverage-containers",
+    tags: isBase ? ["base"] : ["add-on"],
     files: {
       thumbnail: `/catalog/generated/offline-core-v1/assets/${id}/thumbnail-192.webp`,
       preview: `/catalog/generated/offline-core-v1/assets/${id}/preview-640.webp`,
@@ -62,7 +101,13 @@ function offlineAsset(
 const OFFLINE: OfflineCatalogueWithHash = {
   records: [
     offlineAsset(BASE_ID, BASE_HASH, "raster-master", 146, 238),
-    offlineAsset(LID_ID, LID_HASH, "component", 233, 164)
+    offlineAsset(LID_ID, LID_HASH, "component", 233, 164),
+    offlineAsset(TV_ID, TV_HASH, "raster-master", 237, 168),
+    offlineAsset(TV_PEDESTAL_ID, TV_PEDESTAL_HASH, "component", 259, 210),
+    offlineAsset(TV_FEET_ID, TV_FEET_HASH, "component", 237, 209),
+    offlineAsset(CASE_ID, CASE_HASH, "raster-master", 189, 159),
+    offlineAsset(CASE_ARCHED_HANDLE_ID, CASE_ARCHED_HANDLE_HASH, "component", 226, 211),
+    offlineAsset(CASE_COMPACT_HANDLE_ID, CASE_COMPACT_HANDLE_HASH, "component", 262, 135)
   ],
   catalogSha256: CATALOG_HASH
 };
@@ -166,7 +211,7 @@ function malformedUtf8ProductKitBytes(): ArrayBuffer {
 }
 
 describe("loadProductKitBundle", () => {
-  it("loads the exact hash-bound pilot from two same-origin sibling sidecars", async () => {
+  it("loads the exact hash-bound Product Kit families from two same-origin sidecars", async () => {
     const candidate = scenario();
     const { fetchImpl, fetchMock } = fetchFor(candidate);
 
@@ -185,7 +230,32 @@ describe("loadProductKitBundle", () => {
     })).toMatchObject({
       transform: { scale: 0.7, rotationDegrees: 0, mirrored: false }
     });
-    expect([...bundle!.rasterSources.keys()]).toEqual([BASE_ID, LID_ID]);
+    expect(bundle?.runtime.resolvePair({
+      kind: "socket",
+      kitId: "pk1-tv-kit",
+      mountFrameId: "pk1-tv-stand-frame",
+      componentId: "pk1-tv-angled-feet"
+    })).toMatchObject({
+      transform: { scale: 1, rotationDegrees: 0, mirrored: false }
+    });
+    expect(bundle?.runtime.resolvePair({
+      kind: "socket",
+      kitId: "pk1-utility-case-kit",
+      mountFrameId: "pk1-utility-case-handle-frame",
+      componentId: "pk1-utility-case-compact-handle"
+    })).toMatchObject({
+      transform: { scale: 0.55, rotationDegrees: 0, mirrored: false }
+    });
+    expect([...bundle!.rasterSources.keys()]).toEqual([
+      BASE_ID,
+      TV_ID,
+      CASE_ID,
+      LID_ID,
+      TV_FEET_ID,
+      TV_PEDESTAL_ID,
+      CASE_ARCHED_HANDLE_ID,
+      CASE_COMPACT_HANDLE_ID
+    ]);
     expect(bundle?.rasterSources.get(BASE_ID)).toEqual({
       assetId: BASE_ID,
       masterSha256: BASE_HASH,
@@ -193,10 +263,26 @@ describe("loadProductKitBundle", () => {
     });
     expect([...bundle!.pricing.byPriceAssetId.entries()]).toEqual([
       ["pk1-price-tumbler", expect.objectContaining({ kind: "base", costCents: 480 })],
-      ["pk1-price-flat-lid", expect.objectContaining({ kind: "part", costCents: 70 })]
+      ["pk1-price-flat-lid", expect.objectContaining({ kind: "part", costCents: 70 })],
+      ["pk1-price-tv", expect.objectContaining({ kind: "base", costCents: 3700 })],
+      ["pk1-price-tv-angled-feet", expect.objectContaining({ kind: "part", costCents: 650 })],
+      ["pk1-price-tv-centre-pedestal", expect.objectContaining({ kind: "part", costCents: 650 })],
+      ["pk1-price-utility-case", expect.objectContaining({ kind: "base", costCents: 2400 })],
+      ["pk1-price-utility-case-arched-handle", expect.objectContaining({
+        kind: "part",
+        costCents: 450
+      })],
+      ["pk1-price-utility-case-compact-handle", expect.objectContaining({
+        kind: "part",
+        costCents: 450
+      })]
     ]);
     expect(bundle?.pricing.blueprintTitleByKitId.get("pk1-tumbler-kit"))
       .toBe("Reusable tumbler");
+    expect(bundle?.pricing.blueprintTitleByKitId.get("pk1-tv-kit"))
+      .toBe("Flat-screen television");
+    expect(bundle?.pricing.blueprintTitleByKitId.get("pk1-utility-case-kit"))
+      .toBe("Compact carry case");
     expect(Object.isFrozen(bundle!.rasterSources)).toBe(true);
     expect(() => (bundle!.rasterSources as Map<string, unknown>).clear()).toThrow(TypeError);
 

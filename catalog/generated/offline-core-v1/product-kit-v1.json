@@ -62,6 +62,118 @@
           "height": 0.25
         }
       ]
+    },
+    {
+      "id": "pk1-tv-kit",
+      "title": "Flat-screen television",
+      "mode": "socket",
+      "compatibilityProfile": {
+        "familyId": "pk1-televisions",
+        "perspectiveId": "pk1-front-view",
+        "geometryId": "pk1-tv-stand",
+        "styleId": "pk1-clean-outline"
+      },
+      "base": {
+        "assetId": "95-appliance-bases-r05c02",
+        "masterSha256": "3ad0846f80e918edcfea13b24deabd8413206d4ada4dc4e63c1751eb2728888f",
+        "frame": {
+          "originalWidth": 400,
+          "originalHeight": 500,
+          "trimX": 81,
+          "trimY": 90,
+          "trimWidth": 237,
+          "trimHeight": 168
+        }
+      },
+      "priceAssetId": "pk1-price-tv",
+      "mountFrames": [
+        {
+          "id": "pk1-tv-stand-frame",
+          "slotId": "pk1-tv-stand-slot",
+          "mountType": "socket",
+          "point": {
+            "x": 0.5,
+            "y": 0.5
+          },
+          "normal": {
+            "x": 0,
+            "y": 1
+          },
+          "referenceScale": 1,
+          "constraints": {
+            "minScale": 1,
+            "maxScale": 1,
+            "minRotationDegrees": 0,
+            "maxRotationDegrees": 0,
+            "maxNormalErrorDegrees": 0,
+            "mirrorAllowed": false
+          }
+        }
+      ],
+      "artworkBounds": [
+        {
+          "x": 0.3,
+          "y": 0.26,
+          "width": 0.4,
+          "height": 0.16
+        }
+      ]
+    },
+    {
+      "id": "pk1-utility-case-kit",
+      "title": "Compact carry case",
+      "mode": "socket",
+      "compatibilityProfile": {
+        "familyId": "pk1-carry-cases",
+        "perspectiveId": "pk1-three-quarter-view",
+        "geometryId": "pk1-utility-case-handle",
+        "styleId": "pk1-clean-outline"
+      },
+      "base": {
+        "assetId": "97-bag-carry-product-bases-r01c05",
+        "masterSha256": "9f6f833af3a39e36734945ff9505ad6986aa09879bb756248209b74fc4c41dc9",
+        "frame": {
+          "originalWidth": 400,
+          "originalHeight": 500,
+          "trimX": 105,
+          "trimY": 190,
+          "trimWidth": 189,
+          "trimHeight": 159
+        }
+      },
+      "priceAssetId": "pk1-price-utility-case",
+      "mountFrames": [
+        {
+          "id": "pk1-utility-case-handle-frame",
+          "slotId": "pk1-utility-case-handle-slot",
+          "mountType": "socket",
+          "point": {
+            "x": 0.5,
+            "y": 0.42
+          },
+          "normal": {
+            "x": 0,
+            "y": 1
+          },
+          "referenceScale": 0.55,
+          "constraints": {
+            "minScale": 0.55,
+            "maxScale": 0.55,
+            "minRotationDegrees": 0,
+            "maxRotationDegrees": 0,
+            "maxNormalErrorDegrees": 0,
+            "mirrorAllowed": false
+          }
+        }
+      ],
+      "artworkBounds": [
+        {
+          "x": 0.34,
+          "y": 0.45,
+          "width": 0.32,
+          "height": 0.16
+        }
+      ]
     }
   ],
   "components": [
@@ -105,6 +217,170 @@
         }
       ],
       "priceAssetId": "pk1-price-flat-lid"
+    },
+    {
+      "id": "pk1-tv-angled-feet",
+      "title": "Angled feet",
+      "slotId": "pk1-tv-stand-slot",
+      "compatibilityProfile": {
+        "familyId": "pk1-televisions",
+        "perspectiveId": "pk1-front-view",
+        "geometryId": "pk1-tv-stand",
+        "styleId": "pk1-clean-outline"
+      },
+      "componentFrame": {
+        "mountType": "socket",
+        "point": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "normal": {
+          "x": 0,
+          "y": 1
+        },
+        "referenceScale": 1
+      },
+      "fragments": [
+        {
+          "layer": "rear",
+          "raster": {
+            "assetId": "96-appliance-add-ons-r05c02",
+            "masterSha256": "00cd19f387de624370a6d014519343a241f00e36ab97a556906b0585cef674cf",
+            "frame": {
+              "originalWidth": 400,
+              "originalHeight": 500,
+              "trimX": 81,
+              "trimY": 180,
+              "trimWidth": 237,
+              "trimHeight": 209
+            }
+          }
+        }
+      ],
+      "priceAssetId": "pk1-price-tv-angled-feet"
+    },
+    {
+      "id": "pk1-tv-centre-pedestal",
+      "title": "Centre pedestal stand",
+      "slotId": "pk1-tv-stand-slot",
+      "compatibilityProfile": {
+        "familyId": "pk1-televisions",
+        "perspectiveId": "pk1-front-view",
+        "geometryId": "pk1-tv-stand",
+        "styleId": "pk1-clean-outline"
+      },
+      "componentFrame": {
+        "mountType": "socket",
+        "point": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "normal": {
+          "x": 0,
+          "y": 1
+        },
+        "referenceScale": 1
+      },
+      "fragments": [
+        {
+          "layer": "rear",
+          "raster": {
+            "assetId": "96-appliance-add-ons-r05c01",
+            "masterSha256": "b9c6131f758d1d21a8923a3b9ae7137244d5154d8b15b45b73b64aae0faa0092",
+            "frame": {
+              "originalWidth": 400,
+              "originalHeight": 500,
+              "trimX": 70,
+              "trimY": 180,
+              "trimWidth": 259,
+              "trimHeight": 210
+            }
+          }
+        }
+      ],
+      "priceAssetId": "pk1-price-tv-centre-pedestal"
+    },
+    {
+      "id": "pk1-utility-case-arched-handle",
+      "title": "Rigid arched handle",
+      "slotId": "pk1-utility-case-handle-slot",
+      "compatibilityProfile": {
+        "familyId": "pk1-carry-cases",
+        "perspectiveId": "pk1-three-quarter-view",
+        "geometryId": "pk1-utility-case-handle",
+        "styleId": "pk1-clean-outline"
+      },
+      "componentFrame": {
+        "mountType": "socket",
+        "point": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "normal": {
+          "x": 0,
+          "y": 1
+        },
+        "referenceScale": 1
+      },
+      "fragments": [
+        {
+          "layer": "rear",
+          "raster": {
+            "assetId": "98-bag-carry-product-add-ons-r01c03",
+            "masterSha256": "103a9baf051d3ff8a23f3dd8ff5abbbf80d34c2f57d4bca647b576b4364e1ce9",
+            "frame": {
+              "originalWidth": 400,
+              "originalHeight": 500,
+              "trimX": 87,
+              "trimY": 80,
+              "trimWidth": 226,
+              "trimHeight": 211
+            }
+          }
+        }
+      ],
+      "priceAssetId": "pk1-price-utility-case-arched-handle"
+    },
+    {
+      "id": "pk1-utility-case-compact-handle",
+      "title": "Compact grab handle",
+      "slotId": "pk1-utility-case-handle-slot",
+      "compatibilityProfile": {
+        "familyId": "pk1-carry-cases",
+        "perspectiveId": "pk1-three-quarter-view",
+        "geometryId": "pk1-utility-case-handle",
+        "styleId": "pk1-clean-outline"
+      },
+      "componentFrame": {
+        "mountType": "socket",
+        "point": {
+          "x": 0.5,
+          "y": 0.4
+        },
+        "normal": {
+          "x": 0,
+          "y": 1
+        },
+        "referenceScale": 1
+      },
+      "fragments": [
+        {
+          "layer": "rear",
+          "raster": {
+            "assetId": "98-bag-carry-product-add-ons-r01c05",
+            "masterSha256": "10fc7b6c5a7b4a177cd1bb00c3a67b1fb5ee5644c438216085ce86098e109d7e",
+            "frame": {
+              "originalWidth": 400,
+              "originalHeight": 500,
+              "trimX": 69,
+              "trimY": 100,
+              "trimWidth": 262,
+              "trimHeight": 135
+            }
+          }
+        }
+      ],
+      "priceAssetId": "pk1-price-utility-case-compact-handle"
     }
   ],
   "certifications": [
@@ -114,6 +390,34 @@
       "mountFrameId": "pk1-tumbler-lid-frame",
       "componentId": "pk1-flat-lid",
       "fingerprint": "ac7beca4826f9977b0da9927f9c896deab4849f582a80a3b79fff15bbf8bef29"
+    },
+    {
+      "id": "pk1-cert-tv-angled-feet",
+      "kitId": "pk1-tv-kit",
+      "mountFrameId": "pk1-tv-stand-frame",
+      "componentId": "pk1-tv-angled-feet",
+      "fingerprint": "4aca6d5f0c71891c83aa88512d92d01a8758cf07dccd6fb02d260ef0663a2046"
+    },
+    {
+      "id": "pk1-cert-tv-centre-pedestal",
+      "kitId": "pk1-tv-kit",
+      "mountFrameId": "pk1-tv-stand-frame",
+      "componentId": "pk1-tv-centre-pedestal",
+      "fingerprint": "7219c956414e1b78876e7c60c10009eba419f2205f733ad12afa43cb9f2678a6"
+    },
+    {
+      "id": "pk1-cert-utility-case-arched-handle",
+      "kitId": "pk1-utility-case-kit",
+      "mountFrameId": "pk1-utility-case-handle-frame",
+      "componentId": "pk1-utility-case-arched-handle",
+      "fingerprint": "fddb7b23a0f5f7e093477722a6036a761ca67b8928443bffa26f6cfde62a7935"
+    },
+    {
+      "id": "pk1-cert-utility-case-compact-handle",
+      "kitId": "pk1-utility-case-kit",
+      "mountFrameId": "pk1-utility-case-handle-frame",
+      "componentId": "pk1-utility-case-compact-handle",
+      "fingerprint": "a8ab1f3774bbfca72d1df8c383660877d368700f47ed1a01c991515d6be65aa4"
     }
   ]
 }

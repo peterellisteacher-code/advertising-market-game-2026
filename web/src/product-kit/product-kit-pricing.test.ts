@@ -11,6 +11,12 @@ const CATALOG_HASH =
   "6199fd1adae59a2b517b265ca67a325f32faba04d375852821e841b51a354073";
 const BASE_ID = "89-beverage-container-bases-r03c05";
 const LID_ID = "90-beverage-container-add-ons-r04c01";
+const TV_ID = "95-appliance-bases-r05c02";
+const TV_PEDESTAL_ID = "96-appliance-add-ons-r05c01";
+const TV_FEET_ID = "96-appliance-add-ons-r05c02";
+const CASE_ID = "97-bag-carry-product-bases-r01c05";
+const CASE_ARCHED_HANDLE_ID = "98-bag-carry-product-add-ons-r01c03";
+const CASE_COMPACT_HANDLE_ID = "98-bag-carry-product-add-ons-r01c05";
 
 function parsedCatalogue(): ProductKitCatalogue {
   const parsed = parseProductKitCatalogue(PRODUCT_KIT_SIDECAR, {
@@ -40,6 +46,84 @@ function parsedCatalogue(): ProductKitCatalogue {
           master: `/catalog/generated/offline-core-v1/assets/${LID_ID}/master.png`
         },
         dimensions: { width: 233, height: 164 },
+        classroomReviewed: true,
+        brandFree: true
+      },
+      {
+        id: TV_ID,
+        masterSha256:
+          "3ad0846f80e918edcfea13b24deabd8413206d4ada4dc4e63c1751eb2728888f",
+        delivery: "offline",
+        kind: "raster-master",
+        files: {
+          master: `/catalog/generated/offline-core-v1/assets/${TV_ID}/master.png`
+        },
+        dimensions: { width: 237, height: 168 },
+        classroomReviewed: true,
+        brandFree: true
+      },
+      {
+        id: TV_PEDESTAL_ID,
+        masterSha256:
+          "b9c6131f758d1d21a8923a3b9ae7137244d5154d8b15b45b73b64aae0faa0092",
+        delivery: "offline",
+        kind: "component",
+        files: {
+          master: `/catalog/generated/offline-core-v1/assets/${TV_PEDESTAL_ID}/master.png`
+        },
+        dimensions: { width: 259, height: 210 },
+        classroomReviewed: true,
+        brandFree: true
+      },
+      {
+        id: TV_FEET_ID,
+        masterSha256:
+          "00cd19f387de624370a6d014519343a241f00e36ab97a556906b0585cef674cf",
+        delivery: "offline",
+        kind: "component",
+        files: {
+          master: `/catalog/generated/offline-core-v1/assets/${TV_FEET_ID}/master.png`
+        },
+        dimensions: { width: 237, height: 209 },
+        classroomReviewed: true,
+        brandFree: true
+      },
+      {
+        id: CASE_ID,
+        masterSha256:
+          "9f6f833af3a39e36734945ff9505ad6986aa09879bb756248209b74fc4c41dc9",
+        delivery: "offline",
+        kind: "raster-master",
+        files: {
+          master: `/catalog/generated/offline-core-v1/assets/${CASE_ID}/master.png`
+        },
+        dimensions: { width: 189, height: 159 },
+        classroomReviewed: true,
+        brandFree: true
+      },
+      {
+        id: CASE_ARCHED_HANDLE_ID,
+        masterSha256:
+          "103a9baf051d3ff8a23f3dd8ff5abbbf80d34c2f57d4bca647b576b4364e1ce9",
+        delivery: "offline",
+        kind: "component",
+        files: {
+          master: `/catalog/generated/offline-core-v1/assets/${CASE_ARCHED_HANDLE_ID}/master.png`
+        },
+        dimensions: { width: 226, height: 211 },
+        classroomReviewed: true,
+        brandFree: true
+      },
+      {
+        id: CASE_COMPACT_HANDLE_ID,
+        masterSha256:
+          "10fc7b6c5a7b4a177cd1bb00c3a67b1fb5ee5644c438216085ce86098e109d7e",
+        delivery: "offline",
+        kind: "component",
+        files: {
+          master: `/catalog/generated/offline-core-v1/assets/${CASE_COMPACT_HANDLE_ID}/master.png`
+        },
+        dimensions: { width: 262, height: 135 },
         classroomReviewed: true,
         brandFree: true
       }
@@ -77,7 +161,7 @@ function pricingPayload(): MutablePricingPayload {
 }
 
 describe("parseProductKitPricing", () => {
-  it("indexes the two required logical prices and blueprint title", () => {
+  it("indexes every required logical price and blueprint title", () => {
     const parsed = parseProductKitPricing(
       PRODUCT_KIT_PRICING_SIDECAR,
       parsedCatalogue()
@@ -88,7 +172,9 @@ describe("parseProductKitPricing", () => {
       pricingVersion: 1
     });
     expect([...parsed!.blueprintTitleByKitId]).toEqual([
-      ["pk1-tumbler-kit", "Reusable tumbler"]
+      ["pk1-tumbler-kit", "Reusable tumbler"],
+      ["pk1-tv-kit", "Flat-screen television"],
+      ["pk1-utility-case-kit", "Compact carry case"]
     ]);
     expect([...parsed!.byPriceAssetId]).toEqual([
       ["pk1-price-tumbler", {
@@ -106,6 +192,54 @@ describe("parseProductKitPricing", () => {
         kind: "part",
         label: "Flat lid",
         costCents: 70
+      }],
+      ["pk1-price-tv", {
+        priceAssetId: "pk1-price-tv",
+        groupId: "pk1-tv-base-group",
+        groupLabel: "Product body",
+        kind: "base",
+        label: "Television body",
+        costCents: 3700
+      }],
+      ["pk1-price-tv-angled-feet", {
+        priceAssetId: "pk1-price-tv-angled-feet",
+        groupId: "pk1-tv-stand-group",
+        groupLabel: "Stand",
+        kind: "part",
+        label: "Angled feet",
+        costCents: 650
+      }],
+      ["pk1-price-tv-centre-pedestal", {
+        priceAssetId: "pk1-price-tv-centre-pedestal",
+        groupId: "pk1-tv-stand-group",
+        groupLabel: "Stand",
+        kind: "part",
+        label: "Centre pedestal stand",
+        costCents: 650
+      }],
+      ["pk1-price-utility-case", {
+        priceAssetId: "pk1-price-utility-case",
+        groupId: "pk1-utility-case-base-group",
+        groupLabel: "Product body",
+        kind: "base",
+        label: "Carry case body",
+        costCents: 2400
+      }],
+      ["pk1-price-utility-case-arched-handle", {
+        priceAssetId: "pk1-price-utility-case-arched-handle",
+        groupId: "pk1-utility-case-handle-group",
+        groupLabel: "Handle",
+        kind: "part",
+        label: "Rigid arched handle",
+        costCents: 450
+      }],
+      ["pk1-price-utility-case-compact-handle", {
+        priceAssetId: "pk1-price-utility-case-compact-handle",
+        groupId: "pk1-utility-case-handle-group",
+        groupLabel: "Handle",
+        kind: "part",
+        label: "Compact grab handle",
+        costCents: 450
       }]
     ]);
     expect(Object.isFrozen(parsed)).toBe(true);

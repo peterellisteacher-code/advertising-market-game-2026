@@ -364,12 +364,17 @@ export class ProductKitPanel {
     const completeRequest = this.#request(selected, true);
     const alreadyPlaced = completeRequest !== null &&
       JSON.stringify(completeRequest) === this.#placedRequestKey;
+    const missingGroup = selected.frames.find(({ frame }) =>
+      !this.#selectedByFrame.has(frame.id)
+    )?.choices[0]?.price.groupLabel.toLowerCase();
     const status = node(
       "p",
       "product-kit__status",
       alreadyPlaced
         ? "On your ad — change a choice to make another version"
-        : completeRequest ? "Ready to place on your ad" : "Choose a lid to finish your product"
+        : completeRequest
+          ? "Ready to place on your ad"
+          : `Choose a ${missingGroup ?? "part"} to finish your product`
     );
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");

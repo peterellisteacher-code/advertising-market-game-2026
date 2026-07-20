@@ -29,6 +29,24 @@ const BASE_HASH =
 const LID_ID = "90-beverage-container-add-ons-r04c01";
 const LID_HASH =
   "6156af7416af78a8bb53a93c540ff2745caa77140f808213227487985e3580a5";
+const TV_ID = "95-appliance-bases-r05c02";
+const TV_HASH =
+  "3ad0846f80e918edcfea13b24deabd8413206d4ada4dc4e63c1751eb2728888f";
+const TV_PEDESTAL_ID = "96-appliance-add-ons-r05c01";
+const TV_PEDESTAL_HASH =
+  "b9c6131f758d1d21a8923a3b9ae7137244d5154d8b15b45b73b64aae0faa0092";
+const TV_FEET_ID = "96-appliance-add-ons-r05c02";
+const TV_FEET_HASH =
+  "00cd19f387de624370a6d014519343a241f00e36ab97a556906b0585cef674cf";
+const CASE_ID = "97-bag-carry-product-bases-r01c05";
+const CASE_HASH =
+  "9f6f833af3a39e36734945ff9505ad6986aa09879bb756248209b74fc4c41dc9";
+const CASE_ARCHED_HANDLE_ID = "98-bag-carry-product-add-ons-r01c03";
+const CASE_ARCHED_HANDLE_HASH =
+  "103a9baf051d3ff8a23f3dd8ff5abbbf80d34c2f57d4bca647b576b4364e1ce9";
+const CASE_COMPACT_HANDLE_ID = "98-bag-carry-product-add-ons-r01c05";
+const CASE_COMPACT_HANDLE_HASH =
+  "10fc7b6c5a7b4a177cd1bb00c3a67b1fb5ee5644c438216085ce86098e109d7e";
 const CATALOGUE_URL = "/catalog/generated/offline-core-v1/catalog.json";
 
 function offlineAsset(
@@ -38,15 +56,36 @@ function offlineAsset(
   width: number,
   height: number
 ): CatalogAssetV1 {
+  const isBase = id === BASE_ID || id === TV_ID || id === CASE_ID;
+  const isTelevision = id === TV_ID || id === TV_PEDESTAL_ID || id === TV_FEET_ID;
+  const isCarryCase = id === CASE_ID || id === CASE_ARCHED_HANDLE_ID ||
+    id === CASE_COMPACT_HANDLE_ID;
+  const title = id === BASE_ID
+    ? "Straight reusable tumbler"
+    : id === LID_ID
+      ? "Flat takeaway-cup lid"
+      : id === TV_ID
+        ? "Wall-ready flat television"
+        : id === TV_PEDESTAL_ID
+          ? "Television centre pedestal stand"
+          : id === TV_FEET_ID
+            ? "Pair of angled television feet"
+            : id === CASE_ID
+              ? "Rectangular crossbody bag body"
+              : id === CASE_ARCHED_HANDLE_ID
+                ? "Rigid arched handbag handle"
+                : "Compact top grab handle";
   return {
     schema: "catalog-asset@1",
     delivery: "offline",
     id,
     version: 1,
     kind,
-    title: id === BASE_ID ? "Straight reusable tumbler" : "Flat takeaway-cup lid",
-    category: "beverage-containers",
-    tags: id === BASE_ID ? ["base", "tumbler"] : ["add-on", "cup lid"],
+    title,
+    category: isTelevision
+      ? "appliances"
+      : isCarryCase ? "bags-carry-products" : "beverage-containers",
+    tags: isBase ? ["base"] : ["add-on"],
     files: {
       thumbnail: `/catalog/generated/offline-core-v1/assets/${id}/thumbnail-192.webp`,
       preview: `/catalog/generated/offline-core-v1/assets/${id}/preview-640.webp`,
@@ -73,7 +112,25 @@ function offlineAsset(
 const OFFLINE: OfflineCatalogueWithHash = {
   records: [
     offlineAsset(BASE_ID, BASE_HASH, "raster-master", 146, 238),
-    offlineAsset(LID_ID, LID_HASH, "component", 233, 164)
+    offlineAsset(LID_ID, LID_HASH, "component", 233, 164),
+    offlineAsset(TV_ID, TV_HASH, "raster-master", 237, 168),
+    offlineAsset(TV_PEDESTAL_ID, TV_PEDESTAL_HASH, "component", 259, 210),
+    offlineAsset(TV_FEET_ID, TV_FEET_HASH, "component", 237, 209),
+    offlineAsset(CASE_ID, CASE_HASH, "raster-master", 189, 159),
+    offlineAsset(
+      CASE_ARCHED_HANDLE_ID,
+      CASE_ARCHED_HANDLE_HASH,
+      "component",
+      226,
+      211
+    ),
+    offlineAsset(
+      CASE_COMPACT_HANDLE_ID,
+      CASE_COMPACT_HANDLE_HASH,
+      "component",
+      262,
+      135
+    )
   ],
   catalogSha256: CATALOG_HASH
 };
@@ -207,7 +264,7 @@ describe("ProductKitPanel", () => {
     expect(getByRole(host, "button", { name: "Place another product on ad" })).toBeTruthy();
   });
 
-  it("shows only the certified pilot choice, composes its PNG preview and places the exact request", async () => {
+  it("keeps the certified tumbler pilot composable and places its exact request", async () => {
     const host = document.createElement("div");
     document.body.replaceChildren(host);
     const onPlace = vi.fn();
@@ -273,6 +330,144 @@ describe("ProductKitPanel", () => {
         placementId: "placement-lid",
         mountFrameId: "pk1-tumbler-lid-frame",
         componentId: "pk1-flat-lid"
+      }]
+    });
+  });
+
+  it("switches a certified television between two aligned stand choices", async () => {
+    const host = document.createElement("div");
+    document.body.replaceChildren(host);
+    const onPlace = vi.fn();
+    const panel = new ProductKitPanel(host, onPlace);
+
+    panel.render(await admittedBundle());
+
+    const television = getByRole<HTMLInputElement>(host, "radio", {
+      name: /Flat-screen television/
+    });
+    fireEvent.click(television);
+
+    expect(television.checked).toBe(true);
+    expect(host.textContent).toContain("Start: $37.00");
+    expect(host.textContent).toContain("Choose a stand to finish your product");
+    expect(host.textContent).not.toMatch(/\bMB\b/);
+
+    const pedestal = getByRole<HTMLInputElement>(host, "radio", {
+      name: /Centre pedestal stand/
+    });
+    fireEvent.click(pedestal);
+
+    expect(host.textContent).toContain("Total: $43.50");
+    let preview = getByRole(host, "img", {
+      name: "Flat-screen television with Centre pedestal stand"
+    });
+    let layers = [...preview.querySelectorAll<HTMLImageElement>("img")];
+    expect(layers.map((image) => image.dataset.productLayer)).toEqual(["rear", "body"]);
+    expect(layers.map((image) => new URL(image.src).pathname)).toEqual([
+      `/catalog/generated/offline-core-v1/assets/${TV_PEDESTAL_ID}/master.png`,
+      `/catalog/generated/offline-core-v1/assets/${TV_ID}/master.png`
+    ]);
+    expect(layers[0]?.style.transform).toBe("matrix(1, 0, 0, 1, -0.5, 35)");
+    expect(layers[1]?.style.transform).toBe("matrix(1, 0, 0, 1, -0.5, -76)");
+
+    const feet = getByRole<HTMLInputElement>(host, "radio", {
+      name: /Angled feet/
+    });
+    fireEvent.click(feet);
+
+    expect(host.textContent).toContain("Total: $43.50");
+    preview = getByRole(host, "img", {
+      name: "Flat-screen television with Angled feet"
+    });
+    layers = [...preview.querySelectorAll<HTMLImageElement>("img")];
+    expect(layers.map((image) => image.dataset.productLayer)).toEqual(["rear", "body"]);
+    expect(layers[0]?.style.transform).toBe("matrix(1, 0, 0, 1, -0.5, 34.5)");
+    expect(layers[1]?.style.transform).toBe("matrix(1, 0, 0, 1, -0.5, -76)");
+
+    const action = getByRole<HTMLButtonElement>(host, "button", {
+      name: "Place product on ad"
+    });
+    expect(action.disabled).toBe(false);
+    fireEvent.click(action);
+
+    expect(onPlace).toHaveBeenCalledOnce();
+    expect(onPlace).toHaveBeenCalledWith({
+      kitId: "pk1-tv-kit",
+      placements: [{
+        kind: "socket",
+        placementId: "placement-stand",
+        mountFrameId: "pk1-tv-stand-frame",
+        componentId: "pk1-tv-angled-feet"
+      }]
+    });
+  });
+
+  it("switches a certified carry case between two aligned handle choices", async () => {
+    const host = document.createElement("div");
+    document.body.replaceChildren(host);
+    const onPlace = vi.fn();
+    const panel = new ProductKitPanel(host, onPlace);
+
+    panel.render(await admittedBundle());
+
+    const carryCase = getByRole<HTMLInputElement>(host, "radio", {
+      name: /Compact carry case/
+    });
+    fireEvent.click(carryCase);
+
+    expect(carryCase.checked).toBe(true);
+    expect(host.textContent).toContain("Start: $24.00");
+    expect(host.textContent).toContain("Choose a handle to finish your product");
+
+    const compact = getByRole<HTMLInputElement>(host, "radio", {
+      name: /Compact grab handle/
+    });
+    fireEvent.click(compact);
+
+    expect(host.textContent).toContain("Total: $28.50");
+    let preview = getByRole(host, "img", {
+      name: "Compact carry case with Compact grab handle"
+    });
+    let layers = [...preview.querySelectorAll<HTMLImageElement>("img")];
+    expect(layers.map((image) => image.dataset.productLayer)).toEqual(["rear", "body"]);
+    expect(layers.map((image) => new URL(image.src).pathname)).toEqual([
+      `/catalog/generated/offline-core-v1/assets/${CASE_COMPACT_HANDLE_ID}/master.png`,
+      `/catalog/generated/offline-core-v1/assets/${CASE_ID}/master.png`
+    ]);
+    expect(layers[0]?.style.transform)
+      .toBe("matrix(0.55, 0, 0, 0.55, 0, -57.875000000000014)");
+    expect(layers[1]?.style.transform)
+      .toBe("matrix(1, 0, 0, 1, -0.5, 19.5)");
+
+    const arched = getByRole<HTMLInputElement>(host, "radio", {
+      name: /Rigid arched handle/
+    });
+    fireEvent.click(arched);
+
+    expect(host.textContent).toContain("Total: $28.50");
+    preview = getByRole(host, "img", {
+      name: "Compact carry case with Rigid arched handle"
+    });
+    layers = [...preview.querySelectorAll<HTMLImageElement>("img")];
+    expect(layers[0]?.style.transform)
+      .toBe("matrix(0.55, 0, 0, 0.55, 0, -75.47500000000001)");
+    expect(layers[1]?.style.transform)
+      .toBe("matrix(1, 0, 0, 1, -0.5, 19.5)");
+
+    const action = getByRole<HTMLButtonElement>(host, "button", {
+      name: "Place product on ad"
+    });
+    expect(action.disabled).toBe(false);
+    fireEvent.click(action);
+
+    expect(onPlace).toHaveBeenCalledOnce();
+    expect(onPlace).toHaveBeenCalledWith({
+      kitId: "pk1-utility-case-kit",
+      placements: [{
+        kind: "socket",
+        placementId: "placement-handle",
+        mountFrameId: "pk1-utility-case-handle-frame",
+        componentId: "pk1-utility-case-arched-handle"
       }]
     });
   });

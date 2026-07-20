@@ -21,6 +21,12 @@ const REAR_ID = "pk1-rear-fragment";
 const FRONT_ID = "90-beverage-container-add-ons-r04c01";
 const OVERLAY_ID = "pk1-overlay-fragment";
 const BASE_ID = "89-beverage-container-bases-r03c05";
+const TV_BASE_ID = "95-appliance-bases-r05c02";
+const TV_PEDESTAL_ID = "96-appliance-add-ons-r05c01";
+const TV_FEET_ID = "96-appliance-add-ons-r05c02";
+const CASE_BASE_ID = "97-bag-carry-product-bases-r01c05";
+const CASE_ARCHED_HANDLE_ID = "98-bag-carry-product-add-ons-r01c03";
+const CASE_COMPACT_HANDLE_ID = "98-bag-carry-product-add-ons-r01c05";
 const REAR_HASH = "b".repeat(64);
 const OVERLAY_HASH = "c".repeat(64);
 const PILOT_BASE_ALPHA_TOP = 20;
@@ -82,7 +88,7 @@ function fixture(): CompositorFixture {
   value.certifications[0]!.fingerprint = fingerprint;
 
   const rasters = [
-    value.kits[0]!.base,
+    ...value.kits.map((kit: any) => kit.base),
     ...value.components.flatMap((item: any) =>
       item.fragments.map((fragment: any) => fragment.raster)
     )
@@ -352,6 +358,122 @@ describe("FabricProductKitCompositor", () => {
       evented: false
     });
     expect(slotGeometry[0]!.width).toBeCloseTo(112, 12);
+  });
+
+  it.each([
+    {
+      title: "centre pedestal",
+      componentId: "pk1-tv-centre-pedestal",
+      assetId: TV_PEDESTAL_ID,
+      expectedVerticalOffset: 111
+    },
+    {
+      title: "angled feet",
+      componentId: "pk1-tv-angled-feet",
+      assetId: TV_FEET_ID,
+      expectedVerticalOffset: 110.5
+    }
+  ])("composes the television with its $title behind the screen", async ({
+    componentId,
+    assetId,
+    expectedVerticalOffset
+  }) => {
+    const pilot = fixture();
+    const plan = createProductKitRuntime(pilot.catalogue).planComposition({
+      kitId: "pk1-tv-kit",
+      placements: [{
+        kind: "socket",
+        placementId: "placement-stand",
+        mountFrameId: "pk1-tv-stand-frame",
+        componentId
+      }]
+    });
+    if (!plan) throw new Error("invalid television compositor plan");
+    const current: CompositorFixture = { ...pilot, plan };
+    const loadImage = loaderFor(current);
+    const group = await new FabricProductKitCompositor(loadImage).create(inputFor(current, {
+      accessibleName: `Flat-screen television with ${componentId}`
+    }));
+
+    expect(loadImage.mock.calls.map(([url]) => new URL(url).pathname)).toEqual([
+      expect.stringContaining(`/assets/${assetId}/master.png`),
+      expect.stringContaining(`/assets/${TV_BASE_ID}/master.png`)
+    ]);
+    expect(group.getObjects().map((child) => child.productLayer)).toEqual([
+      "rear",
+      "body",
+      "artwork-slot"
+    ]);
+    const stand = group.getObjects().find(({ productLayer }) => productLayer === "rear");
+    const screen = group.getObjects().find(({ productLayer }) => productLayer === "body");
+    expect(stand).toBeDefined();
+    expect(screen).toBeDefined();
+    expect(stand!.scaleX).toBeCloseTo(1, 12);
+    expect(stand!.scaleY).toBeCloseTo(1, 12);
+    expect(stand!.left - screen!.left).toBeCloseTo(0, 12);
+    expect(stand!.top - screen!.top).toBeCloseTo(expectedVerticalOffset, 12);
+    expect(custom(group)).toMatchObject({
+      productKitId: "pk1-tv-kit",
+      productKitPackId: "pk1-pilot-drinkware"
+    });
+  });
+
+  it.each([
+    {
+      title: "rigid arched handle",
+      componentId: "pk1-utility-case-arched-handle",
+      assetId: CASE_ARCHED_HANDLE_ID,
+      expectedVerticalOffset: -94.975
+    },
+    {
+      title: "compact grab handle",
+      componentId: "pk1-utility-case-compact-handle",
+      assetId: CASE_COMPACT_HANDLE_ID,
+      expectedVerticalOffset: -77.375
+    }
+  ])("composes the carry case with its $title behind the body", async ({
+    componentId,
+    assetId,
+    expectedVerticalOffset
+  }) => {
+    const pilot = fixture();
+    const plan = createProductKitRuntime(pilot.catalogue).planComposition({
+      kitId: "pk1-utility-case-kit",
+      placements: [{
+        kind: "socket",
+        placementId: "placement-handle",
+        mountFrameId: "pk1-utility-case-handle-frame",
+        componentId
+      }]
+    });
+    if (!plan) throw new Error("invalid carry-case compositor plan");
+    const current: CompositorFixture = { ...pilot, plan };
+    const loadImage = loaderFor(current);
+    const group = await new FabricProductKitCompositor(loadImage).create(inputFor(current, {
+      accessibleName: `Compact carry case with ${componentId}`
+    }));
+
+    expect(loadImage.mock.calls.map(([url]) => new URL(url).pathname)).toEqual([
+      expect.stringContaining(`/assets/${assetId}/master.png`),
+      expect.stringContaining(`/assets/${CASE_BASE_ID}/master.png`)
+    ]);
+    expect(group.getObjects().map((child) => child.productLayer)).toEqual([
+      "rear",
+      "body",
+      "artwork-slot"
+    ]);
+    const handle = group.getObjects().find(({ productLayer }) => productLayer === "rear");
+    const body = group.getObjects().find(({ productLayer }) => productLayer === "body");
+    expect(handle).toBeDefined();
+    expect(body).toBeDefined();
+    expect(handle!.scaleX).toBeCloseTo(0.55, 12);
+    expect(handle!.scaleY).toBeCloseTo(0.55, 12);
+    expect(handle!.left - body!.left).toBeCloseTo(0.5, 12);
+    expect(handle!.top - body!.top).toBeCloseTo(expectedVerticalOffset, 12);
+    expect(custom(group)).toMatchObject({
+      productKitId: "pk1-utility-case-kit",
+      productKitPackId: "pk1-pilot-drinkware"
+    });
   });
 
   it("rejects source identity, hash, path, dimension, and load failures atomically", async () => {

@@ -266,11 +266,12 @@ export class HttpAccountAssetClient implements AccountAssetClient {
     if (!response.ok) throw await errorFor(response);
     const responseContentType = contentType(response.headers.get("content-type") ?? "");
     const contentLength = response.headers.get("content-length");
-    if (responseContentType === null || contentLength === null || !/^\d+$/u.test(contentLength)) {
+    if (responseContentType === null || (contentLength !== null && !/^\d+$/u.test(contentLength))) {
       throw new AccountAssetClientError("INVALID_RESPONSE");
     }
-    const declaredLength = Number(contentLength);
-    if (!Number.isSafeInteger(declaredLength) || declaredLength < 1 || declaredLength > MAX_ASSET_BYTES) {
+    const declaredLength = contentLength === null ? null : Number(contentLength);
+    if (declaredLength !== null && (!Number.isSafeInteger(declaredLength) ||
+      declaredLength < 1 || declaredLength > MAX_ASSET_BYTES)) {
       throw new AccountAssetClientError("ASSET_INTEGRITY_FAILED");
     }
     let bytes: Uint8Array;
@@ -279,7 +280,8 @@ export class HttpAccountAssetClient implements AccountAssetClient {
     } catch {
       throw new AccountAssetClientError("ASSET_INTEGRITY_FAILED");
     }
-    if (bytes.byteLength !== declaredLength || sniffContentType(bytes) !== responseContentType) {
+    if ((declaredLength !== null && bytes.byteLength !== declaredLength) ||
+      sniffContentType(bytes) !== responseContentType) {
       throw new AccountAssetClientError("ASSET_INTEGRITY_FAILED");
     }
     let actualDigest: string;

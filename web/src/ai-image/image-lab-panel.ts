@@ -42,12 +42,13 @@ export interface ImageLabActions {
     input: { sessionId: string; teamId: string; code: string },
     signal: AbortSignal
   ): Promise<ImageLabAllowance>;
+  lock(signal: AbortSignal): Promise<void>;
   forgeObject(input: ObjectForgeChoice, signal: AbortSignal): Promise<ImageLabAllowance>;
   makeReal(input: MakeItRealChoice, signal: AbortSignal): Promise<ImageLabAllowance>;
 }
 
 type PanelState = "checking" | "disabled" | "locked" | "unlocked";
-type Operation = "unlock" | "object" | "realise";
+type Operation = "unlock" | "lock" | "object" | "realise";
 
 const CATEGORY_CHOICES = [
   "drink packaging",
@@ -260,6 +261,11 @@ export class ImageLabPanel {
       root.append(alert);
     }
     root.append(this.#objectForge(), this.#makeItReal());
+    const close = button(this.#busy === "lock" ? "Closing…" : "Close Image Lab");
+    close.className = "image-lab__close";
+    close.disabled = this.#busy !== null;
+    close.addEventListener("click", () => void this.#lock());
+    root.append(close);
     this.host.replaceChildren(root);
   }
 
@@ -325,6 +331,32 @@ export class ImageLabPanel {
     } catch {
       if (!this.#current(controller) || controller.signal.aborted) return;
       this.#message = "That code did not wake the Image Lab.";
+    } finally {
+      if (this.#current(controller)) {
+        this.#busy = null;
+        this.#operation = null;
+        this.#draw();
+      }
+    }
+  }
+
+  async #lock(): Promise<void> {
+    if (this.#busy !== null) return;
+    const controller = this.#begin();
+    this.#busy = "lock";
+    this.#error = "";
+    this.#message = "Closing the Image Lab…";
+    this.#draw();
+    try {
+      await this.actions.lock(controller.signal);
+      if (!this.#current(controller)) return;
+      this.#state = "locked";
+      this.#allowance = null;
+      this.#message = "Image Lab is closed for this pair. Ask your teacher to wake it.";
+    } catch {
+      if (!this.#current(controller) || controller.signal.aborted) return;
+      this.#error = "Image Lab could not close. Try again.";
+      this.#message = "Image Lab is ready.";
     } finally {
       if (this.#current(controller)) {
         this.#busy = null;

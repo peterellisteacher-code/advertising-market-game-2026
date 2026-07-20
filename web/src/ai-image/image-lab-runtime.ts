@@ -5,6 +5,7 @@ import type {
   ImageLabJobCreated,
   ImageLabJobRequest,
   ImageLabJobStatus,
+  ImageLabLockResult,
   ImageLabUnlockRequest,
   ImageLabUnlockResult
 } from "./image-lab-client";
@@ -25,6 +26,7 @@ import type {
 export interface ImageLabRuntimeClient {
   getConfig(options?: { signal?: AbortSignal }): Promise<ClientConfig>;
   unlock(request: ImageLabUnlockRequest, options?: { signal?: AbortSignal }): Promise<ImageLabUnlockResult>;
+  lock(options?: { signal?: AbortSignal }): Promise<ImageLabLockResult>;
   createJob(request: ImageLabJobRequest, options?: { signal?: AbortSignal }): Promise<ImageLabJobCreated>;
   pollJob(
     jobToken: string,
@@ -143,6 +145,12 @@ export class ImageLabRuntime implements ImageLabActions {
     const result = await this.#client.unlock(input, { signal });
     this.#expiresAt = result.expiresAt;
     return allowance(result.remaining, result.expiresAt);
+  }
+
+  async lock(signal: AbortSignal): Promise<void> {
+    await this.#client.lock({ signal });
+    signal.throwIfAborted();
+    this.#expiresAt = 0;
   }
 
   async forgeObject(input: ObjectForgeChoice, signal: AbortSignal): Promise<ImageLabAllowance> {

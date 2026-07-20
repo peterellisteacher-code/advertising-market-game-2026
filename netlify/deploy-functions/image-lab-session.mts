@@ -1,9 +1,9 @@
 export { default } from "../functions/image-lab-session.mjs";
 
 export const config = {
-  path: ["/api/image-lab/config", "/api/image-lab/unlock"],
+  path: ["/api/image-lab/config", "/api/image-lab/unlock", "/api/image-lab/lock"],
   rateLimit: {
-    windowLimit: 60,
+    windowLimit: 300,
     windowSize: 60,
     aggregateBy: ["ip", "domain"]
   }

@@ -160,6 +160,11 @@ describe("Netlify deployment layout", () => {
         pattern: "/api/image-lab/unlock",
         literal: "/api/image-lab/unlock",
         methods: []
+      },
+      {
+        pattern: "/api/image-lab/lock",
+        literal: "/api/image-lab/lock",
+        methods: []
       }
     ]);
     expect(byName.get("image-lab-jobs")?.routes).toEqual([
@@ -269,7 +274,7 @@ describe("Netlify deployment layout", () => {
         ],
         rateLimit: {
           aggregateBy: ["ip", "domain"],
-          windowLimit: 30,
+          windowLimit: 300,
           windowSize: 60
         }
       },
@@ -282,10 +287,10 @@ describe("Netlify deployment layout", () => {
         }
       },
       "image-lab-session": {
-        path: ["/api/image-lab/config", "/api/image-lab/unlock"],
+        path: ["/api/image-lab/config", "/api/image-lab/unlock", "/api/image-lab/lock"],
         rateLimit: {
           aggregateBy: ["ip", "domain"],
-          windowLimit: 60,
+          windowLimit: 300,
           windowSize: 60
         }
       },

@@ -50,6 +50,8 @@ GitHub is the source of truth, but GitHub does not deploy this project. The work
 
 Never enable Git-triggered Netlify publication for this project. A static-only publish can look healthy while silently removing `/api/account/*`, `/api/market/*`, and Image Lab routes.
 
+There is deliberately no `deploy:draft` package shortcut. A command that silently deploys whatever happens to be in a local `build/web/` directory can publish a stale Godot or studio bundle. Every draft and production deployment must name the fresh directory downloaded from the exact successful GitHub Actions run.
+
 ## Reference environment rules
 
 - Hosted-only behaviour must be tested on a hosted deploy. The visitor gate, edge routing, rate limits, hosted headers, and deploy-specific secrets do not exist in Vite, Python `http.server`, or `netlify dev`.
@@ -84,5 +86,5 @@ The corrective discipline is: name the reference environment, state a falsifier,
 
 ## Image Lab activation boundary
 
-The fal.ai Image Lab code and Functions are deployed but the feature remains disabled. Its Netlify variables must not be installed until the provider's written approval for this Year 10, teacher-controlled use has been retained and the external fal account or key has a real spending cap. The exact activation checklist is in `docs/operations/image-lab.md`.
+The fal.ai Image Lab code and Functions are deployed but the feature remains disabled. Its Netlify variables must not be installed until the provider's written approval for this Year 10, teacher-controlled use has been retained and the external fal account or key has a real spending cap. When enabled, each pair's Image Lab still starts closed and requires a teacher-entered, short-lived session capability; it can be closed immediately from the studio. The same control must guard any future OpenAI-backed image route, but it does not substitute for that provider's own written minor-use approval. The exact activation checklist is in `docs/operations/image-lab.md`.
 

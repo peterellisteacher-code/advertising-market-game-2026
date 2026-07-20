@@ -6,7 +6,10 @@ import {
   ACCOUNT_REFRESH_COOKIE,
   deriveSyntheticAccountEmail
 } from "./lib/account-primitives";
-import { createAccountSessionHandler } from "./account-session.mjs";
+import {
+  config as accountSessionConfig,
+  createAccountSessionHandler
+} from "./account-session.mjs";
 
 const environment = {
   SUPABASE_URL: "https://jftpeajvpqmxabuscoml.supabase.co",
@@ -45,6 +48,14 @@ const validTokens = {
 };
 
 describe("account session API", () => {
+  it("keeps shared-school-network capacity above a full class start", () => {
+    expect(accountSessionConfig.rateLimit).toEqual({
+      windowLimit: 300,
+      windowSize: 60,
+      aggregateBy: ["ip", "domain"]
+    });
+  });
+
   it("does not let a stale tab log out the current account or clear its rotated cookies", async () => {
     const fetcher = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(json({ message: "expired" }, 401))

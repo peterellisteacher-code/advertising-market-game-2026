@@ -99,7 +99,7 @@ export function parseImageLabEnvironment(
     classroomCode,
     signingSecret,
     falKey,
-    sessionMinutes: boundedInteger(environment.IMAGE_LAB_SESSION_MINUTES, 120, 15, 240),
+    sessionMinutes: boundedInteger(environment.IMAGE_LAB_SESSION_MINUTES, 75, 15, 240),
     objectAllowance: boundedInteger(environment.IMAGE_LAB_OBJECT_ALLOWANCE, 6, 1, 12),
     realiseAllowance: boundedInteger(environment.IMAGE_LAB_REALISE_ALLOWANCE, 2, 1, 4)
   };
@@ -204,6 +204,18 @@ export function serialiseCapabilityCookie(
     "HttpOnly",
     "SameSite=Strict",
     `Max-Age=${Math.max(0, Math.floor(maxAgeSeconds))}`
+  ];
+  if (secure) parts.push("Secure");
+  return parts.join("; ");
+}
+
+export function serialiseExpiredCapabilityCookie(secure: boolean): string {
+  const parts = [
+    `${IMAGE_LAB_COOKIE}=`,
+    "Path=/api/image-lab",
+    "HttpOnly",
+    "SameSite=Strict",
+    "Max-Age=0"
   ];
   if (secure) parts.push("Secure");
   return parts.join("; ");

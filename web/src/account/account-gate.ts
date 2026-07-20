@@ -30,6 +30,12 @@ const copyForError = (error: unknown): string => {
       return "That pair username is already taken. Choose another one.";
     case "ACCOUNT_NOT_CONFIGURED":
       return "Accounts are not ready yet. Ask your teacher to try again later.";
+    case "ACCOUNT_RATE_LIMITED": {
+      const seconds = error instanceof AccountClientError
+        ? Math.max(1, error.retryAfterSeconds ?? 5)
+        : 5;
+      return `Lots of pairs are connecting at once. Wait ${seconds} seconds, then try again.`;
+    }
     case "AUTHENTICATION_REQUIRED":
       return "Your session ended. Log in again to reconnect your private save.";
     default:

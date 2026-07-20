@@ -49,6 +49,43 @@ describe("HttpAccountClient", () => {
     await expect(client.session()).resolves.toEqual({ authenticated: false });
   });
 
+  it("uses the production Web Lock path when no test fetcher is injected", async () => {
+    const originalFetch = globalThis.fetch;
+    const locksDescriptor = Object.getOwnPropertyDescriptor(navigator, "locks");
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({ authenticated: false })
+    );
+    const request = vi.fn(async (
+      _name: string,
+      _options: LockOptions,
+      callback: (lock: Lock | null) => unknown
+    ) => callback({ name: "advertising-market-account-cookie@1", mode: "exclusive" } as Lock));
+    Object.defineProperty(globalThis, "fetch", { configurable: true, value: fetcher });
+    Object.defineProperty(navigator, "locks", {
+      configurable: true,
+      value: { request } as unknown as LockManager
+    });
+
+    try {
+      const client = new HttpAccountClient(
+        new BrowserAccountIdentityBinding(), quietPublisher()
+      );
+      await expect(client.session()).resolves.toEqual({ authenticated: false });
+      expect(request).toHaveBeenCalledWith(
+        "advertising-market-account-cookie@1",
+        { mode: "exclusive" },
+        expect.any(Function)
+      );
+      expect(fetcher).toHaveBeenCalledOnce();
+    } finally {
+      Object.defineProperty(globalThis, "fetch", { configurable: true, value: originalFetch });
+      if (locksDescriptor === undefined) {
+        delete (navigator as unknown as { locks?: LockManager }).locks;
+      }
+      else Object.defineProperty(navigator, "locks", locksDescriptor);
+    }
+  });
+
   it("fails closed before account fetch when cookie ordering is unavailable", async () => {
     const fetcher = vi.fn<typeof fetch>();
     const unavailable: AccountCookieRequestSerialiser = {
@@ -134,12 +171,13 @@ describe("HttpAccountClient", () => {
     });
     expect(binding.current()).toBe("team-one");
     expect(publisher.publish).not.toHaveBeenCalled();
-    expect(fetcher).toHaveBeenCalledWith("/api/account/session", {
+    expect(fetcher).toHaveBeenCalledWith("/api/account/session", expect.objectContaining({
       method: "GET",
       credentials: "same-origin",
       redirect: "error",
-      headers: { accept: "application/json" }
-    });
+      headers: { accept: "application/json" },
+      signal: expect.any(AbortSignal)
+    }));
 
     fetcher.mockResolvedValueOnce(Response.json({
       authenticated: true,
@@ -213,6 +251,70 @@ describe("HttpAccountClient", () => {
       .rejects.toEqual(new AccountClientError("INVALID_CREDENTIALS"));
   });
 
+  it("backs off once with Retry-After jitter before retrying a rate-limited account request", async () => {
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response("<html>edge limit</html>", {
+        status: 429,
+        headers: { "content-type": "text/html", "retry-after": "2" }
+      }))
+      .mockResolvedValueOnce(Response.json({ authenticated: false }));
+    const sleep = vi.fn<(milliseconds: number) => Promise<void>>().mockResolvedValue(undefined);
+    const client = new HttpAccountClient(
+      new BrowserAccountIdentityBinding(),
+      quietPublisher(),
+      fetcher,
+      undefined,
+      { sleep, random: () => 0.5 }
+    );
+
+    await expect(client.session()).resolves.toEqual({ authenticated: false });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(sleep).toHaveBeenCalledOnce();
+    expect(sleep).toHaveBeenCalledWith(2_125);
+  });
+
+  it("maps a persistent HTML 429 without trying to parse it as JSON", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response("<html>edge limit</html>", {
+      status: 429,
+      headers: { "content-type": "text/html", "retry-after": "7" }
+    }));
+    const sleep = vi.fn<(milliseconds: number) => Promise<void>>().mockResolvedValue(undefined);
+    const client = new HttpAccountClient(
+      new BrowserAccountIdentityBinding(),
+      quietPublisher(),
+      fetcher,
+      undefined,
+      { sleep, random: () => 0 }
+    );
+
+    await expect(client.session()).rejects.toMatchObject({
+      code: "ACCOUNT_RATE_LIMITED",
+      retryAfterSeconds: 7
+    });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
+  it("aborts an account request that exceeds the bounded classroom-wifi timeout", async () => {
+    const fetcher = vi.fn<typeof fetch>((_input, init) => new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => reject(
+        new DOMException("The operation was aborted", "AbortError")
+      ), { once: true });
+    }));
+    const client = new HttpAccountClient(
+      new BrowserAccountIdentityBinding(),
+      quietPublisher(),
+      fetcher,
+      undefined,
+      { requestTimeoutMs: 5 }
+    );
+
+    await expect(client.session()).rejects.toEqual(new AccountClientError("ACCOUNT_UNAVAILABLE"));
+    const signal = fetcher.mock.calls[0]?.[1]?.signal;
+    expect(signal).toBeInstanceOf(AbortSignal);
+    expect(signal?.aborted).toBe(true);
+  });
+
   it("logs a bounded response diagnostic when an account endpoint returns non-JSON", async () => {
     const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const body = `<html><body>Password protected site ${"x".repeat(400)}</body></html>`;
@@ -269,12 +371,13 @@ describe("HttpAccountClient", () => {
     const client = new HttpAccountClient(binding, publisher, fetcher);
 
     await expect(client.logout()).resolves.toBeUndefined();
-    expect(fetcher).toHaveBeenCalledWith("/api/account/logout", {
+    expect(fetcher).toHaveBeenCalledWith("/api/account/logout", expect.objectContaining({
       method: "POST",
       credentials: "same-origin",
       redirect: "error",
-      headers: { accept: "application/json", "x-admarket-account": "team-one" }
-    });
+      headers: { accept: "application/json", "x-admarket-account": "team-one" },
+      signal: expect.any(AbortSignal)
+    }));
     expect(binding.current()).toBeNull();
     expect(publisher.publish).toHaveBeenCalledTimes(1);
     binding.activate("team-one");

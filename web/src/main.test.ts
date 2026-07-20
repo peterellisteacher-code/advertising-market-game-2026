@@ -881,7 +881,8 @@ describe("window.AdMarketCreator", () => {
           method: "GET",
           credentials: "same-origin",
           redirect: "error",
-          headers: { accept: "application/json" }
+          headers: { accept: "application/json" },
+          signal: expect.any(AbortSignal)
         });
         return Promise.resolve(Response.json({ authenticated: true, username: "team-one" }));
       }

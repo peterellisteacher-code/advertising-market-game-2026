@@ -1,10 +1,16 @@
-# Image Lab: fal.ai classroom activation
+# Image Lab: supervised classroom activation
 
 Image Lab is built into the creator, but it is disabled by default. The normal product maker, Logo Lab, drawing tools and asset catalogue remain available when Image Lab is off.
 
+Image Lab is also closed at the start of every pair's browser session. While physically supervising the class, the teacher enters the classroom code locally on that pair's MacBook to open a short-lived Image Lab capability. Students are not given the code. The capability expires after 75 minutes and can be revoked immediately with **Close Image Lab**. Closing or expiry does not remove images already saved into the campaign.
+
+This makes Image Lab teacher-togglable per session rather than an always-on student service. The password-protected game, physical teacher supervision, pair-bound capability, expiry and close control form the classroom access and age-assurance layer. They do not override a provider's eligibility or minor-use terms.
+
 ## Safety gate
 
-Do not activate Image Lab for students until fal.ai has confirmed in writing that a teacher-controlled school API integration may be used by Year 10 students. The current fal.ai Acceptable Use Policy says users must be at least 18. School approval by itself does not override the provider's terms.
+Do not activate Image Lab for students until the selected image provider has confirmed in writing that this teacher-controlled school API integration may be used by Year 10 students. For the currently implemented fal.ai route, the current fal.ai Acceptable Use Policy says users must be at least 18. School approval, physical supervision and the session toggle do not by themselves override the provider's terms.
+
+If an OpenAI-backed image route is added, retain written confirmation that the intended supervised minor use is compatible with the applicable OpenAI service and account terms before enabling it. The same teacher-opened, pair-bound, short-lived capability must remain in front of that route; provider approval and technical supervision are separate requirements.
 
 Activation therefore requires both:
 
@@ -56,7 +62,7 @@ IMAGE_LAB_FAL_MINOR_USE_APPROVED=true
 IMAGE_LAB_ACCOUNT_CAP_USD=5
 IMAGE_LAB_CLASSROOM_CODE=<at least 8 characters>
 IMAGE_LAB_SIGNING_SECRET=<at least 32 random characters>
-IMAGE_LAB_SESSION_MINUTES=120
+IMAGE_LAB_SESSION_MINUTES=75
 IMAGE_LAB_OBJECT_ALLOWANCE=6
 IMAGE_LAB_REALISE_ALLOWANCE=2
 FAL_KEY=<server-only fal key>
@@ -90,5 +96,7 @@ Until written fal minor-use approval has been retained, all alternative-profile 
 4. Set a new classroom code and signing secret.
 5. Keep Object Forge and Make It Real allowances low for the first session.
 6. Test with the teacher account before students arrive.
-7. Keep the default profiles unless the sealed adult blind A/B evidence supports a change.
-8. Disable `IMAGE_LAB_ENABLED` immediately after the activity.
+7. Keep the classroom code private; the teacher enters it on each pair's MacBook only while physically supervising that session.
+8. Confirm the capability reports closed before the lesson, opens only after teacher action, expires after 75 minutes, and closes immediately from **Close Image Lab**.
+9. Keep the default profiles unless the sealed adult blind A/B evidence supports a change.
+10. Close each active pair session at the end of the lesson, then disable `IMAGE_LAB_ENABLED` immediately after the activity.

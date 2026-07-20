@@ -193,6 +193,25 @@ function expectPreviewFitsFrame(preview: HTMLElement): void {
     .toBeGreaterThan(60);
 }
 
+function expectPreviewVerticalOffset(
+  preview: HTMLElement,
+  bodyRasterHeight: number,
+  expectedOffset: number
+): void {
+  const layers = [...preview.querySelectorAll<HTMLImageElement>("img")];
+  const rear = layers.find((image) => image.dataset.productLayer === "rear");
+  const body = layers.find((image) => image.dataset.productLayer === "body");
+  expect(rear).toBeTruthy();
+  expect(body).toBeTruthy();
+  const bodyHeightPercent = Number.parseFloat(body!.style.height);
+  const cropHeight = bodyRasterHeight / (bodyHeightPercent / 100);
+  const rearCentre = Number.parseFloat(rear!.style.top) +
+    Number.parseFloat(rear!.style.height) / 2;
+  const bodyCentre = Number.parseFloat(body!.style.top) + bodyHeightPercent / 2;
+  const offset = (rearCentre - bodyCentre) * cropHeight / 100;
+  expect(offset).toBeCloseTo(expectedOffset, 3);
+}
+
 function restoredDocument(bundle: LoadedProductKitBundle): CampaignDocumentV1 {
   const request = {
     kitId: "pk1-tumbler-kit",
@@ -409,6 +428,7 @@ describe("ProductKitPanel", () => {
     ]);
     expect(layers[0]?.style.transform).toBe("matrix(1, 0, 0, 1, 0, 0)");
     expect(layers[1]?.style.transform).toBe("matrix(1, 0, 0, 1, 0, 0)");
+    expectPreviewVerticalOffset(preview, 168, 111);
 
     const feet = getByRole<HTMLInputElement>(host, "radio", {
       name: /Angled feet/
@@ -424,6 +444,7 @@ describe("ProductKitPanel", () => {
     expect(layers.map((image) => image.dataset.productLayer)).toEqual(["rear", "body"]);
     expect(layers[0]?.style.transform).toBe("matrix(1, 0, 0, 1, 0, 0)");
     expect(layers[1]?.style.transform).toBe("matrix(1, 0, 0, 1, 0, 0)");
+    expectPreviewVerticalOffset(preview, 168, 110.5);
 
     const action = getByRole<HTMLButtonElement>(host, "button", {
       name: "Place product on ad"

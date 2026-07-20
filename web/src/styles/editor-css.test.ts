@@ -57,15 +57,18 @@ describe("Fabric canvas layer styling", () => {
     );
   });
 
-  it("keeps the 900px launch path compact and expands it only with spare height", () => {
+  it("keeps the launch path visible on a 720px-high MacBook viewport and expands it with spare height", () => {
     expect(css).toMatch(
       /\.creator__launch-path\s*\{[^}]*display:\s*none[^}]*\}/i
     );
     expect(css).toMatch(
-      /@media\s*\(min-height:\s*900px\)\s+and\s+\(min-width:\s*1201px\)\s*\{[^}]*\.creator__launch-path\s*\{[^}]*margin-top:\s*auto[^}]*display:\s*grid[^}]*min-height:\s*7rem[^}]*\}/is
+      /@media\s*\(min-height:\s*720px\)\s+and\s+\(min-width:\s*1201px\)\s*\{[^}]*\.creator__launch-path\s*\{[^}]*margin-top:\s*auto[^}]*display:\s*grid[^}]*min-height:\s*4\.75rem[^}]*\}/is
     );
     expect(css).toMatch(
       /\.creator__launch-path\s*>\s*p:last-child\s*\{[^}]*display:\s*none[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /@media\s*\(min-height:\s*900px\)\s+and\s+\(min-width:\s*1201px\)\s*\{.*?\.creator__launch-path\s*\{[^}]*min-height:\s*7rem[^}]*\}/is
     );
     expect(css).toMatch(
       /@media\s*\(min-height:\s*1000px\)\s+and\s+\(min-width:\s*1201px\)\s*\{.*?\.creator__launch-path\s*\{[^}]*min-height:\s*12\.5rem[^}]*\}.*?\.creator__launch-path\s*>\s*p:last-child\s*\{[^}]*display:\s*block[^}]*\}/is

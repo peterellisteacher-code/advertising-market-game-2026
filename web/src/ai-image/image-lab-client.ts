@@ -46,6 +46,10 @@ export interface ImageLabUnlockResult {
   expiresAt: number;
 }
 
+export interface ImageLabLockResult {
+  unlocked: false;
+}
+
 export interface ObjectForgeJobRequest {
   stage: "object";
   sessionId: string;
@@ -329,6 +333,14 @@ const parseUnlock = (value: unknown): ImageLabUnlockResult => {
   };
 };
 
+const parseLock = (value: unknown): ImageLabLockResult => {
+  const record = ownRecord(value);
+  if (!record || !hasExactKeys(record, ["unlocked"]) || record.unlocked !== false) {
+    fail("INVALID_RESPONSE", "The Image Lab close response was invalid.");
+  }
+  return { unlocked: false };
+};
+
 const parseJobCreated = (value: unknown): ImageLabJobCreated => {
   const record = ownRecord(value);
   const remaining = record ? parseRemaining(record.remaining) : null;
@@ -486,6 +498,16 @@ export class ImageLabClient {
       body: JSON.stringify(body),
       signal: options.signal ?? null
     }, parseUnlock, options.signal);
+  }
+
+  lock(options: ImageLabRequestOptions = {}): Promise<ImageLabLockResult> {
+    return this.json("/api/image-lab/lock", {
+      method: "POST",
+      credentials: "same-origin",
+      redirect: "error",
+      headers: JSON_HEADERS,
+      signal: options.signal ?? null
+    }, parseLock, options.signal);
   }
 
   async createJob(

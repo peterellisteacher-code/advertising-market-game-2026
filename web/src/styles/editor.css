@@ -307,14 +307,17 @@ button, input, select { min-height: 44px; }
   .product-kit__preview-frame { width: 13.5rem; }
   .logo-lab__symbols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (min-height: 900px) and (min-width: 1201px) {
-  .creator__launch-path { margin-top: auto; padding: .7rem; display: grid; min-height: 7rem; align-content: center; gap: .45rem; border: 2px solid var(--ink); border-radius: .8rem; background: linear-gradient(145deg, #172033, #123f54); color: #fff; box-shadow: 4px 4px 0 var(--gold); }
+@media (min-height: 720px) and (min-width: 1201px) {
+  .creator__launch-path { margin-top: auto; padding: .55rem .7rem; display: grid; min-height: 4.75rem; align-content: center; gap: .3rem; border: 2px solid var(--ink); border-radius: .8rem; background: linear-gradient(145deg, #172033, #123f54); color: #fff; box-shadow: 4px 4px 0 var(--gold); }
   .creator__launch-path p { margin: 0; line-height: 1.35; }
   .creator__launch-path > p:first-child { color: var(--gold); font-size: .875rem; font-weight: 950; letter-spacing: .08em; }
   .creator__launch-path > p:last-child { display: none; color: #d9eef4; font-size: .875rem; }
   .creator__launch-path ol { margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .35rem; list-style: none; }
   .creator__launch-path li { min-width: 0; display: grid; justify-items: center; gap: .25rem; color: #fff; font-size: .875rem; text-align: center; }
   .creator__launch-path li span { width: 2rem; height: 2rem; display: grid; place-items: center; border-radius: 999px; background: var(--gold); color: var(--ink); font-weight: 950; }
+}
+@media (min-height: 900px) and (min-width: 1201px) {
+  .creator__launch-path { min-height: 7rem; padding: .7rem; gap: .45rem; }
 }
 @media (min-height: 1000px) and (min-width: 1201px) {
   .creator__launch-path { min-height: 12.5rem; padding: 1rem; gap: .75rem; }

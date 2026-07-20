@@ -245,7 +245,7 @@ export const config: Config = {
     "/api/account/logout"
   ],
   rateLimit: {
-    windowLimit: 30,
+    windowLimit: 300,
     windowSize: 60,
     aggregateBy: ["ip", "domain"]
   }

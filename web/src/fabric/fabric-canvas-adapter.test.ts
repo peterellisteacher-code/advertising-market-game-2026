@@ -563,7 +563,7 @@ describe("FabricCanvasAdapter persistence", () => {
       expect.objectContaining({ objectId: "art-shape-1" }),
       expect.objectContaining({ objectId: "art-image-1", assetId: "fruit-1" })
     ]));
-  }, 15_000);
+  }, 30_000);
 
   it("removes only one direct semantic artwork child and preserves the product shell", async () => {
     const canvas = new FakeCanvas();

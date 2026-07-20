@@ -11,7 +11,8 @@ import {
   readCapability,
   readJobToken,
   secureCodeMatches,
-  serialiseCapabilityCookie
+  serialiseCapabilityCookie,
+  serialiseExpiredCapabilityCookie
 } from "./image-lab-auth";
 
 const secret = "0123456789abcdef0123456789abcdef";
@@ -48,7 +49,7 @@ describe("image-lab environment gate", () => {
       classroomCode: "Market-2026!",
       falKey: "fal-key",
       signingSecret: secret,
-      sessionMinutes: 120,
+      sessionMinutes: 75,
       objectAllowance: 6,
       realiseAllowance: 2
     });
@@ -117,6 +118,14 @@ describe("image-lab capability", () => {
     expect(cookie).toContain("SameSite=Strict");
     expect(cookie).toContain("Secure");
     expect(cookie).toContain("Max-Age=3600");
+  });
+});
+
+describe("image-lab capability cookie lifecycle", () => {
+  it("serialises a deletion cookie with the same restrictive scope", () => {
+    expect(serialiseExpiredCapabilityCookie(true)).toBe(
+      `${IMAGE_LAB_COOKIE}=; Path=/api/image-lab; HttpOnly; SameSite=Strict; Max-Age=0; Secure`
+    );
   });
 });
 

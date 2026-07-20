@@ -231,6 +231,22 @@ describe("HttpAccountAssetClient", () => {
     });
   });
 
+  it("downloads and verifies a bounded asset when the host omits Content-Length", async () => {
+    const digest = await hexDigest(pngBytes);
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(pngBytes, {
+      headers: { "content-type": "image/png" }
+    }));
+    const client = new HttpAccountAssetClient(activeBinding(), fetcher);
+
+    const result = await client.get(digest);
+    expect(result).toMatchObject({
+      sha256: digest,
+      contentType: "image/png",
+      byteLength: pngBytes.byteLength
+    });
+    expect(new Uint8Array(await result.blob.arrayBuffer())).toEqual(pngBytes);
+  });
+
   it("streams GET data with a hard byte ceiling even when Content-Length lies", async () => {
     const digest = await hexDigest(pngBytes);
     const response = new Response(new ReadableStream<Uint8Array>({
@@ -255,8 +271,7 @@ describe("HttpAccountAssetClient", () => {
     ["digest", { "content-type": "image/png", "content-length": String(pngBytes.byteLength) }, Uint8Array.from([...pngBytes, 0]), "ASSET_INTEGRITY_FAILED"],
     ["length", { "content-type": "image/png", "content-length": "99" }, pngBytes, "ASSET_INTEGRITY_FAILED"],
     ["MIME", { "content-type": "image/jpeg", "content-length": String(pngBytes.byteLength) }, pngBytes, "ASSET_INTEGRITY_FAILED"],
-    ["signature", { "content-type": "image/png", "content-length": "8" }, new Uint8Array(8), "ASSET_INTEGRITY_FAILED"],
-    ["missing length", { "content-type": "image/png" }, pngBytes, "INVALID_RESPONSE"]
+    ["signature", { "content-type": "image/png", "content-length": "8" }, new Uint8Array(8), "ASSET_INTEGRITY_FAILED"]
   ])("rejects GET %s integrity failures", async (_name, headers, bytes, code) => {
     const digest = await hexDigest(pngBytes);
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(bytes, { headers }));

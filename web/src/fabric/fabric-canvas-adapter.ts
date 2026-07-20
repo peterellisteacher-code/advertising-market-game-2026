@@ -38,7 +38,8 @@ import {
   calculateTextFitScale,
   FABRIC_SELECTION_STYLE,
   FabricObjectFactory,
-  sameOriginRasterUrl
+  portableRasterUrlForLoad,
+  portableRasterUrlForStorage
 } from "./object-factory";
 import {
   FabricProductShellFactory,
@@ -81,17 +82,24 @@ const OMITTED_JSON_PROPERTY = Symbol("omitted-json-property");
 type IdFactory = () => string;
 const defaultIdFactory: IdFactory = () => globalThis.crypto.randomUUID();
 
-function validateSerializedImageSources(value: unknown, seen = new WeakSet<object>()): void {
+function transformSerializedImageSources(
+  value: unknown,
+  transform: (source: string) => string,
+  seen = new WeakSet<object>()
+): void {
   if (value === null || typeof value !== "object") return;
   if (seen.has(value)) return;
   seen.add(value);
   if (Array.isArray(value)) {
-    value.forEach((item) => validateSerializedImageSources(item, seen));
+    value.forEach((item) => transformSerializedImageSources(item, transform, seen));
     return;
   }
   Object.entries(value).forEach(([key, child]) => {
-    if (key === "src" && typeof child === "string") sameOriginRasterUrl(child);
-    else validateSerializedImageSources(child, seen);
+    if (key === "src" && typeof child === "string") {
+      Reflect.set(value, key, transform(child));
+    } else {
+      transformSerializedImageSources(child, transform, seen);
+    }
   });
 }
 
@@ -558,9 +566,11 @@ export class FabricCanvasAdapter implements CanvasPort {
   }
 
   serialize(): Record<string, unknown> {
-    return durableCanvasState(
+    const state = durableCanvasState(
       this.canvas.toObject(SERIALIZED_INTERACTION_PROPERTIES) as Record<string, unknown>
     );
+    transformSerializedImageSources(state, portableRasterUrlForStorage);
+    return state;
   }
 
   exportCleanPngDataUrl(): string {
@@ -599,10 +609,11 @@ export class FabricCanvasAdapter implements CanvasPort {
   }
 
   async load(value: Record<string, unknown>): Promise<void> {
-    validateSerializedImageSources(value);
+    const state = durableCanvasState(value);
+    transformSerializedImageSources(state, portableRasterUrlForLoad);
     this.#suppressEvents = true;
     try {
-      await this.canvas.loadFromJSON(value);
+      await this.canvas.loadFromJSON(state);
       this.canvas.getObjects().forEach((object) => {
         object.set(FABRIC_SELECTION_STYLE);
         object.setCoords();

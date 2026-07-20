@@ -1449,7 +1449,7 @@ describe("window.AdMarketCreator", () => {
     await waitFor(() => {
       expect(currentObjects()).toHaveLength(2);
       expect(getByRole(document.body, "status", { name: "Round progress" }).textContent)
-        .toBe("Both roles have made a change");
+        .toBe("Both roles made a change");
     });
 
     fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));

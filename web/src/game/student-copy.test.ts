@@ -86,7 +86,7 @@ describe("student copy", () => {
       progressNone: "Make one visible change.",
       progressOne: "1 visible change",
       progressManySuffix: "visible changes",
-      bothRolesReady: "Both roles have made a change",
+      bothRolesReady: "Both roles made a change",
       textPlaceholder: "Try Make room for adventure",
       addWords: "Add words",
       blankWords: "Type some canvas words first.",

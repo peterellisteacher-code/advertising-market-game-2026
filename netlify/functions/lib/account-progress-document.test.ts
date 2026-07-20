@@ -114,6 +114,16 @@ describe("cloud progress campaign document", () => {
     });
   });
 
+  it("accepts the catalogue asset identity carried by a local blob reference", () => {
+    const document = withLocalAsset();
+    document.assetReferences[1] = {
+      ...document.assetReferences[1]!,
+      assetId: "catalogue-product-one"
+    };
+
+    expect(parseCloudProgressDocument(document, "campaign-main")).toEqual(document);
+  });
+
   it("rejects malformed, room-mode, room-bound, or envelope-mismatched snapshots", () => {
     const room = createBlankCampaignDocument({
       documentId: "campaign-main",
@@ -144,7 +154,21 @@ describe("cloud progress campaign document", () => {
       (document) => { document.assetReferences[2] = { ...document.assetReferences[2]!, byteLength: 0 }; },
       (document) => { document.assetReferences[2] = { ...document.assetReferences[2]!, byteLength: 4 * 1_024 * 1_024 + 1 }; },
       (document) => { document.assetReferences[2] = { ...document.assetReferences[2]!, sha256: SHA_A.toUpperCase() }; },
-      (document) => { document.assetReferences[2] = { ...document.assetReferences[2]!, extra: true }; }
+      (document) => { document.assetReferences[2] = { ...document.assetReferences[2]!, extra: true }; },
+      (document) => { document.assetReferences[1] = { ...document.assetReferences[1]!, assetId: "" }; },
+      (document) => {
+        document.assetReferences[1] = {
+          ...document.assetReferences[1]!,
+          assetId: "x".repeat(257)
+        };
+      },
+      (document) => {
+        document.assetReferences[1] = {
+          ...document.assetReferences[1]!,
+          assetId: "catalogue-product-one",
+          extra: true
+        };
+      }
     ];
 
     for (const mutate of mutations) {

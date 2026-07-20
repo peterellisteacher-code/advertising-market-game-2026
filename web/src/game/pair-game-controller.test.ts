@@ -180,7 +180,7 @@ describe("PairGameController", () => {
     fireEvent.click(getByRole(root, "button", { name: "Swap roles" }));
     expect(getByRole(root, "heading", { name: "Strategist" })).toBeTruthy();
     port.emitCanvasMutation();
-    expect(root.textContent).toContain("Both roles have made a change");
+    expect(root.textContent).toContain("Both roles made a change");
 
     const persistedPair = controller.snapshot();
     if (persistedPair === null) throw new Error("Expected open pair progress");
@@ -191,7 +191,7 @@ describe("PairGameController", () => {
     await reopened.open(reopenedDocument);
 
     expect(getByRole(root, "heading", { name: "Strategist" })).toBeTruthy();
-    expect(root.textContent).toContain("Both roles have made a change");
+    expect(root.textContent).toContain("Both roles made a change");
     expect(reopened.snapshot()).toEqual({
       activeRole: "strategist",
       handoffCount: 1,

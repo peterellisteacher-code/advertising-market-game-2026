@@ -1,5 +1,20 @@
 # Image Lab cost and style review — 16 July 2026
 
+> **Superseded default — 20 July 2026.** This document remains as the historical research record. A live same-prompt bake-off subsequently selected `openai/gpt-image-2` at 1024×1024 low quality for Object Forge and `openai/gpt-image-2/edit` at high quality for the single final Make It Real pass. See the [labelled benchmark and request record](fal-image-lab-benchmark-2026-07-20.md).
+
+## 20 July production decision
+
+| Stage | Selected endpoint | Server-owned request | Budget price |
+| --- | --- | --- | ---: |
+| Object Forge | `openai/gpt-image-2` | exact 1024×1024, low quality, one PNG | US$0.006/image |
+| Make It Real | `openai/gpt-image-2/edit` | 1024×576 reference, exact 1280×720 output request, high quality, one PNG | US$0.211/image conservative allowance |
+
+The original exact 1024×576 output request was below GPT Image 2's pixel floor and returned a deterministic 1088×608 rescale. Production profile v2 requests the smallest valid exact 16:9 size, 1280×720; a live call returned an exact 1280×720 PNG. The local 1024×576 reference canvas remains valid as an input image. The default final-render allowance is one per pair.
+
+For 15 pairs using six Object Forge images and one final edit each, the conservative ceiling is about US$3.71. The visual test found GPT Image 2 low materially more reliable for clean, believable product geometry than the cheaper untrained models. GPT Image 2 medium looked nearly identical for this task while costing roughly nine times as much, so it was rejected for the frequent lane.
+
+The 16 July analysis below is retained unchanged as dated evidence; references to “current” profiles describe the state on that date, not the active default.
+
 ## Outcome
 
 The offline catalogue remains the dependable classroom foundation. Image Lab should expand that catalogue when a team cannot find the product or component it wants; it must not be required to finish the game.
@@ -71,19 +86,17 @@ The prompt set should cover a drink can, burger box, handbag component, bicycle,
 
 Run a separate blind comparison between the current product-specific Qwen endpoint and FLUX 2 Turbo Edit using completed student-like canvas references. Prefer the cheaper endpoint only if it preserves deliberate composition, colour and markings well enough.
 
-## Eligibility gate
+## Eligibility note and later operating decision
 
-fal's Terms of Service, last updated 3 March 2026, require users and Customer Solution end users to be at least 18. Teacher presence or school approval does not amend that contract. Keep student-facing Image Lab disabled unless fal gives written approval for this specific teacher-controlled Year 10 integration or its terms change.
+fal's Terms of Service, last updated 3 March 2026, and its current Acceptable Use Policy say users must be at least 18. Teacher presence or school approval does not itself amend that published policy.
 
-The existing two-key activation gate is therefore intentional:
+On 20 July 2026 Peter explicitly retired the provider-letter technical switch and required teacher-operated, student-by-student session opening instead. The active implementation therefore uses:
 
 - `IMAGE_LAB_SCHOOL_APPROVED=true`
-- `IMAGE_LAB_FAL_MINOR_USE_APPROVED=true`
 
-Provider approval is an authority boundary, not a technical inconvenience to bypass. Development and adult-operated A/B testing can proceed without exposing the key or service to students.
+The removal of `IMAGE_LAB_FAL_MINOR_USE_APPROVED` records that operating decision; it is not evidence that fal.ai changed or waived its published policy. The server key remains hidden, students cannot select providers or parameters, and every pair capability remains teacher-opened, bounded and revocable.
 
 Official sources:
 
 - https://fal.ai/legal/terms-of-service
 - https://fal.ai/legal/acceptable-use-policy
-

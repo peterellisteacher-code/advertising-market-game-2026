@@ -44,21 +44,82 @@ export function calculateTextFitScale(
   );
 }
 
-export function sameOriginRasterUrl(value: string): string {
+function netlifySiteHostname(hostname: string): string | null {
+  const normalized = hostname.toLowerCase();
+  if (!normalized.endsWith(".netlify.app")) return null;
+  const separator = normalized.lastIndexOf("--");
+  return separator < 0 ? normalized : normalized.slice(separator + 2);
+}
+
+function rasterUrlError(): Error {
+  return new Error("Raster URL must be same-origin");
+}
+
+export function sameOriginRasterUrl(
+  value: string,
+  currentHref = window.location.href
+): string {
   let url: URL;
+  let current: URL;
   try {
-    url = new URL(value, window.location.href);
+    current = new URL(currentHref);
+    url = new URL(value, current);
   } catch {
     throw new Error("Raster URL must be a valid same-origin URL");
   }
   const isHttp = url.protocol === "http:" || url.protocol === "https:";
   const isBlob = url.protocol === "blob:";
-  const currentOrigin = window.location.origin;
+  const currentOrigin = current.origin;
   if (currentOrigin === "null" || url.origin === "null" ||
     (!isHttp && !isBlob) || url.origin !== currentOrigin) {
-    throw new Error("Raster URL must be same-origin");
+    throw rasterUrlError();
   }
   return url.href;
+}
+
+export function portableRasterUrlForLoad(
+  value: string,
+  currentHref = window.location.href
+): string {
+  try {
+    return sameOriginRasterUrl(value, currentHref);
+  } catch (error) {
+    let current: URL;
+    let source: URL;
+    try {
+      current = new URL(currentHref);
+      source = new URL(value, current);
+    } catch {
+      throw error;
+    }
+    const currentSite = netlifySiteHostname(current.hostname);
+    const sourceSite = netlifySiteHostname(source.hostname);
+    const isPortableLegacyCatalogueUrl = current.protocol === "https:" &&
+      source.protocol === "https:" &&
+      currentSite !== null &&
+      sourceSite === currentSite &&
+      source.username === "" &&
+      source.password === "" &&
+      source.pathname.startsWith("/catalog/");
+    if (!isPortableLegacyCatalogueUrl) throw error;
+    return new URL(
+      `${source.pathname}${source.search}${source.hash}`,
+      current.origin
+    ).href;
+  }
+}
+
+export function portableRasterUrlForStorage(
+  value: string,
+  currentHref = window.location.href
+): string {
+  const absolute = sameOriginRasterUrl(value, currentHref);
+  const url = new URL(absolute);
+  if ((url.protocol === "http:" || url.protocol === "https:") &&
+    url.pathname.startsWith("/catalog/")) {
+    return `${url.pathname}${url.search}${url.hash}`;
+  }
+  return absolute;
 }
 
 export class FabricObjectFactory {

@@ -27,6 +27,18 @@ const ERROR_JSON_LIMIT = 8 * 1_024;
 const LIST_JSON_LIMIT = 16 * 1_024;
 const PROGRESS_RESPONSE_JSON_LIMIT = PROGRESS_JSON_LIMIT + 16 * 1_024;
 const ACCOUNT_DIAGNOSTIC_BODY_LIMIT = 200;
+const DEFAULT_ACCOUNT_REQUEST_TIMEOUT_MS = 12_000;
+const MAX_ACCOUNT_RATE_LIMIT_RETRIES = 1;
+const MAX_AUTOMATIC_RETRY_AFTER_MS = 5_000;
+const RATE_LIMIT_JITTER_MS = 250;
+
+type Sleep = (milliseconds: number) => Promise<void>;
+
+export interface AccountRequestPolicyOptions {
+  readonly requestTimeoutMs?: number;
+  readonly sleep?: Sleep;
+  readonly random?: () => number;
+}
 
 export type AccountSession =
   | { readonly authenticated: false }
@@ -45,6 +57,7 @@ export interface AccountLoginInput {
 
 export type AccountClientErrorCode =
   | "ACCOUNT_NOT_CONFIGURED"
+  | "ACCOUNT_RATE_LIMITED"
   | "ACCOUNT_UNAVAILABLE"
   | "AUTHENTICATION_REQUIRED"
   | "DOCUMENT_LIMIT_REACHED"
@@ -58,7 +71,10 @@ export type AccountClientErrorCode =
   | "USERNAME_UNAVAILABLE";
 
 export class AccountClientError extends Error {
-  constructor(readonly code: AccountClientErrorCode) {
+  constructor(
+    readonly code: AccountClientErrorCode,
+    readonly retryAfterSeconds?: number
+  ) {
     super(code);
     this.name = "AccountClientError";
   }
@@ -223,7 +239,24 @@ async function jsonBody(response: Response, limit: number): Promise<unknown> {
   }
 }
 
+function retryAfterSeconds(response: Response): number {
+  const value = response.headers.get("retry-after")?.trim() ?? "";
+  if (/^\d+$/u.test(value)) return Math.max(1, Math.min(180, Number(value)));
+  const timestamp = Date.parse(value);
+  if (!Number.isNaN(timestamp)) {
+    return Math.max(1, Math.min(180, Math.ceil((timestamp - Date.now()) / 1_000)));
+  }
+  return 1;
+}
+
+const defaultSleep: Sleep = (milliseconds) => new Promise((resolve) => {
+  globalThis.setTimeout(resolve, milliseconds);
+});
+
 async function responseError(response: Response): Promise<AccountClientError> {
+  if (response.status === 429) {
+    return new AccountClientError("ACCOUNT_RATE_LIMITED", retryAfterSeconds(response));
+  }
   const value = await jsonBody(response, ERROR_JSON_LIMIT);
   if (isRecord(value) && exactKeys(value, ["error"]) &&
     value.error === "ACCOUNT_IDENTITY_CHANGED") {
@@ -238,13 +271,25 @@ async function responseError(response: Response): Promise<AccountClientError> {
 }
 
 export class HttpAccountClient implements AccountSessionClient {
+  readonly #requestTimeoutMs: number;
+  readonly #sleep: Sleep;
+  readonly #random: () => number;
+
   constructor(
     private readonly identity: AccountIdentityBinding,
     private readonly mutations: AccountMutationPublisher,
     private readonly fetcher: typeof fetch = globalThis.fetch,
     private readonly cookieRequests: AccountCookieRequestSerialiser =
-      defaultAccountCookieRequestSerialiser(fetcher)
-  ) {}
+      defaultAccountCookieRequestSerialiser(fetcher),
+    requestPolicy: AccountRequestPolicyOptions = {}
+  ) {
+    this.#requestTimeoutMs = requestPolicy.requestTimeoutMs ?? DEFAULT_ACCOUNT_REQUEST_TIMEOUT_MS;
+    if (!Number.isFinite(this.#requestTimeoutMs) || this.#requestTimeoutMs <= 0) {
+      throw new TypeError("Account request timeout must be a positive finite number");
+    }
+    this.#sleep = requestPolicy.sleep ?? defaultSleep;
+    this.#random = requestPolicy.random ?? Math.random;
+  }
 
   async session(): Promise<AccountSession> {
     return this.#serialise(async () => {
@@ -316,15 +361,16 @@ export class HttpAccountClient implements AccountSessionClient {
       ? { accept: "application/json" }
       : { accept: "application/json", "content-type": "application/json" };
     if (expectedAccount !== undefined) headers[ACCOUNT_IDENTITY_HEADER] = expectedAccount;
+    const init: RequestInit = {
+      method,
+      credentials: "same-origin",
+      redirect: "error",
+      headers,
+      ...(body === undefined ? {} : { body: JSON.stringify(body) })
+    };
     let response: Response;
     try {
-      response = await this.fetcher.call(globalThis, path, {
-        method,
-        credentials: "same-origin",
-        redirect: "error",
-        headers,
-        ...(body === undefined ? {} : { body: JSON.stringify(body) })
-      });
+      response = await this.#fetchWithPolicy(path, init);
     } catch (error) {
       logAccountFetchFailure(path, error);
       throw new AccountClientError("ACCOUNT_UNAVAILABLE");
@@ -338,6 +384,37 @@ export class HttpAccountClient implements AccountSessionClient {
       throw await responseError(response);
     }
     return response;
+  }
+
+  async #fetchWithPolicy(path: string, init: RequestInit): Promise<Response> {
+    for (let attempt = 0; ; attempt += 1) {
+      const response = await this.#fetchWithTimeout(path, init);
+      if (response.status !== 429 || attempt >= MAX_ACCOUNT_RATE_LIMIT_RETRIES) return response;
+      const serverDelay = retryAfterSeconds(response) * 1_000;
+      if (serverDelay > MAX_AUTOMATIC_RETRY_AFTER_MS) return response;
+      const random = Math.max(0, Math.min(1, this.#random()));
+      await this.#sleep(serverDelay + Math.floor(random * RATE_LIMIT_JITTER_MS));
+    }
+  }
+
+  async #fetchWithTimeout(path: string, init: RequestInit): Promise<Response> {
+    const controller = new AbortController();
+    let timer: ReturnType<typeof globalThis.setTimeout> | undefined;
+    const timeout = new Promise<never>((_resolve, reject) => {
+      timer = globalThis.setTimeout(() => {
+        const error = new DOMException("Account request timed out", "TimeoutError");
+        controller.abort(error);
+        reject(error);
+      }, this.#requestTimeoutMs);
+    });
+    try {
+      return await Promise.race([
+        this.fetcher.call(globalThis, path, { ...init, signal: controller.signal }),
+        timeout
+      ]);
+    } finally {
+      if (timer !== undefined) globalThis.clearTimeout(timer);
+    }
   }
 }
 

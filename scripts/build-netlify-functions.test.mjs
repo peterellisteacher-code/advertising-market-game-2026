@@ -49,17 +49,41 @@ test("routes the deployed account-progress wrapper through the generated bundle"
   assert.match(wrapper, /path: \["\/api\/account\/progress"\]/u);
 });
 
+test("keeps the deployed Image Lab session wrapper aligned with its teacher toggle routes", () => {
+  const wrapper = readFileSync(
+    join(repoRoot, "netlify", "deploy-functions", "image-lab-session.mts"),
+    "utf8"
+  );
+
+  assert.match(
+    wrapper,
+    /path:\s*\["\/api\/image-lab\/config",\s*"\/api\/image-lab\/unlock",\s*"\/api\/image-lab\/lock"\]/u
+  );
+  assert.match(wrapper, /windowLimit:\s*300/u);
+});
+
+test("keeps the deployed account-session wrapper at the shared-school-network capacity floor", () => {
+  const wrapper = readFileSync(
+    join(repoRoot, "netlify", "deploy-functions", "account-session.mts"),
+    "utf8"
+  );
+  assert.match(wrapper, /windowLimit:\s*300/u);
+  assert.match(wrapper, /windowSize:\s*60/u);
+  assert.match(wrapper, /aggregateBy:\s*\["ip",\s*"domain"\]/u);
+});
+
 test("builds function bundles before every supported function runtime or deploy path", () => {
   const packageJson = JSON.parse(readFileSync(join(repoRoot, "package.json"), "utf8"));
   const scripts = packageJson.scripts ?? {};
   const buildCommand = "node scripts/build-netlify-functions.mjs";
 
   assert.equal(scripts["build:functions"], buildCommand);
-  for (const name of ["dev", "test", "test:unit", "build:web", "build", "deploy:draft"]) {
+  for (const name of ["dev", "test", "test:unit", "build:web", "build"]) {
     assert.match(scripts[name] ?? "", new RegExp(`^${buildCommand.replaceAll(".", "\\.")} && `));
   }
-  assert.match(
+  assert.equal(
     scripts["deploy:draft"],
-    /npxnetlify deploy --no-build --dir build\/web --functions netlify\/deploy-functions --json$/u
+    undefined,
+    "draft deploys must name an exact downloaded CI artifact rather than reuse build/web"
   );
 });

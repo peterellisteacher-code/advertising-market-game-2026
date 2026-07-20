@@ -23,7 +23,7 @@ Pairs invent a product, construct and price it, develop an advertising campaign 
 - Account-isolated pair saves with local-first and cloud autosave.
 - Practice market plus Netlify/Supabase live-market transport.
 - Artifact-only GitHub Actions build and deliberate Netlify CLI deployment that preserves Functions.
-- Optional, fail-closed fal.ai Image Lab. It remains disabled pending compatible written minor-use approval.
+- Optional, fail-closed Image Lab. It remains globally disabled outside the activity and opens only after the physically present teacher authorises an individual pair's short-lived session. The teacher can close it immediately.
 
 ## Proven release
 

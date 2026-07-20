@@ -89,6 +89,19 @@ describe("ImageLabClient configuration and unlock", () => {
     });
   });
 
+  it("closes the current pair capability without sending a teacher secret", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ unlocked: false }));
+    const client = new ImageLabClient({ fetch: fetchMock });
+
+    await expect(client.lock()).resolves.toEqual({ unlocked: false });
+    expect(fetchMock).toHaveBeenCalledWith("/api/image-lab/lock", expect.objectContaining({
+      method: "POST",
+      credentials: "same-origin",
+      redirect: "error"
+    }));
+    expect((fetchMock.mock.calls[0]?.[1] as RequestInit).body).toBeUndefined();
+  });
+
   it("rejects extra unlock properties without fetching", async () => {
     const fetchMock = vi.fn();
     const client = new ImageLabClient({ fetch: fetchMock });

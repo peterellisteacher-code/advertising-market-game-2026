@@ -56,9 +56,53 @@ interface AccountAssetServicePort {
 interface AccountAssetsDependencies {
   readonly environment?: AccountAssetEnvironment | AccountEnvironmentRecord;
   readonly fetcher?: typeof fetch;
+  readonly reportStorageFailure?: (kind: AccountAssetStorageFailureKind) => void;
   readonly service?: AccountAssetServicePort;
   readonly serviceFactory?: (namespaceSecret: string) => Promise<AccountAssetServicePort>;
 }
+
+export type AccountAssetStorageFailureKind =
+  | "ASSET_STATE_UNAVAILABLE"
+  | "BLOBS_CONSISTENCY_CONTEXT"
+  | "BLOBS_DATA_SHAPE"
+  | "BLOBS_ENVIRONMENT_CONTEXT"
+  | "BLOBS_FETCH_FAILED"
+  | "BLOBS_INTERNAL"
+  | "BLOBS_MODULE_MISSING"
+  | "BLOBS_STORE_FACTORY"
+  | "NON_ERROR_STORAGE_FAILURE"
+  | "UNEXPECTED_STORAGE_FAILURE";
+
+export function classifyAccountAssetStorageFailure(
+  error: unknown
+): AccountAssetStorageFailureKind | null {
+  if (error instanceof AccountRequestError || error instanceof AccountConfigurationError) return null;
+  if (error instanceof AccountAssetError) {
+    return error.code === "ASSET_UNAVAILABLE" ? "ASSET_STATE_UNAVAILABLE" : null;
+  }
+  if (!(error instanceof Error)) return "NON_ERROR_STORAGE_FAILURE";
+  if (error.name === "BlobsConsistencyError") return "BLOBS_CONSISTENCY_CONTEXT";
+  if (error.name === "MissingBlobsEnvironmentError") return "BLOBS_ENVIRONMENT_CONTEXT";
+  if (error.name === "BlobsInternalError") return "BLOBS_INTERNAL";
+  const errorCode = (error as Error & { code?: unknown }).code;
+  const cause = (error as Error & { cause?: unknown }).cause;
+  const causeCode = cause instanceof Error
+    ? (cause as Error & { code?: unknown }).code
+    : undefined;
+  if (errorCode === "ERR_MODULE_NOT_FOUND" || causeCode === "ERR_MODULE_NOT_FOUND") {
+    return "BLOBS_MODULE_MISSING";
+  }
+  if (error.message === "fetch failed") return "BLOBS_FETCH_FAILED";
+  if (error.message === "account asset storage unavailable") return "BLOBS_DATA_SHAPE";
+  if (error.message.includes("getStore") && error.message.includes("not a function")) {
+    return "BLOBS_STORE_FACTORY";
+  }
+  return "UNEXPECTED_STORAGE_FAILURE";
+}
+
+const reportStorageFailure = (kind: AccountAssetStorageFailureKind): void => {
+  console.error(JSON.stringify({ event: "account_asset_storage_failure", kind }));
+};
 
 const runtimeEnvironment = (): AccountEnvironmentRecord => Object.fromEntries(
   ENVIRONMENT_KEYS.map((key) => [key, Netlify.env.get(key)])
@@ -233,6 +277,10 @@ export function createAccountAssetsHandler(
       const result = await service.get(session.identity.userId, digest);
       return assetBinary(result.descriptor, result.bytes, responseCookies);
     } catch (error) {
+      const failureKind = classifyAccountAssetStorageFailure(error);
+      if (failureKind !== null) {
+        (dependencies.reportStorageFailure ?? reportStorageFailure)(failureKind);
+      }
       return assetErrorResponse(error, responseCookies);
     }
   };

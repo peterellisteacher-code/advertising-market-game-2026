@@ -17,8 +17,8 @@ test("Godot executable discovery prefers an explicit override and keeps the clas
 
   assert.deepEqual(candidates, [
     "D:\\Tools\\Godot.exe",
-    path.join(homedir, "Godot", "godot_current_console.exe"),
-    path.join(homedir, "Godot", "godot_current.exe")
+    "C:\\Users\\Teacher\\Godot\\godot_current_console.exe",
+    "C:\\Users\\Teacher\\Godot\\godot_current.exe"
   ]);
 });
 

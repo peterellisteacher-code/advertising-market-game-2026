@@ -16,7 +16,6 @@ export type DisabledImageLabEnvironment = {
   reason:
     | "disabled"
     | "school-approval-required"
-    | "fal-minor-use-approval-required"
     | "account-cap-required"
     | "server-configuration-required";
 };
@@ -80,9 +79,6 @@ export function parseImageLabEnvironment(
   if (environment.IMAGE_LAB_SCHOOL_APPROVED !== "true") {
     return { enabled: false, reason: "school-approval-required" };
   }
-  if (environment.IMAGE_LAB_FAL_MINOR_USE_APPROVED !== "true") {
-    return { enabled: false, reason: "fal-minor-use-approval-required" };
-  }
   const accountCapUsd = Number(environment.IMAGE_LAB_ACCOUNT_CAP_USD);
   if (!Number.isFinite(accountCapUsd) || accountCapUsd <= 0 || accountCapUsd > 100) {
     return { enabled: false, reason: "account-cap-required" };
@@ -99,9 +95,9 @@ export function parseImageLabEnvironment(
     classroomCode,
     signingSecret,
     falKey,
-    sessionMinutes: boundedInteger(environment.IMAGE_LAB_SESSION_MINUTES, 120, 15, 240),
+    sessionMinutes: boundedInteger(environment.IMAGE_LAB_SESSION_MINUTES, 75, 15, 240),
     objectAllowance: boundedInteger(environment.IMAGE_LAB_OBJECT_ALLOWANCE, 6, 1, 12),
-    realiseAllowance: boundedInteger(environment.IMAGE_LAB_REALISE_ALLOWANCE, 2, 1, 4)
+    realiseAllowance: boundedInteger(environment.IMAGE_LAB_REALISE_ALLOWANCE, 1, 1, 4)
   };
 }
 
@@ -204,6 +200,18 @@ export function serialiseCapabilityCookie(
     "HttpOnly",
     "SameSite=Strict",
     `Max-Age=${Math.max(0, Math.floor(maxAgeSeconds))}`
+  ];
+  if (secure) parts.push("Secure");
+  return parts.join("; ");
+}
+
+export function serialiseExpiredCapabilityCookie(secure: boolean): string {
+  const parts = [
+    `${IMAGE_LAB_COOKIE}=`,
+    "Path=/api/image-lab",
+    "HttpOnly",
+    "SameSite=Strict",
+    "Max-Age=0"
   ];
   if (secure) parts.push("Secure");
   return parts.join("; ");

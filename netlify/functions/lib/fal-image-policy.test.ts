@@ -6,6 +6,7 @@ import {
   FalImagePolicyError,
   MAKE_IT_REAL_PROFILE,
   OBJECT_FORGE_PROFILE,
+  assertGptImage2ConcreteSize,
   composeMakeItRealPrompt,
   composeObjectForgePrompt,
   parseFalImageRequest,
@@ -121,33 +122,51 @@ describe("fal image policy", () => {
 
   it("pins the Object Forge profile entirely on the server", () => {
     expect(OBJECT_FORGE_PROFILE).toEqual({
-      model: "fal-ai/flux/schnell",
-      width: 512,
-      height: 512,
-      steps: 4,
-      guidance: 3.5,
+      model: "openai/gpt-image-2",
+      width: 1_024,
+      height: 1_024,
+      quality: "low",
       images: 1,
-      outputFormat: "png",
-      safetyChecker: true,
-      acceleration: "none"
+      outputFormat: "png"
     });
     expect(Object.isFrozen(OBJECT_FORGE_PROFILE)).toBe(true);
   });
 
   it("pins the Make It Real profile entirely on the server", () => {
     expect(MAKE_IT_REAL_PROFILE).toEqual({
-      model: "fal-ai/qwen-image-edit-plus-lora-gallery/integrate-product",
-      width: 1_024,
-      height: 576,
-      steps: 6,
-      guidance: 1,
+      model: "openai/gpt-image-2/edit",
+      width: 1_280,
+      height: 720,
+      imageSize: { width: 1_280, height: 720 },
+      quality: "high",
       images: 1,
-      outputFormat: "png",
-      safetyChecker: true,
-      acceleration: "regular",
-      loraScale: 1
+      outputFormat: "png"
     });
     expect(Object.isFrozen(MAKE_IT_REAL_PROFILE)).toBe(true);
+  });
+
+  it.each([
+    { width: 816, height: 816 },
+    { width: 1_024, height: 1_024 },
+    { width: 1_280, height: 720 },
+    { width: 2_880, height: 2_880 }
+  ])("accepts an in-spec GPT Image 2 concrete size: $width by $height", (size) => {
+    expect(assertGptImage2ConcreteSize(size)).toEqual(size);
+  });
+
+  it.each([
+    [{ width: 512, height: 512 }, "below the pixel floor"],
+    [{ width: 1_024, height: 576 }, "below the pixel floor at 16:9"],
+    [{ width: 1_025, height: 1_024 }, "not a multiple of 16"],
+    [{ width: 3_856, height: 1_024 }, "over the maximum edge"],
+    [{ width: 1_600, height: 512 }, "over the maximum aspect ratio"],
+    [{ width: 2_896, height: 2_896 }, "over the pixel ceiling"]
+  ] as const)("rejects a GPT Image 2 concrete size %s (%s)", (size, _reason) => {
+    expectPolicyError(
+      () => assertGptImage2ConcreteSize(size),
+      "INVALID_PROFILE_DIMENSIONS",
+      "image_size"
+    );
   });
 
   it("parses the closed Object Forge request schema", () => {
@@ -313,6 +332,9 @@ describe("fal image policy", () => {
     expect(prompt).toMatch(/no text/i);
     expect(prompt).toMatch(/one object/i);
     expect(prompt).toMatch(/pure white background/i);
+    expect(prompt).toMatch(/Canva-like product template/i);
+    expect(prompt).toMatch(/structurally believable geometry/i);
+    expect(prompt).toMatch(/large blank surfaces/i);
   });
 
   it.each([

@@ -18,8 +18,8 @@ export function godotExecutableCandidates({
   }
   if (platform === "win32") {
     candidates.push(
-      path.join(homedir, "Godot", "godot_current_console.exe"),
-      path.join(homedir, "Godot", "godot_current.exe")
+      path.win32.join(homedir, "Godot", "godot_current_console.exe"),
+      path.win32.join(homedir, "Godot", "godot_current.exe")
     );
   } else {
     candidates.push("godot4", "godot");

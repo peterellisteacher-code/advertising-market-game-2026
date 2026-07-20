@@ -9,7 +9,6 @@ const secret = "0123456789abcdef0123456789abcdef";
 const environment = {
   IMAGE_LAB_ENABLED: "true",
   IMAGE_LAB_SCHOOL_APPROVED: "true",
-  IMAGE_LAB_FAL_MINOR_USE_APPROVED: "true",
   IMAGE_LAB_ACCOUNT_CAP_USD: "2.00",
   IMAGE_LAB_CLASSROOM_CODE: "Market-2026!",
   IMAGE_LAB_SIGNING_SECRET: secret,
@@ -40,7 +39,7 @@ describe("Image Lab session function", () => {
       unlocked: false,
       accountCapUsd: 2,
       objectAllowance: 6,
-      realiseAllowance: 2
+      realiseAllowance: 1
     });
     expect(JSON.stringify(body)).not.toContain("fal-key");
     expect(JSON.stringify(body)).not.toContain("Market-2026");
@@ -67,8 +66,8 @@ describe("Image Lab session function", () => {
     expect(await response.json()).toEqual({
       unlocked: true,
       remainingObject: 6,
-      remainingRealise: 2,
-      expiresAt: 8_200
+      remainingRealise: 1,
+      expiresAt: 5_500
     });
     const cookie = response.headers.get("set-cookie")!;
     expect(cookie).toContain(`${IMAGE_LAB_COOKIE}=`);
@@ -77,9 +76,28 @@ describe("Image Lab session function", () => {
       sessionId: "session-a",
       teamId: "pair-3",
       remainingObject: 6,
-      remainingRealise: 2,
-      expiresAt: 8_200
+      remainingRealise: 1,
+      expiresAt: 5_500
     });
+  });
+
+  it("closes Image Lab immediately with an expired pair capability cookie", async () => {
+    const handler = createImageLabSessionHandler({
+      environment,
+      nowSeconds: () => 1_000,
+      secureCookies: true
+    });
+    const response = await handler(request("/api/image-lab/lock", { method: "POST" }));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ unlocked: false });
+    const cookie = response.headers.get("set-cookie")!;
+    expect(cookie).toContain(`${IMAGE_LAB_COOKIE}=;`);
+    expect(cookie).toContain("Path=/api/image-lab");
+    expect(cookie).toContain("HttpOnly");
+    expect(cookie).toContain("SameSite=Strict");
+    expect(cookie).toContain("Max-Age=0");
+    expect(cookie).toContain("Secure");
   });
 
   it("does not reset spent sparks when the teacher unlock is replayed", async () => {
@@ -145,6 +163,7 @@ describe("Image Lab session function", () => {
   it("uses exact routes, methods and JSON media types", async () => {
     const handler = createImageLabSessionHandler({ environment, nowSeconds: () => 1_000 });
     expect((await handler(request("/api/image-lab/config", { method: "POST" }))).status).toBe(405);
+    expect((await handler(request("/api/image-lab/lock", { method: "GET" }))).status).toBe(405);
     expect((await handler(request("/api/image-lab/unlock", {
       method: "POST",
       headers: { "content-type": "text/plain" },

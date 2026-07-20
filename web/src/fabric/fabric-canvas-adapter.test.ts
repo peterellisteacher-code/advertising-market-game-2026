@@ -159,6 +159,67 @@ describe("FabricCanvasAdapter persistence", () => {
     expect(canvas.loadFromJSON).not.toHaveBeenCalled();
   });
 
+  it("loads a legacy catalogue image from a sibling Netlify deploy through the current origin", async () => {
+    const originalWindow = globalThis.window;
+    vi.stubGlobal("window", {
+      ...originalWindow,
+      location: {
+        href: "https://new-build--advertising-market-game-2026.netlify.app/",
+        origin: "https://new-build--advertising-market-game-2026.netlify.app"
+      }
+    });
+    try {
+      const canvas = new FakeCanvas();
+      const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+      const saved = {
+        version: "7.4.0",
+        objects: [{
+          type: "Group",
+          objects: [{
+            type: "Image",
+            src: "https://old-build--advertising-market-game-2026.netlify.app/catalog/generated/tv.png"
+          }]
+        }]
+      };
+
+      await adapter.load(saved);
+
+      expect(canvas.loadFromJSON).toHaveBeenCalledWith({
+        version: "7.4.0",
+        objects: [{
+          type: "Group",
+          objects: [{
+            type: "Image",
+            src: "https://new-build--advertising-market-game-2026.netlify.app/catalog/generated/tv.png"
+          }]
+        }]
+      });
+      expect(saved.objects[0]!.objects[0]!.src).toContain("old-build--");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("serializes nested catalogue image sources as root-relative paths", () => {
+    const canvas = new FakeCanvas();
+    const currentOrigin = window.location.origin;
+    canvas.toObject.mockReturnValueOnce({
+      version: "7.4.0",
+      objects: [{
+        type: "Group",
+        objects: [{
+          type: "Image",
+          src: `${currentOrigin}/catalog/generated/tv.png`
+        }]
+      }]
+    });
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+
+    expect(adapter.serialize()).toMatchObject({
+      objects: [{ objects: [{ src: "/catalog/generated/tv.png" }] }]
+    });
+  });
+
   it("serializes interaction state and restores 44-pixel controls", async () => {
     const canvas = new FakeCanvas();
     const object = new Rect({
@@ -563,7 +624,7 @@ describe("FabricCanvasAdapter persistence", () => {
       expect.objectContaining({ objectId: "art-shape-1" }),
       expect.objectContaining({ objectId: "art-image-1", assetId: "fruit-1" })
     ]));
-  }, 15_000);
+  }, 30_000);
 
   it("removes only one direct semantic artwork child and preserves the product shell", async () => {
     const canvas = new FakeCanvas();

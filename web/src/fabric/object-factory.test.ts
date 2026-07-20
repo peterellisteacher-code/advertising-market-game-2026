@@ -5,6 +5,8 @@ import {
   FabricObjectFactory,
   MAX_TEXT_HEIGHT,
   MAX_TEXT_WIDTH,
+  portableRasterUrlForLoad,
+  portableRasterUrlForStorage,
   sameOriginRasterUrl
 } from "./object-factory";
 
@@ -125,6 +127,44 @@ describe("FabricObjectFactory", () => {
       .toThrow("same-origin");
     expect(() => sameOriginRasterUrl("file:///tmp/masked-variant.png"))
       .toThrow("same-origin");
+  });
+
+  it("rebases only catalogue images from another deploy of the same Netlify site", () => {
+    const currentHref =
+      "https://6a5dd4b2ee7c5ac396464e29--advertising-market-game-2026.netlify.app/";
+    const legacy =
+      "https://6a5da419dee708508ee54146--advertising-market-game-2026.netlify.app/" +
+      "catalog/generated/offline-core-v1/assets/96-appliance-add-ons-r05c01/master.png";
+
+    expect(portableRasterUrlForLoad(legacy, currentHref)).toBe(
+      "https://6a5dd4b2ee7c5ac396464e29--advertising-market-game-2026.netlify.app/" +
+      "catalog/generated/offline-core-v1/assets/96-appliance-add-ons-r05c01/master.png"
+    );
+    expect(() => portableRasterUrlForLoad(
+      "https://unsafe.example/catalog/tracker.png",
+      currentHref
+    )).toThrow("same-origin");
+    expect(() => portableRasterUrlForLoad(
+      "https://6a5da419dee708508ee54146--advertising-market-game-2026.netlify.app/api/private",
+      currentHref
+    )).toThrow("same-origin");
+  });
+
+  it("stores same-origin catalogue images as deploy-portable root-relative URLs", () => {
+    const currentHref =
+      "https://6a5dd4b2ee7c5ac396464e29--advertising-market-game-2026.netlify.app/studio/";
+
+    expect(portableRasterUrlForStorage(
+      "https://6a5dd4b2ee7c5ac396464e29--advertising-market-game-2026.netlify.app/" +
+      "catalog/generated/item.png?rev=4#preview",
+      currentHref
+    )).toBe("/catalog/generated/item.png?rev=4#preview");
+    expect(portableRasterUrlForStorage(
+      "blob:https://6a5dd4b2ee7c5ac396464e29--advertising-market-game-2026.netlify.app/local-1",
+      currentHref
+    )).toBe(
+      "blob:https://6a5dd4b2ee7c5ac396464e29--advertising-market-game-2026.netlify.app/local-1"
+    );
   });
 
   it("rejects blob:null when the page itself has an opaque origin", () => {

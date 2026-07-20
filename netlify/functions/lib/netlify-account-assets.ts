@@ -1,3 +1,4 @@
+import { getStore } from "@netlify/blobs";
 import {
   AccountAssetService,
   type AccountAssetBlobMetadata,
@@ -117,7 +118,7 @@ let sharedRepository: Promise<AccountAssetRepository> | null = null;
 export async function defaultAccountAssetService(
   namespaceSecret: string
 ): Promise<AccountAssetService> {
-  sharedRepository ??= import(/* @vite-ignore */ "@netlify/blobs").then(({ getStore }) => {
+  sharedRepository ??= Promise.resolve().then(() => {
     const store = getStore({ name: STORE_NAME, consistency: "strong" }) as unknown as
       AccountAssetBlobStore;
     return createNetlifyAccountAssetRepository(store);

@@ -1,4 +1,4 @@
-export { default } from "../functions/market-room.mjs";
+export { default } from "../function-bundles/market-room.mjs";
 
 export const config = {
   path: [

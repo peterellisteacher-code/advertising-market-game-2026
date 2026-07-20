@@ -30,6 +30,7 @@ function actions(overrides: Partial<ImageLabActions> = {}): ImageLabActions {
   return {
     getConfig: vi.fn().mockResolvedValue(ready),
     unlock: vi.fn().mockResolvedValue(allowance),
+    lock: vi.fn().mockResolvedValue(undefined),
     forgeObject: vi.fn().mockResolvedValue({ ...allowance, remainingObject: 4 }),
     makeReal: vi.fn().mockResolvedValue({ ...allowance, remainingRealise: 1 }),
     ...overrides
@@ -99,6 +100,25 @@ describe("ImageLabPanel", () => {
     expect(host.textContent).toContain("5 Object Forge sparks");
     expect(host.textContent).toContain("2 Make It Real sparks");
     expect(host.textContent).not.toMatch(/model|slug|steps|quality|dimensions/i);
+  });
+
+  it("lets the teacher close the pair session immediately", async () => {
+    const host = document.createElement("div");
+    const port = actions();
+    const panel = new ImageLabPanel(host, port);
+    panel.setPair(identity);
+    await panel.initialise();
+
+    const code = getByLabelText<HTMLInputElement>(host, "Teacher code");
+    code.value = "room-code";
+    fireEvent.click(getByRole(host, "button", { name: "Wake Image Lab" }));
+    await waitFor(() => expect(getByRole(host, "button", { name: "Close Image Lab" })).toBeTruthy());
+
+    fireEvent.click(getByRole(host, "button", { name: "Close Image Lab" }));
+
+    await waitFor(() => expect(port.lock).toHaveBeenCalledWith(expect.any(AbortSignal)));
+    await waitFor(() => expect(getByLabelText(host, "Teacher code")).toBeTruthy());
+    expect(getByRole(host, "status").textContent).toContain("closed for this pair");
   });
 
   it("forges one constrained object and forwards the background choice", async () => {

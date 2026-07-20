@@ -21,7 +21,6 @@ export interface ImageLabRemaining {
 export type ImageLabDisabledReason =
   | "disabled"
   | "school-approval-required"
-  | "fal-minor-use-approval-required"
   | "account-cap-required"
   | "server-configuration-required";
 
@@ -44,6 +43,10 @@ export interface ImageLabUnlockResult {
   unlocked: true;
   remaining: ImageLabRemaining;
   expiresAt: number;
+}
+
+export interface ImageLabLockResult {
+  unlocked: false;
 }
 
 export interface ObjectForgeJobRequest {
@@ -295,7 +298,6 @@ const parseConfig = (value: unknown): ImageLabConfig => {
   if (!record) fail("INVALID_RESPONSE", "Image Lab configuration was invalid.");
   if (record.enabled === false && hasExactKeys(record, ["enabled", "reason"]) &&
     (record.reason === "disabled" || record.reason === "school-approval-required" ||
-      record.reason === "fal-minor-use-approval-required" ||
       record.reason === "account-cap-required" || record.reason === "server-configuration-required")) {
     return { enabled: false, reason: record.reason };
   }
@@ -327,6 +329,14 @@ const parseUnlock = (value: unknown): ImageLabUnlockResult => {
     remaining: { object: record.remainingObject, realise: record.remainingRealise },
     expiresAt: record.expiresAt as number
   };
+};
+
+const parseLock = (value: unknown): ImageLabLockResult => {
+  const record = ownRecord(value);
+  if (!record || !hasExactKeys(record, ["unlocked"]) || record.unlocked !== false) {
+    fail("INVALID_RESPONSE", "The Image Lab close response was invalid.");
+  }
+  return { unlocked: false };
 };
 
 const parseJobCreated = (value: unknown): ImageLabJobCreated => {
@@ -486,6 +496,16 @@ export class ImageLabClient {
       body: JSON.stringify(body),
       signal: options.signal ?? null
     }, parseUnlock, options.signal);
+  }
+
+  lock(options: ImageLabRequestOptions = {}): Promise<ImageLabLockResult> {
+    return this.json("/api/image-lab/lock", {
+      method: "POST",
+      credentials: "same-origin",
+      redirect: "error",
+      headers: JSON_HEADERS,
+      signal: options.signal ?? null
+    }, parseLock, options.signal);
   }
 
   async createJob(

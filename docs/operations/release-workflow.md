@@ -27,7 +27,11 @@ GitHub is the source of truth, but GitHub does not deploy this project. The work
    - artifact upload.
 4. Download that exact artifact to a new local path. Do not rebuild it before deployment.
 5. Run `scripts/verify-web-export.mjs` against the downloaded artifact.
-6. Create a Netlify draft with the artifact plus `netlify/deploy-functions/`.
+6. Create a Netlify draft with the artifact plus `netlify/deploy-functions/`:
+
+   ```powershell
+   pnpm deploy:draft -- --artifact <downloaded-artifact>
+   ```
 7. Test the hosted draft at a MacBook-class viewport. At minimum verify:
    - the site visitor gate;
    - pair login and cloud restore;
@@ -42,13 +46,15 @@ GitHub is the source of truth, but GitHub does not deploy this project. The work
 9. Publish the same downloaded artifact with the same Function directory:
 
    ```powershell
-   pnpm exec netlify deploy --prod --no-build --dir <downloaded-artifact> --functions netlify/deploy-functions
+   pnpm deploy:production -- --artifact <downloaded-artifact>
    ```
 
 10. Read the production deploy record back from Netlify. Require `state=ready`, `context=production`, the expected production alias, and all nine Functions.
 11. Run one production smoke through the visitor gate and a retained QA pair account. Confirm cloud restore; do not create a fresh account merely to prove login.
 
 Never enable Git-triggered Netlify publication for this project. A static-only publish can look healthy while silently removing `/api/account/*`, `/api/market/*`, and Image Lab routes.
+
+The `deploy:draft` and `deploy:production` shortcuts fail closed unless the caller supplies `--artifact`. They verify that exact downloaded artifact, rebuild the nine self-contained Function bundles from current source, and mirror the artifact's own `_headers` into an isolated Netlify context. Neither command silently reads a local `build/web/` directory.
 
 ## Reference environment rules
 
@@ -84,5 +90,5 @@ The corrective discipline is: name the reference environment, state a falsifier,
 
 ## Image Lab activation boundary
 
-The fal.ai Image Lab code and Functions are deployed but the feature remains disabled. Its Netlify variables must not be installed until the provider's written approval for this Year 10, teacher-controlled use has been retained and the external fal account or key has a real spending cap. The exact activation checklist is in `docs/operations/image-lab.md`.
+The fal.ai Image Lab code and Functions are deployed behind a teacher-controlled session gate. Each pair starts with Image Lab closed. Peter opens it on that MacBook with the server-owned classroom code while physically supervising the pair; access expires after 75 minutes and can be closed immediately. The retired `IMAGE_LAB_FAL_MINOR_USE_APPROVED` approval-letter switch is not part of the runtime. Site-level enablement, a dedicated capped key, and the safeguards in `docs/operations/image-lab.md` still apply.
 

@@ -22,7 +22,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const SHA256 = /^[0-9a-f]{64}$/;
 const HEX_COLOUR = /^#[0-9A-Fa-f]{6}$/;
 const MAX_RECORDS = 20_000;
-const LOAD_TIMEOUT_MS = 5_000;
+const LOAD_TIMEOUT_MS = 30_000;
 const MAX_CATALOGUE_BYTES = 32 * 1024 * 1024;
 
 export interface OfflineCatalogueLoadOptions {

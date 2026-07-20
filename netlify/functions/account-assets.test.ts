@@ -8,7 +8,10 @@ import {
   AccountAssetError
 } from "./lib/account-assets";
 import { ACCOUNT_ACCESS_COOKIE, ACCOUNT_REFRESH_COOKIE } from "./lib/account-primitives";
-import { createAccountAssetsHandler } from "./account-assets.mjs";
+import {
+  classifyAccountAssetStorageFailure,
+  createAccountAssetsHandler
+} from "./account-assets.mjs";
 
 const USER_A = "b9b32e20-0ba8-4896-b89f-44efdfc52942";
 const USER_B = "99250725-52e0-44c9-b569-593167786eaf";
@@ -81,6 +84,31 @@ const fakeService = () => ({
 });
 
 describe("account asset API", () => {
+  it("classifies storage failures without logging request or secret data", () => {
+    const consistencyError = new Error("sensitive implementation detail");
+    consistencyError.name = "BlobsConsistencyError";
+    const environmentError = new Error("sensitive implementation detail");
+    environmentError.name = "MissingBlobsEnvironmentError";
+    const internalError = new Error("sensitive implementation detail");
+    internalError.name = "BlobsInternalError";
+    const missingModule = Object.assign(new Error("sensitive implementation detail"), {
+      code: "ERR_MODULE_NOT_FOUND"
+    });
+
+    expect(classifyAccountAssetStorageFailure(consistencyError)).toBe("BLOBS_CONSISTENCY_CONTEXT");
+    expect(classifyAccountAssetStorageFailure(environmentError)).toBe("BLOBS_ENVIRONMENT_CONTEXT");
+    expect(classifyAccountAssetStorageFailure(internalError)).toBe("BLOBS_INTERNAL");
+    expect(classifyAccountAssetStorageFailure(missingModule)).toBe("BLOBS_MODULE_MISSING");
+    expect(classifyAccountAssetStorageFailure(new TypeError("fetch failed")))
+      .toBe("BLOBS_FETCH_FAILED");
+    expect(classifyAccountAssetStorageFailure(new TypeError("getStore is not a function")))
+      .toBe("BLOBS_STORE_FACTORY");
+    expect(classifyAccountAssetStorageFailure(new Error("account asset storage unavailable")))
+      .toBe("BLOBS_DATA_SHAPE");
+    expect(classifyAccountAssetStorageFailure(new Error("sensitive implementation detail")))
+      .toBe("UNEXPECTED_STORAGE_FAILURE");
+  });
+
   it("rejects a stale tab identity before asset storage and preserves rotated current-account cookies", async () => {
     const fetcher = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(json({ message: "expired" }, 401))

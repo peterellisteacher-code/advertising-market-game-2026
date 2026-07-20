@@ -19,6 +19,7 @@ function client(overrides: Partial<ImageLabRuntimeClient> = {}): ImageLabRuntime
       remaining: { object: 6, realise: 2 },
       expiresAt: 2_000_000_000
     }),
+    lock: vi.fn().mockResolvedValue({ unlocked: false }),
     createJob: vi.fn().mockResolvedValue({
       jobToken: "opaque-job-token",
       stage: "object",
@@ -114,6 +115,8 @@ describe("ImageLabRuntime", () => {
       remainingRealise: 2,
       expiresAt: 2_000_000_000
     });
+    await expect(runtime.lock(new AbortController().signal)).resolves.toBeUndefined();
+    expect(api.lock).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
   });
 
   it("forges, removes white, and places owned pixels without browser model controls", async () => {

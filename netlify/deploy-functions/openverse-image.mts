@@ -1,4 +1,4 @@
-export { default } from "../functions/openverse-image.mjs";
+export { default } from "../function-bundles/openverse-image.mjs";
 
 export const config = {
   path: "/api/openverse-image/:id",

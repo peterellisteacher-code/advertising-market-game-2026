@@ -120,10 +120,15 @@ const inspectFabricState = (objects: unknown): FabricLocalSource[] => {
 
 const parseLocalBlob = (value: unknown): LocalBlobReference | undefined => {
   if (!isRecord(value) || value.kind !== "local-blob") return undefined;
-  if (!hasExactKeys(value, ["kind", "objectId", "blobKey", "mimeType"]) ||
+  const baseKeys = ["kind", "objectId", "blobKey", "mimeType"] as const;
+  const hasCatalogueIdentity = Object.hasOwn(value, "assetId");
+  if (!(hasExactKeys(value, baseKeys) ||
+      hasExactKeys(value, [...baseKeys, "assetId"])) ||
     typeof value.objectId !== "string" || value.objectId.length === 0 ||
     typeof value.blobKey !== "string" || value.blobKey.length === 0 ||
-    typeof value.mimeType !== "string" || !CONTENT_TYPES.has(value.mimeType)) {
+    typeof value.mimeType !== "string" || !CONTENT_TYPES.has(value.mimeType) ||
+    (hasCatalogueIdentity &&
+      (typeof value.assetId !== "string" || value.assetId.length === 0 || value.assetId.length > 256))) {
     throw new Error("INVALID_CLOUD_PROGRESS_DOCUMENT");
   }
   return {

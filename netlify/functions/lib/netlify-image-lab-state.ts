@@ -1,3 +1,4 @@
+import { getStore } from "@netlify/blobs";
 import {
   ImageLabStateService,
   type ImageLabPairState,
@@ -40,8 +41,7 @@ export function createNetlifyImageLabRepository(store: BlobStore): ImageLabState
 let sharedService: Promise<ImageLabStateService> | null = null;
 
 export function defaultImageLabStateService(): Promise<ImageLabStateService> {
-  const moduleName = "@netlify/blobs";
-  sharedService ??= import(/* @vite-ignore */ moduleName).then(({ getStore }) => {
+  sharedService ??= Promise.resolve().then(() => {
     const store = getStore({ name: STORE_NAME, consistency: "strong" }) as BlobStore;
     return new ImageLabStateService(createNetlifyImageLabRepository(store));
   });

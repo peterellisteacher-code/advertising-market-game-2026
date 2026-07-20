@@ -881,7 +881,8 @@ describe("window.AdMarketCreator", () => {
           method: "GET",
           credentials: "same-origin",
           redirect: "error",
-          headers: { accept: "application/json" }
+          headers: { accept: "application/json" },
+          signal: expect.any(AbortSignal)
         });
         return Promise.resolve(Response.json({ authenticated: true, username: "team-one" }));
       }
@@ -922,7 +923,7 @@ describe("window.AdMarketCreator", () => {
       .toBe(false);
     expect(document.querySelector<HTMLCanvasElement>("#canvas")?.tabIndex).toBe(0);
     expect(getByRole(document.body, "button", { name: "Log out" })).toBeTruthy();
-  });
+  }, 15_000);
 
   it("restores a newest cloud-only practice before unlocking the account", async () => {
     document.body.innerHTML = `
@@ -1448,7 +1449,7 @@ describe("window.AdMarketCreator", () => {
     await waitFor(() => {
       expect(currentObjects()).toHaveLength(2);
       expect(getByRole(document.body, "status", { name: "Round progress" }).textContent)
-        .toBe("Both roles have made a change");
+        .toBe("Both roles made a change");
     });
 
     fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));

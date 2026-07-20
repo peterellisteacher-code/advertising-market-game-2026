@@ -3,7 +3,8 @@ import {
   createCapability,
   parseImageLabEnvironment,
   secureCodeMatches,
-  serialiseCapabilityCookie
+  serialiseCapabilityCookie,
+  serialiseExpiredCapabilityCookie
 } from "./lib/image-lab-auth";
 import { ImageLabStateError, type ImageLabStateService } from "./lib/image-lab-state";
 import { defaultImageLabStateService } from "./lib/netlify-image-lab-state";
@@ -12,7 +13,6 @@ const JSON_LIMIT = 8 * 1024;
 const ENVIRONMENT_KEYS = [
   "IMAGE_LAB_ENABLED",
   "IMAGE_LAB_SCHOOL_APPROVED",
-  "IMAGE_LAB_FAL_MINOR_USE_APPROVED",
   "IMAGE_LAB_ACCOUNT_CAP_USD",
   "IMAGE_LAB_CLASSROOM_CODE",
   "IMAGE_LAB_SIGNING_SECRET",
@@ -87,6 +87,13 @@ export function createImageLabSessionHandler(
   return async (request) => {
     const environment = dependencies.environment ?? runtimeEnvironment();
     const path = new URL(request.url).pathname;
+    if (path === "/api/image-lab/lock") {
+      if (request.method !== "POST") return json({ error: "METHOD_NOT_ALLOWED" }, 405, { allow: "POST" });
+      const secure = dependencies.secureCookies ?? new URL(request.url).protocol === "https:";
+      return json({ unlocked: false }, 200, {
+        "set-cookie": serialiseExpiredCapabilityCookie(secure)
+      });
+    }
     if (path === "/api/image-lab/config") {
       if (request.method !== "GET") return json({ error: "METHOD_NOT_ALLOWED" }, 405, { allow: "GET" });
       const configuration = parseImageLabEnvironment(environment);
@@ -154,9 +161,9 @@ export function createImageLabSessionHandler(
 export default createImageLabSessionHandler();
 
 export const config: Config = {
-  path: ["/api/image-lab/config", "/api/image-lab/unlock"],
+  path: ["/api/image-lab/config", "/api/image-lab/unlock", "/api/image-lab/lock"],
   rateLimit: {
-    windowLimit: 60,
+    windowLimit: 300,
     windowSize: 60,
     aggregateBy: ["ip", "domain"]
   }

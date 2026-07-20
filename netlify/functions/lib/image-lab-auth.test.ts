@@ -11,7 +11,8 @@ import {
   readCapability,
   readJobToken,
   secureCodeMatches,
-  serialiseCapabilityCookie
+  serialiseCapabilityCookie,
+  serialiseExpiredCapabilityCookie
 } from "./image-lab-auth";
 
 const secret = "0123456789abcdef0123456789abcdef";
@@ -19,7 +20,6 @@ const secret = "0123456789abcdef0123456789abcdef";
 const readyEnvironment = {
   IMAGE_LAB_ENABLED: "true",
   IMAGE_LAB_SCHOOL_APPROVED: "true",
-  IMAGE_LAB_FAL_MINOR_USE_APPROVED: "true",
   IMAGE_LAB_ACCOUNT_CAP_USD: "2.00",
   IMAGE_LAB_CLASSROOM_CODE: "Market-2026!",
   IMAGE_LAB_SIGNING_SECRET: secret,
@@ -31,10 +31,6 @@ describe("image-lab environment gate", () => {
     expect(parseImageLabEnvironment({})).toEqual({ enabled: false, reason: "disabled" });
     expect(parseImageLabEnvironment({ ...readyEnvironment, IMAGE_LAB_SCHOOL_APPROVED: "false" }))
       .toEqual({ enabled: false, reason: "school-approval-required" });
-    expect(parseImageLabEnvironment({
-      ...readyEnvironment,
-      IMAGE_LAB_FAL_MINOR_USE_APPROVED: "false"
-    })).toEqual({ enabled: false, reason: "fal-minor-use-approval-required" });
     expect(parseImageLabEnvironment({ ...readyEnvironment, IMAGE_LAB_ACCOUNT_CAP_USD: "0" }))
       .toEqual({ enabled: false, reason: "account-cap-required" });
     expect(parseImageLabEnvironment({ ...readyEnvironment, FAL_KEY: undefined }))
@@ -48,9 +44,9 @@ describe("image-lab environment gate", () => {
       classroomCode: "Market-2026!",
       falKey: "fal-key",
       signingSecret: secret,
-      sessionMinutes: 120,
+      sessionMinutes: 75,
       objectAllowance: 6,
-      realiseAllowance: 2
+      realiseAllowance: 1
     });
     expect(parseImageLabEnvironment({
       ...readyEnvironment,
@@ -58,6 +54,13 @@ describe("image-lab environment gate", () => {
       IMAGE_LAB_OBJECT_ALLOWANCE: "999",
       IMAGE_LAB_REALISE_ALLOWANCE: "999"
     })).toMatchObject({ sessionMinutes: 240, objectAllowance: 12, realiseAllowance: 4 });
+  });
+
+  it("does not require or recognise the retired fal minor-use approval switch", () => {
+    expect(parseImageLabEnvironment({
+      ...readyEnvironment,
+      IMAGE_LAB_FAL_MINOR_USE_APPROVED: "false"
+    })).toMatchObject({ enabled: true, sessionMinutes: 75 });
   });
 });
 
@@ -117,6 +120,14 @@ describe("image-lab capability", () => {
     expect(cookie).toContain("SameSite=Strict");
     expect(cookie).toContain("Secure");
     expect(cookie).toContain("Max-Age=3600");
+  });
+});
+
+describe("image-lab capability cookie lifecycle", () => {
+  it("serialises a deletion cookie with the same restrictive scope", () => {
+    expect(serialiseExpiredCapabilityCookie(true)).toBe(
+      `${IMAGE_LAB_COOKIE}=; Path=/api/image-lab; HttpOnly; SameSite=Strict; Max-Age=0; Secure`
+    );
   });
 });
 

@@ -1,4 +1,4 @@
-export { default } from "../functions/image-lab-jobs.mjs";
+export { default } from "../function-bundles/image-lab-jobs.mjs";
 
 export const config = {
   path: ["/api/image-lab/jobs", "/api/image-lab/assets"],

@@ -1,4 +1,4 @@
-export { default } from "../functions/market-session.mjs";
+export { default } from "../function-bundles/market-session.mjs";
 
 export const config = {
   path: ["/api/market/create", "/api/market/join"],

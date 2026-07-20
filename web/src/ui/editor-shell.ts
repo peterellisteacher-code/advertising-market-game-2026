@@ -96,7 +96,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
                 <li><span>2</span><strong>Place</strong></li>
                 <li><span>3</span><strong>Design</strong></li>
               </ol>
-              <p>Every choice changes the cost—and the people most likely to want it.</p>
+              <p>Each choice changes the product's cost and the audience most likely to want it.</p>
             </aside>
           </section>
           <section class="creator__tool-panel creator__assets" id="studio-panel-assets" role="region" aria-label="Asset library" data-studio-panel="assets" hidden>
@@ -116,7 +116,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
             <div class="creator__library-results" data-library-results></div>
           </section>
           <section class="creator__tool-panel creator__quick-tools" id="studio-panel-words" role="region" aria-label="${STUDENT_COPY.labels.roundZeroTools}" data-studio-panel="words" hidden>
-            <h2>Words that work</h2>
+            <h2>Words</h2>
             <div class="creator__words-body">
               <label>${STUDENT_COPY.labels.canvasWords}<input data-canvas-words aria-label="${STUDENT_COPY.labels.canvasWords}" placeholder="${STUDENT_COPY.roundZero.textPlaceholder}"></label>
               <button type="button" data-add-words>${STUDENT_COPY.roundZero.addWords}</button>
@@ -128,11 +128,11 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           </section>
           <section class="creator__tool-panel creator__image-lab" id="studio-panel-image" role="region" aria-label="Image Lab" data-studio-panel="image" hidden>
             <h2>Image Lab</h2>
-            <div data-image-lab-panel><p role="status">Image powers checking</p></div>
+            <div data-image-lab-panel><p role="status">Image options loading</p></div>
           </section>
           <section class="creator__tool-panel creator__money-check" id="studio-panel-price" role="region" aria-label="Money check" data-studio-panel="price" data-creator-feature="money" hidden>
             <h2>Price your idea</h2>
-            <div data-money-check-panel><p role="status">Price clues loading</p></div>
+            <div data-money-check-panel><p role="status">Price data loading</p></div>
           </section>
           <section class="creator__tool-panel creator__market-route" id="studio-panel-route" role="region" aria-label="Market Route" data-studio-panel="route" data-creator-feature="route" hidden>
             <h2>Pick your market</h2>
@@ -148,8 +148,8 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           <div class="creator__canvas-empty" role="status" aria-label="Empty canvas" data-canvas-empty-state>
             <div class="creator__canvas-empty-card">
               <span class="creator__canvas-empty-mark" aria-hidden="true">✦</span>
-              <strong>Your ad starts here</strong>
-              <span>Build a product, then choose <b>Place product on ad</b>.</span>
+              <strong>Canvas empty</strong>
+              <span>Build a product. Then choose <b>Place product on ad</b>.</span>
             </div>
           </div>
           <canvas width="1600" height="900"></canvas>

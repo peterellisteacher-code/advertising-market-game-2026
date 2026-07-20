@@ -11,27 +11,27 @@ const WebRunProgressStore = preload("res://src/game/WebRunProgressStore.gd")
 const MARKET_WALLET_CENTS := 10000
 const LIVE_PROGRESS_CONTRACT := WebRunProgressStore.CONTRACT
 const MAX_LIVE_PROGRESS_BYTES := WebRunProgressStore.MAX_PROGRESS_BYTES
-const PAIR_READINESS_CLUE := "Clue: swap once and let both players make a visible change."
+const PAIR_READINESS_CLUE := "Clue: swap once; each player then makes one visible change."
 const READINESS_CLUES := {
-    "invent": "Clue: name it, build it, and choose who wants it.",
-    "sell": "Clue: land all four AIDA moves before the buzzer.",
-    "irresistible": "Clue: set a real price and launch your market route."
+    "invent": "Clue: name the product, build it, and identify its target customer.",
+    "sell": "Clue: deliver all four AIDA moves — Attention, Interest, Desire, Action — before the buzzer.",
+    "irresistible": "Clue: set a market-plausible price. Choose and deploy your market route."
 }
 
 const LEVEL_COPY := {
     "invent": {
         "eyebrow": "LEVEL 1 // INVENT IT",
-        "heading": "Build the thing they did not know they needed.",
-        "clue": "Read your audience signal, shape a product, and give it a name worth remembering."
+        "heading": "Design a product that solves an unrecognised customer need.",
+        "clue": "Identify one customer need, design a product for it, and give it a distinctive name."
     },
     "sell": {
         "eyebrow": "LEVEL 2 // SELL IT",
-        "heading": "Turn one invention into four persuasive moves.",
-        "clue": "Win attention, reward interest, build desire, then make the next move obvious."
+        "heading": "Apply the four AIDA moves — Attention, Interest, Desire, Action — to the Level 1 product.",
+        "clue": "Capture Attention, hold Interest, build Desire, then state the next Action."
     },
     "irresistible": {
-        "eyebrow": "LEVEL 3 // MAKE IT IRRESISTIBLE",
-        "heading": "Polish the pitch until the market wants in.",
+        "eyebrow": "LEVEL 3 // FINALISE IT",
+        "heading": "Refine the pitch until the market engages.",
         "clue": "Choose your price, market route, strongest features, and final visual finish."
     }
 }
@@ -155,7 +155,7 @@ func _setup_practice_recovery() -> void:
 func _begin_startup() -> void:
     _startup_state = "live-resume"
     start_button.disabled = true
-    status.text = "Checking for an active live market…"
+    status.text = "Checking live market status."
     market_host.resume_session()
 
 func _on_room_resumed(wrapper: Variant) -> void:
@@ -163,7 +163,7 @@ func _on_room_resumed(wrapper: Variant) -> void:
         return
     if wrapper == null:
         _startup_state = "practice-resume"
-        status.text = "Checking this computer for a saved pitch…"
+    status.text = "Checking this computer for a saved pitch."
         _issue_practice_resume("startup")
         return
     if typeof(wrapper) != TYPE_DICTIONARY:
@@ -188,7 +188,7 @@ func _on_room_resume_failed(_code: String, _message: String) -> void:
     lobby_panel.show()
     run_panel.hide()
     market_screen.hide()
-    status.text = "The live market could not be checked. Retry live or choose Practice explicitly."
+            status.text = "Live market check failed. Retry live, or select Practice explicitly."
 
 func _on_latest_draft_received(document: Variant) -> void:
     if _startup_state != "team-hydrating":
@@ -265,7 +265,7 @@ func _on_practice_request_succeeded(request_id: String, method: String, payload:
         start_button.disabled = false
         if context == "startup":
             _startup_state = "complete"
-            status.text = "Choose your pair name, then enter the market."
+        status.text = "Choose your pair name, then enter the market."
         elif context == "creator-refresh":
             status.text = "Campaign saved for the next level."
         return
@@ -292,13 +292,13 @@ func _on_practice_request_succeeded(request_id: String, method: String, payload:
             run_panel.show()
             market_screen.hide()
             _render_level()
-            status.text = "Saved pitch restored. Continue exactly where your pair left off."
+        status.text = "Saved pitch restored. Resume from exactly where your pair left off."
         "begin":
             lobby_panel.hide()
             run_panel.show()
             market_screen.hide()
             _render_level()
-            status.text = "Audience signals unlocked. Your first pitch starts now."
+        status.text = "Audience signals unlocked. First pitch starts now."
             _focus_if_ready(launch_button)
         "lock":
             _render_level()
@@ -341,9 +341,9 @@ func _on_practice_request_failed(request_id: String, method_or_code: String, cod
         _practice_retry_operation.clear()
     _practice_failure(context)
     if code == "PRACTICE_UNAVAILABLE":
-        status.text = "Saved practice is unavailable here. Live rooms are still ready."
+        status.text = "Saved practice unavailable here. Live rooms still ready."
     elif not message.is_empty() and context != "startup":
-        status.text = "That save did not land. Nothing changed; try again."
+        status.text = "Save failed. No state change. Retry."
 
 func _practice_failure(context: String) -> void:
     _pending_creator_document.clear()
@@ -353,13 +353,13 @@ func _practice_failure(context: String) -> void:
         _practice_ready = true
         lobby_panel.show()
         run_panel.hide()
-        status.text = "Saved progress could not be verified. It was kept untouched; you can start fresh or join live."
+        status.text = "Saved progress could not be verified. Data unchanged. Start fresh, or join live."
     elif context == "begin":
         start_button.disabled = false
-        status.text = "Practice could not start safely. Try again."
+        status.text = "Practice could not start safely. Retry."
     else:
         _render_level()
-        status.text = "That save did not land. Nothing changed; try again."
+        status.text = "Save failed. No state change. Retry."
 
 func _apply_practice_recovery(recovery: Dictionary) -> bool:
     var checkpoint_value: Variant = recovery.get("checkpoint")
@@ -452,11 +452,11 @@ func _start_run() -> void:
         _practice_ready = true
         _choose_new_route()
     if not _practice_ready or not _practice_pending_method.is_empty():
-        status.text = "Saved progress is still being checked."
+        status.text = "Saved progress verification in progress."
         return
     var alias := team_alias.text.strip_edges()
     if alias.length() < 2 or alias.length() > 32 or alias != team_alias.text:
-        status.text = "Choose a pair alias with 2 to 32 characters and no outside spaces."
+        status.text = "Pair alias must be 2 to 32 characters, no leading or trailing spaces."
         _focus_if_ready(team_alias)
         return
     _choose_new_route()
@@ -468,7 +468,7 @@ func _start_run() -> void:
     market_screen.call("set_market_host", market_host)
     _practice_recovery.clear()
     start_button.disabled = true
-    status.text = "Preparing a safe place for your pitch…"
+    status.text = "Preparing a safe place for your pitch."
     _begin_practice_request("begin", "begin")
     var operation_id := _practice_operation_id("begin", {"teamAlias": alias})
     var request_id: String = _practice_bridge.begin(alias, operation_id)
@@ -480,11 +480,11 @@ func _join_live_room() -> void:
     var alias := team_alias.text.strip_edges()
     var code := room_code.text.strip_edges().to_upper()
     if alias.length() < 2:
-        status.text = "Choose a pair alias with at least two characters."
+        status.text = "Pair alias must be at least 2 characters."
         _focus_if_ready(team_alias)
         return
     _choose_new_route()
-    status.text = "Joining the live market…"
+    status.text = "Joining live market."
     market_host.join_room(code, alias)
 
 func _create_live_room() -> void:
@@ -492,12 +492,12 @@ func _create_live_room() -> void:
     market_screen.call("set_market_host", market_host)
     var code := classroom_code.text.strip_edges()
     if code.is_empty():
-        status.text = "Enter the classroom code before opening the market."
+        status.text = "Enter classroom code before opening the market."
         _focus_if_ready(classroom_code)
         return
     _choose_new_route()
     var opening_wallet_cents := int(round(opening_wallet_bucks.value * 100.0))
-    status.text = "Opening a class market…"
+    status.text = "Opening class market."
     market_host.create_room(opening_wallet_cents, code, int(max_teams.value))
 
 func _begin_resumed_team(wrapper: Dictionary) -> void:
@@ -550,7 +550,7 @@ func _begin_resumed_team(wrapper: Dictionary) -> void:
     market_screen.hide()
     launch_button.disabled = true
     _startup_state = "team-hydrating"
-    status.text = "Restoring this pair’s exact live campaign…"
+    status.text = "Restoring this pair's exact live campaign."
     if creator_host.load_latest(String(canonical_document.get("documentId"))).is_empty():
         _fail_live_hydration()
 
@@ -570,7 +570,7 @@ func _finish_resumed_team(document: Dictionary) -> void:
     market_screen.hide()
     run_panel.show()
     _render_level()
-    status.text = "Live pitch restored. Continue exactly where your pair left off."
+        status.text = "Live pitch restored. Resume from exactly where your pair left off."
     _focus_if_ready(launch_button)
 
 func _fail_live_hydration() -> void:
@@ -582,7 +582,7 @@ func _fail_live_hydration() -> void:
     lobby_panel.show()
     run_panel.hide()
     market_screen.hide()
-    status.text = "The live room returned, but its exact saved campaign could not be verified. Progress was kept untouched."
+        status.text = "Live room restored. Exact saved campaign could not be verified. Progress unchanged."
 
 func _team_room_context(wrapper: Dictionary) -> Dictionary:
     var snapshot_value: Variant = wrapper.get("snapshot")
@@ -616,7 +616,7 @@ func _on_room_joined(wrapper: Dictionary) -> void:
     var session_id := "room-session-%s" % team_id
     _game_run = GameRun.new()
     if not _game_run.begin(alias, session_id, team_id):
-        status.text = "The pair could not enter the pitch levels safely."
+        status.text = "Pair could not enter pitch levels safely."
         return
     _room_role = "team"
     _practice_recovery.clear()
@@ -632,7 +632,7 @@ func _on_room_joined(wrapper: Dictionary) -> void:
     market_screen.hide()
     lobby_panel.hide()
     run_panel.show()
-    status.text = "Room joined. Your first pitch starts now."
+    status.text = "Room joined. First pitch starts now."
     _render_level()
     _save_live_progress()
     _focus_if_ready(launch_button)
@@ -650,7 +650,7 @@ func _on_room_created(wrapper: Dictionary) -> void:
     market_screen.call("enter_room", "teacher", _room_code)
     market_screen.call("present_snapshot", _latest_market_snapshot)
     market_screen.show()
-    status.text = "Class market open. Share the room code on the host display."
+    status.text = "The class market is open. Share the room code shown on the host display with the teams."
 
 func _on_market_snapshot(snapshot: Dictionary) -> void:
     if _room_role.is_empty():
@@ -684,18 +684,18 @@ func _on_market_campaign_published(_result: Dictionary) -> void:
     run_panel.hide()
     market_screen.show()
     market_screen.call("show_publication_waiting")
-    status.text = "Market card delivered. The host will bring it onto the floor."
+        status.text = "Market card delivered. The host will display it on the floor."
 
 func _reopen_returned_campaign() -> void:
     if _room_role != "team" or _live_publication_pending:
         return
     if _startup_state == "team-hydrating":
-        status.text = "Restoring this pair’s exact live campaign before the studio reopens…"
+    status.text = "Restoring this pair's exact saved live campaign. The studio reopens once the restore completes."
         return
     market_screen.hide()
     run_panel.show()
     _render_level()
-    status.text = "Reopening the studio with the host note beside you…"
+    status.text = "Reopening the studio. The host note is loaded with the campaign."
     _set_campaign_stage_for_phase()
     if creator_host.open_creator(_campaign_document).is_empty():
         status.text = "The saved campaign could not be reopened. Try again."
@@ -711,19 +711,19 @@ func _open_creator() -> void:
     if not LEVEL_COPY.has(_game_run.phase):
         status.text = "The creative studio opens during the three pitch levels."
         return
-    status.text = "Opening the creative studio…"
+    status.text = "Opening the creative studio."
     _set_campaign_stage_for_phase()
     creator_host.open_creator(_campaign_document)
 
 func _on_creator_opened() -> void:
     if _publish_after_open:
-        status.text = "Building your market card…"
+    status.text = "Building your market card."
         if creator_host.publish_creator().is_empty():
             _publish_after_open = false
             publish_campaign.disabled = false
             status.text = "The market card could not be built. Try again."
         return
-    status.text = "Campaign Creator open · game input paused"
+    status.text = "Campaign Creator open. Game input paused."
 
 func _on_creator_closed() -> void:
     if _room_role == "team" and _game_run.phase == "publish-check":
@@ -733,14 +733,14 @@ func _on_creator_closed() -> void:
     if _game_run.phase == "market":
         status.text = "Market card live. Browse the stalls and spend your budget."
         return
-    status.text = "Studio saved. Lock this level when your pair is happy with the move."
+        status.text = "Studio saved. Lock this level when your pair is ready."
     _focus_if_ready(lock_level)
 
 func _on_creator_state_received(document: Dictionary) -> void:
     if _room_role.is_empty() and not _practice_recovery.is_empty():
         _pending_creator_document = document.duplicate(true)
         if _practice_pending_method.is_empty():
-            status.text = "Checking the saved campaign…"
+    status.text = "Checking the saved campaign."
             _issue_practice_resume("creator-refresh")
         return
     if _room_role == "team":
@@ -780,7 +780,7 @@ func _lock_current_level() -> void:
             status.text = "The saved pitch marker is missing. Return to the studio and try again."
             return
         lock_level.disabled = true
-        status.text = "Saving this level lock…"
+        status.text = "Saving this level lock."
         _begin_practice_request("setLock", "lock")
         var operation_id := _practice_operation_id("lock", {
             "checkpoint": token.duplicate(true),
@@ -830,7 +830,7 @@ func _advance_level() -> void:
             status.text = "There is no next pitch level."
             return
         advance_level.disabled = true
-        status.text = "Saving the next level reveal…"
+        status.text = "Saving the next level reveal."
         _begin_practice_request("advance", "advance")
         var operation_id := _practice_operation_id("advance", {
             "checkpoint": _practice_token().duplicate(true),
@@ -859,7 +859,7 @@ func _publish_campaign() -> void:
     if creator_host.creator_is_open:
         _on_creator_opened()
         return
-    status.text = "Reopening your saved campaign for one final market card…"
+    status.text = "Reopening your saved campaign for the final market card."
     if creator_host.open_creator(_campaign_document).is_empty():
         _publish_after_open = false
         publish_campaign.disabled = false
@@ -870,7 +870,7 @@ func _on_creator_published(publication: Dictionary) -> void:
     _published_campaign = publication.duplicate(true)
     if _room_role == "team":
         _live_publication_pending = true
-        status.text = "Sending your market card to the host…"
+    status.text = "Sending your market card to the host."
         if market_host.publish_campaign(publication).is_empty():
             _live_publication_pending = false
             publish_campaign.disabled = false
@@ -915,32 +915,32 @@ func _render_level() -> void:
 
     if phase == "publish-check":
         level_eyebrow.text = "MARKET GATE"
-        level_heading.text = "One final look before the stalls open."
-        level_clue.text = "Your campaign has travelled through all three levels. Build the card your shoppers will see."
+        level_heading.text = "Preview before the stalls open."
+        level_clue.text = "Your campaign has completed all three levels. Build the card your shoppers will see."
         launch_button.hide()
         lock_level.hide()
         advance_level.hide()
         publish_campaign.show()
         publish_campaign.disabled = false
         _focus_if_ready(publish_campaign)
-        status.text = "Three levels cleared. Your market card is next."
+        status.text = "Three levels complete. Your market card is next."
         return
 
     if phase == "market":
         level_eyebrow.text = "LIVE MARKET"
-        level_heading.text = "Your stall is open. Now shop the room."
+        level_heading.text = "Your stall is open. Shop the room."
         level_clue.text = "Spend at least $80 across products from at least two different teams."
         launch_button.hide()
         lock_level.hide()
         advance_level.hide()
         publish_campaign.hide()
-        status.text = "Market card built. Loading the other stalls…"
+        status.text = "Market card built. Loading the other stalls."
         return
 
     var copy: Dictionary = LEVEL_COPY.get(phase, {})
     level_eyebrow.text = str(copy.get("eyebrow", "PITCH LEVEL"))
     level_heading.text = str(copy.get("heading", "Make the next move."))
-    level_clue.text = str(copy.get("clue", "Open the studio and keep building."))
+    level_clue.text = str(copy.get("clue", "Open the studio and continue building."))
     launch_button.show()
     lock_level.show()
     advance_level.show()

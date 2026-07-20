@@ -66,42 +66,42 @@ export const MARKET_ZONES: readonly MarketZoneDefinition[] = immutableCatalogue(
     label: "Neighbourhood Loop",
     scale: "Nearby streets",
     geolocation: "Juniper Lane and the surrounding blocks",
-    clue: "Feels close, familiar and easy to join."
+    clue: "Reaches local residents within nearby streets."
   },
   {
     id: "city",
     label: "City Pulse",
-    scale: "One busy city",
+    scale: "One city",
     geolocation: "Harbourlight City",
-    clue: "Catches people while they move, meet and choose."
+    clue: "Reaches the population of one city during daily travel, socialising and purchasing."
   },
   {
     id: "regional",
     label: "Regional Run",
     scale: "Several towns",
     geolocation: "The Copper Plains region",
-    clue: "Connects places that share travel, trade and local pride."
+    clue: "Reaches several towns in one region linked by travel and trade."
   },
   {
     id: "national",
     label: "National Stage",
     scale: "Across the country",
     geolocation: "The Republic of Wattle",
-    clue: "Builds a big, recognisable story across many communities."
+    clue: "Reaches audiences across the whole country through one consistent message."
   },
   {
     id: "global",
     label: "Global Launch",
     scale: "Across borders",
     geolocation: "The Meridian world market",
-    clue: "Carries a clear idea to people in many places."
+    clue: "Reaches audiences in multiple countries through one consistent message."
   },
   {
     id: "destination",
     label: "Destination Spotlight",
-    scale: "One place worth travelling to",
+    scale: "One destination",
     geolocation: "Starfall Coast",
-    clue: "Turns a location into part of the promise."
+    clue: "Uses one location as the campaign's central subject."
   }
 ]);
 
@@ -110,83 +110,83 @@ export const ADVERTISING_MEDIA: readonly AdvertisingMediumDefinition[] = immutab
     id: "billboard",
     label: "Billboard",
     placement: "Roadside and skyline panels",
-    clue: "One bold idea seen in seconds."
+    clue: "One short message on roadside and skyline panels, viewed briefly."
   },
   {
     id: "transit",
     label: "Transit",
     placement: "Buses, trains, shelters and stations",
-    clue: "Travels through everyday movement."
+    clue: "Appears on buses, trains, shelters and stations during daily travel."
   },
   {
     id: "storefront",
     label: "Storefront",
     placement: "Windows, counters and street signs",
-    clue: "Meets people close to a real choice."
+    clue: "Reaches people at the point of purchase on windows, counters and street signs."
   },
   {
     id: "magazine",
     label: "Magazine",
     placement: "Print and digital feature pages",
-    clue: "Gives details room to feel considered."
+    clue: "Carries detailed content across print and digital feature pages."
   },
   {
     id: "social-feed",
     label: "Social feed",
     placement: "Short posts, stories and creator spots",
-    clue: "Makes an idea quick to notice and share."
+    clue: "Short-form content for quick viewing and sharing."
   },
   {
     id: "search",
     label: "Search",
     placement: "Results pages and local listings",
-    clue: "Appears when someone is already looking."
+    clue: "Displayed on results pages and local listings when a user searches."
   },
   {
     id: "streaming-video",
     label: "Streaming video",
     placement: "Short video spots around streamed shows",
-    clue: "Shows the offer in action with sound and motion."
+    clue: "Video with sound and motion around streamed shows."
   },
   {
     id: "podcast-audio",
     label: "Podcast and audio",
     placement: "Host reads, music streams and audio spots",
-    clue: "Builds a picture through voice and sound."
+    clue: "Audio-led content delivered through host reads, music streams and audio spots."
   },
   {
     id: "cinema",
     label: "Cinema",
     placement: "Big-screen spots before a film",
-    clue: "Makes one promise feel like an event."
+    clue: "Big-screen spots shown before a film screening."
   },
   {
     id: "event-sponsorship",
     label: "Event and sponsorship",
     placement: "Festivals, clubs, matches and pop-ups",
-    clue: "Lets people meet the idea in a shared moment."
+    clue: "Placed at festivals, clubs, matches and pop-ups where audiences gather."
   },
   {
     id: "direct",
     label: "Direct",
     placement: "Email, mail, handouts and messages",
-    clue: "Speaks clearly to a known group."
+    clue: "Sent to a known audience via email, mail, handouts or messages."
   }
 ]);
 
 export const PRODUCT_TRAITS: readonly ProductTraitDefinition[] = immutableCatalogue([
-  { id: "value", label: "Value", clue: "Feels worth the price." },
-  { id: "premium", label: "Premium", clue: "Feels special, polished or rare." },
+  { id: "value", label: "Value", clue: "Signals that the offer matches its price." },
+  { id: "premium", label: "Premium", clue: "Special, polished or rare product." },
   { id: "portability", label: "Portability", clue: "Easy to carry or take along." },
   { id: "durability", label: "Durability", clue: "Made to last through repeated use." },
   { id: "visibility", label: "Visibility", clue: "Easy to notice, recognise or show." },
   { id: "capacity", label: "Capacity", clue: "Holds, serves or supports more." },
-  { id: "comfort", label: "Comfort", clue: "Makes time or space feel better." },
+  { id: "comfort", label: "Comfort", clue: "Improves time or space." },
   { id: "sustainability", label: "Sustainability", clue: "Uses resources with care." },
-  { id: "novelty", label: "Novelty", clue: "Offers a fresh surprise." },
+  { id: "novelty", label: "Novelty", clue: "Offers something new." },
   { id: "convenience", label: "Convenience", clue: "Makes a choice quicker or easier." },
-  { id: "experience-escape", label: "Experience and escape", clue: "Creates a memorable change of scene." },
-  { id: "space-property", label: "Space and property", clue: "Shapes how a place can look, feel or work." }
+  { id: "experience-escape", label: "Experience and escape", clue: "Provides a change of scene." },
+  { id: "space-property", label: "Space and property", clue: "Shapes how a place looks or works." }
 ]);
 
 export interface MarketRouteInput {
@@ -563,7 +563,7 @@ export function evaluateCommittedMarketRoute(
   const audienceFit: RouteFit = audienceTraits.length > 0 ? "supports" : "stretch";
   const audienceReason = audienceFit === "supports"
     ? `${formatList(audienceTraits.map(traitLabel))} support ${formatList(brief.values)} and the need: ${brief.need}`
-    : `${formatList(validatedProduct.effectiveTraitIds.map(traitLabel))} are clear, but their link to ${formatList(brief.values)} and the need “${brief.need}” needs one sharper clue.`;
+    : `${formatList(validatedProduct.effectiveTraitIds.map(traitLabel))} are clear, but their link to ${formatList(brief.values)} and the need "${brief.need}" needs a clearer link.`;
 
   const zoneProfile = ZONE_FIT[validatedRoute.zoneId];
   const zoneValues = sharedValues(zoneProfile, brief);
@@ -573,7 +573,7 @@ export function evaluateCommittedMarketRoute(
     : "stretch";
   const zoneReason = zoneFit === "supports"
     ? `${zone.label} connects ${formatList(zoneValues)} with ${formatList(zoneTraits.map(traitLabel))} at ${zone.scale.toLowerCase()}.`
-    : `${zone.label} is a bold stretch for this audience. Make the reason for that scale visible.`;
+    : `${zone.label} exceeds this audience's usual reach. State the reason for this scale.`;
 
   const matchingMedium = media.find((medium) => {
     const profile = MEDIA_FIT[medium.id];
@@ -590,8 +590,8 @@ export function evaluateCommittedMarketRoute(
     ? []
     : sharedValues(matchingProfile, brief);
   const mediaReason = mediaFit === "supports"
-    ? `${mediumLabels} can show ${formatList(mediaTraits.map(traitLabel))} in a way that speaks to ${formatList(mediaValues)}.`
-    : `${mediumLabels} gives you a clear placement, but the audience connection needs a sharper message.`;
+    ? `${mediumLabels} can show ${formatList(mediaTraits.map(traitLabel))} in a way that matches ${formatList(mediaValues)}.`
+    : `${mediumLabels} gives you a clear placement, but the audience connection needs a more direct message.`;
 
   const evidence = Object.freeze([
     immutableEvidence("audience", audienceFit, audienceReason),
@@ -605,20 +605,20 @@ export function evaluateCommittedMarketRoute(
       ? "promising"
       : "risky";
   const headline = outcome === "strong"
-    ? "Strong route"
+    ? "Strong fit"
     : outcome === "promising"
-      ? "Promising route"
-      : "Risky route";
+      ? "Possible fit"
+      : "Weak fit";
 
   const firstTrait = traitLabel(validatedProduct.effectiveTraitIds[0]!);
-  const firstValue = brief.values[0] ?? "what matters to this audience";
+  const firstValue = brief.values[0] ?? "audience values";
   const nextMove = audienceFit === "stretch"
-    ? `Keep the idea, then show how ${firstTrait} answers “${brief.need}” in one clear promise.`
+    ? `Continue with ${firstTrait}; show how it answers "${brief.need}" in one statement.`
     : zoneFit === "stretch"
-      ? `Keep ${zone.label} if you like the scale, then connect it to ${firstValue} in the message.`
+      ? `Use ${zone.label} and connect it to ${firstValue} in the message.`
       : mediaFit === "stretch"
-        ? `Give ${media[0]!.label} one job: show ${firstTrait} in a way that speaks to ${firstValue}.`
-        : `Lock in one proof point: show how ${media[0]!.label} delivers ${firstTrait} for ${firstValue}.`;
+        ? `Use ${media[0]!.label} to show ${firstTrait} in a way that matches ${firstValue}.`
+        : `State one proof point: show how ${media[0]!.label} delivers ${firstTrait} for ${firstValue}.`;
 
   return Object.freeze({ outcome, headline, evidence, nextMove });
 }

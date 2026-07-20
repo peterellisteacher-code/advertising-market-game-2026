@@ -76,7 +76,7 @@ describe("ImageLabPanel", () => {
     await panel.initialise();
 
     expect(getByRole(host, "status").textContent).toContain("Image Lab is asleep");
-    expect(host.textContent).toContain("built-in tools still work");
+    expect(host.textContent).toContain("Built-in tools still work");
     expect(queryByRole(host, "button")).toBeNull();
   });
 

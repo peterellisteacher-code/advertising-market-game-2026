@@ -36,7 +36,7 @@ export const CREATOR_STAGES: readonly CreatorStageDefinition[] = Object.freeze([
     ROUND_ZERO_COMMANDS,
     ROUND_ZERO_COMMANDS,
     ["make", "undo"],
-    "Make a first change together, then use undo if you want to try another direction."
+    "Make a first change together. Use undo to return to a prior state."
   ),
   immutableStage(
     "invent",

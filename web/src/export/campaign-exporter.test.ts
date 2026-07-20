@@ -184,7 +184,7 @@ describe("CampaignExporter", () => {
     const port = new ExportHarness(pngDataUrl(), document.fabricState);
 
     expect(() => new CampaignExporter(port, ownedUrls(document)).publish(document))
-      .toThrow("Swap once and let both players make a visible change");
+      .toThrow("Before the market opens, swap control once. Both players each make one visible change.");
     expect(port.renderCount).toBe(0);
   });
 

@@ -183,7 +183,7 @@ export class AccountAccessController {
     this.#gateRoot.hidden = false;
     const section = this.#gateCard("Create a pair login");
     const intro = document.createElement("p");
-    intro.textContent = "Teacher only: choose a pair username, save the generated password, then enter the setup code.";
+    intro.textContent = "Teacher only. Choose a pair username. Save the generated password. Enter the setup code.";
     const form = document.createElement("form");
     form.setAttribute("aria-label", "Create pair login");
     const username = this.#field(form, "Pair username", "text", "username", "username");

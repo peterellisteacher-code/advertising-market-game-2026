@@ -189,7 +189,7 @@ function validatePriceIntegrity(document: CampaignDocumentV1): void {
 function validatePairParticipation(document: CampaignDocumentV1): void {
   const pair = document.gameplay.pair;
   if (pair.handoffCount < 1 || pair.artDirectorActions < 1 || pair.strategistActions < 1) {
-    throw new Error("Swap once and let both players make a visible change before opening the market.");
+    throw new Error("Before the market opens, swap control once. Both players each make one visible change.");
   }
 }
 

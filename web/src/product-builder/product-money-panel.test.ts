@@ -38,8 +38,8 @@ describe("ProductMoneyPanel", () => {
 
     panel.setState({ build: null, priceCents: null });
 
-    expect(host.textContent).toContain("Cost is a clue, not a limit");
-    expect(host.textContent).toContain("Build and place a product");
+    expect(host.textContent).toContain("Cost does not restrict which product students may build");
+    expect(host.textContent).toContain("No product placed");
     expect(host.textContent).not.toMatch(/\b(?:assignment|unit|task|budget cap)\b/i);
   });
 
@@ -62,17 +62,17 @@ describe("ProductMoneyPanel", () => {
 
     fireEvent.input(price, { target: { value: "30" } });
     expect(onPrice).toHaveBeenLastCalledWith(3_000);
-    expect(host.textContent).toContain("Lose $5.50 each sale");
+    expect(host.textContent).toContain("Loss $5.50 per sale");
 
     fireEvent.input(price, { target: { value: "50" } });
     expect(onPrice).toHaveBeenLastCalledWith(5_000);
-    expect(host.textContent).toContain("Make $14.50 each sale");
+    expect(host.textContent).toContain("Profit $14.50 per sale");
     fireEvent.click(getByRole(host, "button", { name: "Add price to design" }));
     expect(onAddPrice).toHaveBeenCalledOnce();
 
     fireEvent.input(price, { target: { value: "" } });
     expect(onPrice).toHaveBeenLastCalledWith(null);
-    expect(host.textContent).toContain("Set a price to see what each sale makes");
+    expect(host.textContent).toContain("No price set. Set a price to view profit or loss.");
   });
 
   it("accepts high-value products without shrinking them into a retail cap", () => {
@@ -91,7 +91,7 @@ describe("ProductMoneyPanel", () => {
     const price = getByRole<HTMLInputElement>(host, "spinbutton", { name: "Market price in dollars" });
     expect(price.value).toBe("500000");
     expect(host.textContent).toContain("$325,000.00");
-    expect(host.textContent).toContain("Make $175,000.00 each sale");
+    expect(host.textContent).toContain("Profit $175,000.00 per sale");
   });
 
   it("keeps the build-cost clues visible before Level 3 unlocks market pricing", () => {

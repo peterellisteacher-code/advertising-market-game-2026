@@ -318,7 +318,7 @@ describe("ProductKitPanel", () => {
     expect(panel.hydrate(restored)).toBe(true);
     expect(host.textContent).toBe(first);
     expect(getByRole<HTMLInputElement>(host, "radio", { name: /Flat lid/ }).checked).toBe(true);
-    expect(host.textContent).toContain("On your ad — change a choice to make another version");
+    expect(host.textContent).toContain("On your ad. Change a choice to replace it.");
     expect(getByRole(host, "button", { name: "Place another product on ad" })).toBeTruthy();
   });
 

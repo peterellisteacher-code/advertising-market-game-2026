@@ -189,7 +189,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 23
-text = "The room is getting ready."
+text = "The room is being prepared."
 autowrap_mode = 2
 
 [node name="TeamSurface" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content"]
@@ -264,14 +264,14 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 20
-text = "Your stall is getting ready"
+text = "Stall preparing."
 
 [node name="CampaignStatusCopy" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/CampaignState/CampaignStateContent"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
 theme_override_font_sizes/font_size = 16
-text = "Build your market card, then the host can bring it onto the floor."
+text = "Build your market card. The host brings it to the floor."
 autowrap_mode = 2
 
 [node name="FixCampaign" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/CampaignState/CampaignStateContent"]
@@ -299,7 +299,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 22
-text = "The market reveal is on the host display — look up for the podium."
+text = "Market reveal is on the host display."
 horizontal_alignment = 1
 autowrap_mode = 2
 

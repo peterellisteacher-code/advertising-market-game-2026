@@ -178,12 +178,12 @@ export class ImageLabPanel {
       this.#state = config.enabled ? "locked" : "disabled";
       this.#message = config.enabled
         ? "Ask your teacher to wake the Image Lab."
-        : "Image Lab is asleep. Your built-in tools still work.";
+      : "Image Lab is asleep. Built-in tools still work.";
     } catch (error) {
       if (!this.#current(controller) || controller.signal.aborted) return;
       this.#config = { enabled: false, reason: "unavailable" };
       this.#state = "disabled";
-      this.#message = "Image Lab is asleep. Your built-in tools still work.";
+    this.#message = "Image Lab is asleep. Built-in tools still work.";
     } finally {
       if (this.#current(controller)) this.#operation = null;
       this.#draw();

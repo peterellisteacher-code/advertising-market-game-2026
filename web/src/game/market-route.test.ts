@@ -235,7 +235,7 @@ describe("committed route feedback", () => {
       "media"
     ]);
     expect(cityFeedback.evidence[0]?.reason).toContain(
-      "A simple way to make that hour feel worthwhile."
+      "Method to make the window productive."
     );
     expect(cityFeedback.evidence[0]?.reason).toContain("independence");
     expect(cityFeedback.evidence[1]?.reason).toContain("City Pulse");

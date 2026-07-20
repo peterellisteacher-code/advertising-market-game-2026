@@ -454,7 +454,7 @@ export class ProductKitPanel {
       "p",
       "product-kit__status",
       alreadyPlaced
-        ? "On your ad — change a choice to make another version"
+        ? "On your ad. Change a choice to replace it."
         : completeRequest
           ? "Ready to place on your ad"
           : `Choose a ${missingGroup ?? "part"} to finish your product`

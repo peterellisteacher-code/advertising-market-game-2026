@@ -51,13 +51,13 @@ On Peter's current OneDrive working copy, native Godot launches are quarantined 
 After GitHub Actions produces a verified complete artifact, download it to a fresh directory and create a draft deploy from the repository root:
 
 ```powershell
-pnpm deploy:draft -- --artifact C:\path\to\downloaded-artifact
+pnpm run deploy:draft --artifact "C:\path\to\downloaded-artifact"
 ```
 
 After hosted verification, publish the same downloaded artifact deliberately:
 
 ```powershell
-pnpm deploy:production -- --artifact C:\path\to\downloaded-artifact
+pnpm run deploy:production --artifact "C:\path\to\downloaded-artifact"
 ```
 
 Both commands require an explicit artifact path, verify it, rebuild the self-contained Function bundles, and preserve its own hosted headers. Never configure GitHub or Netlify to publish `build/web/` automatically.

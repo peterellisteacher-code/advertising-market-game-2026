@@ -185,7 +185,7 @@ describe("LogoLabPanel", () => {
       "Remix symbol",
       "Remix type",
       "Remix colours",
-      "Surprise me"
+      "Random logo"
     ].entries()) {
       fireEvent.click(getByRole(host, "button", { name }));
       await waitFor(() => expect(onReplace).toHaveBeenCalledTimes(index + 1));

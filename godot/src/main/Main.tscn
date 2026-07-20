@@ -159,7 +159,7 @@ autowrap_mode = 2
 layout_mode = 2
 theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
 theme_override_font_sizes/font_size = 18
-text = "Three levels. One original product. A live market full of other teams trying to win your wallet."
+text = "Three levels build one product — from invention and audience choice, through an AIDA campaign, to a priced and placed design — before teams spend a fixed budget in a live class market on other teams' products."
 autowrap_mode = 2
 
 [node name="LobbyPanel" type="PanelContainer" parent="MainMargin/GameInput"]

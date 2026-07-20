@@ -8,16 +8,17 @@ import {
 } from "./export-godot-web.mjs";
 
 test("Godot executable discovery prefers an explicit override and keeps the classroom install fallback", () => {
+  const homedir = "C:\\Users\\Teacher";
   const candidates = godotExecutableCandidates({
     env: { GODOT_BIN: "D:\\Tools\\Godot.exe" },
-    homedir: "C:\\Users\\Teacher",
+    homedir,
     platform: "win32"
   });
 
   assert.deepEqual(candidates, [
     "D:\\Tools\\Godot.exe",
-    "C:\\Users\\Teacher\\Godot\\godot_current_console.exe",
-    "C:\\Users\\Teacher\\Godot\\godot_current.exe"
+    path.join(homedir, "Godot", "godot_current_console.exe"),
+    path.join(homedir, "Godot", "godot_current.exe")
   ]);
 });
 

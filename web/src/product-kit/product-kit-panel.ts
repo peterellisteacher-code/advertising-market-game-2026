@@ -3,7 +3,11 @@ import {
   createProductBuildSnapshot,
   type ProductBuildSnapshot
 } from "../product-builder/product-economics";
-import type { ProductKitLayerPlan } from "./layer-plan";
+import type {
+  ProductKitLayerEntry,
+  ProductKitLayerPlan,
+  ProductKitRenderLayer
+} from "./layer-plan";
 import {
   isParsedProductKitCatalogue,
   type ProductKitComponent,
@@ -16,7 +20,10 @@ import {
 } from "./product-kit-document";
 import { quoteProductKitComposition } from "./product-kit-economics";
 import type { ProductKitPrice } from "./product-kit-pricing";
-import { productKitRasterMatrix } from "./product-kit-raster-matrix";
+import {
+  productKitRasterMatrix,
+  type ProductKitRasterMatrix
+} from "./product-kit-raster-matrix";
 import type {
   ProductKitCompositionPlacementRequest,
   ProductKitCompositionRequest
@@ -24,6 +31,82 @@ import type {
 
 const LOGICAL_WIDTH = 400;
 const LOGICAL_HEIGHT = 500;
+const PREVIEW_ASPECT_RATIO = LOGICAL_WIDTH / LOGICAL_HEIGHT;
+const PREVIEW_PADDING_RATIO = 0.08;
+const MIN_PREVIEW_PADDING = 12;
+
+type PreviewRasterEntry = Exclude<ProductKitLayerEntry, { readonly kind: "artwork-slot" }>;
+
+interface PreviewRasterLayer {
+  readonly layer: ProductKitRenderLayer;
+  readonly entry: PreviewRasterEntry;
+  readonly source: string;
+  readonly matrix: ProductKitRasterMatrix;
+}
+
+interface PreviewCrop {
+  readonly left: number;
+  readonly top: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+function previewLayerBounds(
+  entry: PreviewRasterEntry,
+  matrix: ProductKitRasterMatrix
+): { readonly left: number; readonly top: number; readonly right: number; readonly bottom: number } {
+  const width = entry.raster.frame.trimWidth;
+  const height = entry.raster.frame.trimHeight;
+  const [a, b, c, d, e, f] = matrix;
+  const centreX = LOGICAL_WIDTH / 2 + e;
+  const centreY = LOGICAL_HEIGHT / 2 + f;
+  const corners = [-1, 1].flatMap((xSign) => [-1, 1].map((ySign) => {
+    const x = xSign * width / 2;
+    const y = ySign * height / 2;
+    return {
+      x: centreX + a * x + c * y,
+      y: centreY + b * x + d * y
+    };
+  }));
+  const xs = corners.map(({ x }) => x);
+  const ys = corners.map(({ y }) => y);
+  return {
+    left: Math.min(...xs),
+    top: Math.min(...ys),
+    right: Math.max(...xs),
+    bottom: Math.max(...ys)
+  };
+}
+
+function previewCrop(layers: readonly PreviewRasterLayer[]): PreviewCrop {
+  const bounds = layers.map(({ entry, matrix }) => previewLayerBounds(entry, matrix));
+  const left = Math.min(...bounds.map((value) => value.left));
+  const top = Math.min(...bounds.map((value) => value.top));
+  const right = Math.max(...bounds.map((value) => value.right));
+  const bottom = Math.max(...bounds.map((value) => value.bottom));
+  const contentWidth = right - left;
+  const contentHeight = bottom - top;
+  let width = contentWidth + 2 * Math.max(
+    MIN_PREVIEW_PADDING,
+    contentWidth * PREVIEW_PADDING_RATIO
+  );
+  let height = contentHeight + 2 * Math.max(
+    MIN_PREVIEW_PADDING,
+    contentHeight * PREVIEW_PADDING_RATIO
+  );
+  if (width / height > PREVIEW_ASPECT_RATIO) height = width / PREVIEW_ASPECT_RATIO;
+  else width = height * PREVIEW_ASPECT_RATIO;
+  return {
+    left: (left + right - width) / 2,
+    top: (top + bottom - height) / 2,
+    width,
+    height
+  };
+}
+
+function percentage(value: number): string {
+  return `${Math.round(value * 1_000_000) / 1_000_000}%`;
+}
 
 interface CertifiedChoice {
   readonly item: ProductKitComponent;
@@ -440,6 +523,7 @@ export class ProductKitPanel {
     figure.setAttribute("aria-label", accessibleName);
     const canvas = node("div", "product-kit__preview-canvas");
     canvas.setAttribute("aria-hidden", "true");
+    const renderLayers: PreviewRasterLayer[] = [];
     for (const bucket of plan.layers) {
       for (const entry of bucket.entries) {
         if (entry.kind === "artwork-slot") {
@@ -454,19 +538,31 @@ export class ProductKitPanel {
         );
         const matrix = productKitRasterMatrix(selected.item.base.frame, entry);
         if (!source || !matrix) return null;
-        const image = node("img");
-        image.alt = "";
-        image.decoding = "async";
-        image.draggable = false;
-        image.src = source;
-        image.dataset.productLayer = bucket.layer;
-        image.style.left = `${LOGICAL_WIDTH / 2 - entry.raster.frame.trimWidth / 2}px`;
-        image.style.top = `${LOGICAL_HEIGHT / 2 - entry.raster.frame.trimHeight / 2}px`;
-        image.style.width = `${entry.raster.frame.trimWidth}px`;
-        image.style.height = `${entry.raster.frame.trimHeight}px`;
-        image.style.transform = `matrix(${matrix.join(", ")})`;
-        canvas.append(image);
+        renderLayers.push({ layer: bucket.layer, entry, source, matrix });
       }
+    }
+    if (renderLayers.length === 0) return null;
+    const crop = previewCrop(renderLayers);
+    for (const { layer, entry, source, matrix } of renderLayers) {
+      const width = entry.raster.frame.trimWidth;
+      const height = entry.raster.frame.trimHeight;
+      const [a, b, c, d, e, f] = matrix;
+      const image = node("img");
+      image.alt = "";
+      image.decoding = "async";
+      image.draggable = false;
+      image.src = source;
+      image.dataset.productLayer = layer;
+      image.style.left = percentage(
+        (LOGICAL_WIDTH / 2 - width / 2 + e - crop.left) / crop.width * 100
+      );
+      image.style.top = percentage(
+        (LOGICAL_HEIGHT / 2 - height / 2 + f - crop.top) / crop.height * 100
+      );
+      image.style.width = percentage(width / crop.width * 100);
+      image.style.height = percentage(height / crop.height * 100);
+      image.style.transform = `matrix(${a}, ${b}, ${c}, ${d}, 0, 0)`;
+      canvas.append(image);
     }
     figure.append(canvas);
     return figure;

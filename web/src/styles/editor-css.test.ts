@@ -72,6 +72,12 @@ describe("Fabric canvas layer styling", () => {
     );
   });
 
+  it("keeps Product Kit controls ahead of the launch path instead of shrinking underneath it", () => {
+    expect(css).toMatch(
+      /\.creator__tool-panel\.creator__product-builder\s*>\s*\[data-product-builder-panel\]\s*\{[^}]*flex:\s*0\s+0\s+auto\s*;?[^}]*\}/i
+    );
+  });
+
   it("gives each drawer mode exactly one vertical scroll owner", () => {
     expect(css).toMatch(
       /\.creator__tool-drawer\s*\{[^}]*overflow:\s*hidden[^}]*\}/i
@@ -95,7 +101,7 @@ describe("Fabric canvas layer styling", () => {
       /\.product-kit__preview-frame\s*\{[^}]*width:\s*12rem[^}]*aspect-ratio:\s*4\s*\/\s*5[^}]*\}/i
     );
     expect(css).toMatch(
-      /\.product-kit__preview-canvas\s*\{[^}]*left:\s*-34px[^}]*top:\s*-85px[^}]*transform:\s*scale\(\.65\)[^}]*\}/i
+      /\.product-kit__preview-canvas\s*\{[^}]*inset:\s*0[^}]*width:\s*100%[^}]*height:\s*100%[^}]*\}/i
     );
     expect(css).not.toMatch(/\.product-kit__artwork\s*\{/i);
     expect(css).toMatch(

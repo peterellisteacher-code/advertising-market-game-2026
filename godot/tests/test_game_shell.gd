@@ -505,7 +505,7 @@ func _campaign_moves_gate_each_level() -> bool:
     _deliver_saved_creator_state(shell, solo_invent)
     lock.pressed.emit()
     assert(
-            status.text == "Clue: swap once; each player then makes one visible change.",
+        status.text == "Clue: swap once; each player then makes one visible change.",
         "Unexpected readiness status: %s" % status.text
     )
     assert(not bool(shell.get("_level_locked")))
@@ -545,7 +545,7 @@ func _campaign_moves_gate_each_level() -> bool:
     _deliver_saved_creator_state(shell, regressed_sell)
     assert(not bool(shell.get("_level_locked")))
     assert(advance.disabled)
-        assert(status.text == "Clue: deliver all four AIDA moves — Attention, Interest, Desire, Action — before the buzzer.")
+    assert(status.text == "Clue: deliver all four AIDA moves — Attention, Interest, Desire, Action — before the buzzer.")
     advance.pressed.emit()
     assert((shell.get("_game_run") as RefCounted).phase == "sell")
 

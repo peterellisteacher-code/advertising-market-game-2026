@@ -163,7 +163,7 @@ func _on_room_resumed(wrapper: Variant) -> void:
         return
     if wrapper == null:
         _startup_state = "practice-resume"
-    status.text = "Checking this computer for a saved pitch."
+        status.text = "Checking this computer for a saved pitch."
         _issue_practice_resume("startup")
         return
     if typeof(wrapper) != TYPE_DICTIONARY:
@@ -188,7 +188,7 @@ func _on_room_resume_failed(_code: String, _message: String) -> void:
     lobby_panel.show()
     run_panel.hide()
     market_screen.hide()
-            status.text = "Live market check failed. Retry live, or select Practice explicitly."
+    status.text = "Live market check failed. Retry live, or select Practice explicitly."
 
 func _on_latest_draft_received(document: Variant) -> void:
     if _startup_state != "team-hydrating":
@@ -265,7 +265,7 @@ func _on_practice_request_succeeded(request_id: String, method: String, payload:
         start_button.disabled = false
         if context == "startup":
             _startup_state = "complete"
-        status.text = "Choose your pair name, then enter the market."
+            status.text = "Choose your pair name, then enter the market."
         elif context == "creator-refresh":
             status.text = "Campaign saved for the next level."
         return
@@ -292,13 +292,13 @@ func _on_practice_request_succeeded(request_id: String, method: String, payload:
             run_panel.show()
             market_screen.hide()
             _render_level()
-        status.text = "Saved pitch restored. Resume from exactly where your pair left off."
+            status.text = "Saved pitch restored. Resume from exactly where your pair left off."
         "begin":
             lobby_panel.hide()
             run_panel.show()
             market_screen.hide()
             _render_level()
-        status.text = "Audience signals unlocked. First pitch starts now."
+            status.text = "Audience signals unlocked. First pitch starts now."
             _focus_if_ready(launch_button)
         "lock":
             _render_level()
@@ -570,7 +570,7 @@ func _finish_resumed_team(document: Dictionary) -> void:
     market_screen.hide()
     run_panel.show()
     _render_level()
-        status.text = "Live pitch restored. Resume from exactly where your pair left off."
+    status.text = "Live pitch restored. Resume from exactly where your pair left off."
     _focus_if_ready(launch_button)
 
 func _fail_live_hydration() -> void:
@@ -582,7 +582,7 @@ func _fail_live_hydration() -> void:
     lobby_panel.show()
     run_panel.hide()
     market_screen.hide()
-        status.text = "Live room restored. Exact saved campaign could not be verified. Progress unchanged."
+    status.text = "Live room restored. Exact saved campaign could not be verified. Progress unchanged."
 
 func _team_room_context(wrapper: Dictionary) -> Dictionary:
     var snapshot_value: Variant = wrapper.get("snapshot")
@@ -684,13 +684,13 @@ func _on_market_campaign_published(_result: Dictionary) -> void:
     run_panel.hide()
     market_screen.show()
     market_screen.call("show_publication_waiting")
-        status.text = "Market card delivered. The host will display it on the floor."
+    status.text = "Market card delivered. The host will display it on the floor."
 
 func _reopen_returned_campaign() -> void:
     if _room_role != "team" or _live_publication_pending:
         return
     if _startup_state == "team-hydrating":
-    status.text = "Restoring this pair's exact saved live campaign. The studio reopens once the restore completes."
+        status.text = "Restoring this pair's exact saved live campaign. The studio reopens once the restore completes."
         return
     market_screen.hide()
     run_panel.show()
@@ -717,7 +717,7 @@ func _open_creator() -> void:
 
 func _on_creator_opened() -> void:
     if _publish_after_open:
-    status.text = "Building your market card."
+        status.text = "Building your market card."
         if creator_host.publish_creator().is_empty():
             _publish_after_open = false
             publish_campaign.disabled = false
@@ -733,14 +733,14 @@ func _on_creator_closed() -> void:
     if _game_run.phase == "market":
         status.text = "Market card live. Browse the stalls and spend your budget."
         return
-        status.text = "Studio saved. Lock this level when your pair is ready."
+    status.text = "Studio saved. Lock this level when your pair is ready."
     _focus_if_ready(lock_level)
 
 func _on_creator_state_received(document: Dictionary) -> void:
     if _room_role.is_empty() and not _practice_recovery.is_empty():
         _pending_creator_document = document.duplicate(true)
         if _practice_pending_method.is_empty():
-    status.text = "Checking the saved campaign."
+            status.text = "Checking the saved campaign."
             _issue_practice_resume("creator-refresh")
         return
     if _room_role == "team":
@@ -870,7 +870,7 @@ func _on_creator_published(publication: Dictionary) -> void:
     _published_campaign = publication.duplicate(true)
     if _room_role == "team":
         _live_publication_pending = true
-    status.text = "Sending your market card to the host."
+        status.text = "Sending your market card to the host."
         if market_host.publish_campaign(publication).is_empty():
             _live_publication_pending = false
             publish_campaign.disabled = false

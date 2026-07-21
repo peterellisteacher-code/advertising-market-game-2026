@@ -94,7 +94,7 @@ export class ProductBuilderPanel {
 
     const prompt = document.createElement("p");
     prompt.className = "product-maker__pair-prompt";
-    prompt.textContent = "Pick together. Swap driver after your product lands.";
+    prompt.textContent = "Choose parts together. Swap driver once the product is placed.";
 
     const steps = document.createElement("div");
     steps.className = "product-maker__steps";
@@ -120,7 +120,7 @@ export class ProductBuilderPanel {
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
     status.textContent = this.#available
-      ? `${this.#remainingLooks().toLocaleString("en-AU")} looks still in play`
+      ? `${this.#remainingLooks().toLocaleString("en-AU")} looks remaining`
       : "Product maker unavailable";
 
     const add = button("Drop it on the canvas");
@@ -135,7 +135,7 @@ export class ProductBuilderPanel {
         : undefined;
       this.onPlace(product, artwork);
       add.textContent = "Drop another copy";
-      status.textContent = `${product.bodyTitle} landed · swap driver`;
+      status.textContent = `${product.bodyTitle} placed · swap driver`;
     });
 
     root.append(prompt, steps, options, status, add);

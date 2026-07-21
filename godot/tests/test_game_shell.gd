@@ -68,7 +68,7 @@ func _practice_start_and_lock_wait_for_storage_ack() -> bool:
     var refresh_id := "practice-3"
     assert(practice_fake.request_for(refresh_id).get("method") == "resume")
     assert(shell.get("_campaign_document") == prior_document)
-    assert(shell.get_node("%Status").text == "Checking the saved campaign…")
+    assert(shell.get_node("%Status").text == "Checking the saved campaign.")
     practice_fake.resolve_success(
         refresh_id,
         _practice_recovery(shell, "invent", false, 1, 1, "autosave-1", ready)
@@ -180,7 +180,7 @@ func _invalid_startup_recovery_keeps_the_lobby_usable() -> bool:
     assert(String(Dictionary(shell.get("_campaign_document")).get("documentId")) == "classroom-campaign")
     assert(
         (shell.get_node("%Status") as Label).text
-        == "Saved progress could not be verified. It was kept untouched; you can start fresh or join live."
+        == "Saved progress could not be verified. Data unchanged. Start fresh, or join live."
     )
     shell.free()
     return true
@@ -351,7 +351,7 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
 
     assert(lobby.visible)
     assert(run_panel.visible)
-    assert(heading.text.contains("did not know they needed"))
+    assert(heading.text.contains("matches the audience need"))
     assert(lock.text == "Lock this level")
     assert(advance.text == "Next level")
     assert(advance.disabled)
@@ -491,7 +491,7 @@ func _campaign_moves_gate_each_level() -> bool:
     ]:
         _deliver_saved_creator_state(shell, incomplete)
         lock.pressed.emit()
-        assert(status.text == "Clue: name it, build it, and choose who wants it.")
+        assert(status.text == "Clue: name the product, build it, and identify its target customer.")
         assert(not bool(shell.get("_level_locked")))
         assert(advance.disabled)
 
@@ -505,7 +505,7 @@ func _campaign_moves_gate_each_level() -> bool:
     _deliver_saved_creator_state(shell, solo_invent)
     lock.pressed.emit()
     assert(
-        status.text == "Clue: swap once and let both players make a visible change.",
+        status.text == "Clue: swap once; each player then makes one visible change.",
         "Unexpected readiness status: %s" % status.text
     )
     assert(not bool(shell.get("_level_locked")))
@@ -523,7 +523,7 @@ func _campaign_moves_gate_each_level() -> bool:
         incomplete["strategy"]["aidaPlan"][move] = "   "
         _deliver_saved_creator_state(shell, incomplete)
         lock.pressed.emit()
-        assert(status.text == "Clue: land all four AIDA moves before the buzzer.")
+        assert(status.text == "Clue: deliver all four AIDA moves — Attention, Interest, Desire, Action — before the buzzer.")
         assert(not bool(shell.get("_level_locked")))
         assert(advance.disabled)
 
@@ -531,7 +531,7 @@ func _campaign_moves_gate_each_level() -> bool:
         incomplete["evidence"][move] = []
         _deliver_saved_creator_state(shell, incomplete)
         lock.pressed.emit()
-        assert(status.text == "Clue: land all four AIDA moves before the buzzer.")
+        assert(status.text == "Clue: deliver all four AIDA moves — Attention, Interest, Desire, Action — before the buzzer.")
         assert(not bool(shell.get("_level_locked")))
         assert(advance.disabled)
 
@@ -545,7 +545,7 @@ func _campaign_moves_gate_each_level() -> bool:
     _deliver_saved_creator_state(shell, regressed_sell)
     assert(not bool(shell.get("_level_locked")))
     assert(advance.disabled)
-    assert(status.text == "Clue: land all four AIDA moves before the buzzer.")
+    assert(status.text == "Clue: deliver all four AIDA moves — Attention, Interest, Desire, Action — before the buzzer.")
     advance.pressed.emit()
     assert((shell.get("_game_run") as RefCounted).phase == "sell")
 
@@ -563,7 +563,7 @@ func _campaign_moves_gate_each_level() -> bool:
     ]:
         _deliver_saved_creator_state(shell, incomplete)
         lock.pressed.emit()
-        assert(status.text == "Clue: set a real price and launch your market route.")
+        assert(status.text == "Clue: set a market-plausible price. Choose and deploy your market route.")
         assert(not bool(shell.get("_level_locked")))
         assert(advance.disabled)
 
@@ -577,7 +577,7 @@ func _campaign_moves_gate_each_level() -> bool:
     _deliver_saved_creator_state(shell, regressed_market)
     assert(not bool(shell.get("_level_locked")))
     assert(advance.disabled)
-    assert(status.text == "Clue: set a real price and launch your market route.")
+    assert(status.text == "Clue: set a market-plausible price. Choose and deploy your market route.")
 
     market_ready = _deliver_saved_creator_state(shell, market_ready)
     lock.pressed.emit()

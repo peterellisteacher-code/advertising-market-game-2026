@@ -47,7 +47,7 @@ export class AidaPlaybookPanel {
     const purpose = element("p", "aida-playbook__purpose");
     purpose.textContent = definition.purpose;
     const deckLabel = element("p", "aida-playbook__deck-label");
-    deckLabel.textContent = "Pick a move, remix it or write your own. Then select the canvas piece that makes it happen.";
+    deckLabel.textContent = "Pick, remix, or write a move. Select the canvas piece that delivers it.";
     const deck = element("div", "aida-playbook__deck");
     deck.setAttribute("role", "group");
     deck.setAttribute("aria-label", `${definition.label} move deck`);
@@ -103,7 +103,7 @@ export class AidaPlaybookPanel {
         status.textContent = `${definition.label} move locked to the selected canvas piece.`;
       } catch (error) {
         if (operation !== this.#operation) return;
-        status.textContent = error instanceof Error ? error.message : "That move could not be saved.";
+      status.textContent = error instanceof Error ? error.message : "Save failed.";
       } finally {
         if (operation === this.#operation) refresh();
       }

@@ -13,16 +13,16 @@ describe("AidaPlaybookPanel", () => {
       plan: { attention: "", interest: "", desire: "", action: "" }
     });
 
-    expect(getByRole(host, "heading", { name: "Attention: earn the first look" }))
+    expect(getByRole(host, "heading", { name: "Attention. Earn the first glance." }))
       .toBeTruthy();
     expect(getAllByRole(host, "button", { name: /Try move:/ })).toHaveLength(10);
     expect(host.textContent)
-      .toContain("Then select the canvas piece that makes it happen");
+      .toContain("Select the canvas piece that delivers it");
     expect(host.textContent).not.toMatch(/\b(?:assignment|unit|task)\b/i);
 
     fireEvent.click(getByRole(host, "button", { name: /Try move: Pattern break/ }));
     const idea = getByRole<HTMLTextAreaElement>(host, "textbox", { name: "Your Attention move" });
-    expect(idea.value).toContain("break the visual pattern");
+    expect(idea.value).toContain("disrupts the visual pattern");
     fireEvent.input(idea, {
       target: { value: "Open with one tiny bottle in a field of oversized circles." }
     });
@@ -52,7 +52,7 @@ describe("AidaPlaybookPanel", () => {
 
     expect(getByRole<HTMLTextAreaElement>(host, "textbox", { name: "Your Desire move" }).value)
       .toBe("Make the spare hour feel like an escape.");
-    expect(getByRole(host, "heading", { name: "Desire: make the benefit matter" }))
+    expect(getByRole(host, "heading", { name: "Desire. Connect the feature to the audience's preferred feeling." }))
       .toBeTruthy();
   });
 });

@@ -68,7 +68,7 @@ describe("createEditorShell", () => {
     expect(getByRole(root, "button", { name: "Hide library" })).toBeTruthy();
     expect(getByRole(root, "region", { name: "Campaign canvas" })).toBeTruthy();
     expect(getByRole(root, "status", { name: "Empty canvas" }).textContent)
-      .toContain("Your ad starts here");
+      .toContain("Canvas empty");
     expect(shell.canvasEmptyState.hidden).toBe(false);
     expect(getByRole(root, "region", { name: "Pair play" })).toBeTruthy();
     expect(getByRole(root, "status", { name: "Round progress" })).toBeTruthy();

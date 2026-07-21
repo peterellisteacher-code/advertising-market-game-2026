@@ -70,8 +70,8 @@ describe("MarketRoutePanel", () => {
       feedback: null
     });
 
-    expect(host.textContent).toContain("Cost is a clue, never a gate");
-    expect(host.textContent).toContain("Build and place a product to plot its route");
+    expect(host.textContent).toContain("does not restrict which product students may build.");
+    expect(host.textContent).toContain("Add a product before continuing.");
     expect(host.textContent).not.toMatch(/\b(?:assignment|unit|task|budget cap)\b/i);
   });
 
@@ -107,7 +107,7 @@ describe("MarketRoutePanel", () => {
     expect(carryLoop.checked).toBe(true);
     expect(marketZone.value).toBe("city");
     expect(transit.checked).toBe(true);
-    const launch = getByRole<HTMLButtonElement>(host, "button", { name: "Launch this route" });
+    const launch = getByRole<HTMLButtonElement>(host, "button", { name: "Submit this route" });
     expect(launch.disabled).toBe(false);
     fireEvent.click(launch);
 

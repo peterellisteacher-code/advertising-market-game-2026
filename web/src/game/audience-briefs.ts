@@ -17,27 +17,27 @@ function immutableBrief(brief: AudienceBrief): AudienceBrief {
 export const AUDIENCE_BRIEFS = Object.freeze([
   immutableBrief({
     id: "after-school-wanderers",
-    signal: "After-school freedom",
-    context: "Teenagers choosing something useful for the hour between school and getting home.",
-    need: "A simple way to make that hour feel worthwhile.",
+    signal: "Time after the school day ends.",
+    context: "Teenagers. One-hour window between school dismissal and home arrival.",
+    need: "Method to make the window productive.",
     values: ["independence", "belonging"],
-    intendedEffect: "See the offer as fitting their own plans, not an adult routine."
+    intendedEffect: "Perceive the offer as aligned with the student's own plan, not with an imposed routine."
   }),
   immutableBrief({
     id: "weekend-neighbours",
-    signal: "Shared neighbourhood time",
-    context: "People of different ages looking for an easy reason to spend time together locally.",
-    need: "A low-pressure way to join in.",
+    signal: "Shared local time.",
+    context: "People of varied ages. Reason to share time in the local area.",
+    need: "Low-effort way to participate.",
     values: ["connection", "accessibility"],
-    intendedEffect: "Feel that taking part would be easy and welcoming."
+    intendedEffect: "Judge participation as low-effort and welcoming."
   }),
   immutableBrief({
     id: "careful-spenders",
-    signal: "Worth the choice",
-    context: "Young people comparing options because they have limited money and many competing wants.",
-    need: "Clear reasons why one choice suits them.",
+    signal: "Worth the spend.",
+    context: "Young people with limited funds and competing wants. Comparing options.",
+    need: "Reasons one option suits them.",
     values: ["fairness", "practicality"],
-    intendedEffect: "Feel confident that the offer respects their budget and priorities."
+    intendedEffect: "Judge the offer as consistent with their budget and priorities."
   })
 ] as const);
 

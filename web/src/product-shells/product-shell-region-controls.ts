@@ -27,7 +27,7 @@ export class ProductShellRegionControls {
     const heading = document.createElement("h2");
     heading.textContent = state.title;
     const guidance = document.createElement("p");
-    guidance.textContent = "Make it yours: change any product zone.";
+  guidance.textContent = "Change any product zone.";
     const controls = document.createElement("div");
     controls.className = "creator__region-controls";
     for (const region of state.regions) {

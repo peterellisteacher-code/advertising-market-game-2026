@@ -3,7 +3,7 @@ import type { CampaignGameplayStage } from "../domain/campaign-document";
 const LEVEL_LABELS: Readonly<Record<CampaignGameplayStage, string>> = Object.freeze({
   invent: "LEVEL 1 // INVENT IT",
   sell: "LEVEL 2 // SELL IT",
-  irresistible: "LEVEL 3 // MAKE IT IRRESISTIBLE",
+  irresistible: "LEVEL 3 // FINALISE IT",
   "publish-check": "MARKET GATE // FINAL LOOK"
 });
 

@@ -1133,7 +1133,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     const heading = document.createElement("h2");
     heading.textContent = title;
     const guidance = document.createElement("p");
-    guidance.textContent = "Choose new colours in the product maker to change this look.";
+      guidance.textContent = "Choose new colours in the product maker to change this region's colour.";
     this.shell.inspector.replaceChildren(heading, guidance);
   }
 

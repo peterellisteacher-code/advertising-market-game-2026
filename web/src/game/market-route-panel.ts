@@ -92,21 +92,21 @@ export class MarketRoutePanel {
   #draw(): void {
     const root = element("div", "market-route");
     const intro = element("p", "market-route__intro");
-    intro.textContent = "Cost is a clue, never a gate. Plot where your idea could win attention.";
+    intro.textContent = "Cost informs audience and pricing decisions and does not restrict which product students may build. The route tool plans where an idea reaches its audience.";
     root.append(intro);
 
     const build = this.#state.build;
     if (build) {
       const cost = element("p", "market-route__cost-clue");
-      cost.textContent = `Build cost clue: ${formatMarketBucks(build.unitCostCents)}`;
+      cost.textContent = `Cost: ${formatMarketBucks(build.unitCostCents)}`;
       root.append(cost);
     }
     if (!build || !this.#state.audienceBriefId.trim()) {
       const locked = element("p", "market-route__locked");
       locked.setAttribute("role", "status");
       locked.textContent = build
-        ? "Choose an audience signal to plot this route."
-        : "Build and place a product to plot its route.";
+        ? "Choose an audience value before continuing."
+        : "Add a product before continuing.";
       root.append(locked);
       this.#form = null;
       this.#launch = null;
@@ -146,7 +146,7 @@ export class MarketRoutePanel {
     choiceLegend.textContent = "Priced product choices";
     choices.append(choiceLegend);
     const choiceHint = element("p");
-    choiceHint.textContent = "Pick the parts you want the campaign to show off.";
+    choiceHint.textContent = "Pick the parts to feature.";
     choices.append(choiceHint);
     for (const line of build.costLines) {
       const label = checkboxLabel(
@@ -192,7 +192,7 @@ export class MarketRoutePanel {
     mediaLegend.textContent = "Advertising media";
     media.append(mediaLegend);
     const mediaHint = element("p");
-    mediaHint.textContent = "Choose up to three places where people will meet the idea.";
+    mediaHint.textContent = "Choose up to three media placements.";
     media.append(mediaHint);
     const selectedMedia = new Set(this.#state.strategy.marketRoute?.mediaIds ?? []);
     for (const medium of ADVERTISING_MEDIA) {
@@ -213,7 +213,7 @@ export class MarketRoutePanel {
 
     const launch = element("button", "market-route__launch");
     launch.type = "submit";
-    launch.textContent = "Launch this route";
+    launch.textContent = "Submit this route";
     launch.addEventListener("click", (event) => {
       event.preventDefault();
       void this.#commit();
@@ -275,7 +275,7 @@ export class MarketRoutePanel {
     const operation = ++this.#operation;
     this.#launch.disabled = true;
     this.#form.setAttribute("aria-busy", "true");
-    if (this.#status) this.#status.textContent = "Sending the route into the market…";
+    if (this.#status) this.#status.textContent = "Submitting the route…";
     try {
       const feedback = await this.onCommit({
         audienceBriefId: this.#state.audienceBriefId,
@@ -286,14 +286,14 @@ export class MarketRoutePanel {
       });
       if (operation !== this.#operation) return;
       this.#state = { ...this.#state, feedback: structuredClone(feedback) };
-      if (this.#status) this.#status.textContent = "Route launched.";
+      if (this.#status) this.#status.textContent = "Route submitted.";
       this.#renderFeedback(feedback);
     } catch (error) {
       if (operation !== this.#operation) return;
       if (this.#status) {
         this.#status.textContent = error instanceof Error
           ? error.message
-          : "The route could not launch.";
+          : "The route could not be submitted.";
       }
     } finally {
       if (operation === this.#operation) {

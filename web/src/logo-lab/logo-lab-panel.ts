@@ -313,7 +313,7 @@ export class LogoLabPanel {
       ["symbol", "Remix symbol"],
       ["type", "Remix type"],
       ["colours", "Remix colours"],
-      ["surprise", "Surprise me"]
+      ["surprise", "Random logo"]
     ] as const) {
       const control = button(text);
       control.dataset.logoRemixAction = id;
@@ -459,7 +459,7 @@ export class LogoLabPanel {
           ? "Word style remixed"
           : move === "colours"
             ? "Colours remixed"
-            : "Fresh logo mix ready";
+            : "New logo mix ready";
       this.#message = message;
       this.#messagePriority = "polite";
       this.announce(message, "polite");

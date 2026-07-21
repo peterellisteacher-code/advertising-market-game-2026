@@ -54,12 +54,12 @@ export const STUDENT_COPY = deepFreeze({
     "art-director": {
       label: "Art Director",
       productiveAction: "While you control the computer, make one visible image change by adding, moving or resizing an image.",
-      holdingAction: "While your partner controls the computer, compare the image choices with the audience need and prepare one specific visual suggestion."
+      holdingAction: "While your partner controls the computer, compare the image choices with the audience need. Prepare one specific visual suggestion."
     },
     strategist: {
       label: "Strategist",
       productiveAction: "While you control the computer, make one visible message change by adding or revising the product name or canvas words.",
-      holdingAction: "While your partner controls the computer, read the audience brief and prepare one specific wording or persuasion suggestion."
+      holdingAction: "While your partner controls the computer, read the audience brief. Prepare one specific wording or persuasion suggestion."
     }
   },
   phaseLabels: {
@@ -89,8 +89,8 @@ export const STUDENT_COPY = deepFreeze({
     operationFailed: "That move did not work. Try again."
   },
   readiness: {
-    ready: "The campaign has what it needs for preview.",
-    notReady: "Finish the missing pieces before preview.",
+    ready: "The campaign is ready for preview.",
+    notReady: "Finish the remaining items before preview.",
     missing: {
       "audience-brief": "Choose an audience brief.",
       "product-name": "Add a product name.",

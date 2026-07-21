@@ -72,14 +72,14 @@ export class ProductMoneyPanel {
   #draw(): void {
     const root = element("div", "money-check");
     const intro = element("p", "money-check__intro");
-    intro.textContent = "Cost is a clue, not a limit.";
+    intro.textContent = "Cost informs audience and pricing decisions. Cost does not restrict which product students may build.";
     root.append(intro);
 
     const build = this.#state.build;
     if (!build) {
       const empty = element("p", "money-check__empty");
       empty.setAttribute("role", "status");
-      empty.textContent = "Build and place a product to see what each choice costs.";
+      empty.textContent = "No product placed. Place a product to view costs.";
       root.append(empty);
       this.#margin = null;
       this.#addPrice = null;
@@ -109,7 +109,7 @@ export class ProductMoneyPanel {
     const suggestion = element("p", "money-check__suggestion");
     suggestion.textContent = range
       ? `Try ${formatMarketBucks(range.minimumCents)}–${formatMarketBucks(range.maximumCents)}`
-      : "Choose a market price that fits the audience.";
+      : "Set market price.";
 
     const priceLabel = element("label", "money-check__price");
     priceLabel.textContent = "Market price ($)";
@@ -162,7 +162,7 @@ export class ProductMoneyPanel {
     if (!this.#margin || !this.#addPrice || !build) return;
     this.#addPrice.disabled = priceCents === null;
     if (priceCents === null) {
-      this.#margin.textContent = "Set a price to see what each sale makes.";
+      this.#margin.textContent = "No price set. Set a price to view profit or loss.";
       this.#margin.dataset.tone = "waiting";
       return;
     }
@@ -174,10 +174,10 @@ export class ProductMoneyPanel {
     }
     const amount = formatMarketBucks(Math.abs(margin.marginCents));
     if (margin.marginCents > 0) {
-      this.#margin.textContent = `Make ${amount} each sale`;
+      this.#margin.textContent = `Profit ${amount} per sale`;
       this.#margin.dataset.tone = "gain";
     } else if (margin.marginCents < 0) {
-      this.#margin.textContent = `Lose ${amount} each sale`;
+      this.#margin.textContent = `Loss ${amount} per sale`;
       this.#margin.dataset.tone = "loss";
     } else {
       this.#margin.textContent = "Break even on each sale";
@@ -191,7 +191,7 @@ export class ProductMoneyPanel {
       if (operation !== this.#priceOperation || this.#margin === null) return;
       this.#margin.textContent = error instanceof Error
         ? error.message
-        : "That price could not be saved.";
+        : "Price not saved.";
       this.#margin.dataset.tone = "warning";
     };
     try {

@@ -2156,7 +2156,7 @@ describe("window.AdMarketCreator", () => {
     const details = document.querySelector<HTMLDetailsElement>(".logo-lab details")!;
     details.open = true;
     fireEvent(details, new Event("toggle"));
-    fireEvent.click(getByRole(document.body, "button", { name: "Surprise me" }));
+    fireEvent.click(getByRole(document.body, "button", { name: "Random logo" }));
     await waitFor(() => expect(currentObjects().at(-1)).toMatchObject({
       elementKind: "logo-mark",
       logoRecipe: "mascot-emblem",

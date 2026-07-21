@@ -131,7 +131,7 @@ func stop_room() -> void:
 func show_publication_waiting() -> void:
     phase_status.text = "Your market card is with the host."
     campaign_status_title.text = "Waiting for the host"
-    campaign_status_copy.text = "Your card is safely in the review queue. You can keep this screen open."
+    campaign_status_copy.text = "Card is in the review queue. Screen can stay open."
     fix_button.hide()
     team_surface.show()
     show()
@@ -191,16 +191,16 @@ func _render_team(state: Dictionary) -> void:
     if watch_only:
         wallet_label.text = "Market watcher"
         spend_meter.value = 0.0
-        seller_progress.text = "Browse every approved stall — buying is paused for this round."
+        seller_progress.text = "Browse every approved stall. Buying is paused this round."
         finish_button.text = "Watching this market"
         finish_button.disabled = true
-        finish_button.tooltip_text = "Your pair can explore the market without changing its frozen results."
+        finish_button.tooltip_text = "Pair can browse the market. Results are frozen."
         team_market_heading.text = "Browse the market floor · watch mode"
         fix_button.hide()
         campaign_status_title.text = "You're watching this round"
         campaign_status_copy.text = (
-            "The market floor was locked before your pair joined. You can explore every approved stall; "
-            + "Buying is paused for this round."
+            "Market floor was locked before pair joined. Browsing is open. "
+            + "Buying is paused this round."
         )
     else:
         wallet_label.text = "%s remaining" % _format_currency(int(money.get("walletCents", 0)))
@@ -211,9 +211,9 @@ func _render_team(state: Dictionary) -> void:
         finish_button.text = "Shopping finished" if already_finished else "Finish shopping"
         finish_button.disabled = already_finished or not bool(readiness.get("locallyReady", false))
         finish_button.tooltip_text = (
-            "The live market checks your final spend and seller mix."
+            "Live market checks final spend and seller mix."
             if not finish_button.disabled
-            else "Back two different sellers, then meet the live market spending rule."
+            else "Back two different sellers. Meet the live market spending rule."
         )
         team_market_heading.text = "Browse the market floor"
         _render_campaign_state(Array(state.get("cards", [])), str(state.get("phase")))
@@ -223,7 +223,7 @@ func _render_team(state: Dictionary) -> void:
     student_reveal_copy.text = (
         "Practice round complete — you backed two different stalls and spent your market wallet. In a live room, the host reveals which campaign earned the most."
         if _practice_mode
-        else "The market reveal is on the host display — look up for the podium."
+        else "Market reveal is on the host display."
     )
     team_market_heading.visible = not reveal_phase
     team_cards.visible = not reveal_phase
@@ -241,25 +241,25 @@ func _render_campaign_state(cards: Array, phase: String) -> void:
             break
     fix_button.hide()
     if own_card.is_empty():
-        campaign_status_title.text = "Your stall is getting ready"
-        campaign_status_copy.text = "Build your market card, then the host can bring it onto the floor."
+        campaign_status_title.text = "Stall preparing."
+        campaign_status_copy.text = "Build your market card. The host brings it to the floor."
         return
     var status := str(own_card.get("status"))
     if status == "pending":
         campaign_status_title.text = "Waiting for the host"
-        campaign_status_copy.text = "Your card is safely in the review queue."
+        campaign_status_copy.text = "Card is in the review queue."
     elif status == "approved":
         campaign_status_title.text = "Your stall is live" if phase == "market" else "Approved and ready"
         campaign_status_copy.text = "Your product is ready for the market floor."
     elif status == "returned":
-        campaign_status_title.text = "A quick studio tweak"
+        campaign_status_title.text = "Studio tweak"
         campaign_status_copy.text = str(
-            own_card.get("reviewNote", "The host left a clear note for your next edit.")
+            own_card.get("reviewNote", "Host note added to this card.")
         )
         fix_button.show()
     else:
         campaign_status_title.text = "Card resting"
-        campaign_status_copy.text = "This version is resting off the market floor. Your pair can stay in the room."
+        campaign_status_copy.text = "This version is not active on the market floor. Your pair may remain in the room."
 
 func _add_team_card(card: Dictionary) -> void:
     var panel := _new_card_panel(str(card.get("id")))
@@ -448,7 +448,7 @@ func _buy_campaign(campaign_id: String, button: Button) -> void:
     _purchase_sequence += 1
     _pending_purchases[campaign_id] = purchase_request_id
     button.disabled = true
-    network_status.text = "Sending your backing choice…"
+    network_status.text = "Sending backing choice…"
     var request_id := str(market_host.call("purchase", campaign_id, purchase_request_id))
     if request_id.is_empty():
         _pending_purchases.erase(campaign_id)
@@ -470,9 +470,9 @@ func _finish_shopping() -> void:
         return
     finish_button.disabled = true
     network_status.text = (
-        "The practice market is checking your finish…"
+        "Practice market: reviewing submission…"
         if _practice_mode
-        else "The live market is checking your finish…"
+        else "Live market: reviewing submission…"
     )
     if str(market_host.call("finish")).is_empty():
         _show_safe_diagnostic()
@@ -493,7 +493,7 @@ func _review_campaign(
             note_input.grab_focus()
             return
         note = trimmed_note
-    network_status.text = "Updating the campaign desk…"
+    network_status.text = "Campaign desk updating…"
     market_host.call("review_campaign", campaign_id, submission_version, status, note)
 
 func _submission_version_for_campaign(campaign_id: String) -> int:
@@ -510,7 +510,7 @@ func _submission_version_for_campaign(campaign_id: String) -> int:
 func _send_control(action: String) -> void:
     if market_host == null:
         return
-    network_status.text = "Updating the live room…"
+    network_status.text = "Live room updating…"
     market_host.call("control", action)
 
 func _request_remove_confirmation(team_id: String, alias: String) -> void:
@@ -544,7 +544,7 @@ func _confirm_remove_team() -> void:
         _remove_team_id = ""
         _remove_team_alias = ""
         return
-    network_status.text = "Removing %s from the room…" % _remove_team_alias
+    network_status.text = "Removing %s…" % _remove_team_alias
     market_host.call("control", "removeTeam", _remove_team_id)
     _remove_team_id = ""
     _remove_team_alias = ""
@@ -556,7 +556,7 @@ func _poll_snapshot() -> void:
 func _retry_snapshot() -> void:
     if market_host == null:
         return
-    network_status.text = "Retrying quietly…"
+    network_status.text = "Retrying…"
     retry_button.hide()
     market_host.call("request_snapshot_silently")
 
@@ -591,9 +591,9 @@ func _on_campaign_published(_result: Dictionary) -> void:
 
 func _show_safe_diagnostic() -> void:
     network_status.text = (
-        "The practice market could not update. Try that move again."
+        "Practice market update failed. Retry that move."
         if _practice_mode
-        else "The live market could not update. Check the room connection, then retry."
+        else "Live market update failed. Check the room connection, then retry."
     )
     retry_button.show()
 
@@ -702,11 +702,11 @@ func _format_currency(cents: int) -> String:
 
 func _phase_copy(phase: String) -> String:
     if phase == "building":
-        return "Campaigns are being built and checked."
+        return "Campaigns are being built and reviewed."
     if phase == "market":
-        return "The market floor is open."
+        return "The market is open for trading."
     if phase == "reveal":
-        return "The market podium is ready."
+        return "The market stage is ready for the reveal."
     if phase == "closed":
-        return "This market has closed."
-    return "The room is getting ready."
+        return "The market is closed."
+    return "The room is being prepared."

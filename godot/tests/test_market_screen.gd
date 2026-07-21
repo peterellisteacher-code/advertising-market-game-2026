@@ -140,7 +140,7 @@ func _returned_and_hidden_campaigns_are_calm_and_fixable() -> bool:
     returned["campaigns"][0]["status"] = "returned"
     returned["campaigns"][0]["reviewNote"] = "Make the price easier to spot."
     screen.call("present_snapshot", returned)
-    assert((screen.get_node("%CampaignStatusTitle") as Label).text == "A quick studio tweak")
+    assert((screen.get_node("%CampaignStatusTitle") as Label).text == "Studio tweak")
     assert((screen.get_node("%CampaignStatusCopy") as Label).text.contains("Make the price easier to spot."))
     var fix := screen.get_node("%FixCampaign") as Button
     assert(fix.visible)
@@ -154,7 +154,7 @@ func _returned_and_hidden_campaigns_are_calm_and_fixable() -> bool:
     hidden["campaigns"][0].erase("reviewNote")
     screen.call("present_snapshot", hidden)
     var hidden_copy := (screen.get_node("%CampaignStatusCopy") as Label).text.to_lower()
-    assert(hidden_copy.contains("resting"))
+    assert(hidden_copy.contains("not active"))
     for shaming in ["failed", "worst", "last place", "rejected"]:
         assert(not hidden_copy.contains(shaming))
     assert(not fix.visible)
@@ -264,7 +264,7 @@ func _reveal_is_role_safe_and_network_failures_are_non_sensitive() -> bool:
 
     host.emit_signal("diagnostic", "PRIVATE_NETWORK_DETAILS: secret classroom token")
     var network_copy := (screen.get_node("%NetworkStatus") as Label).text
-    assert(network_copy.contains("could not update"))
+    assert(network_copy.contains("update failed"))
     assert(not network_copy.contains("PRIVATE"))
     assert((screen.get_node("%RetryMarket") as Button).visible)
     var before_retry := fake.call("request_count") as int

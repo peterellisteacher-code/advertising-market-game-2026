@@ -351,7 +351,7 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
 
     assert(lobby.visible)
     assert(run_panel.visible)
-    assert(heading.text.contains("unrecognised customer need"))
+    assert(heading.text.contains("matches the audience need"))
     assert(lock.text == "Lock this level")
     assert(advance.text == "Next level")
     assert(advance.disabled)

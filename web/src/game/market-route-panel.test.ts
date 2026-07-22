@@ -59,6 +59,30 @@ const strongFeedback: MarketRouteFeedback = {
 };
 
 describe("MarketRoutePanel", () => {
+  it("does not repeat a priced part label when its group has the same name", () => {
+    const host = document.createElement("div");
+    const panel = new MarketRoutePanel(host, vi.fn());
+    panel.setState({
+      build: {
+        ...build,
+        costLines: [{
+          ...build.costLines[0]!,
+          groupLabel: "Product body",
+          label: "Product body",
+          costCents: 480
+        }],
+        unitCostCents: 480
+      },
+      audienceBriefId: "after-school-wanderers",
+      strategy: { ...blankStrategy, productTraitIds: ["portability"] },
+      feedback: null
+    });
+
+    const choices = getByRole(host, "group", { name: "Priced product choices" });
+    expect(choices.textContent).toContain("Product body · $4.80");
+    expect(choices.textContent).not.toContain("Product body · Product body");
+  });
+
   it("keeps the route locked until a product is placed", () => {
     const host = document.createElement("div");
     const panel = new MarketRoutePanel(host, vi.fn());

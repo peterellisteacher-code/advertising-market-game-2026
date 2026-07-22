@@ -149,10 +149,13 @@ export class MarketRoutePanel {
     choiceHint.textContent = "Choose at least one priced part to feature.";
     choices.append(choiceHint);
     for (const line of build.costLines) {
+      const priceClue = line.groupLabel === line.label
+        ? formatMarketBucks(line.costCents)
+        : `${line.groupLabel} · ${formatMarketBucks(line.costCents)}`;
       const label = checkboxLabel(
         line.choiceId,
         line.label,
-        `${line.groupLabel} · ${formatMarketBucks(line.costCents)}`,
+        priceClue,
         this.#state.strategy.marketedChoiceIds.includes(line.choiceId)
       );
       label.querySelector("input")!.name = "marketed-choice";

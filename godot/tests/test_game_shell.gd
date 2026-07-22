@@ -682,7 +682,15 @@ func _closed_studio_reopens_to_publish_and_enters_the_market() -> bool:
     assert((market_screen.get_node("%StudentRevealCopy") as Label).text.contains("Gold, Silver and Bronze choices are locked"))
     assert(fake.request_for(fake.last_request_id()).get("method") == "close")
     fake.resolve_success(fake.last_request_id())
-    assert((shell.get_node("%Status") as Label).text == "Practice market ready.")
+    var market_status := (shell.get_node("%Status") as Label).text
+    assert(
+        market_status == "Practice market ready.",
+        "Unexpected post-market creator-close status: %s (room role: %s; phase: %s)" % [
+            market_status,
+            str(shell.get("_room_role")),
+            str(game_run.phase)
+        ]
+    )
     shell.free()
     return true
 

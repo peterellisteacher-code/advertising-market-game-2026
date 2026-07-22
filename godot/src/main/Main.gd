@@ -744,7 +744,11 @@ func _on_creator_closed() -> void:
         _focus_if_ready(publish_campaign)
         return
     if _game_run.phase == "market":
-        status.text = "Market card live. Browse the gallery and award Gold, Silver and Bronze."
+        status.text = (
+            "Practice market ready."
+            if _room_role.is_empty()
+            else "Market card live. Browse the gallery and award Gold, Silver and Bronze."
+        )
         return
     status.text = "Studio saved. Lock this level when your pair is ready."
     _focus_if_ready(lock_level)

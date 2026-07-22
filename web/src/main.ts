@@ -631,7 +631,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       const existing = this.#priceLabelObjectIds(current);
       if (existing.length === 0) {
         objectId = await commands.addText(label, `Market price ${label}`, false);
-        commands.transform(objectId, { x: 1320, y: 790 });
+        commands.transform(objectId, { x: 1240, y: 670 });
       } else {
         objectId = existing[0]!;
         runtime.adapter.setText(objectId, label, `Market price ${label}`, false);

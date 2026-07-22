@@ -1387,8 +1387,8 @@ describe("window.AdMarketCreator", () => {
         text: "$10.00",
         accessibleName: "Market price $10.00",
         editable: false,
-        left: 1320,
-        top: 790
+        left: 1240,
+        top: 670
       });
 
     fireEvent.input(price, { target: { value: "20" } });

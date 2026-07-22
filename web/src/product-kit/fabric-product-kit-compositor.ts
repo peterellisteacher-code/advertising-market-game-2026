@@ -52,6 +52,11 @@ const LOGICAL_HEIGHT = 500;
 const DEFAULT_MAX_WIDTH = 720;
 const DEFAULT_MAX_HEIGHT = 630;
 const DEFAULT_MAX_SCALE = 2;
+const CLOSE_UP_MAX_WIDTH = 1520;
+const CLOSE_UP_MAX_HEIGHT = 1500;
+const CLOSE_UP_MAX_SCALE = 5;
+const MIN_ARTWORK_WIDTH = 480;
+const MIN_ARTWORK_HEIGHT = 260;
 const PORTABLE_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*(?![\s\S])/;
 const SHA256 = /^[0-9a-f]{64}(?![\s\S])/;
 const PRODUCT_KIT_IDENTITY_PROPERTIES = Object.freeze([
@@ -537,6 +542,28 @@ function artworkSlot(
   return group;
 }
 
+function placedProductScale(group: Group, children: readonly (FabricImage | Group)[]): number {
+  const baseline = Math.min(
+    DEFAULT_MAX_SCALE,
+    DEFAULT_MAX_WIDTH / group.width,
+    DEFAULT_MAX_HEIGHT / group.height
+  );
+  const maximum = Math.min(
+    CLOSE_UP_MAX_SCALE,
+    CLOSE_UP_MAX_WIDTH / group.width,
+    CLOSE_UP_MAX_HEIGHT / group.height
+  );
+  const artwork = children.find(({ productLayer }) => productLayer === "artwork-slot");
+  if (!(artwork instanceof Group) || !(artwork.width > 0) || !(artwork.height > 0)) {
+    return baseline;
+  }
+  const surface = Math.max(
+    MIN_ARTWORK_WIDTH / artwork.width,
+    MIN_ARTWORK_HEIGHT / artwork.height
+  );
+  return Math.min(maximum, Math.max(baseline, surface));
+}
+
 export class FabricProductKitCompositor {
   constructor(
     private readonly loadImage: FabricProductKitImageLoader = defaultImageLoader
@@ -616,11 +643,7 @@ export class FabricProductKitCompositor {
       left: CREATOR_CONFIG.canvasWidth / 2,
       top: CREATOR_CONFIG.canvasHeight / 2
     });
-    group.scale(Math.min(
-      DEFAULT_MAX_SCALE,
-      DEFAULT_MAX_WIDTH / group.width,
-      DEFAULT_MAX_HEIGHT / group.height
-    ));
+    group.scale(placedProductScale(group, productChildren));
     Reflect.set(group, "objectId", snapshot.id);
     Reflect.set(group, "elementKind", "product-kit");
     Reflect.set(group, "accessibleName", snapshot.accessibleName);

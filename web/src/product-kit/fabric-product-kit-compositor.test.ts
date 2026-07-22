@@ -287,6 +287,8 @@ describe("FabricProductKitCompositor", () => {
     expect(group).toBeInstanceOf(Group);
     expect(group.layoutManager.strategy).toBeInstanceOf(FixedLayout);
     const bounds = visibleChildBounds(group);
+    const artwork = group.getObjects().find(({ productLayer }) => productLayer === "artwork-slot");
+    expect(artwork).toBeInstanceOf(Group);
     expect(group).toMatchObject({
       originX: "center",
       originY: "center",
@@ -300,20 +302,19 @@ describe("FabricProductKitCompositor", () => {
       cornerColor: "#f4c95d",
       cornerStrokeColor: "#172033"
     });
-    const expectedScale = Math.min(2, 720 / group.width, 630 / group.height);
+    const baselineScale = Math.min(2, 720 / group.width, 630 / group.height);
+    const maximumScale = Math.min(5, 1520 / group.width, 1500 / group.height);
+    const surfaceScale = Math.max(480 / artwork!.width, 260 / artwork!.height);
+    const expectedScale = Math.min(maximumScale, Math.max(baselineScale, surfaceScale));
     expect(group.scaleX).toBeCloseTo(expectedScale, 8);
     expect(group.scaleY).toBeCloseTo(expectedScale, 8);
     expect(group.getScaledWidth()).toBeCloseTo(bounds.width, 8);
     expect(group.getScaledHeight()).toBeCloseTo(bounds.height, 8);
-    const fittedRatio = Math.max(
-      group.getScaledWidth() / 720,
-      group.getScaledHeight() / 630
+    const safeRatio = Math.max(
+      group.getScaledWidth() / 1520,
+      group.getScaledHeight() / 1500
     );
-    expect(fittedRatio).toBeLessThanOrEqual(1);
-    expect(fittedRatio).toBeCloseTo(Math.max(
-      expectedScale * group.width / 720,
-      expectedScale * group.height / 630
-    ), 8);
+    expect(safeRatio).toBeLessThanOrEqual(1);
     expect(group.left).toBeCloseTo(800, 8);
     expect(group.top).toBeCloseTo(450, 8);
     expect(bounds.centerX).toBeCloseTo(800, 8);
@@ -339,13 +340,15 @@ describe("FabricProductKitCompositor", () => {
       child.objectId === undefined && child.elementKind === undefined
     )).toBe(true);
     expectPilotLidSeated(group);
-    const artwork = group.getObjects()[3];
-    expect(artwork).toBeInstanceOf(Group);
+    expect(group.getObjects()[3]).toBe(artwork);
     expect(artwork).toMatchObject({
       height: 125,
       artworkSlotId: "artwork:pk1-tumbler-kit:0"
     });
     expect(artwork!.width).toBeCloseTo(112, 12);
+    expect(artwork!.width * group.scaleX).toBeGreaterThanOrEqual(480);
+    expect(artwork!.height * group.scaleY).toBeGreaterThanOrEqual(260);
+    expect(group.getScaledHeight()).toBeGreaterThan(900);
     const base = group.getObjects().find(({ productLayer }) => productLayer === "body")!;
     expect(artwork!.left - base.left).toBeCloseTo(0, 12);
     expect(artwork!.top - base.top).toBeCloseTo(-6.5, 12);

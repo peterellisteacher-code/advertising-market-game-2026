@@ -739,15 +739,22 @@ func _on_creator_opened() -> void:
     status.text = "Campaign Creator open. Game input paused."
 
 func _on_creator_closed() -> void:
+    if _room_role == "team" and _room_campaign_submitted:
+        status.text = "Market card delivered. The host will display it on the floor."
+        return
     if _room_role == "team" and _game_run.phase == "publish-check":
         status.text = "Studio saved. Build the refreshed market card when your pair is ready."
         _focus_if_ready(publish_campaign)
         return
-    if _game_run.phase == "market":
+    if _game_run.phase in ["market", "reveal"]:
         status.text = (
-            "Practice market ready."
-            if _room_role.is_empty()
-            else "Market card live. Browse the gallery and award Gold, Silver and Bronze."
+            "The market podium is ready for the reveal."
+            if _game_run.phase == "reveal"
+            else (
+                "Practice market ready."
+                if _room_role.is_empty()
+                else "Market card live. Browse the gallery and award Gold, Silver and Bronze."
+            )
         )
         return
     status.text = "Studio saved. Lock this level when your pair is ready."

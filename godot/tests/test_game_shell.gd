@@ -684,7 +684,7 @@ func _closed_studio_reopens_to_publish_and_enters_the_market() -> bool:
     fake.resolve_success(fake.last_request_id())
     var market_status := (shell.get_node("%Status") as Label).text
     assert(
-        market_status == "Practice market ready.",
+        market_status == "The market podium is ready for the reveal.",
         "Unexpected post-market creator-close status: %s (room role: %s; phase: %s)" % [
             market_status,
             str(shell.get("_room_role")),
@@ -813,6 +813,7 @@ func _room_publication_waits_for_review_and_reopens_returned_work() -> bool:
     assert((market_screen.get_node("%CampaignStatusTitle") as Label).text == "Waiting for the host")
     assert(creator_fake.request_for(creator_fake.last_request_id()).get("method") == "close")
     creator_fake.resolve_success(creator_fake.last_request_id())
+    assert((shell.get_node("%Status") as Label).text == "Market card delivered. The host will display it on the floor.")
 
     var returned := _team_market_snapshot("returned")
     returned["campaigns"][0]["reviewNote"] = "Bring the price forward."

@@ -70,7 +70,7 @@ export class StudioCoachPanel {
       root.append(this.#firstAction(state));
     } else if (state.phase === "checking-initial") {
       root.append(this.#busy("Checking the current advertisement…"));
-    } else if (state.phase === "advice") {
+    } else if (state.phase === "advice" || state.phase === "error" && state.first !== null) {
       root.append(this.#revisionAction(state));
     } else if (state.phase === "checking-revision") {
       root.append(this.#busy("Comparing the revision…"));
@@ -90,6 +90,12 @@ export class StudioCoachPanel {
     const section = element("section");
     section.className = "studio-coach__action";
     section.setAttribute("aria-label", "First Studio Coach check");
+    if (state.pendingCheck === "initial") {
+      section.append(element("h3", "Resume the saved check"));
+      section.append(element("p", "This resends the same captured advertisement. It does not use another turn."));
+      section.append(button("Resume first check", () => this.#perform(this.actions.requestInitial("whole-ad"))));
+      return section;
+    }
     const heading = element("h3", state.attemptsUsed === 0 ? "Choose one check" : "One check remains");
     const label = element("label", "Technique to check");
     const select = element("select");
@@ -122,10 +128,16 @@ export class StudioCoachPanel {
     const section = element("section");
     section.className = "studio-coach__action studio-coach__revision";
     section.setAttribute("aria-label", "Final Studio Coach check");
-    section.append(element("h3", "Now revise the ad"));
-    const instruction = element("p", "Make the visual change above. Then use the final check.");
-    const check = button("Check my revision (2 of 2)", () => this.#perform(this.actions.requestRevision()));
-    check.disabled = !state.changedSinceFirst;
+    const resuming = state.pendingCheck === "revision";
+    section.append(element("h3", resuming ? "Resume the saved final check" : "Now revise the ad"));
+    const instruction = element("p", resuming
+      ? "This resends the same captured comparison. It does not use another turn."
+      : "Make the visual change above. Then use the final check.");
+    const check = button(
+      resuming ? "Resume final check" : "Check my revision (2 of 2)",
+      () => this.#perform(this.actions.requestRevision())
+    );
+    check.disabled = !resuming && !state.changedSinceFirst;
     section.append(instruction, check);
     return section;
   }

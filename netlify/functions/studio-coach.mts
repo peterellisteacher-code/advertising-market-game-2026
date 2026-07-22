@@ -90,6 +90,7 @@ export const STUDIO_COACH_SYSTEM_PROMPT = [
   "YOU MUST preserve all supplied product facts, prices, audience facts, AIDA meanings and game rules. Do not recommend hiding, obscuring or contradicting them.",
   "YOU MUST NOT invent, complete, improve, rewrite, replace, delete or suggest a slogan, headline, product name, body copy, call to action or any other wording.",
   "YOU MUST NOT supply sample words or alternative phrasing.",
+  "The application rejects output that supplies or changes advertising wording, or gives turn-2 advice.",
   "YOU MAY quote only the minimum existing words needed to identify a target. You may advise presentation through scale, placement, colour, emphasis, spacing, hierarchy or a line break only when word order, grouping and meaning remain unchanged.",
   "The selfCheck field may contain one brief yes-or-no check about the same visual change. It MUST NOT request information from the pair or invite a reply.",
   "YOU MUST NOT give a grade, score, medal prediction, pixel coordinate, follow-up request, invitation to continue, tool call or browsing request.",
@@ -508,6 +509,59 @@ async function readProviderResponse(response: Response): Promise<unknown> {
   }
 }
 
+function normaliseCopy(value: string): string {
+  return value.toLocaleLowerCase("en-AU").replace(/\s+/g, " ").trim();
+}
+
+function responsePolicyCompliant(response: StudioCoachResponse, request: StudioCoachRequest): boolean {
+  const existingCopy = [
+    ...(request.previous?.objects ?? []),
+    ...request.current.objects
+  ].flatMap(({ text }) => text === undefined ? [] : [normaliseCopy(text)]);
+  const prose = response.turn === 1
+    ? [response.observation, response.effect, response.nextMove, response.selfCheck]
+    : [response.whatChanged, response.why];
+  const quoted = /["\u201c\u00ab]([^"\u201d\u00bb\r\n]{2,120})["\u201d\u00bb]/gu;
+  for (const value of prose) {
+    for (const match of value.matchAll(quoted)) {
+      const candidate = normaliseCopy(match[1]!);
+      if (!existingCopy.some((text) => text.includes(candidate))) return false;
+    }
+  }
+  const policyProse = prose.map((value) => value.replace(
+    quoted,
+    (whole, candidate: string) => existingCopy.some((text) => text.includes(normaliseCopy(candidate)))
+      ? "[existing words]"
+      : whole
+  ));
+  const copyCreation = [
+    /\b(?:write|rewrite|reword|invent|supply)\b[^.!?]{0,48}\b(?:slogan|tagline|headline|words?|wording|phrase|copy|text|product name|call to action|cta|body copy|message)\b/iu,
+    /\b(?:create|suggest)\b[^.!?]{0,48}\b(?:slogan|tagline|words?|wording|phrase|copy|product name|call to action|cta|body copy|message)\b/iu,
+    /\b(?:new|different|alternative|better)\s+(?:slogan|tagline|headline|words?|wording|phrase|copy|product name|call to action|cta|body copy|message)\b/iu,
+    /\b(?:replace|change|add|remove|delete)\s+(?:the\s+|your\s+|a\s+)?(?:slogan|tagline|words?|wording|phrase|copy|product name|call to action|cta|body copy|message)\b/iu,
+    /\b(?:replace|change|add|remove|delete)\s+(?:the\s+|your\s+|a\s+)?(?:headline|text)\b(?!\s+(?:colour|color|size|scale|position|placement|contrast|emphasis|spacing|line break|alignment|angle|depth|layer|framing|opacity|font))\b/iu,
+    /\b(?:use|try|include)\b[^.!?]{2,48}\bas\s+(?:the\s+|a\s+)?(?:slogan|tagline|headline|copy|message|call to action)\b/iu,
+    /\b(?:make|have|let)\s+(?:the\s+|your\s+)?(?:slogan|tagline|headline|copy|message|call to action)\s+(?:say|read|be)\b/iu,
+    /\b(?:phrase it as|call it|make (?:it|the (?:slogan|tagline|headline|copy|message)) say)\b/iu
+  ];
+  if (policyProse.some((value) => copyCreation.some((pattern) => pattern.test(value)))) return false;
+  if (response.turn === 1) {
+    const bundledAction = /(?:\b(?:and|then|also|plus)\s+|[;,]\s*)(?:also\s+)?(?:move|place|align|enlarge|shrink|scale|increase|decrease|raise|lower|add|remove|change|adjust|rotate|angle|group|separate|shift|reposition|resize|make)\b/iu;
+    const bundledProperty = /\b(?:and|plus)\s+(?:its\s+|the\s+)?(?:size|scale|position|placement|colour|color|contrast|spacing|alignment|angle|depth|layer|framing|opacity|font)\b/iu;
+    const yesNoCheck = /^\s*(?:does|do|can|is|are|has|have|will|would|could|should)\b[^\r\n]*\?\s*$/iu;
+    if (bundledAction.test(response.nextMove) || bundledProperty.test(response.nextMove) ||
+      !yesNoCheck.test(response.selfCheck)) return false;
+  }
+  if (response.turn === 2) {
+    const adviceLead = /^\s*(?:try|make|move|increase|decrease|raise|lower|add|remove|change(?!\s+in\b)|adjust|use(?!\s+of\b)|place|align|enlarge|shrink|rotate|angle|group|separate|keep|consider)\b/iu;
+    const advicePhrase = /\b(?:you should|you could|try to|next step|now (?:try|make|move|increase|decrease|add|remove|change|adjust|use|place|align))\b/iu;
+    if ([response.whatChanged, response.why].some((value) => adviceLead.test(value) || advicePhrase.test(value))) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function parseProviderResponse(value: unknown, request: StudioCoachRequest): StudioCoachResponse {
   if (!isRecord(value) || typeof value.model !== "string" ||
     value.model !== STUDIO_COACH_MODEL && value.model !== STUDIO_COACH_CANONICAL_MODEL ||
@@ -529,6 +583,7 @@ function parseProviderResponse(value: unknown, request: StudioCoachRequest): Stu
     ...request.current.objects.map(({ id }) => id)
   ]);
   if (response.evidenceRefs.some((id) => !allowed.has(id))) throw new StudioCoachUpstreamError();
+  if (!responsePolicyCompliant(response, request)) throw new StudioCoachUpstreamError();
   return response;
 }
 

@@ -7,6 +7,7 @@ function readyState(): StudioCoachRuntimeState {
   return {
     phase: "ready",
     attemptsUsed: 0,
+    pendingCheck: null,
     changedSinceFirst: false,
     first: null,
     final: null,
@@ -69,6 +70,7 @@ describe("StudioCoachPanel", () => {
     port.update({
       phase: "advice",
       attemptsUsed: 1,
+      pendingCheck: null,
       changedSinceFirst: false,
       first: {
         turn: 1,
@@ -100,6 +102,7 @@ describe("StudioCoachPanel", () => {
     const port = actions({
       phase: "complete",
       attemptsUsed: 2,
+      pendingCheck: null,
       changedSinceFirst: true,
       first: null,
       final: {
@@ -130,5 +133,32 @@ describe("StudioCoachPanel", () => {
     await new Promise((resolve) => globalThis.setTimeout(resolve, 0));
 
     expect(port.requestInitial).toHaveBeenCalledOnce();
+  });
+
+  it("offers one explicit resume action for an interrupted final check", () => {
+    const host = document.createElement("div");
+    const port = actions({
+      phase: "error",
+      attemptsUsed: 2,
+      pendingCheck: "revision",
+      changedSinceFirst: true,
+      first: {
+        turn: 1,
+        mode: "technique",
+        observation: "The diagonal line points away from the product.",
+        effect: "The eye leaves the main reading path.",
+        nextMove: "Angle the existing line towards the product.",
+        selfCheck: "Does your eye land on the product first?",
+        evidenceRefs: ["product"],
+        certainty: "clear"
+      },
+      final: null,
+      error: "The final check was interrupted."
+    });
+    new StudioCoachPanel(host, port);
+
+    expect(host.textContent).toContain("does not use another turn");
+    fireEvent.click(getByRole(host, "button", { name: "Resume final check" }));
+    expect(port.requestRevision).toHaveBeenCalledOnce();
   });
 });

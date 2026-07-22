@@ -7,7 +7,10 @@ import type {
   StudioCoachTurnOneResponse,
   StudioCoachTurnTwoResponse
 } from "../../../shared/studio-coach-contract";
-import { parseStudioCoachResponse } from "../../../shared/studio-coach-contract";
+import {
+  STUDIO_COACH_TECHNIQUE_IDS,
+  parseStudioCoachResponse
+} from "../../../shared/studio-coach-contract";
 import type { StudioCoachCanvasEvidence } from "./canvas-evidence";
 
 export interface StudioCoachCampaign extends StudioCoachContext {
@@ -28,6 +31,7 @@ export type StudioCoachRuntimePhase =
 export interface StudioCoachRuntimeState {
   phase: StudioCoachRuntimePhase;
   attemptsUsed: 0 | 1 | 2;
+  pendingCheck: "initial" | "revision" | null;
   changedSinceFirst: boolean;
   first: StudioCoachTurnOneResponse | null;
   final: StudioCoachTurnTwoResponse | null;
@@ -53,24 +57,28 @@ export interface StudioCoachRuntimeStorage {
 const INITIAL_STATE: StudioCoachRuntimeState = Object.freeze({
   phase: "empty",
   attemptsUsed: 0,
+  pendingCheck: null,
   changedSinceFirst: false,
   first: null,
   final: null,
   error: ""
 });
 
-function ambiguousInitialOutcome(error: unknown): boolean {
+function ambiguousOutcome(error: unknown): boolean {
   if (typeof error !== "object" || error === null || !("code" in error)) return false;
   const code = (error as { code?: unknown }).code;
   return code === "NETWORK_ERROR" || code === "TIMEOUT" || code === "CHECK_IN_PROGRESS";
 }
 
-interface StudioCoachStoredRuntime {
-  version: 1;
+interface StudioCoachStoredRuntimeV2 {
+  version: 2;
   attemptsUsed: 1 | 2;
-  first: StudioCoachTurnOneResponse;
+  first: StudioCoachTurnOneResponse | null;
   final: StudioCoachTurnTwoResponse | null;
-  firstEvidence: StudioCoachCanvasEvidence;
+  firstEvidence: StudioCoachCanvasEvidence | null;
+  pendingInitialRequest: StudioCoachRequest | null;
+  pendingRevisionRequest: StudioCoachRequest | null;
+  pendingEvidenceStale: boolean;
 }
 
 function record(value: unknown): Record<string, unknown> | null {
@@ -97,7 +105,7 @@ function storedEvidence(value: unknown): StudioCoachCanvasEvidence | null {
   return structuredClone(input) as unknown as StudioCoachCanvasEvidence;
 }
 
-function storedRuntime(value: unknown): StudioCoachStoredRuntime | null {
+function storedRuntimeV1(value: unknown): StudioCoachStoredRuntimeV2 | null {
   const input = record(value);
   if (!input || input.version !== 1 || input.attemptsUsed !== 1 && input.attemptsUsed !== 2) return null;
   let first: StudioCoachTurnOneResponse;
@@ -117,12 +125,138 @@ function storedRuntime(value: unknown): StudioCoachStoredRuntime | null {
   const firstEvidence = storedEvidence(input.firstEvidence);
   if (!firstEvidence || final !== null && input.attemptsUsed !== 2) return null;
   return {
-    version: 1,
+    version: 2,
     attemptsUsed: input.attemptsUsed,
     first,
     final,
-    firstEvidence
+    firstEvidence,
+    pendingInitialRequest: null,
+    pendingRevisionRequest: null,
+    pendingEvidenceStale: false
   };
+}
+
+function storedText(value: unknown, maximum: number): value is string {
+  return typeof value === "string" && value === value.trim() && value.length >= 1 && value.length <= maximum;
+}
+
+function storedContext(value: unknown): StudioCoachContext | null {
+  const input = record(value);
+  if (!input || !storedText(input.productName, 96) || !storedText(input.priceLabel, 32) ||
+    !storedText(input.audienceNeed, 480) || !storedText(input.audienceValues, 480) ||
+    !storedText(input.intendedEffect, 480) ||
+    input.aidaStage !== "price" && input.aidaStage !== "attention" && input.aidaStage !== "interest" &&
+      input.aidaStage !== "desire" && input.aidaStage !== "action") return null;
+  return {
+    productName: input.productName,
+    priceLabel: input.priceLabel,
+    audienceNeed: input.audienceNeed,
+    audienceValues: input.audienceValues,
+    intendedEffect: input.intendedEffect,
+    aidaStage: input.aidaStage
+  };
+}
+
+function storedRequest(
+  value: unknown,
+  campaign: StudioCoachCampaign,
+  turn: 1 | 2
+): StudioCoachRequest | null {
+  const input = record(value);
+  if (!input || input.sessionId !== campaign.sessionId || input.teamId !== campaign.teamId ||
+    input.documentId !== campaign.documentId || !storedText(input.idempotencyKey, 128) ||
+    input.turn !== turn || !storedContext(input.context)) return null;
+  const context = storedContext(input.context)!;
+  const current = storedEvidence(input.current);
+  if (!current) return null;
+  if (turn === 1 && (input.mode === "technique" || input.mode === "whole-ad")) {
+    if (input.previous !== undefined || input.mode === "whole-ad" && input.techniqueId !== undefined ||
+      input.mode === "technique" && (typeof input.techniqueId !== "string" ||
+        !(STUDIO_COACH_TECHNIQUE_IDS as readonly string[]).includes(input.techniqueId))) return null;
+    return {
+      sessionId: campaign.sessionId,
+      teamId: campaign.teamId,
+      documentId: campaign.documentId,
+      idempotencyKey: input.idempotencyKey,
+      turn: 1,
+      mode: input.mode,
+      ...(input.mode === "technique" ? { techniqueId: input.techniqueId as StudioCoachTechniqueId } : {}),
+      context,
+      current
+    };
+  }
+  if (turn === 2 && input.mode === "revision" && input.techniqueId === undefined) {
+    const previous = storedEvidence(input.previous);
+    if (!previous) return null;
+    return {
+      sessionId: campaign.sessionId,
+      teamId: campaign.teamId,
+      documentId: campaign.documentId,
+      idempotencyKey: input.idempotencyKey,
+      turn: 2,
+      mode: "revision",
+      context,
+      previous,
+      current
+    };
+  }
+  return null;
+}
+
+function storedRuntimeV2(value: unknown, campaign: StudioCoachCampaign): StudioCoachStoredRuntimeV2 | null {
+  const input = record(value);
+  if (!input || input.version !== 2 || input.attemptsUsed !== 1 && input.attemptsUsed !== 2 ||
+    typeof input.pendingEvidenceStale !== "boolean") return null;
+  let first: StudioCoachTurnOneResponse | null = null;
+  let final: StudioCoachTurnTwoResponse | null = null;
+  try {
+    if (input.first !== null) {
+      const parsed = parseStudioCoachResponse(input.first);
+      if (parsed.turn !== 1) return null;
+      first = parsed;
+    }
+    if (input.final !== null) {
+      const parsed = parseStudioCoachResponse(input.final);
+      if (parsed.turn !== 2) return null;
+      final = parsed;
+    }
+  } catch {
+    return null;
+  }
+  const firstEvidence = input.firstEvidence === null ? null : storedEvidence(input.firstEvidence);
+  const pendingInitialRequest = input.pendingInitialRequest === null
+    ? null
+    : storedRequest(input.pendingInitialRequest, campaign, 1);
+  const pendingRevisionRequest = input.pendingRevisionRequest === null
+    ? null
+    : storedRequest(input.pendingRevisionRequest, campaign, 2);
+  if (input.firstEvidence !== null && firstEvidence === null ||
+    input.pendingInitialRequest !== null && pendingInitialRequest === null ||
+    input.pendingRevisionRequest !== null && pendingRevisionRequest === null ||
+    pendingInitialRequest !== null && pendingRevisionRequest !== null ||
+    final !== null && (first === null || firstEvidence === null || input.attemptsUsed !== 2) ||
+    (first === null) !== (firstEvidence === null) ||
+    pendingInitialRequest !== null && (first !== null || final !== null) ||
+    pendingRevisionRequest !== null && (first === null || firstEvidence === null || final !== null || input.attemptsUsed !== 2) ||
+    pendingEvidenceStale(input.pendingEvidenceStale, pendingInitialRequest, pendingRevisionRequest)) return null;
+  return {
+    version: 2,
+    attemptsUsed: input.attemptsUsed,
+    first,
+    final,
+    firstEvidence,
+    pendingInitialRequest,
+    pendingRevisionRequest,
+    pendingEvidenceStale: input.pendingEvidenceStale
+  };
+}
+
+function pendingEvidenceStale(
+  stale: boolean,
+  initial: StudioCoachRequest | null,
+  revision: StudioCoachRequest | null
+): boolean {
+  return stale && initial === null && revision === null;
 }
 
 function defaultStorage(): StudioCoachRuntimeStorage | null {
@@ -148,6 +282,9 @@ export class StudioCoachRuntime {
   #campaign: StudioCoachCampaign | null = null;
   #firstEvidence: StudioCoachCanvasEvidence | null = null;
   #pendingInitialRequest: StudioCoachRequest | null = null;
+  #pendingRevisionRequest: StudioCoachRequest | null = null;
+  #pendingEvidenceStale = false;
+  #canvasRevision = 0;
   #operation: AbortController | null = null;
   #state: StudioCoachRuntimeState = { ...INITIAL_STATE };
 
@@ -175,18 +312,34 @@ export class StudioCoachRuntime {
     this.#operation?.abort();
     this.#operation = null;
     this.#campaign = { ...campaign };
-    this.#pendingInitialRequest = null;
     const restored = this.#restore(campaign);
     this.#firstEvidence = restored?.firstEvidence ?? null;
+    this.#pendingInitialRequest = restored?.pendingInitialRequest ?? null;
+    this.#pendingRevisionRequest = restored?.pendingRevisionRequest ?? null;
+    this.#pendingEvidenceStale = restored?.pendingEvidenceStale ?? false;
+    this.#canvasRevision = 0;
     this.#state = restored === null
       ? { ...INITIAL_STATE, phase: "ready" }
       : {
-          phase: restored.attemptsUsed === 2 ? "complete" : "advice",
+          phase: restored.pendingInitialRequest || restored.pendingRevisionRequest
+            ? "error"
+            : restored.attemptsUsed === 2 ? "complete" : restored.first === null ? "error" : "advice",
           attemptsUsed: restored.attemptsUsed,
-          changedSinceFirst: false,
+          pendingCheck: restored.pendingInitialRequest ? "initial" : restored.pendingRevisionRequest ? "revision" : null,
+          changedSinceFirst: restored.pendingRevisionRequest !== null,
           first: restored.first,
           final: restored.final,
-          error: ""
+          error: restored.pendingInitialRequest
+            ? "The first check was interrupted. Resume the saved check; this does not use another turn."
+            : restored.pendingRevisionRequest
+              ? "The final check was interrupted. Resume the saved check; this does not use another turn."
+              : restored.first === null
+                ? restored.attemptsUsed === 1
+                  ? "The first check did not finish. One final check remains."
+                  : "Both available checks were used without a result."
+                : restored.attemptsUsed === 2 && restored.final === null
+                  ? "The successful advice used the final available check, so no comparison remains."
+                  : ""
         };
     this.#emit();
   }
@@ -207,13 +360,19 @@ export class StudioCoachRuntime {
     this.#campaign = null;
     this.#firstEvidence = null;
     this.#pendingInitialRequest = null;
+    this.#pendingRevisionRequest = null;
+    this.#pendingEvidenceStale = false;
+    this.#canvasRevision = 0;
     this.#state = { ...INITIAL_STATE };
     this.#emit();
   }
 
   markCanvasChanged(): void {
-    if (this.#state.phase !== "advice" || this.#state.changedSinceFirst) return;
-    this.#state = { ...this.#state, changedSinceFirst: true };
+    this.#canvasRevision += 1;
+    if (this.#pendingInitialRequest || this.#pendingRevisionRequest) this.#pendingEvidenceStale = true;
+    if (this.#state.phase === "advice" && !this.#state.changedSinceFirst) {
+      this.#state = { ...this.#state, changedSinceFirst: true };
+    }
     this.#emit();
   }
 
@@ -222,22 +381,27 @@ export class StudioCoachRuntime {
     techniqueId?: StudioCoachTechniqueId
   ): Promise<StudioCoachTurnOneResponse> {
     const campaign = this.#requiredCampaign();
-    if (this.#state.phase === "complete" || this.#state.attemptsUsed >= 2 || this.#state.first) {
+    const pending = this.#pendingInitialRequest;
+    if (pending === null && (this.#state.phase === "complete" || this.#state.attemptsUsed >= 2 || this.#state.first)) {
       throw new Error("Studio Coach is complete for this advertisement");
     }
     if (this.#state.phase === "checking-initial" || this.#state.phase === "checking-revision") {
       throw new Error("Studio Coach is already checking this advertisement");
     }
-    const pending = this.#pendingInitialRequest;
     if (pending === null && mode === "technique" && techniqueId === undefined) {
       throw new Error("Choose a technique before asking Studio Coach");
     }
     const controller = this.#begin("checking-initial");
     let request = pending;
+    const requestCanvasRevision = this.#canvasRevision;
     try {
       if (request === null) {
+        const captureRevision = this.#canvasRevision;
         const current = await this.#capture();
         this.#assertCurrent(controller);
+        if (this.#canvasRevision !== captureRevision) {
+          throw new Error("The advertisement changed while Studio Coach captured it. Try the check again.");
+        }
         request = {
           sessionId: campaign.sessionId,
           teamId: campaign.teamId,
@@ -249,6 +413,8 @@ export class StudioCoachRuntime {
           context: this.#context(campaign),
           current
         };
+        this.#pendingInitialRequest = request;
+        this.#pendingEvidenceStale = false;
         this.#consumeAttempt();
       }
       const response = await this.#client.check(request, { signal: controller.signal });
@@ -256,21 +422,29 @@ export class StudioCoachRuntime {
       if (response.turn !== 1 || response.mode !== request.mode) {
         throw new Error("Studio Coach returned the wrong check");
       }
+      const stale = this.#pendingEvidenceStale || this.#canvasRevision !== requestCanvasRevision;
       this.#pendingInitialRequest = null;
+      this.#pendingEvidenceStale = false;
       this.#firstEvidence = request.current;
       this.#state = {
         ...this.#state,
         phase: this.#state.attemptsUsed >= 2 ? "complete" : "advice",
+        pendingCheck: null,
         first: response,
-        changedSinceFirst: false,
-        error: ""
+        changedSinceFirst: stale,
+        error: stale
+          ? "The advertisement changed during this check. This advice describes the earlier version."
+          : this.#state.attemptsUsed >= 2
+            ? "The successful advice used the final available check, so no comparison remains."
+            : ""
       };
       this.#finish(controller);
       return response;
     } catch (error) {
-      this.#pendingInitialRequest = request !== null && ambiguousInitialOutcome(error)
+      this.#pendingInitialRequest = request !== null && ambiguousOutcome(error)
         ? request
         : null;
+      if (this.#pendingInitialRequest === null) this.#pendingEvidenceStale = false;
       this.#recordFailure(controller, error);
       throw error;
     }
@@ -278,39 +452,70 @@ export class StudioCoachRuntime {
 
   async requestRevision(): Promise<StudioCoachTurnTwoResponse> {
     const campaign = this.#requiredCampaign();
-    if (this.#state.phase === "complete" || this.#state.attemptsUsed >= 2) {
+    const pending = this.#pendingRevisionRequest;
+    if (pending === null && (this.#state.phase === "complete" || this.#state.attemptsUsed >= 2)) {
       throw new Error("Studio Coach is complete for this advertisement");
     }
     if (!this.#state.first || !this.#firstEvidence) throw new Error("Ask for the first Studio Coach check first");
-    if (!this.#state.changedSinceFirst) throw new Error("Change the advertisement first");
+    if (pending === null && !this.#state.changedSinceFirst) throw new Error("Change the advertisement first");
     const controller = this.#begin("checking-revision");
+    let request = pending;
+    const requestCanvasRevision = this.#canvasRevision;
     try {
-      const current = await this.#capture();
-      this.#assertCurrent(controller);
-      if (current.imageSha256 === this.#firstEvidence.imageSha256) {
-        this.#state = { ...this.#state, phase: "advice", changedSinceFirst: false, error: "Change the advertisement first." };
-        this.#finish(controller);
-        throw new Error("Change the advertisement first");
+      if (request === null) {
+        const captureRevision = this.#canvasRevision;
+        const current = await this.#capture();
+        this.#assertCurrent(controller);
+        if (this.#canvasRevision !== captureRevision) {
+          throw new Error("The advertisement changed while Studio Coach captured it. Try the check again.");
+        }
+        if (current.imageSha256 === this.#firstEvidence.imageSha256) {
+          this.#state = {
+            ...this.#state,
+            phase: "advice",
+            changedSinceFirst: false,
+            error: "Change the advertisement first."
+          };
+          this.#finish(controller);
+          throw new Error("Change the advertisement first");
+        }
+        request = {
+          sessionId: campaign.sessionId,
+          teamId: campaign.teamId,
+          documentId: campaign.documentId,
+          idempotencyKey: this.#createId(),
+          turn: 2,
+          mode: "revision",
+          context: this.#context(campaign),
+          previous: this.#firstEvidence,
+          current
+        };
+        this.#pendingRevisionRequest = request;
+        this.#pendingEvidenceStale = false;
+        this.#consumeAttempt();
       }
-      const request: StudioCoachRequest = {
-        sessionId: campaign.sessionId,
-        teamId: campaign.teamId,
-        documentId: campaign.documentId,
-        idempotencyKey: this.#createId(),
-        turn: 2,
-        mode: "revision",
-        context: this.#context(campaign),
-        previous: this.#firstEvidence,
-        current
-      };
-      this.#consumeAttempt();
       const response = await this.#client.check(request, { signal: controller.signal });
       this.#assertCurrent(controller);
       if (response.turn !== 2) throw new Error("Studio Coach returned the wrong comparison");
-      this.#state = { ...this.#state, phase: "complete", final: response, error: "" };
+      const stale = this.#pendingEvidenceStale || this.#canvasRevision !== requestCanvasRevision;
+      this.#pendingRevisionRequest = null;
+      this.#pendingEvidenceStale = false;
+      this.#state = {
+        ...this.#state,
+        phase: "complete",
+        pendingCheck: null,
+        final: response,
+        error: stale
+          ? "The advertisement changed during this check. This comparison describes the earlier version."
+          : ""
+      };
       this.#finish(controller);
       return response;
     } catch (error) {
+      this.#pendingRevisionRequest = request !== null && ambiguousOutcome(error)
+        ? request
+        : null;
+      if (this.#pendingRevisionRequest === null) this.#pendingEvidenceStale = false;
       this.#recordFailure(controller, error);
       throw error;
     }
@@ -343,7 +548,11 @@ export class StudioCoachRuntime {
 
   #consumeAttempt(): void {
     const attemptsUsed = Math.min(2, this.#state.attemptsUsed + 1) as 1 | 2;
-    this.#state = { ...this.#state, attemptsUsed };
+    this.#state = {
+      ...this.#state,
+      attemptsUsed,
+      pendingCheck: this.#pendingInitialRequest ? "initial" : this.#pendingRevisionRequest ? "revision" : null
+    };
     this.#emit();
   }
 
@@ -361,8 +570,9 @@ export class StudioCoachRuntime {
     if (this.#operation !== controller) return;
     this.#operation = null;
     const message = error instanceof Error ? error.message : "Studio Coach could not finish this check.";
-    const phase = this.#state.attemptsUsed >= 2 ? "complete" : "error";
-    this.#state = { ...this.#state, phase, error: message };
+    const pendingCheck = this.#pendingInitialRequest ? "initial" : this.#pendingRevisionRequest ? "revision" : null;
+    const phase = pendingCheck === null && this.#state.attemptsUsed >= 2 ? "complete" : "error";
+    this.#state = { ...this.#state, phase, pendingCheck, error: message };
     this.#emit();
   }
 
@@ -371,29 +581,33 @@ export class StudioCoachRuntime {
     this.#listeners.forEach((listener) => listener());
   }
 
-  #restore(campaign: StudioCoachCampaign): StudioCoachStoredRuntime | null {
+  #restore(campaign: StudioCoachCampaign): StudioCoachStoredRuntimeV2 | null {
     if (!this.#storage) return null;
     try {
-      const value = this.#storage.getItem(`ad-market:studio-coach:v1:${storageKey(campaign)}`);
-      return value === null ? null : storedRuntime(JSON.parse(value) as unknown);
+      const v2 = this.#storage.getItem(`ad-market:studio-coach:v2:${storageKey(campaign)}`);
+      if (v2 !== null) return storedRuntimeV2(JSON.parse(v2) as unknown, campaign);
+      const v1 = this.#storage.getItem(`ad-market:studio-coach:v1:${storageKey(campaign)}`);
+      return v1 === null ? null : storedRuntimeV1(JSON.parse(v1) as unknown);
     } catch {
       return null;
     }
   }
 
   #persist(): void {
-    if (!this.#storage || !this.#campaign || !this.#state.first || !this.#firstEvidence ||
-      this.#state.attemptsUsed === 0) return;
-    const snapshot: StudioCoachStoredRuntime = {
-      version: 1,
+    if (!this.#storage || !this.#campaign || this.#state.attemptsUsed === 0) return;
+    const snapshot: StudioCoachStoredRuntimeV2 = {
+      version: 2,
       attemptsUsed: this.#state.attemptsUsed,
       first: this.#state.first,
       final: this.#state.final,
-      firstEvidence: this.#firstEvidence
+      firstEvidence: this.#firstEvidence,
+      pendingInitialRequest: this.#pendingInitialRequest,
+      pendingRevisionRequest: this.#pendingRevisionRequest,
+      pendingEvidenceStale: this.#pendingEvidenceStale
     };
     try {
       this.#storage.setItem(
-        `ad-market:studio-coach:v1:${storageKey(this.#campaign)}`,
+        `ad-market:studio-coach:v2:${storageKey(this.#campaign)}`,
         JSON.stringify(snapshot)
       );
     } catch {

@@ -126,6 +126,26 @@ describe("StudioCoachRuntime", () => {
     await expect(runtime.requestInitial("whole-ad")).rejects.toThrow("offline");
     expect(runtime.state()).toMatchObject({ phase: "error", attemptsUsed: 1 });
     expect(check).toHaveBeenCalledOnce();
+
+    const restored = new StudioCoachRuntime({
+      client: { check: vi.fn().mockResolvedValue(firstResponse) },
+      capture: vi.fn().mockResolvedValue(evidence("b")),
+      createId: () => "check-two"
+    });
+    restored.setCampaign(campaign);
+    expect(restored.state()).toMatchObject({
+      phase: "error",
+      attemptsUsed: 1,
+      first: null,
+      error: expect.stringMatching(/one final check remains/i)
+    });
+    await expect(restored.requestInitial("technique", "contrast")).resolves.toEqual(firstResponse);
+    expect(restored.state()).toMatchObject({
+      phase: "complete",
+      attemptsUsed: 2,
+      first: firstResponse,
+      error: expect.stringMatching(/no comparison remains/i)
+    });
   });
 
   it("replays the identical request after an ambiguous network outcome without consuming another provider turn", async () => {
@@ -146,6 +166,115 @@ describe("StudioCoachRuntime", () => {
     expect(check).toHaveBeenCalledTimes(2);
     expect(check.mock.calls[1]![0]).toEqual(check.mock.calls[0]![0]);
     expect(runtime.state()).toMatchObject({ phase: "advice", attemptsUsed: 1, first: firstResponse });
+  });
+
+  it("persists an ambiguous first request before transmission and resumes it after reload", async () => {
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => { values.set(key, value); }
+    };
+    const ambiguous = Object.assign(new Error("The reply may still have completed."), { code: "TIMEOUT" });
+    let sent: StudioCoachRequest | null = null;
+    const firstRuntime = new StudioCoachRuntime({
+      client: {
+        check: vi.fn(async (request: StudioCoachRequest) => {
+          sent = structuredClone(request);
+          expect([...values.values()].some((value) => value.includes('"idempotencyKey":"check-one"'))).toBe(true);
+          throw ambiguous;
+        })
+      },
+      capture: vi.fn().mockResolvedValue(evidence("a")),
+      createId: () => "check-one",
+      storage
+    });
+    firstRuntime.setCampaign(campaign);
+    await expect(firstRuntime.requestInitial("technique", "leading-lines")).rejects.toBe(ambiguous);
+
+    const resumedCheck = vi.fn().mockResolvedValue(firstResponse);
+    const resumedCapture = vi.fn();
+    const resumedRuntime = new StudioCoachRuntime({
+      client: { check: resumedCheck },
+      capture: resumedCapture,
+      createId: () => "must-not-create-another-id",
+      storage
+    });
+    resumedRuntime.setCampaign(campaign);
+
+    expect(resumedRuntime.state()).toMatchObject({ phase: "error", attemptsUsed: 1, first: null });
+    await expect(resumedRuntime.requestInitial("whole-ad")).resolves.toEqual(firstResponse);
+    expect(resumedCapture).not.toHaveBeenCalled();
+    expect(resumedCheck).toHaveBeenCalledWith(sent, expect.anything());
+    expect(resumedRuntime.state()).toMatchObject({ phase: "advice", attemptsUsed: 1, first: firstResponse });
+  });
+
+  it("persists and resumes the identical final comparison after an ambiguous outcome", async () => {
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => { values.set(key, value); }
+    };
+    const ambiguous = Object.assign(new Error("The reply may still have completed."), { code: "NETWORK_ERROR" });
+    let sentRevision: StudioCoachRequest | null = null;
+    const firstRuntime = new StudioCoachRuntime({
+      client: {
+        check: vi.fn(async (request: StudioCoachRequest) => {
+          if (request.turn === 1) return firstResponse;
+          sentRevision = structuredClone(request);
+          throw ambiguous;
+        })
+      },
+      capture: vi.fn()
+        .mockResolvedValueOnce(evidence("a"))
+        .mockResolvedValueOnce(evidence("b")),
+      createId: vi.fn().mockReturnValueOnce("check-one").mockReturnValueOnce("check-two"),
+      storage
+    });
+    firstRuntime.setCampaign(campaign);
+    await firstRuntime.requestInitial("technique", "leading-lines");
+    firstRuntime.markCanvasChanged();
+    await expect(firstRuntime.requestRevision()).rejects.toBe(ambiguous);
+
+    const resumedCheck = vi.fn().mockResolvedValue(finalResponse);
+    const resumedCapture = vi.fn();
+    const resumedRuntime = new StudioCoachRuntime({
+      client: { check: resumedCheck },
+      capture: resumedCapture,
+      createId: () => "must-not-create-another-id",
+      storage
+    });
+    resumedRuntime.setCampaign(campaign);
+
+    expect(resumedRuntime.state()).toMatchObject({ phase: "error", attemptsUsed: 2, first: firstResponse });
+    await expect(resumedRuntime.requestRevision()).resolves.toEqual(finalResponse);
+    expect(resumedCapture).not.toHaveBeenCalled();
+    expect(resumedCheck).toHaveBeenCalledWith(sentRevision, expect.anything());
+    expect(resumedRuntime.state()).toMatchObject({ phase: "complete", attemptsUsed: 2, final: finalResponse });
+  });
+
+  it("labels a response as earlier-version evidence when the canvas changes during the check", async () => {
+    let resolveCheck!: (response: StudioCoachResponse) => void;
+    const check = vi.fn(() => new Promise<StudioCoachResponse>((resolve) => { resolveCheck = resolve; }));
+    const runtime = new StudioCoachRuntime({
+      client: { check },
+      capture: vi.fn().mockResolvedValue(evidence("a")),
+      createId: () => "check-one"
+    });
+    runtime.setCampaign(campaign);
+    const pending = runtime.requestInitial("technique", "leading-lines");
+    await vi.waitFor(() => expect(check).toHaveBeenCalledOnce());
+
+    runtime.markCanvasChanged();
+    resolveCheck(firstResponse);
+    await expect(pending).resolves.toEqual(firstResponse);
+
+    expect(runtime.state()).toMatchObject({
+      phase: "advice",
+      attemptsUsed: 1,
+      changedSinceFirst: true,
+      first: firstResponse,
+      error: expect.stringMatching(/earlier version/i)
+    });
   });
 
   it("updates current campaign facts without resetting an active two-check session", async () => {
@@ -194,5 +323,30 @@ describe("StudioCoachRuntime", () => {
       previous: { imageSha256: "a".repeat(64) },
       current: { imageSha256: "b".repeat(64) }
     });
+  });
+
+  it("keeps same-tab recovery compatible with the earlier version-one snapshot", () => {
+    const values = new Map<string, string>();
+    const key = `ad-market:studio-coach:v1:${[campaign.sessionId, campaign.teamId, campaign.documentId]
+      .map((part) => encodeURIComponent(part)).join(":")}`;
+    values.set(key, JSON.stringify({
+      version: 1,
+      attemptsUsed: 1,
+      first: firstResponse,
+      final: null,
+      firstEvidence: evidence("a")
+    }));
+    const runtime = new StudioCoachRuntime({
+      client: { check: vi.fn() },
+      capture: vi.fn(),
+      storage: {
+        getItem: (itemKey: string) => values.get(itemKey) ?? null,
+        setItem: (itemKey: string, value: string) => { values.set(itemKey, value); }
+      }
+    });
+
+    runtime.setCampaign(campaign);
+
+    expect(runtime.state()).toMatchObject({ phase: "advice", attemptsUsed: 1, first: firstResponse });
   });
 });

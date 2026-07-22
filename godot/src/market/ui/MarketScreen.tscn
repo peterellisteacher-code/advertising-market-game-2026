@@ -148,7 +148,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.713725, 0.227451, 0.0823529, 1)
 theme_override_font_sizes/font_size = 16
-text = "LIVE MARKET // AD STUDIO"
+text = "AD MARKET // MEDAL GALLERY"
 
 [node name="MarketRoomCode" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/MarketHeader"]
 unique_name_in_owner = true
@@ -215,12 +215,13 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 20
-text = "$100 remaining"
+text = "Award one Gold, one Silver and one Bronze"
 
 [node name="SpendMeter" type="ProgressBar" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/TeamSummary/SummaryRow/MoneyBlock"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(260, 18)
 layout_mode = 2
+step = 0.01
 show_percentage = false
 theme_override_styles/background = SubResource("Style_progress_background")
 theme_override_styles/fill = SubResource("Style_progress_fill")
@@ -231,7 +232,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 17
-text = "0 of 2 different sellers backed"
+text = "Gold: open · Silver: open · Bronze: open"
 autowrap_mode = 2
 
 [node name="FinishMarket" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/TeamSummary/SummaryRow"]
@@ -249,7 +250,19 @@ theme_override_styles/pressed = SubResource("Style_primary")
 theme_override_styles/disabled = SubResource("Style_disabled")
 theme_override_styles/focus = SubResource("Style_focus")
 disabled = true
-text = "Finish shopping"
+text = "Submit medals"
+
+[node name="MarketCriteria" type="PanelContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/panel = SubResource("Style_kraft")
+
+[node name="CriteriaCopy" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/MarketCriteria"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 16
+text = "Score every other ad 0 (missing), 1 (partly clear) or 2 (clear) on five checks: audience fit; product value and price; AIDA; deliberate visual techniques; and a clear, credible claim. Add the score out of 10. Give Gold to the highest score, Silver to the next and Bronze to the third. Break a tie with audience fit, then AIDA. Each medal must go to a different ad."
+autowrap_mode = 2
 
 [node name="CampaignState" type="PanelContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface"]
 layout_mode = 2
@@ -264,14 +277,14 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 20
-text = "Stall preparing."
+text = "Ad preparing."
 
 [node name="CampaignStatusCopy" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/CampaignState/CampaignStateContent"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
 theme_override_font_sizes/font_size = 16
-text = "Build your market card. The host brings it to the floor."
+text = "Finish your ad. The host adds it to the gallery."
 autowrap_mode = 2
 
 [node name="FixCampaign" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/CampaignState/CampaignStateContent"]
@@ -308,7 +321,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 24
-text = "Browse the market floor"
+text = "Award the market gallery"
 
 [node name="TeamCards" type="GridContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface"]
 unique_name_in_owner = true

@@ -22,6 +22,7 @@ const initialRoom = (): MarketRoom => createMarketRoom({
 const legacyInitialRoom = (): unknown => {
   const state = initialRoom();
   const {
+    marketMode: _marketMode,
     marketCohort: _marketCohort,
     commandReceipts: _commandReceipts,
     sessionBindings: _sessionBindings,

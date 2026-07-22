@@ -7,11 +7,52 @@ const FakeMarketTransport = preload("res://tests/fakes/FakeMarketTransport.gd")
 func run() -> bool:
     assert(_scene_uses_accessible_ad_market_layouts())
     assert(_team_market_preserves_order_and_deduplicates_buy_requests())
+    assert(_medal_market_shows_strict_criteria_and_deduplicates_awards())
     assert(_spectator_mode_is_calm_and_has_no_market_actions())
     assert(_returned_and_hidden_campaigns_are_calm_and_fixable())
     assert(_teacher_dashboard_moderates_controls_and_confirms_removal())
     assert(_teacher_cohort_label_excludes_spectators_from_readiness())
     assert(_reveal_is_role_safe_and_network_failures_are_non_sensitive())
+    return true
+
+func _medal_market_shows_strict_criteria_and_deduplicates_awards() -> bool:
+    var mounted := _mount_screen()
+    var screen: Control = mounted.get("screen")
+    var host: Node = mounted.get("host")
+    var fake: RefCounted = mounted.get("fake")
+    screen.call("set_market_host", host)
+    screen.call("enter_room", "team", "ABC-234")
+    screen.call("present_snapshot", _medal_team_snapshot())
+
+    assert((screen.get_node("%WalletLabel") as Label).text.contains("Gold"))
+    assert(not (screen.get_node("%WalletLabel") as Label).text.contains("$"))
+    assert(absf((screen.get_node("%SpendMeter") as ProgressBar).value - 100.0 / 3.0) < 0.01)
+    assert((screen.get_node("%SellerProgress") as Label).text == "Gold: set · Silver: open · Bronze: open")
+    var criteria_copy := _descendant_copy(screen.get_node("%MarketCriteria"))
+    for required in ["0 (missing)", "out of 10", "audience fit", "product value and price", "AIDA", "visual techniques", "credible claim", "Break a tie"]:
+        assert(criteria_copy.contains(required))
+    var cards := screen.get_node("%TeamCards") as GridContainer
+    var silver_card := _child_with_meta(cards, "campaignId", "campaign-c")
+    assert(_descendant_copy(silver_card).contains("Product value: $50"))
+    var silver_button := silver_card.find_child("AwardSilver", true, false) as Button
+    assert(silver_button != null and not silver_button.disabled)
+    var before_award := fake.call("request_count") as int
+    silver_button.pressed.emit()
+    silver_button.pressed.emit()
+    assert(fake.call("request_count") == before_award + 1)
+    var award_request: Dictionary = fake.call("request_for", fake.call("last_request_id"))
+    assert(award_request.get("method") == "award")
+    assert(award_request.get("payload").get("campaignId") == "campaign-c")
+    assert(award_request.get("payload").get("medal") == "silver")
+    assert(not str(award_request.get("payload").get("commandId", "")).is_empty())
+
+    var complete := _medal_team_snapshot()
+    complete["myAwards"].append(_award("award-silver", "campaign-c", "team-c", "silver", 2001))
+    complete["myAwards"].append(_award("award-bronze", "campaign-d", "team-d", "bronze", 2002))
+    screen.call("present_snapshot", complete)
+    assert((screen.get_node("%FinishMarket") as Button).disabled == false)
+    assert((screen.get_node("%FinishMarket") as Button).text == "Submit medals")
+    _free_mounted(mounted)
     return true
 
 func _scene_uses_accessible_ad_market_layouts() -> bool:
@@ -242,24 +283,27 @@ func _reveal_is_role_safe_and_network_failures_are_non_sensitive() -> bool:
     var fake: RefCounted = mounted.get("fake")
     screen.call("set_market_host", host)
     screen.call("enter_room", "teacher", "ABC-234")
-    screen.call("present_snapshot", _teacher_reveal_snapshot())
+    screen.call("present_snapshot", _teacher_medal_reveal_snapshot())
     var podium_copy := _descendant_copy(screen.get_node("%TeacherReveal"))
     assert(podium_copy.contains("Pixel Pirates"))
     assert(podium_copy.contains("Signal Foxes"))
     assert(podium_copy.contains("Neon Narwhals"))
     assert(not podium_copy.contains("Fourth Finish"))
+    assert(podium_copy.contains("9 points"))
+    assert(podium_copy.contains("3 Gold"))
+    assert(not podium_copy.contains("$"))
     assert(not podium_copy.to_lower().contains("last"))
     assert(not _descendant_copy(screen).contains("Fourth Finish"))
     assert(screen.find_children("RemoveTeam", "Button", true, false).is_empty())
 
     screen.call("enter_room", "team", "ABC-234")
-    var student_reveal := _team_snapshot()
+    var student_reveal := _medal_team_snapshot()
     student_reveal["phase"] = "reveal"
     student_reveal["own"]["finished"] = true
     student_reveal["rankings"] = [{"alias": "PRIVATE FOURTH"}]
     screen.call("present_snapshot", student_reveal)
     assert((screen.get_node("%StudentReveal") as Control).visible)
-    assert((screen.get_node("%StudentRevealCopy") as Label).text.to_lower().contains("host display"))
+    assert((screen.get_node("%StudentRevealCopy") as Label).text.to_lower().contains("choices are locked"))
     assert(not _descendant_copy(screen).contains("PRIVATE FOURTH"))
 
     host.emit_signal("diagnostic", "PRIVATE_NETWORK_DETAILS: secret classroom token")
@@ -327,6 +371,47 @@ func _team_snapshot() -> Dictionary:
         }]
     }
 
+func _medal_team_snapshot() -> Dictionary:
+    return {
+        "roomId": "room-medals",
+        "revision": 12.0,
+        "phase": "market",
+        "marketMode": "medals",
+        "own": {
+            "teamId": "team-a",
+            "alias": "Signal Foxes",
+            "finished": false,
+            "marketEligibility": {
+                "state": "frozen",
+                "role": "buyer-seller",
+                "reason": "approved-campaign"
+            }
+        },
+        "teams": [
+            {"id": "team-a", "alias": "Signal Foxes"},
+            {"id": "team-b", "alias": "Pixel Pirates"},
+            {"id": "team-c", "alias": "Neon Narwhals"},
+            {"id": "team-d", "alias": "Fourth Finish"}
+        ],
+        "campaigns": [
+            _team_campaign("campaign-a", "team-a", "Signal Foxes", "approved", 100),
+            _team_campaign("campaign-b", "team-b", "Pixel Pirates", "approved", 900000),
+            _team_campaign("campaign-c", "team-c", "Neon Narwhals", "approved", 5000),
+            _team_campaign("campaign-d", "team-d", "Fourth Finish", "approved", 50)
+        ],
+        "myPurchases": [],
+        "myAwards": [_award("award-gold", "campaign-b", "team-b", "gold", 2000)]
+    }
+
+func _award(id: String, campaign_id: String, seller_team_id: String, medal: String, awarded_at: int) -> Dictionary:
+    return {
+        "id": id,
+        "campaignId": campaign_id,
+        "sellerTeamId": seller_team_id,
+        "medal": medal,
+        "awardedAt": float(awarded_at)
+    }
+
 func _team_campaign(
     id: String,
     seller_team_id: String,
@@ -389,6 +474,19 @@ func _teacher_reveal_snapshot() -> Dictionary:
     ]}
     return snapshot
 
+func _teacher_medal_reveal_snapshot() -> Dictionary:
+    var snapshot := _teacher_reveal_snapshot()
+    snapshot["marketMode"] = "medals"
+    snapshot.erase("openingWalletCents")
+    snapshot["awardCount"] = 12.0
+    snapshot["reveal"]["standings"] = [
+        _medal_standing(1, "team-b", "Pixel Pirates", 9, 3, 0, 0),
+        _medal_standing(2, "team-a", "Signal Foxes", 7, 1, 2, 0),
+        _medal_standing(3, "team-c", "Neon Narwhals", 5, 0, 2, 1),
+        _medal_standing(4, "team-d", "Fourth Finish", 3, 0, 0, 3)
+    ]
+    return snapshot
+
 func _teacher_team(id: String, alias: String, finished: bool, joined_at: int) -> Dictionary:
     return {"id": id, "alias": alias, "finished": finished, "joinedAt": float(joined_at)}
 
@@ -419,6 +517,27 @@ func _standing(rank: int, team_id: String, alias: String, revenue: int, sales: i
         "alias": alias,
         "revenue": float(revenue),
         "sales": float(sales)
+    }
+
+func _medal_standing(
+    rank: int,
+    team_id: String,
+    alias: String,
+    points: int,
+    gold: int,
+    silver: int,
+    bronze: int
+) -> Dictionary:
+    return {
+        "rank": float(rank),
+        "teamId": team_id,
+        "alias": alias,
+        "revenue": 0.0,
+        "sales": 0.0,
+        "points": float(points),
+        "gold": float(gold),
+        "silver": float(silver),
+        "bronze": float(bronze)
     }
 
 func _child_meta_values(parent: Node, key: String) -> Array[String]:

@@ -474,7 +474,9 @@ export class ProductKitPanel {
       if (!request || !bundle.runtime.planComposition(request)) return;
       this.onPlace(request);
     });
-    controls.append(baseCost, total, status, action);
+    const summary = node("div", "product-kit__summary");
+    summary.append(baseCost, total, status, action);
+    controls.prepend(summary);
     layout.append(preview, controls);
     panel.append(layout);
     this.host.replaceChildren(panel);

@@ -26,10 +26,10 @@ export const STUDENT_COPY = deepFreeze({
     gameTitle: "Advertising Market Game",
     audienceBrief: "Audience brief",
     audienceSignal: "Audience signal",
-    roundProgress: "Round progress",
+    roundProgress: "Pair progress",
     pairPlay: "Pair play",
     canvasWords: "Canvas words",
-    roundZeroTools: "Round 0 tools",
+    roundZeroTools: "Pair tools",
     context: "Context",
     need: "Need",
     values: "Values",
@@ -53,17 +53,67 @@ export const STUDENT_COPY = deepFreeze({
   rolePrompts: {
     "art-director": {
       label: "Art Director",
-      productiveAction: "While you control the computer, make one visible image change by adding, moving or resizing an image.",
-      holdingAction: "While your partner controls the computer, compare the image choices with the audience need. Prepare one specific visual suggestion."
+      productiveAction: "Build the product, place it on the ad, then make it a clear close-up.",
+      holdingAction: "Check that the product is large, clear and easy to recognise."
     },
     strategist: {
       label: "Strategist",
-      productiveAction: "While you control the computer, make one visible message change by adding or revising the product name or canvas words.",
-      holdingAction: "While your partner controls the computer, read the audience brief. Prepare one specific wording or persuasion suggestion."
+      productiveAction: "Name the product and add one clear benefit to the ad.",
+      holdingAction: "Read the audience need. Prepare a product name and one useful benefit."
+    }
+  },
+  stageRolePrompts: {
+    invent: {
+      "art-director": {
+        label: "Art Director",
+        productiveAction: "Build the product, place it on the ad, then make it a clear close-up.",
+        holdingAction: "Check that the product is large, clear and easy to recognise."
+      },
+      strategist: {
+        label: "Strategist",
+        productiveAction: "Name the product and add one clear benefit to the ad.",
+        holdingAction: "Read the audience need. Prepare a product name and one useful benefit."
+      }
+    },
+    sell: {
+      "art-director": {
+        label: "Art Director",
+        productiveAction: "Choose one visual technique and use it to guide attention.",
+        holdingAction: "Check whether the current AIDA choice is clear and easy to notice."
+      },
+      strategist: {
+        label: "Strategist",
+        productiveAction: "Link one canvas choice to the next AIDA step.",
+        holdingAction: "Check the next AIDA step. Prepare one message suggestion."
+      }
+    },
+    irresistible: {
+      "art-director": {
+        label: "Art Director",
+        productiveAction: "Check the image, spacing and text placement. Fix one visual problem.",
+        holdingAction: "Check whether the price and route fit what the ad promises."
+      },
+      strategist: {
+        label: "Strategist",
+        productiveAction: "Set the price, then complete the next market-route step.",
+        holdingAction: "Check the price and market route against the audience need."
+      }
+    },
+    "publish-check": {
+      "art-director": {
+        label: "Art Director",
+        productiveAction: "Check the finished ad for overlap, weak contrast or unclear focus.",
+        holdingAction: "Check whether every word and image is clear at market-card size."
+      },
+      strategist: {
+        label: "Strategist",
+        productiveAction: "Check the claim, price, audience fit and AIDA links.",
+        holdingAction: "Check that the final claim is clear, credible and linked to the audience."
+      }
     }
   },
   phaseLabels: {
-    "round-zero": "Round 0",
+    "round-zero": "PAIR START",
     invent: "Invent",
     sell: "Sell",
     refine: "Refine",
@@ -78,7 +128,8 @@ export const STUDENT_COPY = deepFreeze({
     progressNone: "Make one visible change.",
     progressOne: "1 visible change",
     progressManySuffix: "visible changes",
-    bothRolesReady: "Both roles made a change",
+    bothRolesReady: "Follow the highlighted tool step.",
+    bothRolesContributed: "Both roles contributed.",
     textPlaceholder: "Try Make room for adventure",
     addWords: "Add words",
     blankWords: "Type some canvas words first.",

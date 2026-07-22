@@ -80,6 +80,7 @@ class ClientHarness {
     return this.call("publishCampaign", values);
   }
   purchase(...values: unknown[]): Promise<unknown> { return this.call("purchase", values); }
+  award(...values: unknown[]): Promise<unknown> { return this.call("award", values); }
   finish(...values: unknown[]): Promise<unknown> { return this.call("finish", values); }
   reviewCampaign(...values: unknown[]): Promise<unknown> {
     return this.call("reviewCampaign", values);
@@ -113,6 +114,7 @@ describe("AdMarketRoom public API", () => {
       ["getSnapshot", null],
       ["getArtwork", { artworkKey: "rooms/hash/media/team/hash.png" }],
       ["purchase", { campaignId: "campaign-team-2", requestId: "request-1" }],
+      ["award", { commandId: COMMAND_ID, campaignId: "campaign-team-3", medal: "gold" }],
       ["finish", { commandId: COMMAND_ID }],
       ["reviewCampaign", {
         commandId: COMMAND_ID,
@@ -140,6 +142,7 @@ describe("AdMarketRoom public API", () => {
       { method: "getSnapshot", values: [] },
       { method: "getArtwork", values: ["rooms/hash/media/team/hash.png"] },
       { method: "purchase", values: ["campaign-team-2", "request-1"] },
+      { method: "award", values: ["campaign-team-3", "gold", COMMAND_ID] },
       { method: "finish", values: [COMMAND_ID] },
       {
         method: "reviewCampaign",
@@ -260,6 +263,7 @@ describe("AdMarketRoom public API", () => {
       request("bad-seats", "createRoom", { openingWallet: 10_000, classroomCode: "teacher-key", maxTeams: 2 }),
       request("bad-removal", "control", { action: "removeTeam" }),
       request("bad-command", "finish", { commandId: "not-a-uuid" }),
+      request("bad-medal", "award", { commandId: COMMAND_ID, campaignId: "campaign-2", medal: "platinum" }),
       request("missing-command", "finish", null),
       request("missing-version", "reviewCampaign", {
         commandId: COMMAND_ID,

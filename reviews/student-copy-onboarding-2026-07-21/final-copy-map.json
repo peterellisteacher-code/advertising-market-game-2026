@@ -1,0 +1,5570 @@
+[
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0016__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 16,
+    "text": "LEVEL 1 // INVENT IT"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0017__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 17,
+    "text": "Design a product that solves an unrecognised customer need."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0018__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 18,
+    "text": "Identify one customer need, design a product for it, and give it a distinctive name."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0021__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 21,
+    "text": "LEVEL 2 // SELL IT"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0022__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 22,
+    "text": "Apply the four AIDA moves — Attention, Interest, Desire, Action — to the Level 1 product."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0023__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 23,
+    "text": "Capture Attention, hold Interest, build Desire, then state the next Action."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0026__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 26,
+    "text": "LEVEL 3 // FINALISE IT"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0027__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 27,
+    "text": "Refine the pitch until the market engages."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0028__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 28,
+    "text": "Choose your price, market route, strongest features, and final visual finish."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0033__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 33,
+    "text": "Next: link one choice to Attention."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0034__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 34,
+    "text": "Next: link one choice to Interest."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0035__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 35,
+    "text": "Next: link one choice to Desire."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0036__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 36,
+    "text": "Next: link one choice to Action."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0150__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 150,
+    "text": "Hide teacher setup"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0150__N02",
+    "path": "godot/src/main/Main.gd",
+    "line": 150,
+    "text": "Teacher setup"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0166__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 166,
+    "text": "Checking live market status."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0174__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 174,
+    "text": "Checking this computer for a saved pitch."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0178__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 178,
+    "text": "Live resume was invalid."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0188__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 188,
+    "text": "Live resume role was invalid."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0199__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 199,
+    "text": "Live market check failed. Retry live, or select Practice explicitly."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0276__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 276,
+    "text": "Choose your pair name, then enter the market."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0303__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 303,
+    "text": "Saved pitch restored. Resume from exactly where your pair left off."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0309__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 309,
+    "text": "Open the studio. Build one product with your pair."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0318__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 318,
+    "text": "Final check unlocked. Build the market card when your pair is ready."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0320__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 320,
+    "text": "Next level unlocked. Open the studio when your pair is ready."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0356__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 356,
+    "text": "Saved practice unavailable here. Live rooms still ready."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0358__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 358,
+    "text": "Save failed. No state change. Retry."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0368__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 368,
+    "text": "Saved progress could not be verified. Data unchanged. Start fresh, or join live."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0371__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 371,
+    "text": "Practice could not start safely. Retry."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0374__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 374,
+    "text": "Save failed. No state change. Retry."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0467__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 467,
+    "text": "Saved progress verification in progress."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0471__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 471,
+    "text": "Pair alias must be 2 to 32 characters, no leading or trailing spaces."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0483__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 483,
+    "text": "Preparing a safe place for your pitch."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0495__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 495,
+    "text": "Pair alias must be at least 2 characters."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0499__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 499,
+    "text": "Joining live market."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0507__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 507,
+    "text": "Enter classroom code before opening the market."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0512__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 512,
+    "text": "Opening class market."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0565__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 565,
+    "text": "Restoring this pair's exact live campaign."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0580__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 580,
+    "text": "Live room restored. Continue from the host display."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0585__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 585,
+    "text": "Live pitch restored. Resume from exactly where your pair left off."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0597__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 597,
+    "text": "Live room restored. Exact saved campaign could not be verified. Progress unchanged."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0631__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 631,
+    "text": "Pair could not enter pitch levels safely."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0647__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 647,
+    "text": "Room joined. Open the studio and build one product."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0665__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 665,
+    "text": "The class market is open. Share the room code shown on the host display with the teams."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0699__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 699,
+    "text": "Market card delivered. The host will display it on the floor."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0705__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 705,
+    "text": "Restoring this pair's exact saved live campaign. The studio reopens once the restore completes."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0710__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 710,
+    "text": "Reopening the studio. The host note is loaded with the campaign."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0713__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 713,
+    "text": "The saved campaign could not be reopened. Try again."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0720__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 720,
+    "text": "The live room could not update. Check the room code or connection, then try again."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0724__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 724,
+    "text": "The creative studio opens during the three pitch levels."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0726__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 726,
+    "text": "Opening the creative studio."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0732__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 732,
+    "text": "Building your market card."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0736__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 736,
+    "text": "The market card could not be built. Try again."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0738__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 738,
+    "text": "Campaign Creator open. Game input paused."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0742__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 742,
+    "text": "Studio saved. Build the refreshed market card when your pair is ready."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0746__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 746,
+    "text": "Market card live. Browse the stalls and spend your budget."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0748__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 748,
+    "text": "Studio saved. Lock this level when your pair is ready."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0755__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 755,
+    "text": "Checking the saved campaign."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0760__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 760,
+    "text": "A campaign for another live pair was ignored. Your saved progress was kept untouched."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0763__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 763,
+    "text": "An older campaign save was ignored. Your latest live progress is still safe."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0790__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 790,
+    "text": "Saved progress is still catching up. Try Lock again in a moment."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0794__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 794,
+    "text": "The saved pitch marker is missing. Return to the studio and try again."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0797__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 797,
+    "text": "Saving this level lock."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0822__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 822,
+    "text": "Lock this level before moving on."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0835__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 835,
+    "text": "Saved progress is still catching up. Try %s again in a moment."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0844__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 844,
+    "text": "There is no next pitch level."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0847__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 847,
+    "text": "Saving the %s reveal."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0876__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 876,
+    "text": "Reopening your saved campaign for the final market card."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0880__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 880,
+    "text": "The saved campaign could not be reopened. Try again."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0887__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 887,
+    "text": "Sending your market card to the host."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0891__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 891,
+    "text": "The market card could not be sent. Check the room connection, then try again."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0907__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 907,
+    "text": "The practice market could not load its stalls. Try building the card again."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0931__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 931,
+    "text": "MARKET GATE"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0932__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 932,
+    "text": "Preview before the stalls open."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0933__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 933,
+    "text": "Your campaign has completed all three levels. Build the card your shoppers will see."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0940__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 940,
+    "text": "Three levels complete. Your market card is next."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0944__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 944,
+    "text": "LIVE MARKET"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0945__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 945,
+    "text": "Your stall is open. Shop the room."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0946__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 946,
+    "text": "Spend at least $80 across products from at least two different teams."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0951__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 951,
+    "text": "Market card built. Loading the other stalls."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0955__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 955,
+    "text": "PITCH LEVEL"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0956__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 956,
+    "text": "Make the next move."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0963__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 963,
+    "text": "Level 3 is locked. Choose Final check."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0965__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 965,
+    "text": "This level is locked. Choose Next level."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0969__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 969,
+    "text": "Level 3 is ready. Lock it to open the final check."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0971__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 971,
+    "text": "This level is ready. Lock it to reveal the next level."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0982__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 982,
+    "text": "Final check"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0982__N02",
+    "path": "godot/src/main/Main.gd",
+    "line": 982,
+    "text": "Next level"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0986__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 986,
+    "text": "Level 3 locked. Ready for the final check."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0988__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 988,
+    "text": "Level locked. Ready for the next reveal."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0993__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 993,
+    "text": "Campaign saved. Lock Level 3 to open the final check."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L0995__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 995,
+    "text": "Campaign saved for the next level."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L1019__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 1019,
+    "text": "Next: build a product in the studio."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L1021__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 1021,
+    "text": "Next: add a product name."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L1023__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 1023,
+    "text": "Next: choose an audience signal."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L1027__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 1027,
+    "text": "Next: swap roles once."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L1029__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 1029,
+    "text": "Next: the Art Director makes one visible image change."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L1031__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 1031,
+    "text": "Next: the Strategist makes one visible message change."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L1058__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 1058,
+    "text": "Next: add a price."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_GD__L1060__N01",
+    "path": "godot/src/main/Main.gd",
+    "line": 1060,
+    "text": "Next: choose and lock a market route."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0143__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 143,
+    "text": "PITCH // BLITZ"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0149__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 149,
+    "text": "PAIR PLAY • ONE MACBOOK"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0155__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 155,
+    "text": "Invent a product. Pitch it to a market."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0163__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 163,
+    "text": "Three levels. Level 1: invent a product. Choose its audience. Level 2: build a campaign using the four AIDA moves. Level 3: set a price. Choose where to advertise. Select the strongest features. Finish the design. After all three levels: enter the live class market. Spend a fixed budget on products made by other teams."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0180__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 180,
+    "text": "FIRST MOVE"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0186__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 186,
+    "text": "Start the game with your pair."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0205__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 205,
+    "text": "JOIN A LIVE ROOM"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0211__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 211,
+    "text": "Pair alias"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0218__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 218,
+    "text": "Try Neon Narwhals"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0226__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 226,
+    "text": "Room code"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0233__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 233,
+    "text": "ABC-234"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0248__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 248,
+    "text": "Join the live market"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0265__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 265,
+    "text": "HOST A CLASS MARKET"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0271__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 271,
+    "text": "Classroom code"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0278__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 278,
+    "text": "Teacher room key"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0296__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 296,
+    "text": "Starting budget ($)"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0317__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 317,
+    "text": "Team seats"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0340__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 340,
+    "text": "Open a class market"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0354__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 354,
+    "text": "No room code? Play a local practice round."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0368__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 368,
+    "text": "Teacher setup"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0381__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 381,
+    "text": "Practice on this computer"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0413__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 413,
+    "text": "01 INVENT IT"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0424__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 424,
+    "text": "02 SELL IT"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0435__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 435,
+    "text": "03 FINALISE IT"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0442__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 442,
+    "text": "LEVEL 1 // INVENT IT"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0449__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 449,
+    "text": "Invent a product that matches the audience need."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0457__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 457,
+    "text": "Read your audience signal. Shape a product. Give the product a name."
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0474__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 474,
+    "text": "Open the creative studio"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0487__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 487,
+    "text": "Lock this level"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0501__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 501,
+    "text": "Next level"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0513__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 513,
+    "text": "Build the market card"
+  },
+  {
+    "id": "GODOT_SRC_MAIN_MAIN_TSCN__L0520__N01",
+    "path": "godot/src/main/Main.tscn",
+    "line": 520,
+    "text": "Choose a team name to begin."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0079__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 79,
+    "text": "Button"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0111__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 111,
+    "text": "Practice market ready."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0111__N02",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 111,
+    "text": "Live connection ready."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0132__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 132,
+    "text": "Your market card is with the host."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0133__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 133,
+    "text": "Waiting for the host"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0134__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 134,
+    "text": "Card is in the review queue. Screen can stay open."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0146__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 146,
+    "text": "Practice market ready."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0146__N02",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 146,
+    "text": "Live connection ready."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0192__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 192,
+    "text": "Market watcher"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0194__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 194,
+    "text": "Browse every approved stall. Buying is paused this round."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0195__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 195,
+    "text": "Watching this market"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0197__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 197,
+    "text": "Pair can browse the market. Results are frozen."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0198__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 198,
+    "text": "Browse the market floor · watch mode"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0200__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 200,
+    "text": "You're watching this round"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0202__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 202,
+    "text": "Market floor was locked before pair joined. Browsing is open."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0203__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 203,
+    "text": "Buying is paused this round."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0206__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 206,
+    "text": "%s remaining"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0208__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 208,
+    "text": "%d of 2 different sellers backed"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0211__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 211,
+    "text": "Shopping finished"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0211__N02",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 211,
+    "text": "Finish shopping"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0214__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 214,
+    "text": "Live market checks final spend and seller mix."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0216__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 216,
+    "text": "Back two different sellers. Meet the live market spending rule."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0218__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 218,
+    "text": "Browse the market floor"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0224__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 224,
+    "text": "Practice round complete — you backed two different stalls and spent your market wallet. In a live room, the host reveals which campaign earned the most."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0226__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 226,
+    "text": "Market reveal is on the host display."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0244__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 244,
+    "text": "Stall preparing."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0245__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 245,
+    "text": "Build your market card. The host brings it to the floor."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0249__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 249,
+    "text": "Waiting for the host"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0250__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 250,
+    "text": "Card is in the review queue."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0252__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 252,
+    "text": "Your stall is live"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0252__N02",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 252,
+    "text": "Approved and ready"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0253__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 253,
+    "text": "Your product is ready for the market floor."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0255__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 255,
+    "text": "Studio tweak"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0257__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 257,
+    "text": "Host note added to this card."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0261__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 261,
+    "text": "Card resting"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0262__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 262,
+    "text": "This version is not active on the market floor. Your pair may remain in the room."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0268__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 268,
+    "text": "CardContent"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0277__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 277,
+    "text": "BY %s"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0280__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 280,
+    "text": "Back this product"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0280__N02",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 280,
+    "text": "Buy"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0286__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 286,
+    "text": "YOUR CARD · %s"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0290__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 290,
+    "text": "OVER YOUR WALLET"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0291__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 291,
+    "text": "OPEN STALL"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0299__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 299,
+    "text": "%d / %d seats · %d open"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0305__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 305,
+    "text": "%d teams joined"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0308__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 308,
+    "text": "%d ready · %d still shopping · %d watching · %d waiting for review"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0316__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 316,
+    "text": "%d ready · %d building · %d waiting for review"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0349__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 349,
+    "text": "%s · %s"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0352__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 352,
+    "text": "Remove"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0352__N02",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 352,
+    "text": "RemoveTeam"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0353__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 353,
+    "text": "Confirm this exact team before removing it."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0369__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 369,
+    "text": "CardContent"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0383__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 383,
+    "text": "HOST NOTE · %s"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0385__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 385,
+    "text": "ReviewNote"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0388__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 388,
+    "text": "Short note when returning this card"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0392__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 392,
+    "text": "ReviewActions"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0395__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 395,
+    "text": "Approve"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0396__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 396,
+    "text": "Return"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0397__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 397,
+    "text": "Hide"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0422__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 422,
+    "text": "WAITING FOR REVIEW"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0435__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 435,
+    "text": "%d · %s · %s · %d backers"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0451__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 451,
+    "text": "Sending backing choice…"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0473__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 473,
+    "text": "Practice market: reviewing submission…"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0475__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 475,
+    "text": "Live market: reviewing submission…"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0492__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 492,
+    "text": "Add a short, useful note before returning this card."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0496__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 496,
+    "text": "Campaign desk updating…"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0513__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 513,
+    "text": "Live room updating…"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0522__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 522,
+    "text": "Remove %s from this room? Their current room session will end."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0525__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 525,
+    "text": "Remove %s"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0547__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 547,
+    "text": "Removing %s…"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0559__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 559,
+    "text": "Retrying…"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0584__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 584,
+    "text": "Backing recorded. Refreshing the stalls…"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0587__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 587,
+    "text": "Room update received."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0590__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 590,
+    "text": "Market card delivered to the host."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0594__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 594,
+    "text": "Practice market update failed. Retry that move."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0596__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 596,
+    "text": "Live market update failed. Check the room connection, then retry."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0608__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 608,
+    "text": "Artwork"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0705__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 705,
+    "text": "Campaigns are being built and reviewed."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0707__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 707,
+    "text": "The market is open for trading."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0709__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 709,
+    "text": "The market stage is ready for the reveal."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0711__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 711,
+    "text": "The market is closed."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_GD__L0712__N01",
+    "path": "godot/src/market/ui/MarketScreen.gd",
+    "line": 712,
+    "text": "The room is being prepared."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_TSCN__L0151__N01",
+    "path": "godot/src/market/ui/MarketScreen.tscn",
+    "line": 151,
+    "text": "LIVE MARKET // AD STUDIO"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_TSCN__L0170__N01",
+    "path": "godot/src/market/ui/MarketScreen.tscn",
+    "line": 170,
+    "text": "Live connection ready."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_TSCN__L0185__N01",
+    "path": "godot/src/market/ui/MarketScreen.tscn",
+    "line": 185,
+    "text": "Retry"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_TSCN__L0192__N01",
+    "path": "godot/src/market/ui/MarketScreen.tscn",
+    "line": 192,
+    "text": "The room is being prepared."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_TSCN__L0218__N01",
+    "path": "godot/src/market/ui/MarketScreen.tscn",
+    "line": 218,
+    "text": "$100 remaining"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_TSCN__L0234__N01",
+    "path": "godot/src/market/ui/MarketScreen.tscn",
+    "line": 234,
+    "text": "0 of 2 different sellers backed"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_TSCN__L0252__N01",
+    "path": "godot/src/market/ui/MarketScreen.tscn",
+    "line": 252,
+    "text": "Finish shopping"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_TSCN__L0267__N01",
+    "path": "godot/src/market/ui/MarketScreen.tscn",
+    "line": 267,
+    "text": "Stall preparing."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_TSCN__L0274__N01",
+    "path": "godot/src/market/ui/MarketScreen.tscn",
+    "line": 274,
+    "text": "Build your market card. The host brings it to the floor."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_TSCN__L0290__N01",
+    "path": "godot/src/market/ui/MarketScreen.tscn",
+    "line": 290,
+    "text": "Reopen the studio"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_TSCN__L0302__N01",
+    "path": "godot/src/market/ui/MarketScreen.tscn",
+    "line": 302,
+    "text": "Market reveal is on the host display."
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_TSCN__L0311__N01",
+    "path": "godot/src/market/ui/MarketScreen.tscn",
+    "line": 311,
+    "text": "Browse the market floor"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_TSCN__L0341__N01",
+    "path": "godot/src/market/ui/MarketScreen.tscn",
+    "line": 341,
+    "text": "0 seats joined"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_TSCN__L0349__N01",
+    "path": "godot/src/market/ui/MarketScreen.tscn",
+    "line": 349,
+    "text": "0 ready"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_TSCN__L0356__N01",
+    "path": "godot/src/market/ui/MarketScreen.tscn",
+    "line": 356,
+    "text": "Teams in the room"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_TSCN__L0368__N01",
+    "path": "godot/src/market/ui/MarketScreen.tscn",
+    "line": 368,
+    "text": "Campaign desk"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_TSCN__L0396__N01",
+    "path": "godot/src/market/ui/MarketScreen.tscn",
+    "line": 396,
+    "text": "Open Market"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_TSCN__L0412__N01",
+    "path": "godot/src/market/ui/MarketScreen.tscn",
+    "line": 412,
+    "text": "Reveal Podium"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_TSCN__L0428__N01",
+    "path": "godot/src/market/ui/MarketScreen.tscn",
+    "line": 428,
+    "text": "Close Market"
+  },
+  {
+    "id": "GODOT_SRC_MARKET_UI_MARKETSCREEN_TSCN__L0443__N01",
+    "path": "godot/src/market/ui/MarketScreen.tscn",
+    "line": 443,
+    "text": "THE MARKET PODIUM"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0026__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 26,
+    "text": "That username or password did not match. Try again."
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0028__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 28,
+    "text": "That teacher setup code was not accepted."
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0030__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 30,
+    "text": "That pair username is already taken. Choose another one."
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0032__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 32,
+    "text": "Accounts are not ready yet. Ask your teacher to try again later."
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0037__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 37,
+    "text": "Lots of pairs are connecting at once. Wait seconds, then try again."
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0040__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 40,
+    "text": "Your session ended. Log in again to reconnect your private save."
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0042__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 42,
+    "text": "Account access is unavailable just now. Your game has not started; try again."
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0060__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 60,
+    "text": "Progress saves on this device first."
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0129__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 129,
+    "text": "Account access"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0131__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 131,
+    "text": "Welcome to Ad Market"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0135__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 135,
+    "text": "Checking your account…"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0143__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 143,
+    "text": "Welcome to Ad Market"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0145__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 145,
+    "text": "Enter your pair username and password to reconnect your private save."
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0147__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 147,
+    "text": "Log in"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0148__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 148,
+    "text": "Username"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0149__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 149,
+    "text": "Password"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0155__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 155,
+    "text": "Log in"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0158__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 158,
+    "text": "Teacher setup"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0184__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 184,
+    "text": "Create a pair login"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0186__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 186,
+    "text": "Teacher only. Choose a pair username. Save the generated password. Enter the setup code."
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0188__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 188,
+    "text": "Create pair login"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0189__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 189,
+    "text": "Pair username"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0191__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 191,
+    "text": "Generated password"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0199__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 199,
+    "text": "Generate another password"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0205__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 205,
+    "text": "Teacher setup code"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0209__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 209,
+    "text": "Create pair login"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0212__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 212,
+    "text": "Back to login"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0273__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 273,
+    "text": "Your private save could not open."
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0275__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 275,
+    "text": "We could not prepare private device storage. Your game stayed locked and no other account's work was opened. Reload this page and try again."
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0284__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 284,
+    "text": "Account"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0287__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 287,
+    "text": "Signed in as"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0295__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 295,
+    "text": "Log out"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0298__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 298,
+    "text": "Signing out…"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0313__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 313,
+    "text": "Signing out and securing this account's saved work…"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0314__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 314,
+    "text": "Your session ended. Securing this account's saved work…"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0330__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 330,
+    "text": "This account is locked because sign-out could not be confirmed. Check your connection, then reload this page before another person signs in."
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0340__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 340,
+    "text": "This account is locked. Reload the page before another person signs in."
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0348__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 348,
+    "text": "Account locked"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0360__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 360,
+    "text": "Account access"
+  },
+  {
+    "id": "WEB_SRC_ACCOUNT_ACCOUNT_GATE_TS__L0400__N01",
+    "path": "web/src/account/account-gate.ts",
+    "line": 400,
+    "text": "input, button"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0054__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 54,
+    "text": "drink packaging"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0055__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 55,
+    "text": "food packaging"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0058__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 58,
+    "text": "home and garden"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0060__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 60,
+    "text": "toys and games"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0062__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 62,
+    "text": "shop or service"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0067__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 67,
+    "text": "clean 3D cutout"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0068__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 68,
+    "text": "bold flat illustration"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0069__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 69,
+    "text": "soft animated style"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0070__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 70,
+    "text": "simple realistic product"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0071__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 71,
+    "text": "hand-drawn outline"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0075__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 75,
+    "text": "clean studio display"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0076__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 76,
+    "text": "bright shop shelf"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0077__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 77,
+    "text": "colourful window display"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0078__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 78,
+    "text": "sunny outdoor setting"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0079__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 79,
+    "text": "cosy home setting"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0080__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 80,
+    "text": "sporty action setting"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0081__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 81,
+    "text": "premium showcase"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0139__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 139,
+    "text": "Checking the image tools…"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0163__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 163,
+    "text": "Ask your teacher to wake the Image Lab."
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0172__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 172,
+    "text": "Checking the image tools…"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0180__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 180,
+    "text": "Ask your teacher to wake the Image Lab."
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0181__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 181,
+    "text": "Image Lab is asleep. Built-in tools still work."
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0186__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 186,
+    "text": "Image Lab is asleep. Built-in tools still work."
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0229__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 229,
+    "text": "image-lab image-lab--locked"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0233__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 233,
+    "text": "Teacher code"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0238__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 238,
+    "text": "Waking…"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0238__N02",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 238,
+    "text": "Wake Image Lab"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0254__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 254,
+    "text": "Object Forge sparks ·"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0255__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 255,
+    "text": "Make It Real sparks"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0264__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 264,
+    "text": "Closing…"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0264__N02",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 264,
+    "text": "Close Image Lab"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0275__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 275,
+    "text": "Object Forge"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0277__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 277,
+    "text": "Object Forge"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0279__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 279,
+    "text": "Invent one fresh object. Decorate it on the canvas."
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0280__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 280,
+    "text": "Object idea"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0281__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 281,
+    "text": "Object type"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0282__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 282,
+    "text": "Object look"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0283__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 283,
+    "text": "Main colour"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0283__N02",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 283,
+    "text": "bright orange"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0289__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 289,
+    "text": "Cut the object from the white background"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0290__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 290,
+    "text": "Forging…"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0290__N02",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 290,
+    "text": "Forge object"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0300__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 300,
+    "text": "Make It Real"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0302__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 302,
+    "text": "Make It Real"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0304__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 304,
+    "text": "Turn your canvas design into a product showcase."
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0305__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 305,
+    "text": "Product kind"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0306__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 306,
+    "text": "Product scene"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0307__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 307,
+    "text": "Building showcase…"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0307__N02",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 307,
+    "text": "Make it real"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0319__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 319,
+    "text": "Waking the Image Lab…"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0330__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 330,
+    "text": "Image Lab is awake."
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0333__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 333,
+    "text": "That code did not wake the Image Lab."
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0348__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 348,
+    "text": "Closing the Image Lab…"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0355__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 355,
+    "text": "Image Lab is closed for this pair. Ask your teacher to wake it."
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0358__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 358,
+    "text": "Image Lab could not close. Try again."
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0359__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 359,
+    "text": "Image Lab is ready."
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0374__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 374,
+    "text": "Your object needs an idea and a main colour."
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0387__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 387,
+    "text": "Forging your object…"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0387__N02",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 387,
+    "text": "Your new object landed on your canvas."
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0395__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 395,
+    "text": "Name the kind of product you want to showcase."
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0405__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 405,
+    "text": "Building your showcase…"
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0405__N02",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 405,
+    "text": "Your product showcase landed on your canvas."
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0431__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 431,
+    "text": "Ask your teacher to wake the Image Lab."
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0433__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 433,
+    "text": "The image could not finish. Try again or keep creating with the built-in tools."
+  },
+  {
+    "id": "WEB_SRC_AI_IMAGE_IMAGE_LAB_PANEL_TS__L0434__N01",
+    "path": "web/src/ai-image/image-lab-panel.ts",
+    "line": 434,
+    "text": "Image Lab is ready."
+  },
+  {
+    "id": "WEB_SRC_CATALOGUE_CATALOGUE_PANEL_TS__L0108__N01",
+    "path": "web/src/catalogue/catalogue-panel.ts",
+    "line": 108,
+    "text": "repeat( , minmax(0, 1fr))"
+  },
+  {
+    "id": "WEB_SRC_CATALOGUE_CATALOGUE_PANEL_TS__L0150__N01",
+    "path": "web/src/catalogue/catalogue-panel.ts",
+    "line": 150,
+    "text": "Add with chosen colour"
+  },
+  {
+    "id": "WEB_SRC_CATALOGUE_CATALOGUE_PANEL_TS__L0152__N01",
+    "path": "web/src/catalogue/catalogue-panel.ts",
+    "line": 152,
+    "text": "Add to ad"
+  },
+  {
+    "id": "WEB_SRC_CATALOGUE_CATALOGUE_RUNTIME_TS__L0164__N01",
+    "path": "web/src/catalogue/catalogue-runtime.ts",
+    "line": 164,
+    "text": "No classroom-pack matches"
+  },
+  {
+    "id": "WEB_SRC_CATALOGUE_CATALOGUE_RUNTIME_TS__L0168__N01",
+    "path": "web/src/catalogue/catalogue-runtime.ts",
+    "line": 168,
+    "text": "Showing 100 of · search or choose a category"
+  },
+  {
+    "id": "WEB_SRC_CATALOGUE_CATALOGUE_RUNTIME_TS__L0184__N01",
+    "path": "web/src/catalogue/catalogue-runtime.ts",
+    "line": 184,
+    "text": "from the classroom pack · looking for live photos"
+  },
+  {
+    "id": "WEB_SRC_CATALOGUE_CATALOGUE_RUNTIME_TS__L0201__N01",
+    "path": "web/src/catalogue/catalogue-runtime.ts",
+    "line": 201,
+    "text": "from the classroom pack · live photos unavailable"
+  },
+  {
+    "id": "WEB_SRC_CATALOGUE_CATALOGUE_RUNTIME_TS__L0207__N01",
+    "path": "web/src/catalogue/catalogue-runtime.ts",
+    "line": 207,
+    "text": "classroom-pack choices · live photos"
+  },
+  {
+    "id": "WEB_SRC_CATALOGUE_CATALOGUE_RUNTIME_TS__L0211__N01",
+    "path": "web/src/catalogue/catalogue-runtime.ts",
+    "line": 211,
+    "text": "from the classroom pack · live photos unavailable"
+  },
+  {
+    "id": "WEB_SRC_CATALOGUE_CATALOGUE_RUNTIME_TS__L0243__N01",
+    "path": "web/src/catalogue/catalogue-runtime.ts",
+    "line": 243,
+    "text": "All categories"
+  },
+  {
+    "id": "WEB_SRC_CATALOGUE_CATALOGUE_RUNTIME_TS__L0296__N01",
+    "path": "web/src/catalogue/catalogue-runtime.ts",
+    "line": 296,
+    "text": "Catalogue placement failed."
+  },
+  {
+    "id": "WEB_SRC_CATALOGUE_CATALOGUE_RUNTIME_TS__L0317__N01",
+    "path": "web/src/catalogue/catalogue-runtime.ts",
+    "line": 317,
+    "text": "asset ID"
+  },
+  {
+    "id": "WEB_SRC_CATALOGUE_CATALOGUE_RUNTIME_TS__L0321__N01",
+    "path": "web/src/catalogue/catalogue-runtime.ts",
+    "line": 321,
+    "text": "profile ID"
+  },
+  {
+    "id": "WEB_SRC_CATALOGUE_CATALOGUE_RUNTIME_TS__L0322__N01",
+    "path": "web/src/catalogue/catalogue-runtime.ts",
+    "line": 322,
+    "text": "request ID"
+  },
+  {
+    "id": "WEB_SRC_CATALOGUE_CATALOGUE_RUNTIME_TS__L0367__N01",
+    "path": "web/src/catalogue/catalogue-runtime.ts",
+    "line": 367,
+    "text": "Product Kit bundle"
+  },
+  {
+    "id": "WEB_SRC_CATALOGUE_CATALOGUE_RUNTIME_TS__L0617__N01",
+    "path": "web/src/catalogue/catalogue-runtime.ts",
+    "line": 617,
+    "text": "Catalogue placement rollback failed."
+  },
+  {
+    "id": "WEB_SRC_CATALOGUE_CATALOGUE_RUNTIME_TS__L1173__N01",
+    "path": "web/src/catalogue/catalogue-runtime.ts",
+    "line": 1173,
+    "text": "Product body"
+  },
+  {
+    "id": "WEB_SRC_CATALOGUE_CATALOGUE_RUNTIME_TS__L1174__N01",
+    "path": "web/src/catalogue/catalogue-runtime.ts",
+    "line": 1174,
+    "text": "Product part"
+  },
+  {
+    "id": "WEB_SRC_EXPORT_CAMPAIGN_EXPORTER_TS__L0183__N01",
+    "path": "web/src/export/campaign-exporter.ts",
+    "line": 183,
+    "text": "Market price"
+  },
+  {
+    "id": "WEB_SRC_FABRIC_FABRIC_CANVAS_ADAPTER_TS__L0783__N01",
+    "path": "web/src/fabric/fabric-canvas-adapter.ts",
+    "line": 783,
+    "text": "Pencil drawing"
+  },
+  {
+    "id": "WEB_SRC_FABRIC_FABRIC_CANVAS_ADAPTER_TS__L0783__N02",
+    "path": "web/src/fabric/fabric-canvas-adapter.ts",
+    "line": 783,
+    "text": "Marker drawing"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_PANEL_TS__L0015__N01",
+    "path": "web/src/game/aida-playbook-panel.ts",
+    "line": 15,
+    "text": "Interest"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_PANEL_TS__L0016__N01",
+    "path": "web/src/game/aida-playbook-panel.ts",
+    "line": 16,
+    "text": "Desire"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_PANEL_TS__L0017__N01",
+    "path": "web/src/game/aida-playbook-panel.ts",
+    "line": 17,
+    "text": "Action"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_PANEL_TS__L0057__N01",
+    "path": "web/src/game/aida-playbook-panel.ts",
+    "line": 57,
+    "text": "Pick, remix, or write a move. Select the canvas piece that delivers it."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_PANEL_TS__L0060__N01",
+    "path": "web/src/game/aida-playbook-panel.ts",
+    "line": 60,
+    "text": "move deck"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_PANEL_TS__L0066__N01",
+    "path": "web/src/game/aida-playbook-panel.ts",
+    "line": 66,
+    "text": "Your move"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_PANEL_TS__L0071__N01",
+    "path": "web/src/game/aida-playbook-panel.ts",
+    "line": 71,
+    "text": "Try move:"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_PANEL_TS__L0087__N01",
+    "path": "web/src/game/aida-playbook-panel.ts",
+    "line": 87,
+    "text": "Your move"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_PANEL_TS__L0094__N01",
+    "path": "web/src/game/aida-playbook-panel.ts",
+    "line": 94,
+    "text": "Lock in"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_PANEL_TS__L0102__N01",
+    "path": "web/src/game/aida-playbook-panel.ts",
+    "line": 102,
+    "text": "Locking in the move…"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_PANEL_TS__L0111__N01",
+    "path": "web/src/game/aida-playbook-panel.ts",
+    "line": 111,
+    "text": "Action move locked to the selected canvas piece. AIDA is complete. Return to the game."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_PANEL_TS__L0112__N01",
+    "path": "web/src/game/aida-playbook-panel.ts",
+    "line": 112,
+    "text": "move locked to the selected canvas piece. Next: ."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_PANEL_TS__L0115__N01",
+    "path": "web/src/game/aida-playbook-panel.ts",
+    "line": 115,
+    "text": "Save failed."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0033__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 33,
+    "text": "Attention"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0033__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 33,
+    "text": "Attention: earn the first glance."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0034__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 34,
+    "text": "The audience notices one element before moving past it."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0035__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 35,
+    "text": "Pattern break"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0035__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 35,
+    "text": "Disrupt the expected visual pattern."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0036__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 36,
+    "text": "Begin with one element that disrupts the visual pattern."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0037__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 37,
+    "text": "Giant focal point"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0037__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 37,
+    "text": "Make one object dominate the first glance."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0038__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 38,
+    "text": "Enlarge one product detail relative to its surroundings."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0039__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 39,
+    "text": "High contrast"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0039__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 39,
+    "text": "Separate the focal object from its surroundings."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0040__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 40,
+    "text": "Apply a sharp light-dark or warm-cool contrast around the focal point."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0041__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 41,
+    "text": "Unexpected angle"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0041__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 41,
+    "text": "Show a familiar object from an uncommon viewpoint."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0042__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 42,
+    "text": "Open with an unusual crop or viewpoint. Keep the product recognisable."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0043__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 43,
+    "text": "Question hook"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0043__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 43,
+    "text": "Open an information gap the viewer wants closed."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0044__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 44,
+    "text": "Begin with one short question. The next image resolves it."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0045__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 45,
+    "text": "Frozen motion"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0045__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 45,
+    "text": "Capture the instant before or after an action."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0046__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 46,
+    "text": "Freeze one action. The viewer infers the next frame."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0047__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 47,
+    "text": "Colour signal"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0047__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 47,
+    "text": "Assign one colour a single function."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0048__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 48,
+    "text": "Reserve one vivid colour for the product or the lead text."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0049__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 49,
+    "text": "Tiny in space"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0049__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 49,
+    "text": "Use empty space to signal that something is missing."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0050__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 50,
+    "text": "Place one small focal object inside a large, low-detail space."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0051__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 51,
+    "text": "Strange pairing"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0051__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 51,
+    "text": "Combine two ideas not normally paired."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0052__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 52,
+    "text": "Pair the product with one comparison that is unexpected but legible."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0053__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 53,
+    "text": "Three-beat reveal"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0053__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 53,
+    "text": "Build attention through a three-step visual rhythm."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0054__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 54,
+    "text": "Arrange three simple steps. Each leads the eye toward the product."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0056__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 56,
+    "text": "Interest"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0056__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 56,
+    "text": "Interest: reward the second glance."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0057__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 57,
+    "text": "Provide detail, evidence, or a short narrative."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0058__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 58,
+    "text": "Feature demo"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0058__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 58,
+    "text": "Show one feature performing its function."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0059__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 59,
+    "text": "Demonstrate one feature in a context where its function matters."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0060__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 60,
+    "text": "How it works"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0060__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 60,
+    "text": "Show the product's mechanism or process."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0061__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 61,
+    "text": "Use a sequence to show the product's operation."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0062__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 62,
+    "text": "Before and after"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0062__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 62,
+    "text": "Make the state change visible by juxtaposition."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0063__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 63,
+    "text": "Contrast the state before the product with the state after."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0064__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 64,
+    "text": "Detail zoom"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0064__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 64,
+    "text": "Frame one small choice as evidence of quality."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0065__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 65,
+    "text": "Zoom in on one material, finish, or add-on. State its function."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0066__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 66,
+    "text": "Capacity proof"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0066__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 66,
+    "text": "Make capacity or performance visible."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0067__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 67,
+    "text": "Show what the product holds, covers, reaches, or supports."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0068__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 68,
+    "text": "Mini story"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0068__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 68,
+    "text": "Depict one familiar moment."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0069__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 69,
+    "text": "Show the product resolving one short, plausible situation."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0070__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 70,
+    "text": "Choice map"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0070__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 70,
+    "text": "Display the available options."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0071__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 71,
+    "text": "Compare several configurations. Do not rank one as best."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0072__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 72,
+    "text": "Origin clue"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0072__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 72,
+    "text": "State the reason for a design choice."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0073__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 73,
+    "text": "Link one feature to the need or idea that produced it."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0074__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 74,
+    "text": "Fact stack"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0074__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 74,
+    "text": "Build credibility with a small set of specific facts."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0075__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 75,
+    "text": "Use three short, verifiable facts in place of a general claim."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0076__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 76,
+    "text": "Open loop"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0076__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 76,
+    "text": "Reveal partial information. Defer the rest."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0077__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 77,
+    "text": "Show one intriguing detail now. Defer the explanation."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0079__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 79,
+    "text": "Desire"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0079__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 79,
+    "text": "Desire: connect the feature to the audience's preferred feeling."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0080__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 80,
+    "text": "Connect product function to the audience's preferred feeling."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0081__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 81,
+    "text": "Life benefit"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0081__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 81,
+    "text": "Connect a feature to a result in the user's life."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0082__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 82,
+    "text": "Show how one feature changes the user's experience."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0083__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 83,
+    "text": "Future self"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0083__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 83,
+    "text": "Show the user a plausible future self."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0084__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 84,
+    "text": "Depict the user enjoying a plausible future. The product enables it."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0085__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 85,
+    "text": "Sensory cue"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0085__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 85,
+    "text": "Suggest texture, sound, taste, temperature, or movement."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0086__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 86,
+    "text": "Use visual details that evoke a sensory response."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0087__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 87,
+    "text": "Belonging"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0087__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 87,
+    "text": "Link the offer to relevant people or places."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0088__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 88,
+    "text": "Show the product supporting connection. Do not exclude outsiders."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0089__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 89,
+    "text": "Pride of choice"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0089__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 89,
+    "text": "Frame the decision as deliberate."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0090__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 90,
+    "text": "Present the chosen features as evidence of judgement or taste."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0091__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 91,
+    "text": "Relief"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0091__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 91,
+    "text": "Eliminate a frustration the audience recognises."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0092__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 92,
+    "text": "Show the avoided hassle with the same clarity as the benefit."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0093__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 93,
+    "text": "Experience promise"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0093__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 93,
+    "text": "Sell the experience, not the object alone."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0094__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 94,
+    "text": "Construct a scene around the experience the offer produces."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0095__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 95,
+    "text": "Credible voice"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0095__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 95,
+    "text": "Support the claim with verifiable evidence."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0096__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 96,
+    "text": "Use a specific review, demonstration, or result. Avoid generic praise."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0097__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 97,
+    "text": "Personal fit"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0097__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 97,
+    "text": "Show options that fit different needs."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0098__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 98,
+    "text": "Highlight the configuration matching this audience's priorities."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0099__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 99,
+    "text": "Value story"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0099__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 99,
+    "text": "Connect price to durability or value."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0100__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 100,
+    "text": "Explain why the key features justify the price."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0102__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 102,
+    "text": "Action"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0102__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 102,
+    "text": "Action: enable the next step."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0103__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 103,
+    "text": "Provide one clear, honest, achievable next step."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0104__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 104,
+    "text": "One strong verb"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0104__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 104,
+    "text": "Begin with the specific action."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0105__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 105,
+    "text": "Open the call to action with one precise verb."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0106__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 106,
+    "text": "Where next"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0106__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 106,
+    "text": "State the destination or channel."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0107__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 107,
+    "text": "State the next destination."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0108__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 108,
+    "text": "What happens next"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0108__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 108,
+    "text": "Remove uncertainty about what follows the action."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0109__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 109,
+    "text": "State the first thing the audience will see or do after the action."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0110__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 110,
+    "text": "Low-friction start"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0110__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 110,
+    "text": "Make the first step small."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0111__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 111,
+    "text": "Offer a first step with low commitment."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0112__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 112,
+    "text": "Real time window"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0112__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 112,
+    "text": "Use time pressure only when the timing is real."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0113__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 113,
+    "text": "State an actual date or window. Do not fabricate urgency."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0114__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 114,
+    "text": "Location cue"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0114__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 114,
+    "text": "Link the action to a defined market zone."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0115__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 115,
+    "text": "Name the location where the audience acts."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0116__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 116,
+    "text": "Choice action"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0116__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 116,
+    "text": "Offer two useful paths."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0117__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 117,
+    "text": "Offer two clear next steps for different audience needs."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0118__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 118,
+    "text": "Try first"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0118__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 118,
+    "text": "Invite use before commitment."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0119__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 119,
+    "text": "Invite the audience to test, visit, sample, or preview."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0120__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 120,
+    "text": "Repeat the promise"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0120__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 120,
+    "text": "Link the action to the main benefit."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0121__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 121,
+    "text": "Connect the final instruction to the established benefit."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0122__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 122,
+    "text": "Action marker"
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0122__N02",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 122,
+    "text": "Mark one clear visual destination."
+  },
+  {
+    "id": "WEB_SRC_GAME_AIDA_PLAYBOOK_TS__L0123__N01",
+    "path": "web/src/game/aida-playbook.ts",
+    "line": 123,
+    "text": "Use one button, badge, arrow, or framed line as the terminal visual."
+  },
+  {
+    "id": "WEB_SRC_GAME_AUDIENCE_BRIEFS_TS__L0020__N01",
+    "path": "web/src/game/audience-briefs.ts",
+    "line": 20,
+    "text": "Time after the school day ends."
+  },
+  {
+    "id": "WEB_SRC_GAME_AUDIENCE_BRIEFS_TS__L0021__N01",
+    "path": "web/src/game/audience-briefs.ts",
+    "line": 21,
+    "text": "Teenagers. One-hour window between school dismissal and home arrival."
+  },
+  {
+    "id": "WEB_SRC_GAME_AUDIENCE_BRIEFS_TS__L0022__N01",
+    "path": "web/src/game/audience-briefs.ts",
+    "line": 22,
+    "text": "A method to make the window productive."
+  },
+  {
+    "id": "WEB_SRC_GAME_AUDIENCE_BRIEFS_TS__L0024__N01",
+    "path": "web/src/game/audience-briefs.ts",
+    "line": 24,
+    "text": "Perceive the offer as aligned with the student's own plan, not with an imposed routine."
+  },
+  {
+    "id": "WEB_SRC_GAME_AUDIENCE_BRIEFS_TS__L0028__N01",
+    "path": "web/src/game/audience-briefs.ts",
+    "line": 28,
+    "text": "Shared local time."
+  },
+  {
+    "id": "WEB_SRC_GAME_AUDIENCE_BRIEFS_TS__L0029__N01",
+    "path": "web/src/game/audience-briefs.ts",
+    "line": 29,
+    "text": "People of varied ages. Reason to share time in the local area."
+  },
+  {
+    "id": "WEB_SRC_GAME_AUDIENCE_BRIEFS_TS__L0030__N01",
+    "path": "web/src/game/audience-briefs.ts",
+    "line": 30,
+    "text": "Low-effort way to participate."
+  },
+  {
+    "id": "WEB_SRC_GAME_AUDIENCE_BRIEFS_TS__L0032__N01",
+    "path": "web/src/game/audience-briefs.ts",
+    "line": 32,
+    "text": "Judge participation as low-effort and welcoming."
+  },
+  {
+    "id": "WEB_SRC_GAME_AUDIENCE_BRIEFS_TS__L0036__N01",
+    "path": "web/src/game/audience-briefs.ts",
+    "line": 36,
+    "text": "Worth the spend."
+  },
+  {
+    "id": "WEB_SRC_GAME_AUDIENCE_BRIEFS_TS__L0037__N01",
+    "path": "web/src/game/audience-briefs.ts",
+    "line": 37,
+    "text": "Young people with limited funds and competing wants. Comparing options."
+  },
+  {
+    "id": "WEB_SRC_GAME_AUDIENCE_BRIEFS_TS__L0038__N01",
+    "path": "web/src/game/audience-briefs.ts",
+    "line": 38,
+    "text": "Reasons one option suits them."
+  },
+  {
+    "id": "WEB_SRC_GAME_AUDIENCE_BRIEFS_TS__L0040__N01",
+    "path": "web/src/game/audience-briefs.ts",
+    "line": 40,
+    "text": "Judge the offer as consistent with their budget and priorities."
+  },
+  {
+    "id": "WEB_SRC_GAME_CREATOR_LEVEL_ACCESS_TS__L0004__N01",
+    "path": "web/src/game/creator-level-access.ts",
+    "line": 4,
+    "text": "LEVEL 1 // INVENT IT"
+  },
+  {
+    "id": "WEB_SRC_GAME_CREATOR_LEVEL_ACCESS_TS__L0005__N01",
+    "path": "web/src/game/creator-level-access.ts",
+    "line": 5,
+    "text": "LEVEL 2 // SELL IT"
+  },
+  {
+    "id": "WEB_SRC_GAME_CREATOR_LEVEL_ACCESS_TS__L0006__N01",
+    "path": "web/src/game/creator-level-access.ts",
+    "line": 6,
+    "text": "LEVEL 3 // FINALISE IT"
+  },
+  {
+    "id": "WEB_SRC_GAME_CREATOR_LEVEL_ACCESS_TS__L0007__N01",
+    "path": "web/src/game/creator-level-access.ts",
+    "line": 7,
+    "text": "MARKET GATE // FINAL LOOK"
+  },
+  {
+    "id": "WEB_SRC_GAME_CREATOR_STAGE_TS__L0039__N01",
+    "path": "web/src/game/creator-stage.ts",
+    "line": 39,
+    "text": "Make a first change together. Use undo to return to a prior state."
+  },
+  {
+    "id": "WEB_SRC_GAME_CREATOR_STAGE_TS__L0046__N01",
+    "path": "web/src/game/creator-stage.ts",
+    "line": 46,
+    "text": "Crop an image to choose what viewers notice first."
+  },
+  {
+    "id": "WEB_SRC_GAME_CREATOR_STAGE_TS__L0053__N01",
+    "path": "web/src/game/creator-stage.ts",
+    "line": 53,
+    "text": "Use drawing to add a simple shape that supports the offer."
+  },
+  {
+    "id": "WEB_SRC_GAME_CREATOR_STAGE_TS__L0060__N01",
+    "path": "web/src/game/creator-stage.ts",
+    "line": 60,
+    "text": "Recolour one element only when it strengthens the audience fit."
+  },
+  {
+    "id": "WEB_SRC_GAME_CREATOR_STAGE_TS__L0067__N01",
+    "path": "web/src/game/creator-stage.ts",
+    "line": 67,
+    "text": "Check layers to control what appears in front before opening the preview."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_CARD_PREVIEW_TS__L0013__N01",
+    "path": "web/src/game/market-card-preview.ts",
+    "line": 13,
+    "text": "Anonymous seller"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_CARD_PREVIEW_TS__L0151__N01",
+    "path": "web/src/game/market-card-preview.ts",
+    "line": 151,
+    "text": "Anonymous seller"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0095__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 95,
+    "text": "Cost informs audience and pricing decisions and does not restrict which product students may build. The route tool plans where an idea reaches its audience."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0101__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 101,
+    "text": "Cost:"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0108__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 108,
+    "text": "Choose an audience value before continuing."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0109__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 109,
+    "text": "Add a product before continuing."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0128__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 128,
+    "text": "Product strengths"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0131__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 131,
+    "text": "Choose at least one and no more than four ideas your product can prove."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0146__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 146,
+    "text": "Priced product choices"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0149__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 149,
+    "text": "Choose at least one priced part to feature."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0164__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 164,
+    "text": "Market zone"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0167__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 167,
+    "text": "Market zone"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0170__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 170,
+    "text": "Choose a zone"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0184__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 184,
+    "text": "Pick the scale and fictional location that suit your audience."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0192__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 192,
+    "text": "Advertising media"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0195__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 195,
+    "text": "Choose at least one and no more than three media placements."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0216__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 216,
+    "text": "Route submitted"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0216__N02",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 216,
+    "text": "Submit this route"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0243__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 243,
+    "text": "input[name=\" \"]:checked"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0247__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 247,
+    "text": "Choose no more than in this step."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0252__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 252,
+    "text": "Submit this route"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0266__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 266,
+    "text": "Route submitted. Review the route report, then return to the game."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0275__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 275,
+    "text": "input[name=\" \"]:checked"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0282__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 282,
+    "text": "Route submitted"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0286__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 286,
+    "text": "Submit this route"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0302__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 302,
+    "text": "Submitting the route…"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0314__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 314,
+    "text": "Route submitted. Review the route report, then return to the game."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0322__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 322,
+    "text": "The route could not be submitted."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_PANEL_TS__L0338__N01",
+    "path": "web/src/game/market-route-panel.ts",
+    "line": 338,
+    "text": "Route report"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0066__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 66,
+    "text": "Neighbourhood Loop"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0067__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 67,
+    "text": "Nearby streets"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0068__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 68,
+    "text": "Juniper Lane and the surrounding blocks"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0069__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 69,
+    "text": "Reaches local residents within nearby streets."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0073__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 73,
+    "text": "City Pulse"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0074__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 74,
+    "text": "One city"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0075__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 75,
+    "text": "Harbourlight City"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0076__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 76,
+    "text": "Reaches the population of one city during daily travel, socialising and purchasing."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0080__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 80,
+    "text": "Regional Run"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0081__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 81,
+    "text": "Several towns"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0082__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 82,
+    "text": "The Copper Plains region"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0083__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 83,
+    "text": "Reaches several towns in one region linked by travel and trade."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0087__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 87,
+    "text": "National Stage"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0088__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 88,
+    "text": "Across the country"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0089__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 89,
+    "text": "The Republic of Wattle"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0090__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 90,
+    "text": "Reaches audiences across the whole country through one consistent message."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0094__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 94,
+    "text": "Global Launch"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0095__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 95,
+    "text": "Across borders"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0096__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 96,
+    "text": "The Meridian world market"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0097__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 97,
+    "text": "Reaches audiences in multiple countries through one consistent message."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0101__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 101,
+    "text": "Destination Spotlight"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0102__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 102,
+    "text": "One destination"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0103__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 103,
+    "text": "Starfall Coast"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0104__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 104,
+    "text": "Uses one location as the campaign's central subject."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0111__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 111,
+    "text": "Billboard"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0112__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 112,
+    "text": "Roadside and skyline panels"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0113__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 113,
+    "text": "One short message on roadside and skyline panels, viewed briefly."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0117__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 117,
+    "text": "Transit"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0118__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 118,
+    "text": "Buses, trains, shelters and stations"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0119__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 119,
+    "text": "Appears on buses, trains, shelters and stations during daily travel."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0123__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 123,
+    "text": "Storefront"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0124__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 124,
+    "text": "Windows, counters and street signs"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0125__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 125,
+    "text": "Reaches people at the point of purchase on windows, counters and street signs."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0129__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 129,
+    "text": "Magazine"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0130__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 130,
+    "text": "Print and digital feature pages"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0131__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 131,
+    "text": "Carries detailed content across print and digital feature pages."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0135__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 135,
+    "text": "Social feed"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0136__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 136,
+    "text": "Short posts, stories and creator spots"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0137__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 137,
+    "text": "Short-form content for quick viewing and sharing."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0141__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 141,
+    "text": "Search"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0142__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 142,
+    "text": "Results pages and local listings"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0143__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 143,
+    "text": "Displayed on results pages and local listings when a user searches."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0147__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 147,
+    "text": "Streaming video"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0148__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 148,
+    "text": "Short video spots around streamed shows"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0149__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 149,
+    "text": "Video with sound and motion around streamed shows."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0153__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 153,
+    "text": "Podcast and audio"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0154__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 154,
+    "text": "Host reads, music streams and audio spots"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0155__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 155,
+    "text": "Audio-led content delivered through host reads, music streams and audio spots."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0159__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 159,
+    "text": "Cinema"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0160__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 160,
+    "text": "Big-screen spots before a film"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0161__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 161,
+    "text": "Big-screen spots shown before a film screening."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0165__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 165,
+    "text": "Event and sponsorship"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0166__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 166,
+    "text": "Festivals, clubs, matches and pop-ups"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0167__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 167,
+    "text": "Placed at festivals, clubs, matches and pop-ups where audiences gather."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0171__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 171,
+    "text": "Direct"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0172__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 172,
+    "text": "Email, mail, handouts and messages"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0173__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 173,
+    "text": "Sent to a known audience via email, mail, handouts or messages."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0178__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 178,
+    "text": "Value"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0178__N02",
+    "path": "web/src/game/market-route.ts",
+    "line": 178,
+    "text": "Signals that the offer matches its price."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0179__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 179,
+    "text": "Premium"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0179__N02",
+    "path": "web/src/game/market-route.ts",
+    "line": 179,
+    "text": "Special, polished or rare product."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0180__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 180,
+    "text": "Portability"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0180__N02",
+    "path": "web/src/game/market-route.ts",
+    "line": 180,
+    "text": "Easy to carry or take along."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0181__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 181,
+    "text": "Durability"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0181__N02",
+    "path": "web/src/game/market-route.ts",
+    "line": 181,
+    "text": "Made to last through repeated use."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0182__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 182,
+    "text": "Visibility"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0182__N02",
+    "path": "web/src/game/market-route.ts",
+    "line": 182,
+    "text": "Easy to notice, recognise or show."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0183__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 183,
+    "text": "Capacity"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0183__N02",
+    "path": "web/src/game/market-route.ts",
+    "line": 183,
+    "text": "Holds, serves or supports more."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0184__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 184,
+    "text": "Comfort"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0184__N02",
+    "path": "web/src/game/market-route.ts",
+    "line": 184,
+    "text": "Improves time or space."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0185__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 185,
+    "text": "Sustainability"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0185__N02",
+    "path": "web/src/game/market-route.ts",
+    "line": 185,
+    "text": "Uses resources with care."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0186__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 186,
+    "text": "Novelty"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0186__N02",
+    "path": "web/src/game/market-route.ts",
+    "line": 186,
+    "text": "Offers something new."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0187__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 187,
+    "text": "Convenience"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0187__N02",
+    "path": "web/src/game/market-route.ts",
+    "line": 187,
+    "text": "Makes a choice quicker or easier."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0188__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 188,
+    "text": "Experience and escape"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0188__N02",
+    "path": "web/src/game/market-route.ts",
+    "line": 188,
+    "text": "Provides a change of scene."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0189__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 189,
+    "text": "Space and property"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0189__N02",
+    "path": "web/src/game/market-route.ts",
+    "line": 189,
+    "text": "Shapes how a place looks or works."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0230__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 230,
+    "text": "advertising medium ID"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0294__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 294,
+    "text": "product trait ID"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0525__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 525,
+    "text": "the audience's priorities"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0565__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 565,
+    "text": "support and the need:"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0566__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 566,
+    "text": "are clear, but their link to and the need \" \" needs a clearer link."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0575__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 575,
+    "text": "connects with at ."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0576__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 576,
+    "text": "exceeds this audience's usual reach. State the reason for this scale."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0593__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 593,
+    "text": "can show in a way that matches ."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0594__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 594,
+    "text": "gives you a clear placement, but the audience connection needs a more direct message."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0608__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 608,
+    "text": "Strong fit"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0610__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 610,
+    "text": "Possible fit"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0611__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 611,
+    "text": "Weak fit"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0614__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 614,
+    "text": "audience values"
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0616__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 616,
+    "text": "Continue with ; show how it answers \" \" in one statement."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0618__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 618,
+    "text": "Use and connect it to in the message."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0620__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 620,
+    "text": "Use to show in a way that matches ."
+  },
+  {
+    "id": "WEB_SRC_GAME_MARKET_ROUTE_TS__L0621__N01",
+    "path": "web/src/game/market-route.ts",
+    "line": 621,
+    "text": "State one proof point: show how delivers for ."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0026__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 26,
+    "text": "Advertising Market Game"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0027__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 27,
+    "text": "Audience brief"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0028__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 28,
+    "text": "Audience signal"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0029__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 29,
+    "text": "Round progress"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0030__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 30,
+    "text": "Pair play"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0031__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 31,
+    "text": "Canvas words"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0032__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 32,
+    "text": "Round 0 tools"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0033__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 33,
+    "text": "Context"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0034__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 34,
+    "text": "Need"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0035__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 35,
+    "text": "Values"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0036__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 36,
+    "text": "Intended effect"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0037__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 37,
+    "text": "Product name"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0038__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 38,
+    "text": "Price"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0039__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 39,
+    "text": "Open market preview"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0042__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 42,
+    "text": "Search"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0043__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 43,
+    "text": "Add"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0044__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 44,
+    "text": "Move"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0045__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 45,
+    "text": "Resize"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0046__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 46,
+    "text": "Text"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0047__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 47,
+    "text": "Undo"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0048__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 48,
+    "text": "Crop"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0049__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 49,
+    "text": "Drawing"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0050__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 50,
+    "text": "Recolour"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0051__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 51,
+    "text": "Layers"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0055__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 55,
+    "text": "Art Director"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0056__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 56,
+    "text": "Make one visible image change: add, move, or resize an image."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0057__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 57,
+    "text": "Check the image choices against the audience need. Prepare one visual suggestion."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0060__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 60,
+    "text": "Strategist"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0061__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 61,
+    "text": "Make one visible message change: add or revise canvas words."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0062__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 62,
+    "text": "Read the audience brief. Prepare one wording or persuasion suggestion."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0066__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 66,
+    "text": "Round 0"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0067__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 67,
+    "text": "Invent"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0068__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 68,
+    "text": "Sell"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0069__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 69,
+    "text": "Refine"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0070__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 70,
+    "text": "Preview"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0073__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 73,
+    "text": "Swap roles"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0074__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 74,
+    "text": "Pass control to the Art Director."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0075__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 75,
+    "text": "Pass control to the Strategist."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0078__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 78,
+    "text": "Make one visible change."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0079__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 79,
+    "text": "1 visible change"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0080__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 80,
+    "text": "visible changes"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0081__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 81,
+    "text": "Both roles made a change."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0082__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 82,
+    "text": "Try Make room for adventure"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0083__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 83,
+    "text": "Add words"
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0084__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 84,
+    "text": "Type some canvas words first."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0085__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 85,
+    "text": "Audience signal changed."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0086__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 86,
+    "text": "Words added to the canvas."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0087__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 87,
+    "text": "Nothing to undo."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0088__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 88,
+    "text": "Nothing to redo."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0089__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 89,
+    "text": "That move did not work. Try again."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0092__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 92,
+    "text": "The campaign is ready for preview."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0093__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 93,
+    "text": "Finish the remaining items before preview."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0095__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 95,
+    "text": "Choose an audience brief."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0096__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 96,
+    "text": "Add a product name."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0097__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 97,
+    "text": "Add a price."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0098__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 98,
+    "text": "Link one choice to attention."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0099__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 99,
+    "text": "Link one choice to interest."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0100__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 100,
+    "text": "Link one choice to desire."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0101__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 101,
+    "text": "Link one choice to action."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0102__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 102,
+    "text": "Swap roles at least once."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0103__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 103,
+    "text": "The Art Director needs one visible image change."
+  },
+  {
+    "id": "WEB_SRC_GAME_STUDENT_COPY_TS__L0104__N01",
+    "path": "web/src/game/student-copy.ts",
+    "line": 104,
+    "text": "The Strategist needs one visible message change."
+  },
+  {
+    "id": "WEB_SRC_HISTORY_FABRIC_HISTORY_BINDINGS_TS__L0068__N01",
+    "path": "web/src/history/fabric-history-bindings.ts",
+    "line": 68,
+    "text": "Undid last change."
+  },
+  {
+    "id": "WEB_SRC_HISTORY_FABRIC_HISTORY_BINDINGS_TS__L0068__N02",
+    "path": "web/src/history/fabric-history-bindings.ts",
+    "line": 68,
+    "text": "Redid last change."
+  },
+  {
+    "id": "WEB_SRC_HISTORY_FABRIC_HISTORY_BINDINGS_TS__L0073__N01",
+    "path": "web/src/history/fabric-history-bindings.ts",
+    "line": 73,
+    "text": "History rollback failed."
+  },
+  {
+    "id": "WEB_SRC_HISTORY_FABRIC_HISTORY_BINDINGS_TS__L0079__N01",
+    "path": "web/src/history/fabric-history-bindings.ts",
+    "line": 79,
+    "text": "Canvas and history rollback failed."
+  },
+  {
+    "id": "WEB_SRC_HISTORY_FABRIC_HISTORY_BINDINGS_TS__L0111__N01",
+    "path": "web/src/history/fabric-history-bindings.ts",
+    "line": 111,
+    "text": "Composite history rollback failed."
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0048__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 48,
+    "text": "All symbols"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0049__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 49,
+    "text": "Beauty + care"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0050__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 50,
+    "text": "Drinks + snacks"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0051__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 51,
+    "text": "Fashion + footwear"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0052__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 52,
+    "text": "Food + hospitality"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0053__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 53,
+    "text": "Home + lifestyle"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0054__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 54,
+    "text": "Pets + animals"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0055__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 55,
+    "text": "Shops + services"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0056__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 56,
+    "text": "Sport + outdoors"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0057__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 57,
+    "text": "Tech + gadgets"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0058__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 58,
+    "text": "Travel + transport"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0095__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 95,
+    "text": "Trebuchet MS"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0104__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 104,
+    "text": "Logo maker loading"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0151__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 151,
+    "text": "Logo maker unavailable"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0169__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 169,
+    "text": "New logo"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0171__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 171,
+    "text": "Logo"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0186__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 186,
+    "text": "Logo on canvas"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0196__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 196,
+    "text": "Try Nova Pet"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0203__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 203,
+    "text": "Logo words"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0209__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 209,
+    "text": "Logo shape"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0236__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 236,
+    "text": "Symbol category"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0240__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 240,
+    "text": "Try paw or rocket"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0245__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 245,
+    "text": "Search symbols"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0252__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 252,
+    "text": "Symbol choices"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0276__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 276,
+    "text": "No symbols match yet"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0296__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 296,
+    "text": "Main colour"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0296__N02",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 296,
+    "text": "Second colour"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0302__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 302,
+    "text": "More logo moves"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0313__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 313,
+    "text": "Remix symbol"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0314__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 314,
+    "text": "Remix type"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0315__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 315,
+    "text": "Remix colours"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0316__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 316,
+    "text": "Random logo"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0326__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 326,
+    "text": "Word style"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0338__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 338,
+    "text": "Making logo…"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0339__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 339,
+    "text": "Update logo"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0339__N02",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 339,
+    "text": "Add logo"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0379__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 379,
+    "text": "Logo maker unavailable"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0381__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 381,
+    "text": "This saved symbol is not in this pack"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0383__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 383,
+    "text": "Ready for the canvas"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0383__N02",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 383,
+    "text": "Choose words and a symbol"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0412__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 412,
+    "text": "logo updated"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0419__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 419,
+    "text": "logo added"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0424__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 424,
+    "text": "Logo could not be updated"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0424__N02",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 424,
+    "text": "Logo could not be added"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0457__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 457,
+    "text": "Symbol remixed"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0459__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 459,
+    "text": "Word style remixed"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0461__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 461,
+    "text": "Colours remixed"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0462__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 462,
+    "text": "New logo mix ready"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0467__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 467,
+    "text": "Logo remix could not be applied"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0499__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 499,
+    "text": "Trebuchet MS"
+  },
+  {
+    "id": "WEB_SRC_LOGO_LAB_LOGO_LAB_PANEL_TS__L0513__N01",
+    "path": "web/src/logo-lab/logo-lab-panel.ts",
+    "line": 513,
+    "text": "input[name=\"logo-recipe\"][value=\" \"]"
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L0224__N01",
+    "path": "web/src/main.ts",
+    "line": 224,
+    "text": "input[aria-label=\"Product name\"]"
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L0234__N01",
+    "path": "web/src/main.ts",
+    "line": 234,
+    "text": "colour changed"
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L0280__N01",
+    "path": "web/src/main.ts",
+    "line": 280,
+    "text": "Saving…"
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L0283__N01",
+    "path": "web/src/main.ts",
+    "line": 283,
+    "text": "Saved · revision"
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L0286__N01",
+    "path": "web/src/main.ts",
+    "line": 286,
+    "text": "Save paused"
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L0287__N01",
+    "path": "web/src/main.ts",
+    "line": 287,
+    "text": "Progress could not be saved. Keep this tab open and try again."
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L0296__N01",
+    "path": "web/src/main.ts",
+    "line": 296,
+    "text": "That product piece is missing its Market Buck clue."
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L0344__N01",
+    "path": "web/src/main.ts",
+    "line": 344,
+    "text": "Product maker unavailable"
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L0548__N01",
+    "path": "web/src/main.ts",
+    "line": 548,
+    "text": "That product is missing its price clues."
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L0568__N01",
+    "path": "web/src/main.ts",
+    "line": 568,
+    "text": "Market price"
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L0600__N01",
+    "path": "web/src/main.ts",
+    "line": 600,
+    "text": "Market price"
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L0603__N01",
+    "path": "web/src/main.ts",
+    "line": 603,
+    "text": "Market price"
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L0618__N01",
+    "path": "web/src/main.ts",
+    "line": 618,
+    "text": "added to the design. Return to the game to see the next step."
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L0914__N01",
+    "path": "web/src/main.ts",
+    "line": 914,
+    "text": "Catalogue placement failed."
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L0920__N01",
+    "path": "web/src/main.ts",
+    "line": 920,
+    "text": "Campaign creator cleanup failed."
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L0927__N01",
+    "path": "web/src/main.ts",
+    "line": 927,
+    "text": "Campaign creator cleanup failed."
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L1057__N01",
+    "path": "web/src/main.ts",
+    "line": 1057,
+    "text": "Market price"
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L1136__N01",
+    "path": "web/src/main.ts",
+    "line": 1136,
+    "text": "Choose new colours in the product maker to change this region's colour."
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L1161__N01",
+    "path": "web/src/main.ts",
+    "line": 1161,
+    "text": "Product look"
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L1168__N01",
+    "path": "web/src/main.ts",
+    "line": 1168,
+    "text": "Product shell"
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L1180__N01",
+    "path": "web/src/main.ts",
+    "line": 1180,
+    "text": "The Image Lab pair is no longer current."
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L1180__N02",
+    "path": "web/src/main.ts",
+    "line": 1180,
+    "text": "AbortError"
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L1187__N01",
+    "path": "web/src/main.ts",
+    "line": 1187,
+    "text": "Level 2"
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L1187__N02",
+    "path": "web/src/main.ts",
+    "line": 1187,
+    "text": "Level 3"
+  },
+  {
+    "id": "WEB_SRC_MAIN_TS__L1225__N01",
+    "path": "web/src/main.ts",
+    "line": 1225,
+    "text": "main[aria-label=\"Advertising Market Game\"]"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_BUILDER_PANEL_TS__L0021__N01",
+    "path": "web/src/product-builder/product-builder-panel.ts",
+    "line": 21,
+    "text": "Shape"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_BUILDER_PANEL_TS__L0022__N01",
+    "path": "web/src/product-builder/product-builder-panel.ts",
+    "line": 22,
+    "text": "Swap a part"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_BUILDER_PANEL_TS__L0023__N01",
+    "path": "web/src/product-builder/product-builder-panel.ts",
+    "line": 23,
+    "text": "Colours"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_BUILDER_PANEL_TS__L0024__N01",
+    "path": "web/src/product-builder/product-builder-panel.ts",
+    "line": 24,
+    "text": "Finish"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_BUILDER_PANEL_TS__L0025__N01",
+    "path": "web/src/product-builder/product-builder-panel.ts",
+    "line": 25,
+    "text": "Front art"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_BUILDER_PANEL_TS__L0097__N01",
+    "path": "web/src/product-builder/product-builder-panel.ts",
+    "line": 97,
+    "text": "Choose parts together. Swap driver once the product is placed."
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_BUILDER_PANEL_TS__L0101__N01",
+    "path": "web/src/product-builder/product-builder-panel.ts",
+    "line": 101,
+    "text": "Product choices"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_BUILDER_PANEL_TS__L0123__N01",
+    "path": "web/src/product-builder/product-builder-panel.ts",
+    "line": 123,
+    "text": "looks remaining"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_BUILDER_PANEL_TS__L0124__N01",
+    "path": "web/src/product-builder/product-builder-panel.ts",
+    "line": 124,
+    "text": "Product maker unavailable"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_BUILDER_PANEL_TS__L0126__N01",
+    "path": "web/src/product-builder/product-builder-panel.ts",
+    "line": 126,
+    "text": "Drop it on the canvas"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_BUILDER_PANEL_TS__L0137__N01",
+    "path": "web/src/product-builder/product-builder-panel.ts",
+    "line": 137,
+    "text": "Drop another copy"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_BUILDER_PANEL_TS__L0138__N01",
+    "path": "web/src/product-builder/product-builder-panel.ts",
+    "line": 138,
+    "text": "placed · swap driver"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_BUILDER_PANEL_TS__L0167__N01",
+    "path": "web/src/product-builder/product-builder-panel.ts",
+    "line": 167,
+    "text": "Shape choices"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_BUILDER_PANEL_TS__L0175__N01",
+    "path": "web/src/product-builder/product-builder-panel.ts",
+    "line": 175,
+    "text": "Part choices"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_BUILDER_PANEL_TS__L0180__N01",
+    "path": "web/src/product-builder/product-builder-panel.ts",
+    "line": 180,
+    "text": "Colour choices"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_BUILDER_PANEL_TS__L0185__N01",
+    "path": "web/src/product-builder/product-builder-panel.ts",
+    "line": 185,
+    "text": "Finish choices"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_BUILDER_PANEL_TS__L0246__N01",
+    "path": "web/src/product-builder/product-builder-panel.ts",
+    "line": 246,
+    "text": "Front art choices"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_BUILDER_PANEL_TS__L0250__N01",
+    "path": "web/src/product-builder/product-builder-panel.ts",
+    "line": 250,
+    "text": "Keep it blank"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_BUILDER_PANEL_TS__L0251__N01",
+    "path": "web/src/product-builder/product-builder-panel.ts",
+    "line": 251,
+    "text": "Colour base"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_BUILDER_PANEL_TS__L0274__N01",
+    "path": "web/src/product-builder/product-builder-panel.ts",
+    "line": 274,
+    "text": "Front art colour"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_MONEY_PANEL_TS__L0075__N01",
+    "path": "web/src/product-builder/product-money-panel.ts",
+    "line": 75,
+    "text": "Cost informs audience and pricing decisions. Cost does not restrict which product students may build."
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_MONEY_PANEL_TS__L0082__N01",
+    "path": "web/src/product-builder/product-money-panel.ts",
+    "line": 82,
+    "text": "No product placed. Place a product to view costs."
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_MONEY_PANEL_TS__L0103__N01",
+    "path": "web/src/product-builder/product-money-panel.ts",
+    "line": 103,
+    "text": "Build cost"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_MONEY_PANEL_TS__L0111__N01",
+    "path": "web/src/product-builder/product-money-panel.ts",
+    "line": 111,
+    "text": "Try –"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_MONEY_PANEL_TS__L0112__N01",
+    "path": "web/src/product-builder/product-money-panel.ts",
+    "line": 112,
+    "text": "Set market price."
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_MONEY_PANEL_TS__L0115__N01",
+    "path": "web/src/product-builder/product-money-panel.ts",
+    "line": 115,
+    "text": "Market price ($)"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_MONEY_PANEL_TS__L0121__N01",
+    "path": "web/src/product-builder/product-money-panel.ts",
+    "line": 121,
+    "text": "Market price in dollars"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_MONEY_PANEL_TS__L0143__N01",
+    "path": "web/src/product-builder/product-money-panel.ts",
+    "line": 143,
+    "text": "Add price to design"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_MONEY_PANEL_TS__L0165__N01",
+    "path": "web/src/product-builder/product-money-panel.ts",
+    "line": 165,
+    "text": "No price set. Set a price to view profit or loss."
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_MONEY_PANEL_TS__L0171__N01",
+    "path": "web/src/product-builder/product-money-panel.ts",
+    "line": 171,
+    "text": "Use a price with no more than two decimal places."
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_MONEY_PANEL_TS__L0177__N01",
+    "path": "web/src/product-builder/product-money-panel.ts",
+    "line": 177,
+    "text": "Profit per sale"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_MONEY_PANEL_TS__L0180__N01",
+    "path": "web/src/product-builder/product-money-panel.ts",
+    "line": 180,
+    "text": "Loss per sale"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_MONEY_PANEL_TS__L0183__N01",
+    "path": "web/src/product-builder/product-money-panel.ts",
+    "line": 183,
+    "text": "Break even on each sale"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_BUILDER_PRODUCT_MONEY_PANEL_TS__L0194__N01",
+    "path": "web/src/product-builder/product-money-panel.ts",
+    "line": 194,
+    "text": "Price not saved."
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_KIT_PRODUCT_KIT_PANEL_TS__L0339__N01",
+    "path": "web/src/product-kit/product-kit-panel.ts",
+    "line": 339,
+    "text": "product-kit product-kit--unavailable"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_KIT_PRODUCT_KIT_PANEL_TS__L0340__N01",
+    "path": "web/src/product-kit/product-kit-panel.ts",
+    "line": 340,
+    "text": "Product maker unavailable"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_KIT_PRODUCT_KIT_PANEL_TS__L0343__N01",
+    "path": "web/src/product-kit/product-kit-panel.ts",
+    "line": 343,
+    "text": "Place product on ad"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_KIT_PRODUCT_KIT_PANEL_TS__L0375__N01",
+    "path": "web/src/product-kit/product-kit-panel.ts",
+    "line": 375,
+    "text": "Start with"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_KIT_PRODUCT_KIT_PANEL_TS__L0387__N01",
+    "path": "web/src/product-kit/product-kit-panel.ts",
+    "line": 387,
+    "text": "Start:"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_KIT_PRODUCT_KIT_PANEL_TS__L0404__N01",
+    "path": "web/src/product-kit/product-kit-panel.ts",
+    "line": 404,
+    "text": "Choose a"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_KIT_PRODUCT_KIT_PANEL_TS__L0414__N01",
+    "path": "web/src/product-kit/product-kit-panel.ts",
+    "line": 414,
+    "text": "choice: :"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_KIT_PRODUCT_KIT_PANEL_TS__L0418__N01",
+    "path": "web/src/product-kit/product-kit-panel.ts",
+    "line": 418,
+    "text": "Add:"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_KIT_PRODUCT_KIT_PANEL_TS__L0440__N01",
+    "path": "web/src/product-kit/product-kit-panel.ts",
+    "line": 440,
+    "text": "Base: ·"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_KIT_PRODUCT_KIT_PANEL_TS__L0445__N01",
+    "path": "web/src/product-kit/product-kit-panel.ts",
+    "line": 445,
+    "text": "Total:"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_KIT_PRODUCT_KIT_PANEL_TS__L0457__N01",
+    "path": "web/src/product-kit/product-kit-panel.ts",
+    "line": 457,
+    "text": "On your ad. Change a choice to replace it."
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_KIT_PRODUCT_KIT_PANEL_TS__L0459__N01",
+    "path": "web/src/product-kit/product-kit-panel.ts",
+    "line": 459,
+    "text": "Ready to place on your ad"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_KIT_PRODUCT_KIT_PANEL_TS__L0460__N01",
+    "path": "web/src/product-kit/product-kit-panel.ts",
+    "line": 460,
+    "text": "Choose a to finish your product"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_KIT_PRODUCT_KIT_PANEL_TS__L0467__N01",
+    "path": "web/src/product-kit/product-kit-panel.ts",
+    "line": 467,
+    "text": "Place another product on ad"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_KIT_PRODUCT_KIT_PANEL_TS__L0467__N02",
+    "path": "web/src/product-kit/product-kit-panel.ts",
+    "line": 467,
+    "text": "Place product on ad"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_KIT_PRODUCT_KIT_PANEL_TS__L0564__N01",
+    "path": "web/src/product-kit/product-kit-panel.ts",
+    "line": 564,
+    "text": "matrix( , , , , 0, 0)"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_SHELLS_PRODUCT_SHELL_PICKER_TS__L0026__N01",
+    "path": "web/src/product-shells/product-shell-picker.ts",
+    "line": 26,
+    "text": "Adding"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_SHELLS_PRODUCT_SHELL_PICKER_TS__L0066__N01",
+    "path": "web/src/product-shells/product-shell-picker.ts",
+    "line": 66,
+    "text": "product shells ready"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_SHELLS_PRODUCT_SHELL_PICKER_TS__L0067__N01",
+    "path": "web/src/product-shells/product-shell-picker.ts",
+    "line": 67,
+    "text": "Product shells unavailable"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_SHELLS_PRODUCT_SHELL_PICKER_TS__L0088__N01",
+    "path": "web/src/product-shells/product-shell-picker.ts",
+    "line": 88,
+    "text": "Preview:"
+  },
+  {
+    "id": "WEB_SRC_PRODUCT_SHELLS_PRODUCT_SHELL_REGION_CONTROLS_TS__L0030__N01",
+    "path": "web/src/product-shells/product-shell-region-controls.ts",
+    "line": 30,
+    "text": "Change any product zone."
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0029__N01",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 29,
+    "text": "Price"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0029__N02",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 29,
+    "text": "Attention"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0029__N03",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 29,
+    "text": "Interest"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0029__N04",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 29,
+    "text": "Desire"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0029__N05",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 29,
+    "text": "Action"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0032__N01",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 32,
+    "text": "Campaign studio"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0032__N02",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 32,
+    "text": "Product name"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0032__N03",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 32,
+    "text": "Name your product"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0032__N04",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 32,
+    "text": "Saved progress"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0032__N05",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 32,
+    "text": "AIDA steps"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0032__N06",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 32,
+    "text": "AD MARKET"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0032__N07",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 32,
+    "text": "Studio"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0032__N08",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 32,
+    "text": "Undo"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0032__N09",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 32,
+    "text": "Redo"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0032__N10",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 32,
+    "text": "Return to game"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0032__N11",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 32,
+    "text": "Open full brief"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N01",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Studio tools"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N02",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Build"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N03",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Assets"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N04",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Words"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N05",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Logo"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N06",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Image"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N07",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Price"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N08",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Route"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N09",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Studio drawer"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N10",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Hide library"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N11",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Product builder"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N12",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Launch path"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N13",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Asset library"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N14",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Library view"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N15",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Search assets"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N16",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Try running shoe, tent or pet shop"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N17",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Product category"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N18",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Logo Lab"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N19",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Image Lab"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N20",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Money check"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N21",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Market Route"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N22",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "AIDA move deck"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N23",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Campaign canvas"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N24",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Empty canvas"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N25",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Selected element"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N26",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Layers"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N27",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Now:"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N28",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Partner:"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N29",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Build your product"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N30",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Product maker loading"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N31",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Drop it on the canvas"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N32",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "LAUNCH PATH"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N33",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Place"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N34",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Design"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N35",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Each choice changes the product's cost and the audience most likely to want it."
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N36",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Find a piece"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N37",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Products"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N38",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Parts"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N39",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "All pieces"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N40",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "All categories"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N41",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Colour for new pieces"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N42",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Show photo products"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N43",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Logo maker loading"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N44",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Image options loading"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N45",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Price your idea"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N46",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Price data loading"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N47",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Pick your market"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N48",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Market map loading"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N49",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Move deck shuffling"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N50",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "LIVE AD"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N51",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Canvas empty"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N52",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Build a product. Then choose"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0053__N53",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 53,
+    "text": "Place product on ad"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0173__N01",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 173,
+    "text": "Close full brief"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0173__N02",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 173,
+    "text": "Open full brief"
+  },
+  {
+    "id": "WEB_SRC_UI_EDITOR_SHELL_TS__L0201__N01",
+    "path": "web/src/ui/editor-shell.ts",
+    "line": 201,
+    "text": "input[aria-label=\"Search assets\"]"
+  },
+  {
+    "id": "WEB_SRC_UI_STUDIO_TOOL_DRAWER_TS__L0077__N01",
+    "path": "web/src/ui/studio-tool-drawer.ts",
+    "line": 77,
+    "text": "Escape"
+  },
+  {
+    "id": "WEB_SRC_UI_STUDIO_TOOL_DRAWER_TS__L0088__N01",
+    "path": "web/src/ui/studio-tool-drawer.ts",
+    "line": 88,
+    "text": "ArrowUp"
+  },
+  {
+    "id": "WEB_SRC_UI_STUDIO_TOOL_DRAWER_TS__L0089__N01",
+    "path": "web/src/ui/studio-tool-drawer.ts",
+    "line": 89,
+    "text": "ArrowDown"
+  },
+  {
+    "id": "WEB_SRC_UI_STUDIO_TOOL_DRAWER_TS__L0090__N01",
+    "path": "web/src/ui/studio-tool-drawer.ts",
+    "line": 90,
+    "text": "Home"
+  },
+  {
+    "id": "WEB_SRC_UI_STUDIO_TOOL_DRAWER_TS__L0091__N01",
+    "path": "web/src/ui/studio-tool-drawer.ts",
+    "line": 91,
+    "text": "End"
+  }
+]

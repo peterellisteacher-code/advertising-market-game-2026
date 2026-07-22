@@ -338,6 +338,12 @@ describe("ProductKitPanel", () => {
     expect(getByRole<HTMLButtonElement>(host, "button", {
       name: "Place product on ad"
     }).disabled).toBe(true);
+    const placementAction = getByRole<HTMLButtonElement>(host, "button", {
+      name: "Place product on ad"
+    });
+    const firstChoiceGroup = getByRole(host, "group", { name: "Start with" });
+    expect(placementAction.compareDocumentPosition(firstChoiceGroup) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy();
     expect(getByRole<HTMLInputElement>(host, "radio", {
       name: /Reusable tumbler/
     }).checked).toBe(true);

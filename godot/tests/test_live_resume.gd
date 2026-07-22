@@ -26,7 +26,7 @@ func _startup_arbitrates_live_before_practice() -> bool:
     var resume_id := market_fake.last_request_id()
     assert(market_fake.request_for(resume_id).get("method") == "resumeSession")
     assert(practice_fake.request_count() == 0)
-    assert((shell.get_node("%StartRun") as Button).disabled)
+    assert(not (shell.get_node("%StartRun") as Button).disabled)
 
     market_fake.resolve_success(resume_id, null)
     assert(practice_fake.request_count() == 1)

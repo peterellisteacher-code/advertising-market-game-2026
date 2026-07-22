@@ -126,13 +126,14 @@ describe("POST /api/market/create", () => {
         roomCode: "ABC-234",
         revision: 0,
         phase: "building",
-        openingWalletCents: 12_500,
+        marketMode: "medals",
         maxTeams: 3,
         availableSeats: 3,
         teams: [],
         campaigns: []
       }
     });
+    expect(body).not.toHaveProperty("snapshot.openingWalletCents");
     expect(JSON.stringify(body)).not.toContain("CLASS-2026");
     expect(JSON.stringify(body)).not.toContain("ssssssss");
     expect(repository.rooms.get("ABC-234")?.value.expiresAt).toBe(22_600);
@@ -302,15 +303,17 @@ describe("POST /api/market/join", () => {
         roomId: "room-server",
         revision: 1,
         phase: "building",
+        marketMode: "medals",
         own: {
           teamId: "team-server",
           alias: "Pixel Pirates",
-          wallet: 10_000,
-          spent: 0,
           finished: false
-        }
+        },
+        myAwards: []
       }
     });
+    expect(body).not.toHaveProperty("snapshot.own.wallet");
+    expect(body).not.toHaveProperty("snapshot.own.spent");
     expect(body).not.toHaveProperty("teamName");
     expect(body).not.toHaveProperty("email");
     expect(response.headers.get("set-cookie")).toContain(`${MARKET_COOKIE}=`);

@@ -91,7 +91,9 @@ export class ProductMoneyPanel {
     for (const line of build.costLines) {
       const row = element("div");
       const label = element("dt");
-      label.textContent = `${line.groupLabel} · ${line.label}`;
+      label.textContent = line.groupLabel === line.label
+        ? line.label
+        : `${line.groupLabel} · ${line.label}`;
       const cost = element("dd");
       cost.textContent = formatMarketBucks(line.costCents);
       row.append(label, cost);

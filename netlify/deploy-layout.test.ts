@@ -20,7 +20,8 @@ const expectedFunctions = [
   "market-room.mts",
   "market-session.mts",
   "openverse-image.mts",
-  "openverse-search.mts"
+  "openverse-search.mts",
+  "studio-coach.mts"
 ];
 
 interface DiscoveredFunction {
@@ -71,7 +72,7 @@ const loadStaticDiscovery = async (): Promise<{
 };
 
 describe("Netlify deployment layout", () => {
-  it("configures a wrapper-only directory containing exactly nine functions", () => {
+  it("configures a wrapper-only directory containing exactly ten functions", () => {
     const toml = readFileSync(join(repoRoot, "netlify.toml"), "utf8");
     expect(toml).toMatch(/^functions = "netlify\/deploy-functions"$/m);
     expect(existsSync(deployDirectory)).toBe(true);
@@ -151,9 +152,10 @@ describe("Netlify deployment layout", () => {
       "market-room",
       "market-session",
       "openverse-image",
-      "openverse-search"
+      "openverse-search",
+      "studio-coach"
     ]);
-    expect(discovered).toHaveLength(9);
+    expect(discovered).toHaveLength(10);
     for (const entry of discovered) expect(entry.runtimeAPIVersion).toBe(2);
     expect(byName.get("account-session")?.routes).toEqual([
       {
@@ -216,6 +218,11 @@ describe("Netlify deployment layout", () => {
         methods: []
       }
     ]);
+    expect(byName.get("studio-coach")?.routes).toEqual([{
+      pattern: "/api/image-lab/coach",
+      literal: "/api/image-lab/coach",
+      methods: []
+    }]);
     expect(byName.get("openverse-image")?.routes).toEqual([{
       pattern: "/api/openverse-image/:id",
       expression: "^\\/api\\/openverse-image(?:\\/([^\\/]+?))\\/?$",
@@ -242,42 +249,56 @@ describe("Netlify deployment layout", () => {
       {
         pattern: "/api/market/resume",
         literal: "/api/market/resume",
-        methods: []
+        methods: [],
+        prefer_static: undefined
       },
       {
         pattern: "/api/market/snapshot",
         literal: "/api/market/snapshot",
-        methods: []
+        methods: [],
+        prefer_static: undefined
       },
       {
         pattern: "/api/market/artwork",
         literal: "/api/market/artwork",
-        methods: []
+        methods: [],
+        prefer_static: undefined
       },
       {
         pattern: "/api/market/publish",
         literal: "/api/market/publish",
-        methods: []
+        methods: [],
+        prefer_static: undefined
+      },
+      {
+        pattern: "/api/market/award",
+        literal: "/api/market/award",
+        methods: [],
+        prefer_static: undefined
       },
       {
         pattern: "/api/market/purchase",
         literal: "/api/market/purchase",
-        methods: []
+        methods: [],
+        prefer_static: undefined
       },
       {
         pattern: "/api/market/finish",
         literal: "/api/market/finish",
-        methods: []
+        methods: [],
+        prefer_static: undefined
       },
       {
         pattern: "/api/market/review",
         literal: "/api/market/review",
-        methods: []
+        methods: [],
+        prefer_static: undefined
       },
       {
         pattern: "/api/market/control",
         literal: "/api/market/control",
-        methods: []
+        methods: [],
+        prefer_static: undefined
       }
     ]);
 
@@ -337,6 +358,7 @@ describe("Netlify deployment layout", () => {
           "/api/market/snapshot",
           "/api/market/artwork",
           "/api/market/publish",
+          "/api/market/award",
           "/api/market/purchase",
           "/api/market/finish",
           "/api/market/review",
@@ -369,6 +391,14 @@ describe("Netlify deployment layout", () => {
         rateLimit: {
           aggregateBy: ["ip", "domain"],
           windowLimit: 120,
+          windowSize: 60
+        }
+      },
+      "studio-coach": {
+        path: ["/api/image-lab/coach"],
+        rateLimit: {
+          aggregateBy: ["ip", "domain"],
+          windowLimit: 300,
           windowSize: 60
         }
       }

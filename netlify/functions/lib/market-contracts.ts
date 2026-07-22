@@ -76,6 +76,8 @@ export const ArtworkKeySchema = z.string()
 
 export const RoomPhaseSchema = z.enum(["building", "market", "reveal", "closed"]);
 export const CampaignStatusSchema = z.enum(["pending", "approved", "returned", "hidden"]);
+export const MedalSchema = z.enum(["gold", "silver", "bronze"]);
+export const MarketModeSchema = z.enum(["purchases", "medals"]);
 
 export const TeamSchema = z.object({
   id: MarketIdSchema,
@@ -129,6 +131,7 @@ export const ReceiptSchema = z.object({
   buyerTeamId: MarketIdSchema,
   sellerTeamId: MarketIdSchema,
   campaignId: MarketIdSchema,
+  medal: MedalSchema.optional(),
   price: PriceSchema,
   requestId: MarketIdSchema,
   canonicalPayload: z.string()
@@ -155,6 +158,16 @@ const ArtworkUploadsByTeamSchema = z.record(MarketIdSchema, ArtworkUploadRecordS
 
 export const canonicalPurchasePayload = (campaignId: string): string =>
   `purchase:v1:${JSON.stringify({ campaignId })}`;
+
+export const canonicalAwardCommandPayload = (input: {
+  readonly voterTeamId: string;
+  readonly campaignId: string;
+  readonly medal: z.infer<typeof MedalSchema>;
+}): string => `award:v1:${JSON.stringify({
+  voterTeamId: input.voterTeamId,
+  campaignId: input.campaignId,
+  medal: input.medal
+})}`;
 
 export const canonicalPublishCommandPayload = (input: {
   readonly campaignId: string;
@@ -209,6 +222,7 @@ export const MarketCohortSchema = z.object({
 });
 
 export const CommandOperationSchema = z.enum([
+  "award",
   "publish",
   "finish",
   "review",
@@ -219,6 +233,12 @@ export const CommandOperationSchema = z.enum([
 ]);
 
 export const CommandPostconditionSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("award"),
+    campaignId: MarketIdSchema,
+    medal: MedalSchema,
+    receiptId: MarketIdSchema
+  }).strict(),
   z.object({
     kind: z.literal("publish"),
     campaignId: MarketIdSchema,
@@ -246,6 +266,7 @@ export const CommandReceiptSchema = z.object({
   postcondition: CommandPostconditionSchema
 }).strict().superRefine((receipt, context) => {
   const valid =
+    (receipt.operation === "award" && receipt.postcondition.kind === "award") ||
     (receipt.operation === "publish" && receipt.postcondition.kind === "publish") ||
     (receipt.operation === "finish" && receipt.postcondition.kind === "finish") ||
     (receipt.operation === "review" && receipt.postcondition.kind === "review") ||
@@ -293,6 +314,7 @@ const MarketRoomV2ObjectSchema = z.object({
   id: MarketIdSchema,
   revision: RevisionSchema,
   phase: RoomPhaseSchema,
+  marketMode: MarketModeSchema.default("purchases"),
   openingWallet: WalletSchema,
   maxTeams: MaxTeamsSchema,
   createdAt: TimestampSchema,
@@ -317,6 +339,7 @@ function validateMarketRoomRelations(room: ValidatedMarketRoom, context: z.Refin
   const receiptEntries = Object.entries(room.receipts);
   const finishedEntries = Object.entries(room.finishedAtByTeamId);
   const uploadTeamEntries = Object.entries(room.artworkUploadsByTeam);
+  const marketMode = "marketMode" in room ? room.marketMode : "purchases";
 
   if (teamEntries.length > MARKET_LIMITS.teams) {
     context.addIssue({ code: "custom", path: ["teams"], message: "Too many teams" });
@@ -408,6 +431,7 @@ function validateMarketRoomRelations(room: ValidatedMarketRoom, context: z.Refin
   }
 
   const buyerCampaigns = new Set<string>();
+  const voterMedals = new Set<string>();
   const actorRequests = new Set<string>();
   const spentByBuyer = new Map<string, number>();
   for (const [key, receipt] of receiptEntries) {
@@ -423,23 +447,46 @@ function validateMarketRoomRelations(room: ValidatedMarketRoom, context: z.Refin
       receipt.sellerTeamId !== campaign.sellerTeamId || receipt.price !== campaign.price) {
       context.addIssue({ code: "custom", path: ["receipts", key], message: "Untrusted receipt fields" });
     }
-    if (receipt.canonicalPayload !== canonicalPurchasePayload(receipt.campaignId)) {
+    if ((marketMode === "medals") !== (receipt.medal !== undefined)) {
+      context.addIssue({ code: "custom", path: ["receipts", key], message: "Receipt differs from market mode" });
+    }
+    const expectedPayload = receipt.medal === undefined
+      ? canonicalPurchasePayload(receipt.campaignId)
+      : canonicalAwardCommandPayload({
+          voterTeamId: receipt.buyerTeamId,
+          campaignId: receipt.campaignId,
+          medal: receipt.medal
+        });
+    if (receipt.canonicalPayload !== expectedPayload) {
       context.addIssue({ code: "custom", path: ["receipts", key, "canonicalPayload"], message: "Invalid payload" });
     }
     const buyerCampaign = `${receipt.buyerTeamId}\0${receipt.campaignId}`;
     if (buyerCampaigns.has(buyerCampaign)) {
-      context.addIssue({ code: "custom", path: ["receipts", key], message: "Duplicate purchase" });
+      context.addIssue({
+        code: "custom",
+        path: ["receipts", key],
+        message: receipt.medal === undefined ? "Duplicate purchase" : "Duplicate campaign award"
+      });
     }
     buyerCampaigns.add(buyerCampaign);
+    if (receipt.medal !== undefined) {
+      const voterMedal = `${receipt.buyerTeamId}\0${receipt.medal}`;
+      if (voterMedals.has(voterMedal)) {
+        context.addIssue({ code: "custom", path: ["receipts", key], message: "Duplicate medal award" });
+      }
+      voterMedals.add(voterMedal);
+    }
     const actorRequest = `${receipt.buyerTeamId}\0${receipt.requestId}`;
     if (actorRequests.has(actorRequest)) {
       context.addIssue({ code: "custom", path: ["receipts", key], message: "Duplicate actor request" });
     }
     actorRequests.add(actorRequest);
-    spentByBuyer.set(
-      receipt.buyerTeamId,
-      (spentByBuyer.get(receipt.buyerTeamId) ?? 0) + receipt.price
-    );
+    if (receipt.medal === undefined) {
+      spentByBuyer.set(
+        receipt.buyerTeamId,
+        (spentByBuyer.get(receipt.buyerTeamId) ?? 0) + receipt.price
+      );
+    }
   }
   for (const [buyerTeamId, spent] of spentByBuyer) {
     if (spent > room.openingWallet) {
@@ -579,6 +626,7 @@ export function normalizeMarketRoom(value: unknown): MarketRoomV2 | null {
   const normalized = MarketRoomV2Schema.safeParse({
     ...legacy.data,
     schemaVersion: 2,
+    marketMode: "purchases",
     campaigns,
     marketCohort,
     commandReceipts: {},
@@ -644,6 +692,13 @@ export const PurchaseInputSchema = RevisionMutationSchema.extend({
   receiptId: MarketIdSchema
 }).strict();
 
+export const AwardInputSchema = CommandMutationSchema.extend({
+  voterTeamId: MarketIdSchema,
+  campaignId: MarketIdSchema,
+  medal: MedalSchema,
+  receiptId: MarketIdSchema
+}).strict();
+
 export const FinishTeamInputSchema = CommandMutationSchema.extend({
   teamId: MarketIdSchema
 }).strict();
@@ -654,6 +709,8 @@ export const CloseMarketInputSchema = CommandMutationSchema.strict();
 export type Team = z.infer<typeof TeamSchema>;
 export type CampaignV1 = z.infer<typeof CampaignV1Schema>;
 export type Campaign = z.infer<typeof CampaignSchema>;
+export type Medal = z.infer<typeof MedalSchema>;
+export type MarketMode = z.infer<typeof MarketModeSchema>;
 export type Receipt = z.infer<typeof ReceiptSchema>;
 export type ArtworkUpload = z.infer<typeof ArtworkUploadSchema>;
 export type MarketCohort = z.infer<typeof MarketCohortSchema>;
@@ -672,6 +729,7 @@ export type SubmitCampaignInput = z.infer<typeof SubmitCampaignInputSchema>;
 export type ReviewCampaignInput = z.infer<typeof ReviewCampaignInputSchema>;
 export type OpenMarketInput = z.infer<typeof OpenMarketInputSchema>;
 export type PurchaseInput = z.infer<typeof PurchaseInputSchema>;
+export type AwardInput = z.infer<typeof AwardInputSchema>;
 export type FinishTeamInput = z.infer<typeof FinishTeamInputSchema>;
 export type OpenRevealInput = z.infer<typeof OpenRevealInputSchema>;
 export type CloseMarketInput = z.infer<typeof CloseMarketInputSchema>;

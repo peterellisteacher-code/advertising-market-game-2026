@@ -31,6 +31,7 @@ type FetchPort = (
 ) => Promise<Response>;
 
 export type MarketReviewStatus = "approved" | "returned" | "hidden";
+export type MarketMedal = "gold" | "silver" | "bronze";
 export type MarketControlAction = "openMarket" | "openReveal" | "closeMarket";
 export type MarketControlCommand =
   | { readonly action: MarketControlAction }
@@ -345,6 +346,10 @@ export class MarketClient {
 
   purchase(campaignId: string, requestId: string): Promise<unknown> {
     return this.#protectedJson("/api/market/purchase", "POST", { campaignId, requestId });
+  }
+
+  award(campaignId: string, medal: MarketMedal, commandId: string): Promise<unknown> {
+    return this.#protectedJson("/api/market/award", "POST", { commandId, campaignId, medal });
   }
 
   finish(commandId: string): Promise<unknown> {

@@ -1,0 +1,29 @@
+FINAL CANDIDATE FLOW — NEUTRAL SOURCE TRANSCRIPT
+
+1. Startup checks for a resumable live session and then for a saved practice pitch. If neither exists, the student lobby identifies the mode as “PAIR PLAY • ONE MACBOOK”, asks for the pair name, and offers the student routes: Practice or join a live room with its code. Class-market host controls stay hidden until Teacher setup is deliberately opened.
+
+2. Starting or restoring Level 1 reaches the run screen with one immediate action: Open Studio. The status says “Open the studio. Build one product with your pair.” The long introductory hero paragraph remains hidden.
+
+3. Before a level is complete, the run screen shows one next unmet requirement rather than a bundled clue. The possible sequence is: build a product; add its name; choose an audience signal; swap roles once; Art Director makes one visible image change; Strategist makes one visible message change; link one choice to each AIDA move in order; add a price; choose and lock a market route.
+
+4. The studio opens on Build. Its persistent strip shows level, audience signal, “Now” role and action, “Partner” role and action, exact visible-change progress, and Swap roles. Open full brief reveals audience context, need, values, and intended effect; it no longer hides the partner’s current job.
+
+5. The active Art Director receives one concise image action. The partner Strategist receives one concise analysis/wording action. After the active role acts, the strip asks for the named handoff. After both roles act, it states “Both roles made a change.” The separate status remains an exact change count.
+
+6. Closing the studio saves and returns to the run screen. Missing work keeps Open Studio available and names only the next gap. When no requirement is missing, the clue says the level is ready and Lock Level appears. After locking, the clue says to choose Next level and only that progression control remains.
+
+7. Level 2 introduces AIDA as four named steps without the unsupported buzzer reference. Level 3 introduces final price and market-route decisions. Future-level controls remain hidden until their level is active.
+
+8. After Level 3 is locked, Build the market card compiles the campaign for practice or the teacher-controlled review queue. A returned card includes the host note and a route back to the studio; an approved card reaches the market floor.
+
+9. In the market, pairs browse approved stalls, see wallet/progress state, and back products. Completion still requires the preserved spending rule across at least two different sellers. Finish shopping appears only when those conditions are met, then the practice completion or live podium flow follows.
+
+10. Save, restore, retry, offline, account, image-tool availability, safe error, transition, and completion states retain their mapped candidate copy. Image generation remains teacher-controlled and unavailable states explain what students can do next.
+
+BROWSER REPLAY — 22 JULY 2026
+
+At 1366×768 CSS pixels, a fresh practice pair completed the whole flow in the current rebuilt export: Neon Narwhals → Level 1 reusable tumbler and flat lid → product placed → roles swapped → canvas words added → Level 1 locked → Attention, Interest, Desire, and Action linked to the selected canvas words → Level 2 locked → $8.50 price added → Portability, Product body, Neighbourhood Loop, and Billboard route submitted → Level 3 locked → Final check → market card built → two different $40 stalls backed → Finish shopping → “Practice round complete”.
+
+Observed progressive instructions included “Next: build a product in the studio”, the corrected Strategist canvas-words action, one named next AIDA move after each lock, the price return instruction, one revealed route fieldset at a time, “Level 3 is ready. Lock it to open the final check”, and “Final check unlocked. Build the market card when your pair is ready.” The publication step that had previously failed with `HANDLER_ERROR` succeeded after `editable: false` was preserved in Fabric serialization.
+
+At 1440×900 CSS pixels, the fresh lobby, Level 1 run screen, and Level 1 studio were also inspected. The Studio used the two-row pair strip; both role actions and Swap roles remained visible. DOM measurements found no viewport overflow and no clipped visible interactive controls. The Build drawer is intentionally scrollable for choices below the fold.

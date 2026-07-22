@@ -8,10 +8,10 @@ const LEVEL_LABELS: Readonly<Record<CampaignGameplayStage, string>> = Object.fre
 });
 
 const FEATURE_ACCESS: Readonly<Record<CampaignGameplayStage, readonly string[]>> = Object.freeze({
-  invent: Object.freeze(["product", "money"]),
-  sell: Object.freeze(["product", "money", "aida"]),
-  irresistible: Object.freeze(["product", "money", "aida", "route"]),
-  "publish-check": Object.freeze(["product", "money", "aida", "route"])
+  invent: Object.freeze(["product"]),
+  sell: Object.freeze(["product", "aida", "coach"]),
+  irresistible: Object.freeze(["product", "price", "aida", "route", "coach"]),
+  "publish-check": Object.freeze(["product", "price", "aida", "route", "coach"])
 });
 
 const COMMAND_ACCESS = Object.freeze({

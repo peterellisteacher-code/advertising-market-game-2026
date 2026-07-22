@@ -8,6 +8,8 @@ const MAX_WALLET_CENTS := 1000000
 const MAX_PRICE_CENTS := 1000000000000
 const PHASES := ["building", "market", "reveal", "closed"]
 const CAMPAIGN_STATUSES := ["pending", "approved", "returned", "hidden"]
+const MARKET_MODES := ["purchases", "medals"]
+const MEDALS := ["gold", "silver", "bronze"]
 const MARKET_ELIGIBILITY_STATES := ["building", "frozen"]
 const MARKET_ELIGIBILITY_ROLES := ["buyer-seller", "buyer", "seller", "spectator"]
 const MARKET_ELIGIBILITY_REASONS := [
@@ -48,6 +50,119 @@ func derive(snapshot_value: Variant) -> Dictionary:
     }
 
 func _derive_team(snapshot: Dictionary) -> Dictionary:
+    if str(snapshot.get("marketMode", "purchases")) == "medals":
+        return _derive_medal_team(snapshot)
+    return _derive_purchase_team(snapshot)
+
+func _derive_medal_team(snapshot: Dictionary) -> Dictionary:
+    if not _valid_snapshot_header(snapshot, false) or snapshot.get("marketMode") != "medals":
+        return {}
+    if typeof(snapshot.get("own")) != TYPE_DICTIONARY:
+        return {}
+    var own: Dictionary = snapshot.get("own")
+    if (
+        not _is_market_id(own.get("teamId"))
+        or not _is_safe_string(own.get("alias"), 32, 2)
+        or typeof(own.get("finished")) != TYPE_BOOL
+        or own.has("wallet")
+        or own.has("spent")
+    ):
+        return {}
+    var eligibility := _normalise_market_eligibility(own, str(snapshot.get("phase")))
+    if eligibility.is_empty():
+        return {}
+    var eligible_buyer := str(eligibility.get("role")) in ["buyer-seller", "buyer"]
+    var own_team_id := str(own.get("teamId"))
+    var teams_result := _normalise_team_summaries(snapshot.get("teams"), own_team_id)
+    if not teams_result.get("ok", false):
+        return {}
+    var team_ids: Dictionary = teams_result.get("ids")
+    var team_aliases: Dictionary = teams_result.get("aliases")
+    if team_aliases.get(own_team_id) != str(own.get("alias")):
+        return {}
+    var awards_result := _normalise_awards(snapshot.get("myAwards"), team_ids, own_team_id)
+    if not awards_result.get("ok", false):
+        return {}
+    if typeof(snapshot.get("myPurchases")) != TYPE_ARRAY or not Array(snapshot.get("myPurchases")).is_empty():
+        return {}
+    if typeof(snapshot.get("campaigns")) != TYPE_ARRAY:
+        return {}
+    var campaigns: Array = snapshot.get("campaigns")
+    if campaigns.size() > MAX_CAMPAIGNS:
+        return {}
+    var awarded_by_campaign: Dictionary = awards_result.get("byCampaign")
+    var cards: Array[Dictionary] = []
+    var cards_by_id: Dictionary = {}
+    var status_counts := {"waiting": 0, "approved": 0, "returned": 0, "hidden": 0}
+    for campaign_value in campaigns:
+        var card := _normalise_medal_campaign(
+            campaign_value,
+            own_team_id,
+            team_aliases,
+            awarded_by_campaign,
+            str(snapshot.get("phase")),
+            bool(own.get("finished")),
+            eligible_buyer
+        )
+        if card.is_empty() or cards_by_id.has(str(card.get("id"))):
+            return {}
+        cards.append(card)
+        cards_by_id[str(card.get("id"))] = card
+        var status_key := str(card.get("displayStatus"))
+        if status_key == "live":
+            status_counts["approved"] = int(status_counts.get("approved")) + 1
+        else:
+            status_counts[status_key] = int(status_counts.get(status_key, 0)) + 1
+    for campaign_id in awarded_by_campaign.keys():
+        if not cards_by_id.has(str(campaign_id)):
+            return {}
+        var card: Dictionary = cards_by_id.get(str(campaign_id))
+        var award: Dictionary = awarded_by_campaign.get(str(campaign_id))
+        if card.get("isOwn") or card.get("sellerTeamId") != award.get("sellerTeamId"):
+            return {}
+    var by_medal: Dictionary = awards_result.get("byMedal")
+    var has_gold := by_medal.has("gold")
+    var has_silver := by_medal.has("silver")
+    var has_bronze := by_medal.has("bronze")
+    var complete := has_gold and has_silver and has_bronze
+    var already_finished := bool(own.get("finished"))
+    var locally_ready := (
+        str(snapshot.get("phase")) == "market"
+        and eligible_buyer
+        and not already_finished
+        and complete
+    )
+    return {
+        "roomId": str(snapshot.get("roomId")),
+        "revision": int(snapshot.get("revision")),
+        "phase": str(snapshot.get("phase")),
+        "marketMode": "medals",
+        "marketEligibility": eligibility,
+        "own": {
+            "teamId": own_team_id,
+            "alias": str(own.get("alias")),
+            "finished": already_finished
+        },
+        "teams": teams_result.get("teams"),
+        "cards": cards,
+        "awardSummary": {
+            "awardCount": int(awards_result.get("count")),
+            "byMedal": by_medal.duplicate(true),
+            "complete": complete
+        },
+        "finishReadiness": {
+            "serverAuthoritative": true,
+            "hasGold": has_gold,
+            "hasSilver": has_silver,
+            "hasBronze": has_bronze,
+            "alreadyFinished": already_finished,
+            "eligibleBuyer": eligible_buyer,
+            "locallyReady": locally_ready
+        },
+        "statusCounts": status_counts
+    }
+
+func _derive_purchase_team(snapshot: Dictionary) -> Dictionary:
     if not _valid_snapshot_header(snapshot, false):
         return {}
     if typeof(snapshot.get("own")) != TYPE_DICTIONARY:
@@ -154,6 +269,7 @@ func _derive_team(snapshot: Dictionary) -> Dictionary:
         "roomId": str(snapshot.get("roomId")),
         "revision": int(snapshot.get("revision")),
         "phase": str(snapshot.get("phase")),
+        "marketMode": "purchases",
         "marketEligibility": eligibility,
         "own": {
             "teamId": str(own.get("teamId")),
@@ -186,10 +302,13 @@ func _derive_team(snapshot: Dictionary) -> Dictionary:
     }
 
 func _derive_teacher(snapshot: Dictionary) -> Dictionary:
-    if (
-        not _valid_snapshot_header(snapshot, true)
-        or not _is_positive_integer(snapshot.get("openingWalletCents"), MAX_WALLET_CENTS)
-    ):
+    if not _valid_snapshot_header(snapshot, true):
+        return {}
+    var market_mode := str(snapshot.get("marketMode", "purchases"))
+    if market_mode == "purchases":
+        if not _is_positive_integer(snapshot.get("openingWalletCents"), MAX_WALLET_CENTS):
+            return {}
+    elif not _is_nonnegative_integer(snapshot.get("awardCount"), MAX_PURCHASES):
         return {}
     var teams_result := _normalise_teacher_teams(snapshot.get("teams"))
     if not teams_result.get("ok", false):
@@ -228,7 +347,7 @@ func _derive_teacher(snapshot: Dictionary) -> Dictionary:
         "canCloseMarket": bool(source_controls.get("canCloseMarket"))
     }
 
-    var reveal_result := _derive_teacher_reveal(snapshot, team_aliases)
+    var reveal_result := _derive_teacher_reveal(snapshot, team_aliases, market_mode)
     if not reveal_result.get("ok", false):
         return {}
     var team_count: int = Array(teams_result.get("teams")).size()
@@ -271,7 +390,7 @@ func _derive_teacher(snapshot: Dictionary) -> Dictionary:
         "roomId": str(snapshot.get("roomId")),
         "revision": int(snapshot.get("revision")),
         "phase": str(snapshot.get("phase")),
-        "openingWalletCents": int(snapshot.get("openingWalletCents")),
+        "marketMode": market_mode,
         "capacity": capacity.get("value"),
         "teams": teams_result.get("teams"),
         "moderation": moderation,
@@ -279,6 +398,10 @@ func _derive_teacher(snapshot: Dictionary) -> Dictionary:
         "controls": controls,
         "reveal": reveal_result.get("reveal")
     }
+    if market_mode == "purchases":
+        state["openingWalletCents"] = int(snapshot.get("openingWalletCents"))
+    else:
+        state["awardCount"] = int(snapshot.get("awardCount"))
     if not cohort.is_empty():
         state["cohort"] = cohort
     return state
@@ -318,6 +441,11 @@ func _valid_snapshot_header(snapshot: Dictionary, require_room_code: bool) -> bo
         or not _is_nonnegative_integer(snapshot.get("revision"), MAX_SAFE_INTEGER)
         or typeof(snapshot.get("phase")) != TYPE_STRING
         or not PHASES.has(str(snapshot.get("phase")))
+    ):
+        return false
+    if snapshot.has("marketMode") and (
+        typeof(snapshot.get("marketMode")) != TYPE_STRING
+        or not MARKET_MODES.has(str(snapshot.get("marketMode")))
     ):
         return false
     return not require_room_code or _is_room_code(snapshot.get("roomCode"))
@@ -439,6 +567,58 @@ func _normalise_purchases(
         "spentTotal": spent_total
     }
 
+func _normalise_awards(
+    value: Variant,
+    team_ids: Dictionary,
+    own_team_id: String
+) -> Dictionary:
+    if typeof(value) != TYPE_ARRAY:
+        return {}
+    var awards: Array = value
+    if awards.size() > MEDALS.size():
+        return {}
+    var receipt_ids: Dictionary = {}
+    var campaign_ids: Dictionary = {}
+    var medals: Dictionary = {}
+    var by_campaign: Dictionary = {}
+    var by_medal: Dictionary = {}
+    for award_value in awards:
+        if typeof(award_value) != TYPE_DICTIONARY:
+            return {}
+        var award: Dictionary = award_value
+        if (
+            not _is_market_id(award.get("id"))
+            or not _is_market_id(award.get("campaignId"))
+            or not _is_market_id(award.get("sellerTeamId"))
+            or not team_ids.has(str(award.get("sellerTeamId")))
+            or str(award.get("sellerTeamId")) == own_team_id
+            or typeof(award.get("medal")) != TYPE_STRING
+            or not MEDALS.has(str(award.get("medal")))
+            or not _is_positive_integer(award.get("awardedAt"), MAX_SAFE_INTEGER)
+            or receipt_ids.has(str(award.get("id")))
+            or campaign_ids.has(str(award.get("campaignId")))
+            or medals.has(str(award.get("medal")))
+        ):
+            return {}
+        var normalised := {
+            "id": str(award.get("id")),
+            "campaignId": str(award.get("campaignId")),
+            "sellerTeamId": str(award.get("sellerTeamId")),
+            "medal": str(award.get("medal")),
+            "awardedAt": int(award.get("awardedAt"))
+        }
+        receipt_ids[normalised.get("id")] = true
+        campaign_ids[normalised.get("campaignId")] = true
+        medals[normalised.get("medal")] = true
+        by_campaign[normalised.get("campaignId")] = normalised
+        by_medal[normalised.get("medal")] = normalised
+    return {
+        "ok": true,
+        "count": awards.size(),
+        "byCampaign": by_campaign,
+        "byMedal": by_medal
+    }
+
 func _normalise_market_eligibility(own: Dictionary, phase: String) -> Dictionary:
     if not own.has("marketEligibility"):
         return {
@@ -514,6 +694,63 @@ func _normalise_cohort(value: Variant, team_count: int) -> Dictionary:
         "requiredFinished": required_finished,
         "finishedRequired": finished_required
     }
+
+func _normalise_medal_campaign(
+    value: Variant,
+    own_team_id: String,
+    team_aliases: Dictionary,
+    awarded_by_campaign: Dictionary,
+    phase: String,
+    finished: bool,
+    eligible_buyer: bool
+) -> Dictionary:
+    if typeof(value) != TYPE_DICTIONARY:
+        return {}
+    var campaign: Dictionary = value
+    if (
+        not _is_market_id(campaign.get("id"))
+        or not _is_market_id(campaign.get("sellerTeamId"))
+        or not team_aliases.has(str(campaign.get("sellerTeamId")))
+        or not _is_safe_string(campaign.get("sellerAlias"), 32, 2)
+        or team_aliases.get(str(campaign.get("sellerTeamId"))) != str(campaign.get("sellerAlias"))
+        or typeof(campaign.get("status")) != TYPE_STRING
+        or not CAMPAIGN_STATUSES.has(str(campaign.get("status")))
+        or not _is_safe_string(campaign.get("productName"), 80)
+        or not _is_positive_integer(campaign.get("price"), MAX_PRICE_CENTS)
+        or not _is_artwork_key(campaign.get("artworkKey"))
+    ):
+        return {}
+    for optional_key in ["tagline", "reviewNote"]:
+        var maximum := 160 if optional_key == "tagline" else 240
+        if campaign.has(optional_key) and not _is_safe_string(campaign.get(optional_key), maximum):
+            return {}
+    var campaign_id := str(campaign.get("id"))
+    var is_own := str(campaign.get("sellerTeamId")) == own_team_id
+    var status := str(campaign.get("status"))
+    var award: Dictionary = awarded_by_campaign.get(campaign_id, {})
+    var card := {
+        "id": campaign_id,
+        "sellerTeamId": str(campaign.get("sellerTeamId")),
+        "sellerAlias": str(campaign.get("sellerAlias")),
+        "status": status,
+        "displayStatus": _display_status(status),
+        "productName": str(campaign.get("productName")),
+        "priceCents": int(campaign.get("price")),
+        "artworkKey": str(campaign.get("artworkKey")),
+        "isOwn": is_own,
+        "awardedMedal": str(award.get("medal", "")),
+        "canAward": (
+            phase == "market"
+            and eligible_buyer
+            and not finished
+            and status == "approved"
+            and not is_own
+        )
+    }
+    for optional_key in ["tagline", "reviewNote"]:
+        if campaign.has(optional_key):
+            card[optional_key] = str(campaign.get(optional_key))
+    return card
 
 func _normalise_team_campaign(
     value: Variant,
@@ -615,7 +852,11 @@ func _normalise_teacher_campaign(value: Variant, team_aliases: Dictionary) -> Di
             normalised[optional_key] = str(campaign.get(optional_key))
     return normalised
 
-func _derive_teacher_reveal(snapshot: Dictionary, team_aliases: Dictionary) -> Dictionary:
+func _derive_teacher_reveal(
+    snapshot: Dictionary,
+    team_aliases: Dictionary,
+    market_mode: String
+) -> Dictionary:
     var hidden := {"visible": false, "topThree": []}
     var phase := str(snapshot.get("phase"))
     if phase not in ["reveal", "closed"] or not snapshot.has("reveal"):
@@ -642,20 +883,34 @@ func _derive_teacher_reveal(snapshot: Dictionary, team_aliases: Dictionary) -> D
             or not team_aliases.has(str(standing.get("teamId")))
             or not _is_safe_string(standing.get("alias"), 32, 2)
             or team_aliases.get(str(standing.get("teamId"))) != str(standing.get("alias"))
-            or not _is_nonnegative_integer(standing.get("revenue"), MAX_SAFE_INTEGER)
-            or not _is_nonnegative_integer(standing.get("sales"), MAX_PURCHASES)
             or standing_team_ids.has(str(standing.get("teamId")))
+        ):
+            return {}
+        if market_mode == "medals":
+            for key in ["points", "gold", "silver", "bronze"]:
+                if not _is_nonnegative_integer(standing.get(key), MAX_PURCHASES * 3):
+                    return {}
+        elif (
+            not _is_nonnegative_integer(standing.get("revenue"), MAX_SAFE_INTEGER)
+            or not _is_nonnegative_integer(standing.get("sales"), MAX_PURCHASES)
         ):
             return {}
         standing_team_ids[str(standing.get("teamId"))] = true
         if index < 3:
-            top_three.append({
+            var podium_entry := {
                 "place": index + 1,
                 "teamId": str(standing.get("teamId")),
-                "alias": str(standing.get("alias")),
-                "revenueCents": int(standing.get("revenue")),
-                "sales": int(standing.get("sales"))
-            })
+                "alias": str(standing.get("alias"))
+            }
+            if market_mode == "medals":
+                podium_entry["points"] = int(standing.get("points"))
+                podium_entry["gold"] = int(standing.get("gold"))
+                podium_entry["silver"] = int(standing.get("silver"))
+                podium_entry["bronze"] = int(standing.get("bronze"))
+            else:
+                podium_entry["revenueCents"] = int(standing.get("revenue"))
+                podium_entry["sales"] = int(standing.get("sales"))
+            top_three.append(podium_entry)
     if standing_team_ids.size() != team_aliases.size():
         return {}
     return {"ok": true, "reveal": {"visible": true, "topThree": top_three}}

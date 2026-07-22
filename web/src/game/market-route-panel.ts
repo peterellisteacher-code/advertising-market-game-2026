@@ -128,7 +128,7 @@ export class MarketRoutePanel {
     traitLegend.textContent = "Product strengths";
     traits.append(traitLegend);
     const traitHint = element("p");
-    traitHint.textContent = "Choose up to four ideas your product can prove.";
+    traitHint.textContent = "Choose at least one and no more than four ideas your product can prove.";
     traits.append(traitHint);
     for (const trait of PRODUCT_TRAITS) {
       const label = checkboxLabel(
@@ -146,7 +146,7 @@ export class MarketRoutePanel {
     choiceLegend.textContent = "Priced product choices";
     choices.append(choiceLegend);
     const choiceHint = element("p");
-    choiceHint.textContent = "Pick the parts to feature.";
+    choiceHint.textContent = "Choose at least one priced part to feature.";
     choices.append(choiceHint);
     for (const line of build.costLines) {
       const label = checkboxLabel(
@@ -192,7 +192,7 @@ export class MarketRoutePanel {
     mediaLegend.textContent = "Advertising media";
     media.append(mediaLegend);
     const mediaHint = element("p");
-    mediaHint.textContent = "Choose up to three media placements.";
+    mediaHint.textContent = "Choose at least one and no more than three media placements.";
     media.append(mediaHint);
     const selectedMedia = new Set(this.#state.strategy.marketRoute?.mediaIds ?? []);
     for (const medium of ADVERTISING_MEDIA) {
@@ -213,7 +213,7 @@ export class MarketRoutePanel {
 
     const launch = element("button", "market-route__launch");
     launch.type = "submit";
-    launch.textContent = "Submit this route";
+    launch.textContent = this.#state.feedback ? "Route submitted" : "Submit this route";
     launch.addEventListener("click", (event) => {
       event.preventDefault();
       void this.#commit();
@@ -222,6 +222,17 @@ export class MarketRoutePanel {
 
     const feedbackHost = element("div", "market-route__feedback-host");
     this.#feedbackHost = feedbackHost;
+
+    const refreshSteps = (): void => {
+      const hasTraits = this.#selected("product-trait").length > 0;
+      choices.hidden = !hasTraits;
+      const hasChoices = hasTraits && this.#selected("marketed-choice").length > 0;
+      zoneStep.hidden = !hasChoices;
+      const hasZone = hasChoices && Boolean(zone.value);
+      media.hidden = !hasZone;
+      const hasMedia = hasZone && this.#selected("advertising-medium").length > 0;
+      launch.hidden = !hasMedia && this.#state.feedback === null;
+    };
 
     const refreshSelection = (event: Event): void => {
       const input = event.target;
@@ -238,7 +249,10 @@ export class MarketRoutePanel {
       }
       feedbackHost.replaceChildren();
       this.#state = { ...this.#state, feedback: null };
+      launch.textContent = "Submit this route";
+      status.textContent = "";
       this.#refreshLaunch();
+      refreshSteps();
     };
     form.addEventListener("change", refreshSelection);
     form.addEventListener("click", (event) => {
@@ -248,8 +262,12 @@ export class MarketRoutePanel {
     form.append(traits, choices, zoneStep, media, status, launch, feedbackHost);
     root.append(form);
     this.host.replaceChildren(root);
+    if (this.#state.feedback) {
+      status.textContent = "Route submitted. Review the route report, then return to the game.";
+    }
     this.#renderFeedback(this.#state.feedback);
     this.#refreshLaunch();
+    refreshSteps();
   }
 
   #selected(name: string): string[] {
@@ -260,6 +278,12 @@ export class MarketRoutePanel {
 
   #refreshLaunch(): void {
     if (!this.#launch || !this.#form) return;
+    if (this.#state.feedback) {
+      this.#launch.textContent = "Route submitted";
+      this.#launch.disabled = true;
+      return;
+    }
+    this.#launch.textContent = "Submit this route";
     const zone = this.#form.querySelector<HTMLSelectElement>('select[name="market-zone"]');
     const zoneId = zone?.value ?? "";
     this.#launch.disabled = !zoneId
@@ -286,7 +310,9 @@ export class MarketRoutePanel {
       });
       if (operation !== this.#operation) return;
       this.#state = { ...this.#state, feedback: structuredClone(feedback) };
-      if (this.#status) this.#status.textContent = "Route submitted.";
+      if (this.#status) {
+        this.#status.textContent = "Route submitted. Review the route report, then return to the game.";
+      }
       this.#renderFeedback(feedback);
     } catch (error) {
       if (operation !== this.#operation) return;
@@ -324,5 +350,6 @@ export class MarketRoutePanel {
     next.textContent = feedback.nextMove;
     report.append(heading, list, next);
     this.#feedbackHost.append(report);
+    report.scrollIntoView?.({ block: "nearest" });
   }
 }

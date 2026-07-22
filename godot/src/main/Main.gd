@@ -8,16 +8,9 @@ const LocalMarketSession = preload("res://src/market/LocalMarketSession.gd")
 const MarketViewState = preload("res://src/market/MarketViewState.gd")
 const GameRun = preload("res://src/game/GameRun.gd")
 const WebRunProgressStore = preload("res://src/game/WebRunProgressStore.gd")
-const MARKET_WALLET_CENTS := 10000
+const MARKET_COMPATIBILITY_WALLET_CENTS := 10000
 const LIVE_PROGRESS_CONTRACT := WebRunProgressStore.CONTRACT
 const MAX_LIVE_PROGRESS_BYTES := WebRunProgressStore.MAX_PROGRESS_BYTES
-const PAIR_READINESS_CLUE := "Clue: swap once; each player then makes one visible change."
-const READINESS_CLUES := {
-    "invent": "Clue: name the product, build it, and identify its target customer.",
-    "sell": "Clue: deliver all four AIDA moves — Attention, Interest, Desire, Action — before the buzzer.",
-    "irresistible": "Clue: set a market-plausible price. Choose and deploy your market route."
-}
-
 const LEVEL_COPY := {
     "invent": {
         "eyebrow": "LEVEL 1 // INVENT IT",
@@ -36,6 +29,13 @@ const LEVEL_COPY := {
     }
 }
 
+const AIDA_NEXT_ACTIONS := {
+    "attention": "Next: link one choice to Attention.",
+    "interest": "Next: link one choice to Interest.",
+    "desire": "Next: link one choice to Desire.",
+    "action": "Next: link one choice to Action."
+}
+
 @onready var creator_host: Node = %CreatorHost
 @onready var market_host: Node = %MarketHost
 @onready var market_screen: Control = %MarketScreen
@@ -45,8 +45,9 @@ const LEVEL_COPY := {
 @onready var team_alias: LineEdit = %TeamAlias
 @onready var room_code: LineEdit = %RoomCode
 @onready var join_live_market: Button = %JoinLiveMarket
+@onready var teacher_setup_toggle: Button = %TeacherSetupToggle
+@onready var host_area: Control = %HostArea
 @onready var classroom_code: LineEdit = %ClassroomCode
-@onready var opening_wallet_bucks: SpinBox = %OpeningWalletBucks
 @onready var max_teams: SpinBox = %MaxTeams
 @onready var create_live_market: Button = %CreateLiveMarket
 @onready var start_button: Button = %StartRun
@@ -127,6 +128,7 @@ func _ready() -> void:
     market_screen.call("set_market_host", market_host)
     market_screen.connect("fix_requested", _reopen_returned_campaign)
     join_live_market.pressed.connect(_join_live_room)
+    teacher_setup_toggle.pressed.connect(_toggle_teacher_setup)
     create_live_market.pressed.connect(_create_live_room)
     start_button.pressed.connect(_start_run)
     launch_button.pressed.connect(_open_creator)
@@ -142,6 +144,11 @@ func _ready() -> void:
     _begin_startup()
     _focus_if_ready(team_alias)
 
+func _toggle_teacher_setup() -> void:
+    host_area.visible = not host_area.visible
+    teacher_setup_toggle.text = "Hide teacher setup" if host_area.visible else "Teacher setup"
+    _focus_if_ready(classroom_code if host_area.visible else team_alias)
+
 func _setup_practice_recovery() -> void:
     _practice_bridge = PracticeBridge.new()
     add_child(_practice_bridge)
@@ -154,8 +161,8 @@ func _setup_practice_recovery() -> void:
 
 func _begin_startup() -> void:
     _startup_state = "live-resume"
-    start_button.disabled = true
-    status.text = "Checking live market status."
+    start_button.disabled = false
+    status.text = "Checking live market status. Practice is ready now."
     market_host.resume_session()
 
 func _on_room_resumed(wrapper: Variant) -> void:
@@ -167,7 +174,7 @@ func _on_room_resumed(wrapper: Variant) -> void:
         _issue_practice_resume("startup")
         return
     if typeof(wrapper) != TYPE_DICTIONARY:
-        _on_room_resume_failed("INVALID_ROOM_RESPONSE", "Live resume was invalid")
+        _on_room_resume_failed("INVALID_ROOM_RESPONSE", "Live resume was invalid.")
         return
     var resumed: Dictionary = wrapper
     match String(resumed.get("role", "")):
@@ -177,7 +184,7 @@ func _on_room_resumed(wrapper: Variant) -> void:
         "team":
             _begin_resumed_team(resumed)
         _:
-            _on_room_resume_failed("INVALID_ROOM_RESPONSE", "Live resume role was invalid")
+            _on_room_resume_failed("INVALID_ROOM_RESPONSE", "Live resume role was invalid.")
 
 func _on_room_resume_failed(_code: String, _message: String) -> void:
     if _startup_state != "live-resume":
@@ -267,7 +274,7 @@ func _on_practice_request_succeeded(request_id: String, method: String, payload:
             _startup_state = "complete"
             status.text = "Choose your pair name, then enter the market."
         elif context == "creator-refresh":
-            status.text = "Campaign saved for the next level."
+            status.text = _saved_campaign_status()
         return
     if typeof(payload) != TYPE_DICTIONARY:
         _practice_failure(context)
@@ -298,20 +305,24 @@ func _on_practice_request_succeeded(request_id: String, method: String, payload:
             run_panel.show()
             market_screen.hide()
             _render_level()
-            status.text = "Audience signals unlocked. First pitch starts now."
+            status.text = "Open the studio. Build one product with your pair."
             _focus_if_ready(launch_button)
         "lock":
             _render_level()
-            status.text = "Level locked. Ready for the next reveal."
+            status.text = _locked_level_status()
             _focus_if_ready(advance_level)
         "advance":
             _render_level()
-            status.text = "Next level unlocked. Open the studio when your pair is ready."
+            status.text = (
+                "Final check unlocked. Build the market card when your pair is ready."
+                if _game_run.phase == "publish-check"
+                else "Next level unlocked. Open the studio when your pair is ready."
+            )
         "creator-refresh":
             _render_level()
             var readiness_clue := _readiness_clue()
             if readiness_clue.is_empty():
-                status.text = "Campaign saved for the next level."
+                status.text = _saved_campaign_status()
             else:
                 status.text = readiness_clue
                 _focus_if_ready(lock_level)
@@ -496,9 +507,8 @@ func _create_live_room() -> void:
         _focus_if_ready(classroom_code)
         return
     _choose_new_route()
-    var opening_wallet_cents := int(round(opening_wallet_bucks.value * 100.0))
     status.text = "Opening class market."
-    market_host.create_room(opening_wallet_cents, code, int(max_teams.value))
+    market_host.create_room(MARKET_COMPATIBILITY_WALLET_CENTS, code, int(max_teams.value))
 
 func _begin_resumed_team(wrapper: Dictionary) -> void:
     var context := _team_room_context(wrapper)
@@ -632,7 +642,7 @@ func _on_room_joined(wrapper: Dictionary) -> void:
     market_screen.hide()
     lobby_panel.hide()
     run_panel.show()
-    status.text = "Room joined. First pitch starts now."
+    status.text = "Room joined. Open the studio and build one product."
     _render_level()
     _save_live_progress()
     _focus_if_ready(launch_button)
@@ -664,11 +674,14 @@ func _on_market_snapshot(snapshot: Dictionary) -> void:
         return
     var server_phase := str(snapshot.get("phase"))
     if server_phase == "market" and _game_run.phase == "publish-check":
-        var own_value: Variant = snapshot.get("own")
-        if typeof(own_value) == TYPE_DICTIONARY:
-            var own: Dictionary = own_value
-            var opening_wallet := int(own.get("wallet", 0)) + int(own.get("spent", 0))
-            _game_run.open_market(opening_wallet)
+        if str(snapshot.get("marketMode", "purchases")) == "medals":
+            _game_run.open_medal_market()
+        else:
+            var own_value: Variant = snapshot.get("own")
+            if typeof(own_value) == TYPE_DICTIONARY:
+                var own: Dictionary = own_value
+                var opening_wallet := int(own.get("wallet", 0)) + int(own.get("spent", 0))
+                _game_run.open_market(opening_wallet)
     if _room_campaign_submitted or server_phase in ["market", "reveal", "closed"]:
         lobby_panel.hide()
         run_panel.hide()
@@ -731,7 +744,7 @@ func _on_creator_closed() -> void:
         _focus_if_ready(publish_campaign)
         return
     if _game_run.phase == "market":
-        status.text = "Market card live. Browse the stalls and spend your budget."
+        status.text = "Market card live. Browse the gallery and award Gold, Silver and Bronze."
         return
     status.text = "Studio saved. Lock this level when your pair is ready."
     _focus_if_ready(lock_level)
@@ -759,17 +772,19 @@ func _on_creator_state_received(document: Dictionary) -> void:
             _save_live_progress()
             _render_level()
             status.text = readiness_clue
-            _focus_if_ready(lock_level)
+            _focus_if_ready(launch_button)
             return
     if _room_role == "team":
         _save_live_progress()
-    status.text = "Campaign saved for the next level."
+    _render_level()
+    status.text = _saved_campaign_status()
 
 func _lock_current_level() -> void:
     var readiness_clue := _readiness_clue()
     if not readiness_clue.is_empty():
         status.text = readiness_clue
-        _focus_if_ready(lock_level)
+        _render_level()
+        _focus_if_ready(launch_button)
         return
     if _room_role.is_empty():
         if not _practice_pending_method.is_empty() or _practice_recovery.is_empty():
@@ -799,7 +814,7 @@ func _lock_current_level() -> void:
     _level_locked = true
     lock_level.disabled = true
     advance_level.disabled = false
-    status.text = "Level locked. Ready for the next reveal."
+    status.text = _locked_level_status()
     _save_live_progress()
     _focus_if_ready(advance_level)
 
@@ -814,11 +829,11 @@ func _advance_level() -> void:
         _game_run.invalidate_current_level()
         _render_level()
         status.text = readiness_clue
-        _focus_if_ready(lock_level)
+        _focus_if_ready(launch_button)
         return
     if _room_role.is_empty():
         if not _practice_pending_method.is_empty() or _practice_recovery.is_empty():
-            status.text = "Saved progress is still catching up. Try Next level again in a moment."
+            status.text = "Saved progress is still catching up. Try %s again in a moment." % _advance_label()
             return
         var next_by_stage := {
             "invent": "sell",
@@ -830,7 +845,7 @@ func _advance_level() -> void:
             status.text = "There is no next pitch level."
             return
         advance_level.disabled = true
-        status.text = "Saving the next level reveal."
+        status.text = "Saving the %s reveal." % _advance_label().to_lower()
         _begin_practice_request("advance", "advance")
         var operation_id := _practice_operation_id("advance", {
             "checkpoint": _practice_token().duplicate(true),
@@ -876,7 +891,7 @@ func _on_creator_published(publication: Dictionary) -> void:
             publish_campaign.disabled = false
             status.text = "The market card could not be sent. Check the room connection, then try again."
         return
-    if not _game_run.open_market(MARKET_WALLET_CENTS):
+    if not _game_run.open_medal_market():
         publish_campaign.disabled = false
         status.text = _game_run.last_error
         return
@@ -916,7 +931,7 @@ func _render_level() -> void:
     if phase == "publish-check":
         level_eyebrow.text = "MARKET GATE"
         level_heading.text = "Preview before the stalls open."
-        level_clue.text = "Your campaign has completed all three levels. Build the card your shoppers will see."
+        level_clue.text = "Your campaign has completed all three levels. Build the card that will appear in the market gallery."
         launch_button.hide()
         lock_level.hide()
         advance_level.hide()
@@ -928,25 +943,58 @@ func _render_level() -> void:
 
     if phase == "market":
         level_eyebrow.text = "LIVE MARKET"
-        level_heading.text = "Your stall is open. Shop the room."
-        level_clue.text = "Spend at least $80 across products from at least two different teams."
+        level_heading.text = "Your ad is live. Award the medals."
+        level_clue.text = "Score every other ad, then award one Gold, one Silver and one Bronze to different ads."
         launch_button.hide()
         lock_level.hide()
         advance_level.hide()
         publish_campaign.hide()
-        status.text = "Market card built. Loading the other stalls."
+        status.text = "Market card built. Loading the other ads."
         return
 
     var copy: Dictionary = LEVEL_COPY.get(phase, {})
     level_eyebrow.text = str(copy.get("eyebrow", "PITCH LEVEL"))
     level_heading.text = str(copy.get("heading", "Make the next move."))
-    level_clue.text = str(copy.get("clue", "Open the studio and continue building."))
-    launch_button.show()
-    lock_level.show()
-    advance_level.show()
+    var readiness_clue := _readiness_clue()
+    var ready_to_lock := readiness_clue.is_empty()
+    if not readiness_clue.is_empty():
+        level_clue.text = readiness_clue
+    elif _level_locked:
+        level_clue.text = (
+            "Level 3 is locked. Choose Final check."
+            if phase == "irresistible"
+            else "This level is locked. Choose Next level."
+        )
+    else:
+        level_clue.text = (
+            "Level 3 is ready. Lock it to open the final check."
+            if phase == "irresistible"
+            else "This level is ready. Lock it to reveal the next level."
+        )
+    advance_level.text = _advance_label()
+    launch_button.visible = not _level_locked
+    lock_level.visible = not _level_locked and ready_to_lock
+    advance_level.visible = _level_locked
     publish_campaign.hide()
     lock_level.disabled = _level_locked
     advance_level.disabled = not _level_locked
+
+func _advance_label() -> String:
+    return "Final check" if _game_run.phase == "irresistible" else "Next level"
+
+func _locked_level_status() -> String:
+    return (
+        "Level 3 locked. Ready for the final check."
+        if _game_run.phase == "irresistible"
+        else "Level locked. Ready for the next reveal."
+    )
+
+func _saved_campaign_status() -> String:
+    return (
+        "Campaign saved. Lock Level 3 to open the final check."
+        if _game_run.phase == "irresistible"
+        else "Campaign saved for the next level."
+    )
 
 func _show_diagnostic(message: String) -> void:
     if _startup_state == "team-hydrating":
@@ -968,14 +1016,20 @@ func _readiness_clue_for(phase: String, document: Dictionary) -> String:
     if phase == "invent":
         var product := _dictionary_child(document, "product")
         var brief := _dictionary_child(document, "brief")
-        if (
-            not _is_nonblank_string(product.get("name"))
-            or product.get("build", null) == null
-            or not _is_nonblank_string(brief.get("targetAudienceId"))
-        ):
-            return READINESS_CLUES[phase]
-        if not _pair_has_completed_turn(document):
-            return PAIR_READINESS_CLUE
+        if product.get("build", null) == null:
+            return "Next: build a product in the studio."
+        if not _is_nonblank_string(product.get("name")):
+            return "Next: add a product name."
+        if not _is_nonblank_string(brief.get("targetAudienceId")):
+            return "Next: choose an audience signal."
+        var gameplay := _dictionary_child(document, "gameplay")
+        var pair := _dictionary_child(gameplay, "pair")
+        if int(pair.get("handoffCount", 0)) < 1:
+            return "Next: swap roles once."
+        if int(pair.get("artDirectorActions", 0)) < 1:
+            return "Next: the Art Director makes one visible image change."
+        if int(pair.get("strategistActions", 0)) < 1:
+            return "Next: the Strategist makes one visible message change."
     elif phase == "sell":
         var strategy := _dictionary_child(document, "strategy")
         var aida_plan := _dictionary_child(strategy, "aidaPlan")
@@ -985,7 +1039,7 @@ func _readiness_clue_for(phase: String, document: Dictionary) -> String:
                 not _is_nonblank_string(aida_plan.get(move))
                 or not _has_nonblank_evidence(evidence.get(move))
             ):
-                return READINESS_CLUES[phase]
+                return String(AIDA_NEXT_ACTIONS[move])
     elif phase == "irresistible":
         var product := _dictionary_child(document, "product")
         var strategy := _dictionary_child(document, "strategy")
@@ -1001,12 +1055,10 @@ func _readiness_clue_for(phase: String, document: Dictionary) -> String:
             typeof(route) == TYPE_DICTIONARY
             and route.get("committed", false) == true
         )
-        if (
-            not price_is_positive
-            or not _has_nonblank_evidence(evidence.get("price"))
-            or not route_is_committed
-        ):
-            return READINESS_CLUES[phase]
+        if not price_is_positive or not _has_nonblank_evidence(evidence.get("price")):
+            return "Next: add a price."
+        if not route_is_committed:
+            return "Next: choose and lock a market route."
     return ""
 
 func _dictionary_child(source: Dictionary, key: String) -> Dictionary:

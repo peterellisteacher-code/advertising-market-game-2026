@@ -89,6 +89,10 @@ import type { LogoMarkSnapshot } from "./fabric/canvas-port";
 import { ImageLabClient } from "./ai-image/image-lab-client";
 import { ImageLabPanel } from "./ai-image/image-lab-panel";
 import { ImageLabRuntime, type ImageLabPairIdentity } from "./ai-image/image-lab-runtime";
+import { captureStudioCoachEvidence, type StudioCoachCanvasEvidence } from "./studio-coach/canvas-evidence";
+import { StudioCoachClient } from "./studio-coach/studio-coach-client";
+import { StudioCoachPanel } from "./studio-coach/studio-coach-panel";
+import { StudioCoachRuntime, type StudioCoachCampaign } from "./studio-coach/studio-coach-runtime";
 import { MarketClient } from "./market/market-client";
 import {
   createMarketPublicApi,
@@ -97,6 +101,7 @@ import {
 import type { GeneratedRasterPlacement } from "./catalogue/catalogue-runtime";
 import type { FabricCanvasAdapter } from "./fabric/fabric-canvas-adapter";
 import { ObjectCommandService } from "./fabric/object-command-service";
+import { CanvasObjectZoomController } from "./tools/canvas-object-zoom";
 import { campaignSemanticObjectMap } from "./domain/campaign-semantic-objects";
 import {
   PairGameController,
@@ -200,6 +205,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #pairGame: PairGameController | null = null;
   #logoLab: LogoLabPanel | null = null;
   #imageLab: ImageLabPanel | null = null;
+  #studioCoach: StudioCoachRuntime | null = null;
   #moneyPanel: ProductMoneyPanel | null = null;
   #marketRoutePanel: MarketRoutePanel | null = null;
   #aidaPlaybookPanel: AidaPlaybookPanel | null = null;
@@ -225,7 +231,10 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     );
     if (!productName) throw new Error("Missing product-name input");
     this.#productName = productName;
-    this.#productName.addEventListener("input", () => this.schedulePracticeAutosave());
+    this.#productName.addEventListener("input", () => {
+      this.schedulePracticeAutosave();
+      this.#refreshStudioCoachCampaign();
+    });
     this.#productShellRegions = new ProductShellRegionControls(
       shell.inspector,
       (objectId, region, colour) => {
@@ -369,6 +378,14 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#imageLab = panel;
   }
 
+  attachStudioCoach(runtime: StudioCoachRuntime): void {
+    if (this.#studioCoach !== null && this.#studioCoach !== runtime) {
+      throw new Error("Studio Coach is already attached");
+    }
+    this.#studioCoach = runtime;
+    this.#refreshStudioCoachCampaign();
+  }
+
   attachMoneyPanel(panel: ProductMoneyPanel): void {
     if (this.#moneyPanel !== null && this.#moneyPanel !== panel) {
       throw new Error("Money check is already attached");
@@ -450,6 +467,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   selectAidaStage(stage: AidaStage): void {
     this.#aidaStage = stage;
     this.#refreshAidaPlaybook();
+    this.#refreshStudioCoachCampaign();
   }
 
   async commitAidaPlan(stage: AidaStage, value: string): Promise<void> {
@@ -479,6 +497,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     if (this.#history === null) await commit();
     else await this.#history.transaction(commit);
     this.#aidaStage = stage;
+    this.#refreshStudioCoachCampaign();
     this.schedulePracticeAutosave();
   }
 
@@ -539,6 +558,19 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     return runtime.adapter.exportCleanPngDataUrl();
   }
 
+  async captureStudioCoachCanvas(): Promise<StudioCoachCanvasEvidence> {
+    await this.#placements.flush();
+    const runtime = this.#runtime;
+    if (!this.#editorOpen || !runtime || !this.#document) {
+      throw new Error("Campaign creator is not open");
+    }
+    const document = this.#snapshot();
+    return captureStudioCoachEvidence(
+      runtime.adapter.exportCleanPngDataUrl(),
+      document.fabricState
+    );
+  }
+
   queueProductVariantPlacement(
     product: ResolvedProductVariant,
     artwork?: ProductArtwork
@@ -580,6 +612,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     };
     if (this.#history === null) await commit();
     else await this.#history.transaction(commit);
+    this.#refreshStudioCoachCampaign();
     this.schedulePracticeAutosave();
   }
 
@@ -598,6 +631,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       const existing = this.#priceLabelObjectIds(current);
       if (existing.length === 0) {
         objectId = await commands.addText(label, `Market price ${label}`, false);
+        commands.transform(objectId, { x: 1320, y: 790 });
       } else {
         objectId = existing[0]!;
         runtime.adapter.setText(objectId, label, `Market price ${label}`, false);
@@ -615,12 +649,13 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     };
     if (this.#history === null) await commit();
     else await this.#history.transaction(commit);
-    this.shell.polite.textContent = `${label} added to the design`;
+    this.shell.polite.textContent = `${label} added to the design. Return to the game to see the next step.`;
     this.schedulePracticeAutosave();
   }
 
   async open(value: CampaignDocumentV1): Promise<void> {
     this.#imageLab?.cancel();
+    this.#studioCoach?.clearCampaign();
     await this.flushPracticeAutosave();
     this.#editorOpen = false;
     this.#practiceSaveMatched = false;
@@ -679,6 +714,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
         load: (snapshot) => this.#restoreHistorySnapshot(runtime!, snapshot),
         subscribe: (listener) => runtime!.adapter.subscribe(() => {
           this.#refreshCanvasEmptyState(runtime!.adapter.serialize());
+          this.#studioCoach?.markCanvasChanged();
           listener();
         })
       }, this.shell.polite, initialHistoryDocument);
@@ -705,6 +741,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     const releasePreviousUrls = this.#releaseOwnedRasterUrls;
     const previousPlacementUrls = [...this.#placementOwnedRasterUrls];
     this.#document = document;
+    this.#studioCoach?.setCampaign(this.#studioCoachCampaign(document));
     this.#refreshCanvasEmptyState(document.fabricState);
     applyCreatorLevelAccess(this.root, document.gameplay.stage);
     this.#moneyPanel?.setPriceUnlocked(creatorStageAllows(document.gameplay.stage, "price"));
@@ -800,6 +837,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     });
     this.#document = document;
     this.#refreshMarketRoute();
+    this.#refreshStudioCoachCampaign();
     this.schedulePracticeAutosave();
     return structuredClone(document);
   }
@@ -858,6 +896,33 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     return changed;
   }
 
+  async resizeSelectedObject(factor: number): Promise<void> {
+    await this.#placements.flush();
+    const runtime = this.#runtime;
+    if (!this.#editorOpen || runtime === null || this.#history === null) {
+      throw new Error("Campaign creator is not open");
+    }
+    let percent = 0;
+    await this.#history.transaction(async () => {
+      percent = new CanvasObjectZoomController(runtime.adapter).zoomSelected(factor);
+    });
+    this.shell.zoomStatus.textContent = `Size ${percent}% · drag to position`;
+    this.schedulePracticeAutosave();
+  }
+
+  async fillSelectedImage(): Promise<void> {
+    await this.#placements.flush();
+    const runtime = this.#runtime;
+    if (!this.#editorOpen || runtime === null || this.#history === null) {
+      throw new Error("Campaign creator is not open");
+    }
+    await this.#history.transaction(async () => {
+      new CanvasObjectZoomController(runtime.adapter).fillSelectedRaster();
+    });
+    this.shell.zoomStatus.textContent = "Ad filled · drag to choose the crop";
+    this.schedulePracticeAutosave();
+  }
+
   subscribeCanvasMutations(listener: () => void): () => void {
     const runtime = this.#runtime;
     if (runtime === null) throw new Error("Campaign creator is not open");
@@ -905,26 +970,27 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
 
   async close(): Promise<void> {
     this.#imageLab?.cancel();
+    this.#studioCoach?.clearCampaign();
     await this.flushPracticeAutosave();
     this.#editorOpen = false;
     let cleanupError: Error | null = null;
     try {
       await this.#placements.flush();
     } catch (error) {
-      cleanupError = error instanceof Error ? error : new Error("Catalogue placement failed");
+      cleanupError = error instanceof Error ? error : new Error("Catalogue placement failed.");
     }
     const attempt = (operation: () => void): void => {
       try {
         operation();
       } catch (error) {
-        cleanupError ??= error instanceof Error ? error : new Error("Campaign creator cleanup failed");
+        cleanupError ??= error instanceof Error ? error : new Error("Campaign creator cleanup failed.");
       }
     };
     const attemptAsync = async (operation: () => Promise<void>): Promise<void> => {
       try {
         await operation();
       } catch (error) {
-        cleanupError ??= error instanceof Error ? error : new Error("Campaign creator cleanup failed");
+        cleanupError ??= error instanceof Error ? error : new Error("Campaign creator cleanup failed.");
       }
     };
     attempt(() => {
@@ -1003,6 +1069,27 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
           this.#rasterPricing,
           this.#productKitBundle ?? undefined
         );
+  }
+
+  #studioCoachCampaign(document: CampaignDocumentV1): StudioCoachCampaign {
+    return {
+      sessionId: document.sessionId,
+      teamId: document.teamId ?? document.documentId,
+      documentId: document.documentId,
+      productName: document.product.name.trim() || "Product not named",
+      priceLabel: document.product.priceCents === null
+        ? "Price not set"
+        : formatMarketBucks(document.product.priceCents),
+      audienceNeed: document.brief.audienceNeeds.join("; ") || "Audience need not selected",
+      audienceValues: document.brief.audienceValues.join("; ") || "Audience values not selected",
+      intendedEffect: document.brief.intendedEffects.join("; ") || "Intended effect not selected",
+      aidaStage: this.#aidaStage
+    };
+  }
+
+  #refreshStudioCoachCampaign(): void {
+    if (!this.#studioCoach || !this.#document || !this.#editorOpen || !this.#runtime) return;
+    this.#studioCoach.updateCampaign(this.#studioCoachCampaign(this.#snapshot()));
   }
 
   async #restoreHistorySnapshot(
@@ -1321,6 +1408,22 @@ const handler = new BrowserCreatorHandler(
   practiceService,
   cloudSync
 );
+const runCanvasSizeAction = (operation: () => Promise<void>): void => {
+  void operation().catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : "Canvas size could not be changed";
+    shell.zoomStatus.textContent = message;
+    shell.assertive.textContent = message;
+  });
+};
+shell.zoomOut.addEventListener("click", () => {
+  runCanvasSizeAction(() => handler.resizeSelectedObject(1 / 1.2));
+});
+shell.zoomFill.addEventListener("click", () => {
+  runCanvasSizeAction(() => handler.fillSelectedImage());
+});
+shell.zoomIn.addEventListener("click", () => {
+  runCanvasSizeAction(() => handler.resizeSelectedObject(1.2));
+});
 accountMutations.subscribe(() => accountController?.requireReauthentication());
 const moneyPanel = new ProductMoneyPanel(
   shell.moneyCheckPanel,
@@ -1353,6 +1456,12 @@ const imageLabRuntime = new ImageLabRuntime({
 });
 const imageLabPanel = new ImageLabPanel(shell.imageLabPanel, imageLabRuntime);
 handler.attachImageLab(imageLabPanel);
+const studioCoachRuntime = new StudioCoachRuntime({
+  client: new StudioCoachClient(),
+  capture: () => handler.captureStudioCoachCanvas()
+});
+const studioCoachPanel = new StudioCoachPanel(shell.studioCoachPanel, studioCoachRuntime);
+handler.attachStudioCoach(studioCoachRuntime);
 const publicApi = createCreatorPublicApi(handler, (message) => handler.showMessage(message));
 const marketPublicApi = createMarketPublicApi(new MarketClient());
 const cataloguePanel = new CataloguePanel(

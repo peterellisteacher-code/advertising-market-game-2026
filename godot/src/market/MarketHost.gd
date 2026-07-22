@@ -11,6 +11,7 @@ signal reveal_received(reveal: Dictionary)
 signal control_completed(action: String, result: Dictionary)
 signal campaign_published(result: Dictionary)
 signal purchase_completed(result: Dictionary)
+signal award_completed(result: Dictionary)
 signal artwork_received(artwork_key: String, png_bytes: PackedByteArray)
 
 const MarketBridge = preload("res://src/market/MarketBridge.gd")
@@ -129,6 +130,21 @@ func purchase(campaign_id: Variant, request_id: Variant) -> String:
         "purchase",
         {"roomGeneration": _room_generation},
         func() -> String: return bridge.purchase(campaign_id, request_id)
+    )
+
+func award(campaign_id: Variant, medal: Variant) -> String:
+    var command_key := "award:%s" % str(medal)
+    var semantic := {"campaignId": campaign_id, "medal": medal}
+    var intent := _begin_command_intent(command_key, semantic)
+    var command_id := str(intent.get("commandId", ""))
+    return _dispatch(
+        "award",
+        {
+            "roomGeneration": _room_generation,
+            "commandKey": command_key,
+            "commandId": command_id
+        },
+        func() -> String: return bridge.award(campaign_id, medal, command_id)
     )
 
 func finish() -> String:
@@ -292,6 +308,13 @@ func _on_request_succeeded(request_id: String, method: String, payload: Variant)
     elif method == "purchase":
         purchase_completed.emit(result)
         _emit_nested_snapshot(result, context)
+    elif method == "award":
+        if not _command_context_is_current(context):
+            _emit_nested_snapshot(result, context)
+            return
+        _remember_command_postcondition(context, result)
+        award_completed.emit(result)
+        _emit_nested_snapshot(result, context)
     elif method == "finish":
         if not _command_context_is_current(context):
             _emit_nested_snapshot(result, context)
@@ -437,6 +460,19 @@ func _command_intent_is_observed(
             typeof(snapshot.get("own")) == TYPE_DICTIONARY
             and bool(Dictionary(snapshot.get("own")).get("finished", false))
         )
+    if command_key.begins_with("award:"):
+        if typeof(snapshot.get("myAwards")) != TYPE_ARRAY:
+            return false
+        for award_value in snapshot.get("myAwards"):
+            if typeof(award_value) != TYPE_DICTIONARY:
+                continue
+            var award: Dictionary = award_value
+            if (
+                award.get("medal") == semantic.get("medal")
+                and award.get("campaignId") == semantic.get("campaignId")
+            ):
+                return true
+        return false
     if command_key.begins_with("review:"):
         return _snapshot_has_review_postcondition(snapshot, semantic)
     if command_key.begins_with("control:"):

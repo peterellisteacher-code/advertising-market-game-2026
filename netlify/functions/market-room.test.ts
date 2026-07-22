@@ -81,7 +81,15 @@ const jsonRequest = (
 function fixture(now = 1_000) {
   const repository = new MemoryRepository();
   const service = new MarketRoomService(repository);
-  const sessionIds = ["room-server", "team-1", "team-2", "team-3"];
+  const sessionIds = [
+    "room-server",
+    "team-1",
+    "team-2",
+    "team-3",
+    "team-4",
+    "team-5",
+    "team-6"
+  ];
   let receipt = 0;
   const session = createMarketSessionHandler({
     environment,
@@ -100,14 +108,15 @@ function fixture(now = 1_000) {
   return { repository, service, session, room };
 }
 
-async function createAndJoin(setup: ReturnType<typeof fixture>) {
+async function createAndJoin(setup: ReturnType<typeof fixture>, teamCount = 3) {
   const created = await setup.session(jsonRequest("/api/market/create", "POST", undefined, {
     classroomCode: "CLASS-2026",
     openingWalletCents: 10_000
   }));
   const teacher = cookieFrom(created);
   const teams: Array<{ cookie: string; id: string; alias: string }> = [];
-  for (const alias of ["Pixel Pirates", "Bright Bunch", "Idea Owls"]) {
+  const aliases = ["Pixel Pirates", "Bright Bunch", "Idea Owls", "Market Sparks", "Design Foxes"];
+  for (const alias of aliases.slice(0, teamCount)) {
     const joined = await setup.session(jsonRequest("/api/market/join", "POST", undefined, {
       roomCode: "ABC-234",
       alias
@@ -598,10 +607,10 @@ describe("market room authentication, routing and artwork", () => {
 describe("complete live market HTTP flow", () => {
   it("publishes exact cohort counts and spectator eligibility without private state", async () => {
     const setup = fixture();
-    const { teacher, teams } = await createAndJoin(setup);
+    const { teacher, teams } = await createAndJoin(setup, 4);
     const spectatorJoin = await setup.session(jsonRequest("/api/market/join", "POST", undefined, {
       roomCode: "ABC-234",
-      alias: "Market Sparks"
+      alias: "Design Foxes"
     }));
     const spectatorBody = await json(spectatorJoin);
     const spectator = {
@@ -644,11 +653,11 @@ describe("complete live market HTTP flow", () => {
     });
     expect(building.snapshot.cohort).toEqual({
       frozen: false,
-      totalJoined: 4,
-      participating: 3,
+      totalJoined: 5,
+      participating: 4,
       spectating: 1,
-      buyers: 3,
-      sellers: 3,
+      buyers: 4,
+      sellers: 4,
       requiredFinished: 0,
       finishedRequired: 0
     });
@@ -659,12 +668,12 @@ describe("complete live market HTTP flow", () => {
     })));
     expect(opened.snapshot.cohort).toEqual({
       frozen: true,
-      totalJoined: 4,
-      participating: 3,
+      totalJoined: 5,
+      participating: 4,
       spectating: 1,
-      buyers: 3,
-      sellers: 3,
-      requiredFinished: 3,
+      buyers: 4,
+      sellers: 4,
+      requiredFinished: 4,
       finishedRequired: 0
     });
     expect(opened.snapshot.teams.find((team: Record<string, unknown>) => team.id === spectator.id))
@@ -706,10 +715,11 @@ describe("complete live market HTTP flow", () => {
     );
   });
 
-  it("publishes, moderates, shops idempotently, finishes and reveals without leaking student data", async () => {
+  it("publishes, moderates, awards medals idempotently, finishes and reveals without leaking student data", async () => {
     const setup = fixture();
-    const { teacher, teams } = await createAndJoin(setup);
+    const { teacher, teams } = await createAndJoin(setup, 4);
     const campaignIds: string[] = [];
+    const prices = [4_000, 900_000, 200, 50] as const;
 
     for (let index = 0; index < teams.length; index += 1) {
       const artwork = await upload(setup.room, teams[index]!.cookie);
@@ -717,7 +727,7 @@ describe("complete live market HTTP flow", () => {
         commandId: `publish-team-${index + 1}-v1`,
         productName: `Product ${index + 1}`,
         tagline: `A bright idea ${index + 1}`,
-        priceCents: 4_000,
+        priceCents: prices[index],
         artworkKey: artwork.body.artworkKey
       }));
       expect(published.status).toBe(200);
@@ -730,7 +740,10 @@ describe("complete live market HTTP flow", () => {
       teacher
     )));
     expect(beforeReveal.snapshot).not.toHaveProperty("reveal");
-    expect(beforeReveal.snapshot.campaigns).toHaveLength(3);
+    expect(beforeReveal.snapshot.campaigns).toHaveLength(4);
+    expect(beforeReveal.snapshot).toMatchObject({ marketMode: "medals", awardCount: 0 });
+    expect(beforeReveal.snapshot).not.toHaveProperty("openingWalletCents");
+    expect(beforeReveal.snapshot).not.toHaveProperty("receiptCount");
 
     for (const campaignId of campaignIds) {
       const reviewed = await setup.room(jsonRequest("/api/market/review", "POST", teacher, {
@@ -765,48 +778,54 @@ describe("complete live market HTTP flow", () => {
       teamId: teams[2]!.id
     }))).status).toBe(409);
 
-    expect((await setup.room(jsonRequest("/api/market/purchase", "POST", teams[0]!.cookie, {
+    expect((await setup.room(jsonRequest("/api/market/award", "POST", teams[0]!.cookie, {
+      commandId: "self-award",
       campaignId: campaignIds[0],
-      requestId: "self-request"
+      medal: "gold"
     }))).status).toBe(403);
     expect((await setup.room(jsonRequest("/api/market/finish", "POST", teams[0]!.cookie, {
       commandId: "finish-team-1-early"
     }))).status)
       .toBe(409);
 
-    const firstPurchase = await setup.room(jsonRequest("/api/market/purchase", "POST", teams[0]!.cookie, {
+    const firstAward = await setup.room(jsonRequest("/api/market/award", "POST", teams[0]!.cookie, {
+      commandId: "team-1-award-gold",
       campaignId: campaignIds[1],
-      requestId: "team-1-request-1"
+      medal: "gold"
     }));
-    const firstBody = await json(firstPurchase);
+    const firstBody = await json(firstAward);
     const firstRevision = firstBody.snapshot.revision;
-    expect(firstBody).toMatchObject({ replayed: false, receipt: { price: 4_000 } });
-    expect(firstBody.receipt).not.toHaveProperty("buyerTeamId");
-    expect(firstBody.receipt).not.toHaveProperty("requestId");
+    expect(firstBody).toMatchObject({
+      replayed: false,
+      postcondition: { kind: "award", campaignId: campaignIds[1], medal: "gold" }
+    });
 
     const replay = await json(await setup.room(jsonRequest(
-      "/api/market/purchase",
+      "/api/market/award",
       "POST",
       teams[0]!.cookie,
-      { campaignId: campaignIds[1], requestId: "team-1-request-1" }
+      { commandId: "team-1-award-gold", campaignId: campaignIds[1], medal: "gold" }
     )));
     expect(replay.replayed).toBe(true);
-    expect(replay.receipt).toEqual(firstBody.receipt);
+    expect(replay.postcondition).toEqual(firstBody.postcondition);
     expect(replay.snapshot.revision).toBe(firstRevision);
-    expect((await setup.room(jsonRequest("/api/market/purchase", "POST", teams[0]!.cookie, {
+    expect((await setup.room(jsonRequest("/api/market/award", "POST", teams[0]!.cookie, {
+      commandId: "team-1-award-gold",
       campaignId: campaignIds[2],
-      requestId: "team-1-request-1"
+      medal: "gold"
     }))).status).toBe(409);
 
-    let sequence = 2;
+    const medals = ["gold", "silver", "bronze"] as const;
     for (let buyer = 0; buyer < teams.length; buyer += 1) {
-      for (let seller = 0; seller < teams.length; seller += 1) {
-        if (buyer === seller || buyer === 0 && seller === 1) continue;
-        const purchase = await setup.room(jsonRequest("/api/market/purchase", "POST", teams[buyer]!.cookie, {
-          campaignId: campaignIds[seller],
-          requestId: `team-${buyer + 1}-request-${sequence++}`
+      const sellers = teams.map((_team, index) => index).filter((seller) => seller !== buyer);
+      for (let medalIndex = 0; medalIndex < medals.length; medalIndex += 1) {
+        if (buyer === 0 && medalIndex === 0) continue;
+        const award = await setup.room(jsonRequest("/api/market/award", "POST", teams[buyer]!.cookie, {
+          commandId: `team-${buyer + 1}-award-${medals[medalIndex]}`,
+          campaignId: campaignIds[sellers[medalIndex]!],
+          medal: medals[medalIndex]
         }));
-        expect(purchase.status).toBe(200);
+        expect(award.status).toBe(200);
       }
       const finished = await setup.room(jsonRequest("/api/market/finish", "POST", teams[buyer]!.cookie, {
         commandId: `finish-team-${buyer + 1}`
@@ -822,9 +841,10 @@ describe("complete live market HTTP flow", () => {
     )));
     expect(revealed.snapshot.phase).toBe("reveal");
     expect(revealed.snapshot.reveal.standings).toEqual([
-      expect.objectContaining({ revenue: 8_000, sales: 2 }),
-      expect.objectContaining({ revenue: 8_000, sales: 2 }),
-      expect.objectContaining({ revenue: 8_000, sales: 2 })
+      expect.objectContaining({ teamId: teams[0]!.id, points: 9, gold: 3 }),
+      expect.objectContaining({ teamId: teams[1]!.id, points: 7, gold: 1, silver: 2 }),
+      expect.objectContaining({ teamId: teams[2]!.id, points: 5, silver: 2, bronze: 1 }),
+      expect.objectContaining({ teamId: teams[3]!.id, points: 3, bronze: 3 })
     ]);
 
     const student = await json(await setup.room(jsonRequest(
@@ -832,13 +852,17 @@ describe("complete live market HTTP flow", () => {
       "GET",
       teams[0]!.cookie
     )));
-    expect(student.snapshot.own).toMatchObject({ wallet: 2_000, spent: 8_000, finished: true });
+    expect(student.snapshot.own).toMatchObject({ finished: true });
+    expect(student.snapshot.own).not.toHaveProperty("wallet");
+    expect(student.snapshot.own).not.toHaveProperty("spent");
     expect(student.snapshot).not.toHaveProperty("reveal");
     expect(student.snapshot).not.toHaveProperty("standings");
     expect(student.snapshot.teams.every((team: Record<string, unknown>) =>
       !Object.hasOwn(team, "wallet") && !Object.hasOwn(team, "revenue"))).toBe(true);
-    expect(student.snapshot.myPurchases.every((purchase: Record<string, unknown>) =>
-      !Object.hasOwn(purchase, "buyerTeamId") && !Object.hasOwn(purchase, "requestId"))).toBe(true);
+    expect(student.snapshot.myPurchases).toEqual([]);
+    expect(student.snapshot.myAwards).toHaveLength(3);
+    expect(student.snapshot.myAwards.every((award: Record<string, unknown>) =>
+      !Object.hasOwn(award, "buyerTeamId") && !Object.hasOwn(award, "requestId"))).toBe(true);
     const closed = await json(await setup.room(jsonRequest(
       "/api/market/control",
       "POST",

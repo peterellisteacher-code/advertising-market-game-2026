@@ -20,6 +20,7 @@ const COMMAND_FINISH = "66666666-6666-4666-8666-666666666666";
 const COMMAND_REVIEW = "77777777-7777-4777-8777-777777777777";
 const COMMAND_CONTROL = "88888888-8888-4888-8888-888888888888";
 const COMMAND_REMOVE = "99999999-9999-4999-8999-999999999999";
+const COMMAND_AWARD = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const ROOM_CODE = "ABC-234";
 const TOKEN = "header.signature";
 const EXPIRES_AT = 2_000;
@@ -88,6 +89,7 @@ describe("MarketClient", () => {
       .mockResolvedValueOnce(jsonResponse({ phase: "market" }))
       .mockResolvedValueOnce(jsonResponse({ snapshot: { phase: "building" } }))
       .mockResolvedValueOnce(jsonResponse({ receipt: { id: "receipt-1" } }))
+      .mockResolvedValueOnce(jsonResponse({ snapshot: { myAwards: [{ medal: "gold" }] } }))
       .mockResolvedValueOnce(jsonResponse({ snapshot: { own: { finished: true } } }))
       .mockResolvedValueOnce(jsonResponse({ snapshot: { campaigns: [] } }))
       .mockResolvedValueOnce(jsonResponse({ snapshot: { phase: "market" } }))
@@ -106,12 +108,13 @@ describe("MarketClient", () => {
       artworkKey: "rooms/hash/media/team/hash.png"
     }, COMMAND_PUBLISH);
     await client.purchase("campaign-2", "request-1");
+    await client.award("campaign-3", "gold", COMMAND_AWARD);
     await client.finish(COMMAND_FINISH);
     await client.reviewCampaign("campaign-1", 4, "approved", COMMAND_REVIEW);
     await client.control({ action: "openMarket" }, COMMAND_CONTROL);
     await client.control({ action: "removeTeam", teamId: "team-3" }, COMMAND_REMOVE);
 
-    expect(fetcher).toHaveBeenCalledTimes(9);
+    expect(fetcher).toHaveBeenCalledTimes(10);
     expect(fetchCall(fetcher, 0)).toEqual(["/api/market/create", expect.objectContaining({
       method: "POST",
       credentials: "same-origin",
@@ -145,19 +148,24 @@ describe("MarketClient", () => {
       requestId: "request-1"
     }));
     expect(fetchCall(fetcher, 5)[1].body).toBe(JSON.stringify({
-      commandId: COMMAND_FINISH
+      commandId: COMMAND_AWARD,
+      campaignId: "campaign-3",
+      medal: "gold"
     }));
     expect(fetchCall(fetcher, 6)[1].body).toBe(JSON.stringify({
+      commandId: COMMAND_FINISH
+    }));
+    expect(fetchCall(fetcher, 7)[1].body).toBe(JSON.stringify({
       commandId: COMMAND_REVIEW,
       campaignId: "campaign-1",
       submissionVersion: 4,
       status: "approved"
     }));
-    expect(fetchCall(fetcher, 7)[1].body).toBe(JSON.stringify({
+    expect(fetchCall(fetcher, 8)[1].body).toBe(JSON.stringify({
       commandId: COMMAND_CONTROL,
       action: "openMarket"
     }));
-    expect(fetchCall(fetcher, 8)[1].body).toBe(JSON.stringify({
+    expect(fetchCall(fetcher, 9)[1].body).toBe(JSON.stringify({
       commandId: COMMAND_REMOVE,
       action: "removeTeam",
       teamId: "team-3"
@@ -640,6 +648,7 @@ describe("MarketClient", () => {
         COMMAND_PUBLISH
       ),
       () => client.purchase("campaign-1", "request-1"),
+      () => client.award("campaign-1", "gold", COMMAND_AWARD),
       () => client.finish(COMMAND_FINISH),
       () => client.reviewCampaign("campaign-1", 4, "approved", COMMAND_REVIEW),
       () => client.control({ action: "openMarket" }, COMMAND_CONTROL)

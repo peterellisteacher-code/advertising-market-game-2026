@@ -235,9 +235,12 @@ describe("committed route feedback", () => {
       "media"
     ]);
     expect(cityFeedback.evidence[0]?.reason).toContain(
-      "Method to make the window productive."
+      "A method to make the window productive."
     );
     expect(cityFeedback.evidence[0]?.reason).toContain("independence");
+    expect(cityFeedback.evidence[0]?.reason).toMatch(
+      /(?:supports|support) independence and belonging\. It also addresses this need:/
+    );
     expect(cityFeedback.evidence[1]?.reason).toContain("City Pulse");
     expect(cityFeedback.evidence[2]?.reason).toContain("Transit");
     expect(localFeedback.evidence[1]?.reason).toContain("Neighbourhood Loop");

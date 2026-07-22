@@ -75,6 +75,25 @@ describe("ProductMoneyPanel", () => {
     expect(host.textContent).toContain("No price set. Set a price to view profit or loss.");
   });
 
+  it("does not repeat a cost-line label when its group and choice use the same words", () => {
+    const host = document.createElement("div");
+    const panel = new ProductMoneyPanel(host, vi.fn(), vi.fn());
+    panel.setState({
+      build: {
+        ...build,
+        costLines: [{
+          ...build.costLines[0]!,
+          groupLabel: "Product body",
+          label: "Product body"
+        }]
+      },
+      priceCents: null
+    });
+
+    expect(host.textContent).toContain("Product body");
+    expect(host.textContent).not.toContain("Product body · Product body");
+  });
+
   it("accepts high-value products without shrinking them into a retail cap", () => {
     const host = document.createElement("div");
     const onPrice = vi.fn();

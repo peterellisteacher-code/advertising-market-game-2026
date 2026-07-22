@@ -140,22 +140,23 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 22
-text = "PITCH//BLITZ"
+text = "AD MARKET // GAME"
 
 [node name="PlayMode" type="Label" parent="MainMargin/GameInput/BrandRow"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.407843, 0.447059, 0.490196, 1)
 theme_override_font_sizes/font_size = 15
-text = "PAIR PLAY  •  50–60 MIN"
+text = "PAIR PLAY  •  ONE MACBOOK"
 
 [node name="HeroHeading" type="Label" parent="MainMargin/GameInput"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 40
-text = "Invent a product. Pitch it to a market."
+text = "Invent it. Advertise it. Judge the market."
 autowrap_mode = 2
 
 [node name="HeroCopy" type="Label" parent="MainMargin/GameInput"]
+visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
 theme_override_font_sizes/font_size = 18
@@ -207,7 +208,7 @@ text = "JOIN A LIVE ROOM"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 16
-text = "Pair alias"
+text = "Pair alias (practice or live room)"
 
 [node name="TeamAlias" type="LineEdit" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/JoinArea/JoinContent"]
 unique_name_in_owner = true
@@ -241,12 +242,14 @@ size_flags_horizontal = 0
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 17
-theme_override_styles/normal = SubResource("Style_primary")
-theme_override_styles/hover = SubResource("Style_primary_hover")
-theme_override_styles/pressed = SubResource("Style_primary_pressed")
+theme_override_styles/normal = SubResource("Style_secondary")
+theme_override_styles/hover = SubResource("Style_secondary")
+theme_override_styles/pressed = SubResource("Style_secondary")
 text = "Join the live market"
 
 [node name="HostArea" type="PanelContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns"]
+unique_name_in_owner = true
+visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_styles/panel = SubResource("Style_chip")
@@ -280,27 +283,6 @@ clear_button_enabled = true
 [node name="HostOptions" type="HBoxContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent"]
 layout_mode = 2
 theme_override_constants/separation = 12
-
-[node name="WalletField" type="VBoxContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent/HostOptions"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 4
-
-[node name="WalletLabel" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent/HostOptions/WalletField"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
-theme_override_font_sizes/font_size = 14
-text = "Starting budget ($)"
-
-[node name="OpeningWalletBucks" type="SpinBox" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent/HostOptions/WalletField"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-min_value = 1.0
-max_value = 10000.0
-value = 100.0
-allow_greater = false
-allow_lesser = false
 
 [node name="CapacityField" type="VBoxContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent/HostOptions"]
 layout_mode = 2
@@ -351,9 +333,9 @@ theme_override_font_sizes/font_size = 15
 text = "No room code? Play a local practice round."
 vertical_alignment = 1
 
-[node name="StartRun" type="Button" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/PracticeRow"]
+[node name="TeacherSetupToggle" type="Button" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/PracticeRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(220, 50)
+custom_minimum_size = Vector2(170, 50)
 layout_mode = 2
 size_flags_horizontal = 0
 theme_override_colors/font_color = Color(1, 1, 1, 1)
@@ -362,6 +344,19 @@ theme_override_font_sizes/font_size = 17
 theme_override_styles/normal = SubResource("Style_secondary")
 theme_override_styles/hover = SubResource("Style_secondary")
 theme_override_styles/pressed = SubResource("Style_secondary")
+text = "Teacher setup"
+
+[node name="StartRun" type="Button" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/PracticeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 50)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Style_primary")
+theme_override_styles/hover = SubResource("Style_primary_hover")
+theme_override_styles/pressed = SubResource("Style_primary_pressed")
 text = "Practice on this computer"
 
 [node name="MarketScreen" parent="MainMargin/GameInput" instance=ExtResource("4_market_screen")]
@@ -379,6 +374,7 @@ theme_override_styles/panel = SubResource("Style_panel")
 [node name="RunContent" type="VBoxContainer" parent="MainMargin/GameInput/RunPanel"]
 layout_mode = 2
 theme_override_constants/separation = 16
+alignment = 1
 
 [node name="LevelProgress" type="HBoxContainer" parent="MainMargin/GameInput/RunPanel/RunContent"]
 layout_mode = 2

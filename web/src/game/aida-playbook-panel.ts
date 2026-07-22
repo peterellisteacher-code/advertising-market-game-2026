@@ -11,6 +11,13 @@ export type AidaPlanCommitHandler = (
   value: string
 ) => void | Promise<void>;
 
+const nextAidaStage: Record<AidaStage, string> = {
+  attention: "Interest",
+  interest: "Desire",
+  desire: "Action",
+  action: ""
+};
+
 function element<K extends keyof HTMLElementTagNameMap>(
   name: K,
   className?: string
@@ -100,7 +107,9 @@ export class AidaPlaybookPanel {
           ...this.#state,
           plan: { ...this.#state.plan, [definition.id]: value }
         };
-        status.textContent = `${definition.label} move locked to the selected canvas piece.`;
+        status.textContent = definition.id === "action"
+          ? "Action move locked to the selected canvas piece. AIDA is complete. Return to the game."
+          : `${definition.label} move locked to the selected canvas piece. Next: ${nextAidaStage[definition.id]}.`;
       } catch (error) {
         if (operation !== this.#operation) return;
       status.textContent = error instanceof Error ? error.message : "Save failed.";

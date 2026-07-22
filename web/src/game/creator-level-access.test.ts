@@ -14,8 +14,9 @@ function fixture(): HTMLElement {
       </nav>
       <section data-creator-feature="product"></section>
       <section data-creator-feature="aida"></section>
-      <section data-creator-feature="money"></section>
+      <section data-creator-feature="price"></section>
       <section data-creator-feature="route"></section>
+      <section data-creator-feature="coach"></section>
     </main>`;
   return document.querySelector<HTMLElement>("[data-creator-root]")!;
 }
@@ -31,9 +32,10 @@ describe("creator level access", () => {
     applyCreatorLevelAccess(root, "invent");
 
     expect(feature(root, "product").hidden).toBe(false);
-    expect(feature(root, "money").hidden).toBe(false);
+    expect(feature(root, "price").hidden).toBe(true);
     expect(feature(root, "aida").hidden).toBe(true);
     expect(feature(root, "route").hidden).toBe(true);
+    expect(feature(root, "coach").hidden).toBe(true);
     expect(root.querySelector<HTMLElement>("[data-creator-checklist]")!.hidden).toBe(true);
     expect(root.querySelector("[data-creator-level-label]")?.textContent).toContain("LEVEL 1");
   });
@@ -44,9 +46,10 @@ describe("creator level access", () => {
     applyCreatorLevelAccess(root, "sell");
 
     expect(feature(root, "product").hidden).toBe(false);
-    expect(feature(root, "money").hidden).toBe(false);
+    expect(feature(root, "price").hidden).toBe(true);
     expect(feature(root, "aida").hidden).toBe(false);
     expect(feature(root, "route").hidden).toBe(true);
+    expect(feature(root, "coach").hidden).toBe(false);
     expect(root.querySelector<HTMLElement>("[data-creator-checklist]")!.hidden).toBe(false);
     expect(root.querySelector<HTMLButtonElement>("[data-slot=price]")!.hidden).toBe(true);
     expect(root.querySelector<HTMLButtonElement>("[data-slot=price]")!.disabled).toBe(true);
@@ -60,7 +63,7 @@ describe("creator level access", () => {
 
       applyCreatorLevelAccess(root, stage);
 
-      for (const name of ["product", "money", "aida", "route"]) {
+      for (const name of ["product", "price", "aida", "route", "coach"]) {
         expect(feature(root, name).hidden).toBe(false);
       }
       for (const tab of root.querySelectorAll<HTMLButtonElement>("[data-slot]")) {

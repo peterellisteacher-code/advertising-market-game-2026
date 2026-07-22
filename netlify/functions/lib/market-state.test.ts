@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
   MarketStateError,
+  awardCampaign,
   canCloseMarket,
   canOpenMarket,
   canOpenReveal,
@@ -31,6 +32,15 @@ const teamAliases = [
 ] as const;
 
 function room(openingWallet = 100, maxTeams?: number): MarketRoom {
+  return MarketRoomSchema.parse({ ...createMarketRoom({
+    roomId: "room-1",
+    openingWallet,
+    ...(maxTeams === undefined ? {} : { maxTeams }),
+    now: 1_000
+  }), marketMode: "purchases" });
+}
+
+function medalRoom(openingWallet = 100, maxTeams?: number): MarketRoom {
   return createMarketRoom({
     roomId: "room-1",
     openingWallet,
@@ -118,6 +128,15 @@ function readyRoom(prices: readonly number[] = [40, 40, 40]): MarketRoom {
   return state;
 }
 
+function readyMedalRoom(prices: readonly number[] = [40, 40, 40, 40]): MarketRoom {
+  let state = medalRoom();
+  for (let number = 1; number <= prices.length; number += 1) state = addTeam(state, number);
+  for (let number = 1; number <= prices.length; number += 1) {
+    state = addApprovedCampaign(state, number, prices[number - 1]!);
+  }
+  return state;
+}
+
 function buy(
   state: MarketRoom,
   buyerNumber: number,
@@ -135,7 +154,81 @@ function buy(
   });
 }
 
+function award(
+  state: MarketRoom,
+  voterNumber: number,
+  campaignNumber: number,
+  medal: "gold" | "silver" | "bronze",
+  sequence: number
+) {
+  return awardCampaign(state, {
+    expectedRevision: state.revision,
+    commandId: `award-command-${voterNumber}-${sequence}`,
+    voterTeamId: `team-${voterNumber}`,
+    campaignId: `campaign-${campaignNumber}`,
+    medal,
+    receiptId: `award-receipt-${voterNumber}-${sequence}`,
+    now: 2_000 + sequence
+  });
+}
+
 describe("market state revision discipline", () => {
+  it("records one revisable gold, silver and bronze choice without spending product value", () => {
+    let state = readyMedalRoom([10, 2_000, 50, 80, 120]);
+    state = openMarket(state, {
+      expectedRevision: state.revision,
+      commandId: "open-award-market",
+      now: 1_500
+    });
+
+    state = award(state, 1, 2, "gold", 1).state;
+    state = award(state, 1, 3, "silver", 2).state;
+    state = award(state, 1, 4, "bronze", 3).state;
+    const snapshot = studentMarketSnapshot(state, "team-1");
+    expect(snapshot).toMatchObject({ marketMode: "medals", own: { finished: false } });
+    expect(snapshot.own).not.toHaveProperty("wallet");
+    expect(snapshot.own).not.toHaveProperty("spent");
+    expect(snapshot.myAwards.map(({ medal, campaignId }) => [medal, campaignId]))
+      .toEqual([["gold", "campaign-2"], ["silver", "campaign-3"], ["bronze", "campaign-4"]]);
+
+    state = award(state, 1, 5, "gold", 4).state;
+    expect(studentMarketSnapshot(state, "team-1").myAwards
+      .find(({ medal }) => medal === "gold")?.campaignId).toBe("campaign-5");
+    expect(() => award(state, 1, 5, "silver", 5))
+      .toThrow(expect.objectContaining({ code: "CAMPAIGN_ALREADY_AWARDED" }));
+  });
+
+  it("finishes only after all three distinct medals and ranks by medals rather than price", () => {
+    let state = readyMedalRoom([10, 2_000, 50, 80]);
+    state = openMarket(state, {
+      expectedRevision: state.revision,
+      commandId: "open-medal-market",
+      now: 1_500
+    });
+    state = award(state, 1, 2, "gold", 1).state;
+    state = award(state, 1, 3, "silver", 2).state;
+    expect(() => finishTeam(state, {
+      expectedRevision: state.revision,
+      commandId: "finish-medals-early",
+      teamId: "team-1",
+      now: 2_100
+    })).toThrow(expect.objectContaining({ code: "FINISH_NOT_ALLOWED" }));
+    state = award(state, 1, 4, "bronze", 3).state;
+    state = finishTeam(state, {
+      expectedRevision: state.revision,
+      commandId: "finish-medals",
+      teamId: "team-1",
+      now: 2_101
+    });
+    expect(state.finishedAtByTeamId["team-1"]).toBe(2_101);
+
+    const revealed = MarketRoomSchema.parse({ ...state, phase: "reveal" });
+    expect(computeReveal(revealed).standings.slice(0, 3)).toEqual([
+      expect.objectContaining({ teamId: "team-2", points: 3, gold: 1 }),
+      expect.objectContaining({ teamId: "team-3", points: 2, silver: 1 }),
+      expect.objectContaining({ teamId: "team-4", points: 1, bronze: 1 })
+    ]);
+  });
   it("creates strict v2 defaults without exposing private ledgers in public snapshots", () => {
     const state = room();
     expect(state).toMatchObject({
@@ -1024,9 +1117,9 @@ describe("finishing and reveal", () => {
     });
 
     expect(computeReveal(state).standings).toEqual([
-      { rank: 1, teamId: "team-1", alias: "Pixel Pirates", revenue: 80, sales: 2 },
-      { rank: 2, teamId: "team-2", alias: "Bright Bunch", revenue: 80, sales: 2 },
-      { rank: 3, teamId: "team-3", alias: "Idea Owls", revenue: 80, sales: 2 }
+      { rank: 1, teamId: "team-1", alias: "Pixel Pirates", revenue: 80, sales: 2, points: 0, gold: 0, silver: 0, bronze: 0 },
+      { rank: 2, teamId: "team-2", alias: "Bright Bunch", revenue: 80, sales: 2, points: 0, gold: 0, silver: 0, bronze: 0 },
+      { rank: 3, teamId: "team-3", alias: "Idea Owls", revenue: 80, sales: 2, points: 0, gold: 0, silver: 0, bronze: 0 }
     ]);
 
     const snapshot = studentMarketSnapshot(state, "team-1");

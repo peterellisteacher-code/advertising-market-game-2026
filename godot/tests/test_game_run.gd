@@ -8,6 +8,8 @@ func run() -> bool:
     assert(_pitch_snapshot_restore_rejects_invalid_state_atomically())
     assert(_market_wallet_rejects_unsafe_purchases())
     assert(_market_finish_requires_two_sellers_and_most_of_the_wallet())
+    assert(_medal_market_rejects_unsafe_or_duplicate_awards())
+    assert(_medal_market_finish_requires_three_distinct_campaigns())
     return true
 
 func _levels_advance_only_after_the_current_level_is_ready() -> bool:
@@ -132,6 +134,42 @@ func _market_finish_requires_two_sellers_and_most_of_the_wallet() -> bool:
     assert(game.phase == "reveal")
     assert(game.spent_cents() == 8000)
     assert(game.purchases().size() == 3)
+    return true
+
+func _medal_market_rejects_unsafe_or_duplicate_awards() -> bool:
+    var game := _ready_for_market()
+    assert(game.open_medal_market())
+    assert(game.phase == "market")
+    assert(game.market_mode == "medals")
+    assert(game.wallet_cents == 0)
+    assert(not game.purchase("campaign-a", "team-a", 3200))
+    assert(game.last_error == "This market awards medals instead of purchases")
+    assert(not game.award("own-campaign", "team-7", "gold"))
+    assert(game.last_error == "You cannot award your own campaign")
+    assert(not game.award("campaign-a", "team-a", "platinum"))
+    assert(game.last_error == "Choose Gold, Silver or Bronze")
+    assert(game.award("campaign-a", "team-a", "gold"))
+    assert(not game.award("campaign-a", "team-a", "silver"))
+    assert(game.last_error == "Each medal must go to a different campaign")
+    assert(game.award("campaign-b", "team-b", "gold"))
+    assert(game.awards() == [{
+        "campaignId": "campaign-b",
+        "sellerTeamId": "team-b",
+        "medal": "gold"
+    }])
+    return true
+
+func _medal_market_finish_requires_three_distinct_campaigns() -> bool:
+    var game := _ready_for_market()
+    assert(game.open_medal_market())
+    assert(game.award("campaign-a", "team-a", "gold"))
+    assert(game.award("campaign-b", "team-b", "silver"))
+    assert(not game.finish_market())
+    assert(game.last_error == "Award Gold, Silver and Bronze before finishing")
+    assert(game.award("campaign-c", "team-c", "bronze"))
+    assert(game.finish_market())
+    assert(game.phase == "reveal")
+    assert(game.awards().size() == 3)
     return true
 
 func _ready_for_market() -> RefCounted:

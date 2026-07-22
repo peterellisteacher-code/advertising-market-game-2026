@@ -84,8 +84,9 @@ function createPairGameView(): { root: HTMLElement; view: PairGameView } {
       <section role="region" aria-label="Pair play">
         <h2 data-active-role></h2>
         <p data-active-role-action></p>
+        <span data-partner-role></span>
         <p data-partner-role-action></p>
-        <p role="status" aria-label="Round progress" data-round-progress></p>
+        <p role="status" aria-label="Pair progress" data-round-progress></p>
         <button type="button" data-swap-roles>Swap roles</button>
         <label>Audience signal <select data-audience-signal></select></label>
         <section role="region" aria-label="Audience brief">
@@ -95,7 +96,7 @@ function createPairGameView(): { root: HTMLElement; view: PairGameView } {
           <p data-audience-effect></p>
         </section>
       </section>
-      <section role="region" aria-label="Round 0 tools">
+      <section role="region" aria-label="Pair tools">
         <label>Canvas words <input data-canvas-words></label>
         <button type="button" data-add-words>Add words</button>
         <button type="button" data-command="undo">Undo</button>
@@ -111,6 +112,7 @@ function createPairGameView(): { root: HTMLElement; view: PairGameView } {
     view: {
       activeRole: root.querySelector("[data-active-role]")!,
       activeRoleAction: root.querySelector("[data-active-role-action]")!,
+      partnerRole: root.querySelector("[data-partner-role]")!,
       partnerRoleAction: root.querySelector("[data-partner-role-action]")!,
       roundProgress: root.querySelector("[data-round-progress]")!,
       swapRoles: root.querySelector("[data-swap-roles]")!,
@@ -157,7 +159,11 @@ describe("PairGameController", () => {
     expect(root.textContent).toContain(AUDIENCE_BRIEFS[0].need);
     expect(root.textContent).toContain(AUDIENCE_BRIEFS[0].values.join(", "));
     expect(root.textContent).toContain(AUDIENCE_BRIEFS[0].intendedEffect);
-    expect(root.textContent).toContain("Make one visible change.");
+    expect(view.activeRoleAction.textContent)
+      .toBe("Build the product, place it on the ad, then make it a clear close-up.");
+    expect(view.partnerRole.textContent).toBe("Strategist");
+    expect(view.partnerRoleAction.textContent)
+      .toBe("Read the audience need. Prepare a product name and one useful benefit.");
   });
 
   it("tracks both roles across text, canvas changes, handoff and reopen", async () => {
@@ -175,12 +181,19 @@ describe("PairGameController", () => {
     await waitFor(() => {
       expect(port.addedText).toEqual(["Make room for adventure"]);
       expect(root.textContent).toContain("1 visible change");
+      expect(view.activeRoleAction.textContent).toBe("Pass control to the Strategist.");
     });
 
     fireEvent.click(getByRole(root, "button", { name: "Swap roles" }));
     expect(getByRole(root, "heading", { name: "Strategist" })).toBeTruthy();
+    expect(view.activeRoleAction.textContent)
+      .toBe("Name the product and add one clear benefit to the ad.");
+    expect(view.partnerRole.textContent).toBe("Art Director");
+    expect(view.partnerRoleAction.textContent)
+      .toBe("Check that the product is large, clear and easy to recognise.");
     port.emitCanvasMutation();
-    expect(root.textContent).toContain("Both roles made a change");
+    expect(view.activeRoleAction.textContent).toBe("Follow the highlighted tool step.");
+    expect(view.roundProgress.textContent).toBe("Both roles contributed.");
 
     const persistedPair = controller.snapshot();
     if (persistedPair === null) throw new Error("Expected open pair progress");
@@ -191,13 +204,35 @@ describe("PairGameController", () => {
     await reopened.open(reopenedDocument);
 
     expect(getByRole(root, "heading", { name: "Strategist" })).toBeTruthy();
-    expect(root.textContent).toContain("Both roles made a change");
+    expect(view.activeRoleAction.textContent).toBe("Follow the highlighted tool step.");
     expect(reopened.snapshot()).toEqual({
       activeRole: "strategist",
       handoffCount: 1,
       artDirectorActions: 1,
       strategistActions: 1
     });
+  });
+
+  it("changes both partner jobs with the current game stage", async () => {
+    const campaign = campaignFixture();
+    campaign.gameplay.stage = "sell";
+    const port = new RoundZeroHarness(campaign);
+    const { view } = createPairGameView();
+    const controller = new PairGameController(view, port);
+
+    await controller.open(campaign);
+
+    expect(view.activeRoleAction.textContent)
+      .toBe("Choose one visual technique and use it to guide attention.");
+    expect(view.partnerRoleAction.textContent)
+      .toBe("Check the next AIDA step. Prepare one message suggestion.");
+
+    campaign.gameplay.stage = "irresistible";
+    await controller.open(campaign);
+    expect(view.activeRoleAction.textContent)
+      .toBe("Check the image, spacing and text placement. Fix one visual problem.");
+    expect(view.partnerRoleAction.textContent)
+      .toBe("Check the price and market route against the audience need.");
   });
 
   it("announces pair durability only after handoff and action counters change", async () => {
@@ -286,7 +321,8 @@ describe("PairGameController", () => {
     await Promise.resolve();
     expect(port.addedText).toEqual([]);
     expect(getByRole(root, "heading", { name: "Art Director" })).toBeTruthy();
-    expect(root.textContent).toContain("Make one visible change.");
+    expect(view.activeRoleAction.textContent)
+      .toBe("Build the product, place it on the ad, then make it a clear close-up.");
   });
 
   it("shows safe student copy when an operation fails", async () => {

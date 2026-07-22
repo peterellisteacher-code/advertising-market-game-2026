@@ -82,6 +82,7 @@ declare module "fabric" {
 FabricObject.customProperties = [
   "objectId",
   "elementKind",
+  "editable",
   "assetId",
   "sourceHash",
   "accessibleName",

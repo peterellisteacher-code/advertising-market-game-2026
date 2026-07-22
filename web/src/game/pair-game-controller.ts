@@ -1,5 +1,6 @@
 import type {
   CampaignDocumentV1,
+  CampaignGameplayStage,
   CampaignPairStateV1
 } from "../domain/campaign-document";
 import {
@@ -22,6 +23,7 @@ import { STUDENT_COPY } from "./student-copy";
 export interface PairGameView {
   activeRole: HTMLElement;
   activeRoleAction: HTMLElement;
+  partnerRole: HTMLElement;
   partnerRoleAction: HTMLElement;
   roundProgress: HTMLElement;
   swapRoles: HTMLButtonElement;
@@ -49,6 +51,7 @@ export interface RoundZeroPort {
 interface StoredPairState {
   session: PairSession;
   progress: PairRoleProgress;
+  stage: CampaignGameplayStage;
 }
 
 type ListenerDisposer = () => void;
@@ -115,7 +118,8 @@ export class PairGameController {
       progress: {
         "art-director": persisted.artDirectorActions,
         strategist: persisted.strategistActions
-      }
+      },
+      stage: document.gameplay.stage
     };
 
     this.#current = state;
@@ -284,9 +288,13 @@ export class PairGameController {
     }
     const activeRole = this.#current.session.activeRole;
     const partnerRole = oppositeRole(activeRole);
-    this.#view.activeRole.textContent = STUDENT_COPY.rolePrompts[activeRole].label;
-    this.#view.activeRoleAction.textContent = STUDENT_COPY.rolePrompts[activeRole].productiveAction;
-    this.#view.partnerRoleAction.textContent = STUDENT_COPY.rolePrompts[partnerRole].holdingAction;
+    const prompts = STUDENT_COPY.stageRolePrompts[this.#current.stage];
+    this.#view.activeRole.textContent = prompts[activeRole].label;
+    this.#view.activeRoleAction.textContent = prompts[activeRole].productiveAction;
+    this.#view.partnerRole.textContent = prompts[partnerRole].label;
+    this.#view.partnerRoleAction.textContent = prompts[partnerRole].holdingAction;
+    this.#view.activeRoleAction.title = prompts[activeRole].productiveAction;
+    this.#view.partnerRoleAction.title = prompts[partnerRole].holdingAction;
     this.#view.audienceSignal.value = this.#current.session.audienceBriefId;
     this.#renderBrief(getAudienceBrief(this.#current.session.audienceBriefId));
     this.#renderProgress();
@@ -305,8 +313,21 @@ export class PairGameController {
     }
     const progress = this.#current.progress;
     const total = progress["art-director"] + progress.strategist;
+    const activeRole = this.#current.session.activeRole;
+    const partnerRole = oppositeRole(activeRole);
+    const prompts = STUDENT_COPY.stageRolePrompts[this.#current.stage];
     if (bothRolesHaveActed(progress)) {
-      this.#view.roundProgress.textContent = STUDENT_COPY.roundZero.bothRolesReady;
+      this.#view.activeRoleAction.textContent = STUDENT_COPY.roundZero.bothRolesReady;
+    } else if (progress[activeRole] > 0) {
+      this.#view.activeRoleAction.textContent = partnerRole === "art-director"
+        ? STUDENT_COPY.handoff.toArtDirector
+        : STUDENT_COPY.handoff.toStrategist;
+    } else {
+      this.#view.activeRoleAction.textContent = prompts[activeRole].productiveAction;
+    }
+
+    if (bothRolesHaveActed(progress)) {
+      this.#view.roundProgress.textContent = STUDENT_COPY.roundZero.bothRolesContributed;
     } else if (total === 0) {
       this.#view.roundProgress.textContent = STUDENT_COPY.roundZero.progressNone;
     } else if (total === 1) {
@@ -314,5 +335,6 @@ export class PairGameController {
     } else {
       this.#view.roundProgress.textContent = `${total} ${STUDENT_COPY.roundZero.progressManySuffix}`;
     }
+    this.#view.activeRoleAction.title = this.#view.activeRoleAction.textContent ?? "";
   }
 }

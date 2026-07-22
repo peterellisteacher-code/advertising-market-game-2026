@@ -561,8 +561,10 @@ export function evaluateCommittedMarketRoute(
   const desiredTraits = audienceDesiredTraits(brief);
   const audienceTraits = validatedProduct.effectiveTraitIds.filter((id) => desiredTraits.has(id));
   const audienceFit: RouteFit = audienceTraits.length > 0 ? "supports" : "stretch";
+  const audienceTraitLabels = formatList(audienceTraits.map(traitLabel));
+  const audienceTraitVerb = audienceTraits.length === 1 ? "supports" : "support";
   const audienceReason = audienceFit === "supports"
-    ? `${formatList(audienceTraits.map(traitLabel))} support ${formatList(brief.values)} and the need: ${brief.need}`
+    ? `${audienceTraitLabels} ${audienceTraitVerb} ${formatList(brief.values)}. It also addresses this need: ${brief.need}`
     : `${formatList(validatedProduct.effectiveTraitIds.map(traitLabel))} are clear, but their link to ${formatList(brief.values)} and the need "${brief.need}" needs a clearer link.`;
 
   const zoneProfile = ZONE_FIT[validatedRoute.zoneId];

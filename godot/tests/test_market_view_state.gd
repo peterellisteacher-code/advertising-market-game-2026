@@ -4,14 +4,73 @@ const MarketViewState = preload("res://src/market/MarketViewState.gd")
 
 func run() -> bool:
     assert(_team_snapshot_derives_render_ready_cards_and_readiness())
+    assert(_medal_team_snapshot_keeps_price_as_evidence_and_requires_all_three_awards())
     assert(_team_finish_readiness_handles_no_affordable_option_and_finished_state())
     assert(_team_market_eligibility_controls_spectator_actions())
     assert(_team_snapshot_tolerates_a_purchased_campaign_becoming_hidden())
     assert(_teacher_snapshot_derives_moderation_readiness_controls_and_podium())
+    assert(_teacher_medal_snapshot_derives_points_podium_without_wallet_fields())
     assert(_teacher_cohort_counts_track_required_teams_not_spectators())
     assert(_teacher_snapshot_never_exposes_live_rankings())
     assert(_malformed_current_shapes_are_rejected_without_echoing_data())
     assert(_malformed_snapshots_fail_with_one_stable_diagnostic())
+    return true
+
+func _medal_team_snapshot_keeps_price_as_evidence_and_requires_all_three_awards() -> bool:
+    var source := _medal_team_snapshot()
+    var result: Dictionary = MarketViewState.new().derive(source)
+    assert(result.get("ok") == true)
+    var state: Dictionary = result.get("state")
+    assert(state.get("marketMode") == "medals")
+    assert(not state.has("money"))
+    assert(not state.has("purchaseSummary"))
+    assert(state.get("awardSummary").get("complete") == true)
+    assert(state.get("awardSummary").get("awardCount") == 3)
+    assert(state.get("finishReadiness").get("locallyReady") == true)
+    var cards: Array = state.get("cards")
+    assert(cards[1].get("priceCents") == 900000)
+    assert(cards[1].get("awardedMedal") == "gold")
+    assert(cards[2].get("awardedMedal") == "silver")
+    assert(cards[3].get("awardedMedal") == "bronze")
+    assert(cards[0].get("canAward") == false)
+
+    source["myAwards"].pop_back()
+    result = MarketViewState.new().derive(source)
+    assert(result.get("ok") == true)
+    assert(result.get("state").get("awardSummary").get("complete") == false)
+    assert(result.get("state").get("finishReadiness").get("locallyReady") == false)
+
+    source = _medal_team_snapshot()
+    source["myAwards"][2]["medal"] = "silver"
+    assert(MarketViewState.new().derive(source) == _invalid_result())
+    return true
+
+func _teacher_medal_snapshot_derives_points_podium_without_wallet_fields() -> bool:
+    var source := _teacher_snapshot()
+    source["marketMode"] = "medals"
+    source.erase("openingWalletCents")
+    source["awardCount"] = 12.0
+    source["reveal"]["standings"] = [
+        _medal_standing(1, "team-b", "Pixel Pirates", 9, 3, 0, 0),
+        _medal_standing(2, "team-a", "Signal Foxes", 7, 1, 2, 0),
+        _medal_standing(3, "team-c", "Neon Narwhals", 5, 0, 2, 1),
+        _medal_standing(4, "team-d", "Fourth Finish", 3, 0, 0, 3)
+    ]
+    var result: Dictionary = MarketViewState.new().derive(source)
+    assert(result.get("ok") == true)
+    var state: Dictionary = result.get("state")
+    assert(state.get("marketMode") == "medals")
+    assert(state.get("awardCount") == 12)
+    assert(not state.has("openingWalletCents"))
+    assert(state.get("reveal").get("topThree")[0] == {
+        "place": 1,
+        "teamId": "team-b",
+        "alias": "Pixel Pirates",
+        "points": 9,
+        "gold": 3,
+        "silver": 0,
+        "bronze": 0
+    })
     return true
 
 func _team_snapshot_derives_render_ready_cards_and_readiness() -> bool:
@@ -335,6 +394,51 @@ func _team_snapshot() -> Dictionary:
         ]
     }
 
+func _medal_team_snapshot() -> Dictionary:
+    return {
+        "roomId": "room-medals",
+        "revision": 12.0,
+        "phase": "market",
+        "marketMode": "medals",
+        "own": {
+            "teamId": "team-a",
+            "alias": "Signal Foxes",
+            "finished": false,
+            "marketEligibility": {
+                "state": "frozen",
+                "role": "buyer-seller",
+                "reason": "approved-campaign"
+            }
+        },
+        "teams": [
+            {"id": "team-a", "alias": "Signal Foxes"},
+            {"id": "team-b", "alias": "Pixel Pirates"},
+            {"id": "team-c", "alias": "Neon Narwhals"},
+            {"id": "team-d", "alias": "Bright Bunch"}
+        ],
+        "campaigns": [
+            _team_campaign("campaign-a", "team-a", "Signal Foxes", "approved", 100),
+            _team_campaign("campaign-b", "team-b", "Pixel Pirates", "approved", 900000),
+            _team_campaign("campaign-c", "team-c", "Neon Narwhals", "approved", 5000),
+            _team_campaign("campaign-d", "team-d", "Bright Bunch", "approved", 50)
+        ],
+        "myPurchases": [],
+        "myAwards": [
+            _award("award-gold", "campaign-b", "team-b", "gold", 2000),
+            _award("award-silver", "campaign-c", "team-c", "silver", 2001),
+            _award("award-bronze", "campaign-d", "team-d", "bronze", 2002)
+        ]
+    }
+
+func _award(id: String, campaign_id: String, seller_team_id: String, medal: String, awarded_at: int) -> Dictionary:
+    return {
+        "id": id,
+        "campaignId": campaign_id,
+        "sellerTeamId": seller_team_id,
+        "medal": medal,
+        "awardedAt": float(awarded_at)
+    }
+
 func _team_campaign(
     id: String,
     seller_team_id: String,
@@ -437,6 +541,27 @@ func _standing(
         "alias": alias,
         "revenue": float(revenue),
         "sales": float(sales)
+    }
+
+func _medal_standing(
+    rank: int,
+    team_id: String,
+    alias: String,
+    points: int,
+    gold: int,
+    silver: int,
+    bronze: int
+) -> Dictionary:
+    return {
+        "rank": float(rank),
+        "teamId": team_id,
+        "alias": alias,
+        "revenue": 0.0,
+        "sales": 0.0,
+        "points": float(points),
+        "gold": float(gold),
+        "silver": float(silver),
+        "bronze": float(bronze)
     }
 
 func _ids(campaigns: Array) -> Array[String]:

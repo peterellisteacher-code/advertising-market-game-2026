@@ -270,7 +270,7 @@ export class AccountAccessController {
     this.#statusRoot.replaceChildren();
     this.#gateRoot.hidden = false;
     this.#gateRoot.className = "account-access";
-    const section = this.#gateCard("Your private save could not open");
+    const section = this.#gateCard("Your private save could not open.");
     const message = this.#liveError(
       "We could not prepare private device storage. Your game stayed locked and no other account's work was opened. Reload this page and try again."
     );

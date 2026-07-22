@@ -83,12 +83,14 @@ export function teacherMarketSnapshot(state: MarketRoom, roomCode: string): Reco
     roomId: state.id,
     revision: state.revision,
     phase: state.phase,
-    openingWalletCents: state.openingWallet,
+    marketMode: state.marketMode,
     maxTeams: state.maxTeams,
     availableSeats: state.maxTeams - teams.length,
     teams,
     campaigns,
-    receiptCount: Object.keys(state.receipts).length,
+    ...(state.marketMode === "medals"
+      ? { awardCount: Object.values(state.receipts).filter(({ medal }) => medal !== undefined).length }
+      : { openingWalletCents: state.openingWallet, receiptCount: Object.keys(state.receipts).length }),
     cohort: marketCohortCounts(state),
     controls: {
       canOpenMarket: canOpenMarket(state).allowed,

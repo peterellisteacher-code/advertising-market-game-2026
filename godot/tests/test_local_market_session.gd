@@ -4,25 +4,29 @@ const GameRun = preload("res://src/game/GameRun.gd")
 const LocalMarketSession = preload("res://src/market/LocalMarketSession.gd")
 
 func run() -> bool:
-    assert(_practice_market_shops_two_stalls_and_reveals())
+    assert(_practice_market_awards_three_medals_and_reveals())
     return true
 
-func _practice_market_shops_two_stalls_and_reveals() -> bool:
+func _practice_market_awards_three_medals_and_reveals() -> bool:
     var game_run := GameRun.new()
     assert(game_run.begin("Pixel Pioneers", "local-session", "local-team"))
     for _level in 3:
         assert(game_run.mark_current_level_ready())
         assert(game_run.advance_level())
-    assert(game_run.open_market(10000))
+    assert(game_run.open_medal_market())
 
     var session := LocalMarketSession.new()
     var snapshots: Array[Dictionary] = []
     var artwork: Dictionary = {}
+    var awards: Array[Dictionary] = []
     session.snapshot_received.connect(func(snapshot: Dictionary) -> void:
         snapshots.append(snapshot.duplicate(true))
     )
     session.artwork_received.connect(func(key: String, bytes: PackedByteArray) -> void:
         artwork[key] = bytes
+    )
+    session.award_completed.connect(func(result: Dictionary) -> void:
+        awards.append(result.duplicate(true))
     )
 
     var initial: Dictionary = session.configure(
@@ -31,7 +35,11 @@ func _practice_market_shops_two_stalls_and_reveals() -> bool:
         "Pixel Pioneers"
     )
     assert(initial.get("phase") == "market")
-    assert(initial.get("own").get("wallet") == 10000)
+    assert(initial.get("marketMode") == "medals")
+    assert(not Dictionary(initial.get("own")).has("wallet"))
+    assert(not Dictionary(initial.get("own")).has("spent"))
+    assert(Array(initial.get("myPurchases")).is_empty())
+    assert(Array(initial.get("myAwards")).is_empty())
     assert(Array(initial.get("teams")).size() == 5)
     assert(Array(initial.get("campaigns")).size() == 5)
     var rivals: Array[Dictionary] = []
@@ -53,14 +61,16 @@ func _practice_market_shops_two_stalls_and_reveals() -> bool:
     assert(_is_png(artwork.get(own_key)))
     assert(_is_png(artwork.get(rival_key)))
 
-    assert(not session.purchase(str(rivals[0].get("id")), "buy-one").is_empty())
-    assert(game_run.wallet_cents == 6000)
-    assert(not session.purchase(str(rivals[1].get("id")), "buy-two").is_empty())
-    assert(game_run.wallet_cents == 2000)
+    assert(not session.award(str(rivals[0].get("id")), "gold").is_empty())
+    assert(not session.award(str(rivals[1].get("id")), "silver").is_empty())
+    assert(not session.award(str(rivals[2].get("id")), "bronze").is_empty())
     assert(not snapshots.is_empty())
-    var shopped: Dictionary = snapshots.back()
-    assert(shopped.get("own").get("spent") == 8000)
-    assert(Array(shopped.get("myPurchases")).size() == 2)
+    var awarded: Dictionary = snapshots.back()
+    assert(Array(awarded.get("myAwards")).size() == 3)
+    assert(awards.size() == 3)
+    assert(awards[0].get("medal") == "gold")
+    assert(awards[1].get("medal") == "silver")
+    assert(awards[2].get("medal") == "bronze")
 
     assert(not session.finish().is_empty())
     assert(game_run.phase == "reveal")

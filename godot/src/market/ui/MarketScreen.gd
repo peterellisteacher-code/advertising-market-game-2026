@@ -22,6 +22,7 @@ const WHITE := Color("#ffffff")
 @onready var wallet_label: Label = %WalletLabel
 @onready var spend_meter: ProgressBar = %SpendMeter
 @onready var seller_progress: Label = %SellerProgress
+@onready var market_criteria: PanelContainer = %MarketCriteria
 @onready var finish_button: Button = %FinishMarket
 @onready var campaign_status_title: Label = %CampaignStatusTitle
 @onready var campaign_status_copy: Label = %CampaignStatusCopy
@@ -53,6 +54,7 @@ var _latest_snapshot: Dictionary = {}
 var _latest_state: Dictionary = {}
 var _purchase_sequence := 1
 var _pending_purchases: Dictionary = {}
+var _pending_awards: Dictionary = {}
 var _artwork_targets: Dictionary = {}
 var _remove_team_id := ""
 var _remove_team_alias := ""
@@ -107,6 +109,7 @@ func enter_room(role: String, room_code: String) -> void:
     _latest_snapshot.clear()
     _latest_state.clear()
     _pending_purchases.clear()
+    _pending_awards.clear()
     room_code_label.text = room_code
     network_status.text = "Practice market ready." if _practice_mode else "Live connection ready."
     retry_button.hide()
@@ -126,6 +129,7 @@ func stop_room() -> void:
     _latest_snapshot.clear()
     _latest_state.clear()
     _pending_purchases.clear()
+    _pending_awards.clear()
     hide()
 
 func show_publication_waiting() -> void:
@@ -167,6 +171,7 @@ func _connect_host(connecting: bool) -> void:
         ["artwork_received", Callable(self, "_on_artwork_received")],
         ["diagnostic", Callable(self, "_on_market_diagnostic")],
         ["purchase_completed", Callable(self, "_on_purchase_completed")],
+        ["award_completed", Callable(self, "_on_award_completed")],
         ["control_completed", Callable(self, "_on_control_completed")],
         ["campaign_published", Callable(self, "_on_campaign_published")]
     ]
@@ -185,24 +190,54 @@ func _render_team(state: Dictionary) -> void:
     teacher_surface.hide()
     var readiness: Dictionary = state.get("finishReadiness", {})
     var watch_only := not bool(readiness.get("eligibleBuyer", true))
-    var money: Dictionary = state.get("money", {})
-    var purchase_summary: Dictionary = state.get("purchaseSummary", {})
+    var medal_mode := str(state.get("marketMode", "purchases")) == "medals"
+    market_criteria.visible = medal_mode
     var already_finished := bool(readiness.get("alreadyFinished", false))
     if watch_only:
         wallet_label.text = "Market watcher"
         spend_meter.value = 0.0
-        seller_progress.text = "Browse every approved stall. Buying is paused this round."
+        seller_progress.text = (
+            "Browse every approved ad. Awarding is paused this round."
+            if medal_mode
+            else "Browse every approved stall. Buying is paused this round."
+        )
         finish_button.text = "Watching this market"
         finish_button.disabled = true
         finish_button.tooltip_text = "Pair can browse the market. Results are frozen."
-        team_market_heading.text = "Browse the market floor · watch mode"
+        team_market_heading.text = (
+            "Browse the market gallery · watch mode"
+            if medal_mode
+            else "Browse the market floor · watch mode"
+        )
         fix_button.hide()
         campaign_status_title.text = "You're watching this round"
         campaign_status_copy.text = (
-            "Market floor was locked before pair joined. Browsing is open. "
-            + "Buying is paused this round."
+            "The gallery was locked before this pair joined. Browsing is open. Awarding is paused this round."
+            if medal_mode
+            else "Market floor was locked before pair joined. Browsing is open. Buying is paused this round."
         )
+    elif medal_mode:
+        var award_summary: Dictionary = state.get("awardSummary", {})
+        var by_medal: Dictionary = award_summary.get("byMedal", {})
+        wallet_label.text = "Award one Gold, one Silver and one Bronze"
+        spend_meter.value = float(int(award_summary.get("awardCount", 0))) * 100.0 / 3.0
+        seller_progress.text = "Gold: %s · Silver: %s · Bronze: %s" % [
+            "set" if by_medal.has("gold") else "open",
+            "set" if by_medal.has("silver") else "open",
+            "set" if by_medal.has("bronze") else "open"
+        ]
+        finish_button.text = "Medals submitted" if already_finished else "Submit medals"
+        finish_button.disabled = already_finished or not bool(readiness.get("locallyReady", false))
+        finish_button.tooltip_text = (
+            "Submit the pair's Gold, Silver and Bronze choices."
+            if not finish_button.disabled
+            else "Award all three medals to three different ads."
+        )
+        team_market_heading.text = "Award the market gallery"
+        _render_campaign_state(Array(state.get("cards", [])), str(state.get("phase")))
     else:
+        var money: Dictionary = state.get("money", {})
+        var purchase_summary: Dictionary = state.get("purchaseSummary", {})
         wallet_label.text = "%s remaining" % _format_currency(int(money.get("walletCents", 0)))
         spend_meter.value = float(money.get("spentPercent", 0.0))
         seller_progress.text = "%d of 2 different sellers backed" % int(
@@ -221,7 +256,9 @@ func _render_team(state: Dictionary) -> void:
     var reveal_phase := str(state.get("phase")) in ["reveal", "closed"]
     student_reveal.visible = reveal_phase
     student_reveal_copy.text = (
-        "Practice round complete — you backed two different stalls and spent your market wallet. In a live room, the host reveals which campaign earned the most."
+        "Your Gold, Silver and Bronze choices are locked. The host will reveal the market podium."
+        if medal_mode
+        else "Practice round complete — you backed two different stalls and spent your market wallet. In a live room, the host reveals which campaign earned the most."
         if _practice_mode
         else "Market reveal is on the host display."
     )
@@ -230,7 +267,10 @@ func _render_team(state: Dictionary) -> void:
     if not reveal_phase:
         for card_value in state.get("cards", []):
             _add_team_card(Dictionary(card_value))
-    _sync_pending_purchases(Array(state.get("cards", [])))
+    if medal_mode:
+        _sync_pending_awards(Dictionary(state.get("awardSummary", {})))
+    else:
+        _sync_pending_purchases(Array(state.get("cards", [])))
 
 func _render_campaign_state(cards: Array, phase: String) -> void:
     var own_card: Dictionary = {}
@@ -241,16 +281,16 @@ func _render_campaign_state(cards: Array, phase: String) -> void:
             break
     fix_button.hide()
     if own_card.is_empty():
-        campaign_status_title.text = "Stall preparing."
-        campaign_status_copy.text = "Build your market card. The host brings it to the floor."
+        campaign_status_title.text = "Ad preparing."
+        campaign_status_copy.text = "Finish your ad. The host adds it to the gallery."
         return
     var status := str(own_card.get("status"))
     if status == "pending":
         campaign_status_title.text = "Waiting for the host"
         campaign_status_copy.text = "Card is in the review queue."
     elif status == "approved":
-        campaign_status_title.text = "Your stall is live" if phase == "market" else "Approved and ready"
-        campaign_status_copy.text = "Your product is ready for the market floor."
+        campaign_status_title.text = "Your ad is live" if phase == "market" else "Approved and ready"
+        campaign_status_copy.text = "Your product ad is ready for the market gallery."
     elif status == "returned":
         campaign_status_title.text = "Studio tweak"
         campaign_status_copy.text = str(
@@ -258,8 +298,8 @@ func _render_campaign_state(cards: Array, phase: String) -> void:
         )
         fix_button.show()
     else:
-        campaign_status_title.text = "Card resting"
-        campaign_status_copy.text = "This version is not active on the market floor. Your pair may remain in the room."
+        campaign_status_title.text = "Ad resting"
+        campaign_status_copy.text = "This version is not active in the gallery. Your pair may remain in the room."
 
 func _add_team_card(card: Dictionary) -> void:
     var panel := _new_card_panel(str(card.get("id")))
@@ -275,8 +315,40 @@ func _add_team_card(card: Dictionary) -> void:
     if card.has("tagline"):
         _add_label(content, str(card.get("tagline")), 15, MUTED)
     _add_label(content, "BY %s" % str(card.get("sellerAlias")).to_upper(), 14, MUTED)
-    _add_label(content, _format_currency(int(card.get("priceCents"))), 17, NAVY)
-    if bool(card.get("canBuy", false)):
+    _add_label(content, "Product value: %s" % _format_currency(int(card.get("priceCents"))), 17, NAVY)
+    var medal_mode := str(_latest_state.get("marketMode", "purchases")) == "medals"
+    if medal_mode:
+        var awarded_medal := str(card.get("awardedMedal", ""))
+        if not awarded_medal.is_empty():
+            _add_label(content, "%s awarded" % awarded_medal.capitalize(), 16, BURNT_ORANGE)
+        if bool(card.get("canAward", false)):
+            var medal_row := HBoxContainer.new()
+            medal_row.name = "MedalActions"
+            medal_row.add_theme_constant_override("separation", 8)
+            content.add_child(medal_row)
+            for medal in ["gold", "silver", "bronze"]:
+                var medal_name := str(medal)
+                var is_current: bool = awarded_medal == medal_name
+                var award_button := _new_button(
+                    "%s awarded" % medal_name.capitalize() if is_current else medal_name.capitalize(),
+                    "Award%s" % medal_name.capitalize(),
+                    true
+                )
+                award_button.disabled = (
+                    is_current
+                    or (not awarded_medal.is_empty() and not is_current)
+                    or _pending_awards.has(medal_name)
+                )
+                award_button.tooltip_text = (
+                    "%s is already on this ad." % medal_name.capitalize()
+                    if is_current
+                    else "Move the %s medal to this ad." % medal_name.capitalize()
+                )
+                award_button.pressed.connect(
+                    _award_campaign.bind(str(card.get("id")), medal_name, award_button)
+                )
+                medal_row.add_child(award_button)
+    elif bool(card.get("canBuy", false)):
         var buy := _new_button("Back this product", "Buy", true)
         buy.pressed.connect(_buy_campaign.bind(str(card.get("id")), buy))
         content.add_child(buy)
@@ -284,6 +356,10 @@ func _add_team_card(card: Dictionary) -> void:
 func _team_badge(card: Dictionary) -> String:
     if bool(card.get("isOwn", false)):
         return "YOUR CARD · %s" % str(card.get("displayStatus", "waiting")).to_upper()
+    if str(_latest_state.get("marketMode", "purchases")) == "medals":
+        if not str(card.get("awardedMedal", "")).is_empty():
+            return "%s MEDAL" % str(card.get("awardedMedal")).to_upper()
+        return "MARKET AD"
     if bool(card.get("isBought", false)):
         return "BACKED"
     if not bool(card.get("isAffordable", false)):
@@ -305,10 +381,12 @@ func _render_teacher(state: Dictionary) -> void:
         seats_label.text = "%d teams joined" % int(readiness.get("teamCount", 0))
     var cohort: Dictionary = state.get("cohort", {})
     if bool(cohort.get("frozen", false)):
-        readiness_label.text = "%d ready · %d still shopping · %d watching · %d waiting for review" % [
+        var active_word := "still awarding" if state.get("marketMode") == "medals" else "still shopping"
+        readiness_label.text = "%d ready · %d %s · %d watching · %d waiting for review" % [
             int(readiness.get("finishedRequiredCount", 0)),
             int(readiness.get("requiredFinishedCount", 0))
                 - int(readiness.get("finishedRequiredCount", 0)),
+            active_word,
             int(readiness.get("spectatingCount", 0)),
             int(readiness.get("pendingReviewCount", 0))
         ]
@@ -432,12 +510,23 @@ func _render_teacher_reveal(reveal: Dictionary) -> void:
         return
     for place_value in reveal.get("topThree", []):
         var place: Dictionary = place_value
-        var line := "%d · %s · %s · %d backers" % [
-            int(place.get("place")),
-            str(place.get("alias")),
-            _format_currency(int(place.get("revenueCents"))),
-            int(place.get("sales"))
-        ]
+        var line := ""
+        if place.has("points"):
+            line = "%d · %s · %d points · %d Gold · %d Silver · %d Bronze" % [
+                int(place.get("place")),
+                str(place.get("alias")),
+                int(place.get("points")),
+                int(place.get("gold")),
+                int(place.get("silver")),
+                int(place.get("bronze"))
+            ]
+        else:
+            line = "%d · %s · %s · %d backers" % [
+                int(place.get("place")),
+                str(place.get("alias")),
+                _format_currency(int(place.get("revenueCents"))),
+                int(place.get("sales"))
+            ]
         var label := _add_label(podium_list, line, 21, NAVY)
         label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
@@ -455,6 +544,27 @@ func _buy_campaign(campaign_id: String, button: Button) -> void:
         button.disabled = false
         _show_safe_diagnostic()
 
+func _award_campaign(campaign_id: String, medal: String, button: Button) -> void:
+    if market_host == null or _pending_awards.has(medal):
+        return
+    _pending_awards[medal] = campaign_id
+    button.disabled = true
+    network_status.text = "Sending %s choice…" % medal.capitalize()
+    var request_id := str(market_host.call("award", campaign_id, medal))
+    if request_id.is_empty():
+        _pending_awards.erase(medal)
+        button.disabled = false
+        _show_safe_diagnostic()
+
+func _sync_pending_awards(award_summary: Dictionary) -> void:
+    var by_medal: Dictionary = award_summary.get("byMedal", {})
+    for medal in _pending_awards.keys():
+        if (
+            by_medal.has(str(medal))
+            and Dictionary(by_medal.get(str(medal))).get("campaignId") == _pending_awards.get(medal)
+        ):
+            _pending_awards.erase(medal)
+
 func _sync_pending_purchases(cards: Array) -> void:
     var bought: Dictionary = {}
     for card_value in cards:
@@ -470,9 +580,9 @@ func _finish_shopping() -> void:
         return
     finish_button.disabled = true
     network_status.text = (
-        "Practice market: reviewing submission…"
+        "Practice market: checking medals…"
         if _practice_mode
-        else "Live market: reviewing submission…"
+        else "Live market: checking medals…"
     )
     if str(market_host.call("finish")).is_empty():
         _show_safe_diagnostic()
@@ -578,10 +688,14 @@ func _on_artwork_received(artwork_key: String, png_bytes: PackedByteArray) -> vo
 
 func _on_market_diagnostic(_message: String) -> void:
     _pending_purchases.clear()
+    _pending_awards.clear()
     _show_safe_diagnostic()
 
 func _on_purchase_completed(_result: Dictionary) -> void:
     network_status.text = "Backing recorded. Refreshing the stalls…"
+
+func _on_award_completed(_result: Dictionary) -> void:
+    network_status.text = "Medal recorded. Refreshing the gallery…"
 
 func _on_control_completed(_action: String, _result: Dictionary) -> void:
     network_status.text = "Room update received."
@@ -704,9 +818,9 @@ func _phase_copy(phase: String) -> String:
     if phase == "building":
         return "Campaigns are being built and reviewed."
     if phase == "market":
-        return "The market is open for trading."
+        return "The market gallery is open for awards."
     if phase == "reveal":
-        return "The market stage is ready for the reveal."
+        return "The market podium is ready for the reveal."
     if phase == "closed":
         return "The market is closed."
     return "The room is being prepared."

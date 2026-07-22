@@ -34,7 +34,7 @@ func _practice_start_and_lock_wait_for_storage_ack() -> bool:
     var start := shell.get_node("%StartRun") as Button
     var lobby := shell.get_node("%LobbyPanel") as Control
     var advance := shell.get_node("%AdvanceLevel") as Button
-    assert(start.disabled)
+    assert(not start.disabled)
     assert(practice_fake.request_count() == 1)
     var resume_id := String(practice_fake.request_for("practice-1").get("requestId"))
     assert(practice_fake.request_for(resume_id).get("method") == "resume")
@@ -60,6 +60,9 @@ func _practice_start_and_lock_wait_for_storage_ack() -> bool:
     assert(not lobby.visible)
     assert((shell.get("_game_run") as RefCounted).phase == "invent")
     assert(str(Dictionary(shell.get("_campaign_document")).get("documentId")) != "classroom-campaign")
+    assert((shell.get_node("%LaunchCreator") as Button).visible)
+    assert(not (shell.get_node("%LockLevel") as Button).visible)
+    assert(not advance.visible)
 
     var ready := _invent_ready_document(shell)
     ready["revision"] = 1
@@ -76,6 +79,8 @@ func _practice_start_and_lock_wait_for_storage_ack() -> bool:
     var acknowledged: Dictionary = shell.get("_campaign_document")
     assert(int(acknowledged.get("revision")) == 1)
     assert(String(Dictionary(acknowledged.get("product")).get("name")) == "Orbit Bottle")
+    assert((shell.get_node("%LockLevel") as Button).visible)
+    assert(not advance.visible)
     (shell.get_node("%LockLevel") as Button).pressed.emit()
     var lock_id := "practice-4"
     var lock_request := practice_fake.request_for(lock_id)
@@ -94,6 +99,9 @@ func _practice_start_and_lock_wait_for_storage_ack() -> bool:
     practice_fake.resolve_success(lock_id, locked)
     assert(bool(shell.get("_level_locked")))
     assert(not advance.disabled)
+    assert(advance.visible)
+    assert(not (shell.get_node("%LaunchCreator") as Button).visible)
+    assert(not (shell.get_node("%LockLevel") as Button).visible)
     shell.free()
     return true
 
@@ -133,6 +141,9 @@ func _startup_restores_an_exact_locked_pitch() -> bool:
     assert((shell.get_node("%RunPanel") as Control).visible)
     assert((shell.get_node("%LockLevel") as Button).disabled)
     assert(not (shell.get_node("%AdvanceLevel") as Button).disabled)
+    assert(not (shell.get_node("%LaunchCreator") as Button).visible)
+    assert(not (shell.get_node("%LockLevel") as Button).visible)
+    assert((shell.get_node("%AdvanceLevel") as Button).visible)
     shell.free()
     return true
 
@@ -348,14 +359,18 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
     var join_live := shell.get_node("%JoinLiveMarket") as Button
     var create_live := shell.get_node("%CreateLiveMarket") as Button
     var launch := shell.get_node("%LaunchCreator") as Button
+    var hero_copy := shell.get_node("MainMargin/GameInput/HeroCopy") as Label
 
     assert(lobby.visible)
     assert(run_panel.visible)
+    assert(not hero_copy.visible)
+    assert(hero_copy.text.contains("Level 1"))
     assert(heading.text.contains("matches the audience need"))
     assert(lock.text == "Lock this level")
     assert(advance.text == "Next level")
     assert(advance.disabled)
     assert(publish.visible)
+    assert((shell.get_node("MainMargin/GameInput/RunPanel/RunContent") as VBoxContainer).alignment == BoxContainer.ALIGNMENT_CENTER)
 
     var accessible_normal := Color("#b63a15")
     var accessible_hover := Color("#c3471b")
@@ -392,7 +407,6 @@ func _live_room_routes_are_primary_and_accessible() -> bool:
     var room_code := shell.get_node("%RoomCode") as LineEdit
     var join_live := shell.get_node("%JoinLiveMarket") as Button
     var classroom_code := shell.get_node("%ClassroomCode") as LineEdit
-    var wallet := shell.get_node("%OpeningWalletBucks") as SpinBox
     var max_teams := shell.get_node("%MaxTeams") as SpinBox
     var create_live := shell.get_node("%CreateLiveMarket") as Button
     var practice := shell.get_node("%StartRun") as Button
@@ -401,12 +415,13 @@ func _live_room_routes_are_primary_and_accessible() -> bool:
     assert(room_code.max_length == 7)
     assert(join_live.text == "Join the live market")
     assert(classroom_code.secret)
-    assert(wallet.value == 100.0)
+    assert(shell.find_child("OpeningWalletBucks", true, false) == null)
+    assert(shell.find_child("WalletField", true, false) == null)
     assert(max_teams.value == 15.0)
     assert(max_teams.min_value == 3.0 and max_teams.max_value == 30.0)
     assert(create_live.text == "Open a class market")
     assert(practice.text == "Practice on this computer")
-    for control in [alias, room_code, join_live, classroom_code, wallet, max_teams, create_live, practice]:
+    for control in [alias, room_code, join_live, classroom_code, max_teams, create_live, practice]:
         assert((control as Control).custom_minimum_size.y >= 44.0)
     shell.free()
     return true
@@ -449,6 +464,14 @@ func _host_defaults_open_a_teacher_dashboard() -> bool:
     var creator_fake := FakeCreatorTransport.new()
     var market_fake := FakeMarketTransport.new()
     var shell := _mount_shell(creator_fake, market_fake)
+    var host_area := shell.get_node("%HostArea") as Control
+    var teacher_setup := shell.get_node("%TeacherSetupToggle") as Button
+    assert(not host_area.visible)
+    assert(teacher_setup.text == "Teacher setup")
+    teacher_setup.pressed.emit()
+    assert(host_area.visible)
+    assert(teacher_setup.text == "Hide teacher setup")
+    assert((shell.get_node("MainMargin/GameInput/BrandRow/PlayMode") as Label).text == "PAIR PLAY  •  ONE MACBOOK")
     (shell.get_node("%ClassroomCode") as LineEdit).text = "teacher-code-7"
     (shell.get_node("%CreateLiveMarket") as Button).pressed.emit()
     var create_id: String = market_fake.last_request_id()
@@ -484,14 +507,16 @@ func _campaign_moves_gate_each_level() -> bool:
     start.pressed.emit()
 
     var invent_ready := _invent_ready_document(shell)
-    for incomplete in [
-        _with_product_name(invent_ready, "   "),
-        _with_product_build(invent_ready, null),
-        _with_audience(invent_ready, "   ")
+    for case in [
+        {"document": _with_product_name(invent_ready, "   "), "expected": "Next: add a product name."},
+        {"document": _with_product_build(invent_ready, null), "expected": "Next: build a product in the studio."},
+        {"document": _with_audience(invent_ready, "   "), "expected": "Next: choose an audience signal."}
     ]:
-        _deliver_saved_creator_state(shell, incomplete)
+        var invent_incomplete_document: Dictionary = case.get("document")
+        var expected_invent_clue: String = case.get("expected")
+        _deliver_saved_creator_state(shell, invent_incomplete_document)
         lock.pressed.emit()
-        assert(status.text == "Clue: name the product, build it, and identify its target customer.")
+        assert(status.text == expected_invent_clue)
         assert(not bool(shell.get("_level_locked")))
         assert(advance.disabled)
 
@@ -505,7 +530,7 @@ func _campaign_moves_gate_each_level() -> bool:
     _deliver_saved_creator_state(shell, solo_invent)
     lock.pressed.emit()
     assert(
-        status.text == "Clue: swap once; each player then makes one visible change.",
+        status.text == "Next: swap roles once.",
         "Unexpected readiness status: %s" % status.text
     )
     assert(not bool(shell.get("_level_locked")))
@@ -523,7 +548,7 @@ func _campaign_moves_gate_each_level() -> bool:
         incomplete["strategy"]["aidaPlan"][move] = "   "
         _deliver_saved_creator_state(shell, incomplete)
         lock.pressed.emit()
-        assert(status.text == "Clue: deliver all four AIDA moves — Attention, Interest, Desire, Action — before the buzzer.")
+        assert(status.text == "Next: link one choice to %s." % move.capitalize())
         assert(not bool(shell.get("_level_locked")))
         assert(advance.disabled)
 
@@ -531,7 +556,7 @@ func _campaign_moves_gate_each_level() -> bool:
         incomplete["evidence"][move] = []
         _deliver_saved_creator_state(shell, incomplete)
         lock.pressed.emit()
-        assert(status.text == "Clue: deliver all four AIDA moves — Attention, Interest, Desire, Action — before the buzzer.")
+        assert(status.text == "Next: link one choice to %s." % move.capitalize())
         assert(not bool(shell.get("_level_locked")))
         assert(advance.disabled)
 
@@ -545,7 +570,7 @@ func _campaign_moves_gate_each_level() -> bool:
     _deliver_saved_creator_state(shell, regressed_sell)
     assert(not bool(shell.get("_level_locked")))
     assert(advance.disabled)
-    assert(status.text == "Clue: deliver all four AIDA moves — Attention, Interest, Desire, Action — before the buzzer.")
+    assert(status.text == "Next: link one choice to Attention.")
     advance.pressed.emit()
     assert((shell.get("_game_run") as RefCounted).phase == "sell")
 
@@ -555,15 +580,17 @@ func _campaign_moves_gate_each_level() -> bool:
     advance.pressed.emit()
 
     var market_ready := _market_ready_document(sell_ready)
-    for incomplete in [
-        _with_price(market_ready, 0),
-        _with_evidence(market_ready, "price", []),
-        _with_market_route(market_ready, null),
-        _with_market_route(market_ready, {"committed": false})
+    for case in [
+        {"document": _with_price(market_ready, 0), "expected": "Next: add a price."},
+        {"document": _with_evidence(market_ready, "price", []), "expected": "Next: add a price."},
+        {"document": _with_market_route(market_ready, null), "expected": "Next: choose and lock a market route."},
+        {"document": _with_market_route(market_ready, {"committed": false}), "expected": "Next: choose and lock a market route."}
     ]:
-        _deliver_saved_creator_state(shell, incomplete)
+        var market_incomplete_document: Dictionary = case.get("document")
+        var expected_market_clue: String = case.get("expected")
+        _deliver_saved_creator_state(shell, market_incomplete_document)
         lock.pressed.emit()
-        assert(status.text == "Clue: set a market-plausible price. Choose and deploy your market route.")
+        assert(status.text == expected_market_clue)
         assert(not bool(shell.get("_level_locked")))
         assert(advance.disabled)
 
@@ -577,12 +604,18 @@ func _campaign_moves_gate_each_level() -> bool:
     _deliver_saved_creator_state(shell, regressed_market)
     assert(not bool(shell.get("_level_locked")))
     assert(advance.disabled)
-    assert(status.text == "Clue: set a market-plausible price. Choose and deploy your market route.")
+    assert(status.text == "Next: add a price.")
 
     market_ready = _deliver_saved_creator_state(shell, market_ready)
     lock.pressed.emit()
     assert(bool(shell.get("_level_locked")))
     assert(not advance.disabled)
+    assert(advance.text == "Final check")
+    assert((shell.get_node("%LevelClue") as Label).text == "Level 3 is locked. Choose Final check.")
+    assert(status.text == "Level 3 locked. Ready for the final check.")
+    advance.pressed.emit()
+    assert((shell.get("_game_run") as RefCounted).phase == "publish-check")
+    assert(status.text == "Final check unlocked. Build the market card when your pair is ready.")
     shell.free()
     return true
 
@@ -626,22 +659,35 @@ func _closed_studio_reopens_to_publish_and_enters_the_market() -> bool:
     assert((market_screen.get_node("%MarketRoomCode") as Label).text == "PRACTICE")
     var cards := market_screen.get_node("%TeamCards") as GridContainer
     assert(cards.get_child_count() == 5)
-    var buy_buttons := cards.find_children("*", "Button", true, false)
-    assert(buy_buttons.size() == 4)
-    (buy_buttons[0] as Button).pressed.emit()
-    buy_buttons = cards.find_children("*", "Button", true, false)
-    assert(buy_buttons.size() == 3)
-    (buy_buttons[0] as Button).pressed.emit()
-    assert((market_screen.get_node("%WalletLabel") as Label).text == "$20 remaining")
+    var gold := _first_enabled_button(cards, "AwardGold")
+    assert(gold != null and not gold.disabled)
+    gold.pressed.emit()
+    cards = market_screen.get_node("%TeamCards") as GridContainer
+    var silver := _first_enabled_button(cards, "AwardSilver")
+    assert(silver != null and not silver.disabled)
+    silver.pressed.emit()
+    cards = market_screen.get_node("%TeamCards") as GridContainer
+    var bronze := _first_enabled_button(cards, "AwardBronze")
+    assert(bronze != null and not bronze.disabled)
+    bronze.pressed.emit()
+    assert((market_screen.get_node("%WalletLabel") as Label).text.contains("Gold"))
+    assert(not (market_screen.get_node("%WalletLabel") as Label).text.contains("$"))
     var finish := market_screen.get_node("%FinishMarket") as Button
     assert(not finish.disabled)
     finish.pressed.emit()
     assert((market_screen.get_node("%StudentReveal") as Control).visible)
-    assert((market_screen.get_node("%StudentRevealCopy") as Label).text.contains("Practice round complete"))
+    assert((market_screen.get_node("%StudentRevealCopy") as Label).text.contains("Gold, Silver and Bronze choices are locked"))
     assert(fake.request_for(fake.last_request_id()).get("method") == "close")
     fake.resolve_success(fake.last_request_id())
     shell.free()
     return true
+
+func _first_enabled_button(root: Node, node_name: String) -> Button:
+    for value in root.find_children(node_name, "Button", true, false):
+        var button := value as Button
+        if button != null and not button.disabled:
+            return button
+    return null
 
 func _returned_editor_state_is_reopened_verbatim() -> bool:
     var fake := FakeCreatorTransport.new()
@@ -810,16 +856,16 @@ func _team_market_snapshot(own_status: String = "") -> Dictionary:
         "roomId": "room-a",
         "revision": 1.0,
         "phase": "building",
+        "marketMode": "medals",
         "own": {
             "teamId": "team-a",
             "alias": "Signal Foxes",
-            "wallet": 10000.0,
-            "spent": 0.0,
             "finished": false
         },
         "teams": [{"id": "team-a", "alias": "Signal Foxes"}],
         "campaigns": campaigns,
-        "myPurchases": []
+        "myPurchases": [],
+        "myAwards": []
     }
 
 func _teacher_market_snapshot() -> Dictionary:
@@ -828,11 +874,12 @@ func _teacher_market_snapshot() -> Dictionary:
         "roomId": "room-a",
         "revision": 1.0,
         "phase": "building",
-        "openingWalletCents": 10000.0,
+        "marketMode": "medals",
         "maxTeams": 15.0,
         "availableSeats": 15.0,
         "teams": [],
         "campaigns": [],
+        "awardCount": 0.0,
         "controls": {
             "canOpenMarket": false,
             "canOpenReveal": false,

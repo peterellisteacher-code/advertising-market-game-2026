@@ -430,6 +430,9 @@ describe("fal image policy", () => {
     expect(prompt).toMatch(/unbranded/i);
     expect(prompt).toMatch(/no people/i);
     expect(prompt).toMatch(/no new text/i);
+    expect(prompt).toMatch(/fills most of the frame/i);
+    expect(prompt).toMatch(/exact wording/i);
+    expect(prompt).toMatch(/perspective|curvature/i);
   });
 
   it("rejects an unknown stage with a stable error", () => {

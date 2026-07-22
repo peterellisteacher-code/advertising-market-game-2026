@@ -1,0 +1,41 @@
+The artifact succeeds in hiding the introductory text wall, integrating contextual progression, and fully preserving the essential AIDA teaching content, product limits, and real-world advertising principles. 
+
+However, the execution fails the UX constraints of the target hardware and breaks the continuous engagement required of the active/passive pair dynamic.
+
+Here are the distinct problems found, ranked by severity:
+
+**1. Canvas Suffocation on Target Viewports**
+*What it is:* The structural layout severely restricts vertical workspace on 1366×768 / 1440×900 MacBooks.
+*Mechanism:* Based on the text-inferred visual layout, typical browser UI (Safari tabs, address bar) and the macOS dock consume ~150–200px of vertical height. The artifact stacks a dark navy command bar, a yellow tool tab strip, and a persistent top strip with a minimum CSS height of 76px. Because the artifact allows long role strings (e.g., *“While you control the computer, make one visible message change by adding or revising the product name or canvas words”*) to wrap rather than truncate, this top strip will vertically expand. The central creative canvas will be functionally crushed into a letterbox format, making design placement frustrating.
+*Severity:* High.
+*What must change:* The studio header must be heavily compressed. Long role descriptions must not wrap; they must truncate or be redesigned into tight, imperative microcopy.
+
+**2. Passive Partner Blindness**
+*What it is:* The progressive disclosure implementation accidentally benches one student.
+*Mechanism:* The artifact aims to declare partner roles clearly. The top strip provides the active role's exact action. However, the non-controlling partner's objective (e.g., *“While your partner controls the computer, compare the image choices with the audience need. Prepare one specific visual suggestion.”*) is buried behind the "Open full brief" button. Unless the active user voluntarily obstructs their own workspace by opening the brief, the passive partner is given no visible instruction on what they should be doing. This violates the goal of maintaining a clear sense of partner roles and keeping students immediately engaged.
+*Severity:* High.
+*What must change:* The UI must expose a concise, ambient instruction for the passive partner without requiring a click, or recast the active instruction to explicitly involve the passive partner's input.
+
+**3. State Validation / Memory Tax Disconnect**
+*What it is:* Missing requirement guidance is abandoned at the studio door.
+*Mechanism:* When a pair closes the studio with incomplete work, the Run screen displays the specific missing requirement (e.g., *“Add a product name”*, *“Link one choice to attention”*). To fix this, the pair must click "Open Studio". Once inside, the studio’s top strip immediately re-occupies the UI with Role/Action context text (e.g., *“Pass control to the Strategist”*). The specific error context is lost. The students are forced to rely on working memory to remember what they were supposed to fix.
+*Severity:* Medium.
+*What must change:* If a specific validation error forces the pair back into the studio, the studio interface itself must display that missing requirement alongside or in place of the generic round progress hint.
+
+**4. The "Lock Level" Trap**
+*What it is:* An unforgiving, one-way progression friction point.
+*Mechanism:* Progress changes when a level meets its requirements. The Run screen shows “Lock Level”. After locking, the artifact swaps the UI to “Next Level” (String [GODOT_SRC_MAIN_MAIN_GD__L0309__N01]). There are no mapped strings for opening, unlocking, or returning to the locked level if a student accidentally clicks it or realizes they want to tweak their product before moving on. Given Year 10 behavior, treating "Lock Level" as an irreversible dead-end before they have actually advanced to the next level punishes curiosity and causes safe-state anxieties.
+*Severity:* Medium.
+*What must change:* Either provide an "Unlock/Edit" string and state on the Run screen prior to confirming "Next Level", or merge "Lock Level" and "Next Level" into a single intentional progression action.
+
+**5. Clinical LMS Framing in the Lobby**
+*What it is:* The startup screen violates the "avoid assignment/unit framing" and "retain fun-first identity" rule.
+*Mechanism:* The lobby exposes strictly administrative strings to the students: *“Classroom code”*, *“Teacher room key”*, *“Teacher setup”*. Presenting LMS jargon immediately upon startup breaks the simulated “Advertising Market” identity. 
+*Severity:* Low.
+*What must change:* Reskin the onboarding strings to fit the simulation lore—e.g., "Agency Code", "Market Key", or "Join Session", retaining functionality without the pedagogical taxonomy.
+
+REVISE
+
+(model: ~google/gemini-pro-latest, generation id: gen-1784639172-CmzHzlpHkt2ERjWorvuF, input tokens: 31436, output tokens: 4731)
+
+

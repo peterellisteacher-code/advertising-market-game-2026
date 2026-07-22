@@ -26,7 +26,7 @@ describe("Fabric canvas layer styling", () => {
 
   it("reserves only compact chrome above a canvas-first workspace", () => {
     expect(css).toMatch(
-      /\.creator\s*\{[^}]*grid-template-rows:\s*52px\s+56px\s+minmax\(0,\s*1fr\)[^}]*\}/i
+      /\.creator\s*\{[^}]*grid-template-rows:\s*52px\s+76px\s+minmax\(0,\s*1fr\)[^}]*\}/i
     );
     expect(css).toMatch(
       /\.creator__workspace\s*\{[^}]*grid-template-columns:\s*64px\s+288px\s+minmax\(0,\s*1fr\)[^}]*\}/i
@@ -36,6 +36,21 @@ describe("Fabric canvas layer styling", () => {
     );
     expect(css).toMatch(
       /\.creator__canvas\s+\.canvas-container\s*\{[^}]*width:\s*min\(100%,\s*calc\(\(100vh\s*-\s*[^)]*\)\s*\*\s*16\s*\/\s*9\)\)\s*!important[^}]*max-width:\s*1280px[^}]*aspect-ratio:\s*16\s*\/\s*9[^}]*\}/i
+    );
+  });
+
+  it("keeps both pair actions visible in compact current and partner rows", () => {
+    expect(css).toMatch(
+      /\.creator__next-action\s*\{[^}]*white-space:\s*normal[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator__partner-action\s*\{[^}]*white-space:\s*normal[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator__role-card\s*\{[^}]*grid-template-areas:\s*"active swap"\s*"partner swap"\s*"progress swap"[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator__audience-brief\s*\{[^}]*top:\s*calc\(100%\s*\+\s*4px\)[^}]*\}/i
     );
   });
 
@@ -133,6 +148,18 @@ describe("Fabric canvas layer styling", () => {
     );
     expect(css).toMatch(
       /@media\s*\(min-width:\s*1600px\)[\s\S]*?\.logo-lab__symbols\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[^}]*\}/i
+    );
+  });
+
+  it("gives the pair roles a full second row on school MacBook widths", () => {
+    expect(css).toMatch(
+      /@media\s*\(min-width:\s*1201px\)\s*and\s*\(max-width:\s*1599px\)[\s\S]*?\.creator\s*\{[^}]*grid-template-rows:\s*52px\s+112px\s+minmax\(0,\s*1fr\)[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /@media\s*\(min-width:\s*1201px\)\s*and\s*\(max-width:\s*1599px\)[\s\S]*?\.creator__pair-strip(?:\s*,\s*\.creator__pair-strip:has\([^)]*\))?\s*\{[^}]*grid-template-areas:\s*"level audience checklist"\s*"role role role"[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /@media\s*\(min-width:\s*1201px\)\s*and\s*\(max-width:\s*1599px\)[\s\S]*?\.creator__role-card\s*\{[^}]*grid-area:\s*role[^}]*\}/i
     );
   });
 

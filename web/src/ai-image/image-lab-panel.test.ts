@@ -167,6 +167,10 @@ describe("ImageLabPanel", () => {
     fireEvent.click(getByRole(host, "button", { name: "Wake Image Lab" }));
     await waitFor(() => expect(getByRole(host, "button", { name: "Make it real" })).toBeTruthy());
 
+    expect(getByRole(host, "region", { name: "Make It Real" }).textContent)
+      .toContain("Use this after the product design is ready, before you build the ad");
+    expect(getByRole(host, "region", { name: "Make It Real" }).textContent)
+      .toContain("Existing words and marks will be fitted to the product surface");
     expect(getByRole<HTMLInputElement>(host, "textbox", { name: "Product kind" }).value)
       .toBe("Fizz Finch");
     fireEvent.change(getByRole(host, "combobox", { name: "Product scene" }), {

@@ -30,10 +30,10 @@ describe("createEditorShell", () => {
     const studioTools = getAllByRole<HTMLButtonElement>(root, "tab", { name: /./ })
       .filter((tab) => tab.hasAttribute("data-studio-tool"));
     expect(studioTools.map((tab) => tab.textContent?.trim())).toEqual([
-      "Build", "Assets", "Words", "Logo", "Image", "Price", "Route", "AIDA"
+      "Build", "Assets", "Words", "Logo", "Image", "Price", "Route", "AIDA", "Coach"
     ]);
     expect(studioTools.map((tab) => tab.dataset.glyph)).toEqual([
-      "◆", "✦", "Aa", "◎", "▧", "$", "↗", "A"
+      "◆", "✦", "Aa", "◎", "▧", "$", "↗", "A", "?"
     ]);
     expect(new Set(studioTools.map((tab) => tab.dataset.glyph)).size).toBe(studioTools.length);
     expect(studioTools.filter((tab) => tab.getAttribute("aria-selected") === "true"))
@@ -54,6 +54,8 @@ describe("createEditorShell", () => {
     expect(shell.marketRoutePanel.dataset.marketRoutePanel).toBe("");
     expect(root.querySelector('[data-studio-panel="aida"][aria-label="AIDA move deck"]')).toBeTruthy();
     expect(shell.aidaPlaybookPanel.dataset.aidaPlaybookPanel).toBe("");
+    expect(root.querySelector('[data-studio-panel="coach"][aria-label="Studio Coach"]')).toBeTruthy();
+    expect(shell.studioCoachPanel.dataset.studioCoachPanel).toBe("");
     expect(root.querySelector('[data-studio-panel="image"][aria-label="Image Lab"]')).toBeTruthy();
     expect(shell.imageLabPanel.dataset.imageLabPanel).toBe("");
     expect(root.querySelector('[data-product-shell-select]')).toBeNull();
@@ -67,17 +69,37 @@ describe("createEditorShell", () => {
     expect(shell.libraryStatus.getAttribute("role")).toBe("status");
     expect(getByRole(root, "button", { name: "Hide library" })).toBeTruthy();
     expect(getByRole(root, "region", { name: "Campaign canvas" })).toBeTruthy();
+    const sizeControls = getByRole(root, "group", { name: "Selected product or image size" });
+    expect(getByRole(sizeControls, "button", { name: "Make selected product or image smaller" }))
+      .toBeTruthy();
+    expect(getByRole(sizeControls, "button", { name: "Fill ad with selected image" }))
+      .toBeTruthy();
+    expect(getByRole(sizeControls, "button", { name: "Make selected product or image larger" }))
+      .toBeTruthy();
+    expect(getByRole(sizeControls, "status").textContent).toBe("Select a product or image");
     expect(getByRole(root, "status", { name: "Empty canvas" }).textContent)
       .toContain("Canvas empty");
     expect(shell.canvasEmptyState.hidden).toBe(false);
     expect(getByRole(root, "region", { name: "Pair play" })).toBeTruthy();
-    expect(getByRole(root, "status", { name: "Round progress" })).toBeTruthy();
+    expect(getByRole(root, "status", { name: "Pair progress" })).toBeTruthy();
+    expect(root.querySelector(".creator__role-card [data-active-role-action]"))
+      .toBe(shell.activeRoleAction);
+    expect(root.querySelector(".creator__role-card [data-partner-role]"))
+      .toBe(shell.partnerRole);
+    expect(root.querySelector(".creator__role-card [data-partner-role-action]"))
+      .toBe(shell.partnerRoleAction);
+    expect(shell.partnerRoleAction.closest("[hidden]")).toBeNull();
+    expect(shell.activeRoleAction.textContent)
+      .toMatch(/build the product/i);
+    expect(shell.partnerRole.textContent).toBe("Strategist");
+    expect(shell.partnerRoleAction.textContent)
+      .toContain("Prepare a product name and one useful benefit");
     expect(getByRole(root, "button", { name: "Swap roles" })).toBeTruthy();
     expect(getByRole(root, "combobox", { name: "Audience signal" })).toBeTruthy();
     expect(root.querySelector('#studio-full-brief[aria-label="Audience brief"]')).toBeTruthy();
     expect(getByRole(root, "button", { name: "Open full brief" }).getAttribute("aria-expanded"))
       .toBe("false");
-    expect(root.querySelector('[data-studio-panel="words"][aria-label="Round 0 tools"]')).toBeTruthy();
+    expect(root.querySelector('[data-studio-panel="words"][aria-label="Pair tools"]')).toBeTruthy();
     expect(root.querySelector('[data-studio-panel="logo"][aria-label="Logo Lab"]')).toBeTruthy();
     expect(shell.logoLabPanel.dataset.logoLabPanel).toBe("");
     expect(getByRole<HTMLInputElement>(root, "textbox", { name: "Canvas words", hidden: true }).placeholder)
@@ -86,6 +108,7 @@ describe("createEditorShell", () => {
     expect(root.querySelector('.creator__layers[aria-label="Layers"]')).toBeTruthy();
     expect(root.querySelector('.creator__inspector[aria-label="Selected element"]')).toBeTruthy();
     expect(shell.inspector.hidden).toBe(true);
+    expect(getByRole(root, "tablist", { name: "AIDA steps", hidden: true })).toBeTruthy();
     expect(getAllByRole(root, "tab", { hidden: true })
       .filter((tab) => tab.hasAttribute("data-slot"))
       .map((tab) => tab.textContent)).toEqual([

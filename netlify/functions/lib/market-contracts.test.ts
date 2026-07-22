@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AliasInputSchema,
+  AwardInputSchema,
   ArtworkUploadSchema,
   CampaignSchema,
   MARKET_LIMITS,
@@ -12,6 +13,7 @@ import {
   PurchaseInputSchema,
   TeamSchema,
   canonicalControlCommandPayload,
+  canonicalAwardCommandPayload,
   canonicalFinishCommandPayload,
   canonicalPublishCommandPayload,
   canonicalRemoveTeamCommandPayload,
@@ -25,6 +27,7 @@ const emptyRoom = (): MarketRoom => ({
   id: "room-1",
   revision: 0,
   phase: "building",
+  marketMode: "purchases",
   openingWallet: 100,
   maxTeams: 15,
   createdAt: 1_000,
@@ -46,6 +49,7 @@ const legacyRoom = (phase: MarketRoom["phase"] = "building") => {
     return [id, legacy];
   }));
   const {
+    marketMode: _marketMode,
     marketCohort: _marketCohort,
     commandReceipts: _commandReceipts,
     sessionBindings: _sessionBindings,
@@ -179,6 +183,11 @@ describe("market contracts", () => {
   });
 
   it("canonicalizes each semantic command payload with versioned fixed property order", () => {
+    expect(canonicalAwardCommandPayload({
+      voterTeamId: "team-1",
+      campaignId: "campaign-2",
+      medal: "gold"
+    })).toBe('award:v1:{"voterTeamId":"team-1","campaignId":"campaign-2","medal":"gold"}');
     expect(canonicalPublishCommandPayload({
       campaignId: "campaign-1",
       sellerTeamId: "team-1",
@@ -199,6 +208,21 @@ describe("market contracts", () => {
       .toBe('openMarket:v1:{"action":"openMarket"}');
     expect(canonicalRemoveTeamCommandPayload("team-1"))
       .toBe('removeTeam:v1:{"teamId":"team-1"}');
+  });
+
+  it("accepts only a trusted medal choice on an award command", () => {
+    const command = {
+      expectedRevision: 7,
+      commandId: "award-command-1",
+      voterTeamId: "team-1",
+      campaignId: "campaign-2",
+      medal: "gold" as const,
+      receiptId: "award-receipt-1",
+      now: 2_000
+    };
+    expect(AwardInputSchema.parse(command)).toEqual(command);
+    expect(AwardInputSchema.safeParse({ ...command, medal: "platinum" }).success).toBe(false);
+    expect(AwardInputSchema.safeParse({ ...command, price: 1 }).success).toBe(false);
   });
 
   it("bounds registered artwork hashes, keys and byte counts", () => {

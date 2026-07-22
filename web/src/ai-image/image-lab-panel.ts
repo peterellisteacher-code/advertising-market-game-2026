@@ -136,7 +136,7 @@ export class ImageLabPanel {
   #config: ImageLabConfig | null = null;
   #allowance: ImageLabAllowance | null = null;
   #busy: Operation | null = null;
-  #message = "Checking the image powers…";
+  #message = "Checking the image tools…";
   #error = "";
   #operation: AbortController | null = null;
   #disposed = false;
@@ -169,7 +169,7 @@ export class ImageLabPanel {
     if (this.#disposed) return;
     const controller = this.#begin();
     this.#state = "checking";
-    this.#message = "Checking the image powers…";
+    this.#message = "Checking the image tools…";
     this.#draw();
     try {
       const config = await this.actions.getConfig(controller.signal);
@@ -301,7 +301,8 @@ export class ImageLabPanel {
     const heading = document.createElement("h3");
     heading.textContent = "Make It Real";
     const guidance = document.createElement("p");
-    guidance.textContent = "Turn your canvas design into a product showcase.";
+    guidance.textContent = "Use this after the product design is ready, before you build the ad. " +
+      "Existing words and marks will be fitted to the product surface.";
     const product = labelledInput("Product kind", "product-kind", this.#pair?.productName ?? "");
     const scene = labelledSelect("Product scene", "product-scene", SCENE_CHOICES);
     const realise = button(this.#busy === "realise" ? "Building showcase…" : "Make it real");

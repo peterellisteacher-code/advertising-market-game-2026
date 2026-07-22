@@ -65,18 +65,18 @@ export class FabricHistoryBindings<T = Record<string, unknown>> {
     try {
       await this.port.load(target);
       this.#currentHash = snapshotHash(this.port.serialize());
-      this.polite.textContent = direction === "undo" ? "Undid last change" : "Redid last change";
+      this.polite.textContent = direction === "undo" ? "Undid last change." : "Redid last change.";
       return true;
     } catch (error) {
       const restored = direction === "undo" ? this.#history.redo() : this.#history.undo();
       if (restored === null || snapshotHash(restored) !== snapshotHash(current)) {
-        throw new AggregateError([error], "History rollback failed");
+        throw new AggregateError([error], "History rollback failed.");
       }
       try {
         await this.port.load(current);
         this.#currentHash = snapshotHash(this.port.serialize());
       } catch (rollbackError) {
-        throw new AggregateError([error, rollbackError], "Canvas and history rollback failed");
+        throw new AggregateError([error, rollbackError], "Canvas and history rollback failed.");
       }
       throw error;
     } finally {
@@ -108,7 +108,7 @@ export class FabricHistoryBindings<T = Record<string, unknown>> {
       } catch (rollbackError) {
         this.#history.alignPresent(initial);
         this.#currentHash = initialHash;
-        throw new AggregateError([error, rollbackError], "Composite history rollback failed");
+        throw new AggregateError([error, rollbackError], "Composite history rollback failed.");
       }
       throw error;
     } finally {

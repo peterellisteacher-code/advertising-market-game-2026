@@ -143,6 +143,6 @@ export function cloudRecoveryStatusMessage(result: CloudProgressRecoveryResult):
     case "restored-local-only":
       return "Cloud save restored here · cloud autosave will reconnect";
     case "unavailable":
-      return "Cloud check paused · this device is unchanged";
+      return "Saved on this device · cloud copy paused";
   }
 }

@@ -87,21 +87,27 @@ describe("MarketRoutePanel", () => {
     });
 
     expect(getByRole(host, "group", { name: "Product strengths" })).toBeTruthy();
-    expect(getByRole(host, "group", { name: "Priced product choices" }).textContent)
-      .toContain("Easy-carry loop · Feature · $9.50");
-    expect(getByRole(host, "combobox", { name: "Market zone" })).toBeTruthy();
-    expect(getByRole(host, "group", { name: "Advertising media" })).toBeTruthy();
+    const steps = [...host.querySelectorAll<HTMLFieldSetElement>("fieldset")];
+    expect(steps.map(({ hidden }) => hidden)).toEqual([false, true, true, true]);
+    expect(steps[1]?.textContent).toContain("Choose at least one priced part to feature.");
     expect(host.textContent).not.toContain("Strong route");
 
     const portability = getByRole<HTMLInputElement>(host, "checkbox", { name: /Portability/ });
-    const carryLoop = getByRole<HTMLInputElement>(host, "checkbox", { name: /Easy-carry loop/ });
-    const marketZone = getByRole<HTMLSelectElement>(host, "combobox", { name: "Market zone" });
-    const transit = getByRole<HTMLInputElement>(host, "checkbox", { name: /Transit/ });
     fireEvent.click(portability);
+    expect(steps.map(({ hidden }) => hidden)).toEqual([false, false, true, true]);
+    const carryLoop = steps[1]!.querySelector<HTMLInputElement>(
+      'input[name="marketed-choice"][value="easy-carry-loop"]'
+    )!;
     fireEvent.click(carryLoop);
+    expect(steps.map(({ hidden }) => hidden)).toEqual([false, false, false, true]);
+    const marketZone = steps[2]!.querySelector<HTMLSelectElement>('select[name="market-zone"]')!;
     fireEvent.change(marketZone, {
       target: { value: "city" }
     });
+    expect(steps.map(({ hidden }) => hidden)).toEqual([false, false, false, false]);
+    const transit = steps[3]!.querySelector<HTMLInputElement>(
+      'input[name="advertising-medium"][value="transit"]'
+    )!;
     fireEvent.click(transit);
     expect(portability.checked).toBe(true);
     expect(carryLoop.checked).toBe(true);
@@ -122,6 +128,10 @@ describe("MarketRoutePanel", () => {
       .toContain("Strong route"));
     expect(getByRole(host, "region", { name: "Route report" }).textContent)
       .toContain("Show one proof point");
+    expect(getByRole<HTMLButtonElement>(host, "button", { name: "Route submitted" }).disabled)
+      .toBe(true);
+    expect(getByRole(host, "status").textContent)
+      .toBe("Route submitted. Review the route report, then return to the game.");
   });
 
   it("restores a saved route without disabling expensive or unusual choices", () => {

@@ -40,11 +40,15 @@ describe("student copy", () => {
     expect(STUDENT_COPY.rolePrompts["art-director"].label).toBe("Art Director");
     expect(STUDENT_COPY.rolePrompts.strategist.label).toBe("Strategist");
 
-    for (const prompt of Object.values(STUDENT_COPY.rolePrompts)) {
-      expect(prompt.productiveAction).toMatch(/^While you control the computer, /);
-      expect(prompt.holdingAction).toMatch(/^While your partner controls the computer, /);
-      expect(prompt.productiveAction.length).toBeGreaterThan(40);
-      expect(prompt.holdingAction.length).toBeGreaterThan(40);
+    for (const stage of Object.values(STUDENT_COPY.stageRolePrompts)) {
+      expect(stage["art-director"].label).toBe("Art Director");
+      expect(stage.strategist.label).toBe("Strategist");
+      for (const prompt of Object.values(stage)) {
+        expect(prompt.productiveAction.length).toBeGreaterThan(30);
+        expect(prompt.holdingAction.length).toBeGreaterThan(30);
+        expect(prompt.productiveAction.length).toBeLessThanOrEqual(90);
+        expect(prompt.holdingAction.length).toBeLessThanOrEqual(90);
+      }
     }
 
     const startingRoleCopy = Object.values(STUDENT_COPY.rolePrompts)
@@ -58,10 +62,10 @@ describe("student copy", () => {
       gameTitle: expect.any(String),
       audienceBrief: expect.any(String),
       audienceSignal: "Audience signal",
-      roundProgress: "Round progress",
+      roundProgress: "Pair progress",
       pairPlay: "Pair play",
       canvasWords: "Canvas words",
-      roundZeroTools: "Round 0 tools",
+      roundZeroTools: "Pair tools",
       context: "Context",
       need: "Need",
       values: "Values",
@@ -71,7 +75,7 @@ describe("student copy", () => {
       publish: expect.any(String)
     });
     expect(STUDENT_COPY.phaseLabels).toEqual({
-      "round-zero": "Round 0",
+      "round-zero": "PAIR START",
       invent: "Invent",
       sell: "Sell",
       refine: "Refine",
@@ -86,7 +90,8 @@ describe("student copy", () => {
       progressNone: "Make one visible change.",
       progressOne: "1 visible change",
       progressManySuffix: "visible changes",
-      bothRolesReady: "Both roles made a change",
+      bothRolesReady: "Follow the highlighted tool step.",
+      bothRolesContributed: "Both roles contributed.",
       textPlaceholder: "Try Make room for adventure",
       addWords: "Add words",
       blankWords: "Type some canvas words first.",

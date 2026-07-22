@@ -3,6 +3,7 @@ import {
   isMarketSafeJson,
   type MarketCampaignSubmission,
   type MarketControlCommand,
+  type MarketMedal,
   type MarketReviewStatus
 } from "./market-client";
 
@@ -86,6 +87,15 @@ const MarketRequestSchema = z.discriminatedUnion("method", [
   }),
   z.strictObject({
     ...requestBase,
+    method: z.literal("award"),
+    payload: z.strictObject({
+      commandId: MARKET_COMMAND_ID_SCHEMA,
+      campaignId: z.string().min(1).max(64).regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/u),
+      medal: z.enum(["gold", "silver", "bronze"])
+    })
+  }),
+  z.strictObject({
+    ...requestBase,
     method: z.literal("purchase"),
     payload: z.strictObject({
       campaignId: z.string().min(1).max(64).regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/u),
@@ -129,6 +139,7 @@ export interface MarketRoomClient {
   getArtwork(artworkKey: string): Promise<Uint8Array>;
   uploadArtwork(png: Uint8Array): Promise<string>;
   publishCampaign(submission: MarketCampaignSubmission, commandId: string): Promise<unknown>;
+  award(campaignId: string, medal: MarketMedal, commandId: string): Promise<unknown>;
   purchase(campaignId: string, requestId: string): Promise<unknown>;
   finish(commandId: string): Promise<unknown>;
   reviewCampaign(
@@ -344,6 +355,12 @@ export function createMarketPublicApi(client: MarketRoomClient): MarketPublicApi
           return success(request.requestId, await client.purchase(
             request.payload.campaignId,
             request.payload.requestId
+          ));
+        case "award":
+          return success(request.requestId, await client.award(
+            request.payload.campaignId,
+            request.payload.medal,
+            request.payload.commandId
           ));
         case "finish":
           return success(request.requestId, await client.finish(request.payload.commandId));

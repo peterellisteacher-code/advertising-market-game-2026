@@ -470,6 +470,8 @@ export function composeMakeItRealPrompt(request: MakeItRealRequest): string {
     `Product: ${literal(request.productKind)}`,
     `Scene: ${literal(request.scene)}`,
     "Preserve the supplied design, its composition, colours and deliberate visual marks as closely as possible.",
+    "Frame one complete product close enough that it fills most of the frame, while keeping the whole product visible and leaving only modest space for the scene.",
+    "Render every existing word and deliberate mark as part of the product surface. Preserve its exact wording, and fit it naturally to the product's perspective, curvature, folds, depth and occlusion.",
     "Keep the surrounding mockup unbranded: do not add or imitate existing brands, logos, trademarks or packaging claims.",
     "Add no new text, letters, numbers, watermarks or signatures, and do not rewrite text already present in the supplied design.",
     "No people, hands, faces, characters or body parts. Show one product only in the requested scene."

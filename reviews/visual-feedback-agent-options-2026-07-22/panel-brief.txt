@@ -1,0 +1,67 @@
+You are one independent seat on a blind design panel. You are blind to the other seats and to any view held by whoever commissioned this work. Do not attempt to infer what answer is wanted. Work from the evidence below. No earlier review output or preferred architecture is included.
+
+=== CONTEXT ===
+
+The artifact is the Advertising Market Game, a Year 10 English browser game for pairs using school-issued MacBooks, usually in Safari over school wifi. It is a Godot 4 game with a TypeScript/Fabric.js advertisement studio embedded in its verified web export. Netlify Functions provide hosted server routes. The acceptance environment is the hosted web experience on a student MacBook, not localhost.
+
+The game is being reshaped around this sequence:
+
+1. A pair invents one shared product for a defined audience.
+2. They establish its features, production cost, selling price, margin and value proposition.
+3. They create a realistic image of that product.
+4. Each partner creates a separate advertisement for the shared product.
+5. AIDA and advertising-design techniques are taught and applied while each advertisement is being made.
+6. In a Market Gallery, each pair awards one Gold, one Silver and one Bronze to other advertisements using explicit criteria. Price remains visible as evidence of product value and positioning; the gallery does not use a fictional shopping wallet.
+
+Advertising-design coverage must include at least: salience, colour, contrast, leading lines, framing, negative space, depth and layers, rule of odds, juxtaposition, typography and visual hierarchy. Students must encounter the complete technique set, but the experience must not reward indiscriminately cramming every technique into one advertisement.
+
+The onboarding doctrine is progressive disclosure: students begin doing something immediately; only the instruction needed for the current action appears; the next small step follows the current one; place, progress, partner roles and the meaning of done remain clear. Avoid assignment or unit framing. Retain a fun-first advertising-market identity.
+
+The requested new capability is a custom in-canvas agent for the individual advertisement stage. At any point, a student can ask it to examine the advertisement currently visible on their canvas. It must respond with targeted ideas or feedback grounded in that actual image. The student then edits the advertisement and may ask again. This is not a generic tutor or detached chatbot. It sits inside the making loop and should help students use AIDA and visual techniques deliberately without taking authorship of the advertisement away from them.
+
+Low per-use cost, low latency and resilience on school wifi are important. A whole class may use the capability at approximately the same time. AI availability must be teacher-controlled. If AI is unavailable, the advertisement-making flow must remain usable. Student aliases may exist in the game, but the model does not need personal information. The project uses OpenRouter as its default model substrate for deployed classroom AI.
+
+Current code facts:
+
+- TypeScript target: ES2022.
+- Browser editor: Fabric.js 7.4.0.
+- Canvas content is already represented as structured editor objects and can be exported as an image.
+- Existing modules cover the editor shell, canvas adapter, object commands, product shells, AIDA playbook, pair roles, persistence, account-scoped assets and an AI image-generation lab.
+- Hosted APIs are Netlify Functions; Vite preview does not serve those functions.
+- School-wifi requests require explicit timeouts and bounded recovery.
+- Native Godot execution is quarantined on this machine; browser/web-export verification is the valid route.
+- No Supabase mutation or production deployment is in scope for this design decision.
+
+=== CURRENT VISUAL EVIDENCE ===
+
+Image-capable seats receive one attached screenshot of the present advertisement studio. Text-only seats receive the same factual description below and must label any visual claim as based on description rather than direct image inspection.
+
+Screenshot: 1090 by 614 pixels. A dark top bar contains the studio title, campaign name, undo/redo, save state and return control. Beneath it is a level/audience/AIDA strip. A narrow vertical tool rail sits at the far left. An open instructional drawer occupies roughly the next 230 pixels and shows Action-stage cards plus a short text field. The remaining area is a white advertisement canvas. A line drawing of a takeaway cup occupies roughly 180 by 250 pixels near the centre. A selected two-line text object, roughly 245 by 100 pixels, crosses the cup. Most of the canvas around these objects is empty. AIDA stage chips appear at the upper right.
+
+=== SCOPE ===
+
+This panel is choosing an architecture and interaction design for the custom visual-feedback agent. It is not reviewing the rest of the game, rewriting student copy, selecting final assessment grades, implementing code, mutating databases or deploying production.
+
+Assume the definitions and worked examples for advertising techniques can be curated and bundled locally. Decide what the agent should do beyond those fixed materials. The agent may receive the rendered canvas image, structured canvas/object metadata, the product brief, audience, price/value facts, current AIDA stage, selected technique, prior feedback turns or some subset. Do not assume all of those inputs are necessary.
+
+=== YOUR TASK ===
+
+Design viable options for this feature, then stress-test them. Consider at minimum, but do not restrict yourself to:
+
+- the exact student interaction loop from asking for help through revising and asking again;
+- where the agent belongs in the current editor without obstructing the canvas;
+- what evidence should be sent on each request: image, crop, object metadata, product brief, AIDA state, technique intent, history or combinations;
+- what the model should and should not produce so that feedback is specific without authoring the advertisement for the student;
+- how to distinguish observation, interpretation and suggestion, and how to handle uncertainty;
+- whether one general visual critique mode, technique-specific checks, staged modes or another structure is best;
+- how repeated feedback should remember or compare revisions without creating unbounded context or cost;
+- model capability, routing, structured output, latency, concurrency, caching, image size, token limits and realistic per-class cost;
+- safety, privacy, prompt injection through canvas text, assessment integrity and teacher control;
+- failure behaviour on slow wifi, timeout, provider failure, malformed output or low-confidence analysis;
+- accessibility and how a student understands what to do next;
+- a calibration/evaluation plan that can determine whether a cheap multimodal model is reliable enough for salience, colour, contrast, leading lines, framing, negative space, depth/layers, rule of odds, juxtaposition, typography, hierarchy and AIDA;
+- the cleanest seams in the stated TypeScript/Fabric.js/Netlify architecture;
+- what would make this project-specific agent generalisable enough to become a reusable skill later, without forcing premature abstraction now;
+- assumptions the feature would make without stating them.
+
+Report every materially distinct option worth considering. For each option, explain how it works, what it costs, where it fails and what evidence would falsify it. Rank the options. Then give one recommended architecture or staged combination, a concise end-to-end interaction flow, a proposed request/response contract, a minimum viable calibration plan and the first implementation slice. Be concrete. Do not soften risks and do not pad. End with a terminal recommendation and confidence level.

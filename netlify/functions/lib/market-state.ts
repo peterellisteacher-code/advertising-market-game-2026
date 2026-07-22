@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import {
+  AwardInputSchema,
   CampaignSchema,
   CloseMarketInputSchema,
   ContentHashSchema,
@@ -15,12 +16,14 @@ import {
   RemoveTeamInputSchema,
   ReviewCampaignInputSchema,
   SubmitCampaignInputSchema,
+  canonicalAwardCommandPayload,
   canonicalControlCommandPayload,
   canonicalFinishCommandPayload,
   canonicalPublishCommandPayload,
   canonicalPurchasePayload,
   canonicalRemoveTeamCommandPayload,
   canonicalReviewCommandPayload,
+  type AwardInput,
   type Campaign,
   type ArtworkUpload,
   type CloseMarketInput,
@@ -32,6 +35,7 @@ import {
   type JoinTeamInput,
   type MarketCohort,
   type MarketRoom,
+  type Medal,
   type OpenMarketInput,
   type OpenRevealInput,
   type PurchaseInput,
@@ -60,6 +64,7 @@ export type MarketStateErrorCode =
   | "ARTWORK_QUOTA_EXHAUSTED"
   | "ARTWORK_NOT_REGISTERED"
   | "OWN_CAMPAIGN"
+  | "CAMPAIGN_ALREADY_AWARDED"
   | "ALREADY_PURCHASED"
   | "INSUFFICIENT_FUNDS"
   | "IDEMPOTENCY_CONFLICT"
@@ -188,8 +193,19 @@ const sortedValues = <T extends { id: string }>(record: Readonly<Record<string, 
 const receiptsForBuyer = (state: MarketRoom, buyerTeamId: string): Receipt[] =>
   sortedValues(state.receipts).filter((receipt) => receipt.buyerTeamId === buyerTeamId);
 
+type MedalAwardReceipt = Receipt & { readonly medal: Medal };
+
+const isMedalAward = (receipt: Receipt): receipt is MedalAwardReceipt =>
+  receipt.medal !== undefined;
+
+const purchasesForBuyer = (state: MarketRoom, buyerTeamId: string): Receipt[] =>
+  receiptsForBuyer(state, buyerTeamId).filter((receipt) => !isMedalAward(receipt));
+
+const awardsForVoter = (state: MarketRoom, voterTeamId: string): MedalAwardReceipt[] =>
+  receiptsForBuyer(state, voterTeamId).filter(isMedalAward);
+
 const moneySpentBy = (state: MarketRoom, buyerTeamId: string): number =>
-  receiptsForBuyer(state, buyerTeamId).reduce((total, receipt) => total + receipt.price, 0);
+  purchasesForBuyer(state, buyerTeamId).reduce((total, receipt) => total + receipt.price, 0);
 
 const walletFor = (state: MarketRoom, buyerTeamId: string): number =>
   state.openingWallet - moneySpentBy(state, buyerTeamId);
@@ -201,6 +217,7 @@ export function createMarketRoom(input: CreateMarketRoomInput): MarketRoom {
     id: command.roomId,
     revision: 0,
     phase: "building",
+    marketMode: "medals",
     openingWallet: command.openingWallet,
     maxTeams: command.maxTeams ?? MARKET_LIMITS.defaultTeams,
     createdAt: command.now,
@@ -536,14 +553,17 @@ export function canOpenMarket(stateValue: MarketRoom): OpenMarketReadiness {
   }
 
   const cohort = candidateMarketCohort(state);
-  if (cohort.sellerTeamIds.length < 3) {
+  const minimumSellers = state.marketMode === "medals" ? 4 : 3;
+  if (cohort.sellerTeamIds.length < minimumSellers) {
     return { allowed: false, errorCode: "MARKET_NOT_READY", cohort };
   }
-  const campaigns = cohort.campaignIds.map((campaignId) => state.campaigns[campaignId]!);
-  for (const buyerTeamId of cohort.buyerTeamIds) {
-    const prices = minimumPriceBySeller(campaigns, buyerTeamId);
-    if (prices.length < 2 || prices[0]! + prices[1]! > state.openingWallet) {
-      return { allowed: false, errorCode: "MARKET_NOT_READY", cohort };
+  if (state.marketMode === "purchases") {
+    const campaigns = cohort.campaignIds.map((campaignId) => state.campaigns[campaignId]!);
+    for (const buyerTeamId of cohort.buyerTeamIds) {
+      const prices = minimumPriceBySeller(campaigns, buyerTeamId);
+      if (prices.length < 2 || prices[0]! + prices[1]! > state.openingWallet) {
+        return { allowed: false, errorCode: "MARKET_NOT_READY", cohort };
+      }
     }
   }
   return { allowed: true, errorCode: null, cohort };
@@ -713,6 +733,7 @@ export function purchaseCampaign(
 
   requireRevision(state, command.expectedRevision);
   requirePhase(state, "market");
+  if (state.marketMode !== "purchases") throw new MarketStateError("MARKET_NOT_ELIGIBLE");
   if (!state.teams[command.buyerTeamId]) throw new MarketStateError("TEAM_NOT_FOUND");
   if (!state.marketCohort!.buyerTeamIds.includes(command.buyerTeamId)) {
     throw new MarketStateError("MARKET_NOT_ELIGIBLE");
@@ -753,8 +774,84 @@ export function purchaseCampaign(
   return { state: next, receipt: next.receipts[receipt.id]!, replayed: false };
 }
 
+export interface AwardResult {
+  readonly state: MarketRoom;
+  readonly receipt: MedalAwardReceipt | null;
+  readonly replayed: boolean;
+}
+
+export function awardCampaign(
+  stateValue: MarketRoom,
+  input: AwardInput
+): AwardResult {
+  const state = readRoom(stateValue);
+  const command = parseInput(() => AwardInputSchema.parse(input));
+  const actor = `team:${command.voterTeamId}`;
+  const canonicalPayload = canonicalAwardCommandPayload(command);
+  const payloadHash = commandPayloadHash(canonicalPayload);
+  if (replayCommand(state, actor, command.commandId, "award", payloadHash)) {
+    const current = awardsForVoter(state, command.voterTeamId).find(({ medal }) => medal === command.medal) ?? null;
+    return { state, receipt: current, replayed: true };
+  }
+
+  requireRevision(state, command.expectedRevision);
+  requirePhase(state, "market");
+  if (state.marketMode !== "medals") throw new MarketStateError("MARKET_NOT_ELIGIBLE");
+  if (!state.teams[command.voterTeamId]) throw new MarketStateError("TEAM_NOT_FOUND");
+  if (!state.marketCohort!.buyerTeamIds.includes(command.voterTeamId)) {
+    throw new MarketStateError("MARKET_NOT_ELIGIBLE");
+  }
+  if (state.finishedAtByTeamId[command.voterTeamId]) throw new MarketStateError("TEAM_FINISHED");
+  if (Object.keys(state.receipts).length >= MARKET_LIMITS.receipts) {
+    throw new MarketStateError("LIMIT_REACHED");
+  }
+
+  const campaign = state.campaigns[command.campaignId];
+  if (!campaign) throw new MarketStateError("CAMPAIGN_NOT_FOUND");
+  if (campaign.status !== "approved" || !state.marketCohort!.campaignIds.includes(campaign.id)) {
+    throw new MarketStateError("CAMPAIGN_NOT_APPROVED");
+  }
+  if (campaign.sellerTeamId === command.voterTeamId) throw new MarketStateError("OWN_CAMPAIGN");
+
+  const existingAwards = awardsForVoter(state, command.voterTeamId);
+  const replaced = existingAwards.find(({ medal }) => medal === command.medal);
+  if (existingAwards.some(({ campaignId, medal }) =>
+    campaignId === campaign.id && medal !== command.medal)) {
+    throw new MarketStateError("CAMPAIGN_ALREADY_AWARDED");
+  }
+  if (state.receipts[command.receiptId] && replaced?.id !== command.receiptId) {
+    throw new MarketStateError("ID_CONFLICT");
+  }
+
+  const receipt: MedalAwardReceipt = {
+    id: command.receiptId,
+    buyerTeamId: command.voterTeamId,
+    sellerTeamId: campaign.sellerTeamId,
+    campaignId: campaign.id,
+    medal: command.medal,
+    price: campaign.price,
+    requestId: command.commandId,
+    canonicalPayload,
+    purchasedAt: command.now
+  };
+  const receipts = Object.fromEntries(Object.entries(state.receipts)
+    .filter(([receiptId]) => receiptId !== replaced?.id));
+  const next = commitCommand(
+    state,
+    command.expectedRevision,
+    command.now,
+    actor,
+    command.commandId,
+    "award",
+    payloadHash,
+    { kind: "award", campaignId: campaign.id, medal: command.medal, receiptId: receipt.id },
+    { receipts: { ...receipts, [receipt.id]: receipt } }
+  );
+  return { state: next, receipt: next.receipts[receipt.id] as MedalAwardReceipt, replayed: false };
+}
+
 const hasAffordablePurchase = (state: MarketRoom, teamId: string): boolean => {
-  const bought = new Set(receiptsForBuyer(state, teamId).map(({ campaignId }) => campaignId));
+  const bought = new Set(purchasesForBuyer(state, teamId).map(({ campaignId }) => campaignId));
   const wallet = walletFor(state, teamId);
   return state.marketCohort!.campaignIds.some((campaignId) => {
     const campaign = state.campaigns[campaignId]!;
@@ -779,13 +876,20 @@ export function finishTeam(stateValue: MarketRoom, input: FinishTeamInput): Mark
   }
   if (state.finishedAtByTeamId[command.teamId]) throw new MarketStateError("TEAM_FINISHED");
 
-  const purchases = receiptsForBuyer(state, command.teamId);
+  if (state.marketMode === "medals") {
+    const awards = awardsForVoter(state, command.teamId);
+    if (awards.length !== 3 || new Set(awards.map(({ medal }) => medal)).size !== 3) {
+      throw new MarketStateError("FINISH_NOT_ALLOWED");
+    }
+  } else {
+  const purchases = purchasesForBuyer(state, command.teamId);
   const sellers = new Set(purchases.map(({ sellerTeamId }) => sellerTeamId));
   const spent = purchases.reduce((total, receipt) => total + receipt.price, 0);
   const spentEnough = spent * 100 >= state.openingWallet * 80;
   const noAffordablePurchaseRemains = !hasAffordablePurchase(state, command.teamId);
   if (sellers.size < 2 || (!spentEnough && !noAffordablePurchaseRemains)) {
     throw new MarketStateError("FINISH_NOT_ALLOWED");
+  }
   }
 
   return commitCommand(
@@ -851,6 +955,10 @@ export interface RevealStanding {
   readonly alias: string;
   readonly revenue: number;
   readonly sales: number;
+  readonly points: number;
+  readonly gold: number;
+  readonly silver: number;
+  readonly bronze: number;
 }
 
 export interface MarketReveal {
@@ -870,23 +978,39 @@ export function computeReveal(stateValue: MarketRoom): MarketReveal {
   ])].sort((left, right) => left.localeCompare(right, "en-AU"));
   const totals = Object.fromEntries(participantIds.map((teamId) => [
     teamId,
-    { teamId, alias: state.teams[teamId]!.alias, revenue: 0, sales: 0 }
+    { teamId, alias: state.teams[teamId]!.alias, revenue: 0, sales: 0, points: 0, gold: 0, silver: 0, bronze: 0 }
   ])) as Record<string, {
     teamId: string;
     alias: string;
     revenue: number;
     sales: number;
+    points: number;
+    gold: number;
+    silver: number;
+    bronze: number;
   }>;
+  const medalMarket = state.marketMode === "medals";
   for (const receipt of Object.values(state.receipts)) {
     const total = totals[receipt.sellerTeamId];
     if (!total) throw new MarketStateError("STATE_INVALID");
-    total.revenue += receipt.price;
-    total.sales += 1;
+    if (isMedalAward(receipt)) {
+      const points = receipt.medal === "gold" ? 3 : receipt.medal === "silver" ? 2 : 1;
+      total.points += points;
+      total[receipt.medal] += 1;
+    } else if (!medalMarket) {
+      total.revenue += receipt.price;
+      total.sales += 1;
+    }
   }
-  const ordered = Object.values(totals).sort((left, right) =>
-    right.revenue - left.revenue ||
-    right.sales - left.sales ||
-    left.teamId.localeCompare(right.teamId, "en-AU"));
+  const ordered = Object.values(totals).sort((left, right) => medalMarket
+    ? right.points - left.points ||
+      right.gold - left.gold ||
+      right.silver - left.silver ||
+      right.bronze - left.bronze ||
+      left.teamId.localeCompare(right.teamId, "en-AU")
+    : right.revenue - left.revenue ||
+      right.sales - left.sales ||
+      left.teamId.localeCompare(right.teamId, "en-AU"));
   return {
     roomId: state.id,
     revision: state.revision,
@@ -919,21 +1043,31 @@ export interface StudentPurchaseSummary {
   readonly purchasedAt: number;
 }
 
+export interface StudentAwardSummary {
+  readonly id: string;
+  readonly campaignId: string;
+  readonly sellerTeamId: string;
+  readonly medal: Medal;
+  readonly awardedAt: number;
+}
+
 export interface StudentMarketSnapshot {
   readonly roomId: string;
   readonly revision: number;
   readonly phase: MarketRoom["phase"];
+  readonly marketMode: MarketRoom["marketMode"];
   readonly own: {
     readonly teamId: string;
     readonly alias: string;
-    readonly wallet: number;
-    readonly spent: number;
+    readonly wallet?: number;
+    readonly spent?: number;
     readonly finished: boolean;
     readonly marketEligibility: MarketEligibility;
   };
   readonly teams: readonly StudentTeamSummary[];
   readonly campaigns: readonly StudentCampaignSummary[];
   readonly myPurchases: readonly StudentPurchaseSummary[];
+  readonly myAwards: readonly StudentAwardSummary[];
 }
 
 export function studentMarketSnapshot(
@@ -943,7 +1077,10 @@ export function studentMarketSnapshot(
   const state = readRoom(stateValue);
   const team = state.teams[viewerTeamId];
   if (!team) throw new MarketStateError("TEAM_NOT_FOUND");
-  const purchases = receiptsForBuyer(state, viewerTeamId);
+  const purchases = purchasesForBuyer(state, viewerTeamId);
+  const medalOrder: Readonly<Record<Medal, number>> = { gold: 0, silver: 1, bronze: 2 };
+  const awards = awardsForVoter(state, viewerTeamId)
+    .sort((left, right) => medalOrder[left.medal] - medalOrder[right.medal]);
   const spent = purchases.reduce((total, receipt) => total + receipt.price, 0);
   const frozenCampaignIds = state.marketCohort === null
     ? null
@@ -969,11 +1106,13 @@ export function studentMarketSnapshot(
     roomId: state.id,
     revision: state.revision,
     phase: state.phase,
+    marketMode: state.marketMode,
     own: {
       teamId: team.id,
       alias: team.alias,
-      wallet: state.openingWallet - spent,
-      spent,
+      ...(state.marketMode === "purchases"
+        ? { wallet: state.openingWallet - spent, spent }
+        : {}),
       finished: state.finishedAtByTeamId[team.id] !== undefined,
       marketEligibility: marketEligibilityForTeam(state, team.id)
     },
@@ -985,6 +1124,13 @@ export function studentMarketSnapshot(
       sellerTeamId,
       price,
       purchasedAt
+    })),
+    myAwards: awards.map(({ id, campaignId, sellerTeamId, medal, purchasedAt }) => ({
+      id,
+      campaignId,
+      sellerTeamId,
+      medal,
+      awardedAt: purchasedAt
     }))
   };
 }

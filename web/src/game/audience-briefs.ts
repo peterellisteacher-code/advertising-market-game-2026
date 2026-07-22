@@ -19,7 +19,7 @@ export const AUDIENCE_BRIEFS = Object.freeze([
     id: "after-school-wanderers",
     signal: "Time after the school day ends.",
     context: "Teenagers. One-hour window between school dismissal and home arrival.",
-    need: "Method to make the window productive.",
+    need: "A method to make the window productive.",
     values: ["independence", "belonging"],
     intendedEffect: "Perceive the offer as aligned with the student's own plan, not with an imposed routine."
   }),

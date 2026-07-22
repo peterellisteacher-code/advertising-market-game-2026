@@ -152,13 +152,13 @@ describe("HistoryController", () => {
       expect(await bindings.undo()).toBe(true);
     }
     expect(port.hash()).toBe(blankHash);
-    expect(polite.textContent).toBe("Undid last change");
+    expect(polite.textContent).toBe("Undid last change.");
 
     for (let index = 0; index < mixedActions.length; index += 1) {
       expect(await bindings.redo()).toBe(true);
     }
     expect(port.hash()).toBe(completedHash);
-    expect(polite.textContent).toBe("Redid last change");
+    expect(polite.textContent).toBe("Redid last change.");
     expect(await bindings.redo()).toBe(false);
     bindings.dispose();
   });

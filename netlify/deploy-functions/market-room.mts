@@ -6,6 +6,7 @@ export const config = {
     "/api/market/snapshot",
     "/api/market/artwork",
     "/api/market/publish",
+    "/api/market/award",
     "/api/market/purchase",
     "/api/market/finish",
     "/api/market/review",

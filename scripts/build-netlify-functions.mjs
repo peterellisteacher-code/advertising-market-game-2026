@@ -17,7 +17,8 @@ const functionNames = [
   "market-room",
   "market-session",
   "openverse-image",
-  "openverse-search"
+  "openverse-search",
+  "studio-coach"
 ];
 
 await mkdir(outputDirectory, { recursive: true });

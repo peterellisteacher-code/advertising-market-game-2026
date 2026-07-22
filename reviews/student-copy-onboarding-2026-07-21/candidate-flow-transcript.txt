@@ -1,0 +1,21 @@
+CURRENT CANDIDATE FLOW — NEUTRAL SOURCE TRANSCRIPT
+
+1. Startup checks for a live room session and then for a saved practice pitch. If neither exists, the lobby asks the pair to choose a pair name and enter the market. A pair can enter Practice or join a teacher's live room with its code.
+
+2. Starting a new run opens Level 1. The run screen shows the current level name, its goal, its clue, and one available launch action: Open Studio. The long introductory hero paragraph remains in source but is hidden in the candidate.
+
+3. The studio opens on Build. Its persistent top strip shows the current level, selected audience signal, current partner role, that role's exact immediate action, round progress, and Swap roles. Open full brief reveals the other partner's move plus the audience context, need, values, and intended effect.
+
+4. Level 1 exposes the product-building and basic design tools needed to invent the product. The empty canvas says to build a product and then place it on the ad. Each tool panel supplies its own current controls, loading states, validation, and next-action copy.
+
+5. Pair progress changes after visible edits. Before a role acts, the top strip gives that role's productive action. After the active role acts, it says to pass control to the named partner. After both roles act, it says that both roles made a change. The separate round counter reports no visible change, one visible change, or the exact number of visible changes.
+
+6. Closing the studio saves the campaign and returns to the run screen. If required work is missing, the status names the next missing requirement and the available action remains Open Studio. When the current level is ready, Lock Level appears. After locking, the only progression control is Next Level.
+
+7. Level 2 repeats the same small-step loop and introduces the four AIDA moves: Attention, Interest, Desire, and Action. Level 3 repeats the loop and introduces final pricing, market route, feature, and visual-finish decisions. Future-level controls remain hidden until their level is active.
+
+8. After the final level is locked, Publish Campaign sends the pair's card to the practice market or the teacher-controlled live review queue. A returned card provides a host note and Reopen the studio. An approved card reaches the market floor.
+
+9. In the market, pairs browse approved stalls and use their wallet to back products. Completion requires backing two different sellers and meeting the market spending rule. Finish shopping becomes available when those conditions are met. Practice mode then states that the round is complete; in a live room, the teacher opens the market and reveals the podium.
+
+10. Save, restore, retry, offline, account, image-tool availability, and safe error states use the candidate copy included in the complete corpus. Image generation remains teacher-controlled; unavailable controls explain their current state rather than silently disappearing.

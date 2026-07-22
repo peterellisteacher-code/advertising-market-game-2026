@@ -331,7 +331,7 @@ describe("CloudProgressRecovery", () => {
       "Progress saves on this device first.",
       "Cloud save restored to this device · revision 4",
       "Cloud save restored here · cloud autosave will reconnect",
-      "Cloud check paused · this device is unchanged"
+      "Saved on this device · cloud copy paused"
     ]);
   });
 });

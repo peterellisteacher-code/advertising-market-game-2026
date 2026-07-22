@@ -10,6 +10,7 @@ export interface EditorShell extends PairGameView {
   marketRoutePanel: HTMLElement;
   aidaPlaybookPanel: HTMLElement;
   imageLabPanel: HTMLElement;
+  studioCoachPanel: HTMLElement;
   logoLabPanel: HTMLElement;
   librarySearch: HTMLInputElement;
   libraryView: HTMLSelectElement;
@@ -22,6 +23,10 @@ export interface EditorShell extends PairGameView {
   canvasRegion: HTMLElement;
   canvasEmptyState: HTMLElement;
   canvas: HTMLCanvasElement;
+  zoomOut: HTMLButtonElement;
+  zoomFill: HTMLButtonElement;
+  zoomIn: HTMLButtonElement;
+  zoomStatus: HTMLElement;
   inspector: HTMLElement;
   layers: HTMLElement;
 }
@@ -49,19 +54,22 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           </label>
           <button type="button" class="creator__brief-toggle" aria-expanded="false" aria-controls="studio-full-brief" data-brief-toggle>Open full brief</button>
         </div>
-        <nav class="creator__checklist" role="tablist" aria-label="Campaign checklist" data-creator-checklist>
+        <nav class="creator__checklist" role="tablist" aria-label="AIDA steps" data-creator-checklist>
           ${AIDA.map((label, index) => `<button type="button" role="tab" aria-selected="${index === 0}" data-slot="${label.toLowerCase()}">${label}</button>`).join("")}
         </nav>
         <div class="creator__role-card">
-          <span class="creator__role-label">Now: <strong data-active-role>${STUDENT_COPY.rolePrompts["art-director"].label}</strong></span>
-          <p role="status" aria-label="${STUDENT_COPY.labels.roundProgress}" data-round-progress>${STUDENT_COPY.roundZero.progressNone}</p>
+          <div class="creator__role-turn creator__role-turn--active">
+            <span class="creator__role-label">Now: <strong data-active-role>${STUDENT_COPY.rolePrompts["art-director"].label}</strong></span>
+            <p class="creator__next-action" data-active-role-action>${STUDENT_COPY.rolePrompts["art-director"].productiveAction}</p>
+          </div>
+          <div class="creator__role-turn creator__role-turn--partner">
+            <span class="creator__role-label">Partner: <strong data-partner-role>${STUDENT_COPY.rolePrompts.strategist.label}</strong></span>
+            <p class="creator__partner-action" data-partner-role-action>${STUDENT_COPY.rolePrompts.strategist.holdingAction}</p>
+          </div>
+          <p class="creator__round-progress" role="status" aria-label="${STUDENT_COPY.labels.roundProgress}" data-round-progress>${STUDENT_COPY.roundZero.progressNone}</p>
           <button type="button" data-swap-roles>${STUDENT_COPY.handoff.buttonLabel}</button>
         </div>
         <article class="creator__audience-brief" id="studio-full-brief" role="region" aria-label="${STUDENT_COPY.labels.audienceBrief}" hidden>
-          <div class="creator__role-detail">
-            <p><strong>Your move</strong><span data-active-role-action>${STUDENT_COPY.rolePrompts["art-director"].productiveAction}</span></p>
-            <p><strong>Partner move</strong><span data-partner-role-action>${STUDENT_COPY.rolePrompts.strategist.holdingAction}</span></p>
-          </div>
           <dl>
             <div><dt>${STUDENT_COPY.labels.context}</dt><dd data-audience-context></dd></div>
             <div><dt>${STUDENT_COPY.labels.need}</dt><dd data-audience-need></dd></div>
@@ -77,9 +85,10 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           <button type="button" role="tab" aria-selected="false" aria-controls="studio-panel-words" tabindex="-1" aria-label="Words" data-glyph="Aa" data-studio-tool="words">Words</button>
           <button type="button" role="tab" aria-selected="false" aria-controls="studio-panel-logo" tabindex="-1" aria-label="Logo" data-glyph="◎" data-studio-tool="logo">Logo</button>
           <button type="button" role="tab" aria-selected="false" aria-controls="studio-panel-image" tabindex="-1" aria-label="Image" data-glyph="▧" data-studio-tool="image">Image</button>
-          <button type="button" role="tab" aria-selected="false" aria-controls="studio-panel-price" tabindex="-1" aria-label="Price" data-glyph="$" data-studio-tool="price" data-creator-feature="money">Price</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="studio-panel-price" tabindex="-1" aria-label="Price" data-glyph="$" data-studio-tool="price" data-creator-feature="price">Price</button>
           <button type="button" role="tab" aria-selected="false" aria-controls="studio-panel-route" tabindex="-1" aria-label="Route" data-glyph="↗" data-studio-tool="route" data-creator-feature="route">Route</button>
           <button type="button" role="tab" aria-selected="false" aria-controls="studio-panel-aida" tabindex="-1" aria-label="AIDA" data-glyph="A" data-studio-tool="aida" data-creator-feature="aida">AIDA</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="studio-panel-coach" tabindex="-1" aria-label="Coach" data-glyph="?" data-studio-tool="coach" data-creator-feature="coach">Coach</button>
         </nav>
         <aside class="creator__library creator__tool-drawer" aria-label="Studio drawer" data-studio-drawer>
           <button type="button" class="creator__drawer-collapse" data-studio-collapse aria-label="Hide library">Hide library</button>
@@ -130,7 +139,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
             <h2>Image Lab</h2>
             <div data-image-lab-panel><p role="status">Image options loading</p></div>
           </section>
-          <section class="creator__tool-panel creator__money-check" id="studio-panel-price" role="region" aria-label="Money check" data-studio-panel="price" data-creator-feature="money" hidden>
+          <section class="creator__tool-panel creator__money-check" id="studio-panel-price" role="region" aria-label="Money check" data-studio-panel="price" data-creator-feature="price" hidden>
             <h2>Price your idea</h2>
             <div data-money-check-panel><p role="status">Price data loading</p></div>
           </section>
@@ -142,9 +151,19 @@ export function createEditorShell(root: HTMLElement): EditorShell {
             <h2>AIDA move deck</h2>
             <div data-aida-playbook-panel><p role="status">Move deck shuffling</p></div>
           </section>
+          <section class="creator__tool-panel creator__studio-coach" id="studio-panel-coach" role="region" aria-label="Studio Coach" data-studio-panel="coach" data-creator-feature="coach" hidden>
+            <h2>Studio Coach</h2>
+            <div data-studio-coach-panel><p role="status">Coach guide loading</p></div>
+          </section>
         </aside>
         <main class="creator__canvas" role="region" aria-label="Campaign canvas" tabindex="-1">
           <p class="creator__canvas-label" aria-hidden="true">LIVE AD</p>
+          <div class="creator__canvas-size" role="group" aria-label="Selected product or image size">
+            <button type="button" data-canvas-zoom="out" aria-label="Make selected product or image smaller" title="Make selected product or image smaller">−</button>
+            <button type="button" data-canvas-zoom="fill" aria-label="Fill ad with selected image" title="Fill the ad, then drag the image to choose the crop">Fill ad</button>
+            <button type="button" data-canvas-zoom="in" aria-label="Make selected product or image larger" title="Make selected product or image larger">+</button>
+            <span role="status" data-canvas-zoom-status>Select a product or image</span>
+          </div>
           <div class="creator__canvas-empty" role="status" aria-label="Empty canvas" data-canvas-empty-state>
             <div class="creator__canvas-empty-card">
               <span class="creator__canvas-empty-mark" aria-hidden="true">✦</span>
@@ -179,9 +198,11 @@ export function createEditorShell(root: HTMLElement): EditorShell {
     marketRoutePanel: root.querySelector('[data-market-route-panel]')!,
     aidaPlaybookPanel: root.querySelector('[data-aida-playbook-panel]')!,
     imageLabPanel: root.querySelector('[data-image-lab-panel]')!,
+    studioCoachPanel: root.querySelector('[data-studio-coach-panel]')!,
     logoLabPanel: root.querySelector('[data-logo-lab-panel]')!,
     activeRole: root.querySelector('[data-active-role]')!,
     activeRoleAction: root.querySelector('[data-active-role-action]')!,
+    partnerRole: root.querySelector('[data-partner-role]')!,
     partnerRoleAction: root.querySelector('[data-partner-role-action]')!,
     roundProgress: root.querySelector('[data-round-progress]')!,
     swapRoles: root.querySelector('[data-swap-roles]')!,
@@ -205,6 +226,10 @@ export function createEditorShell(root: HTMLElement): EditorShell {
     canvasRegion: root.querySelector(".creator__canvas")!,
     canvasEmptyState: root.querySelector('[data-canvas-empty-state]')!,
     canvas: root.querySelector("canvas")!,
+    zoomOut: root.querySelector('[data-canvas-zoom="out"]')!,
+    zoomFill: root.querySelector('[data-canvas-zoom="fill"]')!,
+    zoomIn: root.querySelector('[data-canvas-zoom="in"]')!,
+    zoomStatus: root.querySelector('[data-canvas-zoom-status]')!,
     inspector: root.querySelector(".creator__inspector")!,
     layers: root.querySelector(".creator__layers")!,
     polite: root.querySelector('[data-live="polite"]')!,

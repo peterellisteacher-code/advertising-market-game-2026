@@ -4,6 +4,7 @@ signal snapshot_received(snapshot: Dictionary)
 signal artwork_received(artwork_key: String, png_bytes: PackedByteArray)
 signal diagnostic(message: String)
 signal purchase_completed(result: Dictionary)
+signal award_completed(result: Dictionary)
 signal control_completed(action: String, result: Dictionary)
 signal campaign_published(result: Dictionary)
 
@@ -29,7 +30,11 @@ var _campaigns: Array[Dictionary] = []
 var _artwork_bytes: Dictionary = {}
 
 func configure(game_run: RefCounted, publication: Dictionary, alias: String) -> Dictionary:
-    if game_run == null or str(game_run.get("phase")) != "market":
+    if (
+        game_run == null
+        or str(game_run.get("phase")) != "market"
+        or str(game_run.get("market_mode")) != "medals"
+    ):
         diagnostic.emit("Practice market is not ready")
         return {}
     var trimmed_alias := alias.strip_edges()
@@ -92,32 +97,56 @@ func snapshot() -> Dictionary:
     }]
     for team_value in SEED_TEAMS:
         teams.append(Dictionary(team_value).duplicate(true))
-    var receipts: Array[Dictionary] = []
-    var purchases: Array[Dictionary] = _game_run.call("purchases")
-    for index in purchases.size():
-        var purchase: Dictionary = purchases[index]
-        receipts.append({
-            "id": "practice-receipt-%d" % (index + 1),
-            "campaignId": str(purchase.get("campaignId")),
-            "sellerTeamId": str(purchase.get("sellerTeamId")),
-            "price": int(purchase.get("priceCents")),
-            "purchasedAt": index + 1
+    var awards: Array[Dictionary] = []
+    var game_awards: Array[Dictionary] = _game_run.call("awards")
+    for index in game_awards.size():
+        var award_record: Dictionary = game_awards[index]
+        var medal := str(award_record.get("medal"))
+        awards.append({
+            "id": "practice-award-%s" % medal,
+            "campaignId": str(award_record.get("campaignId")),
+            "sellerTeamId": str(award_record.get("sellerTeamId")),
+            "medal": medal,
+            "awardedAt": index + 1
         })
     return {
         "roomId": "practice-room",
         "revision": _revision,
         "phase": str(_game_run.get("phase")),
+        "marketMode": "medals",
         "own": {
             "teamId": str(_game_run.get("team_id")),
             "alias": _alias,
-            "wallet": int(_game_run.get("wallet_cents")),
-            "spent": int(_game_run.call("spent_cents")),
             "finished": str(_game_run.get("phase")) == "reveal"
         },
         "teams": teams,
         "campaigns": _campaigns.duplicate(true),
-        "myPurchases": receipts
+        "myPurchases": [],
+        "myAwards": awards
     }
+
+func award(campaign_id: String, medal: String) -> String:
+    if _game_run == null:
+        return ""
+    var campaign := _campaign_by_id(campaign_id)
+    if campaign.is_empty() or not _game_run.call(
+        "award",
+        campaign_id,
+        str(campaign.get("sellerTeamId")),
+        medal
+    ):
+        diagnostic.emit(str(_game_run.get("last_error")))
+        return ""
+    _revision += 1
+    var request_id := "practice-award-%d" % _revision
+    var result := {
+        "campaignId": campaign_id,
+        "medal": medal,
+        "requestId": request_id
+    }
+    award_completed.emit(result.duplicate(true))
+    snapshot_received.emit(snapshot())
+    return request_id
 
 func purchase(campaign_id: String, request_id: String) -> String:
     if _game_run == null or request_id.is_empty():
@@ -138,7 +167,7 @@ func purchase(campaign_id: String, request_id: String) -> String:
     return request_id
 
 func finish() -> String:
-    if _game_run == null or not _game_run.call("finish_shopping"):
+    if _game_run == null or not _game_run.call("finish_market"):
         if _game_run != null:
             diagnostic.emit(str(_game_run.get("last_error")))
         return ""

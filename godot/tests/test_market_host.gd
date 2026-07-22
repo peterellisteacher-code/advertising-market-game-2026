@@ -20,6 +20,7 @@ func run() -> bool:
     var controls: Array[Dictionary] = []
     var publications: Array[Dictionary] = []
     var purchases: Array[Dictionary] = []
+    var awards: Array[Dictionary] = []
     var rooms_created: Array[Dictionary] = []
     var rooms_joined: Array[Dictionary] = []
     var artwork_events: Array[Dictionary] = []
@@ -42,6 +43,7 @@ func run() -> bool:
     )
     host.campaign_published.connect(func(result: Dictionary) -> void: publications.append(result))
     host.purchase_completed.connect(func(result: Dictionary) -> void: purchases.append(result))
+    host.award_completed.connect(func(result: Dictionary) -> void: awards.append(result))
     host.artwork_received.connect(func(artwork_key: String, png_bytes: PackedByteArray) -> void:
         artwork_events.append({"artworkKey": artwork_key, "pngBytes": png_bytes})
     )
@@ -98,6 +100,16 @@ func run() -> bool:
     assert(purchases.size() == 1)
     assert(game_input.process_mode == Node.PROCESS_MODE_ALWAYS)
     assert(focus_restores[0] == 3)
+
+    var award_id := host.award("campaign-c", "gold")
+    assert(fake.request_for(award_id).get("method") == "award")
+    assert(fake.request_for(award_id).get("payload").get("campaignId") == "campaign-c")
+    assert(fake.request_for(award_id).get("payload").get("medal") == "gold")
+    fake.resolve_success(award_id, {
+        "postcondition": {"kind": "award", "campaignId": "campaign-c", "medal": "gold"},
+        "snapshot": snapshot
+    })
+    assert(awards.size() == 1)
 
     var before_artwork_requests := fake.request_count()
     var focus_before_artwork: int = focus_restores[0]

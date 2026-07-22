@@ -56,6 +56,7 @@ describe("FabricObjectFactory", () => {
     });
 
     expect(object.editable).toBe(false);
+    expect(object.toObject()).toMatchObject({ editable: false });
   });
 
   it("creates a bounded shape with application metadata", () => {

@@ -20,7 +20,8 @@ import type {
   NewProductVariantInput,
   NewRasterInput,
   NewShapeInput,
-  NewTextInput
+  NewTextInput,
+  ObjectTransform
 } from "../fabric/canvas-port";
 import { campaignSemanticObjectMap } from "../domain/campaign-semantic-objects";
 import { parseProductBuilderCatalogue } from "../product-builder/product-builder-catalogue";
@@ -612,7 +613,13 @@ class PlacementCanvas implements CanvasPort {
       elementKind: "image",
       assetId: input.assetId,
       accessibleName: input.accessibleName,
-      src: new URL(input.sameOriginUrl, window.location.href).href
+      src: new URL(input.sameOriginUrl, window.location.href).href,
+      width: 1_024,
+      height: 576,
+      left: 800,
+      top: 450,
+      scaleX: 0.625,
+      scaleY: 0.625
     });
   }
   async addLogoMark(_input: NewLogoMarkInput): Promise<void> { throw new Error("not used"); }
@@ -735,7 +742,17 @@ class PlacementCanvas implements CanvasPort {
   setText(): void {}
   async addText(): Promise<void> { throw new Error("not used"); }
   async addShape(): Promise<void> { throw new Error("not used"); }
-  transform(): void {}
+  transform(id: string, patch: Partial<ObjectTransform>): void {
+    const object = this.objects.find((candidate) => candidate.objectId === id);
+    if (!object) throw new Error(`Missing object ${id}`);
+    if (patch.x !== undefined) object.left = patch.x;
+    if (patch.y !== undefined) object.top = patch.y;
+    if (patch.scaleX !== undefined) object.scaleX = patch.scaleX;
+    if (patch.scaleY !== undefined) object.scaleY = patch.scaleY;
+    if (patch.angle !== undefined) object.angle = patch.angle;
+    if (patch.flipX !== undefined) object.flipX = patch.flipX;
+    if (patch.flipY !== undefined) object.flipY = patch.flipY;
+  }
   assertCanDuplicate(): void {}
   async duplicate(): Promise<void> {}
   move(): void {}
@@ -1406,6 +1423,49 @@ describe("CataloguePlacementQueue", () => {
     }));
     rehydrated.release();
     expect(reloadRevoke).toHaveBeenCalledWith(reloadedUrl);
+  });
+
+  it("fills the ad with a Make It Real result while leaving it movable and zoomable", async () => {
+    const canvas = new PlacementCanvas();
+    let document: CampaignDocumentV1 = createBlankCampaignDocument({
+      documentId: "realised-placement-document",
+      sessionId: "realised-placement-session",
+      mode: "offline"
+    });
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit: (next) => { document = next; },
+      createObjectId: () => "realised-product",
+      createObjectURL: () => `blob:${window.location.origin}/realised-product`
+    });
+
+    queue.enqueueGeneratedRaster({
+      assetId: "realised-asset",
+      title: "Realistic Orbit tumbler",
+      blob: new Blob([Uint8Array.from([1])], { type: "image/webp" }),
+      stage: "make-it-real",
+      profileId: "real-product-v1",
+      requestId: "realise-request"
+    });
+    await queue.flush();
+
+    expect(canvas.objects).toContainEqual(expect.objectContaining({
+      objectId: "realised-product",
+      left: 800,
+      top: 450,
+      scaleX: 1.5625,
+      scaleY: 1.5625
+    }));
+    expect(document.fabricState).toMatchObject({
+      objects: [expect.objectContaining({
+        objectId: "realised-product",
+        left: 800,
+        top: 450,
+        scaleX: 1.5625,
+        scaleY: 1.5625
+      })]
+    });
   });
 
   it("keeps generated and catalogue raster placement on one serial tail", async () => {

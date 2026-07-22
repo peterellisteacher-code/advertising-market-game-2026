@@ -9,6 +9,7 @@ import type {
   CanvasSelectionSnapshot
 } from "../fabric/canvas-port";
 import { ObjectCommandService } from "../fabric/object-command-service";
+import { fillCanvasWithRaster } from "../tools/canvas-object-zoom";
 import type { ProductArtwork } from "../product-builder/product-svg-composer";
 import {
   createProductBuildSnapshot,
@@ -293,7 +294,7 @@ export interface GeneratedRasterPlacement {
 }
 
 function errorFrom(value: unknown): Error {
-  return value instanceof Error ? value : new Error("Catalogue placement failed");
+  return value instanceof Error ? value : new Error("Catalogue placement failed.");
 }
 
 function requiredGeneratedText(value: unknown, label: string): string {
@@ -614,7 +615,7 @@ export class CataloguePlacementQueue {
           } catch (rollbackError) {
             failure = new AggregateError(
               [failure, errorFrom(rollbackError)],
-              "Catalogue placement rollback failed"
+              "Catalogue placement rollback failed."
             );
           }
         }
@@ -795,11 +796,15 @@ export class CataloguePlacementQueue {
         sameOriginUrl: objectUrl,
         accessibleName: generated.title
       });
-      const fabricState = commands.serialize();
+      let fabricState = commands.serialize();
       const object = campaignSemanticObjectMap(fabricState).get(objectId);
       if (!object || object.path.length !== 1 || object.elementKind !== "image" ||
         object.assetId !== generated.assetId || object.object.accessibleName !== generated.title) {
         throw new Error("Placed generated raster did not reconcile with the canvas");
+      }
+      if (generated.stage === "make-it-real") {
+        fillCanvasWithRaster(canvas, objectId);
+        fabricState = commands.serialize();
       }
       const next = parseCampaignDocument({
         ...structuredClone(current),

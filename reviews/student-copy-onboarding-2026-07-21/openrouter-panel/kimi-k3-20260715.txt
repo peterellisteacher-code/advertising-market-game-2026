@@ -1,0 +1,6 @@
+tool call error: tool call failed for `openrouter/send-message`
+
+Caused by:
+    timed out awaiting tools/call after 300s
+
+

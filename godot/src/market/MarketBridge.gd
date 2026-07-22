@@ -27,6 +27,7 @@ const HEXADECIMAL := "0123456789abcdefABCDEF"
 const MARKET_ID_SUFFIX := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._:-"
 const ARTWORK_KEY_SUFFIX := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._:/-"
 const REVIEW_STATUSES := ["approved", "returned", "hidden"]
+const MEDALS := ["gold", "silver", "bronze"]
 const CONTROL_ACTIONS := ["openMarket", "openReveal", "closeMarket", "removeTeam"]
 
 var transport: RefCounted
@@ -93,6 +94,23 @@ func purchase(campaign_id: Variant, purchase_request_id: Variant) -> String:
         "campaignId": str(campaign_id),
         "requestId": str(purchase_request_id)
     })
+
+func award(campaign_id: Variant, medal: Variant, command_id: Variant) -> String:
+    if not _is_market_id(campaign_id):
+        return _reject_input("campaignId is invalid")
+    if typeof(medal) != TYPE_STRING or not MEDALS.has(str(medal)):
+        return _reject_input("medal must be gold, silver, or bronze")
+    if not _is_uuid(command_id):
+        return _reject_input("commandId must be a UUID")
+    return _send(
+        "award",
+        {
+            "commandId": str(command_id),
+            "campaignId": str(campaign_id),
+            "medal": str(medal)
+        },
+        {"commandId": str(command_id)}
+    )
 
 func finish(command_id: Variant) -> String:
     if not _is_uuid(command_id):
@@ -508,10 +526,15 @@ func _validate_snapshot(value: Variant) -> Dictionary:
         or not ["building", "market", "reveal", "closed"].has(str(snapshot.get("phase")))
     ):
         return {"ok": false, "message": "Snapshot phase is invalid"}
-    for key in ["revision", "openingWallet", "walletCents", "spentCents"]:
+    if snapshot.has("marketMode") and (
+        typeof(snapshot.get("marketMode")) != TYPE_STRING
+        or not ["purchases", "medals"].has(str(snapshot.get("marketMode")))
+    ):
+        return {"ok": false, "message": "Snapshot marketMode is invalid"}
+    for key in ["revision", "openingWallet", "walletCents", "spentCents", "awardCount"]:
         if snapshot.has(key) and not _is_nonnegative_integer_number(snapshot.get(key)):
             return {"ok": false, "message": "Snapshot %s must be a non-negative integer" % key}
-    for key in ["teams", "campaigns", "purchases", "receipts", "rankings"]:
+    for key in ["teams", "campaigns", "purchases", "receipts", "rankings", "myPurchases", "myAwards"]:
         if snapshot.has(key) and typeof(snapshot.get(key)) != TYPE_ARRAY:
             return {"ok": false, "message": "Snapshot %s must be an array" % key}
     var has_max_teams := snapshot.has("maxTeams")

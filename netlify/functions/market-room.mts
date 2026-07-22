@@ -12,6 +12,7 @@ import {
   ArtworkKeySchema,
   MARKET_LIMITS,
   MarketIdSchema,
+  MedalSchema,
   PriceSchema
 } from "./lib/market-contracts";
 import {
@@ -24,6 +25,7 @@ import {
 } from "./lib/market-http";
 import { MarketPngError, validateMarketPng } from "./lib/market-png";
 import {
+  awardCampaign,
   closeMarket,
   finishTeam,
   openMarket,
@@ -48,6 +50,7 @@ const ROUTE_METHODS = new Map<string, readonly string[]>([
   ["/api/market/snapshot", ["GET"]],
   ["/api/market/artwork", ["GET", "PUT"]],
   ["/api/market/publish", ["POST"]],
+  ["/api/market/award", ["POST"]],
   ["/api/market/purchase", ["POST"]],
   ["/api/market/finish", ["POST"]],
   ["/api/market/review", ["POST"]],
@@ -90,6 +93,12 @@ const PublishBodySchema = z.object({
 const PurchaseBodySchema = z.object({
   campaignId: MarketIdSchema,
   requestId: MarketIdSchema
+}).strict();
+
+const AwardBodySchema = z.object({
+  commandId: MarketIdSchema,
+  campaignId: MarketIdSchema,
+  medal: MedalSchema
 }).strict();
 
 const FinishBodySchema = z.object({ commandId: MarketIdSchema }).strict();
@@ -355,6 +364,41 @@ export function createMarketRoomHandler(
         });
       }
 
+      if (url.pathname === "/api/market/award") {
+        const team = requireRole(session, "team");
+        const raw = await readMarketJson(request);
+        const body = parseBody(() => AwardBodySchema.parse(raw));
+        const receiptId = newId();
+        const awarded = await service.mutate(team.roomCode, now, (state) => {
+          const result = awardCampaign(state, {
+            expectedRevision: state.revision,
+            commandId: body.commandId,
+            voterTeamId: team.teamId,
+            campaignId: body.campaignId,
+            medal: body.medal,
+            receiptId,
+            now
+          });
+          return {
+            state: result.state,
+            result: commandOutcome(
+              state.revision,
+              result.state,
+              `team:${team.teamId}`,
+              body.commandId
+            )
+          };
+        });
+        if (awarded.result.postcondition.kind !== "award") {
+          throw new Error("Award receipt had the wrong postcondition");
+        }
+        return marketJson({
+          replayed: awarded.result.replayed,
+          postcondition: awarded.result.postcondition,
+          snapshot: teamMarketSnapshot(awarded.state, team.teamId)
+        });
+      }
+
       if (url.pathname === "/api/market/finish") {
         const team = requireRole(session, "team");
         const raw = await readMarketJson(request);
@@ -441,6 +485,7 @@ export const config: Config = {
     "/api/market/snapshot",
     "/api/market/artwork",
     "/api/market/publish",
+    "/api/market/award",
     "/api/market/purchase",
     "/api/market/finish",
     "/api/market/review",

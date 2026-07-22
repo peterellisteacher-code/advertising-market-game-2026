@@ -155,7 +155,13 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
         elementKind: "image",
         assetId: input.assetId,
         accessibleName: input.accessibleName,
-        src: new URL(input.sameOriginUrl, window.location.href).href
+        src: new URL(input.sameOriginUrl, window.location.href).href,
+        width: 1_024,
+        height: 576,
+        left: 800,
+        top: 450,
+        scaleX: 0.625,
+        scaleY: 0.625
       });
       runtime.listeners.forEach((listener) => listener({
         type: "added",
@@ -396,6 +402,28 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
       object.text = value;
       if (accessibleName !== undefined) object.accessibleName = accessibleName;
       if (editable !== undefined) object.editable = editable;
+      runtime.listeners.forEach((listener) => listener({ type: "modified", objectId: id }));
+    }
+
+    transform(id: string, patch: {
+      x?: number;
+      y?: number;
+      scaleX?: number;
+      scaleY?: number;
+      angle?: number;
+      flipX?: boolean;
+      flipY?: boolean;
+    }): void {
+      const object = (runtime.state.objects as Array<Record<string, unknown>>)
+        .find((candidate) => candidate.objectId === id);
+      if (!object) throw new Error(`Missing object ${id}`);
+      if (patch.x !== undefined) object.left = patch.x;
+      if (patch.y !== undefined) object.top = patch.y;
+      if (patch.scaleX !== undefined) object.scaleX = patch.scaleX;
+      if (patch.scaleY !== undefined) object.scaleY = patch.scaleY;
+      if (patch.angle !== undefined) object.angle = patch.angle;
+      if (patch.flipX !== undefined) object.flipX = patch.flipX;
+      if (patch.flipY !== undefined) object.flipY = patch.flipY;
       runtime.listeners.forEach((listener) => listener({ type: "modified", objectId: id }));
     }
 
@@ -800,7 +828,7 @@ async function parsed(
   return CreatorResponseSchema.parse(JSON.parse(await api.handle(request(requestId, method, payload))));
 }
 
-function activateStudioTool(tool: "product" | "assets" | "words" | "logo" | "image" | "price" | "aida"): void {
+function activateStudioTool(tool: "product" | "assets" | "words" | "logo" | "image" | "price" | "aida" | "coach"): void {
   const tab = document.querySelector<HTMLButtonElement>(`[data-studio-tool="${tool}"]`);
   if (!tab) throw new Error(`Missing Studio tool tab: ${tool}`);
   fireEvent.click(tab);
@@ -1120,6 +1148,91 @@ describe("window.AdMarketCreator", () => {
     expect(runtime.canvasConstructed).not.toHaveBeenCalled();
   });
 
+  it("lets students resize and fill the ad with the selected product image as undoable changes", async () => {
+    const documentWithImage = CampaignDocumentSchema.parse({
+      ...structuredClone(blankDocument),
+      fabricState: {
+        version: "7.4.0",
+        objects: [{
+          type: "image",
+          objectId: "zoom-image",
+          elementKind: "image",
+          accessibleName: "Orbit tumbler",
+          assetId: "orbit-tumbler",
+          src: "/catalog/orbit.png",
+          width: 800,
+          height: 600,
+          left: 400,
+          top: 300,
+          scaleX: 0.5,
+          scaleY: 0.5
+        }]
+      }
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-zoom", "open", documentWithImage))
+      .toMatchObject({ ok: true });
+    runtime.selectedObjectId = "zoom-image";
+
+    fireEvent.click(getByRole(document.body, "button", {
+      name: "Make selected product or image larger"
+    }));
+    await waitFor(() => {
+      expect(currentObjects()[0]).toMatchObject({ scaleX: 0.6, scaleY: 0.6 });
+      expect(document.querySelector('[data-canvas-zoom-status]')?.textContent)
+        .toBe("Size 60% · drag to position");
+    });
+
+    fireEvent.click(getByRole(document.body, "button", {
+      name: "Make selected product or image smaller"
+    }));
+    await waitFor(() => expect(currentObjects()[0]).toMatchObject({
+      scaleX: 0.5,
+      scaleY: 0.5
+    }));
+
+    fireEvent.click(getByRole(document.body, "button", { name: "Fill ad with selected image" }));
+    await waitFor(() => {
+      expect(currentObjects()[0]).toMatchObject({
+        left: 800,
+        top: 450,
+        scaleX: 2,
+        scaleY: 2
+      });
+      expect(document.querySelector('[data-canvas-zoom-status]')?.textContent)
+        .toBe("Ad filled · drag to choose the crop");
+    });
+
+    fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));
+    await waitFor(() => expect(currentObjects()[0]).toMatchObject({
+      left: 400,
+      top: 300,
+      scaleX: 0.5,
+      scaleY: 0.5
+    }));
+  });
+
+  it("starts and clears one Studio Coach session with the open Level 2 campaign", async () => {
+    await import("./main");
+    const api = (window as Window & { AdMarketCreator: CreatorPublicApi }).AdMarketCreator;
+    const source = documentAtStage("sell");
+    source.product.name = "Orbit Tumbler";
+    source.product.priceCents = 2400;
+
+    expect(await parsed(api, "open-coach", "open", source)).toMatchObject({ ok: true });
+    activateStudioTool("coach");
+
+    expect(getByRole(document.body, "button", { name: "Check this technique (1 of 2)" }))
+      .toBeTruthy();
+    expect(document.querySelector('[data-studio-tool="coach"]')?.getAttribute("aria-selected"))
+      .toBe("true");
+
+    expect(await parsed(api, "close-coach", "close", null)).toMatchObject({ ok: true });
+    expect(document.querySelector('[data-studio-coach-panel]')?.textContent)
+      .not.toContain("Check this technique");
+  });
+
   it("installs the recovery seam before an unrelated Studio initializer can fail", async () => {
     const originalFetch = globalThis.fetch;
     Object.defineProperty(globalThis, "fetch", {
@@ -1261,6 +1374,10 @@ describe("window.AdMarketCreator", () => {
     });
     fireEvent.click(getByRole(document.body, "button", { name: "Add price to design" }));
     await waitFor(() => expect(currentObjects()).toHaveLength(2));
+    await waitFor(() => {
+      expect(document.querySelector('[data-live="polite"]')?.textContent)
+        .toBe("$10.00 added to the design. Return to the game to see the next step.");
+    });
     const first = await parsed(api, "price-first-label", "getState", null);
     if (!first.ok) throw new Error(JSON.stringify(first.error));
     const firstState = CampaignDocumentSchema.parse(first.payload);
@@ -1269,7 +1386,9 @@ describe("window.AdMarketCreator", () => {
       .toMatchObject({
         text: "$10.00",
         accessibleName: "Market price $10.00",
-        editable: false
+        editable: false,
+        left: 1320,
+        top: 790
       });
 
     fireEvent.input(price, { target: { value: "20" } });
@@ -1437,7 +1556,7 @@ describe("window.AdMarketCreator", () => {
           text: "Make room for adventure"
         })
       ]);
-      expect(getByRole(document.body, "status", { name: "Round progress" }).textContent)
+      expect(getByRole(document.body, "status", { name: "Pair progress" }).textContent)
         .toBe("1 visible change");
     });
 
@@ -1448,21 +1567,23 @@ describe("window.AdMarketCreator", () => {
 
     await waitFor(() => {
       expect(currentObjects()).toHaveLength(2);
-      expect(getByRole(document.body, "status", { name: "Round progress" }).textContent)
-        .toBe("Both roles made a change");
+      expect(getByRole(document.body, "status", { name: "Pair progress" }).textContent)
+        .toBe("Both roles contributed.");
+      expect(document.querySelector("[data-active-role-action]")?.textContent)
+        .toBe("Follow the highlighted tool step.");
     });
 
     fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));
     await waitFor(() => {
       expect(currentObjects()).toHaveLength(1);
       expect(document.querySelector('[data-live="polite"]')?.textContent)
-        .toBe("Undid last change");
+        .toBe("Undid last change.");
     });
     fireEvent.click(getByRole(document.body, "button", { name: "Redo" }));
     await waitFor(() => {
       expect(currentObjects()).toHaveLength(2);
       expect(document.querySelector('[data-live="polite"]')?.textContent)
-        .toBe("Redid last change");
+        .toBe("Redid last change.");
     });
 
     expect((await parsed(api, "round-zero-state", "getState", null)).payload).toMatchObject({
@@ -1897,7 +2018,7 @@ describe("window.AdMarketCreator", () => {
     expect(undone.assetReferences).toEqual(before.assetReferences);
     expect(undone.product.build).toEqual(before.product.build);
     expect(document.querySelector('[data-live="polite"]')?.textContent)
-      .toBe("Undid last change");
+      .toBe("Undid last change.");
 
     expect(await parsed(api, "history-save-undone", "save", null)).toMatchObject({ ok: true });
     const undoneSaveBlobs = runtime.save.mock.calls.at(-1)?.[1] as ReadonlyMap<string, Blob>;
@@ -1913,7 +2034,7 @@ describe("window.AdMarketCreator", () => {
     expect(redone.assetReferences).toEqual(placed.assetReferences);
     expect(redone.product.build).toEqual(placed.product.build);
     expect(document.querySelector('[data-live="polite"]')?.textContent)
-      .toBe("Redid last change");
+      .toBe("Redid last change.");
 
     expect(await parsed(api, "history-save-redone", "save", null)).toMatchObject({ ok: true });
     const redoSaveBlobs = runtime.save.mock.calls.at(-1)?.[1] as ReadonlyMap<string, Blob>;
@@ -2053,9 +2174,8 @@ describe("window.AdMarketCreator", () => {
       blueprintId: "pk1-tumbler-kit",
       unitCostCents: 550
     });
-    activateStudioTool("price");
-    expect(getByRole(document.body, "region", { name: "Money check" }).textContent)
-      .toContain("Build cost$5.50");
+    expect(getByRole(document.body, "region", { name: "Product builder" }).textContent)
+      .toContain("Total: $5.50");
 
     const placedRoot = structuredClone(rootObject);
     const placedReference = structuredClone(reference);

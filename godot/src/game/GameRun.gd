@@ -6,17 +6,20 @@ const PITCH_SNAPSHOT_CONTRACT := "pitch-run@1"
 const MINIMUM_SELLERS := 2
 const MINIMUM_SPEND_PERCENT := 80
 const MAX_WALLET_CENTS := 1000000
+const MEDALS := ["gold", "silver", "bronze"]
 
 var phase := "lobby"
 var team_alias := ""
 var session_id := ""
 var team_id := ""
 var wallet_cents := 0
+var market_mode := ""
 var last_error := ""
 
 var _starting_wallet_cents := 0
 var _ready_levels: Dictionary = {}
 var _purchases: Array[Dictionary] = []
+var _awards: Dictionary = {}
 
 func begin(alias: String, next_session_id: String, next_team_id: String) -> bool:
     if phase != "lobby":
@@ -110,7 +113,9 @@ func restore_pitch_snapshot(value: Variant) -> bool:
     _ready_levels = next_ready_levels
     _starting_wallet_cents = 0
     wallet_cents = 0
+    market_mode = ""
     _purchases.clear()
+    _awards.clear()
     return _succeed()
 
 func advance_level() -> bool:
@@ -129,13 +134,28 @@ func open_market(starting_wallet_cents: int) -> bool:
         return _fail("Market wallet is outside the safe game range")
     _starting_wallet_cents = starting_wallet_cents
     wallet_cents = starting_wallet_cents
+    market_mode = "purchases"
     _purchases.clear()
+    _awards.clear()
+    phase = "market"
+    return _succeed()
+
+func open_medal_market() -> bool:
+    if phase != "publish-check":
+        return _fail("The market opens after all three levels")
+    _starting_wallet_cents = 0
+    wallet_cents = 0
+    market_mode = "medals"
+    _purchases.clear()
+    _awards.clear()
     phase = "market"
     return _succeed()
 
 func purchase(campaign_id: String, seller_team_id: String, price_cents: int) -> bool:
     if phase != "market":
         return _fail("Shopping is not open")
+    if market_mode != "purchases":
+        return _fail("This market awards medals instead of purchases")
     if not _safe_id(campaign_id) or not _safe_id(seller_team_id):
         return _fail("Product and seller IDs must be safe non-empty values")
     if seller_team_id == team_id:
@@ -155,9 +175,35 @@ func purchase(campaign_id: String, seller_team_id: String, price_cents: int) -> 
     wallet_cents -= price_cents
     return _succeed()
 
+func award(campaign_id: String, seller_team_id: String, medal: String) -> bool:
+    if phase != "market":
+        return _fail("Medal voting is not open")
+    if market_mode != "medals":
+        return _fail("This saved market uses purchases instead of medals")
+    if not _safe_id(campaign_id) or not _safe_id(seller_team_id):
+        return _fail("Campaign and seller IDs must be safe non-empty values")
+    if seller_team_id == team_id:
+        return _fail("You cannot award your own campaign")
+    if not MEDALS.has(medal):
+        return _fail("Choose Gold, Silver or Bronze")
+    for existing_medal in MEDALS:
+        if existing_medal == medal or not _awards.has(existing_medal):
+            continue
+        var existing: Dictionary = _awards.get(existing_medal)
+        if str(existing.get("campaignId")) == campaign_id:
+            return _fail("Each medal must go to a different campaign")
+    _awards[medal] = {
+        "campaignId": campaign_id,
+        "sellerTeamId": seller_team_id,
+        "medal": medal
+    }
+    return _succeed()
+
 func finish_shopping() -> bool:
     if phase != "market":
         return _fail("Shopping is not open")
+    if market_mode != "purchases":
+        return _fail("This market awards medals instead of purchases")
     var sellers: Dictionary = {}
     for purchase_record in _purchases:
         sellers[purchase_record.get("sellerTeamId")] = true
@@ -168,11 +214,31 @@ func finish_shopping() -> bool:
     phase = "reveal"
     return _succeed()
 
+func finish_market() -> bool:
+    if phase != "market":
+        return _fail("Market choices are not open")
+    if market_mode == "purchases":
+        return finish_shopping()
+    if market_mode != "medals":
+        return _fail("Market mode is unavailable")
+    for medal in MEDALS:
+        if not _awards.has(medal):
+            return _fail("Award Gold, Silver and Bronze before finishing")
+    phase = "reveal"
+    return _succeed()
+
 func spent_cents() -> int:
     return _starting_wallet_cents - wallet_cents
 
 func purchases() -> Array[Dictionary]:
     return _purchases.duplicate(true)
+
+func awards() -> Array[Dictionary]:
+    var result: Array[Dictionary] = []
+    for medal in MEDALS:
+        if _awards.has(medal):
+            result.append(Dictionary(_awards.get(medal)).duplicate(true))
+    return result
 
 func _safe_id(value: String) -> bool:
     return not value.is_empty() and value == value.strip_edges() and value.length() <= 100

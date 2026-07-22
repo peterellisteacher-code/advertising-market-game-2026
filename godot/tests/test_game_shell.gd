@@ -374,7 +374,7 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
 
     var accessible_normal := Color("#b63a15")
     var accessible_hover := Color("#c3471b")
-    for button in [join_live, create_live, launch, publish]:
+    for button in [start, create_live, launch, publish]:
         var normal := button.get_theme_stylebox("normal") as StyleBoxFlat
         var hover := button.get_theme_stylebox("hover") as StyleBoxFlat
         assert(normal != null)
@@ -385,10 +385,13 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
         assert(_contrast_with_white(hover.bg_color) >= 4.5)
 
     assert(start.text == "Practice on this computer")
-    var practice_style := start.get_theme_stylebox("normal") as StyleBoxFlat
-    assert(practice_style != null)
-    assert(practice_style.bg_color.is_equal_approx(Color("#17212b")))
-    assert(_contrast_with_white(practice_style.bg_color) >= 4.5)
+    var join_style := join_live.get_theme_stylebox("normal") as StyleBoxFlat
+    var join_hover_style := join_live.get_theme_stylebox("hover") as StyleBoxFlat
+    assert(join_style != null)
+    assert(join_hover_style != null)
+    assert(join_style.bg_color.is_equal_approx(Color("#17212b")))
+    assert(join_hover_style.bg_color.is_equal_approx(Color("#17212b")))
+    assert(_contrast_with_white(join_style.bg_color) >= 4.5)
 
     var all_copy := ""
     for node in shell.find_children("*", "Label", true, false):

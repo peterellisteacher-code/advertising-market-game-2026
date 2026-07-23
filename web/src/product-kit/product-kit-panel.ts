@@ -164,10 +164,6 @@ function node<K extends keyof HTMLElementTagNameMap>(
   return result;
 }
 
-function money(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
-}
-
 function canonicalPng(
   bundle: LoadedProductKitBundle,
   assetId: string,
@@ -382,10 +378,7 @@ export class ProductKitPanel {
       input.checked = kit.item.id === selected.item.id;
       input.dataset.focusKey = `base:${kit.item.id}`;
       const copy = node("span", "product-kit__choice-copy");
-      copy.append(
-        node("strong", undefined, kit.item.title),
-        node("small", undefined, `Start: ${money(kit.price.costCents)}`)
-      );
+      copy.append(node("strong", undefined, kit.item.title));
       choice.append(input, copy);
       input.addEventListener("change", () => {
         if (!input.checked) return;
@@ -413,10 +406,7 @@ export class ProductKitPanel {
         input.dataset.focusKey =
           `choice:${certifiedFrame.frame.id}:${certifiedChoice.item.id}`;
         const copy = node("span", "product-kit__choice-copy");
-        copy.append(
-          node("strong", undefined, certifiedChoice.item.title),
-          node("small", undefined, `Add: ${money(certifiedChoice.price.costCents)}`)
-        );
+        copy.append(node("strong", undefined, certifiedChoice.item.title));
         choice.append(input, copy);
         input.addEventListener("change", () => {
           if (!input.checked) return;
@@ -429,21 +419,6 @@ export class ProductKitPanel {
       controls.append(group);
     }
 
-    const totalCents = selected.price.costCents + selected.frames.reduce((total, frame) => {
-      const selectedId = this.#selectedByFrame.get(frame.frame.id);
-      return total + (frame.choices.find(({ item }) => item.id === selectedId)
-        ?.price.costCents ?? 0);
-    }, 0);
-    const baseCost = node(
-      "p",
-      "product-kit__base-cost",
-      `Base: ${selected.item.title} · ${money(selected.price.costCents)}`
-    );
-    const total = node(
-      "p",
-      "product-kit__total",
-      `Total: ${money(totalCents)}`
-    );
     const completeRequest = this.#request(selected, true);
     const alreadyPlaced = completeRequest !== null &&
       JSON.stringify(completeRequest) === this.#placedRequestKey;
@@ -475,7 +450,7 @@ export class ProductKitPanel {
       this.onPlace(request);
     });
     const summary = node("div", "product-kit__summary");
-    summary.append(baseCost, total, status, action);
+    summary.append(status, action);
     controls.prepend(summary);
     layout.append(preview, controls);
     panel.append(layout);

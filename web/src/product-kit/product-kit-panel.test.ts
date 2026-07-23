@@ -265,8 +265,8 @@ describe("ProductKitPanel", () => {
     expect(getByRole<HTMLInputElement>(host, "radio", { name: /Reusable tumbler/ }).checked)
       .toBe(true);
     expect(getByRole<HTMLInputElement>(host, "radio", { name: /Flat lid/ }).checked).toBe(true);
-    expect(host.textContent).toContain("Total: $5.50");
-    expect(host.textContent).not.toContain("550 cents");
+    expect(host.textContent).toContain("On your ad. Change a choice to replace it.");
+    expect(host.textContent).not.toContain("$");
     expect(restored).toEqual(before);
   });
 
@@ -301,8 +301,8 @@ describe("ProductKitPanel", () => {
     expect(panel.hydrate(stale)).toBe(false);
     expect(panel.hydrate(mismatched)).toBe(false);
     expect(getByRole<HTMLInputElement>(host, "radio", { name: /Flat lid/ }).checked).toBe(false);
-    expect(host.textContent).toContain("Total: $4.80");
-    expect(host.textContent).not.toContain("480 cents");
+    expect(host.textContent).toContain("Choose a lid to finish your product");
+    expect(host.textContent).not.toContain("$");
   });
 
   it("hydrates the same restored build idempotently", async () => {
@@ -332,8 +332,7 @@ describe("ProductKitPanel", () => {
 
     expect(host.textContent).toContain("Reusable tumbler");
     expect(host.textContent).toContain("Flat lid");
-    expect(host.textContent).toContain("$4.80");
-    expect(host.textContent).not.toContain("480 cents");
+    expect(host.textContent).not.toContain("$");
     expect(getAllByRole(host, "button")).toHaveLength(1);
     expect(getByRole<HTMLButtonElement>(host, "button", {
       name: "Place product on ad"
@@ -355,8 +354,8 @@ describe("ProductKitPanel", () => {
     fireEvent.click(lid);
 
     expect(document.activeElement).toBe(getByRole(host, "radio", { name: /Flat lid/ }));
-    expect(host.textContent).toContain("$5.50");
-    expect(host.textContent).not.toContain("550 cents");
+    expect(host.textContent).toContain("Ready to place on your ad");
+    expect(host.textContent).not.toContain("$");
     const preview = getByRole(host, "img", {
       name: "Reusable tumbler with Flat lid"
     });
@@ -412,7 +411,7 @@ describe("ProductKitPanel", () => {
     fireEvent.click(television);
 
     expect(television.checked).toBe(true);
-    expect(host.textContent).toContain("Start: $37.00");
+    expect(host.textContent).not.toContain("$");
     expect(host.textContent).toContain("Choose a stand to finish your product");
     expect(host.textContent).not.toMatch(/\bMB\b/);
 
@@ -421,7 +420,8 @@ describe("ProductKitPanel", () => {
     });
     fireEvent.click(pedestal);
 
-    expect(host.textContent).toContain("Total: $43.50");
+    expect(host.textContent).toContain("Ready to place on your ad");
+    expect(host.textContent).not.toContain("$");
     let preview = getByRole(host, "img", {
       name: "Flat-screen television with Centre pedestal stand"
     });
@@ -441,7 +441,8 @@ describe("ProductKitPanel", () => {
     });
     fireEvent.click(feet);
 
-    expect(host.textContent).toContain("Total: $43.50");
+    expect(host.textContent).toContain("Ready to place on your ad");
+    expect(host.textContent).not.toContain("$");
     preview = getByRole(host, "img", {
       name: "Flat-screen television with Angled feet"
     });
@@ -484,7 +485,7 @@ describe("ProductKitPanel", () => {
     fireEvent.click(carryCase);
 
     expect(carryCase.checked).toBe(true);
-    expect(host.textContent).toContain("Start: $24.00");
+    expect(host.textContent).not.toContain("$");
     expect(host.textContent).toContain("Choose a handle to finish your product");
 
     const compact = getByRole<HTMLInputElement>(host, "radio", {
@@ -492,7 +493,8 @@ describe("ProductKitPanel", () => {
     });
     fireEvent.click(compact);
 
-    expect(host.textContent).toContain("Total: $28.50");
+    expect(host.textContent).toContain("Ready to place on your ad");
+    expect(host.textContent).not.toContain("$");
     let preview = getByRole(host, "img", {
       name: "Compact carry case with Compact grab handle"
     });
@@ -511,7 +513,8 @@ describe("ProductKitPanel", () => {
     });
     fireEvent.click(arched);
 
-    expect(host.textContent).toContain("Total: $28.50");
+    expect(host.textContent).toContain("Ready to place on your ad");
+    expect(host.textContent).not.toContain("$");
     preview = getByRole(host, "img", {
       name: "Compact carry case with Rigid arched handle"
     });

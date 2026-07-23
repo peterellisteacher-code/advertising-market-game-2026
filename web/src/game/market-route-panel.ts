@@ -1,8 +1,5 @@
-import type {
-  CampaignDocumentV1,
-  ProductBuildSnapshotV1
-} from "../domain/campaign-document";
-import { formatMarketBucks } from "../product-builder/product-money-panel";
+import type { CampaignDocumentV1 } from "../domain/campaign-document";
+import type { ProductPricePosition } from "../../../shared/product-price-guide-contract";
 import {
   ADVERTISING_MEDIA,
   MARKET_ZONES,
@@ -12,7 +9,9 @@ import {
 } from "./market-route";
 
 export interface MarketRoutePanelState {
-  readonly build: ProductBuildSnapshotV1 | null;
+  readonly hasProduct: boolean;
+  readonly priceCents: number | null;
+  readonly pricePosition: ProductPricePosition | null;
   readonly audienceBriefId: string;
   readonly strategy: CampaignDocumentV1["strategy"];
   readonly feedback: MarketRouteFeedback | null;
@@ -21,7 +20,6 @@ export interface MarketRoutePanelState {
 export interface MarketRouteCommitInput {
   readonly audienceBriefId: string;
   readonly productTraitIds: readonly ProductTraitId[];
-  readonly marketedChoiceIds: readonly string[];
   readonly zoneId: string;
   readonly mediaIds: readonly string[];
 }
@@ -62,7 +60,9 @@ function checkboxLabel(
 
 export class MarketRoutePanel {
   #state: MarketRoutePanelState = {
-    build: null,
+    hasProduct: false,
+    priceCents: null,
+    pricePosition: null,
     audienceBriefId: "",
     strategy: {
       productTraitIds: [],
@@ -92,21 +92,18 @@ export class MarketRoutePanel {
   #draw(): void {
     const root = element("div", "market-route");
     const intro = element("p", "market-route__intro");
-    intro.textContent = "Cost informs audience and pricing decisions and does not restrict which product students may build. The route tool plans where an idea reaches its audience.";
+    intro.textContent = "Use the audience and your chosen price position to plan where the advertisement will reach people.";
     root.append(intro);
 
-    const build = this.#state.build;
-    if (build) {
-      const cost = element("p", "market-route__cost-clue");
-      cost.textContent = `Cost: ${formatMarketBucks(build.unitCostCents)}`;
-      root.append(cost);
-    }
-    if (!build || !this.#state.audienceBriefId.trim()) {
+    if (!this.#state.hasProduct || !this.#state.audienceBriefId.trim() ||
+      this.#state.priceCents === null || this.#state.pricePosition === null) {
       const locked = element("p", "market-route__locked");
       locked.setAttribute("role", "status");
-      locked.textContent = build
-        ? "Choose an audience value before continuing."
-        : "Add a product before continuing.";
+      locked.textContent = !this.#state.hasProduct
+        ? "Add a product before continuing."
+        : !this.#state.audienceBriefId.trim()
+          ? "Choose an audience before continuing."
+          : "Choose the audience price position and selling price before continuing.";
       root.append(locked);
       this.#form = null;
       this.#launch = null;
@@ -139,27 +136,6 @@ export class MarketRoutePanel {
       );
       label.querySelector("input")!.name = "product-trait";
       traits.append(label);
-    }
-
-    const choices = element("fieldset", "market-route__step");
-    const choiceLegend = element("legend");
-    choiceLegend.textContent = "Priced product choices";
-    choices.append(choiceLegend);
-    const choiceHint = element("p");
-    choiceHint.textContent = "Choose at least one priced part to feature.";
-    choices.append(choiceHint);
-    for (const line of build.costLines) {
-      const priceClue = line.groupLabel === line.label
-        ? formatMarketBucks(line.costCents)
-        : `${line.groupLabel} · ${formatMarketBucks(line.costCents)}`;
-      const label = checkboxLabel(
-        line.choiceId,
-        line.label,
-        priceClue,
-        this.#state.strategy.marketedChoiceIds.includes(line.choiceId)
-      );
-      label.querySelector("input")!.name = "marketed-choice";
-      choices.append(label);
     }
 
     const zoneStep = element("fieldset", "market-route__step");
@@ -228,10 +204,8 @@ export class MarketRoutePanel {
 
     const refreshSteps = (): void => {
       const hasTraits = this.#selected("product-trait").length > 0;
-      choices.hidden = !hasTraits;
-      const hasChoices = hasTraits && this.#selected("marketed-choice").length > 0;
-      zoneStep.hidden = !hasChoices;
-      const hasZone = hasChoices && Boolean(zone.value);
+      zoneStep.hidden = !hasTraits;
+      const hasZone = hasTraits && Boolean(zone.value);
       media.hidden = !hasZone;
       const hasMedia = hasZone && this.#selected("advertising-medium").length > 0;
       launch.hidden = !hasMedia && this.#state.feedback === null;
@@ -240,8 +214,7 @@ export class MarketRoutePanel {
     const refreshSelection = (event: Event): void => {
       const input = event.target;
       if (input instanceof HTMLInputElement && input.checked) {
-        const maximum = input.name === "product-trait" ? 4
-          : input.name === "advertising-medium" ? 3 : 8;
+        const maximum = input.name === "product-trait" ? 4 : 3;
         const count = form.querySelectorAll<HTMLInputElement>(
           `input[name="${input.name}"]:checked`
         ).length;
@@ -262,7 +235,7 @@ export class MarketRoutePanel {
       if (event.target instanceof HTMLInputElement) refreshSelection(event);
     });
 
-    form.append(traits, choices, zoneStep, media, status, launch, feedbackHost);
+    form.append(traits, zoneStep, media, status, launch, feedbackHost);
     root.append(form);
     this.host.replaceChildren(root);
     if (this.#state.feedback) {
@@ -291,7 +264,6 @@ export class MarketRoutePanel {
     const zoneId = zone?.value ?? "";
     this.#launch.disabled = !zoneId
       || this.#selected("product-trait").length === 0
-      || this.#selected("marketed-choice").length === 0
       || this.#selected("advertising-medium").length === 0;
   }
 
@@ -307,7 +279,6 @@ export class MarketRoutePanel {
       const feedback = await this.onCommit({
         audienceBriefId: this.#state.audienceBriefId,
         productTraitIds: this.#selected("product-trait") as ProductTraitId[],
-        marketedChoiceIds: this.#selected("marketed-choice"),
         zoneId: zone.value,
         mediaIds: this.#selected("advertising-medium")
       });

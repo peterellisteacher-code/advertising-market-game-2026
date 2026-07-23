@@ -1,7 +1,6 @@
 import { fireEvent } from "@testing-library/dom";
 import { afterEach, expect, it, vi } from "vitest";
 import { CataloguePanel, validatedAssetUrl } from "./catalogue-panel";
-import type { RasterPricingIndex } from "./raster-pricing";
 import type { CatalogAssetV1 } from "./catalogue-types";
 
 const UUID = "123e4567-e89b-42d3-a456-426614174000";
@@ -200,26 +199,16 @@ it("makes placement the visible card action and marks recolourable templates sec
   panel.destroy();
 });
 
-it("shows the validated production price on a generic offline tile", () => {
+it("does not pretend that a catalogue object has a real-world price", () => {
   const host = document.createElement("div");
   const panel = new CataloguePanel(host, vi.fn());
   const bottle = asset("priced-bottle", "Reviewed bottle", "drinkware", ["base", "bottle"]);
-  const pricing: RasterPricingIndex = {
-    packId: "offline-core-v1",
-    pricingVersion: 1,
-    catalogSha256: "a".repeat(64),
-    byAssetId: new Map([[
-      bottle.id,
-      { role: "base", costCents: 2_500, title: bottle.title }
-    ]])
-  };
 
-  panel.setPricing(pricing);
   panel.render([bottle]);
 
-  expect(host.querySelector('[data-asset-id="priced-bottle"] [data-catalogue-price]')?.textContent)
-    .toBe("$25.00");
+  expect(host.querySelector('[data-asset-id="priced-bottle"] [data-catalogue-price]'))
+    .toBeNull();
   expect(host.querySelector('[data-asset-id="priced-bottle"]')?.textContent)
-    .toContain("$25.00");
+    .not.toContain("$");
   panel.destroy();
 });

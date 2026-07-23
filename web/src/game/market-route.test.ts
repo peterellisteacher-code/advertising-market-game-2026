@@ -125,66 +125,61 @@ describe("market route lifecycle", () => {
 });
 
 describe("product signals", () => {
-  it("treats cost as a value or premium clue without mutating the chosen traits", () => {
-    const highCostInput = {
-      costCents: Number.MAX_SAFE_INTEGER,
+  it("uses the pair's audience price position instead of universal dollar thresholds", () => {
+    const premiumInput = {
+      pricePosition: "premium" as const,
       traitIds: ["space-property"]
     };
-    const snapshot = structuredClone(highCostInput);
+    const snapshot = structuredClone(premiumInput);
 
-    const highCost = createProductSignal(highCostInput);
-    const zeroCost = createProductSignal({
-      costCents: 0,
+    const premium = createProductSignal(premiumInput);
+    const budget = createProductSignal({
+      pricePosition: "budget",
       traitIds: ["portability"]
     });
-    const everydayCost = createProductSignal({
-      costCents: 50_000,
+    const everyday = createProductSignal({
+      pricePosition: "everyday",
       traitIds: ["experience-escape"]
     });
 
-    expect(highCostInput).toEqual(snapshot);
-    expect(highCost).toEqual({
-      costCents: Number.MAX_SAFE_INTEGER,
-      costSignal: "premium",
+    expect(premiumInput).toEqual(snapshot);
+    expect(premium).toEqual({
+      pricePosition: "premium",
       selectedTraitIds: ["space-property"],
       effectiveTraitIds: ["premium", "space-property"]
     });
-    expect(zeroCost).toEqual({
-      costCents: 0,
-      costSignal: "value",
+    expect(budget).toEqual({
+      pricePosition: "budget",
       selectedTraitIds: ["portability"],
       effectiveTraitIds: ["value", "portability"]
     });
-    expect(everydayCost).toEqual({
-      costCents: 50_000,
-      costSignal: "everyday",
+    expect(everyday).toEqual({
+      pricePosition: "everyday",
       selectedTraitIds: ["experience-escape"],
       effectiveTraitIds: ["experience-escape"]
     });
-    for (const signal of [highCost, zeroCost, everydayCost]) {
+    for (const signal of [premium, budget, everyday]) {
       expect(Object.isFrozen(signal)).toBe(true);
       expect(Object.isFrozen(signal.selectedTraitIds)).toBe(true);
       expect(Object.isFrozen(signal.effectiveTraitIds)).toBe(true);
     }
   });
 
-  it("rejects unsafe costs and unknown, duplicate or empty trait selections", () => {
-    for (const costCents of [-1, 1.5, Number.MAX_SAFE_INTEGER + 1, Number.NaN, Infinity]) {
-      expect(() => createProductSignal({
-        costCents,
-        traitIds: ["value"]
-      })).toThrow("costCents must be a non-negative safe integer");
-    }
+  it("rejects unknown positions and unknown, duplicate or empty trait selections", () => {
     expect(() => createProductSignal({
-      costCents: 100,
+      pricePosition: "luxury" as never,
+      traitIds: ["value"]
+    })).toThrow("pricePosition must be budget, everyday or premium");
+    expect(() => createProductSignal({
+      pricePosition: "everyday",
       traitIds: []
     })).toThrow("Choose at least one product trait");
     expect(() => createProductSignal({
-      costCents: 100,
+      pricePosition: "everyday",
       traitIds: ["teleportation"]
     })).toThrow("Unknown product trait: teleportation");
     expect(() => createProductSignal({
-      costCents: 100,
+      pricePosition: "everyday",
       traitIds: ["comfort", " comfort "]
     })).toThrow("Duplicate product trait: comfort");
   });
@@ -193,7 +188,7 @@ describe("product signals", () => {
 describe("committed route feedback", () => {
   it("does not reveal route feedback before commitment", () => {
     const product = createProductSignal({
-      costCents: 50_000,
+      pricePosition: "everyday",
       traitIds: ["portability"]
     });
     const draft = createMarketRoute({
@@ -210,7 +205,7 @@ describe("committed route feedback", () => {
 
   it("recognises multiple defensible strong routes instead of one hidden answer", () => {
     const product = createProductSignal({
-      costCents: 50_000,
+      pricePosition: "everyday",
       traitIds: ["portability", "convenience"]
     });
     const cityRoute = commitMarketRoute(createMarketRoute({
@@ -252,7 +247,7 @@ describe("committed route feedback", () => {
 
   it("returns deterministic promising and risky feedback while keeping every route available", () => {
     const portableProduct = createProductSignal({
-      costCents: 50_000,
+      pricePosition: "everyday",
       traitIds: ["portability"]
     });
     const promisingRoute = commitMarketRoute(createMarketRoute({
@@ -261,7 +256,7 @@ describe("committed route feedback", () => {
       mediaIds: ["transit"]
     }));
     const premiumProperty = createProductSignal({
-      costCents: Number.MAX_SAFE_INTEGER,
+      pricePosition: "premium",
       traitIds: ["space-property"]
     });
     const riskyRoute = commitMarketRoute(createMarketRoute({

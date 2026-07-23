@@ -45,6 +45,7 @@ function readyProgress(): PairRoleProgress {
 function readyCampaign(): CampaignDocumentV1 {
   const campaign = campaignFixture();
   campaign.product.name = "Pocket Telescope";
+  campaign.product.pricePosition = "everyday";
   campaign.product.priceCents = 0;
   campaign.evidence.price = ["object-price"];
   campaign.evidence.attention = ["object-attention"];
@@ -205,6 +206,10 @@ describe("publication readiness", () => {
       ["price", readySession(), readyProgress(), {
         ...readyCampaign(),
         product: { ...readyCampaign().product, name: "Pocket Telescope", priceCents: null }
+      }],
+      ["price", readySession(), readyProgress(), {
+        ...readyCampaign(),
+        product: { ...readyCampaign().product, pricePosition: null }
       }],
       ["attention", readySession(), readyProgress(), { ...readyCampaign(), evidence: { ...readyCampaign().evidence, attention: [] } }],
       ["interest", readySession(), readyProgress(), { ...readyCampaign(), evidence: { ...readyCampaign().evidence, interest: [] } }],

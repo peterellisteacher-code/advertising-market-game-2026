@@ -1,36 +1,8 @@
 import { fireEvent, getByRole, getAllByRole, waitFor } from "@testing-library/dom";
 import { describe, expect, it, vi } from "vitest";
-import type { CampaignDocumentV1, ProductBuildSnapshotV1 } from "../domain/campaign-document";
+import type { CampaignDocumentV1 } from "../domain/campaign-document";
 import type { MarketRouteFeedback } from "./market-route";
 import { MarketRoutePanel } from "./market-route-panel";
-
-const build: ProductBuildSnapshotV1 = {
-  schema: "product-build@1",
-  primaryObjectId: "product-1",
-  packId: "product-builder-pilot-v1",
-  pricingVersion: 1,
-  blueprintId: "drinkware-classic-can",
-  selections: [{ groupId: "shape", choiceIds: ["classic-can"] }, {
-    groupId: "feature",
-    choiceIds: ["easy-carry-loop"]
-  }],
-  costLines: [{
-    groupId: "shape",
-    groupLabel: "Shape",
-    kind: "base",
-    choiceId: "classic-can",
-    label: "Classic can",
-    costCents: 2_600
-  }, {
-    groupId: "feature",
-    groupLabel: "Feature",
-    kind: "feature",
-    choiceId: "easy-carry-loop",
-    label: "Easy-carry loop",
-    costCents: 950
-  }],
-  unitCostCents: 3_550
-};
 
 const blankStrategy: CampaignDocumentV1["strategy"] = {
   productTraitIds: [],
@@ -59,52 +31,47 @@ const strongFeedback: MarketRouteFeedback = {
 };
 
 describe("MarketRoutePanel", () => {
-  it("does not repeat a priced part label when its group has the same name", () => {
-    const host = document.createElement("div");
-    const panel = new MarketRoutePanel(host, vi.fn());
-    panel.setState({
-      build: {
-        ...build,
-        costLines: [{
-          ...build.costLines[0]!,
-          groupLabel: "Product body",
-          label: "Product body",
-          costCents: 480
-        }],
-        unitCostCents: 480
-      },
-      audienceBriefId: "after-school-wanderers",
-      strategy: { ...blankStrategy, productTraitIds: ["portability"] },
-      feedback: null
-    });
-
-    const choices = getByRole(host, "group", { name: "Priced product choices" });
-    expect(choices.textContent).toContain("Product body · $4.80");
-    expect(choices.textContent).not.toContain("Product body · Product body");
-  });
-
   it("keeps the route locked until a product is placed", () => {
     const host = document.createElement("div");
     const panel = new MarketRoutePanel(host, vi.fn());
 
     panel.setState({
-      build: null,
+      hasProduct: false,
+      priceCents: 3_500,
+      pricePosition: "everyday",
       audienceBriefId: "after-school-wanderers",
       strategy: blankStrategy,
       feedback: null
     });
 
-    expect(host.textContent).toContain("does not restrict which product students may build.");
     expect(host.textContent).toContain("Add a product before continuing.");
     expect(host.textContent).not.toMatch(/\b(?:assignment|unit|task|budget cap)\b/i);
   });
 
-  it("commits product strengths, priced choices, a zone and media before showing feedback", async () => {
+  it("requires the audience-led price decision before route choices", () => {
+    const host = document.createElement("div");
+    const panel = new MarketRoutePanel(host, vi.fn());
+    panel.setState({
+      hasProduct: true,
+      priceCents: null,
+      pricePosition: null,
+      audienceBriefId: "after-school-wanderers",
+      strategy: blankStrategy,
+      feedback: null
+    });
+
+    expect(host.textContent).toContain("Choose the audience price position and selling price");
+    expect(host.querySelector("form")).toBeNull();
+  });
+
+  it("commits product strengths, a zone and media before showing feedback", async () => {
     const host = document.createElement("div");
     const commit = vi.fn().mockResolvedValue(strongFeedback);
     const panel = new MarketRoutePanel(host, commit);
     panel.setState({
-      build,
+      hasProduct: true,
+      priceCents: 3_500,
+      pricePosition: "everyday",
       audienceBriefId: "after-school-wanderers",
       strategy: blankStrategy,
       feedback: null
@@ -112,29 +79,22 @@ describe("MarketRoutePanel", () => {
 
     expect(getByRole(host, "group", { name: "Product strengths" })).toBeTruthy();
     const steps = [...host.querySelectorAll<HTMLFieldSetElement>("fieldset")];
-    expect(steps.map(({ hidden }) => hidden)).toEqual([false, true, true, true]);
-    expect(steps[1]?.textContent).toContain("Choose at least one priced part to feature.");
+    expect(steps.map(({ hidden }) => hidden)).toEqual([false, true, true]);
     expect(host.textContent).not.toContain("Strong route");
 
     const portability = getByRole<HTMLInputElement>(host, "checkbox", { name: /Portability/ });
     fireEvent.click(portability);
-    expect(steps.map(({ hidden }) => hidden)).toEqual([false, false, true, true]);
-    const carryLoop = steps[1]!.querySelector<HTMLInputElement>(
-      'input[name="marketed-choice"][value="easy-carry-loop"]'
-    )!;
-    fireEvent.click(carryLoop);
-    expect(steps.map(({ hidden }) => hidden)).toEqual([false, false, false, true]);
-    const marketZone = steps[2]!.querySelector<HTMLSelectElement>('select[name="market-zone"]')!;
+    expect(steps.map(({ hidden }) => hidden)).toEqual([false, false, true]);
+    const marketZone = steps[1]!.querySelector<HTMLSelectElement>('select[name="market-zone"]')!;
     fireEvent.change(marketZone, {
       target: { value: "city" }
     });
-    expect(steps.map(({ hidden }) => hidden)).toEqual([false, false, false, false]);
-    const transit = steps[3]!.querySelector<HTMLInputElement>(
+    expect(steps.map(({ hidden }) => hidden)).toEqual([false, false, false]);
+    const transit = steps[2]!.querySelector<HTMLInputElement>(
       'input[name="advertising-medium"][value="transit"]'
     )!;
     fireEvent.click(transit);
     expect(portability.checked).toBe(true);
-    expect(carryLoop.checked).toBe(true);
     expect(marketZone.value).toBe("city");
     expect(transit.checked).toBe(true);
     const launch = getByRole<HTMLButtonElement>(host, "button", { name: "Submit this route" });
@@ -144,7 +104,6 @@ describe("MarketRoutePanel", () => {
     await waitFor(() => expect(commit).toHaveBeenCalledWith({
       audienceBriefId: "after-school-wanderers",
       productTraitIds: ["portability"],
-      marketedChoiceIds: ["easy-carry-loop"],
       zoneId: "city",
       mediaIds: ["transit"]
     }));
@@ -158,16 +117,18 @@ describe("MarketRoutePanel", () => {
       .toBe("Route submitted. Review the route report, then return to the game.");
   });
 
-  it("restores a saved route without disabling expensive or unusual choices", () => {
+  it("restores a saved route without hiding unusual product choices", () => {
     const host = document.createElement("div");
     const panel = new MarketRoutePanel(host, vi.fn());
     panel.setState({
-      build: { ...build, unitCostCents: 32_500_000 },
+      hasProduct: true,
+      priceCents: 50_000_000,
+      pricePosition: "premium",
       audienceBriefId: "after-school-wanderers",
       strategy: {
         ...blankStrategy,
         productTraitIds: ["space-property"],
-        marketedChoiceIds: ["classic-can"],
+        marketedChoiceIds: [],
         marketRoute: {
           audienceBriefId: "after-school-wanderers",
           zoneId: "destination",
@@ -182,9 +143,9 @@ describe("MarketRoutePanel", () => {
       .toBe("destination");
     expect(getAllByRole<HTMLInputElement>(host, "checkbox")
       .filter(({ checked }) => checked).map(({ value }) => value))
-      .toEqual(["space-property", "classic-can", "search", "cinema"]);
+      .toEqual(["space-property", "search", "cinema"]);
     expect(getAllByRole(host, "checkbox").every((input) => !input.hasAttribute("disabled")))
       .toBe(true);
-    expect(host.textContent).toContain("$325,000.00");
+    expect(host.textContent).not.toContain("$500,000.00");
   });
 });

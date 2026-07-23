@@ -276,16 +276,13 @@ export function commitMarketRoute(route: MarketRouteDraft): CommittedMarketRoute
   });
 }
 
-export type CostSignal = "value" | "everyday" | "premium";
-
 export interface ProductSignalInput {
-  readonly costCents: number;
+  readonly pricePosition: ProductPricePosition;
   readonly traitIds: readonly string[];
 }
 
 export interface ProductSignal {
-  readonly costCents: number;
-  readonly costSignal: CostSignal;
+  readonly pricePosition: ProductPricePosition;
   readonly selectedTraitIds: readonly ProductTraitId[];
   readonly effectiveTraitIds: readonly ProductTraitId[];
 }
@@ -306,18 +303,10 @@ function orderProductTraits(ids: Iterable<ProductTraitId>): ProductTraitId[] {
     .filter((id) => selected.has(id));
 }
 
-const VALUE_COST_SIGNAL_MAX_CENTS = 5_000;
-const PREMIUM_COST_SIGNAL_MIN_CENTS = 100_000;
-
-function costSignal(costCents: number): CostSignal {
-  if (costCents >= PREMIUM_COST_SIGNAL_MIN_CENTS) return "premium";
-  if (costCents <= VALUE_COST_SIGNAL_MAX_CENTS) return "value";
-  return "everyday";
-}
-
 export function createProductSignal(input: ProductSignalInput): ProductSignal {
-  if (!Number.isSafeInteger(input.costCents) || input.costCents < 0) {
-    throw new Error("costCents must be a non-negative safe integer");
+  if (input.pricePosition !== "budget" && input.pricePosition !== "everyday" &&
+    input.pricePosition !== "premium") {
+    throw new Error("pricePosition must be budget, everyday or premium");
   }
   if (input.traitIds.length === 0) {
     throw new Error("Choose at least one product trait");
@@ -333,15 +322,12 @@ export function createProductSignal(input: ProductSignalInput): ProductSignal {
   }
 
   const selectedTraitIds = orderProductTraits(seen);
-  const derivedCostSignal = costSignal(input.costCents);
   const effective = new Set(selectedTraitIds);
-  if (derivedCostSignal === "value" || derivedCostSignal === "premium") {
-    effective.add(derivedCostSignal);
-  }
+  if (input.pricePosition === "budget") effective.add("value");
+  if (input.pricePosition === "premium") effective.add("premium");
 
   return Object.freeze({
-    costCents: input.costCents,
-    costSignal: derivedCostSignal,
+    pricePosition: input.pricePosition,
     selectedTraitIds: Object.freeze(selectedTraitIds),
     effectiveTraitIds: Object.freeze(orderProductTraits(effective))
   });
@@ -545,7 +531,7 @@ export function evaluateCommittedMarketRoute(
   }
 
   const validatedProduct = createProductSignal({
-    costCents: product.costCents,
+    pricePosition: product.pricePosition,
     traitIds: product.selectedTraitIds
   });
   const validatedRoute = commitMarketRoute(createMarketRoute(route));
@@ -624,3 +610,4 @@ export function evaluateCommittedMarketRoute(
 
   return Object.freeze({ outcome, headline, evidence, nextMove });
 }
+import type { ProductPricePosition } from "../../../shared/product-price-guide-contract";

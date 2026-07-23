@@ -1363,8 +1363,9 @@ describe("window.AdMarketCreator", () => {
     expect(await parsed(api, "open-price-integrity", "open", source))
       .toMatchObject({ ok: true });
     activateStudioTool("price");
+    fireEvent.click(getByRole(document.body, "radio", { name: /Everyday/ }));
     const price = getByRole<HTMLInputElement>(document.body, "spinbutton", {
-      name: "Market price in dollars"
+      name: "Selling price in dollars"
     });
 
     fireEvent.input(price, { target: { value: "10" } });
@@ -1385,7 +1386,7 @@ describe("window.AdMarketCreator", () => {
     expect(firstState.fabricState.objects.find(({ objectId }) => objectId === priceObjectId))
       .toMatchObject({
         text: "$10.00",
-        accessibleName: "Market price $10.00",
+        accessibleName: "Selling price $10.00",
         editable: false,
         left: 1240,
         top: 670
@@ -1401,7 +1402,7 @@ describe("window.AdMarketCreator", () => {
       expect(state.fabricState.objects.find(({ objectId }) => objectId === priceObjectId))
         .toMatchObject({
           text: "$20.00",
-          accessibleName: "Market price $20.00",
+          accessibleName: "Selling price $20.00",
           editable: false
         });
     });
@@ -1878,7 +1879,7 @@ describe("window.AdMarketCreator", () => {
     search.value = "bottle";
     search.dispatchEvent(new Event("input"));
     const tile = await findByRole(document.body, "button", { name: /Reviewed bottle/ });
-    expect(tile.textContent).toContain("$25.00");
+    expect(tile.textContent).not.toContain("$");
     tile.click();
 
     const state = await parsed(api, "catalogue-state", "getState", null);
@@ -2106,7 +2107,7 @@ describe("window.AdMarketCreator", () => {
     fireEvent.click(lid);
     expect(document.activeElement).toBe(getByRole(document.body, "radio", { name: /Flat lid/ }));
     expect(document.querySelector<HTMLElement>("[data-product-builder-panel]")?.textContent)
-      .toContain("$5.50");
+      .not.toContain("$");
     const emptyCanvas = getByRole<HTMLElement>(document.body, "status", { name: "Empty canvas" });
     expect(emptyCanvas.hidden).toBe(false);
     fireEvent.click(getByRole(document.body, "button", { name: "Place product on ad" }));
@@ -2175,7 +2176,7 @@ describe("window.AdMarketCreator", () => {
       unitCostCents: 550
     });
     expect(getByRole(document.body, "region", { name: "Product builder" }).textContent)
-      .toContain("Total: $5.50");
+      .not.toContain("$");
 
     const placedRoot = structuredClone(rootObject);
     const placedReference = structuredClone(reference);

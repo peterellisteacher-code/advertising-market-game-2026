@@ -18,6 +18,7 @@ const functionNames = [
   "market-session",
   "openverse-image",
   "openverse-search",
+  "product-price-guide",
   "studio-coach"
 ];
 

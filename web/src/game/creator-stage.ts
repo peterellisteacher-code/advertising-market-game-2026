@@ -125,7 +125,8 @@ export function evaluatePublicationReadiness(
 
   if (session.audienceBriefId.trim().length === 0) missing.push("audience-brief");
   if (campaign.product.name.trim().length === 0) missing.push("product-name");
-  if (campaign.product.priceCents === null || !hasEvidenceId(campaign.evidence.price)) {
+  if (campaign.product.pricePosition === null || campaign.product.priceCents === null ||
+    !hasEvidenceId(campaign.evidence.price)) {
     missing.push("price");
   }
   if (!hasEvidenceId(campaign.evidence.attention)) missing.push("attention");

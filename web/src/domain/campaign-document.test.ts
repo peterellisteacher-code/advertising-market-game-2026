@@ -12,7 +12,15 @@ describe("CampaignDocumentV1", () => {
     expect(doc.canvas).toEqual({ width: 1600, height: 900, background: "#ffffff" });
     expect(doc.revision).toBe(0);
     expect(doc.fabricState).toEqual({ version: "7.4.0", objects: [] });
-    expect(doc.product).toEqual({ name: "", priceCents: null, build: null });
+    expect(doc.product).toEqual({
+      name: "",
+      priceCents: null,
+      pricePosition: null,
+      priceDecisionFingerprint: null,
+      priceGuide: null,
+      priceLookup: null,
+      build: null
+    });
     expect(doc.evidence).toEqual({
       price: [], attention: [], interest: [], desire: [], action: []
     });
@@ -168,7 +176,79 @@ describe("CampaignDocumentV1", () => {
     expect(parseCampaignDocument({
       ...doc,
       product: { ...doc.product, priceCents: 50_000_000, build }
-    }).product).toEqual({ name: "", priceCents: 50_000_000, build });
+    }).product).toEqual({
+      name: "",
+      priceCents: 50_000_000,
+      pricePosition: null,
+      priceDecisionFingerprint: null,
+      priceGuide: null,
+      priceLookup: null,
+      build
+    });
+  });
+
+  it("persists comparable-price evidence and a student-owned audience position", () => {
+    const doc = createBlankCampaignDocument({
+      documentId: "guide-doc",
+      sessionId: "guide-session",
+      mode: "offline"
+    });
+    const productFingerprint = "a".repeat(64);
+    const priceGuide = {
+      schema: "product-price-guide@1" as const,
+      productFingerprint,
+      currency: "AUD" as const,
+      checkedAt: "2026-07-23T01:02:03.000Z",
+      confidence: "low" as const,
+      lowCents: 2_000,
+      typicalCents: 3_000,
+      highCents: 4_000,
+      comparables: [{
+        title: "Steel travel cup",
+        seller: "Example Shop",
+        priceCents: 2_000,
+        sourceUrl: "https://example.com/cup"
+      }, {
+        title: "Insulated tumbler",
+        seller: "Sample Store",
+        priceCents: 4_000,
+        sourceUrl: "https://sample.example/tumbler"
+      }]
+    };
+
+    expect(parseCampaignDocument({
+      ...doc,
+      product: {
+        ...doc.product,
+        priceCents: 3_500,
+        pricePosition: "premium",
+        priceGuide
+      }
+    }).product).toMatchObject({
+      priceCents: 3_500,
+      pricePosition: "premium",
+      priceGuide
+    });
+  });
+
+  it("loads legacy product records with safe price-research defaults", () => {
+    const doc = createBlankCampaignDocument({
+      documentId: "legacy-price-doc",
+      sessionId: "legacy-price-session",
+      mode: "offline"
+    });
+    const legacy = structuredClone(doc) as unknown as { product: Record<string, unknown> };
+    delete legacy.product.pricePosition;
+    delete legacy.product.priceDecisionFingerprint;
+    delete legacy.product.priceGuide;
+    delete legacy.product.priceLookup;
+
+    expect(parseCampaignDocument(legacy).product).toMatchObject({
+      pricePosition: null,
+      priceDecisionFingerprint: null,
+      priceGuide: null,
+      priceLookup: null
+    });
   });
 
   it("rejects a product ledger whose lines do not add up to its unit cost", () => {

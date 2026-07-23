@@ -69,6 +69,15 @@ import {
   formatMarketBucks,
   ProductMoneyPanel
 } from "./product-builder/product-money-panel";
+import { ProductPriceGuideClient } from "./product-builder/product-price-guide-client";
+import {
+  createProductPriceSubject,
+  hasPlacedProduct
+} from "./product-builder/product-price-subject";
+import type {
+  ProductPriceGuide,
+  ProductPricePosition
+} from "../../shared/product-price-guide-contract";
 import { reconcileRasterProductBuild } from "./product-builder/raster-product-build";
 import {
   type ResolvedProductVariant
@@ -233,6 +242,17 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     if (!productName) throw new Error("Missing product-name input");
     this.#productName = productName;
     this.#productName.addEventListener("input", () => {
+      if (this.#document !== null) {
+        this.#document = this.#invalidateStaleProductPricing(parseCampaignDocument({
+          ...structuredClone(this.#document),
+          product: {
+            ...structuredClone(this.#document.product),
+            name: this.#productName.value
+          }
+        }));
+        this.#refreshMoneyCheck();
+        this.#refreshMarketRoute();
+      }
       this.schedulePracticeAutosave();
       this.#refreshStudioCoachCampaign();
     });
@@ -506,15 +526,17 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#assertStageAllows("route");
     await this.#placements.flush();
     const current = this.#snapshot();
-    const build = current.product.build;
-    if (!build) throw new Error("Build and place a product first");
+    if (!hasPlacedProduct(current)) throw new Error("Build and place a product first");
+    if (current.product.priceCents === null || current.product.pricePosition === null) {
+      throw new Error("Choose the audience price position and selling price first");
+    }
     const route = commitMarketRoute(createMarketRoute({
       audienceBriefId: input.audienceBriefId,
       zoneId: input.zoneId,
       mediaIds: input.mediaIds
     }));
     const product = createProductSignal({
-      costCents: build.unitCostCents,
+      pricePosition: current.product.pricePosition,
       traitIds: input.productTraitIds
     });
     const document = parseCampaignDocument({
@@ -522,7 +544,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       strategy: {
         ...structuredClone(current.strategy),
         productTraitIds: [...product.selectedTraitIds],
-        marketedChoiceIds: [...input.marketedChoiceIds],
+        marketedChoiceIds: [],
         marketRoute: route
       }
     });
@@ -578,7 +600,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   ): void {
     const quote = quotePilotProductVariant(product);
     if (!quote) {
-      this.shell.assertive.textContent = "That product is missing its price clues.";
+      this.shell.assertive.textContent = "That product could not be placed. Choose it again.";
       return;
     }
     this.#placements.enqueueProductVariant(product, quote, artwork);
@@ -591,6 +613,10 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     if (!runtime || !this.#document) throw new Error("Campaign creator is not open");
     const commit = async (): Promise<void> => {
       const current = this.#snapshot();
+      const subject = createProductPriceSubject(current);
+      if (priceCents !== null && (!subject || current.product.pricePosition === null)) {
+        throw new Error("Choose the audience price position first");
+      }
       const commands = new ObjectCommandService(runtime.adapter);
       const priceObjectIds = this.#priceLabelObjectIds(current);
       if (priceCents === null) {
@@ -598,12 +624,16 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       } else {
         const label = formatMarketBucks(priceCents);
         priceObjectIds.forEach((objectId) => {
-          runtime.adapter.setText(objectId, label, `Market price ${label}`, false);
+          runtime.adapter.setText(objectId, label, `Selling price ${label}`, false);
         });
       }
       this.#document = parseCampaignDocument({
         ...structuredClone(current),
-        product: { ...structuredClone(current.product), priceCents },
+        product: {
+          ...structuredClone(current.product),
+          priceCents,
+          priceDecisionFingerprint: subject?.fingerprint ?? null
+        },
         fabricState: commands.serialize(),
         evidence: {
           ...structuredClone(current.evidence),
@@ -613,8 +643,88 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     };
     if (this.#history === null) await commit();
     else await this.#history.transaction(commit);
+    this.#refreshMoneyCheck();
+    this.#refreshMarketRoute();
     this.#refreshStudioCoachCampaign();
     this.schedulePracticeAutosave();
+  }
+
+  async setProductPricePosition(position: ProductPricePosition | null): Promise<void> {
+    this.#assertStageAllows("price");
+    await this.#placements.flush();
+    const current = this.#snapshot();
+    const subject = createProductPriceSubject(current);
+    if (!subject) throw new Error("Name and place the product first");
+    this.#document = parseCampaignDocument({
+      ...structuredClone(current),
+      product: {
+        ...structuredClone(current.product),
+        pricePosition: position,
+        priceDecisionFingerprint: subject.fingerprint
+      }
+    });
+    this.#refreshMoneyCheck();
+    this.#refreshMarketRoute();
+    this.schedulePracticeAutosave();
+  }
+
+  async researchProductPrice(
+    client: Pick<ProductPriceGuideClient, "research">
+  ): Promise<ProductPriceGuide> {
+    this.#assertStageAllows("price");
+    await this.#placements.flush();
+    const current = this.#snapshot();
+    const subject = createProductPriceSubject(current);
+    if (!subject) throw new Error("Name and place the product before checking prices");
+    if (current.product.priceGuide?.productFingerprint === subject.fingerprint) {
+      return structuredClone(current.product.priceGuide);
+    }
+    const existing = current.product.priceLookup?.productFingerprint === subject.fingerprint
+      ? current.product.priceLookup
+      : null;
+    const priceLookup = existing ?? {
+      productFingerprint: subject.fingerprint,
+      idempotencyKey: `price-${globalThis.crypto.randomUUID()}`
+    };
+    this.#document = parseCampaignDocument({
+      ...structuredClone(current),
+      product: {
+        ...structuredClone(current.product),
+        priceDecisionFingerprint: subject.fingerprint,
+        priceGuide: null,
+        priceLookup
+      }
+    });
+    this.#refreshMoneyCheck();
+    this.schedulePracticeAutosave();
+    await this.flushPracticeAutosave();
+
+    const guide = await client.research({
+      sessionId: current.sessionId,
+      teamId: current.teamId ?? current.documentId,
+      documentId: current.documentId,
+      idempotencyKey: priceLookup.idempotencyKey,
+      productFingerprint: subject.fingerprint,
+      product: { name: subject.name, features: [...subject.features] }
+    });
+    const latest = this.#snapshot();
+    const latestSubject = createProductPriceSubject(latest);
+    if (!latestSubject || latestSubject.fingerprint !== subject.fingerprint ||
+      latest.documentId !== current.documentId || latest.sessionId !== current.sessionId) {
+      throw new Error("The product changed while prices were being checked. Confirm it again.");
+    }
+    this.#document = parseCampaignDocument({
+      ...structuredClone(latest),
+      product: {
+        ...structuredClone(latest.product),
+        priceDecisionFingerprint: subject.fingerprint,
+        priceGuide: guide,
+        priceLookup: null
+      }
+    });
+    this.#refreshMoneyCheck();
+    this.schedulePracticeAutosave();
+    return structuredClone(guide);
   }
 
   async addProductPriceToDesign(): Promise<void> {
@@ -626,16 +736,18 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     let label = "";
     const commit = async (): Promise<void> => {
       const current = this.#snapshot();
-      if (current.product.priceCents === null) throw new Error("Set a market price first");
+      if (current.product.priceCents === null || current.product.pricePosition === null) {
+        throw new Error("Set the audience price position and selling price first");
+      }
       label = formatMarketBucks(current.product.priceCents);
       const commands = new ObjectCommandService(runtime.adapter);
       const existing = this.#priceLabelObjectIds(current);
       if (existing.length === 0) {
-        objectId = await commands.addText(label, `Market price ${label}`, false);
+        objectId = await commands.addText(label, `Selling price ${label}`, false);
         commands.transform(objectId, { x: 1240, y: 670 });
       } else {
         objectId = existing[0]!;
-        runtime.adapter.setText(objectId, label, `Market price ${label}`, false);
+        runtime.adapter.setText(objectId, label, `Selling price ${label}`, false);
         existing.slice(1).forEach((duplicateId) => commands.remove(duplicateId));
         commands.select(objectId);
       }
@@ -1019,9 +1131,19 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#practiceSaveMatched = false;
     this.shell.saveStatus.textContent = "";
     this.#productShellRegions.clear();
-    this.#moneyPanel?.setState({ build: null, priceCents: null });
+    this.#moneyPanel?.setState({
+      hasProduct: false,
+      productName: "",
+      priceCents: null,
+      pricePosition: null,
+      priceGuide: null,
+      audienceNeed: "",
+      audienceValues: []
+    });
     this.#marketRoutePanel?.setState({
-      build: null,
+      hasProduct: false,
+      priceCents: null,
+      pricePosition: null,
       audienceBriefId: "",
       strategy: {
         productTraitIds: [],
@@ -1063,13 +1185,52 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       fabricState,
       evidence
     });
-    return this.#rasterPricing === null
+    const reconciled = this.#rasterPricing === null
       ? snapshot
       : reconcileRasterProductBuild(
           snapshot,
           this.#rasterPricing,
           this.#productKitBundle ?? undefined
         );
+    return this.#invalidateStaleProductPricing(reconciled);
+  }
+
+  #invalidateStaleProductPricing(document: CampaignDocumentV1): CampaignDocumentV1 {
+    const storedFingerprint = document.product.priceDecisionFingerprint ??
+      document.product.priceGuide?.productFingerprint ??
+      document.product.priceLookup?.productFingerprint ?? null;
+    if (storedFingerprint === null) return document;
+    const subject = createProductPriceSubject(document);
+    if (subject?.fingerprint === storedFingerprint &&
+      (document.product.priceGuide === null ||
+        document.product.priceGuide.productFingerprint === storedFingerprint) &&
+      (document.product.priceLookup === null ||
+        document.product.priceLookup.productFingerprint === storedFingerprint)) return document;
+
+    let fabricState: unknown = structuredClone(document.fabricState);
+    if (this.#runtime !== null) {
+      const commands = new ObjectCommandService(this.#runtime.adapter);
+      this.#priceLabelObjectIds(document).forEach((objectId) => commands.remove(objectId));
+      fabricState = commands.serialize();
+    }
+    return parseCampaignDocument({
+      ...structuredClone(document),
+      product: {
+        ...structuredClone(document.product),
+        priceCents: null,
+        pricePosition: null,
+        priceDecisionFingerprint: null,
+        priceGuide: null,
+        priceLookup: null
+      },
+      strategy: {
+        ...structuredClone(document.strategy),
+        marketedChoiceIds: [],
+        marketRoute: null
+      },
+      fabricState,
+      evidence: { ...structuredClone(document.evidence), price: [] }
+    });
   }
 
   #studioCoachCampaign(document: CampaignDocumentV1): StudioCoachCampaign {
@@ -1112,13 +1273,13 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 
   #commitPlacement(document: CampaignDocumentV1, localBlob?: LocalCatalogueBlob): void {
-    const reconciled = this.#rasterPricing === null
+    const reconciled = this.#invalidateStaleProductPricing(this.#rasterPricing === null
       ? document
       : reconcileRasterProductBuild(
           document,
           this.#rasterPricing,
           this.#productKitBundle ?? undefined
-        );
+        ));
     if (localBlob) {
       if (this.#blobs.has(localBlob.blobKey) || this.#ownedRasterUrls.has(localBlob.objectUrl)) {
         throw new Error("Catalogue placement produced a duplicate local asset");
@@ -1142,21 +1303,28 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     return document.evidence.price.filter((objectId) => {
       const object = objects.get(objectId);
       return object?.elementKind === "text" &&
-        object.accessibleName.startsWith("Market price");
+        (object.accessibleName.startsWith("Selling price") ||
+          object.accessibleName.startsWith("Market price"));
     });
   }
 
   #refreshMoneyCheck(): void {
+    const document = this.#document;
     this.#moneyPanel?.setState({
-      build: this.#document?.product.build ?? null,
-      priceCents: this.#document?.product.priceCents ?? null
+      hasProduct: document === null ? false : hasPlacedProduct(document),
+      productName: document?.product.name ?? "",
+      priceCents: document?.product.priceCents ?? null,
+      pricePosition: document?.product.pricePosition ?? null,
+      priceGuide: document?.product.priceGuide ?? null,
+      audienceNeed: document?.brief.audienceNeeds.join(" ") ?? "",
+      audienceValues: document?.brief.audienceValues ?? []
     });
   }
 
   #refreshMarketRoute(feedback?: MarketRouteFeedback | null): void {
     if (!this.#marketRoutePanel) return;
     const document = this.#document;
-    const build = document?.product.build ?? null;
+    const hasProduct = document === null ? false : hasPlacedProduct(document);
     const strategy = document?.strategy ?? {
       productTraitIds: [],
       marketedChoiceIds: [],
@@ -1164,7 +1332,8 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       aidaPlan: { attention: "", interest: "", desire: "", action: "" }
     };
     let nextFeedback = feedback ?? null;
-    if (feedback === undefined && build && strategy.marketRoute) {
+    if (feedback === undefined && hasProduct && document?.product.pricePosition &&
+      document.product.priceCents !== null && strategy.marketRoute) {
       const route = commitMarketRoute(createMarketRoute({
         audienceBriefId: strategy.marketRoute.audienceBriefId,
         zoneId: strategy.marketRoute.zoneId,
@@ -1172,14 +1341,16 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       }));
       nextFeedback = evaluateCommittedMarketRoute(
         createProductSignal({
-          costCents: build.unitCostCents,
+          pricePosition: document.product.pricePosition,
           traitIds: strategy.productTraitIds
         }),
         route
       );
     }
     this.#marketRoutePanel.setState({
-      build,
+      hasProduct,
+      priceCents: document?.product.priceCents ?? null,
+      pricePosition: document?.product.pricePosition ?? null,
       audienceBriefId: document?.brief.targetAudienceId ?? "",
       strategy,
       feedback: nextFeedback
@@ -1426,9 +1597,12 @@ shell.zoomIn.addEventListener("click", () => {
   runCanvasSizeAction(() => handler.resizeSelectedObject(1.2));
 });
 accountMutations.subscribe(() => accountController?.requireReauthentication());
+const productPriceGuideClient = new ProductPriceGuideClient();
 const moneyPanel = new ProductMoneyPanel(
   shell.moneyCheckPanel,
   (priceCents) => handler.setProductPrice(priceCents),
+  (position) => handler.setProductPricePosition(position),
+  () => handler.researchProductPrice(productPriceGuideClient),
   () => handler.addProductPriceToDesign()
 );
 handler.attachMoneyPanel(moneyPanel);
@@ -1518,7 +1692,6 @@ for (const tab of checklistTabs) {
 }
 void loadOfflineCatalogueWithHash(root.dataset.offlineCatalogueUrl).then(async (catalogue) => {
   if (!catalogue) {
-    cataloguePanel.setPricing(null);
     catalogueRuntime.replaceCore([], null);
     productKitPanel.unavailable();
     return;
@@ -1528,7 +1701,6 @@ void loadOfflineCatalogueWithHash(root.dataset.offlineCatalogueUrl).then(async (
   else productKitPanel.unavailable();
   const pricing = await loadRasterPricing(root.dataset.offlineCatalogueUrl, catalogue);
   if (!pricing) {
-    cataloguePanel.setPricing(null);
     catalogueRuntime.replaceCore([], null);
     if (bundle) {
       productKitPanel.render(bundle);
@@ -1537,14 +1709,12 @@ void loadOfflineCatalogueWithHash(root.dataset.offlineCatalogueUrl).then(async (
     return;
   }
   handler.setRasterPricing(pricing);
-  cataloguePanel.setPricing(pricing);
   catalogueRuntime.replaceCore(catalogue.records, pricing);
   if (bundle) {
     productKitPanel.render(bundle);
     handler.refreshProductKitPanel();
   }
 }).catch(() => {
-  cataloguePanel.setPricing(null);
   catalogueRuntime.replaceCore([], null);
   productKitPanel.unavailable();
 });

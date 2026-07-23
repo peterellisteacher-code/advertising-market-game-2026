@@ -95,7 +95,7 @@ export const STUDENT_COPY = deepFreeze({
       },
       strategist: {
         label: "Strategist",
-        productiveAction: "Set the price, then complete the next market-route step.",
+        productiveAction: "Choose the audience price position and selling price. Then complete one market-route step.",
         holdingAction: "Check the price and market route against the audience need."
       }
     },

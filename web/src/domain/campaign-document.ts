@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  PRODUCT_PRICE_POSITIONS,
+  parseProductPriceGuide,
+  type ProductPriceGuide
+} from "../../../shared/product-price-guide-contract";
 import { CREATOR_CONFIG } from "../config";
 import {
   ADVERTISING_MEDIA,
@@ -34,6 +39,23 @@ const fabricState = z.object({
 const moneyCents = z.number().int().nonnegative().refine(Number.isSafeInteger, {
   message: "Money value must be a safe integer"
 });
+
+const productPriceGuide = z.unknown().transform((value, context): ProductPriceGuide => {
+  try {
+    return parseProductPriceGuide(value);
+  } catch (error) {
+    context.addIssue({
+      code: "custom",
+      message: error instanceof Error ? error.message : "Product price guide is invalid"
+    });
+    return z.NEVER;
+  }
+});
+
+const productPriceLookup = z.object({
+  productFingerprint: z.string().regex(/^[0-9a-f]{64}$/),
+  idempotencyKey: z.string().trim().min(1).max(128).regex(/^[A-Za-z0-9._:-]+$/)
+}).strict();
 
 export const CAMPAIGN_GAMEPLAY_STAGES = Object.freeze([
   "invent",
@@ -232,7 +254,19 @@ export const CampaignDocumentSchema = z.object({
   product: z.object({
     name: z.string().max(48),
     priceCents: moneyCents.nullable(),
+    pricePosition: z.enum(PRODUCT_PRICE_POSITIONS).nullable().default(null),
+    priceDecisionFingerprint: z.string().regex(/^[0-9a-f]{64}$/).nullable().default(null),
+    priceGuide: productPriceGuide.nullable().default(null),
+    priceLookup: productPriceLookup.nullable().default(null),
     build: ProductBuildSnapshotSchema.nullable().default(null)
+  }).superRefine((product, context) => {
+    if (product.priceGuide !== null && product.priceLookup !== null) {
+      context.addIssue({
+        code: "custom",
+        path: ["priceLookup"],
+        message: "A completed price guide cannot also be pending"
+      });
+    }
   }),
   brief: z.object({
     targetAudienceId: z.string(),
@@ -310,7 +344,15 @@ export function createBlankCampaignDocument(ids: {
     },
     fabricState: { version: "7.4.0", objects: [] },
     drawingLayers: [],
-    product: { name: "", priceCents: null, build: null },
+    product: {
+      name: "",
+      priceCents: null,
+      pricePosition: null,
+      priceDecisionFingerprint: null,
+      priceGuide: null,
+      priceLookup: null,
+      build: null
+    },
     brief: {
       targetAudienceId: "",
       contextId: "",

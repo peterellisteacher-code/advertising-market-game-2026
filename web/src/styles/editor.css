@@ -143,7 +143,7 @@
 .money-check__range { font-weight: 950; font-variant-numeric: tabular-nums; }
 .money-check__evidence ul { margin: 0; padding-left: 1.25rem; display: grid; gap: .25rem; }
 .money-check__evidence a { color: #124e8c; font-weight: 800; overflow-wrap: anywhere; }
-.money-check__caveat { color: #52627a; font-size: .8rem; }
+.money-check__caveat { color: #52627a; font-size: .875rem; }
 .money-check__positions { min-width: 0; margin: 0; padding: .45rem; display: grid; gap: .3rem; border: 1px solid #c8b78c; border-radius: .4rem; background: #fff; }
 .money-check__positions legend { padding: 0 .25rem; font-weight: 950; }
 .money-check__positions label { min-height: 44px; padding: .3rem .4rem; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .45rem; align-items: center; border: 1px solid #d5c9aa; border-radius: .35rem; cursor: pointer; }
@@ -340,9 +340,9 @@
 .creator__layer-list [data-layer-select] { grid-column: 1 / -1; width: 100%; padding: 0 .55rem; border: 1px solid #7295a1; border-radius: .45rem; background: #edf7fa; color: var(--ink); font: inherit; font-weight: 900; text-align: left; }
 .creator__layer-list [data-layer-select][aria-pressed="true"] { background: var(--blue); color: #fff; }
 .creator__layer-name { min-width: 0; overflow-wrap: anywhere; font-weight: 900; }
-.creator__layer-status { color: #52627a; font-size: .8rem; text-align: right; }
+.creator__layer-status { color: #52627a; font-size: .875rem; text-align: right; }
 .creator__layer-actions { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .3rem; }
-.creator__layer-actions button { min-width: 0; min-height: 38px; padding: .2rem .35rem; border: 1px solid #8faeb8; border-radius: .4rem; background: #fffdf7; color: var(--ink); font: inherit; font-size: .8rem; font-weight: 800; line-height: 1.15; }
+.creator__layer-actions button { min-width: 0; min-height: 38px; padding: .2rem .35rem; border: 1px solid #8faeb8; border-radius: .4rem; background: #fffdf7; color: var(--ink); font: inherit; font-size: .875rem; font-weight: 800; line-height: 1.15; }
 .creator__keyboard-inspector { margin-top: .7rem; padding-top: .65rem; border-top: 1px solid #c9bfae; }
 .creator__keyboard-inspector h3 { font-size: 1rem; }
 .creator__keyboard-inspector p { color: #475569; font-size: .875rem; line-height: 1.35; }

@@ -138,14 +138,14 @@ function publicUrl(relative) {
 
 function renderServiceWorker({ cacheVersion, assets, core }) {
   const cacheName = `ad-market-${cacheVersion}`;
-  const expected = Object.fromEntries(assets.map((record) => [
-    publicUrl(record.path),
-    record.sha256
-  ]));
+  const coreSet = new Set(core);
+  const expected = Object.fromEntries(assets
+    .map((record) => [publicUrl(record.path), record.sha256])
+    .filter(([pathname]) => coreSet.has(pathname)));
   return `/* Generated. Do not edit. */
 const CACHE_PREFIX = "ad-market-";
 const CACHE_NAME = ${JSON.stringify(cacheName)};
-const ASSET_SHA256 = new Map(Object.entries(${JSON.stringify(expected)}));
+const CORE_SHA256 = new Map(Object.entries(${JSON.stringify(expected)}));
 const CORE = ${JSON.stringify(core)};
 const UPDATE_PATHS = new Set([
   "/service-worker.js",
@@ -161,11 +161,19 @@ async function verifiedResponse(pathname, response) {
   if (!response.ok || response.type === "opaque") {
     throw new Error(\`Unusable release response: \${pathname}\`);
   }
-  const expected = ASSET_SHA256.get(pathname);
+  const expected = CORE_SHA256.get(pathname);
   if (expected === undefined) throw new Error(\`Unbound release asset: \${pathname}\`);
   const actual = hex(await crypto.subtle.digest("SHA-256", await response.clone().arrayBuffer()));
   if (actual !== expected) throw new Error(\`Release asset hash mismatch: \${pathname}\`);
   return response;
+}
+
+function isReleaseAsset(pathname) {
+  return CORE_SHA256.has(pathname) ||
+    pathname.startsWith("/catalog/") ||
+    pathname.startsWith("/studio/") ||
+    /^\\/index(?:\\.|$)/.test(pathname) ||
+    pathname === "/manifest.webmanifest";
 }
 
 self.addEventListener("install", (event) => {
@@ -211,11 +219,16 @@ self.addEventListener("fetch", (event) => {
     if (request.mode === "navigate") {
       return await cache.match("/index.html") ?? fetch(request);
     }
-    if (!ASSET_SHA256.has(url.pathname)) return fetch(request);
-    const cached = await cache.match(url.pathname);
+    if (!isReleaseAsset(url.pathname)) return fetch(request);
+    const cached = await cache.match(request);
     if (cached) return cached;
-    const response = await verifiedResponse(url.pathname, await fetch(request));
-    await cache.put(url.pathname, response.clone());
+    const fetched = await fetch(request);
+    const response = CORE_SHA256.has(url.pathname)
+      ? await verifiedResponse(url.pathname, fetched)
+      : fetched;
+    if (response.ok && response.type !== "opaque") {
+      await cache.put(request, response.clone());
+    }
     return response;
   })());
 });

@@ -344,6 +344,8 @@ test("assembly writes a deterministic CSP hash for the exact inline bootstrap bo
 test("release assembly binds static assets, private functions and one atomic service worker", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "admarket-release-"));
   const { web, studio } = await writeExportScaffold(root);
+  await mkdir(path.join(web, "catalog"), { recursive: true });
+  await writeFile(path.join(web, "catalog", "fixture.png"), Buffer.from([1, 2, 3]));
   await writeFile(path.join(web, "index.audio.worklet.js"), "class AudioWorkletProcessor {}\n");
   await writeFunctionArtifactFixture(root);
 
@@ -359,7 +361,10 @@ test("release assembly binds static assets, private functions and one atomic ser
   assert.ok(assetManifest.core.includes("/index.html"));
 
   const worker = await readFile(path.join(web, "service-worker.js"), "utf8");
+  assert.ok(Buffer.byteLength(worker) < 64 * 1024, "service worker must stay lightweight");
   assert.match(worker, new RegExp(`ad-market-${assetManifest.cacheVersion}`));
+  assert.match(worker, /pathname\.startsWith\("\/catalog\/"\)/);
+  assert.doesNotMatch(worker, /\/catalog\/fixture\.png/);
   assert.match(worker, /request\.method !== "GET"/);
   assert.match(worker, /url\.pathname\.startsWith\("\/api\/"\)/);
   assert.match(worker, /crypto\.subtle\.digest\("SHA-256"/);

@@ -125,4 +125,60 @@ describe("LocalPracticeService", () => {
     });
     expect(await store.loadRevision(begun.document.documentId, 2)).toBeNull();
   });
+
+  it("adopts a matching cloud snapshot as the next local revision and preserves the prior copy", async () => {
+    const store = new IndexedDbDraftStore({
+      databaseName: "local-practice-service-adopt-cloud",
+      factory: new IDBFactory()
+    });
+    const service = new LocalPracticeService(store, {
+      now: () => new Date("2026-07-17T05:00:00.000Z")
+    });
+    const begun = await service.begin("Cloud Foxes", "operation-begin-cloud");
+    const local = structuredClone(begun.document);
+    local.product.name = "Newest local version";
+    const saved = await service.commitEditorSnapshot(local, new Map(), "operation-local-before-cloud");
+    const remote = structuredClone(saved!.document);
+    remote.product.name = "Chosen cloud version";
+    remote.revision = 12;
+
+    const adopted = await service.adoptCloudSnapshot({
+      document: remote,
+      blobs: new Map(),
+      operationId: "operation-adopt-cloud"
+    });
+
+    expect(adopted.document).toMatchObject({
+      revision: 2,
+      product: { name: "Chosen cloud version" }
+    });
+    await expect(store.loadRevision(begun.document.documentId, 1)).resolves.toMatchObject({
+      document: {
+        revision: 1,
+        product: { name: "Newest local version" }
+      }
+    });
+    await expect(service.resume()).resolves.toMatchObject({
+      document: {
+        revision: 2,
+        product: { name: "Chosen cloud version" }
+      }
+    });
+  });
+
+  it("rejects a cloud snapshot from a different practice identity", async () => {
+    const service = new LocalPracticeService(new IndexedDbDraftStore({
+      databaseName: "local-practice-service-reject-cloud",
+      factory: new IDBFactory()
+    }));
+    const begun = await service.begin("Identity Owls", "operation-begin-identity");
+    const remote = structuredClone(begun.document);
+    remote.sessionId = "practice-session-other";
+
+    await expect(service.adoptCloudSnapshot({
+      document: remote,
+      blobs: new Map(),
+      operationId: "operation-adopt-invalid-cloud"
+    })).rejects.toThrow(/does not match/i);
+  });
 });

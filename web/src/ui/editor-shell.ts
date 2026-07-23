@@ -54,8 +54,8 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           </label>
           <button type="button" class="creator__brief-toggle" aria-expanded="false" aria-controls="studio-full-brief" data-brief-toggle>Open full brief</button>
         </div>
-        <nav class="creator__checklist" role="tablist" aria-label="AIDA steps" data-creator-checklist>
-          ${AIDA.map((label, index) => `<button type="button" role="tab" aria-selected="${index === 0}" data-slot="${label.toLowerCase()}">${label}</button>`).join("")}
+        <nav class="creator__checklist" role="group" aria-label="AIDA steps" data-creator-checklist>
+          ${AIDA.map((label, index) => `<button type="button" aria-pressed="${index === 0}" data-slot="${label.toLowerCase()}">${label}</button>`).join("")}
         </nav>
         <div class="creator__role-card">
           <div class="creator__role-turn creator__role-turn--active">

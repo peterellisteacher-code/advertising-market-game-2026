@@ -108,10 +108,10 @@ describe("createEditorShell", () => {
     expect(root.querySelector('.creator__layers[aria-label="Layers"]')).toBeTruthy();
     expect(root.querySelector('.creator__inspector[aria-label="Selected element"]')).toBeTruthy();
     expect(shell.inspector.hidden).toBe(true);
-    expect(getByRole(root, "tablist", { name: "AIDA steps", hidden: true })).toBeTruthy();
-    expect(getAllByRole(root, "tab", { hidden: true })
-      .filter((tab) => tab.hasAttribute("data-slot"))
-      .map((tab) => tab.textContent)).toEqual([
+    expect(getByRole(root, "group", { name: "AIDA steps", hidden: true })).toBeTruthy();
+    expect(getAllByRole(root, "button", { hidden: true })
+      .filter((button) => button.hasAttribute("data-slot"))
+      .map((button) => button.textContent)).toEqual([
       "Price", "Attention", "Interest", "Desire", "Action"
     ]);
     expect(shell.polite.getAttribute("aria-live")).toBe("polite");

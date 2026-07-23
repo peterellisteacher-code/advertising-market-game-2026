@@ -23,6 +23,12 @@ export interface LocalPracticeServiceOptions {
   now?: () => Date;
 }
 
+export interface AdoptCloudPracticeInput {
+  readonly document: CampaignDocumentV1;
+  readonly blobs: ReadonlyMap<string, Blob>;
+  readonly operationId: string;
+}
+
 function nextUpdatedAt(current: string, now: Date): string {
   const currentTimestamp = Date.parse(current);
   const nextTimestamp = Math.max(
@@ -154,6 +160,34 @@ export class LocalPracticeService implements PracticeRunHandler {
       levelLocked: false,
       operationId,
       savedAt: this.#now().toISOString()
+    });
+    return this.#recoveryForCheckpoint(checkpoint);
+  }
+
+  async adoptCloudSnapshot(input: AdoptCloudPracticeInput): Promise<LocalPracticeRecoveryV1> {
+    const active = await this.store.resumeLocalPractice();
+    if (active === null) throw new Error("There is no active local-practice run");
+    const remote = CampaignDocumentSchema.parse(structuredClone(input.document));
+    if (remote.mode !== "offline" || remote.roomId !== undefined ||
+      remote.documentId !== active.checkpoint.documentId ||
+      remote.sessionId !== active.checkpoint.sessionId ||
+      remote.teamId !== active.checkpoint.teamId) {
+      throw new Error("Cloud snapshot does not match the active local-practice run");
+    }
+    const now = this.#now();
+    const document = CampaignDocumentSchema.parse({
+      ...remote,
+      revision: active.checkpoint.documentRevision + 1,
+      updatedAt: nextUpdatedAt(remote.updatedAt, now)
+    });
+    const checkpoint = await this.store.commitLocalPractice({
+      expectedDocumentRevision: active.checkpoint.documentRevision,
+      expectedSequence: active.checkpoint.sequence,
+      document,
+      blobs: input.blobs,
+      levelLocked: false,
+      operationId: input.operationId,
+      savedAt: now.toISOString()
     });
     return this.#recoveryForCheckpoint(checkpoint);
   }

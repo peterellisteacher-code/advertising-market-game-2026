@@ -253,6 +253,63 @@ describe("AccountAccessController", () => {
     expect(queryByRole(harness.statusRoot, "button", { name: "Log out" })).toBeNull();
   });
 
+  it("offers explicit cloud-conflict choices without replacing the local copy automatically", async () => {
+    const client: AccountSessionClient = {
+      session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
+      signup: vi.fn(),
+      login: vi.fn(),
+      logout: vi.fn()
+    };
+    const harness = mount(client);
+    await harness.controller.requireAccess();
+    const onKeepLocal = vi.fn().mockResolvedValue(undefined);
+    const onUseCloud = vi.fn().mockResolvedValue(undefined);
+
+    harness.controller.setCloudConflict({
+      documentId: "campaign-main",
+      cloudAvailable: true,
+      onKeepLocal,
+      onUseCloud,
+      onRetry: vi.fn()
+    });
+
+    expect(getByRole(harness.statusRoot, "group", { name: "Choose which saved copy to use" }))
+      .toBeTruthy();
+    fireEvent.click(getByRole(harness.statusRoot, "button", {
+      name: "Keep this device's copy"
+    }));
+    await waitFor(() => expect(onKeepLocal).toHaveBeenCalledOnce());
+    expect(onUseCloud).not.toHaveBeenCalled();
+  });
+
+  it("restores focus and keeps both copies untouched when a conflict action fails", async () => {
+    const client: AccountSessionClient = {
+      session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
+      signup: vi.fn(),
+      login: vi.fn(),
+      logout: vi.fn()
+    };
+    const harness = mount(client);
+    await harness.controller.requireAccess();
+    const onRetry = vi.fn().mockRejectedValue(new Error("offline"));
+    harness.controller.setCloudConflict({
+      documentId: "campaign-main",
+      cloudAvailable: false,
+      onKeepLocal: vi.fn(),
+      onRetry
+    });
+    const retry = getByRole<HTMLButtonElement>(harness.statusRoot, "button", {
+      name: "Retry cloud check"
+    });
+
+    fireEvent.click(retry);
+
+    await waitFor(() => expect(getByRole(harness.statusRoot, "alert").textContent)
+      .toContain("Both copies are still safe"));
+    expect(document.activeElement).toBe(retry);
+    expect(retry.disabled).toBe(false);
+  });
+
   it("stays locked without reloading when the server logout cannot be confirmed", async () => {
     const client: AccountSessionClient = {
       session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),

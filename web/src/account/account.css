@@ -163,6 +163,45 @@
   cursor: pointer;
 }
 
+.account-session__conflict {
+  grid-column: 1 / -1;
+  padding: .55rem;
+  display: grid;
+  gap: .45rem;
+  border: 1px solid #b56b00;
+  border-radius: .55rem;
+  background: #fff4d6;
+}
+
+.account-session__conflict p {
+  margin: 0;
+  line-height: 1.35;
+}
+
+.account-session__conflict-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+}
+
+.account-session__conflict .account-session__conflict-actions button {
+  grid-column: auto;
+  grid-row: auto;
+  min-height: 44px;
+  padding: .4rem .55rem;
+}
+
+.account-session__conflict-error {
+  min-height: 1.2em;
+  color: #9b1c1c;
+  font-weight: 850;
+}
+
+.account-session__conflict button:disabled {
+  cursor: wait;
+  opacity: .62;
+}
+
 @media (max-width: 34rem) {
   .account-session {
     left: .65rem;

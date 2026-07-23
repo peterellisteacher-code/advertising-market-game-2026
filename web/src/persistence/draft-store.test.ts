@@ -243,6 +243,19 @@ async function rawDocumentRecords(factory: IDBFactory, databaseName: string): Pr
   return values;
 }
 
+async function rawStoreRecords(
+  factory: IDBFactory,
+  databaseName: string,
+  storeName: string
+): Promise<unknown[]> {
+  const database = await requestResult(factory.open(databaseName));
+  const transaction = database.transaction(storeName, "readonly");
+  const values = await requestResult(transaction.objectStore(storeName).getAll()) as unknown[];
+  await transactionComplete(transaction);
+  database.close();
+  return values;
+}
+
 async function mutateRawRecord(
   factory: IDBFactory,
   databaseName: string,
@@ -2135,6 +2148,126 @@ describe("IndexedDbDraftStore", () => {
 
     expect(await canonicalDurableDocumentHash(document))
       .toBe(await codeUnitCanonicalHash(document));
+  });
+
+  it("retains only five complete revisions and their matching blobs and operation results", async () => {
+    const factory = new IDBFactory();
+    const databaseName = "local-practice-bounded-retention";
+    const store = new IndexedDbDraftStore({ databaseName, factory });
+    let document = CampaignDocumentSchema.parse({
+      ...campaignFixture("bounded-retention-document"),
+      sessionId: "bounded-retention-session",
+      teamId: "bounded-retention-team"
+    });
+    await store.beginLocalPractice({
+      runId: "bounded-retention-run",
+      teamAlias: "Retention pair",
+      document,
+      blobs: localBlobs(0),
+      levelLocked: false,
+      operationId: "bounded-retention-0",
+      savedAt: "2026-07-23T00:00:00.000Z"
+    });
+    for (let revision = 1; revision <= 8; revision += 1) {
+      document = CampaignDocumentSchema.parse({
+        ...document,
+        revision,
+        updatedAt: `2026-07-23T00:00:0${revision}.000Z`
+      });
+      await store.commitLocalPractice({
+        expectedDocumentRevision: revision - 1,
+        expectedSequence: revision - 1,
+        document,
+        blobs: localBlobs(revision),
+        levelLocked: false,
+        operationId: `bounded-retention-${revision}`,
+        savedAt: `2026-07-23T00:00:0${revision}.000Z`
+      });
+    }
+
+    const documents = await rawDocumentRecords(factory, databaseName);
+    expect(documents.map(({ revision }) => revision).sort((a, b) => a - b))
+      .toEqual([4, 5, 6, 7, 8]);
+    expect(await rawStoreRecords(factory, databaseName, "blobs")).toHaveLength(10);
+    expect(await rawStoreRecords(factory, databaseName, "local-practice-operations"))
+      .toHaveLength(5);
+    await expect(store.loadRevision(document.documentId, 3)).resolves.toBeNull();
+    await expect(store.loadRevision(document.documentId, 4)).resolves.not.toBeNull();
+    await expect(store.resumeLocalPractice()).resolves.toMatchObject({
+      checkpoint: { documentRevision: 8 },
+      document: { revision: 8 }
+    });
+  });
+
+  it("prunes and retries a generic save once after an injected quota failure", async () => {
+    const factory = new IDBFactory();
+    const databaseName = "draft-save-quota-retry";
+    const attempts: number[] = [];
+    const store = new IndexedDbDraftStore({
+      databaseName,
+      factory,
+      writeAttemptHook(kind, attempt) {
+        if (kind !== "save") return;
+        attempts.push(attempt);
+        if (attempt === 0) throw new DOMException("quota", "QuotaExceededError");
+      }
+    });
+    const first = campaignFixture("quota-save-document");
+    await new IndexedDbDraftStore({ databaseName, factory }).save(first, localBlobs(1));
+    const second = CampaignDocumentSchema.parse({ ...first, revision: 1 });
+
+    await store.save(second, localBlobs(2));
+
+    expect(attempts).toEqual([0, 1]);
+    await expect(store.loadRevision(first.documentId, 0)).resolves.not.toBeNull();
+    await expect(store.loadRevision(first.documentId, 1)).resolves.not.toBeNull();
+  });
+
+  it("preserves the prior active checkpoint and retries a practice commit once after quota", async () => {
+    const factory = new IDBFactory();
+    const databaseName = "practice-commit-quota-retry";
+    const attempts: number[] = [];
+    const store = new IndexedDbDraftStore({
+      databaseName,
+      factory,
+      writeAttemptHook(kind, attempt) {
+        if (kind !== "commit") return;
+        attempts.push(attempt);
+        if (attempt === 0) throw new DOMException("quota", "QuotaExceededError");
+      }
+    });
+    const initial = CampaignDocumentSchema.parse({
+      ...campaignFixture("quota-practice-document"),
+      sessionId: "quota-practice-session",
+      teamId: "quota-practice-team"
+    });
+    await store.beginLocalPractice({
+      runId: "quota-practice-run",
+      teamAlias: "Quota pair",
+      document: initial,
+      blobs: localBlobs(1),
+      levelLocked: false,
+      operationId: "quota-practice-begin",
+      savedAt: "2026-07-23T00:00:00.000Z"
+    });
+    const next = CampaignDocumentSchema.parse({ ...initial, revision: 1 });
+
+    await store.commitLocalPractice({
+      expectedDocumentRevision: 0,
+      expectedSequence: 0,
+      document: next,
+      blobs: localBlobs(2),
+      levelLocked: false,
+      operationId: "quota-practice-commit",
+      savedAt: "2026-07-23T00:00:01.000Z"
+    });
+
+    expect(attempts).toEqual([0, 1]);
+    await expect(store.loadRevision(initial.documentId, 0)).resolves.not.toBeNull();
+    await expect(store.resumeLocalPractice()).resolves.toMatchObject({
+      checkpoint: { documentRevision: 1 },
+      document: { revision: 1 }
+    });
   });
 });
 

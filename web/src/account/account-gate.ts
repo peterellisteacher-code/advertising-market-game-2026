@@ -19,6 +19,14 @@ export interface AccountAccessControllerOptions {
   readonly generatePairPassword?: () => string;
 }
 
+export interface AccountCloudConflictOptions {
+  readonly documentId: string;
+  readonly cloudAvailable: boolean;
+  readonly onKeepLocal: () => void | Promise<void>;
+  readonly onUseCloud?: () => void | Promise<void>;
+  readonly onRetry: () => void | Promise<void>;
+}
+
 const copyForError = (error: unknown): string => {
   const code = error instanceof AccountClientError ? error.code : "ACCOUNT_UNAVAILABLE";
   switch (code) {
@@ -58,6 +66,7 @@ export class AccountAccessController {
   #resolveAccess: (() => void) | null = null;
   #username: string | null = null;
   #cloudMessage = "Progress saves on this device first.";
+  #cloudConflict: AccountCloudConflictOptions | null = null;
   #lifecycleGeneration = 0;
   #leavingAccount = false;
 
@@ -90,6 +99,14 @@ export class AccountAccessController {
 
   setCloudMessage(message: string): void {
     this.#cloudMessage = message;
+    this.#cloudConflict = null;
+    if (this.#username !== null) this.#renderStatus(this.#username);
+  }
+
+  setCloudConflict(options: AccountCloudConflictOptions): void {
+    this.#cloudMessage =
+      "Saved on this device · another cloud copy needs review. Nothing was replaced.";
+    this.#cloudConflict = options;
     if (this.#username !== null) this.#renderStatus(this.#username);
   }
 
@@ -298,7 +315,62 @@ export class AccountAccessController {
       cloud.textContent = "Signing out…";
       this.#leaveAccount(true);
     });
-    this.#statusRoot.replaceChildren(identity, cloud, logout);
+    const conflict = this.#cloudConflict === null
+      ? null
+      : this.#cloudConflictControls(this.#cloudConflict);
+    this.#statusRoot.replaceChildren(
+      identity,
+      cloud,
+      ...(conflict === null ? [] : [conflict]),
+      logout
+    );
+  }
+
+  #cloudConflictControls(options: AccountCloudConflictOptions): HTMLElement {
+    const group = document.createElement("div");
+    group.className = "account-session__conflict";
+    group.setAttribute("role", "group");
+    group.setAttribute("aria-label", "Choose which saved copy to use");
+    const explanation = document.createElement("p");
+    explanation.textContent = options.cloudAvailable
+      ? "This device and the cloud both have changes. Choose one. The game will not choose for you."
+      : "The cloud copy could not be checked. Keep this device's copy or retry the check.";
+    const error = document.createElement("p");
+    error.className = "account-session__conflict-error";
+    error.setAttribute("role", "alert");
+    error.setAttribute("aria-live", "assertive");
+    const actions = document.createElement("div");
+    actions.className = "account-session__conflict-actions";
+    const controls: HTMLButtonElement[] = [];
+    const action = (
+      label: string,
+      operation: () => void | Promise<void>
+    ): HTMLButtonElement => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = label;
+      controls.push(button);
+      button.addEventListener("click", () => {
+        controls.forEach((control) => { control.disabled = true; });
+        error.textContent = "";
+        void Promise.resolve()
+          .then(operation)
+          .catch(() => {
+            controls.forEach((control) => { control.disabled = false; });
+            error.textContent =
+              "That cloud action did not finish. Both copies are still safe. Try again.";
+            button.focus();
+          });
+      });
+      return button;
+    };
+    actions.append(action("Keep this device's copy", options.onKeepLocal));
+    if (options.cloudAvailable && options.onUseCloud) {
+      actions.append(action("Use cloud copy", options.onUseCloud));
+    }
+    actions.append(action("Retry cloud check", options.onRetry));
+    group.append(explanation, actions, error);
+    return group;
   }
 
   #leaveAccount(explicit: boolean): void {

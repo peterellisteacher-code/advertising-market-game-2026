@@ -6,6 +6,10 @@ import {
   type CloudProgressLoadResult
 } from "./account-client";
 import { AccountAssetClientError } from "./account-asset-client";
+import type {
+  CloudProgressOutbox,
+  CloudProgressOutboxEntry
+} from "./cloud-progress-outbox";
 
 const STORAGE_PREFIX = "admarket-cloud-sync@2:";
 const REVISION_PREFIX = `${STORAGE_PREFIX}revision:`;
@@ -110,61 +114,150 @@ export type CloudProgressSyncState =
     readonly phase: "conflict";
     readonly documentId: string;
     readonly currentRevision: number;
+    readonly local: CampaignDocumentV1;
+    readonly retryable: boolean;
     readonly remote?: Extract<CloudProgressLoadResult, { status: "found" }>;
   };
 
 export interface CloudProgressSyncOptions {
   readonly client: CloudProgressClient;
   readonly metadata: CloudSyncMetadataStore;
+  readonly outbox?: CloudProgressOutbox;
   readonly assetAdapter?: CloudProgressAssetAdapter;
+  readonly sendDelayMs?: number;
   readonly onState?: (state: CloudProgressSyncState) => void;
   readonly onAuthenticationRequired?: () => void;
+  readonly onUseCloud?: (
+    remote: Extract<CloudProgressLoadResult, { status: "found" }>,
+    local: CampaignDocumentV1
+  ) => Promise<void>;
 }
 
 const noopAssetAdapter: CloudProgressAssetAdapter = {
   prepare: async (document) => structuredClone(document)
 };
 
+class VolatileCloudProgressOutbox implements CloudProgressOutbox {
+  readonly #accounts = new Map<string, Map<string, CloudProgressOutboxEntry>>();
+  #active: Map<string, CloudProgressOutboxEntry> | null = null;
+  #sequence = 0;
+
+  async activateAccount(username: string): Promise<void> {
+    let account = this.#accounts.get(username);
+    if (!account) {
+      account = new Map();
+      this.#accounts.set(username, account);
+    }
+    this.#active = account;
+  }
+
+  deactivateAccount(): void {
+    this.#active = null;
+  }
+
+  async put(document: CampaignDocumentV1): Promise<CloudProgressOutboxEntry> {
+    if (!this.#active) throw new Error("Cloud outbox is locked");
+    const entry = {
+      documentId: document.documentId,
+      queueRevision: ++this.#sequence,
+      document: structuredClone(document)
+    };
+    this.#active.set(document.documentId, entry);
+    return structuredClone(entry);
+  }
+
+  async get(documentId: string): Promise<CloudProgressOutboxEntry | null> {
+    const entry = this.#active?.get(documentId);
+    return entry ? structuredClone(entry) : null;
+  }
+
+  async list(): Promise<readonly CloudProgressOutboxEntry[]> {
+    return [...(this.#active?.values() ?? [])].map((entry) => structuredClone(entry));
+  }
+
+  async removeIfRevision(documentId: string, queueRevision: number): Promise<boolean> {
+    const entry = this.#active?.get(documentId);
+    if (!entry || entry.queueRevision !== queueRevision) return false;
+    this.#active!.delete(documentId);
+    return true;
+  }
+}
+
+interface CloudProgressConflict {
+  readonly entry: CloudProgressOutboxEntry;
+  readonly currentRevision: number;
+  readonly remote?: Extract<CloudProgressLoadResult, { status: "found" }>;
+}
+
+export type CloudProgressConflictChoice = "keep-local" | "use-cloud";
+
 export class CloudProgressSync {
   readonly #client: CloudProgressClient;
   readonly #metadata: CloudSyncMetadataStore;
+  readonly #outbox: CloudProgressOutbox;
   readonly #assetAdapter: CloudProgressAssetAdapter;
+  readonly #sendDelayMs: number;
   readonly #onState: ((state: CloudProgressSyncState) => void) | undefined;
   readonly #onAuthenticationRequired: (() => void) | undefined;
+  readonly #onUseCloud: ((
+    remote: Extract<CloudProgressLoadResult, { status: "found" }>,
+    local: CampaignDocumentV1
+  ) => Promise<void>) | undefined;
   readonly #blockedDocuments = new Set<string>();
+  readonly #conflicts = new Map<string, CloudProgressConflict>();
   #account: string | null = null;
   #accountEpoch = 0;
-  #tail: Promise<void> = Promise.resolve();
+  #writeTail: Promise<void> = Promise.resolve();
+  #drain: Promise<void> | null = null;
+  #timer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(options: CloudProgressSyncOptions) {
     this.#client = options.client;
     this.#metadata = options.metadata;
+    this.#outbox = options.outbox ?? new VolatileCloudProgressOutbox();
     this.#assetAdapter = options.assetAdapter ?? noopAssetAdapter;
+    this.#sendDelayMs = options.sendDelayMs ?? 350;
+    if (!Number.isSafeInteger(this.#sendDelayMs) || this.#sendDelayMs < 0 ||
+      this.#sendDelayMs > 60_000) {
+      throw new Error("Cloud progress send delay is invalid");
+    }
     this.#onState = options.onState;
     this.#onAuthenticationRequired = options.onAuthenticationRequired;
+    this.#onUseCloud = options.onUseCloud;
   }
 
   async setAccount(username: string): Promise<void> {
     const accountEpoch = ++this.#accountEpoch;
     this.#account = null;
     this.#blockedDocuments.clear();
-    await this.#metadata.activateAccount(username);
+    this.#conflicts.clear();
+    this.#cancelTimer();
+    this.#drain = null;
+    await this.#writeTail.catch(() => undefined);
+    await Promise.all([
+      this.#metadata.activateAccount(username),
+      this.#outbox.activateAccount(username)
+    ]);
     if (accountEpoch !== this.#accountEpoch) return;
     this.#account = username;
     this.#emit({ phase: "idle" });
+    this.#schedule(0, accountEpoch);
   }
 
   signOut(): void {
     this.#accountEpoch += 1;
     this.#account = null;
     this.#blockedDocuments.clear();
+    this.#conflicts.clear();
+    this.#cancelTimer();
+    this.#drain = null;
     this.#metadata.deactivateAccount();
+    this.#outbox.deactivateAccount();
     this.#emit({ phase: "signed-out" });
   }
 
   enqueue(document: CampaignDocumentV1): void {
-    if (this.#account === null || document.mode !== "offline" ||
-      this.#blockedDocuments.has(document.documentId)) return;
+    if (this.#account === null || document.mode !== "offline") return;
     let snapshot: CampaignDocumentV1;
     try {
       snapshot = structuredClone(document);
@@ -173,23 +266,127 @@ export class CloudProgressSync {
       return;
     }
     const accountEpoch = this.#accountEpoch;
-    this.#tail = this.#tail
+    this.#writeTail = this.#writeTail
       .catch(() => undefined)
-      .then(() => this.#sync(snapshot, accountEpoch));
+      .then(async () => {
+        if (!this.#isCurrentAccount(accountEpoch)) return;
+        try {
+          await this.#outbox.put(snapshot);
+          if (this.#isCurrentAccount(accountEpoch) &&
+            !this.#blockedDocuments.has(snapshot.documentId)) {
+            this.#schedule(this.#sendDelayMs, accountEpoch);
+          }
+        } catch {
+          if (this.#isCurrentAccount(accountEpoch)) {
+            this.#emit({ phase: "offline", documentId: snapshot.documentId });
+          }
+        }
+      });
   }
 
   async settled(): Promise<void> {
-    await this.#tail;
+    for (;;) {
+      const writes = this.#writeTail;
+      await writes;
+      this.#cancelTimer();
+      const accountEpoch = this.#accountEpoch;
+      await this.#startDrain(accountEpoch);
+      if (writes === this.#writeTail && this.#drain === null && this.#timer === null) return;
+    }
   }
 
-  async #sync(document: CampaignDocumentV1, accountEpoch: number): Promise<void> {
-    if (!this.#isCurrentAccount(accountEpoch) || this.#blockedDocuments.has(document.documentId)) return;
+  retry(documentId: string): void {
+    if (this.#account === null || !this.#conflicts.has(documentId)) return;
+    this.#blockedDocuments.delete(documentId);
+    this.#conflicts.delete(documentId);
+    this.#schedule(0, this.#accountEpoch);
+  }
+
+  async resolveConflict(
+    documentId: string,
+    choice: CloudProgressConflictChoice
+  ): Promise<void> {
+    const initialConflict = this.#conflicts.get(documentId);
+    if (!initialConflict || this.#account === null) {
+      throw new Error("Cloud conflict is no longer available");
+    }
+    const accountEpoch = this.#accountEpoch;
+    await this.#writeTail;
+    if (!this.#isCurrentAccount(accountEpoch)) {
+      throw new Error("Cloud conflict is no longer available");
+    }
+    const conflict = this.#conflicts.get(documentId);
+    if (!conflict) throw new Error("Cloud conflict is no longer available");
     const metadataScope = this.#metadata.captureScope();
-    if (metadataScope === null) return;
+    if (metadataScope === null) throw new Error("Cloud metadata is unavailable");
+    const newestEntry = await this.#outbox.get(documentId) ?? conflict.entry;
+    if (!this.#isCurrentAccount(accountEpoch)) {
+      throw new Error("Cloud conflict is no longer available");
+    }
+    if (choice === "keep-local") {
+      metadataScope.setRevision(documentId, conflict.currentRevision);
+      this.#blockedDocuments.delete(documentId);
+      this.#conflicts.delete(documentId);
+      this.#schedule(0, accountEpoch);
+      return;
+    }
+    if (!conflict.remote || !this.#onUseCloud) {
+      throw new Error("Cloud copy could not be loaded safely");
+    }
+    await this.#onUseCloud(
+      structuredClone(conflict.remote),
+      structuredClone(newestEntry.document)
+    );
+    if (!this.#isCurrentAccount(accountEpoch)) return;
+    metadataScope.setRevision(documentId, conflict.remote.revision);
+    const removed = await this.#outbox.removeIfRevision(documentId, newestEntry.queueRevision);
+    this.#blockedDocuments.delete(documentId);
+    this.#conflicts.delete(documentId);
+    this.#emit({
+      phase: "synced",
+      documentId,
+      revision: conflict.remote.revision
+    });
+    if (!removed) this.#schedule(0, accountEpoch);
+  }
+
+  async #drainOutbox(accountEpoch: number): Promise<void> {
+    if (!this.#isCurrentAccount(accountEpoch)) return;
+    let entries: readonly CloudProgressOutboxEntry[];
+    try {
+      entries = await this.#outbox.list();
+    } catch {
+      return;
+    }
+    for (const initial of entries) {
+      let entry: CloudProgressOutboxEntry | null = initial;
+      while (entry !== null && this.#isCurrentAccount(accountEpoch) &&
+        !this.#blockedDocuments.has(entry.documentId)) {
+        const saved = await this.#syncEntry(entry, accountEpoch);
+        if (!saved || !this.#isCurrentAccount(accountEpoch)) break;
+        const removed = await this.#outbox.removeIfRevision(
+          entry.documentId,
+          entry.queueRevision
+        );
+        if (removed) break;
+        entry = await this.#outbox.get(entry.documentId);
+      }
+    }
+  }
+
+  async #syncEntry(
+    entry: CloudProgressOutboxEntry,
+    accountEpoch: number
+  ): Promise<boolean> {
+    const document = entry.document;
+    if (!this.#isCurrentAccount(accountEpoch) ||
+      this.#blockedDocuments.has(document.documentId)) return false;
+    const metadataScope = this.#metadata.captureScope();
+    if (metadataScope === null) return false;
     this.#emit({ phase: "syncing", documentId: document.documentId });
     try {
       const prepared = await this.#assetAdapter.prepare(document);
-      if (!this.#isCurrentAccount(accountEpoch)) return;
+      if (!this.#isCurrentAccount(accountEpoch)) return false;
       if (prepared.mode !== "offline" || prepared.documentId !== document.documentId ||
         prepared.revision !== document.revision) {
         throw new Error("Prepared cloud progress document identity does not match");
@@ -198,44 +395,84 @@ export class CloudProgressSync {
       const result = await this.#client.save(prepared, expectedRevision);
       if (result.status === "saved") {
         metadataScope.setRevision(document.documentId, result.revision);
-        if (!this.#isCurrentAccount(accountEpoch)) return;
+        if (!this.#isCurrentAccount(accountEpoch)) return false;
         this.#emit({
           phase: "synced",
           documentId: document.documentId,
           revision: result.revision
         });
-        return;
+        return true;
       }
-      if (!this.#isCurrentAccount(accountEpoch)) return;
+      if (!this.#isCurrentAccount(accountEpoch)) return false;
       this.#blockedDocuments.add(document.documentId);
-      const remote = await this.#client.load(document.documentId);
-      if (!this.#isCurrentAccount(accountEpoch)) return;
-      this.#emit(remote.status === "found"
-        ? {
+      let remote: Extract<CloudProgressLoadResult, { status: "found" }> | undefined;
+      try {
+        const loaded = await this.#client.load(document.documentId);
+        if (loaded.status === "found") remote = loaded;
+      } catch (error) {
+        if ((error instanceof AccountClientError || error instanceof AccountAssetClientError) &&
+          error.code === "AUTHENTICATION_REQUIRED") throw error;
+      }
+      if (!this.#isCurrentAccount(accountEpoch)) return false;
+      const conflict: CloudProgressConflict = {
+        entry: structuredClone(entry),
+        currentRevision: result.currentRevision,
+        ...(remote === undefined ? {} : { remote: structuredClone(remote) })
+      };
+      this.#conflicts.set(document.documentId, conflict);
+      this.#emit({
           phase: "conflict",
           documentId: document.documentId,
           currentRevision: result.currentRevision,
-          remote
-        }
-        : {
-          phase: "conflict",
-          documentId: document.documentId,
-          currentRevision: result.currentRevision
-        });
+          local: structuredClone(document),
+          retryable: true,
+          ...(remote === undefined ? {} : { remote: structuredClone(remote) })
+      });
+      return false;
     } catch (error) {
-      if (!this.#isCurrentAccount(accountEpoch)) return;
+      if (!this.#isCurrentAccount(accountEpoch)) return false;
       if ((error instanceof AccountClientError || error instanceof AccountAssetClientError) &&
         error.code === "AUTHENTICATION_REQUIRED") {
         this.#accountEpoch += 1;
         this.#account = null;
         this.#blockedDocuments.clear();
+        this.#conflicts.clear();
+        this.#cancelTimer();
         this.#metadata.deactivateAccount();
+        this.#outbox.deactivateAccount();
         this.#emit({ phase: "signed-out" });
         try { this.#onAuthenticationRequired?.(); } catch {}
-        return;
+        return false;
       }
       this.#emit({ phase: "offline", documentId: document.documentId });
+      return false;
     }
+  }
+
+  #schedule(delayMs: number, accountEpoch: number): void {
+    if (!this.#isCurrentAccount(accountEpoch) || this.#timer !== null) return;
+    this.#timer = setTimeout(() => {
+      this.#timer = null;
+      void this.#startDrain(accountEpoch);
+    }, delayMs);
+  }
+
+  #startDrain(accountEpoch: number): Promise<void> {
+    if (!this.#isCurrentAccount(accountEpoch)) return Promise.resolve();
+    if (this.#drain !== null) return this.#drain;
+    const operation = this.#drainOutbox(accountEpoch)
+      .catch(() => undefined)
+      .finally(() => {
+        if (this.#drain === operation) this.#drain = null;
+      });
+    this.#drain = operation;
+    return operation;
+  }
+
+  #cancelTimer(): void {
+    if (this.#timer === null) return;
+    clearTimeout(this.#timer);
+    this.#timer = null;
   }
 
   #isCurrentAccount(accountEpoch: number): boolean {

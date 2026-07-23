@@ -6,6 +6,10 @@ import {
   type CloudProgressClient
 } from "./account-client";
 import { AccountAssetClientError } from "./account-asset-client";
+import type {
+  CloudProgressOutbox,
+  CloudProgressOutboxEntry
+} from "./cloud-progress-outbox";
 import {
   BrowserCloudSyncMetadataStore,
   CloudProgressSync,
@@ -23,6 +27,52 @@ class MemoryStorage implements CloudSyncStorage {
   key(index: number): string | null { return [...this.values.keys()][index] ?? null; }
   removeItem(key: string): void { this.values.delete(key); }
   setItem(key: string, value: string): void { this.values.set(key, value); }
+}
+
+class MemoryOutbox implements CloudProgressOutbox {
+  readonly accounts = new Map<string, Map<string, CloudProgressOutboxEntry>>();
+  #active: Map<string, CloudProgressOutboxEntry> | null = null;
+  #sequence = 0;
+
+  async activateAccount(username: string): Promise<void> {
+    let account = this.accounts.get(username);
+    if (!account) {
+      account = new Map();
+      this.accounts.set(username, account);
+    }
+    this.#active = account;
+  }
+
+  deactivateAccount(): void {
+    this.#active = null;
+  }
+
+  async put(document: CampaignDocumentV1): Promise<CloudProgressOutboxEntry> {
+    if (!this.#active) throw new Error("Outbox locked");
+    const entry = {
+      documentId: document.documentId,
+      queueRevision: ++this.#sequence,
+      document: structuredClone(document)
+    };
+    this.#active.set(document.documentId, entry);
+    return structuredClone(entry);
+  }
+
+  async get(documentId: string): Promise<CloudProgressOutboxEntry | null> {
+    const entry = this.#active?.get(documentId);
+    return entry ? structuredClone(entry) : null;
+  }
+
+  async list(): Promise<readonly CloudProgressOutboxEntry[]> {
+    return [...(this.#active?.values() ?? [])].map((entry) => structuredClone(entry));
+  }
+
+  async removeIfRevision(documentId: string, queueRevision: number): Promise<boolean> {
+    const entry = this.#active?.get(documentId);
+    if (!entry || entry.queueRevision !== queueRevision) return false;
+    this.#active!.delete(documentId);
+    return true;
+  }
 }
 
 function deferred<T>() {
@@ -382,5 +432,189 @@ describe("CloudProgressSync", () => {
     delayed.resolve(offlineDocument("stale-campaign"));
     await stale.settled();
     expect(save).not.toHaveBeenCalled();
+  });
+
+  it("coalesces a burst to the newest durable snapshot before the cloud write", async () => {
+    const outbox = new MemoryOutbox();
+    const save = vi.fn().mockResolvedValue({
+      status: "saved", revision: 1, updatedAt: "2026-07-17T01:02:03.000Z"
+    });
+    const sync = new CloudProgressSync({
+      client: client({ save }),
+      metadata: new BrowserCloudSyncMetadataStore(new MemoryStorage()),
+      outbox,
+      sendDelayMs: 500
+    });
+    await sync.setAccount("team-one");
+
+    for (let index = 0; index < 100; index += 1) {
+      const document = offlineDocument();
+      document.product.name = `Version ${index}`;
+      document.revision = index;
+      sync.enqueue(document);
+    }
+    await sync.settled();
+
+    expect(save).toHaveBeenCalledOnce();
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({
+      revision: 99,
+      product: expect.objectContaining({ name: "Version 99" })
+    }), 0);
+    await expect(outbox.list()).resolves.toEqual([]);
+  });
+
+  it("replays an account's durable pending snapshot after a new sync runtime activates", async () => {
+    const outbox = new MemoryOutbox();
+    await outbox.activateAccount("team-one");
+    await outbox.put(offlineDocument("campaign-reload"));
+    outbox.deactivateAccount();
+    const save = vi.fn().mockResolvedValue({
+      status: "saved", revision: 3, updatedAt: "2026-07-17T01:02:03.000Z"
+    });
+    const sync = new CloudProgressSync({
+      client: client({ save }),
+      metadata: new BrowserCloudSyncMetadataStore(new MemoryStorage()),
+      outbox
+    });
+
+    await sync.setAccount("team-one");
+    await sync.settled();
+
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({ documentId: "campaign-reload" }),
+      0
+    );
+    await expect(outbox.list()).resolves.toEqual([]);
+  });
+
+  it("keeps local work retryable when loading the conflicting cloud copy fails", async () => {
+    const outbox = new MemoryOutbox();
+    const save = vi.fn()
+      .mockResolvedValueOnce({ status: "conflict", currentRevision: 7 })
+      .mockResolvedValueOnce({
+        status: "saved", revision: 8, updatedAt: "2026-07-17T01:03:03.000Z"
+      });
+    const load = vi.fn().mockRejectedValueOnce(new AccountClientError("PROGRESS_UNAVAILABLE"));
+    const states: CloudProgressSyncState[] = [];
+    const metadata = new BrowserCloudSyncMetadataStore(new MemoryStorage());
+    const sync = new CloudProgressSync({
+      client: client({ save, load }),
+      metadata,
+      outbox,
+      onState: (state) => states.push(state)
+    });
+    await sync.setAccount("team-one");
+    sync.enqueue(offlineDocument());
+    await sync.settled();
+
+    expect(states.at(-1)).toMatchObject({
+      phase: "conflict",
+      documentId: "campaign-main",
+      currentRevision: 7,
+      retryable: true,
+      local: { documentId: "campaign-main" }
+    });
+    metadata.setRevision("campaign-main", 7);
+    sync.retry("campaign-main");
+    await sync.settled();
+
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(states.at(-1)).toMatchObject({ phase: "synced", revision: 8 });
+    await expect(outbox.list()).resolves.toEqual([]);
+  });
+
+  it("coalesces newer local edits while a conflict is waiting and keeps the newest copy", async () => {
+    const outbox = new MemoryOutbox();
+    const remote = offlineDocument();
+    remote.product.name = "Cloud version";
+    const save = vi.fn()
+      .mockResolvedValueOnce({ status: "conflict", currentRevision: 7 })
+      .mockResolvedValueOnce({
+        status: "saved", revision: 8, updatedAt: "2026-07-17T01:03:03.000Z"
+      });
+    const sync = new CloudProgressSync({
+      client: client({
+        save,
+        load: vi.fn().mockResolvedValue({
+          status: "found",
+          documentId: remote.documentId,
+          revision: 7,
+          document: remote,
+          updatedAt: "2026-07-17T01:02:03.000Z"
+        })
+      }),
+      metadata: new BrowserCloudSyncMetadataStore(new MemoryStorage()),
+      outbox
+    });
+    await sync.setAccount("team-one");
+    sync.enqueue(offlineDocument());
+    await sync.settled();
+
+    const newest = offlineDocument();
+    newest.product.name = "Newest local version";
+    newest.revision = 1;
+    sync.enqueue(newest);
+    await sync.settled();
+    await expect(outbox.get("campaign-main")).resolves.toMatchObject({
+      document: {
+        revision: 1,
+        product: { name: "Newest local version" }
+      }
+    });
+
+    await sync.resolveConflict("campaign-main", "keep-local");
+    await sync.settled();
+
+    expect(save).toHaveBeenLastCalledWith(expect.objectContaining({
+      revision: 1,
+      product: expect.objectContaining({ name: "Newest local version" })
+    }), 7);
+    await expect(outbox.list()).resolves.toEqual([]);
+  });
+
+  it("passes the newest durable local snapshot to use-cloud and removes only that snapshot", async () => {
+    const outbox = new MemoryOutbox();
+    const remote = offlineDocument();
+    remote.product.name = "Cloud version";
+    const onUseCloud = vi.fn().mockResolvedValue(undefined);
+    const sync = new CloudProgressSync({
+      client: client({
+        save: vi.fn().mockResolvedValue({ status: "conflict", currentRevision: 7 }),
+        load: vi.fn().mockResolvedValue({
+          status: "found",
+          documentId: remote.documentId,
+          revision: 7,
+          document: remote,
+          updatedAt: "2026-07-17T01:02:03.000Z"
+        })
+      }),
+      metadata: new BrowserCloudSyncMetadataStore(new MemoryStorage()),
+      outbox,
+      onUseCloud
+    });
+    await sync.setAccount("team-one");
+    sync.enqueue(offlineDocument());
+    await sync.settled();
+    const newest = offlineDocument();
+    newest.product.name = "Newest local version";
+    newest.revision = 1;
+    sync.enqueue(newest);
+    await sync.settled();
+
+    await sync.resolveConflict("campaign-main", "use-cloud");
+
+    expect(onUseCloud).toHaveBeenCalledWith(
+      expect.objectContaining({
+        revision: 7,
+        document: expect.objectContaining({
+          product: expect.objectContaining({ name: "Cloud version" })
+        })
+      }),
+      expect.objectContaining({
+        revision: 1,
+        product: expect.objectContaining({ name: "Newest local version" })
+      })
+    );
+    await expect(outbox.list()).resolves.toEqual([]);
   });
 });

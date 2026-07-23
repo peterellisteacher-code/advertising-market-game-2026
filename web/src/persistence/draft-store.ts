@@ -25,6 +25,7 @@ const ACTIVE_LOCAL_PRACTICE_SLOT = "active";
 const LOCAL_PRACTICE_DOCUMENT_INDEX = "by-document-id";
 const LOCAL_PRACTICE_SESSION_INDEX = "by-session-id";
 const LOCAL_PRACTICE_TEAM_INDEX = "by-team-id";
+const DEFAULT_RETAINED_REVISIONS = 5;
 
 interface DocumentRecord {
   documentId: string;
@@ -124,6 +125,8 @@ export interface LocalPracticeDraftStore extends DraftStore {
 export interface IndexedDbDraftStoreOptions {
   databaseName?: string;
   factory?: IDBFactory;
+  retainedRevisions?: number;
+  writeAttemptHook?: (kind: "save" | "commit", attempt: 0 | 1) => void;
 }
 
 export interface ObjectUrlPort {
@@ -186,6 +189,66 @@ function abortQuietly(transaction: IDBTransaction): void {
   } catch {
     // The transaction may already have completed or begun aborting.
   }
+}
+
+function isQuotaExceededError(error: unknown): boolean {
+  return typeof error === "object" && error !== null &&
+    "name" in error && error.name === "QuotaExceededError";
+}
+
+function deleteCursorRange(request: IDBRequest<IDBCursorWithValue | null>): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    request.addEventListener("error", () => reject(
+      request.error ?? new Error("Unable to prune old campaign records")
+    ), { once: true });
+    request.addEventListener("success", () => {
+      const cursor = request.result;
+      if (!cursor) {
+        resolve();
+        return;
+      }
+      cursor.delete();
+      cursor.continue();
+    });
+  });
+}
+
+function queueRetentionPrune(
+  transaction: IDBTransaction,
+  documentId: string,
+  newestRevision: number,
+  retainedRevisions: number
+): Promise<void> {
+  const firstRetained = newestRevision - retainedRevisions + 1;
+  if (firstRetained <= 0) return Promise.resolve();
+  const oldRevisionRange = IDBKeyRange.bound(
+    [documentId, 0],
+    [documentId, firstRetained - 1]
+  );
+  const documents = transaction.objectStore(DOCUMENTS_STORE);
+  const blobs = transaction.objectStore(BLOBS_STORE);
+  const operations = transaction.objectStore(LOCAL_PRACTICE_OPERATIONS_STORE);
+  const documentDeletion = deleteCursorRange(documents.openCursor(oldRevisionRange));
+  const blobDeletion = deleteCursorRange(
+    blobs.index(DOCUMENT_REVISION_INDEX).openCursor(oldRevisionRange)
+  );
+  const operationDeletion = requestResult(
+    operations.getAll() as IDBRequest<LocalPracticeOperationRecord[]>,
+    "Unable to inspect old local-practice operations"
+  ).then((records) => {
+    for (const record of records) {
+      try {
+        const checkpoint = LocalPracticeCheckpointSchema.parse(record.checkpoint);
+        if (checkpoint.documentId === documentId &&
+          checkpoint.documentRevision < firstRetained) {
+          operations.delete(record.operationId);
+        }
+      } catch {
+        // Do not destroy an unrecognised operation record during routine retention.
+      }
+    }
+  });
+  return Promise.all([documentDeletion, blobDeletion, operationDeletion]).then(() => undefined);
 }
 
 function parseLocalBlobReferences(document: CampaignDocumentV1): LocalBlobAssetReference[] {
@@ -389,10 +452,19 @@ export function rehydrateLocalAssetBlobs(
 export class IndexedDbDraftStore implements LocalPracticeDraftStore {
   readonly databaseName: string;
   readonly #factory: IDBFactory;
+  readonly #retainedRevisions: number;
+  readonly #writeAttemptHook:
+    ((kind: "save" | "commit", attempt: 0 | 1) => void) | undefined;
 
   constructor(options: IndexedDbDraftStoreOptions = {}) {
     this.databaseName = options.databaseName ?? DEFAULT_DRAFT_DATABASE_NAME;
     this.#factory = options.factory ?? globalThis.indexedDB;
+    this.#retainedRevisions = options.retainedRevisions ?? DEFAULT_RETAINED_REVISIONS;
+    if (!Number.isSafeInteger(this.#retainedRevisions) ||
+      this.#retainedRevisions < 2 || this.#retainedRevisions > 50) {
+      throw new Error("Draft retention must keep between 2 and 50 complete revisions");
+    }
+    this.#writeAttemptHook = options.writeAttemptHook;
   }
 
   async importCloudPractice(input: ImportCloudPracticeInput): Promise<LocalPracticeCheckpointV1> {
@@ -833,6 +905,20 @@ export class IndexedDbDraftStore implements LocalPracticeDraftStore {
   }
 
   async commitLocalPractice(input: CommitLocalPracticeInput): Promise<LocalPracticeCheckpointV1> {
+    try {
+      this.#writeAttemptHook?.("commit", 0);
+      return await this.#commitLocalPracticeOnce(input);
+    } catch (error) {
+      if (!isQuotaExceededError(error)) throw error;
+      await this.#pruneAggressively(input.document.documentId);
+      this.#writeAttemptHook?.("commit", 1);
+      return this.#commitLocalPracticeOnce(input);
+    }
+  }
+
+  async #commitLocalPracticeOnce(
+    input: CommitLocalPracticeInput
+  ): Promise<LocalPracticeCheckpointV1> {
     if (!Number.isSafeInteger(input.expectedDocumentRevision) || input.expectedDocumentRevision < 0 ||
       !Number.isSafeInteger(input.expectedSequence) || input.expectedSequence < 0) {
       throw new Error("Expected local-practice revision and sequence must be non-negative safe integers");
@@ -950,12 +1036,17 @@ export class IndexedDbDraftStore implements LocalPracticeDraftStore {
                     slot: ACTIVE_LOCAL_PRACTICE_SLOT,
                     checkpoint: structuredClone(checkpoint)
                   } satisfies LocalPracticeCheckpointRecord);
-                  operations.add({
-                    operationId: checkpoint.operationId,
-                    fingerprint: operationFingerprint,
-                    checkpoint: structuredClone(checkpoint)
-                  } satisfies LocalPracticeOperationRecord);
-                  resolve();
+                   operations.add({
+                     operationId: checkpoint.operationId,
+                     fingerprint: operationFingerprint,
+                     checkpoint: structuredClone(checkpoint)
+                   } satisfies LocalPracticeOperationRecord);
+                   void queueRetentionPrune(
+                     transaction,
+                     source.documentId,
+                     source.revision,
+                     this.#retainedRevisions
+                   ).then(resolve, reject);
                 } catch (error) {
                   abortQuietly(transaction);
                   reject(error);
@@ -987,13 +1078,32 @@ export class IndexedDbDraftStore implements LocalPracticeDraftStore {
   }
 
   async save(document: CampaignDocumentV1, blobs: ReadonlyMap<string, Blob>): Promise<void> {
+    try {
+      this.#writeAttemptHook?.("save", 0);
+      await this.#saveOnce(document, blobs);
+    } catch (error) {
+      if (!isQuotaExceededError(error)) throw error;
+      await this.#pruneAggressively(document.documentId);
+      this.#writeAttemptHook?.("save", 1);
+      await this.#saveOnce(document, blobs);
+    }
+  }
+
+  async #saveOnce(
+    document: CampaignDocumentV1,
+    blobs: ReadonlyMap<string, Blob>
+  ): Promise<void> {
     const source = normaliseDurableSources(
       CampaignDocumentSchema.parse(structuredClone(document))
     );
     const blobSnapshot = selectReferencedLocalAssetBlobs(source, blobs);
 
     const database = await this.#open();
-    const transaction = database.transaction([DOCUMENTS_STORE, BLOBS_STORE], "readwrite");
+    const transaction = database.transaction([
+      DOCUMENTS_STORE,
+      BLOBS_STORE,
+      LOCAL_PRACTICE_OPERATIONS_STORE
+    ], "readwrite");
     const completion = transactionComplete(transaction);
     const documents = transaction.objectStore(DOCUMENTS_STORE);
     const blobStore = transaction.objectStore(BLOBS_STORE);
@@ -1016,15 +1126,20 @@ export class IndexedDbDraftStore implements LocalPracticeDraftStore {
             revision: source.revision,
             document: structuredClone(source)
           } satisfies DocumentRecord);
-          for (const [blobKey, blob] of blobSnapshot) {
+           for (const [blobKey, blob] of blobSnapshot) {
             blobStore.put({
               documentId: source.documentId,
               revision: source.revision,
               blobKey,
               blob
-            } satisfies BlobRecord);
-          }
-          resolve();
+             } satisfies BlobRecord);
+           }
+           void queueRetentionPrune(
+             transaction,
+             source.documentId,
+             source.revision,
+             this.#retainedRevisions
+           ).then(resolve, reject);
         } catch (error) {
           abortQuietly(transaction);
           reject(error);
@@ -1160,6 +1275,48 @@ export class IndexedDbDraftStore implements LocalPracticeDraftStore {
           blob.slice(0, blob.size, blob.type)
         ]))
       };
+    } finally {
+      database.close();
+    }
+  }
+
+  async #pruneAggressively(documentId: string): Promise<void> {
+    if (!documentId) return;
+    const database = await this.#open();
+    const transaction = database.transaction([
+      DOCUMENTS_STORE,
+      BLOBS_STORE,
+      LOCAL_PRACTICE_OPERATIONS_STORE
+    ], "readwrite");
+    const completion = transactionComplete(transaction);
+    const cursorRequest = transaction.objectStore(DOCUMENTS_STORE)
+      .index(DOCUMENT_ID_INDEX)
+      .openCursor(documentId, "prev");
+    const queued = new Promise<void>((resolve, reject) => {
+      cursorRequest.addEventListener("error", () => reject(
+        cursorRequest.error ?? new Error("Unable to inspect drafts before quota recovery")
+      ), { once: true });
+      cursorRequest.addEventListener("success", () => {
+        const latest = cursorRequest.result?.value as DocumentRecord | undefined;
+        if (!latest) {
+          resolve();
+          return;
+        }
+        void queueRetentionPrune(
+          transaction,
+          documentId,
+          latest.revision,
+          1
+        ).then(resolve, reject);
+      }, { once: true });
+    });
+    try {
+      await queued;
+      await completion;
+    } catch (error) {
+      abortQuietly(transaction);
+      await completion.catch(() => undefined);
+      throw error;
     } finally {
       database.close();
     }

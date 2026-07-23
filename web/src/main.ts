@@ -33,6 +33,7 @@ import {
   CloudProgressSync,
   queueCloudProgressAfterLocalSave
 } from "./account/cloud-progress-sync";
+import { BrowserCloudProgressOutbox } from "./account/cloud-progress-outbox";
 import { CREATOR_BRIDGE_CONTRACT, type CreatorBridgeHandler } from "./bridge/contracts";
 import {
   createCreatorPublicApi,
@@ -1511,25 +1512,57 @@ const cloudClient = new HttpCloudProgressClient(
   accountCookieRequests
 );
 const cloudMetadata = new BrowserCloudSyncMetadataStore();
+const cloudOutbox = typeof globalThis.indexedDB === "undefined"
+  ? undefined
+  : new BrowserCloudProgressOutbox();
 const accountAssets = new HttpAccountAssetClient(
   accountIdentity,
   undefined,
   accountCookieRequests
 );
+const cloudAssetRestore = new CloudProgressAssetRestore({ client: accountAssets });
 const cloudSync = new CloudProgressSync({
   client: cloudClient,
   metadata: cloudMetadata,
+  ...(cloudOutbox === undefined ? {} : { outbox: cloudOutbox }),
   assetAdapter: new CloudProgressAssetAdapter({
     revisionSource: drafts,
     client: accountAssets
   }),
-  onState: (state) => accountController?.setCloudMessage(cloudStatusMessage(state)),
+  onState: (state) => {
+    if (state.phase === "conflict") {
+      accountController?.setCloudConflict({
+        documentId: state.documentId,
+        cloudAvailable: state.remote !== undefined,
+        onKeepLocal: () => cloudSync.resolveConflict(state.documentId, "keep-local"),
+        ...(state.remote === undefined ? {} : {
+          onUseCloud: () => cloudSync.resolveConflict(state.documentId, "use-cloud")
+        }),
+        onRetry: async () => {
+          cloudSync.retry(state.documentId);
+          await cloudSync.settled();
+        }
+      });
+      return;
+    }
+    accountController?.setCloudMessage(cloudStatusMessage(state));
+  },
+  onUseCloud: async (remote) => {
+    await handler.flushPracticeAutosave();
+    const restored = await cloudAssetRestore.restore(remote.document);
+    const adopted = await practiceService.adoptCloudSnapshot({
+      document: restored.document,
+      blobs: restored.blobs,
+      operationId: `cloud-conflict-use-${globalThis.crypto.randomUUID()}`
+    });
+    await handler.open(adopted.document);
+  },
   onAuthenticationRequired: () => accountController?.requireReauthentication()
 });
 const cloudRecovery = new CloudProgressRecovery({
   client: cloudClient,
   store: drafts,
-  assets: new CloudProgressAssetRestore({ client: accountAssets }),
+  assets: cloudAssetRestore,
   metadata: cloudMetadata
 });
 accountController = new AccountAccessController({
@@ -1548,16 +1581,27 @@ accountController = new AccountAccessController({
     await drafts.activateAccount(username);
     try {
       await cloudSync.setAccount(username);
+    } catch (error) {
+      cloudSync.signOut();
+      if ((error instanceof AccountClientError || error instanceof AccountAssetClientError) &&
+        error.code === "AUTHENTICATION_REQUIRED") {
+        drafts.deactivateAccount();
+        throw new AccountClientError("AUTHENTICATION_REQUIRED");
+      }
+      accountController?.setCloudMessage("Saved on this device · cloud copy paused");
+      return;
+    }
+    try {
       const recovery = await cloudRecovery.recoverLatest(username);
       accountController?.setCloudMessage(cloudRecoveryStatusMessage(recovery));
     } catch (error) {
-      cloudSync.signOut();
-      drafts.deactivateAccount();
       if ((error instanceof AccountClientError || error instanceof AccountAssetClientError) &&
         error.code === "AUTHENTICATION_REQUIRED") {
+        cloudSync.signOut();
+        drafts.deactivateAccount();
         throw new AccountClientError("AUTHENTICATION_REQUIRED");
       }
-      throw error;
+      accountController?.setCloudMessage("Saved on this device · cloud copy paused");
     }
   },
   onSignedOut: async (_explicit) => {
@@ -1672,12 +1716,12 @@ const logoLabPanel = new LogoLabPanel(
 logoLabPanel.unavailable();
 handler.attachLogoLab(logoLabPanel);
 const checklistTabs = [...shell.overlay.querySelectorAll<HTMLButtonElement>(
-  '[role="tab"][data-slot]'
+  "[data-creator-checklist] [data-slot]"
 )];
 for (const tab of checklistTabs) {
   tab.addEventListener("click", () => {
     for (const candidate of checklistTabs) {
-      candidate.setAttribute("aria-selected", String(candidate === tab));
+      candidate.setAttribute("aria-pressed", String(candidate === tab));
     }
     const slot = tab.dataset.slot;
     if (slot === "price") {

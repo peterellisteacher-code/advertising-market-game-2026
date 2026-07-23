@@ -144,6 +144,9 @@ export const STUDENT_COPY = deepFreeze({
     redoUnavailable: "Nothing to redo.",
     operationFailed: "That move did not work. Try again."
   },
+  release: {
+    updateReady: "A game update is ready. Save your work, then reopen the game."
+  },
   readiness: {
     ready: "The campaign is ready for preview.",
     notReady: "Finish the remaining items before preview.",

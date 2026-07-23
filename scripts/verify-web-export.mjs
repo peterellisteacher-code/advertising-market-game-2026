@@ -33,6 +33,7 @@ const LOGO_ICON_PREFIX = "catalog/generated/logo-icons-v1-reviewed";
 const LOGO_ICON_COUNT = 4205;
 const MAX_LOGO_CATALOGUE_BYTES = 3 * 1024 * 1024;
 const PORTABLE_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const SHA256 = /^[a-f0-9]{64}$/;
 const LOGO_ICON_CATEGORIES = new Set([
   "beauty-care",
   "drinks-snacks",
@@ -53,6 +54,152 @@ function asText(value) {
 
 function count(text, pattern) {
   return text.match(pattern)?.length ?? 0;
+}
+
+function orderedRecords(records) {
+  return [...records].map(({ path: relative, bytes, sha256 }) => ({
+    path: relative,
+    bytes,
+    sha256
+  })).sort((left, right) => left.path.localeCompare(right.path));
+}
+
+export function computeReleaseId({ staticFiles, functionFiles }) {
+  return createHash("sha256").update(JSON.stringify({
+    schema: "ad-market-release-id@1",
+    staticFiles: orderedRecords(staticFiles),
+    functionFiles: orderedRecords(functionFiles)
+  })).digest("hex").slice(0, 32);
+}
+
+function assertReleaseRecords(records, label) {
+  if (!Array.isArray(records)) throw new Error(`${label} files must be an array`);
+  let previous = "";
+  const seen = new Set();
+  for (const record of records) {
+    if (!record || typeof record !== "object" ||
+      typeof record.path !== "string" ||
+      !Number.isSafeInteger(record.bytes) || record.bytes < 0 ||
+      typeof record.sha256 !== "string" || !SHA256.test(record.sha256)) {
+      throw new Error(`${label} file record is invalid`);
+    }
+    if (!record.path || record.path.startsWith("/") || record.path.includes("\\") ||
+      record.path.split("/").some((part) => !part || part === "." || part === "..")) {
+      throw new Error(`${label} file path is unsafe: ${record.path}`);
+    }
+    if (seen.has(record.path)) throw new Error(`${label} file path is duplicated: ${record.path}`);
+    if (previous && previous.localeCompare(record.path) >= 0) {
+      throw new Error(`${label} file records must be sorted`);
+    }
+    seen.add(record.path);
+    previous = record.path;
+  }
+}
+
+function verifyBoundFiles(files, records, label) {
+  const expected = new Set(records.map(({ path: relative }) => relative));
+  for (const record of records) {
+    const value = files.get(record.path);
+    if (value === undefined) throw new Error(`Missing bound ${label} file: ${record.path}`);
+    const bytes = Buffer.isBuffer(value) ? value : Buffer.from(value);
+    if (bytes.byteLength !== record.bytes ||
+      createHash("sha256").update(bytes).digest("hex") !== record.sha256) {
+      throw new Error(`${label[0].toUpperCase()}${label.slice(1)} file hash mismatch: ${record.path}`);
+    }
+  }
+  for (const relative of files.keys()) {
+    if (!expected.has(relative)) throw new Error(`Unexpected ${label} file: ${relative}`);
+  }
+}
+
+function verifyBoundFunctionManifest(files, releaseRecords) {
+  const raw = files.get("function-manifest.json");
+  if (raw === undefined) throw new Error("Missing bound function file: function-manifest.json");
+  let manifest;
+  try {
+    manifest = JSON.parse(asText(raw));
+  } catch {
+    throw new Error("Bound function manifest is not valid JSON");
+  }
+  if (manifest?.schema !== "ad-market-function-manifest@1" ||
+    !Array.isArray(manifest.functions)) {
+    throw new Error("Bound function manifest schema is invalid");
+  }
+  const expected = new Map(releaseRecords
+    .filter(({ path: relative }) => relative !== "function-manifest.json")
+    .map((record) => [record.path, record]));
+  const names = new Set();
+  for (const entry of manifest.functions) {
+    if (!entry || typeof entry !== "object" || !PORTABLE_ID.test(entry.name ?? "") ||
+      names.has(entry.name)) {
+      throw new Error("Bound function manifest function identity is invalid");
+    }
+    names.add(entry.name);
+    for (const [part, suffix] of [["wrapper", ".mts"], ["bundle", ".mjs"]]) {
+      const record = entry[part];
+      if (!record || typeof record.path !== "string" ||
+        !record.path.endsWith(`/${entry.name}${suffix}`)) {
+        throw new Error(`Bound function manifest ${part} path is invalid`);
+      }
+      const releaseRecord = expected.get(record.path);
+      if (!releaseRecord ||
+        Object.keys(record).sort().join(",") !== "bytes,path,sha256" ||
+        releaseRecord.path !== record.path ||
+        releaseRecord.bytes !== record.bytes ||
+        releaseRecord.sha256 !== record.sha256) {
+        throw new Error(`Bound function manifest ${part} does not match the release`);
+      }
+      expected.delete(record.path);
+    }
+  }
+  if (expected.size !== 0) {
+    throw new Error(`Bound function manifest omits release files: ${[...expected.keys()].join(", ")}`);
+  }
+}
+
+export async function verifyReleaseArtifact(exportDir) {
+  const manifestPath = path.join(exportDir, "release-manifest.json");
+  let manifest;
+  try {
+    manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  } catch (error) {
+    if (error?.code === "ENOENT") throw new Error("Missing release-manifest.json");
+    throw new Error("release-manifest.json is not valid JSON");
+  }
+  if (manifest?.schema !== "ad-market-release@1" ||
+    manifest?.functions?.root !== ".release/functions" ||
+    !manifest?.static || !manifest?.functions) {
+    throw new Error("Release manifest schema is invalid");
+  }
+  assertReleaseRecords(manifest.static.files, "Static");
+  assertReleaseRecords(manifest.functions.files, "Function");
+  if (manifest.static.files.some(({ path: relative }) =>
+    relative === "release-manifest.json" || relative.startsWith(".release/"))) {
+    throw new Error("Static release records include private release metadata");
+  }
+  const expectedReleaseId = computeReleaseId({
+    staticFiles: manifest.static.files,
+    functionFiles: manifest.functions.files
+  });
+  if (manifest.releaseId !== expectedReleaseId) {
+    throw new Error("Release manifest ID does not match its bound files");
+  }
+
+  const allFiles = await readTreeIfPresent(exportDir);
+  const staticFiles = new Map([...allFiles].filter(([relative]) =>
+    relative !== "release-manifest.json" && !relative.startsWith(".release/")));
+  const functionFiles = await readTreeIfPresent(
+    path.join(exportDir, ".release", "functions")
+  );
+  verifyBoundFiles(staticFiles, manifest.static.files, "static");
+  verifyBoundFiles(functionFiles, manifest.functions.files, "function");
+  verifyBoundFunctionManifest(functionFiles, manifest.functions.files);
+  return {
+    manifest,
+    releaseId: manifest.releaseId,
+    staticFiles,
+    functionFiles
+  };
 }
 
 function isExecutableInlineScript(tag) {
@@ -78,7 +225,7 @@ function getExecutableInlineScriptBodies(html) {
 
 function makeNetlifyHeaders(inlineScriptBody) {
   const hash = createHash("sha256").update(Buffer.from(inlineScriptBody, "utf8")).digest("base64");
-  return `/*\n  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'sha256-${hash}' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'none'; form-action 'self'; frame-ancestors 'self';\n  Cross-Origin-Opener-Policy: same-origin\n  Cross-Origin-Embedder-Policy: require-corp\n  Cross-Origin-Resource-Policy: same-origin\n`;
+  return `/*\n  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'sha256-${hash}' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'none'; form-action 'self'; frame-ancestors 'self';\n  Cross-Origin-Opener-Policy: same-origin\n  Cross-Origin-Embedder-Policy: require-corp\n  Cross-Origin-Resource-Policy: same-origin\n  Cache-Control: public, max-age=0, must-revalidate\n\n/service-worker.js\n  Cache-Control: no-cache, no-store, must-revalidate\n\n/asset-manifest.json\n  Cache-Control: no-cache, no-store, must-revalidate\n\n/release-manifest.json\n  Cache-Control: no-cache, no-store, must-revalidate\n\n/manifest.webmanifest\n  Cache-Control: no-cache, must-revalidate\n`;
 }
 
 function verifyNetlifyHeaders(html, headers, errors) {
@@ -939,6 +1086,7 @@ async function readTreeIfPresent(directory, prefix = "") {
 }
 
 export async function verifyWebExport(exportDir, projectRoot = DEFAULT_ROOT) {
+  const release = await verifyReleaseArtifact(exportDir);
   const files = new Map();
   const rootNames = await listRootFiles(exportDir);
   for (const name of new Set([...rootNames, "index.audio.worklet.js"])) {
@@ -959,7 +1107,10 @@ export async function verifyWebExport(exportDir, projectRoot = DEFAULT_ROOT) {
   const pckHash = Buffer.isBuffer(pck)
     ? createHash("sha256").update(pck).digest("hex")
     : "";
-  return inspectExportContents({ files, pckHash });
+  return {
+    ...inspectExportContents({ files, pckHash }),
+    releaseId: release.releaseId
+  };
 }
 
 async function main() {

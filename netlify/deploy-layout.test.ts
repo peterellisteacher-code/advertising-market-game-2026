@@ -21,6 +21,7 @@ const expectedFunctions = [
   "market-session.mts",
   "openverse-image.mts",
   "openverse-search.mts",
+  "product-price-guide.mts",
   "studio-coach.mts"
 ];
 
@@ -72,7 +73,7 @@ const loadStaticDiscovery = async (): Promise<{
 };
 
 describe("Netlify deployment layout", () => {
-  it("configures a wrapper-only directory containing exactly ten functions", () => {
+  it("configures a wrapper-only directory containing exactly eleven functions", () => {
     const toml = readFileSync(join(repoRoot, "netlify.toml"), "utf8");
     expect(toml).toMatch(/^functions = "netlify\/deploy-functions"$/m);
     expect(existsSync(deployDirectory)).toBe(true);
@@ -153,9 +154,10 @@ describe("Netlify deployment layout", () => {
       "market-session",
       "openverse-image",
       "openverse-search",
+      "product-price-guide",
       "studio-coach"
     ]);
-    expect(discovered).toHaveLength(10);
+    expect(discovered).toHaveLength(11);
     for (const entry of discovered) expect(entry.runtimeAPIVersion).toBe(2);
     expect(byName.get("account-session")?.routes).toEqual([
       {
@@ -231,6 +233,11 @@ describe("Netlify deployment layout", () => {
     expect(byName.get("openverse-search")?.routes).toEqual([{
       pattern: "/api/openverse-search",
       literal: "/api/openverse-search",
+      methods: []
+    }]);
+    expect(byName.get("product-price-guide")?.routes).toEqual([{
+      pattern: "/api/product-price-guide",
+      literal: "/api/product-price-guide",
       methods: []
     }]);
     expect(byName.get("market-session")?.routes).toEqual([
@@ -391,6 +398,14 @@ describe("Netlify deployment layout", () => {
         rateLimit: {
           aggregateBy: ["ip", "domain"],
           windowLimit: 120,
+          windowSize: 60
+        }
+      },
+      "product-price-guide": {
+        path: ["/api/product-price-guide"],
+        rateLimit: {
+          aggregateBy: ["ip", "domain"],
+          windowLimit: 300,
           windowSize: 60
         }
       },

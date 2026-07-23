@@ -148,7 +148,9 @@ import { AccountScopedDraftStore } from "./persistence/account-scoped-draft-stor
 import { LocalPracticeService } from "./persistence/local-practice-service";
 import { SerializedAutosave } from "./persistence/serialized-autosave";
 import { createEditorShell, type EditorShell } from "./ui/editor-shell";
+import { registerReleaseServiceWorker } from "./service-worker-registration";
 import { createStudioToolDrawer } from "./ui/studio-tool-drawer";
+import { STUDENT_COPY } from "./game/student-copy";
 import {
   applyCreatorLevelAccess,
   creatorStageAllows
@@ -1578,6 +1580,13 @@ const root = document.querySelector<HTMLElement>("#creator-root");
 if (!root) throw new Error("Missing #creator-root");
 
 const shell = createEditorShell(root);
+registerReleaseServiceWorker({
+  onUpdateReady: () => {
+    shell.saveStatus.textContent = "Update ready";
+    shell.saveStatus.title = STUDENT_COPY.release.updateReady;
+    shell.polite.textContent = STUDENT_COPY.release.updateReady;
+  }
+});
 const studioTools = createStudioToolDrawer(shell.overlay);
 shell.overlay.querySelector<HTMLButtonElement>("[data-studio-collapse]")
   ?.addEventListener("click", () => studioTools.collapse());

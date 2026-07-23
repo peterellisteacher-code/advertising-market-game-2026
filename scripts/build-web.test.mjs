@@ -165,11 +165,39 @@ async function writeExportScaffold(root, creatorRoot = '<div id="creator-root"><
   return { studio, web };
 }
 
+async function writeFunctionArtifactFixture(root) {
+  const wrapperDirectory = path.join(root, "netlify", "deploy-functions");
+  const bundleDirectory = path.join(root, "netlify", "function-bundles");
+  await Promise.all([
+    mkdir(wrapperDirectory, { recursive: true }),
+    mkdir(bundleDirectory, { recursive: true })
+  ]);
+  const wrapper = 'export { default } from "../function-bundles/example.mjs";\n';
+  const bundle = "export default async () => new Response('ok');\n";
+  await Promise.all([
+    writeFile(path.join(wrapperDirectory, "example.mts"), wrapper),
+    writeFile(path.join(bundleDirectory, "example.mjs"), bundle)
+  ]);
+  const record = (relative, value) => ({
+    path: relative,
+    bytes: Buffer.byteLength(value),
+    sha256: createHash("sha256").update(value).digest("hex")
+  });
+  await writeFile(path.join(bundleDirectory, "function-manifest.json"), JSON.stringify({
+    schema: "ad-market-function-manifest@1",
+    functions: [{
+      name: "example",
+      wrapper: record("deploy-functions/example.mts", wrapper),
+      bundle: record("function-bundles/example.mjs", bundle)
+    }]
+  }, null, 2));
+}
+
 function expectedCspHeaders(inlineScriptBody) {
   const hash = createHash("sha256")
     .update(Buffer.from(inlineScriptBody, "utf8"))
     .digest("base64");
-  return `/*\n  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'sha256-${hash}' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'none'; form-action 'self'; frame-ancestors 'self';\n  Cross-Origin-Opener-Policy: same-origin\n  Cross-Origin-Embedder-Policy: require-corp\n  Cross-Origin-Resource-Policy: same-origin\n`;
+  return `/*\n  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'sha256-${hash}' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'none'; form-action 'self'; frame-ancestors 'self';\n  Cross-Origin-Opener-Policy: same-origin\n  Cross-Origin-Embedder-Policy: require-corp\n  Cross-Origin-Resource-Policy: same-origin\n  Cache-Control: public, max-age=0, must-revalidate\n\n/service-worker.js\n  Cache-Control: no-cache, no-store, must-revalidate\n\n/asset-manifest.json\n  Cache-Control: no-cache, no-store, must-revalidate\n\n/release-manifest.json\n  Cache-Control: no-cache, no-store, must-revalidate\n\n/manifest.webmanifest\n  Cache-Control: no-cache, must-revalidate\n`;
 }
 
 function addCspHeaders(files) {
@@ -311,6 +339,63 @@ test("assembly writes a deterministic CSP hash for the exact inline bootstrap bo
     await readFile(path.join(web, "_headers"), "utf8"),
     expectedCspHeaders("window.bootstrap = false;")
   );
+});
+
+test("release assembly binds static assets, private functions and one atomic service worker", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "admarket-release-"));
+  const { web, studio } = await writeExportScaffold(root);
+  await writeFile(path.join(web, "index.audio.worklet.js"), "class AudioWorkletProcessor {}\n");
+  await writeFunctionArtifactFixture(root);
+
+  await assembleWebExport({ root, bindRelease: true, log: () => {} });
+
+  const html = await readFile(path.join(web, "index.html"), "utf8");
+  assert.equal(html.match(/rel="manifest"/g)?.length, 1);
+  assert.match(html, /href="\.\/manifest\.webmanifest"/);
+  const assetManifest = JSON.parse(await readFile(path.join(web, "asset-manifest.json"), "utf8"));
+  assert.equal(assetManifest.schema, "ad-market-asset-manifest@1");
+  assert.match(assetManifest.cacheVersion, /^[a-f0-9]{24}$/);
+  assert.ok(assetManifest.assets.some(({ path: relative }) => relative === "index.pck"));
+  assert.ok(assetManifest.core.includes("/index.html"));
+
+  const worker = await readFile(path.join(web, "service-worker.js"), "utf8");
+  assert.match(worker, new RegExp(`ad-market-${assetManifest.cacheVersion}`));
+  assert.match(worker, /request\.method !== "GET"/);
+  assert.match(worker, /url\.pathname\.startsWith\("\/api\/"\)/);
+  assert.match(worker, /crypto\.subtle\.digest\("SHA-256"/);
+  assert.match(worker, /for \(const pathname of CORE\)/);
+  assert.match(worker, /fetch\(pathname, \{ cache: "no-cache" \}\)/);
+  assert.doesNotMatch(worker, /Promise\.all\(CORE\.map/);
+  assert.doesNotMatch(worker, /cache: "reload"/);
+  assert.match(worker, /await caches\.delete\(CACHE_NAME\)/);
+  assert.doesNotMatch(worker, /skipWaiting/);
+  assert.doesNotMatch(worker, /\.release\/functions/);
+
+  const headers = await readFile(path.join(web, "_headers"), "utf8");
+  assert.match(headers, /\/service-worker\.js[\s\S]*Cache-Control: no-cache, no-store, must-revalidate/);
+  assert.match(headers, /\/release-manifest\.json[\s\S]*Cache-Control: no-cache, no-store, must-revalidate/);
+
+  const release = JSON.parse(await readFile(path.join(web, "release-manifest.json"), "utf8"));
+  assert.equal(release.schema, "ad-market-release@1");
+  assert.match(release.releaseId, /^[a-f0-9]{32}$/);
+  assert.ok(release.static.files.some(({ path: relative }) => relative === "service-worker.js"));
+  assert.deepEqual(release.functions.files.map(({ path: relative }) => relative), [
+    "deploy-functions/example.mts",
+    "function-bundles/example.mjs",
+    "function-manifest.json"
+  ]);
+  assert.equal(
+    await readFile(path.join(web, ".release", "functions", "deploy-functions", "example.mts"), "utf8"),
+    'export { default } from "../function-bundles/example.mjs";\n'
+  );
+  await assert.doesNotReject(() => verifyWebExport.verifyReleaseArtifact(web));
+
+  const before = assetManifest.cacheVersion;
+  await writeFile(path.join(studio, "studio.css"), ".creator{color:#123456}");
+  await assembleWebExport({ root, bindRelease: true, log: () => {} });
+  const after = JSON.parse(await readFile(path.join(web, "asset-manifest.json"), "utf8"))
+    .cacheVersion;
+  assert.notEqual(after, before);
 });
 
 test("assembly rejects zero or multiple executable inline bootstrap scripts", async () => {

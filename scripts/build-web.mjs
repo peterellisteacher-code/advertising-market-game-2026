@@ -11,6 +11,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
+  computeReleaseId,
   verifyLogoIconDirectory,
   verifyOfflineCoreDirectory,
   verifyProductBuilderDirectory,
@@ -28,6 +29,8 @@ const DEFAULT_ROOT = path.resolve(SCRIPT_DIR, "..");
 const REQUIRED_GODOT_FILES = ["index.html", "index.js", "index.wasm", "index.pck"];
 const STUDIO_STYLE = '<link rel="stylesheet" href="./studio/studio.css">';
 const STUDIO_SCRIPT = '<script src="./studio/studio.js"></script>';
+const WEB_MANIFEST = '<link rel="manifest" href="./manifest.webmanifest">';
+const RELEASE_PRIVATE_ROOT = path.join(".release", "functions");
 const PRODUCT_SHELL_RELATIVE = path.join(
   "catalog",
   "generated",
@@ -70,7 +73,289 @@ function getExecutableInlineScriptBodies(html) {
 
 function makeNetlifyHeaders(inlineScriptBody) {
   const hash = createHash("sha256").update(Buffer.from(inlineScriptBody, "utf8")).digest("base64");
-  return `/*\n  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'sha256-${hash}' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'none'; form-action 'self'; frame-ancestors 'self';\n  Cross-Origin-Opener-Policy: same-origin\n  Cross-Origin-Embedder-Policy: require-corp\n  Cross-Origin-Resource-Policy: same-origin\n`;
+  return `/*\n  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'sha256-${hash}' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'none'; form-action 'self'; frame-ancestors 'self';\n  Cross-Origin-Opener-Policy: same-origin\n  Cross-Origin-Embedder-Policy: require-corp\n  Cross-Origin-Resource-Policy: same-origin\n  Cache-Control: public, max-age=0, must-revalidate\n\n/service-worker.js\n  Cache-Control: no-cache, no-store, must-revalidate\n\n/asset-manifest.json\n  Cache-Control: no-cache, no-store, must-revalidate\n\n/release-manifest.json\n  Cache-Control: no-cache, no-store, must-revalidate\n\n/manifest.webmanifest\n  Cache-Control: no-cache, must-revalidate\n`;
+}
+
+function injectWebManifest(html) {
+  const tags = scanHtmlStartTags(html);
+  const manifestTags = tags.filter((tag) => tag.name === "link" &&
+    tag.attributes.some((attribute) =>
+      attribute.name === "rel" &&
+      decodeHtmlAttributeValue(attribute.value ?? "").split(/\s+/u).includes("manifest")));
+  let result = html;
+  for (const tag of manifestTags.sort((left, right) => right.start - left.start)) {
+    result = `${result.slice(0, tag.start)}${result.slice(tag.end)}`;
+  }
+  const headClose = result.search(/<\/head\s*>/i);
+  if (headClose < 0) throw new Error("Godot export is missing </head>");
+  return insertBefore(result, headClose, WEB_MANIFEST);
+}
+
+function fileRecord(relative, bytes) {
+  return {
+    path: relative.replaceAll(path.sep, "/"),
+    bytes: bytes.byteLength,
+    sha256: createHash("sha256").update(bytes).digest("hex")
+  };
+}
+
+async function readExactTree(directory, prefix = "") {
+  const result = new Map();
+  const metadata = await assertPathHasNoIndirection(directory, {
+    allowMissing: true,
+    label: "release source"
+  });
+  if (!metadata) return result;
+  if (!metadata.isDirectory()) throw new Error(`Expected release directory: ${directory}`);
+  const entries = await readdir(directory, { withFileTypes: true });
+  entries.sort((left, right) => left.name.localeCompare(right.name));
+  for (const entry of entries) {
+    if (entry.isSymbolicLink()) {
+      throw new Error(`Refusing symbolic link in release artifact: ${entry.name}`);
+    }
+    const relative = path.posix.join(prefix, entry.name);
+    const absolute = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      for (const [name, value] of await readExactTree(absolute, relative)) {
+        result.set(name, value);
+      }
+    } else if (entry.isFile()) {
+      await assertPathHasNoIndirection(absolute, {
+        label: "release source",
+        rejectHardLinkedFile: true
+      });
+      result.set(relative, await readFile(absolute));
+    } else {
+      throw new Error(`Refusing special file in release artifact: ${relative}`);
+    }
+  }
+  return result;
+}
+
+function publicUrl(relative) {
+  return `/${relative.split("/").map(encodeURIComponent).join("/")}`;
+}
+
+function renderServiceWorker({ cacheVersion, assets, core }) {
+  const cacheName = `ad-market-${cacheVersion}`;
+  const expected = Object.fromEntries(assets.map((record) => [
+    publicUrl(record.path),
+    record.sha256
+  ]));
+  return `/* Generated. Do not edit. */
+const CACHE_PREFIX = "ad-market-";
+const CACHE_NAME = ${JSON.stringify(cacheName)};
+const ASSET_SHA256 = new Map(Object.entries(${JSON.stringify(expected)}));
+const CORE = ${JSON.stringify(core)};
+const UPDATE_PATHS = new Set([
+  "/service-worker.js",
+  "/asset-manifest.json",
+  "/release-manifest.json"
+]);
+
+const hex = (bytes) => [...new Uint8Array(bytes)]
+  .map((value) => value.toString(16).padStart(2, "0"))
+  .join("");
+
+async function verifiedResponse(pathname, response) {
+  if (!response.ok || response.type === "opaque") {
+    throw new Error(\`Unusable release response: \${pathname}\`);
+  }
+  const expected = ASSET_SHA256.get(pathname);
+  if (expected === undefined) throw new Error(\`Unbound release asset: \${pathname}\`);
+  const actual = hex(await crypto.subtle.digest("SHA-256", await response.clone().arrayBuffer()));
+  if (actual !== expected) throw new Error(\`Release asset hash mismatch: \${pathname}\`);
+  return response;
+}
+
+self.addEventListener("install", (event) => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    try {
+      for (const pathname of CORE) {
+        const response = await verifiedResponse(
+          pathname,
+          await fetch(pathname, { cache: "no-cache" })
+        );
+        await cache.put(pathname, response);
+      }
+    } catch (error) {
+      await caches.delete(CACHE_NAME);
+      throw error;
+    }
+  })());
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil((async () => {
+    const names = await caches.keys();
+    await Promise.all(names
+      .filter((name) => name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME)
+      .map((name) => caches.delete(name)));
+  })());
+});
+
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  const url = new URL(request.url);
+  if (request.method !== "GET" ||
+    url.origin !== self.location.origin ||
+    url.pathname.startsWith("/api/") ||
+    url.pathname.startsWith("/.release/") ||
+    UPDATE_PATHS.has(url.pathname) ||
+    request.headers.has("range")) {
+    return;
+  }
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    if (request.mode === "navigate") {
+      return await cache.match("/index.html") ?? fetch(request);
+    }
+    if (!ASSET_SHA256.has(url.pathname)) return fetch(request);
+    const cached = await cache.match(url.pathname);
+    if (cached) return cached;
+    const response = await verifiedResponse(url.pathname, await fetch(request));
+    await cache.put(url.pathname, response.clone());
+    return response;
+  })());
+});
+`;
+}
+
+async function bindFunctions(root, webDir) {
+  const sourceRoot = path.join(root, "netlify");
+  const manifestSource = path.join(sourceRoot, "function-bundles", "function-manifest.json");
+  let manifest;
+  try {
+    manifest = JSON.parse(await readFile(manifestSource, "utf8"));
+  } catch (error) {
+    if (error?.code === "ENOENT") throw new Error("Missing function-manifest.json");
+    throw new Error("Function manifest is not valid JSON");
+  }
+  if (manifest?.schema !== "ad-market-function-manifest@1" ||
+    !Array.isArray(manifest.functions) || manifest.functions.length === 0) {
+    throw new Error("Function manifest schema is invalid");
+  }
+  const privateRoot = path.join(webDir, RELEASE_PRIVATE_ROOT);
+  const records = [];
+  const names = new Set();
+  for (const entry of manifest.functions) {
+    if (!entry || typeof entry.name !== "string" || names.has(entry.name)) {
+      throw new Error("Function manifest identity is invalid");
+    }
+    names.add(entry.name);
+    for (const part of ["wrapper", "bundle"]) {
+      const record = entry[part];
+      if (!record || typeof record.path !== "string" ||
+        !Number.isSafeInteger(record.bytes) || record.bytes < 0 ||
+        !/^[a-f0-9]{64}$/.test(record.sha256) ||
+        record.path.startsWith("/") || record.path.includes("\\") ||
+        record.path.split("/").some((segment) => !segment || segment === "." || segment === "..")) {
+        throw new Error(`Function manifest ${part} record is invalid`);
+      }
+      const source = path.join(sourceRoot, ...record.path.split("/"));
+      const bytes = await readFile(source);
+      const actual = fileRecord(record.path, bytes);
+      if (Object.keys(record).sort().join(",") !== "bytes,path,sha256" ||
+        actual.path !== record.path ||
+        actual.bytes !== record.bytes ||
+        actual.sha256 !== record.sha256) {
+        throw new Error(`Function manifest hash mismatch: ${record.path}`);
+      }
+      const destination = path.join(privateRoot, ...record.path.split("/"));
+      await mkdir(path.dirname(destination), { recursive: true });
+      await copyFile(source, destination);
+      records.push(record);
+    }
+  }
+  const manifestBytes = await readFile(manifestSource);
+  const manifestRecord = fileRecord("function-manifest.json", manifestBytes);
+  await mkdir(privateRoot, { recursive: true });
+  await copyFile(manifestSource, path.join(privateRoot, "function-manifest.json"));
+  records.push(manifestRecord);
+  records.sort((left, right) => left.path.localeCompare(right.path));
+  const copied = await readExactTree(privateRoot);
+  const expected = records.map(({ path: relative }) => relative);
+  if (JSON.stringify([...copied.keys()]) !== JSON.stringify(expected)) {
+    throw new Error("Private function payload contains missing or unexpected files");
+  }
+  return records;
+}
+
+async function emitBoundRelease(root, webDir) {
+  await writeFile(path.join(webDir, "manifest.webmanifest"), `${JSON.stringify({
+    name: "Advertising Market Game",
+    short_name: "Ad Market",
+    start_url: "/",
+    scope: "/",
+    display: "standalone",
+    background_color: "#f8f4e8",
+    theme_color: "#172033"
+  }, null, 2)}\n`, "utf8");
+
+  const excludedAssets = new Set([
+    "_headers",
+    "_redirects",
+    "asset-manifest.json",
+    "release-manifest.json",
+    "service-worker.js"
+  ]);
+  const beforeWorker = await readExactTree(webDir);
+  const assetRecords = [...beforeWorker]
+    .filter(([relative]) => !relative.startsWith(".release/") && !excludedAssets.has(relative))
+    .map(([relative, bytes]) => fileRecord(relative, bytes))
+    .sort((left, right) => left.path.localeCompare(right.path));
+  const cacheVersion = createHash("sha256")
+    .update(JSON.stringify(assetRecords))
+    .digest("hex")
+    .slice(0, 24);
+  const coreCandidates = [
+    "index.html",
+    "index.js",
+    "index.wasm",
+    "index.pck",
+    "index.audio.worklet.js",
+    "studio/studio.js",
+    "studio/studio.css",
+    "manifest.webmanifest"
+  ];
+  const assetPaths = new Set(assetRecords.map(({ path: relative }) => relative));
+  const core = coreCandidates.filter((relative) => assetPaths.has(relative)).map(publicUrl);
+  const assetManifest = {
+    schema: "ad-market-asset-manifest@1",
+    cacheVersion,
+    core,
+    assets: assetRecords
+  };
+  await writeFile(
+    path.join(webDir, "asset-manifest.json"),
+    `${JSON.stringify(assetManifest, null, 2)}\n`,
+    "utf8"
+  );
+  await writeFile(
+    path.join(webDir, "service-worker.js"),
+    renderServiceWorker({ cacheVersion, assets: assetRecords, core }),
+    "utf8"
+  );
+
+  const functionFiles = await bindFunctions(root, webDir);
+  const allFiles = await readExactTree(webDir);
+  const staticFiles = [...allFiles]
+    .filter(([relative]) =>
+      relative !== "release-manifest.json" && !relative.startsWith(".release/"))
+    .map(([relative, bytes]) => fileRecord(relative, bytes))
+    .sort((left, right) => left.path.localeCompare(right.path));
+  const releaseId = computeReleaseId({ staticFiles, functionFiles });
+  await writeFile(path.join(webDir, "release-manifest.json"), `${JSON.stringify({
+    schema: "ad-market-release@1",
+    releaseId,
+    static: { files: staticFiles },
+    functions: {
+      root: RELEASE_PRIVATE_ROOT.replaceAll(path.sep, "/"),
+      files: functionFiles
+    }
+  }, null, 2)}\n`, "utf8");
+  return releaseId;
 }
 
 function removeStudioTags(html) {
@@ -247,6 +532,7 @@ export async function assembleWebExport({
   requireProductShells = false,
   requireProductBuilder = false,
   requireLogoIcons = false,
+  bindRelease = false,
   log = console.log
 } = {}) {
   if (!Number.isSafeInteger(minimumOfflineRecords) || minimumOfflineRecords < 0 ||
@@ -318,7 +604,7 @@ export async function assembleWebExport({
     }
   }
 
-  const assembledHtml = injectLogoIconCatalogueUrl(
+  const catalogueHtml = injectLogoIconCatalogueUrl(
     injectProductBuilderCatalogueUrl(
       injectProductShellCatalogueUrl(
         injectOfflineCatalogueUrl(
@@ -331,6 +617,7 @@ export async function assembleWebExport({
     ),
     hasLogoIcons ? `/${LOGO_ICON_RELATIVE.replaceAll(path.sep, "/")}` : undefined
   );
+  const assembledHtml = bindRelease ? injectWebManifest(catalogueHtml) : catalogueHtml;
   assertResolvedGodotShell(assembledHtml);
   assertAccountGatedGodotShell(assembledHtml);
   const inlineScriptBodies = getExecutableInlineScriptBodies(assembledHtml);
@@ -386,6 +673,11 @@ export async function assembleWebExport({
     log(`LOGO_ICONS_DEFERRED ${LOGO_ICON_RELATIVE.replaceAll(path.sep, "/")}`);
   }
 
+  if (bindRelease) {
+    const releaseId = await emitBoundRelease(root, webDir);
+    log(`RELEASE_BOUND ${releaseId}`);
+  }
+
   log("WEB_EXPORT_ASSEMBLED_NON_DESTRUCTIVE");
   return { webDir, indexPath };
 }
@@ -415,7 +707,8 @@ async function main() {
     minimumOfflineRecords,
     requireProductShells: process.argv.includes("--require-product-shells"),
     requireProductBuilder: process.argv.includes("--require-product-builder"),
-    requireLogoIcons: process.argv.includes("--require-logo-icons")
+    requireLogoIcons: process.argv.includes("--require-logo-icons"),
+    bindRelease: true
   });
 }
 

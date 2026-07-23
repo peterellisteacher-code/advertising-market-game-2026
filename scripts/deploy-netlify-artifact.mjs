@@ -1,11 +1,11 @@
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
-import { createHash } from "node:crypto";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { verifyWebExport } from "./verify-web-export.mjs";
+import { assertPathHasNoIndirection } from "./filesystem-safety.mjs";
+import { verifyReleaseArtifact, verifyWebExport } from "./verify-web-export.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, "..");
@@ -14,26 +14,56 @@ const DEFAULT_DEPLOY_CONTEXT_ROOT = path.join(tmpdir(), "advertising-market-game
 
 export const ADVERTISING_GAME_SITE_ID = "fffc6f57-3fd2-44e3-9247-05a5f746351d";
 
-export function buildNetlifyFunctionBundleInvocation({
-  nodeExecutable = process.execPath,
-  platform = process.platform,
-  projectRoot = PROJECT_ROOT,
-} = {}) {
-  const pathApi = platform === "win32" ? path.win32 : path.posix;
-  const resolvedProjectRoot = pathApi.resolve(projectRoot);
-  return {
-    command: nodeExecutable,
-    args: [pathApi.join(resolvedProjectRoot, "scripts", "build-netlify-functions.mjs")],
-    cwd: resolvedProjectRoot,
-  };
+async function writeBoundFile(root, relative, bytes, label) {
+  const destination = path.join(root, ...relative.split("/"));
+  await mkdir(path.dirname(destination), { recursive: true });
+  await assertPathHasNoIndirection(path.dirname(destination), { label });
+  const existing = await assertPathHasNoIndirection(destination, {
+    allowMissing: true,
+    label,
+    rejectHardLinkedFile: true
+  });
+  if (existing && !existing.isFile()) {
+    throw new Error(`Refusing non-file ${label}: ${relative}`);
+  }
+  await writeFile(destination, bytes);
+  await assertPathHasNoIndirection(destination, {
+    label,
+    rejectHardLinkedFile: true
+  });
 }
 
-async function readOptionalFile(filePath) {
-  try {
-    return await readFile(filePath);
-  } catch (error) {
-    if (error?.code === "ENOENT") return undefined;
-    throw error;
+async function listExactFiles(directory, prefix = "") {
+  const files = [];
+  await assertPathHasNoIndirection(directory, { label: "deploy context" });
+  const entries = await readdir(directory, { withFileTypes: true });
+  entries.sort((left, right) => left.name.localeCompare(right.name));
+  for (const entry of entries) {
+    const relative = path.posix.join(prefix, entry.name);
+    const absolute = path.join(directory, entry.name);
+    if (entry.isSymbolicLink()) {
+      throw new Error(`Refusing deploy-context indirection: ${relative}`);
+    }
+    if (entry.isDirectory()) {
+      files.push(...await listExactFiles(absolute, relative));
+    } else if (entry.isFile()) {
+      await assertPathHasNoIndirection(absolute, {
+        label: "deploy context",
+        rejectHardLinkedFile: true
+      });
+      files.push(relative);
+    } else {
+      throw new Error(`Refusing special deploy-context file: ${relative}`);
+    }
+  }
+  return files;
+}
+
+function assertExactFileSet(actual, expected, label) {
+  const orderedActual = [...actual].sort((left, right) => left.localeCompare(right));
+  const orderedExpected = [...expected].sort((left, right) => left.localeCompare(right));
+  if (JSON.stringify(orderedActual) !== JSON.stringify(orderedExpected)) {
+    throw new Error(`${label} contains missing or unexpected files`);
   }
 }
 
@@ -51,30 +81,44 @@ export async function prepareArtifactDeployContext({
     throw new Error("Artifact deploy context must be outside the uploaded artifact directory");
   }
 
-  const headers = await readFile(path.join(resolvedArtifactDir, "_headers"));
-  const redirects = await readOptionalFile(path.join(resolvedArtifactDir, "_redirects"));
-  const metadataDigest = createHash("sha256")
-    .update(headers)
-    .update("\0redirects\0")
-    .update(redirects ?? "absent")
-    .digest("hex")
-    .slice(0, 16);
-  const resolvedDeployContextDir = path.join(resolvedDeployContextRoot, metadataDigest);
-  const metadataPublishDir = path.join(resolvedDeployContextDir, "publish");
+  const release = await verifyReleaseArtifact(resolvedArtifactDir);
+  const resolvedDeployContextDir = path.join(resolvedDeployContextRoot, release.releaseId);
+  const publishDir = path.join(resolvedDeployContextDir, "publish");
+  const functionsDir = path.join(resolvedDeployContextDir, "functions");
   const template = await readFile(CONFIG_TEMPLATE_PATH, "utf8");
-  await mkdir(metadataPublishDir, { recursive: true });
-  await writeFile(path.join(resolvedDeployContextDir, "netlify.toml"), template, "utf8");
-  await writeFile(path.join(metadataPublishDir, "_headers"), headers);
-  if (redirects !== undefined) {
-    await writeFile(path.join(metadataPublishDir, "_redirects"), redirects);
-  } else {
-    try {
-      await access(path.join(metadataPublishDir, "_redirects"));
-      throw new Error("Artifact deploy context contains stale _redirects metadata");
-    } catch (error) {
-      if (error?.code !== "ENOENT") throw error;
-    }
+  await mkdir(publishDir, { recursive: true });
+  await mkdir(functionsDir, { recursive: true });
+  await assertPathHasNoIndirection(resolvedDeployContextDir, { label: "deploy context" });
+  await writeBoundFile(
+    resolvedDeployContextDir,
+    "netlify.toml",
+    Buffer.from(template, "utf8"),
+    "deploy config"
+  );
+
+  for (const [relative, bytes] of release.staticFiles) {
+    await writeBoundFile(publishDir, relative, bytes, "bound static file");
   }
+  await writeBoundFile(
+    publishDir,
+    "release-manifest.json",
+    Buffer.from(`${JSON.stringify(release.manifest, null, 2)}\n`, "utf8"),
+    "release manifest"
+  );
+  for (const [relative, bytes] of release.functionFiles) {
+    await writeBoundFile(functionsDir, relative, bytes, "bound function file");
+  }
+
+  assertExactFileSet(
+    await listExactFiles(publishDir),
+    [...release.staticFiles.keys(), "release-manifest.json"],
+    "Static deploy context"
+  );
+  assertExactFileSet(
+    await listExactFiles(functionsDir),
+    release.functionFiles.keys(),
+    "Function deploy context"
+  );
   return resolvedDeployContextDir;
 }
 
@@ -94,16 +138,15 @@ export function buildNetlifyDeployInvocation({
 
   const pathApi = platform === "win32" ? path.win32 : path.posix;
   const resolvedProjectRoot = pathApi.resolve(projectRoot);
-  const resolvedArtifactDir = pathApi.resolve(artifactDir);
   const resolvedDeployContextDir = pathApi.resolve(deployContextDir);
   const args = [
     pathApi.join(resolvedProjectRoot, "node_modules", "netlify", "bin", "run.js"),
     "deploy",
     "--no-build",
     "--dir",
-    resolvedArtifactDir,
+    pathApi.join(resolvedDeployContextDir, "publish"),
     "--functions",
-    pathApi.join(resolvedProjectRoot, "netlify", "deploy-functions"),
+    pathApi.join(resolvedDeployContextDir, "functions", "deploy-functions"),
     "--site",
     ADVERTISING_GAME_SITE_ID,
     "--skip-functions-cache",
@@ -170,9 +213,6 @@ async function runInvocation(invocation, label) {
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
-  await access(path.join(options.artifactDir, "index.html"));
-  await access(path.join(options.artifactDir, "_headers"));
-  await runInvocation(buildNetlifyFunctionBundleInvocation(), "Netlify Function build");
   const verification = await verifyWebExport(options.artifactDir, PROJECT_ROOT);
   if (verification.warnings.length > 0) {
     throw new Error(`Artifact verification warnings must be resolved before deployment: ${verification.warnings.join("; ")}`);

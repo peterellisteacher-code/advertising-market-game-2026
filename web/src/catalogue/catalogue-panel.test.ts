@@ -97,6 +97,27 @@ it("attaches its scroll listener only once across rerenders", () => {
   panel.destroy();
 });
 
+it("restores the focused asset tile when the visible window repaints", () => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  const panel = new CataloguePanel(host, vi.fn());
+  const records = [
+    asset("a", "Bottle", "drinkware", ["bottle"]),
+    asset("b", "Cup", "drinkware", ["cup"])
+  ];
+
+  panel.render(records);
+  const originalButton = host.querySelector<HTMLButtonElement>('[data-asset-id="b"]')!;
+  originalButton.focus();
+
+  panel.render(records);
+
+  const replacementButton = host.querySelector<HTMLButtonElement>('[data-asset-id="b"]')!;
+  expect(replacementButton).not.toBe(originalButton);
+  expect(document.activeElement).toBe(replacementButton);
+  panel.destroy();
+});
+
 it("removes its listener and disconnects its observer on destroy", () => {
   const observe = vi.fn();
   const disconnect = vi.fn();

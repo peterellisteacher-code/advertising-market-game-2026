@@ -3,6 +3,7 @@ import type { ResolvedProductVariant } from "../product-builder/virtual-product-
 import type { LogoIconRecord } from "../logo-lab/logo-icon-catalogue";
 import type { LogoMarkDesign } from "../logo-lab/logo-mark-model";
 import type { FabricProductKitInput } from "../product-kit/fabric-product-kit-compositor";
+import type { ElementKind } from "../domain/editor-object";
 
 export type ShapeKind = "rect" | "ellipse" | "triangle" | "line";
 export type StackDirection = "front" | "forward" | "backward" | "back";
@@ -95,6 +96,19 @@ export interface CanvasSelectionSnapshot {
   readonly objectIds: readonly string[];
 }
 
+export interface CanvasObjectSummary {
+  readonly id: string;
+  readonly accessibleName: string;
+  readonly elementKind: ElementKind;
+  readonly x: number;
+  readonly y: number;
+  readonly scaleX: number;
+  readonly scaleY: number;
+  readonly visible: boolean;
+  readonly locked: boolean;
+  readonly stackIndex: number;
+}
+
 export interface CropState {
   cropX: number;
   cropY: number;
@@ -112,6 +126,7 @@ export type DrawingToolSettings =
   | { mode: "eraser"; radius: number };
 
 export type CanvasMutationListener = (mutation: CanvasMutation) => void;
+export type CanvasSelectionListener = (selection: CanvasSelectionSnapshot) => void;
 
 export interface CanvasPort {
   addText(input: NewTextInput): Promise<void>;
@@ -140,6 +155,7 @@ export interface CanvasPort {
   setVisible(id: string, visible: boolean): void;
   setSelected(id: string | null): void;
   getSelectedObjectId(): string | null;
+  listObjectSummaries(): readonly CanvasObjectSummary[];
   captureSelection(): CanvasSelectionSnapshot;
   restoreSelection(snapshot: CanvasSelectionSnapshot): void;
   getCropSourceSize(id: string): CanvasSize;
@@ -150,4 +166,5 @@ export interface CanvasPort {
   exportCleanPngDataUrl(): string;
   load(value: Record<string, unknown>): Promise<void>;
   subscribe(listener: CanvasMutationListener): () => void;
+  subscribeSelection(listener: CanvasSelectionListener): () => void;
 }

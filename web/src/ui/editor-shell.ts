@@ -27,6 +27,7 @@ export interface EditorShell extends PairGameView {
   zoomFill: HTMLButtonElement;
   zoomIn: HTMLButtonElement;
   zoomStatus: HTMLElement;
+  layersToggle: HTMLButtonElement;
   inspector: HTMLElement;
   layers: HTMLElement;
 }
@@ -156,12 +157,13 @@ export function createEditorShell(root: HTMLElement): EditorShell {
             <div data-studio-coach-panel><p role="status">Coach guide loading</p></div>
           </section>
         </aside>
-        <main class="creator__canvas" role="region" aria-label="Campaign canvas" tabindex="-1">
+        <main class="creator__canvas" role="region" aria-label="Campaign canvas" tabindex="0">
           <p class="creator__canvas-label" aria-hidden="true">LIVE AD</p>
           <div class="creator__canvas-size" role="group" aria-label="Selected product or image size">
             <button type="button" data-canvas-zoom="out" aria-label="Make selected product or image smaller" title="Make selected product or image smaller">−</button>
             <button type="button" data-canvas-zoom="fill" aria-label="Fill ad with selected image" title="Fill the ad, then drag the image to choose the crop">Fill ad</button>
             <button type="button" data-canvas-zoom="in" aria-label="Make selected product or image larger" title="Make selected product or image larger">+</button>
+            <button type="button" data-canvas-layers aria-label="Open canvas layers">Layers</button>
             <span role="status" data-canvas-zoom-status>Select a product or image</span>
           </div>
           <div class="creator__canvas-empty" role="status" aria-label="Empty canvas" data-canvas-empty-state>
@@ -174,7 +176,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           <canvas width="1600" height="900"></canvas>
         </main>
         <aside class="creator__inspector" role="region" aria-label="Selected element" hidden></aside>
-        <aside class="creator__layers" role="region" aria-label="Layers" hidden></aside>
+        <aside class="creator__layers" id="canvas-layers-panel" role="region" aria-label="Canvas layers" hidden></aside>
       </div>
       <p class="sr-only" data-live="polite" aria-live="polite"></p>
       <p class="sr-only" data-live="assertive" aria-live="assertive"></p>
@@ -230,6 +232,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
     zoomFill: root.querySelector('[data-canvas-zoom="fill"]')!,
     zoomIn: root.querySelector('[data-canvas-zoom="in"]')!,
     zoomStatus: root.querySelector('[data-canvas-zoom-status]')!,
+    layersToggle: root.querySelector('[data-canvas-layers]')!,
     inspector: root.querySelector(".creator__inspector")!,
     layers: root.querySelector(".creator__layers")!,
     polite: root.querySelector('[data-live="polite"]')!,

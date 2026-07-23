@@ -16,7 +16,9 @@ import type {
   CanvasPoint,
   CanvasMutation,
   CanvasMutationListener,
+  CanvasObjectSummary,
   CanvasPort,
+  CanvasSelectionListener,
   CanvasSelectionSnapshot,
   CanvasSize,
   CropState,
@@ -157,12 +159,14 @@ function durableCanvasState(value: Record<string, unknown>): Record<string, unkn
 
 export class FabricCanvasAdapter implements CanvasPort {
   readonly #listeners = new Set<CanvasMutationListener>();
+  readonly #selectionListeners = new Set<CanvasSelectionListener>();
   readonly #disposeEvents: Array<() => void>;
   readonly #pencilBrush: PencilBrush;
   readonly #logoFactory = new FabricLogoMarkFactory();
   readonly #textAtEditingStart = new WeakMap<FabricObject, string>();
   #suppressEvents = false;
   #drawingTool: DrawingToolSettings = { mode: "select" };
+  #lastSelectionKey = "";
 
   constructor(
     private readonly canvas: Canvas,
@@ -177,6 +181,9 @@ export class FabricCanvasAdapter implements CanvasPort {
       this.canvas.on("object:added", ({ target }) => this.#emit("added", target)),
       this.canvas.on("object:modified", ({ target }) => this.#emit("modified", target)),
       this.canvas.on("object:removed", ({ target }) => this.#emit("removed", target)),
+      this.canvas.on("selection:created", () => this.#emitSelection()),
+      this.canvas.on("selection:updated", () => this.#emitSelection()),
+      this.canvas.on("selection:cleared", () => this.#emitSelection()),
       this.canvas.on("text:editing:entered", ({ target }) => {
         if (target instanceof Textbox && target.elementKind === "text") {
           this.#textAtEditingStart.set(target, target.text);
@@ -381,6 +388,7 @@ export class FabricCanvasAdapter implements CanvasPort {
   remove(id: string): void {
     this.canvas.remove(this.#get(id));
     this.canvas.requestRenderAll();
+    this.#emitSelection();
   }
 
   move(id: string, direction: StackDirection): void {
@@ -409,6 +417,7 @@ export class FabricCanvasAdapter implements CanvasPort {
     if (locked && this.canvas.getActiveObject() === object) this.canvas.discardActiveObject();
     this.canvas.requestRenderAll();
     this.#emit("modified", object);
+    this.#emitSelection();
   }
 
   setVisible(id: string, visible: boolean): void {
@@ -417,12 +426,14 @@ export class FabricCanvasAdapter implements CanvasPort {
     if (!visible && this.canvas.getActiveObject() === object) this.canvas.discardActiveObject();
     this.canvas.requestRenderAll();
     this.#emit("modified", object);
+    this.#emitSelection();
   }
 
   setSelected(id: string | null): void {
     if (id === null) this.canvas.discardActiveObject();
     else this.canvas.setActiveObject(this.#get(id));
     this.canvas.requestRenderAll();
+    this.#emitSelection();
   }
 
   getSelectedObjectId(): string | null {
@@ -431,6 +442,34 @@ export class FabricCanvasAdapter implements CanvasPort {
     const objectId = selected.objectId?.trim();
     if (!objectId) throw new Error("Selected canvas object has no restorable object ID");
     return objectId;
+  }
+
+  listObjectSummaries(): readonly CanvasObjectSummary[] {
+    return Object.freeze(this.canvas.getObjects().flatMap((object, stackIndex) => {
+      const id = object.objectId?.trim();
+      const elementKind = object.elementKind;
+      if (!id || !elementKind || object.editorGuide) return [];
+      const x = Number.isFinite(object.left) ? object.left : 0;
+      const y = Number.isFinite(object.top) ? object.top : 0;
+      const scaleX = Number.isFinite(object.scaleX) && object.scaleX > 0 ? object.scaleX : 1;
+      const scaleY = Number.isFinite(object.scaleY) && object.scaleY > 0 ? object.scaleY : 1;
+      const accessibleName = object.accessibleName?.trim() || `${elementKind} object`;
+      const locked = !object.selectable || !object.evented ||
+        object.lockMovementX || object.lockMovementY ||
+        object.lockScalingX || object.lockScalingY || object.lockRotation;
+      return [Object.freeze({
+        id,
+        accessibleName,
+        elementKind,
+        x,
+        y,
+        scaleX,
+        scaleY,
+        visible: object.visible,
+        locked,
+        stackIndex
+      })];
+    }));
   }
 
   captureSelection(): CanvasSelectionSnapshot {
@@ -474,6 +513,7 @@ export class FabricCanvasAdapter implements CanvasPort {
       }));
     }
     this.canvas.requestRenderAll();
+    this.#emitSelection();
   }
 
   getCropSourceSize(id: string): CanvasSize {
@@ -623,6 +663,7 @@ export class FabricCanvasAdapter implements CanvasPort {
     } finally {
       this.#suppressEvents = false;
     }
+    this.#emitSelection();
   }
 
   subscribe(listener: CanvasMutationListener): () => void {
@@ -630,9 +671,15 @@ export class FabricCanvasAdapter implements CanvasPort {
     return () => this.#listeners.delete(listener);
   }
 
+  subscribeSelection(listener: CanvasSelectionListener): () => void {
+    this.#selectionListeners.add(listener);
+    return () => this.#selectionListeners.delete(listener);
+  }
+
   dispose(): void {
     this.#disposeEvents.forEach((dispose) => dispose());
     this.#listeners.clear();
+    this.#selectionListeners.clear();
   }
 
   #add(object: FabricObject): void {
@@ -816,5 +863,19 @@ export class FabricCanvasAdapter implements CanvasPort {
     if (this.#suppressEvents || !object.objectId) return;
     const mutation: CanvasMutation = { type, objectId: object.objectId };
     this.#listeners.forEach((listener) => listener(mutation));
+  }
+
+  #emitSelection(): void {
+    if (this.#suppressEvents) return;
+    let selection: CanvasSelectionSnapshot;
+    try {
+      selection = this.captureSelection();
+    } catch {
+      selection = Object.freeze({ objectIds: Object.freeze([]) });
+    }
+    const key = selection.objectIds.join("\u0000");
+    if (key === this.#lastSelectionKey) return;
+    this.#lastSelectionKey = key;
+    this.#selectionListeners.forEach((listener) => listener(selection));
   }
 }

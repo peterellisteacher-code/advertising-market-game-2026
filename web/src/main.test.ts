@@ -45,6 +45,7 @@ const runtime = vi.hoisted(() => ({
     type: "added" | "modified" | "removed";
     objectId: string;
   }) => void>(),
+  selectionListeners: new Set<(selection: { readonly objectIds: readonly string[] }) => void>(),
   drafts: new Map<string, { document: CampaignDocumentV1; blobs: Map<string, Blob> }>(),
   revisionDrafts: new Map<string, Map<number, {
     document: CampaignDocumentV1;
@@ -435,16 +436,58 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
         (object as Record<string, unknown>).objectId === id);
       if (index >= 0) {
         objects.splice(index, 1);
+        if (runtime.selectedObjectId === id) {
+          runtime.selectedObjectId = null;
+          runtime.selectionListeners.forEach((listener) => listener({ objectIds: [] }));
+        }
         runtime.listeners.forEach((listener) => listener({ type: "removed", objectId: id }));
       }
     }
 
     setSelected(id: string | null): void {
       runtime.selectedObjectId = id;
+      runtime.selectionListeners.forEach((listener) => listener({
+        objectIds: id === null ? [] : [id]
+      }));
     }
 
     getSelectedObjectId(): string | null {
       return runtime.selectedObjectId;
+    }
+
+    listObjectSummaries(): ReadonlyArray<{
+      id: string;
+      accessibleName: string;
+      elementKind: string;
+      x: number;
+      y: number;
+      scaleX: number;
+      scaleY: number;
+      visible: boolean;
+      locked: boolean;
+      stackIndex: number;
+    }> {
+      const objects = runtime.state.objects;
+      if (!Array.isArray(objects)) return [];
+      return objects.flatMap((candidate, stackIndex) => {
+        if (typeof candidate !== "object" || candidate === null) return [];
+        const object = candidate as Record<string, unknown>;
+        if (typeof object.objectId !== "string" || typeof object.elementKind !== "string") return [];
+        return [{
+          id: object.objectId,
+          accessibleName: typeof object.accessibleName === "string"
+            ? object.accessibleName
+            : `${object.elementKind} object`,
+          elementKind: object.elementKind,
+          x: typeof object.left === "number" ? object.left : 0,
+          y: typeof object.top === "number" ? object.top : 0,
+          scaleX: typeof object.scaleX === "number" ? object.scaleX : 1,
+          scaleY: typeof object.scaleY === "number" ? object.scaleY : 1,
+          visible: object.visible !== false,
+          locked: object.selectable === false,
+          stackIndex
+        }];
+      });
     }
 
     captureSelection(): { readonly objectIds: readonly string[] } {
@@ -457,9 +500,48 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
 
     restoreSelection(snapshot: { readonly objectIds: readonly string[] }): void {
       runtime.selectedObjectId = snapshot.objectIds[0] ?? null;
+      runtime.selectionListeners.forEach((listener) => listener(snapshot));
     }
 
     assertCanDuplicate(): void {}
+
+    move(id: string, direction: "front" | "forward" | "backward" | "back"): void {
+      const objects = runtime.state.objects;
+      if (!Array.isArray(objects)) throw new Error("Test canvas state has no objects");
+      const index = objects.findIndex((candidate) =>
+        typeof candidate === "object" && candidate !== null &&
+        (candidate as Record<string, unknown>).objectId === id);
+      if (index < 0) throw new Error(`Missing object ${id}`);
+      const [object] = objects.splice(index, 1);
+      const target = direction === "front"
+        ? objects.length
+        : direction === "forward"
+          ? Math.min(objects.length, index + 1)
+          : direction === "backward"
+            ? Math.max(0, index - 1)
+            : 0;
+      objects.splice(target, 0, object);
+      runtime.listeners.forEach((listener) => listener({ type: "modified", objectId: id }));
+    }
+
+    setLocked(id: string, locked: boolean): void {
+      const object = (runtime.state.objects as Array<Record<string, unknown>>)
+        .find((candidate) => candidate.objectId === id);
+      if (!object) throw new Error(`Missing object ${id}`);
+      object.selectable = !locked;
+      object.evented = !locked;
+      if (locked && runtime.selectedObjectId === id) this.setSelected(null);
+      runtime.listeners.forEach((listener) => listener({ type: "modified", objectId: id }));
+    }
+
+    setVisible(id: string, visible: boolean): void {
+      const object = (runtime.state.objects as Array<Record<string, unknown>>)
+        .find((candidate) => candidate.objectId === id);
+      if (!object) throw new Error(`Missing object ${id}`);
+      object.visible = visible;
+      if (!visible && runtime.selectedObjectId === id) this.setSelected(null);
+      runtime.listeners.forEach((listener) => listener({ type: "modified", objectId: id }));
+    }
 
     subscribe(listener: (mutation: {
       type: "added" | "modified" | "removed";
@@ -467,6 +549,13 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
     }) => void): () => void {
       runtime.listeners.add(listener);
       return () => runtime.listeners.delete(listener);
+    }
+
+    subscribeSelection(
+      listener: (selection: { readonly objectIds: readonly string[] }) => void
+    ): () => void {
+      runtime.selectionListeners.add(listener);
+      return () => runtime.selectionListeners.delete(listener);
     }
 
     exportCleanPngDataUrl(): string {
@@ -850,6 +939,7 @@ describe("window.AdMarketCreator", () => {
     });
     runtime.state = { version: "7.4.0", objects: [] };
     runtime.listeners.clear();
+    runtime.selectionListeners.clear();
     runtime.drafts.clear();
     runtime.revisionDrafts.clear();
     runtime.loadFailure = null;
@@ -1211,6 +1301,44 @@ describe("window.AdMarketCreator", () => {
       scaleX: 0.5,
       scaleY: 0.5
     }));
+  });
+
+  it("makes keyboard canvas movement one undoable document change", async () => {
+    const documentWithText = CampaignDocumentSchema.parse({
+      ...structuredClone(blankDocument),
+      fabricState: {
+        version: "7.4.0",
+        objects: [{
+          type: "textbox",
+          objectId: "keyboard-heading",
+          elementKind: "text",
+          accessibleName: "Keyboard heading",
+          text: "Try something new",
+          left: 100,
+          top: 200,
+          scaleX: 1,
+          scaleY: 1
+        }]
+      }
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-keyboard", "open", documentWithText))
+      .toMatchObject({ ok: true });
+    runtime.selectedObjectId = "keyboard-heading";
+
+    const canvasRegion = getByRole(document.body, "region", { name: "Campaign canvas" });
+    expect(canvasRegion.getAttribute("tabindex")).toBe("0");
+    fireEvent.keyDown(canvasRegion, { key: "ArrowRight" });
+
+    await waitFor(() => {
+      expect(currentObjects()[0]).toMatchObject({ left: 105, top: 200 });
+      expect(document.querySelector('[data-live="polite"]')?.textContent)
+        .toBe("Keyboard heading updated.");
+    });
+
+    fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));
+    await waitFor(() => expect(currentObjects()[0]).toMatchObject({ left: 100, top: 200 }));
   });
 
   it("starts and clears one Studio Coach session with the open Level 2 campaign", async () => {

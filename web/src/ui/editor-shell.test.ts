@@ -68,7 +68,7 @@ describe("createEditorShell", () => {
     expect(shell.libraryResults.dataset.libraryResults).toBe("");
     expect(shell.libraryStatus.getAttribute("role")).toBe("status");
     expect(getByRole(root, "button", { name: "Hide library" })).toBeTruthy();
-    expect(getByRole(root, "region", { name: "Campaign canvas" })).toBeTruthy();
+    expect(getByRole(root, "region", { name: "Campaign canvas" }).getAttribute("tabindex")).toBe("0");
     const sizeControls = getByRole(root, "group", { name: "Selected product or image size" });
     expect(getByRole(sizeControls, "button", { name: "Make selected product or image smaller" }))
       .toBeTruthy();
@@ -105,7 +105,8 @@ describe("createEditorShell", () => {
     expect(getByRole<HTMLInputElement>(root, "textbox", { name: "Canvas words", hidden: true }).placeholder)
       .toBe("Try Make room for adventure");
     expect(getByRole(root, "button", { name: "Add words", hidden: true })).toBeTruthy();
-    expect(root.querySelector('.creator__layers[aria-label="Layers"]')).toBeTruthy();
+    expect(root.querySelector('.creator__layers[aria-label="Canvas layers"]')).toBeTruthy();
+    expect(getByRole(root, "button", { name: "Open canvas layers", hidden: true })).toBeTruthy();
     expect(root.querySelector('.creator__inspector[aria-label="Selected element"]')).toBeTruthy();
     expect(shell.inspector.hidden).toBe(true);
     expect(getByRole(root, "group", { name: "AIDA steps", hidden: true })).toBeTruthy();

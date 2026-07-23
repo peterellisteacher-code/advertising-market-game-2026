@@ -13,6 +13,7 @@ import type {
   ArtworkSurfaceAddress,
   CanvasMutationListener,
   CanvasPort,
+  CanvasSelectionListener,
   LogoMarkSnapshot,
   LogoMarkSource,
   NewLogoMarkInput,
@@ -733,6 +734,7 @@ class PlacementCanvas implements CanvasPort {
     }
     return this.selectedId;
   }
+  listObjectSummaries(): readonly [] { return []; }
   captureSelection(): { readonly objectIds: readonly string[] } {
     return Object.freeze({ objectIds: Object.freeze([...this.selectedIds]) });
   }
@@ -770,6 +772,7 @@ class PlacementCanvas implements CanvasPort {
     this.selectedIds = [];
   }
   subscribe(_listener: CanvasMutationListener): () => void { return () => {}; }
+  subscribeSelection(_listener: CanvasSelectionListener): () => void { return () => {}; }
 
   #artworkSlot(address: ArtworkSurfaceAddress): Array<Record<string, unknown>> {
     const product = this.objects.find((object) => object.objectId === address.productId);

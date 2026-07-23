@@ -74,6 +74,10 @@ export class CataloguePanel {
   }
 
   #paint(): void {
+    const activeElement = document.activeElement;
+    const focusedAssetId = activeElement instanceof Element && this.host.contains(activeElement)
+      ? activeElement.closest<HTMLButtonElement>("button[data-asset-id]")?.dataset.assetId
+      : undefined;
     const columns = computeVirtualColumns({
       columns: this.#columns,
       rowHeight: ROW_HEIGHT,
@@ -137,5 +141,11 @@ export class CataloguePanel {
       item.append(button);
       mount.append(item);
     });
+
+    if (focusedAssetId) {
+      const replacement = [...this.host.querySelectorAll<HTMLButtonElement>("button[data-asset-id]")]
+        .find((button) => button.dataset.assetId === focusedAssetId);
+      replacement?.focus({ preventScroll: true });
+    }
   }
 }

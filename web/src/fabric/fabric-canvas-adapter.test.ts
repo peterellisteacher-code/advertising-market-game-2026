@@ -27,7 +27,9 @@ class FakeCanvas {
     version: "7.4.0",
     objects: this.objects.map((object) => object.toObject())
   }));
-  fire(): void {}
+  fire(event: string, payload: { target: FabricObject }): void {
+    this.listeners.get(event)?.forEach((listener) => listener(payload));
+  }
   on(event: string, listener: (event: { target: FabricObject }) => void): () => void {
     const listeners = this.listeners.get(event) ?? new Set();
     listeners.add(listener);
@@ -546,6 +548,86 @@ describe("FabricCanvasAdapter persistence", () => {
       objectIds: ["missing-shape"]
     })).toThrow(/missing object/i);
     expect(canvas.activeObject).toBe(selected);
+  });
+
+  it("lists semantic canvas roots with geometry, state and stack order", () => {
+    const canvas = new FakeCanvas();
+    const back = new Rect({ left: 12, top: 24, scaleX: 1.5, scaleY: 0.75 });
+    back.set({
+      objectId: "shape-back",
+      elementKind: "shape",
+      accessibleName: "Blue background block"
+    });
+    const front = new Textbox("Sale", {
+      left: 90,
+      top: 45,
+      visible: false,
+      selectable: false,
+      evented: false,
+      lockMovementX: true
+    });
+    front.set({
+      objectId: "text-front",
+      elementKind: "text",
+      accessibleName: "Sale heading"
+    });
+    canvas.objects = [back, front];
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+
+    expect(adapter.listObjectSummaries()).toEqual([
+      {
+        id: "shape-back",
+        accessibleName: "Blue background block",
+        elementKind: "shape",
+        x: 12,
+        y: 24,
+        scaleX: 1.5,
+        scaleY: 0.75,
+        visible: true,
+        locked: false,
+        stackIndex: 0
+      },
+      {
+        id: "text-front",
+        accessibleName: "Sale heading",
+        elementKind: "text",
+        x: 90,
+        y: 45,
+        scaleX: 1,
+        scaleY: 1,
+        visible: false,
+        locked: true,
+        stackIndex: 1
+      }
+    ]);
+    expect(Object.isFrozen(adapter.listObjectSummaries())).toBe(true);
+  });
+
+  it("notifies selection subscribers for pointer and programmatic changes", () => {
+    const canvas = new FakeCanvas();
+    const first = new Rect({ width: 40, height: 40 });
+    first.set({ objectId: "shape-first", elementKind: "shape", accessibleName: "First" });
+    const second = new Rect({ width: 40, height: 40 });
+    second.set({ objectId: "shape-second", elementKind: "shape", accessibleName: "Second" });
+    canvas.objects = [first, second];
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+    const selections: string[][] = [];
+    const unsubscribe = adapter.subscribeSelection(({ objectIds }) => {
+      selections.push([...objectIds]);
+    });
+
+    adapter.setSelected("shape-first");
+    canvas.activeObject = second;
+    canvas.fire("selection:updated", { target: second });
+    adapter.setSelected(null);
+    unsubscribe();
+    adapter.setSelected("shape-first");
+
+    expect(selections).toEqual([
+      ["shape-first"],
+      ["shape-second"],
+      []
+    ]);
   });
 
   it("adds and edits clipped artwork children with one parent mutation per action", async () => {

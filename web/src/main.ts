@@ -112,6 +112,10 @@ import {
 import type { GeneratedRasterPlacement } from "./catalogue/catalogue-runtime";
 import type { FabricCanvasAdapter } from "./fabric/fabric-canvas-adapter";
 import { ObjectCommandService } from "./fabric/object-command-service";
+import {
+  CanvasAccessibilityController,
+  type CanvasAccessibilityAction
+} from "./ui/canvas-accessibility-controller";
 import { CanvasObjectZoomController } from "./tools/canvas-object-zoom";
 import { campaignSemanticObjectMap } from "./domain/campaign-semantic-objects";
 import {
@@ -213,6 +217,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #runtimePromise: Promise<CanvasRuntime> | null = null;
   #releaseOwnedRasterUrls: (() => void) | null = null;
   #history: FabricHistoryBindings<CampaignDocumentV1> | null = null;
+  #canvasAccessibility: CanvasAccessibilityController | null = null;
   #pairGame: PairGameController | null = null;
   #logoLab: LogoLabPanel | null = null;
   #imageLab: ImageLabPanel | null = null;
@@ -839,6 +844,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
         // Preserve the open/load failure while still clearing a failed new runtime.
       }
       if ((!hadRuntime || loadComplete) && runtime !== null && this.#runtime === runtime) {
+        this.#destroyCanvasAccessibility();
         this.#runtime = null;
         this.#runtimePromise = null;
         try {
@@ -852,6 +858,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#pairGame?.close();
     this.#history?.dispose();
     this.#history = nextHistory;
+    this.#ensureCanvasAccessibility(runtime);
     const releasePreviousUrls = this.#releaseOwnedRasterUrls;
     const previousPlacementUrls = [...this.#placementOwnedRasterUrls];
     this.#document = document;
@@ -885,6 +892,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       this.#setOpen(true);
     } catch (error) {
       this.#pairGame?.close();
+      this.#destroyCanvasAccessibility();
       this.#history?.dispose();
       this.#history = null;
       this.#runtime = null;
@@ -1024,6 +1032,51 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.schedulePracticeAutosave();
   }
 
+  async applyCanvasAccessibilityAction(action: CanvasAccessibilityAction): Promise<void> {
+    await this.#placements.flush();
+    const runtime = this.#runtime;
+    if (!this.#editorOpen || runtime === null || this.#history === null) {
+      throw new Error("Campaign creator is not open");
+    }
+    const summary = runtime.adapter.listObjectSummaries().find(({ id }) => id === action.id);
+    if (!summary) throw new Error("That canvas layer is no longer available");
+    const commands = new ObjectCommandService(runtime.adapter);
+    await this.#history.transaction(async () => {
+      switch (action.type) {
+        case "nudge":
+          commands.transform(action.id, {
+            x: summary.x + action.dx,
+            y: summary.y + action.dy
+          });
+          break;
+        case "resize":
+          commands.transform(action.id, {
+            scaleX: Math.min(8, Math.max(0.05, summary.scaleX * action.factor)),
+            scaleY: Math.min(8, Math.max(0.05, summary.scaleY * action.factor))
+          });
+          break;
+        case "move":
+          if (action.direction === "front") commands.moveToFront(action.id);
+          else if (action.direction === "forward") commands.moveForward(action.id);
+          else if (action.direction === "backward") commands.moveBackward(action.id);
+          else commands.moveToBack(action.id);
+          break;
+        case "set-hidden":
+          commands.setHidden(action.id, action.hidden);
+          break;
+        case "set-locked":
+          commands.setLocked(action.id, action.locked);
+          break;
+        case "remove":
+          commands.remove(action.id);
+          break;
+      }
+    });
+    this.#refreshCanvasEmptyState(runtime.adapter.serialize());
+    this.#refreshStudioCoachCampaign();
+    this.schedulePracticeAutosave();
+  }
+
   async fillSelectedImage(): Promise<void> {
     await this.#placements.flush();
     const runtime = this.#runtime;
@@ -1111,6 +1164,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       if (this.#document && this.#runtime) this.#document = this.#snapshot();
     });
     attempt(() => this.#pairGame?.close());
+    attempt(() => this.#destroyCanvasAccessibility());
     const history = this.#history;
     this.#history = null;
     attempt(() => history?.dispose());
@@ -1472,6 +1526,25 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.gameSurface.inert = open;
     if (open) this.gameSurface.setAttribute("aria-hidden", "true");
     else this.gameSurface.removeAttribute("aria-hidden");
+  }
+
+  #ensureCanvasAccessibility(runtime: CanvasRuntime): void {
+    if (this.#canvasAccessibility !== null) return;
+    this.#canvasAccessibility = new CanvasAccessibilityController({
+      canvasRegion: this.shell.canvasRegion,
+      host: this.shell.layers,
+      toggle: this.shell.layersToggle,
+      port: runtime.adapter,
+      runAction: (action) => this.applyCanvasAccessibilityAction(action),
+      announce: (message, priority) => {
+        (priority === "assertive" ? this.shell.assertive : this.shell.polite).textContent = message;
+      }
+    });
+  }
+
+  #destroyCanvasAccessibility(): void {
+    this.#canvasAccessibility?.destroy();
+    this.#canvasAccessibility = null;
   }
 }
 

@@ -6,6 +6,7 @@ import type {
   CanvasSize,
   CanvasMutationListener,
   CanvasPort,
+  CanvasSelectionListener,
   CropState,
   DrawingToolSettings,
   NewProductVariantInput,
@@ -123,6 +124,7 @@ class MemoryCanvasPort implements CanvasPort {
   setVisible(id: string, visible: boolean): void { this.#get(id).visible = visible; }
   setSelected(id: string | null): void { this.selectedId = id; }
   getSelectedObjectId(): string | null { return this.selectedId; }
+  listObjectSummaries(): readonly [] { return []; }
   captureSelection(): { readonly objectIds: readonly string[] } {
     return { objectIds: this.selectedId === null ? [] : [this.selectedId] };
   }
@@ -156,6 +158,7 @@ class MemoryCanvasPort implements CanvasPort {
   }
 
   subscribe(_listener: CanvasMutationListener): () => void { return () => undefined; }
+  subscribeSelection(_listener: CanvasSelectionListener): () => void { return () => undefined; }
   has(id: string): boolean { return this.objects.some((object) => object.id === id); }
   snapshot(): { selectedId: string | null; objects: MemoryObject[]; moves: StackDirection[] } {
     return { selectedId: this.selectedId, objects: this.objects, moves: this.moves };

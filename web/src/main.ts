@@ -1341,8 +1341,16 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     runtime: CanvasRuntime,
     value: CampaignDocumentV1
   ): Promise<void> {
-    const document = parseCampaignDocument(structuredClone(value));
-    await runtime.adapter.load(structuredClone(document.fabricState));
+    const historical = parseCampaignDocument(structuredClone(value));
+    await runtime.adapter.load(structuredClone(historical.fabricState));
+    const current = this.#document;
+    const document = current === null
+      ? historical
+      : parseCampaignDocument({
+          ...historical,
+          revision: current.revision,
+          updatedAt: current.updatedAt
+        });
     this.#document = document;
     this.#refreshCanvasEmptyState(document.fabricState);
     this.#productName.value = document.product.name;

@@ -51,7 +51,13 @@ const runtime = vi.hoisted(() => ({
     document: CampaignDocumentV1;
     blobs: Map<string, Blob>;
   }>>(),
+  activePractice: null as null | {
+    checkpoint: import("./persistence/draft-store").LocalPracticeCheckpointV1;
+    document: CampaignDocumentV1;
+    blobs: Map<string, Blob>;
+  },
   loadFailure: null as Error | null,
+  loadPromise: null as Promise<void> | null,
   saveFailure: null as Error | null,
   publishFailure: null as Error | null,
   createdUrls: [] as Array<{ url: string; blob: Blob }>,
@@ -113,6 +119,7 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
     async load(value: Record<string, unknown>): Promise<void> {
       runtime.load(value);
       if (runtime.loadFailure) throw runtime.loadFailure;
+      if (runtime.loadPromise !== null) await runtime.loadPromise;
       runtime.state = structuredClone(value);
     }
 
@@ -721,8 +728,71 @@ vi.mock("./persistence/draft-store", async (importOriginal) => {
   return {
     ...actual,
     IndexedDbDraftStore: class {
-      async resumeLocalPractice(): Promise<null> {
-        return null;
+      async resumeLocalPractice(): Promise<import("./persistence/draft-store").LocalPracticeRecoveryV1 | null> {
+        return runtime.activePractice === null
+          ? null
+          : {
+              checkpoint: structuredClone(runtime.activePractice.checkpoint),
+              document: structuredClone(runtime.activePractice.document),
+              blobs: new Map(runtime.activePractice.blobs)
+            };
+      }
+
+      async beginLocalPractice(
+        input: import("./persistence/draft-store").BeginLocalPracticeInput
+      ): Promise<import("./persistence/draft-store").LocalPracticeCheckpointV1> {
+        const document = CampaignDocumentSchema.parse(structuredClone(input.document));
+        const checkpoint = actual.LocalPracticeCheckpointSchema.parse({
+          contract: actual.LOCAL_PRACTICE_CHECKPOINT_CONTRACT,
+          runId: input.runId,
+          documentId: document.documentId,
+          sessionId: document.sessionId,
+          teamId: document.teamId,
+          teamAlias: input.teamAlias,
+          documentRevision: document.revision,
+          documentHash: await actual.canonicalDurableDocumentHash(document),
+          stage: document.gameplay.stage,
+          levelLocked: input.levelLocked,
+          sequence: 0,
+          operationId: input.operationId,
+          savedAt: input.savedAt
+        });
+        await this.save(document, input.blobs);
+        runtime.activePractice = {
+          checkpoint,
+          document: structuredClone(document),
+          blobs: new Map(input.blobs)
+        };
+        return structuredClone(checkpoint);
+      }
+
+      async commitLocalPractice(
+        input: import("./persistence/draft-store").CommitLocalPracticeInput
+      ): Promise<import("./persistence/draft-store").LocalPracticeCheckpointV1> {
+        const active = runtime.activePractice;
+        if (active === null ||
+          active.checkpoint.documentRevision !== input.expectedDocumentRevision ||
+          active.checkpoint.sequence !== input.expectedSequence) {
+          throw new Error("Local-practice commit is stale");
+        }
+        const document = CampaignDocumentSchema.parse(structuredClone(input.document));
+        const checkpoint = actual.LocalPracticeCheckpointSchema.parse({
+          ...structuredClone(active.checkpoint),
+          documentRevision: document.revision,
+          documentHash: await actual.canonicalDurableDocumentHash(document),
+          stage: document.gameplay.stage,
+          levelLocked: input.levelLocked,
+          sequence: input.expectedSequence + 1,
+          operationId: input.operationId,
+          savedAt: input.savedAt
+        });
+        await this.save(document, input.blobs);
+        runtime.activePractice = {
+          checkpoint,
+          document: structuredClone(document),
+          blobs: new Map(input.blobs)
+        };
+        return structuredClone(checkpoint);
       }
 
       async importCloudPractice(input: unknown): Promise<void> {
@@ -1034,7 +1104,9 @@ describe("window.AdMarketCreator", () => {
     runtime.selectionListeners.clear();
     runtime.drafts.clear();
     runtime.revisionDrafts.clear();
+    runtime.activePractice = null;
     runtime.loadFailure = null;
+    runtime.loadPromise = null;
     runtime.saveFailure = null;
     runtime.importCloudPractice.mockReset();
     runtime.activateAccountDrafts.mockReset().mockResolvedValue(undefined);
@@ -1431,6 +1503,135 @@ describe("window.AdMarketCreator", () => {
 
     fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));
     await waitFor(() => expect(currentObjects()[0]).toMatchObject({ left: 100, top: 200 }));
+  });
+
+  it("keeps the active practice revision when undoing after autosaves", async () => {
+    await import("./main");
+    const api = window.AdMarketCreator;
+    const practice = (window as Window & { AdMarketPractice: PracticePublicApi }).AdMarketPractice;
+    const begun = JSON.parse(await practice.handle(JSON.stringify({
+      contract: "practice-run@1",
+      requestId: "begin-history-autosave",
+      method: "begin",
+      payload: {
+        teamAlias: "History Pair",
+        operationId: "operation-history-autosave"
+      }
+    }))) as {
+      ok: boolean;
+      payload: { document: CampaignDocumentV1 };
+    };
+    expect(begun).toMatchObject({ ok: true });
+    const documentWithText = CampaignDocumentSchema.parse({
+      ...structuredClone(begun.payload.document),
+      fabricState: {
+        version: "7.4.0",
+        objects: [{
+          type: "textbox",
+          objectId: "practice-history-heading",
+          elementKind: "text",
+          accessibleName: "Practice history heading",
+          text: "Keep moving",
+          left: 100,
+          top: 200,
+          scaleX: 1,
+          scaleY: 1
+        }]
+      }
+    });
+    expect(await parsed(api, "open-history-autosave", "open", documentWithText))
+      .toMatchObject({ ok: true });
+    runtime.selectedObjectId = "practice-history-heading";
+    const canvasRegion = getByRole(document.body, "region", { name: "Campaign canvas" });
+
+    fireEvent.keyDown(canvasRegion, { key: "ArrowRight" });
+    await waitFor(() => expect(currentObjects()[0]).toMatchObject({ left: 105 }));
+    expect(await parsed(api, "save-history-one", "getState", null))
+      .toMatchObject({ ok: true, payload: { revision: 1 } });
+
+    fireEvent.keyDown(canvasRegion, { key: "ArrowRight" });
+    await waitFor(() => expect(currentObjects()[0]).toMatchObject({ left: 110 }));
+    expect(await parsed(api, "save-history-two", "getState", null))
+      .toMatchObject({ ok: true, payload: { revision: 2 } });
+
+    fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));
+    await waitFor(() => expect(currentObjects()[0]).toMatchObject({ left: 105 }));
+    const afterUndo = await parsed(api, "save-history-undo", "getState", null);
+    expect(afterUndo)
+      .toMatchObject({ ok: true, payload: { revision: 3 } });
+    expect(document.querySelector("[data-save-status]")?.textContent).not.toBe("Save paused");
+  });
+
+  it("keeps a practice revision adopted while a queued undo is loading", async () => {
+    await import("./main");
+    const api = window.AdMarketCreator;
+    const practice = (window as Window & { AdMarketPractice: PracticePublicApi }).AdMarketPractice;
+    const begun = JSON.parse(await practice.handle(JSON.stringify({
+      contract: "practice-run@1",
+      requestId: "begin-queued-history-autosave",
+      method: "begin",
+      payload: {
+        teamAlias: "Queued History Pair",
+        operationId: "operation-queued-history-autosave"
+      }
+    }))) as {
+      ok: boolean;
+      payload: { document: CampaignDocumentV1 };
+    };
+    expect(begun).toMatchObject({ ok: true });
+    const documentWithText = CampaignDocumentSchema.parse({
+      ...structuredClone(begun.payload.document),
+      fabricState: {
+        version: "7.4.0",
+        objects: [{
+          type: "textbox",
+          objectId: "queued-practice-history-heading",
+          elementKind: "text",
+          accessibleName: "Queued practice history heading",
+          text: "Keep queueing",
+          left: 100,
+          top: 200,
+          scaleX: 1,
+          scaleY: 1
+        }]
+      }
+    });
+    expect(await parsed(api, "open-queued-history-autosave", "open", documentWithText))
+      .toMatchObject({ ok: true });
+    runtime.selectedObjectId = "queued-practice-history-heading";
+    const canvasRegion = getByRole(document.body, "region", { name: "Campaign canvas" });
+    const undo = getByRole(document.body, "button", { name: "Undo" });
+
+    for (const [requestId, revision] of [
+      ["save-queued-history-one", 1],
+      ["save-queued-history-two", 2],
+      ["save-queued-history-three", 3]
+    ] as const) {
+      fireEvent.keyDown(canvasRegion, { key: "ArrowRight" });
+      await waitFor(() => expect(currentObjects()[0]).toMatchObject({
+        left: 100 + (revision * 5)
+      }));
+      expect(await parsed(api, requestId, "getState", null))
+        .toMatchObject({ ok: true, payload: { revision } });
+    }
+
+    fireEvent.click(undo);
+    await waitFor(() => expect(currentObjects()[0]).toMatchObject({ left: 110 }));
+
+    let releaseQueuedLoad!: () => void;
+    runtime.loadPromise = new Promise<void>((resolve) => {
+      releaseQueuedLoad = resolve;
+    });
+    const loadCallsBeforeQueuedUndo = runtime.load.mock.calls.length;
+    fireEvent.click(undo);
+    await waitFor(() => expect(runtime.load).toHaveBeenCalledTimes(loadCallsBeforeQueuedUndo + 1));
+    await waitFor(() => expect(runtime.activePractice?.document.revision).toBe(4));
+
+    releaseQueuedLoad();
+    runtime.loadPromise = null;
+    await waitFor(() => expect(currentObjects()[0]).toMatchObject({ left: 105 }));
+    await waitFor(() => expect(runtime.activePractice?.document.revision).toBe(5));
+    expect(document.querySelector("[data-save-status]")?.textContent).not.toBe("Save paused");
   });
 
   it("starts and clears one Studio Coach session with the open Level 2 campaign", async () => {
@@ -2242,7 +2443,10 @@ describe("window.AdMarketCreator", () => {
       .toBe("Undid last change.");
 
     expect(await parsed(api, "history-save-undone", "save", null)).toMatchObject({ ok: true });
-    const undoneSaveBlobs = runtime.save.mock.calls.at(-1)?.[1] as ReadonlyMap<string, Blob>;
+    const [undoneSavedDocument, undoneSaveBlobs] = runtime.save.mock.calls.at(-1) as [
+      CampaignDocumentV1,
+      ReadonlyMap<string, Blob>
+    ];
     expect(undoneSaveBlobs.size).toBe(0);
 
     fireEvent.click(getByRole(document.body, "button", { name: "Redo" }));
@@ -2250,7 +2454,11 @@ describe("window.AdMarketCreator", () => {
     const redone = CampaignDocumentSchema.parse(
       (await parsed(api, "history-redone", "getState", null)).payload
     );
-    expect(redone).toEqual(placed);
+    expect(redone).toEqual({
+      ...placed,
+      revision: undoneSavedDocument.revision,
+      updatedAt: undoneSavedDocument.updatedAt
+    });
     expect(redone.fabricState).toEqual(placed.fabricState);
     expect(redone.assetReferences).toEqual(placed.assetReferences);
     expect(redone.product.build).toEqual(placed.product.build);

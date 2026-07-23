@@ -976,6 +976,32 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     await new ObjectCommandService(runtime.adapter).addText(value);
   }
 
+  async addProductText(
+    value: string
+  ): Promise<"added" | "updated" | "product-required"> {
+    await this.#placements.flush();
+    const runtime = this.#runtime;
+    if (runtime === null || this.#history === null) {
+      throw new Error("Campaign creator is not open");
+    }
+    const productId = runtime.adapter.getSelectedObjectId();
+    if (productId === null) return "product-required";
+    const address = runtime.adapter.firstArtworkSurfaceAddress(productId);
+    if (address === null) return "product-required";
+    const existingTextId = runtime.adapter.firstArtworkTextId(address);
+    const commands = new ObjectCommandService(runtime.adapter);
+    await this.#history.transaction(async () => {
+      if (existingTextId === null) {
+        await commands.addArtworkText(address, value, "Product label");
+      } else {
+        commands.setArtworkText(address, existingTextId, value);
+        commands.select(productId);
+      }
+    });
+    this.schedulePracticeAutosave();
+    return existingTextId === null ? "added" : "updated";
+  }
+
   async addLogoMark(design: LogoMarkDesign, icon: LogoIconRecord): Promise<string> {
     await this.#placements.flush();
     const runtime = this.#runtime;

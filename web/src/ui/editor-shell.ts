@@ -130,6 +130,8 @@ export function createEditorShell(root: HTMLElement): EditorShell {
             <div class="creator__words-body">
               <label>${STUDENT_COPY.labels.canvasWords}<input data-canvas-words aria-label="${STUDENT_COPY.labels.canvasWords}" placeholder="${STUDENT_COPY.roundZero.textPlaceholder}"></label>
               <button type="button" data-add-words>${STUDENT_COPY.roundZero.addWords}</button>
+              <button type="button" data-add-product-words>${STUDENT_COPY.roundZero.productWords}</button>
+              <p class="creator__words-hint">${STUDENT_COPY.roundZero.productWordsHint}</p>
             </div>
           </section>
           <section class="creator__tool-panel creator__logo-lab" id="studio-panel-logo" role="region" aria-label="Logo Lab" data-studio-panel="logo" hidden>
@@ -215,6 +217,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
     audienceEffect: root.querySelector('[data-audience-effect]')!,
     canvasWords: root.querySelector('[data-canvas-words]')!,
     addWords: root.querySelector('[data-add-words]')!,
+    productWords: root.querySelector('[data-add-product-words]')!,
     undo: root.querySelector('[data-command="undo"]')!,
     redo: root.querySelector('[data-command="redo"]')!,
     librarySearch: root.querySelector('input[aria-label="Search assets"]')!,

@@ -34,6 +34,7 @@ export interface PairGameView {
   audienceEffect: HTMLElement;
   canvasWords: HTMLInputElement;
   addWords: HTMLButtonElement;
+  productWords: HTMLButtonElement;
   undo: HTMLButtonElement;
   redo: HTMLButtonElement;
   polite: HTMLElement;
@@ -43,6 +44,7 @@ export interface PairGameView {
 export interface RoundZeroPort {
   setAudienceBrief(brief: AudienceBrief): Promise<CampaignDocumentV1>;
   addText(value: string): Promise<void>;
+  addProductText(value: string): Promise<"added" | "updated" | "product-required">;
   undo(): Promise<boolean>;
   redo(): Promise<boolean>;
   subscribeCanvasMutations(listener: () => void): () => void;
@@ -86,6 +88,7 @@ export class PairGameController {
     this.#listen(view.swapRoles, "click", () => this.#swapRoles());
     this.#listen(view.audienceSignal, "change", () => this.#changeAudience());
     this.#listen(view.addWords, "click", () => this.#addWords());
+    this.#listen(view.productWords, "click", () => this.#addProductWords());
     this.#listen(view.undo, "click", () => this.#undo());
     this.#listen(view.redo, "click", () => this.#redo());
   }
@@ -224,6 +227,29 @@ export class PairGameController {
       await this.#port.addText(value);
       this.#view.canvasWords.value = "";
       this.#view.polite.textContent = STUDENT_COPY.roundZero.wordsAdded;
+    });
+  }
+
+  #addProductWords(): void {
+    if (this.#current === null || this.#disposed) {
+      return;
+    }
+    const value = this.#view.canvasWords.value.trim();
+    if (value.length === 0) {
+      this.#view.assertive.textContent = STUDENT_COPY.roundZero.blankWords;
+      return;
+    }
+    this.#view.assertive.textContent = "";
+    this.#enqueue(async () => {
+      const result = await this.#port.addProductText(value);
+      if (result === "product-required") {
+        this.#view.assertive.textContent = STUDENT_COPY.roundZero.productWordsNeedSelection;
+        return;
+      }
+      this.#view.canvasWords.value = "";
+      this.#view.polite.textContent = result === "updated"
+        ? STUDENT_COPY.roundZero.productWordsUpdated
+        : STUDENT_COPY.roundZero.productWordsAdded;
     });
   }
 

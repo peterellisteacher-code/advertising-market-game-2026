@@ -51,6 +51,10 @@ import {
 } from "./product-shell-factory";
 import { FabricLogoMarkFactory } from "./logo-mark-factory";
 import { FabricProductKitCompositor } from "../product-kit/fabric-product-kit-compositor";
+import {
+  CURVED_TEXT_PROFILE,
+  renderCurvedLabel
+} from "../product-kit/curved-label-renderer";
 import "./fabric-custom-properties";
 
 const SERIALIZED_INTERACTION_PROPERTIES = [
@@ -272,7 +276,14 @@ export class FabricCanvasAdapter implements CanvasPort {
       }));
   }
   async addArtworkText(address: ArtworkSurfaceAddress, input: NewTextInput): Promise<void> {
-    this.#addArtwork(address, this.factory.createText(input));
+    const { product, surface } = this.#artworkContext(address);
+    this.#addArtworkObject(
+      product,
+      surface,
+      this.#usesCurvedLabel(product)
+        ? this.factory.createCurvedLabel(input)
+        : this.factory.createText(input)
+    );
   }
   async addArtworkShape(address: ArtworkSurfaceAddress, input: NewShapeInput): Promise<void> {
     this.#addArtwork(address, this.factory.createShape(input));
@@ -306,6 +317,29 @@ export class FabricCanvasAdapter implements CanvasPort {
     if (!value.trim()) throw new Error("Text must not be empty");
     const { product, surface } = this.#artworkContext(address);
     const object = surface.getObjects().find((candidate) => candidate.objectId === id);
+    if (object instanceof FabricImage &&
+      object.elementKind === "text" &&
+      object.curvedTextProfile === CURVED_TEXT_PROFILE &&
+      typeof object.curvedTextSource === "string" &&
+      typeof object.curvedTextColour === "string" &&
+      typeof object.curvedTextFontFamily === "string") {
+      const source = value.replace(/\s+/gu, " ").trim();
+      if (object.curvedTextSource === source) return;
+      const rendered = renderCurvedLabel({
+        text: source,
+        colour: object.curvedTextColour,
+        fontFamily: object.curvedTextFontFamily
+      });
+      object.setElement(rendered.canvas, {
+        width: object.width,
+        height: object.height
+      });
+      object.set({ curvedTextSource: source });
+      object.dirty = true;
+      object.setCoords();
+      this.#finishArtworkMutation(product, surface);
+      return;
+    }
     if (!(object instanceof Textbox) || object.elementKind !== "text") {
       throw new Error(`${id} is not editable artwork text`);
     }
@@ -313,6 +347,35 @@ export class FabricCanvasAdapter implements CanvasPort {
     object.set("text", value);
     this.#fitArtworkObject(surface, object);
     this.#finishArtworkMutation(product, surface);
+  }
+
+  firstArtworkSurfaceAddress(productId: string): ArtworkSurfaceAddress | null {
+    const product = this.#get(productId);
+    if (product.elementKind !== "product-shell" && product.elementKind !== "product-kit") {
+      return null;
+    }
+    const slots = this.#objectTree(product).filter(
+      (object): object is Group => object instanceof Group &&
+        object.productLayer === "artwork-slot" &&
+        typeof object.artworkSlotId === "string" &&
+        object.artworkSlotId.trim().length > 0
+    );
+    if (slots.length === 0) return null;
+    const slotId = slots[0]!.artworkSlotId!;
+    if (slots.some((slot, index) => index > 0 && slot.artworkSlotId === slotId)) {
+      throw new Error(`Product has duplicate artwork slot ${slotId}`);
+    }
+    return { productId, slotId };
+  }
+
+  firstArtworkTextId(address: ArtworkSurfaceAddress): string | null {
+    const { surface } = this.#artworkContext(address);
+    const text = surface.getObjects().find((object) =>
+      object.elementKind === "text" &&
+      typeof object.objectId === "string" &&
+      object.objectId.trim().length > 0
+    );
+    return text?.objectId?.trim() ?? null;
   }
 
   removeArtwork(address: ArtworkSurfaceAddress, childId: string): void {
@@ -763,14 +826,34 @@ export class FabricCanvasAdapter implements CanvasPort {
       throw new Error("Artwork surface address must not be empty");
     }
     const product = this.#get(address.productId);
+    let surface: Group;
+    if (product.elementKind === "product-shell") {
+      surface = productArtworkSurface(product, address.slotId);
+    } else if (product.elementKind === "product-kit") {
+      const matches = this.#objectTree(product).filter(
+        (object): object is Group => object instanceof Group &&
+          object.productLayer === "artwork-slot" &&
+          object.artworkSlotId === address.slotId
+      );
+      if (matches.length !== 1 || !(matches[0]!.width > 0) || !(matches[0]!.height > 0)) {
+        throw new Error(`Product Kit has invalid artwork slot ${address.slotId}`);
+      }
+      surface = matches[0]!;
+    } else {
+      throw new Error("Artwork surface lookup requires a product");
+    }
     return {
       product,
-      surface: productArtworkSurface(product, address.slotId)
+      surface
     };
   }
 
   #addArtwork(address: ArtworkSurfaceAddress, object: FabricObject): void {
     const { product, surface } = this.#artworkContext(address);
+    this.#addArtworkObject(product, surface, object);
+  }
+
+  #addArtworkObject(product: FabricObject, surface: Group, object: FabricObject): void {
     this.#assertArtworkSurfaceGeometry(surface);
     object.setPositionByOrigin(surface.getCenterPoint(), "center", "center");
     object.setCoords();
@@ -778,6 +861,13 @@ export class FabricCanvasAdapter implements CanvasPort {
     object.set({ left: 0, top: 0, originX: "center", originY: "center" });
     this.#fitArtworkObject(surface, object);
     this.#finishArtworkMutation(product, surface);
+  }
+
+  #usesCurvedLabel(product: FabricObject): boolean {
+    return product.productKitId === "pk1-tumbler-kit" ||
+      (product.elementKind === "product-shell" &&
+        typeof product.shellId === "string" &&
+        product.shellId.startsWith("drinkware-"));
   }
 
   #assertArtworkSurfaceGeometry(surface: Group): void {

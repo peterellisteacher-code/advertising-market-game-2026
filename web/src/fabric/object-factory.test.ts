@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   calculateTextFitScale,
   FabricObjectFactory,
+  MAX_PORTABLE_PNG_DATA_URL_BYTES,
   MAX_TEXT_HEIGHT,
   MAX_TEXT_WIDTH,
   portableRasterUrlForLoad,
@@ -57,6 +58,48 @@ describe("FabricObjectFactory", () => {
 
     expect(object.editable).toBe(false);
     expect(object.toObject()).toMatchObject({ editable: false });
+  });
+
+  it("creates curved text as a bounded editable-source raster while ordinary text stays a Textbox", () => {
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      font: "",
+      fillStyle: "#000000",
+      textAlign: "start",
+      textBaseline: "alphabetic",
+      globalAlpha: 1,
+      measureText: (value: string) => ({ width: value.length * 48 }),
+      clearRect: vi.fn(),
+      save: vi.fn(),
+      restore: vi.fn(),
+      fillText: vi.fn(),
+      drawImage: vi.fn()
+    } as unknown as CanvasRenderingContext2D);
+
+    const factory = new FabricObjectFactory();
+    const curved = factory.createCurvedLabel({
+      id: "curved-text-1",
+      value: "Refill. Roam. Repeat.",
+      accessibleName: "Tumbler label"
+    });
+    const ordinary = factory.createText({
+      id: "ordinary-text-1",
+      value: "Refill. Roam. Repeat.",
+      accessibleName: "Advertisement headline"
+    });
+
+    expect(curved).toBeInstanceOf(FabricImage);
+    expect(curved.getOriginalSize()).toEqual({ width: 1_024, height: 512 });
+    expect(curved).toMatchObject({
+      objectId: "curved-text-1",
+      elementKind: "text",
+      accessibleName: "Tumbler label",
+      curvedTextSource: "Refill. Roam. Repeat.",
+      curvedTextProfile: "cylinder-front",
+      curvedTextColour: "#111827",
+      curvedTextFontFamily: "Arial"
+    });
+    expect(ordinary).toBeInstanceOf(Textbox);
+    expect(ordinary).not.toHaveProperty("curvedTextSource");
   });
 
   it("creates a bounded shape with application metadata", () => {
@@ -166,6 +209,20 @@ describe("FabricObjectFactory", () => {
     )).toBe(
       "blob:https://6a5dd4b2ee7c5ac396464e29--advertising-market-game-2026.netlify.app/local-1"
     );
+  });
+
+  it("round-trips only bounded PNG data URLs used by generated curved labels", () => {
+    const portablePng = "data:image/png;base64,iVBORw0KGgo=";
+
+    expect(portableRasterUrlForStorage(portablePng)).toBe(portablePng);
+    expect(portableRasterUrlForLoad(portablePng)).toBe(portablePng);
+    expect(() => portableRasterUrlForStorage("data:image/svg+xml;base64,PHN2Zy8+"))
+      .toThrow("same-origin");
+    expect(() => portableRasterUrlForLoad("data:image/png;base64,cHJvYmU="))
+      .toThrow("same-origin");
+    expect(() => portableRasterUrlForStorage(
+      `data:image/png;base64,${"A".repeat(MAX_PORTABLE_PNG_DATA_URL_BYTES * 2)}`
+    )).toThrow("same-origin");
   });
 
   it("rejects blob:null when the page itself has an opaque origin", () => {

@@ -104,7 +104,12 @@ describe("createEditorShell", () => {
     expect(shell.logoLabPanel.dataset.logoLabPanel).toBe("");
     expect(getByRole<HTMLInputElement>(root, "textbox", { name: "Canvas words", hidden: true }).placeholder)
       .toBe("Try Make room for adventure");
-    expect(getByRole(root, "button", { name: "Add words", hidden: true })).toBeTruthy();
+    expect(getByRole(root, "button", { name: "Add words to ad", hidden: true }))
+      .toBe(shell.addWords);
+    expect(getByRole(root, "button", { name: "Put words on selected product", hidden: true }))
+      .toBe(shell.productWords);
+    expect(root.querySelector('[data-studio-panel="words"]')?.textContent)
+      .toContain("Tumbler words bend around its curved label area.");
     expect(root.querySelector('.creator__layers[aria-label="Canvas layers"]')).toBeTruthy();
     expect(getByRole(root, "button", { name: "Open canvas layers", hidden: true })).toBeTruthy();
     expect(root.querySelector('.creator__inspector[aria-label="Selected element"]')).toBeTruthy();

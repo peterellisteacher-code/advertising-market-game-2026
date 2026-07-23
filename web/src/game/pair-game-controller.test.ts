@@ -14,7 +14,9 @@ import {
 class RoundZeroHarness implements RoundZeroPort {
   document: CampaignDocumentV1;
   readonly addedText: string[] = [];
+  readonly addedProductText: string[] = [];
   readonly briefIds: string[] = [];
+  productTextResult: Awaited<ReturnType<RoundZeroPort["addProductText"]>> = "added";
   undoCount = 0;
   redoCount = 0;
   audienceError: Error | null = null;
@@ -44,6 +46,14 @@ class RoundZeroHarness implements RoundZeroPort {
   async addText(value: string): Promise<void> {
     this.addedText.push(value);
     this.#listener?.();
+  }
+
+  async addProductText(
+    value: string
+  ): ReturnType<RoundZeroPort["addProductText"]> {
+    this.addedProductText.push(value);
+    if (this.productTextResult !== "product-required") this.#listener?.();
+    return this.productTextResult;
   }
 
   async undo(): Promise<boolean> {
@@ -98,7 +108,8 @@ function createPairGameView(): { root: HTMLElement; view: PairGameView } {
       </section>
       <section role="region" aria-label="Pair tools">
         <label>Canvas words <input data-canvas-words></label>
-        <button type="button" data-add-words>Add words</button>
+        <button type="button" data-add-words>Add words to ad</button>
+        <button type="button" data-add-product-words>Put words on selected product</button>
         <button type="button" data-command="undo">Undo</button>
         <button type="button" data-command="redo">Redo</button>
       </section>
@@ -123,6 +134,7 @@ function createPairGameView(): { root: HTMLElement; view: PairGameView } {
       audienceEffect: root.querySelector("[data-audience-effect]")!,
       canvasWords: root.querySelector("[data-canvas-words]")!,
       addWords: root.querySelector("[data-add-words]")!,
+      productWords: root.querySelector("[data-add-product-words]")!,
       undo: root.querySelector('[data-command="undo"]')!,
       redo: root.querySelector('[data-command="redo"]')!,
       polite: root.querySelector('[data-live="polite"]')!,
@@ -176,7 +188,7 @@ describe("PairGameController", () => {
     fireEvent.input(getByRole(root, "textbox", { name: "Canvas words" }), {
       target: { value: "Make room for adventure" }
     });
-    fireEvent.click(getByRole(root, "button", { name: "Add words" }));
+    fireEvent.click(getByRole(root, "button", { name: "Add words to ad" }));
 
     await waitFor(() => {
       expect(port.addedText).toEqual(["Make room for adventure"]);
@@ -291,7 +303,7 @@ describe("PairGameController", () => {
     fireEvent.input(getByRole(root, "textbox", { name: "Canvas words" }), {
       target: { value: "   " }
     });
-    fireEvent.click(getByRole(root, "button", { name: "Add words" }));
+    fireEvent.click(getByRole(root, "button", { name: "Add words to ad" }));
     expect(view.assertive.textContent).toBe("Type some canvas words first.");
     expect(port.addedText).toEqual([]);
 
@@ -315,7 +327,7 @@ describe("PairGameController", () => {
     fireEvent.input(getByRole(root, "textbox", { name: "Canvas words" }), {
       target: { value: "No longer active" }
     });
-    fireEvent.click(getByRole(root, "button", { name: "Add words" }));
+    fireEvent.click(getByRole(root, "button", { name: "Add words to ad" }));
     port.emitCanvasMutation();
 
     await Promise.resolve();
@@ -323,6 +335,31 @@ describe("PairGameController", () => {
     expect(getByRole(root, "heading", { name: "Art Director" })).toBeTruthy();
     expect(view.activeRoleAction.textContent)
       .toBe("Build the product, place it on the ad, then make it a clear close-up.");
+  });
+
+  it("routes selected-product words and explains when a product is not selected", async () => {
+    const campaign = campaignFixture();
+    const port = new RoundZeroHarness(campaign);
+    const { root, view } = createPairGameView();
+    const controller = new PairGameController(view, port);
+    await controller.open(campaign);
+    const words = getByRole<HTMLInputElement>(root, "textbox", { name: "Canvas words" });
+
+    fireEvent.input(words, { target: { value: "Keeps drinks warm longer" } });
+    fireEvent.click(getByRole(root, "button", { name: "Put words on selected product" }));
+    await waitFor(() => expect(port.addedProductText).toEqual(["Keeps drinks warm longer"]));
+    expect(view.polite.textContent).toBe("Words added to the selected product.");
+    expect(words.value).toBe("");
+
+    port.productTextResult = "product-required";
+    fireEvent.input(words, { target: { value: "Try again" } });
+    fireEvent.click(getByRole(root, "button", { name: "Put words on selected product" }));
+    await waitFor(() => expect(port.addedProductText).toEqual([
+      "Keeps drinks warm longer",
+      "Try again"
+    ]));
+    expect(view.assertive.textContent).toBe("Select a product with a label area first.");
+    expect(words.value).toBe("Try again");
   });
 
   it("shows safe student copy when an operation fails", async () => {

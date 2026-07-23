@@ -9,6 +9,10 @@ import {
 } from "fabric";
 import { CREATOR_CONFIG } from "../config";
 import type { EditorObjectMeta } from "../domain/editor-object";
+import {
+  renderCurvedLabel,
+  type CurvedLabelFontFamily
+} from "../product-kit/curved-label-renderer";
 import type { NewRasterInput, NewShapeInput, NewTextInput } from "./canvas-port";
 import "./fabric-custom-properties";
 
@@ -26,6 +30,9 @@ export const MAX_TEXT_WIDTH = 640;
 export const MAX_TEXT_HEIGHT = 360;
 const MAX_RASTER_WIDTH = 640;
 const MAX_RASTER_HEIGHT = 450;
+const PORTABLE_PNG_PREFIX = "data:image/png;base64,";
+export const MAX_PORTABLE_PNG_DATA_URL_BYTES = 2 * 1_024 * 1_024;
+const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10] as const;
 
 export function calculateTextFitScale(
   width: number,
@@ -55,6 +62,27 @@ function rasterUrlError(): Error {
   return new Error("Raster URL must be same-origin");
 }
 
+function boundedPortablePngDataUrl(value: string): string | null {
+  if (!value.startsWith(PORTABLE_PNG_PREFIX)) return null;
+  const encoded = value.slice(PORTABLE_PNG_PREFIX.length);
+  const encodedLimit = Math.ceil(MAX_PORTABLE_PNG_DATA_URL_BYTES / 3) * 4;
+  if (!encoded || encoded.length > encodedLimit ||
+    !/^(?:[a-z0-9+/]{4})*(?:[a-z0-9+/]{2}==|[a-z0-9+/]{3}=)?$/i.test(encoded)) {
+    return null;
+  }
+  let decoded: string;
+  try {
+    decoded = globalThis.atob(encoded);
+  } catch {
+    return null;
+  }
+  if (decoded.length > MAX_PORTABLE_PNG_DATA_URL_BYTES ||
+    PNG_SIGNATURE.some((byte, index) => decoded.charCodeAt(index) !== byte)) {
+    return null;
+  }
+  return value;
+}
+
 export function sameOriginRasterUrl(
   value: string,
   currentHref = window.location.href
@@ -81,6 +109,8 @@ export function portableRasterUrlForLoad(
   value: string,
   currentHref = window.location.href
 ): string {
+  const portablePng = boundedPortablePngDataUrl(value);
+  if (portablePng !== null) return portablePng;
   try {
     return sameOriginRasterUrl(value, currentHref);
   } catch (error) {
@@ -113,6 +143,8 @@ export function portableRasterUrlForStorage(
   value: string,
   currentHref = window.location.href
 ): string {
+  const portablePng = boundedPortablePngDataUrl(value);
+  if (portablePng !== null) return portablePng;
   const absolute = sameOriginRasterUrl(value, currentHref);
   const url = new URL(absolute);
   if ((url.protocol === "http:" || url.protocol === "https:") &&
@@ -135,6 +167,33 @@ export class FabricObjectFactory {
       object.getScaledWidth() / Math.max(Number.EPSILON, Math.abs(object.scaleX)),
       object.getScaledHeight() / Math.max(Number.EPSILON, Math.abs(object.scaleY))
     ));
+    return this.#configure(object, {
+      objectId: input.id,
+      elementKind: "text",
+      accessibleName: input.accessibleName
+    });
+  }
+
+  createCurvedLabel(
+    input: NewTextInput,
+    colour = "#111827",
+    fontFamily: CurvedLabelFontFamily = "Arial"
+  ): FabricImage {
+    const rendered = renderCurvedLabel({
+      text: input.value,
+      colour,
+      fontFamily
+    });
+    const object = new FabricImage(rendered.canvas, {
+      objectCaching: true,
+      imageSmoothing: true
+    });
+    object.set({
+      curvedTextSource: input.value.replace(/\s+/gu, " ").trim(),
+      curvedTextProfile: rendered.profile.id,
+      curvedTextColour: colour.toUpperCase(),
+      curvedTextFontFamily: fontFamily
+    });
     return this.#configure(object, {
       objectId: input.id,
       elementKind: "text",

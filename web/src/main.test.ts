@@ -142,6 +142,81 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
       }));
     }
 
+    firstArtworkSurfaceAddress(
+      productId: string
+    ): { productId: string; slotId: string } | null {
+      const product = (runtime.state.objects as Array<Record<string, unknown>>)
+        .find((candidate) => candidate.objectId === productId);
+      if (!product || (product.elementKind !== "product-kit" &&
+        product.elementKind !== "product-shell")) return null;
+      const slot = (product.objects as Array<Record<string, unknown>> | undefined)
+        ?.find((candidate) => candidate.productLayer === "artwork-slot" &&
+          typeof candidate.artworkSlotId === "string");
+      return typeof slot?.artworkSlotId === "string"
+        ? { productId, slotId: slot.artworkSlotId }
+        : null;
+    }
+
+    firstArtworkTextId(address: {
+      productId: string;
+      slotId: string;
+    }): string | null {
+      const { surface } = this.artworkSurface(address);
+      const text = (surface.objects as Array<Record<string, unknown>>)
+        .find((candidate) => candidate.elementKind === "text" &&
+          typeof candidate.objectId === "string");
+      return typeof text?.objectId === "string" ? text.objectId : null;
+    }
+
+    async addArtworkText(
+      address: { productId: string; slotId: string },
+      input: { id: string; value: string; accessibleName: string }
+    ): Promise<void> {
+      const { product, surface } = this.artworkSurface(address);
+      const curved = product.productKitId === "pk1-tumbler-kit";
+      (surface.objects as Array<Record<string, unknown>>).push(curved
+        ? {
+            type: "Image",
+            objectId: input.id,
+            elementKind: "text",
+            accessibleName: input.accessibleName,
+            curvedTextSource: input.value,
+            curvedTextProfile: "cylinder-front",
+            curvedTextColour: "#111827",
+            curvedTextFontFamily: "Arial",
+            src: "data:image/png;base64,iVBORw0KGgo="
+          }
+        : {
+            type: "textbox",
+            objectId: input.id,
+            elementKind: "text",
+            accessibleName: input.accessibleName,
+            text: input.value,
+            editable: true
+          });
+      runtime.listeners.forEach((listener) => listener({
+        type: "modified",
+        objectId: address.productId
+      }));
+    }
+
+    setArtworkText(
+      address: { productId: string; slotId: string },
+      id: string,
+      value: string
+    ): void {
+      const { surface } = this.artworkSurface(address);
+      const text = (surface.objects as Array<Record<string, unknown>>)
+        .find((candidate) => candidate.objectId === id && candidate.elementKind === "text");
+      if (!text) throw new Error(`Missing artwork text ${id}`);
+      if (text.curvedTextProfile === "cylinder-front") text.curvedTextSource = value;
+      else text.text = value;
+      runtime.listeners.forEach((listener) => listener({
+        type: "modified",
+        objectId: address.productId
+      }));
+    }
+
     async addRaster(input: {
       id: string;
       assetId: string;
@@ -566,6 +641,23 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
       runtime.adapterDisposed();
       runtime.listeners.clear();
       if (runtime.adapterDisposeFailure) throw runtime.adapterDisposeFailure;
+    }
+
+    private artworkSurface(address: {
+      productId: string;
+      slotId: string;
+    }): {
+      product: Record<string, unknown>;
+      surface: Record<string, unknown>;
+    } {
+      const product = (runtime.state.objects as Array<Record<string, unknown>>)
+        .find((candidate) => candidate.objectId === address.productId);
+      const surface = (product?.objects as Array<Record<string, unknown>> | undefined)
+        ?.find((candidate) => candidate.artworkSlotId === address.slotId);
+      if (!product || !surface || !Array.isArray(surface.objects)) {
+        throw new Error("Missing test artwork surface");
+      }
+      return { product, surface };
     }
 
     private logoObject(id: string, design: {
@@ -1676,7 +1768,7 @@ describe("window.AdMarketCreator", () => {
       name: "Canvas words"
     });
     fireEvent.input(words, { target: { value: "Make room for adventure" } });
-    fireEvent.click(getByRole(document.body, "button", { name: "Add words" }));
+    fireEvent.click(getByRole(document.body, "button", { name: "Add words to ad" }));
 
     await waitFor(() => {
       expect(currentObjects()).toEqual([
@@ -1692,7 +1784,7 @@ describe("window.AdMarketCreator", () => {
     fireEvent.click(getByRole(document.body, "button", { name: "Swap roles" }));
     expect(document.querySelector("[data-active-role]")?.textContent).toBe("Strategist");
     fireEvent.input(words, { target: { value: "Your weekend, your way" } });
-    fireEvent.click(getByRole(document.body, "button", { name: "Add words" }));
+    fireEvent.click(getByRole(document.body, "button", { name: "Add words to ad" }));
 
     await waitFor(() => {
       expect(currentObjects()).toHaveLength(2);
@@ -2261,6 +2353,57 @@ describe("window.AdMarketCreator", () => {
       productKitCatalogSha256:
         "6199fd1adae59a2b517b265ca67a325f32faba04d375852821e841b51a354073"
     });
+    activateStudioTool("words");
+    const productWords = getByRole<HTMLInputElement>(document.body, "textbox", {
+      name: "Canvas words"
+    });
+    fireEvent.input(productWords, { target: { value: "Refill. Roam. Repeat." } });
+    fireEvent.click(getByRole(document.body, "button", {
+      name: "Put words on selected product"
+    }));
+    await waitFor(() => {
+      const liveProduct = currentObjects().find(({ elementKind }) => elementKind === "product-kit");
+      const artworkSlot = (liveProduct?.objects as Array<Record<string, unknown>>)
+        .find(({ productLayer }) => productLayer === "artwork-slot");
+      expect(artworkSlot?.objects).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          elementKind: "text",
+          curvedTextSource: "Refill. Roam. Repeat."
+        })
+      ]));
+    });
+    fireEvent.input(productWords, { target: { value: "Warm drinks. Less waste." } });
+    fireEvent.click(getByRole(document.body, "button", {
+      name: "Put words on selected product"
+    }));
+    await waitFor(() => {
+      const liveProduct = currentObjects().find(({ elementKind }) => elementKind === "product-kit");
+      const artworkSlot = (liveProduct?.objects as Array<Record<string, unknown>>)
+        .find(({ productLayer }) => productLayer === "artwork-slot");
+      const labels = (artworkSlot?.objects as Array<Record<string, unknown>>)
+        .filter(({ elementKind }) => elementKind === "text");
+      expect(labels).toEqual([
+        expect.objectContaining({ curvedTextSource: "Warm drinks. Less waste." })
+      ]);
+    });
+    fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));
+    await waitFor(() => {
+      const liveProduct = currentObjects().find(({ elementKind }) => elementKind === "product-kit");
+      const artworkSlot = (liveProduct?.objects as Array<Record<string, unknown>>)
+        .find(({ productLayer }) => productLayer === "artwork-slot");
+      expect((artworkSlot?.objects as Array<Record<string, unknown>>)
+        .find(({ elementKind }) => elementKind === "text")?.curvedTextSource)
+        .toBe("Refill. Roam. Repeat.");
+    });
+    fireEvent.click(getByRole(document.body, "button", { name: "Redo" }));
+    await waitFor(() => {
+      const liveProduct = currentObjects().find(({ elementKind }) => elementKind === "product-kit");
+      const artworkSlot = (liveProduct?.objects as Array<Record<string, unknown>>)
+        .find(({ productLayer }) => productLayer === "artwork-slot");
+      expect((artworkSlot?.objects as Array<Record<string, unknown>>)
+        .find(({ elementKind }) => elementKind === "text")?.curvedTextSource)
+        .toBe("Warm drinks. Less waste.");
+    });
     expect((rootObject?.objects as Array<Record<string, unknown>>)
       .map(({ productLayer }) => productLayer))
       .toEqual(["body", "front", "artwork-slot"]);
@@ -2303,10 +2446,13 @@ describe("window.AdMarketCreator", () => {
       blueprintId: "pk1-tumbler-kit",
       unitCostCents: 550
     });
+    activateStudioTool("product");
     expect(getByRole(document.body, "region", { name: "Product builder" }).textContent)
       .not.toContain("$");
 
-    const placedRoot = structuredClone(rootObject);
+    const placedRoot = structuredClone(currentObjects().find(({ elementKind }) =>
+      elementKind === "product-kit"
+    ));
     const placedReference = structuredClone(reference);
     const placedBuild = structuredClone(placed.product.build);
     expect(await parsed(api, "save-product-kit", "save", null)).toMatchObject({ ok: true });

@@ -1,5 +1,15 @@
 import type { Canvas } from "fabric";
-import { ActiveSelection, FabricImage, FabricObject, Group, Rect, Textbox, util } from "fabric";
+import {
+  ActiveSelection,
+  FabricImage,
+  FabricObject,
+  FixedLayout,
+  Group,
+  LayoutManager,
+  Rect,
+  Textbox,
+  util
+} from "fabric";
 import { describe, expect, it, vi } from "vitest";
 import type { LogoIconRecord } from "../logo-lab/logo-icon-catalogue";
 import { createLogoMarkDesign } from "../logo-lab/logo-mark-model";
@@ -115,6 +125,95 @@ const CLIPPED_SHELL_SVG = `
   </g>
 </svg>`;
 
+const TINY_PNG =
+  "data:image/png;base64," +
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl1sAAAAASUVORK5CYII=";
+
+function installCurvedLabelCanvas(): void {
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(function () {
+    return {
+      font: "",
+      fillStyle: "#000000",
+      textAlign: "start",
+      textBaseline: "alphabetic",
+      globalAlpha: 1,
+      measureText(value: string) {
+        const size = Number.parseFloat(
+          (this as unknown as CanvasRenderingContext2D).font.match(/(\d+(?:\.\d+)?)px/)?.[1] ?? "16"
+        );
+        return { width: [...value].length * size * 0.58 } as TextMetrics;
+      },
+      clearRect: vi.fn(),
+      save: vi.fn(),
+      restore: vi.fn(),
+      fillText: vi.fn(),
+      drawImage: vi.fn()
+    } as unknown as CanvasRenderingContext2D;
+  });
+  vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue(TINY_PNG);
+}
+
+function productKitArtworkRoot(productKitId: string): {
+  product: Group;
+  surface: Group;
+  slotId: string;
+} {
+  const slotId = `artwork:${productKitId}:0`;
+  const body = new Rect({
+    width: 146,
+    height: 238,
+    left: 0,
+    top: 0,
+    originX: "center",
+    originY: "center",
+    fill: "#F7F3EA",
+    selectable: false,
+    evented: false
+  });
+  body.set({ productLayer: "body" });
+  const guide = new Rect({
+    width: 112,
+    height: 125,
+    left: 0,
+    top: 0,
+    originX: "center",
+    originY: "center",
+    fill: "rgba(0,0,0,0)",
+    selectable: false,
+    evented: false
+  });
+  const surface = new Group([guide], {
+    width: 112,
+    height: 125,
+    left: 0,
+    top: 0,
+    originX: "center",
+    originY: "center",
+    selectable: false,
+    evented: false,
+    layoutManager: new LayoutManager(new FixedLayout())
+  });
+  surface.set({ productLayer: "artwork-slot", artworkSlotId: slotId });
+  const product = new Group([body, surface], {
+    width: 146,
+    height: 238,
+    left: 800,
+    top: 450,
+    originX: "center",
+    originY: "center",
+    layoutManager: new LayoutManager(new FixedLayout())
+  });
+  product.set({
+    objectId: `product-${productKitId}`,
+    elementKind: "product-kit",
+    accessibleName: productKitId === "pk1-tumbler-kit" ? "Reusable tumbler" : "Television",
+    productKitPackId: "pk1-pilot-drinkware",
+    productKitId,
+    productKitCatalogSha256: "a".repeat(64)
+  });
+  return { product, surface, slotId };
+}
+
 const LOGO_ICON: LogoIconRecord = Object.freeze({
   id: "paw",
   title: "Paw",
@@ -142,7 +241,11 @@ describe("FabricCanvasAdapter persistence", () => {
       "productKitPackId",
       "productKitId",
       "productKitCatalogSha256",
-      "productKitComposition"
+      "productKitComposition",
+      "curvedTextSource",
+      "curvedTextProfile",
+      "curvedTextColour",
+      "curvedTextFontFamily"
     ]) {
       expect(FabricObject.customProperties.filter((candidate) => candidate === property))
         .toHaveLength(1);
@@ -630,11 +733,118 @@ describe("FabricCanvasAdapter persistence", () => {
     ]);
   });
 
+  it("renders, edits and round-trips tumbler words as curved artwork", async () => {
+    installCurvedLabelCanvas();
+    const { product, surface, slotId } = productKitArtworkRoot("pk1-tumbler-kit");
+    const canvas = new FakeCanvas();
+    canvas.objects = [product];
+    canvas.activeObject = product;
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+    const target = { productId: product.objectId!, slotId };
+    const mutations: CanvasMutation[] = [];
+    adapter.subscribe((mutation) => mutations.push(mutation));
+
+    expect(adapter.firstArtworkSurfaceAddress(product.objectId!)).toEqual(target);
+    expect(adapter.firstArtworkTextId(target)).toBeNull();
+    await adapter.addArtworkText(target, {
+      id: "curved-label-1",
+      value: "Refill. Roam. Repeat.",
+      accessibleName: "Tumbler label"
+    });
+    expect(adapter.firstArtworkTextId(target)).toBe("curved-label-1");
+
+    const curved = surface.getObjects().find(({ objectId }) => objectId === "curved-label-1");
+    expect(curved).toBeInstanceOf(FabricImage);
+    expect(curved).toMatchObject({
+      elementKind: "text",
+      accessibleName: "Tumbler label",
+      curvedTextSource: "Refill. Roam. Repeat.",
+      curvedTextProfile: "cylinder-front",
+      curvedTextColour: "#111827",
+      curvedTextFontFamily: "Arial"
+    });
+    expect((curved as FabricImage).getOriginalSize()).toEqual({ width: 1_024, height: 512 });
+    expect((curved as FabricImage).getScaledWidth()).toBeLessThanOrEqual(surface.width * 0.82 + 0.001);
+    expect((curved as FabricImage).getScaledHeight()).toBeLessThanOrEqual(surface.height * 0.82 + 0.001);
+    const firstElement = (curved as FabricImage).getElement();
+    const firstScale = { x: curved!.scaleX, y: curved!.scaleY };
+    const firstCentre = curved!.getCenterPoint();
+
+    adapter.setArtworkText(target, "curved-label-1", "Warm drinks. Less waste.");
+
+    expect((curved as FabricImage).getElement()).not.toBe(firstElement);
+    expect(curved).toMatchObject({
+      curvedTextSource: "Warm drinks. Less waste.",
+      scaleX: firstScale.x,
+      scaleY: firstScale.y
+    });
+    expect(curved!.getCenterPoint().x).toBeCloseTo(firstCentre.x, 10);
+    expect(curved!.getCenterPoint().y).toBeCloseTo(firstCentre.y, 10);
+    expect((curved as FabricImage).getOriginalSize()).toEqual({ width: 1_024, height: 512 });
+    expect(mutations).toEqual([
+      { type: "modified", objectId: product.objectId },
+      { type: "modified", objectId: product.objectId }
+    ]);
+
+    const serialized = product.toObject();
+    const serializedLabel = (
+      (serialized.objects as unknown as Array<Record<string, unknown>>)
+        .find(({ artworkSlotId }) => artworkSlotId === slotId)
+        ?.objects as Array<Record<string, unknown>>
+    ).find(({ objectId }) => objectId === "curved-label-1");
+    expect(serializedLabel).toMatchObject({
+      type: "Image",
+      src: TINY_PNG,
+      curvedTextSource: "Warm drinks. Less waste.",
+      curvedTextProfile: "cylinder-front"
+    });
+
+    vi.spyOn(FabricImage, "fromObject").mockImplementation(async (value) => {
+      const element = document.createElement("canvas");
+      element.width = 1_024;
+      element.height = 512;
+      return new FabricImage(element, value as never);
+    });
+    const restored = await Group.fromObject(serialized);
+    const restoredCanvas = new FakeCanvas();
+    restoredCanvas.objects = [restored];
+    const restoredAdapter = new FabricCanvasAdapter(restoredCanvas as unknown as Canvas);
+    const restoredSurface = restored.getObjects()
+      .find(({ artworkSlotId }) => artworkSlotId === slotId);
+    if (!(restoredSurface instanceof Group)) throw new Error("Expected restored artwork surface");
+    const restoredCurved = restoredSurface.getObjects()
+      .find(({ objectId }) => objectId === "curved-label-1");
+    if (!(restoredCurved instanceof FabricImage)) throw new Error("Expected restored curved label");
+
+    restoredAdapter.setArtworkText(target, "curved-label-1", "Refill again.");
+
+    expect(restoredCurved).toMatchObject({
+      curvedTextSource: "Refill again.",
+      curvedTextProfile: "cylinder-front"
+    });
+    expect(restoredCurved.getOriginalSize()).toEqual({ width: 1_024, height: 512 });
+  }, 15_000);
+
+  it("keeps non-drinkware product artwork as an ordinary editable Textbox", async () => {
+    const { product, surface, slotId } = productKitArtworkRoot("pk1-tv-kit");
+    const canvas = new FakeCanvas();
+    canvas.objects = [product];
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+
+    await adapter.addArtworkText(
+      { productId: product.objectId!, slotId },
+      { id: "screen-text", value: "Watch together", accessibleName: "Screen words" }
+    );
+
+    expect(surface.getObjects().find(({ objectId }) => objectId === "screen-text"))
+      .toBeInstanceOf(Textbox);
+  });
+
   it("adds and edits clipped artwork children with one parent mutation per action", async () => {
     const canvas = new FakeCanvas();
     const shell = await new FabricProductShellFactory().create({
       id: "product-1",
-      shellId: "drinkware-classic-can",
+      shellId: "bags-tote",
       accessibleName: "Classic can",
       svg: CLIPPED_SHELL_SVG
     });
@@ -712,7 +922,7 @@ describe("FabricCanvasAdapter persistence", () => {
     const canvas = new FakeCanvas();
     const shell = await new FabricProductShellFactory().create({
       id: "product-1",
-      shellId: "drinkware-classic-can",
+      shellId: "bags-tote",
       accessibleName: "Classic can",
       svg: CLIPPED_SHELL_SVG
     });
@@ -784,7 +994,7 @@ describe("FabricCanvasAdapter persistence", () => {
     const canvas = new FakeCanvas();
     const shell = await new FabricProductShellFactory().create({
       id: "product-1",
-      shellId: "drinkware-classic-can",
+      shellId: "bags-tote",
       accessibleName: "Classic can",
       svg: CLIPPED_SHELL_SVG
     });
@@ -858,7 +1068,7 @@ describe("FabricCanvasAdapter persistence", () => {
     const canvas = new FakeCanvas();
     const shell = await new FabricProductShellFactory().create({
       id: "product-1",
-      shellId: "drinkware-classic-can",
+      shellId: "bags-tote",
       accessibleName: "Classic can",
       svg: CLIPPED_SHELL_SVG
     });
@@ -920,7 +1130,7 @@ describe("FabricCanvasAdapter persistence", () => {
     const directCanvas = new FakeCanvas();
     const directShell = await new FabricProductShellFactory().create({
       id: "direct-product",
-      shellId: "drinkware-classic-can",
+      shellId: "bags-tote",
       accessibleName: "Direct long-text can",
       svg: CLIPPED_SHELL_SVG
     });

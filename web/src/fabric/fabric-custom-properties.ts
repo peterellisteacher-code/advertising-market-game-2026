@@ -2,6 +2,10 @@ import { FabricObject } from "fabric";
 import type { ElementKind } from "../domain/editor-object";
 import type { LogoRecipeId, LogoTypeface } from "../logo-lab/logo-mark-model";
 import type { ProductKitCompositionRequest } from "../product-kit/product-kit-runtime";
+import type {
+  CurvedLabelFontFamily,
+  CurvedTextProfileId
+} from "../product-kit/curved-label-renderer";
 
 export type LogoLayer = "container" | "symbol" | "wordmark";
 
@@ -40,6 +44,10 @@ declare module "fabric" {
     productKitId?: string;
     productKitCatalogSha256?: string;
     productKitComposition?: ProductKitCompositionRequest;
+    curvedTextSource?: string;
+    curvedTextProfile?: CurvedTextProfileId;
+    curvedTextColour?: string;
+    curvedTextFontFamily?: CurvedLabelFontFamily;
   }
 
   interface SerializedObjectProps {
@@ -76,6 +84,10 @@ declare module "fabric" {
     productKitId?: string;
     productKitCatalogSha256?: string;
     productKitComposition?: ProductKitCompositionRequest;
+    curvedTextSource?: string;
+    curvedTextProfile?: CurvedTextProfileId;
+    curvedTextColour?: string;
+    curvedTextFontFamily?: CurvedLabelFontFamily;
   }
 }
 
@@ -113,5 +125,9 @@ FabricObject.customProperties = [
   "productKitPackId",
   "productKitId",
   "productKitCatalogSha256",
-  "productKitComposition"
+  "productKitComposition",
+  "curvedTextSource",
+  "curvedTextProfile",
+  "curvedTextColour",
+  "curvedTextFontFamily"
 ];

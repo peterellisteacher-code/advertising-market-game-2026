@@ -312,6 +312,8 @@
 .creator__words-body label { display: grid; gap: 6px; font-weight: 850; }
 .creator__words-body input { width: 100%; padding: 0 10px; border: 2px solid #8faeb8; border-radius: 8px; background: #fff; color: var(--ink); font: inherit; }
 .creator__words-body button { border: 2px solid var(--ink); border-radius: 8px; background: var(--blue); color: #fff; font: inherit; font-weight: 950; box-shadow: 3px 3px 0 var(--gold); }
+.creator__words-body [data-add-product-words] { background: var(--gold); color: var(--ink); box-shadow: 3px 3px 0 var(--blue); }
+.creator__words-hint { margin: 2px 0 0; color: #334155; font-size: .875rem; line-height: 1.35; }
 .creator__tool-panel.creator__product-builder,
 .creator__tool-panel.creator__money-check,
 .creator__tool-panel.creator__market-route,

@@ -409,9 +409,9 @@ describe("ImageLabRuntime", () => {
   it("reuses the persisted submission key when job creation may already have reached the server", async () => {
     const pending = new Map<string, string>();
     const persistence: ImageLabSubmissionPersistence = {
-      load: vi.fn((submission) => pending.get(submission) ?? null),
-      store: vi.fn((submission, idempotencyKey) => { pending.set(submission, idempotencyKey); }),
-      remove: vi.fn((submission) => { pending.delete(submission); })
+      load: vi.fn(async (fingerprint) => pending.get(fingerprint) ?? null),
+      store: vi.fn(async (fingerprint, idempotencyKey) => { pending.set(fingerprint, idempotencyKey); }),
+      remove: vi.fn(async (fingerprint) => { pending.delete(fingerprint); })
     };
     const createJob = vi.fn()
       .mockRejectedValueOnce(new Error("connection lost after submit"))
@@ -423,7 +423,7 @@ describe("ImageLabRuntime", () => {
     let nextId = 0;
     const createId = vi.fn(() =>
       `00000000-0000-4000-8000-${String(++nextId).padStart(12, "0")}`);
-    const runtime = new ImageLabRuntime({
+    const dependencies = {
       client: client({ createJob }),
       exportDesign: vi.fn(),
       place: vi.fn().mockResolvedValue(undefined),
@@ -431,11 +431,13 @@ describe("ImageLabRuntime", () => {
       createId,
       isCurrentPair: () => true,
       submissionPersistence: persistence
-    });
+    };
+    const firstRuntime = new ImageLabRuntime(dependencies);
 
-    await expect(runtime.forgeObject(objectChoice, new AbortController().signal))
+    await expect(firstRuntime.forgeObject(objectChoice, new AbortController().signal))
       .rejects.toThrow("connection lost after submit");
-    await runtime.forgeObject(objectChoice, new AbortController().signal);
+    const reloadedRuntime = new ImageLabRuntime(dependencies);
+    await reloadedRuntime.forgeObject(objectChoice, new AbortController().signal);
 
     const requests = createJob.mock.calls.map(([request]) => request as { idempotencyKey: string });
     expect(requests).toHaveLength(2);
@@ -443,15 +445,18 @@ describe("ImageLabRuntime", () => {
     expect(createId).toHaveBeenCalledOnce();
     expect(persistence.store).toHaveBeenCalledOnce();
     expect(persistence.remove).toHaveBeenCalledOnce();
+    const fingerprint = vi.mocked(persistence.store).mock.calls[0]?.[0];
+    expect(fingerprint).toMatch(/^[0-9a-f]{64}$/);
+    expect(fingerprint).not.toContain(objectChoice.objectName);
     expect(pending.size).toBe(0);
   });
 
   it("does not pin a definitively failed job to the next retry", async () => {
     const pending = new Map<string, string>();
     const persistence: ImageLabSubmissionPersistence = {
-      load: (submission) => pending.get(submission) ?? null,
-      store: (submission, idempotencyKey) => { pending.set(submission, idempotencyKey); },
-      remove: (submission) => { pending.delete(submission); }
+      load: async (fingerprint) => pending.get(fingerprint) ?? null,
+      store: async (fingerprint, idempotencyKey) => { pending.set(fingerprint, idempotencyKey); },
+      remove: async (fingerprint) => { pending.delete(fingerprint); }
     };
     let nextId = 0;
     const createJob = vi.fn().mockImplementation(async (request) => ({

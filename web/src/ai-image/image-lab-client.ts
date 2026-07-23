@@ -100,7 +100,8 @@ export type ImageLabClientErrorCode =
   | "ALLOWANCE_EXHAUSTED"
   | "SESSION_EXPIRED"
   | "JOB_NOT_FOUND"
-  | "RATE_LIMITED";
+  | "RATE_LIMITED"
+  | "TIMEOUT";
 
 export class ImageLabClientError extends Error {
   readonly code: ImageLabClientErrorCode;
@@ -124,6 +125,8 @@ type SleepLike = (milliseconds: number, signal?: AbortSignal) => Promise<void>;
 export interface ImageLabClientDependencies {
   fetch?: FetchLike;
   sleep?: SleepLike;
+  jsonTimeoutMs?: number;
+  assetTimeoutMs?: number;
 }
 
 export interface ImageLabRequestOptions {
@@ -188,6 +191,40 @@ const defaultSleep: SleepLike = (milliseconds, signal) => new Promise((resolve, 
   signal?.addEventListener("abort", onAbort, { once: true });
 });
 
+class ImageLabDeadline {
+  readonly #controller = new AbortController();
+  readonly #external: AbortSignal | undefined;
+  #timer: ReturnType<typeof setTimeout> | null = null;
+  #timedOut = false;
+  readonly #onExternalAbort = (): void => {
+    if (!this.#controller.signal.aborted) this.#controller.abort(this.#external?.reason);
+  };
+
+  constructor(external: AbortSignal | undefined, milliseconds: number) {
+    this.#external = external;
+    if (external?.aborted) this.#onExternalAbort();
+    else external?.addEventListener("abort", this.#onExternalAbort, { once: true });
+    this.#timer = setTimeout(() => {
+      this.#timedOut = true;
+      this.#controller.abort(new DOMException("Image Lab request timed out", "TimeoutError"));
+    }, milliseconds);
+  }
+
+  get signal(): AbortSignal {
+    return this.#controller.signal;
+  }
+
+  get timedOut(): boolean {
+    return this.#timedOut;
+  }
+
+  dispose(): void {
+    if (this.#timer !== null) clearTimeout(this.#timer);
+    this.#timer = null;
+    this.#external?.removeEventListener("abort", this.#onExternalAbort);
+  }
+}
+
 const readBoundedBytes = async (
   response: Response,
   maximum: number,
@@ -209,7 +246,24 @@ const readBoundedBytes = async (
   try {
     while (true) {
       throwIfCancelled(signal);
-      const { done, value } = await reader.read();
+      let removeAbort = (): void => undefined;
+      const aborted = new Promise<never>((_resolve, reject) => {
+        if (!signal) return;
+        const onAbort = () => {
+          void reader.cancel(signal.reason).catch(() => undefined);
+          reject(signal.reason ?? new DOMException("Operation aborted", "AbortError"));
+        };
+        signal.addEventListener("abort", onAbort, { once: true });
+        removeAbort = () => signal.removeEventListener("abort", onAbort);
+      });
+      let next: ReadableStreamReadResult<Uint8Array>;
+      try {
+        next = signal ? await Promise.race([reader.read(), aborted]) : await reader.read();
+      } finally {
+        removeAbort();
+      }
+      throwIfCancelled(signal);
+      const { done, value } = next;
       if (done) break;
       if (!value) continue;
       total += value.byteLength;
@@ -437,10 +491,18 @@ const hasImageSignature = (bytes: Uint8Array, contentType: string): boolean => {
 export class ImageLabClient {
   private readonly fetchImpl: FetchLike;
   private readonly sleepImpl: SleepLike;
+  private readonly jsonTimeoutMs: number;
+  private readonly assetTimeoutMs: number;
 
   constructor(dependencies: ImageLabClientDependencies = {}) {
     this.fetchImpl = dependencies.fetch ?? ((input, init) => globalThis.fetch(input, init));
     this.sleepImpl = dependencies.sleep ?? defaultSleep;
+    this.jsonTimeoutMs = dependencies.jsonTimeoutMs ?? 15_000;
+    this.assetTimeoutMs = dependencies.assetTimeoutMs ?? 60_000;
+    if (!Number.isFinite(this.jsonTimeoutMs) || this.jsonTimeoutMs <= 0 ||
+      !Number.isFinite(this.assetTimeoutMs) || this.assetTimeoutMs <= 0) {
+      throw new TypeError("Image Lab deadlines must be positive finite milliseconds.");
+    }
   }
 
   private async response(path: string, init: RequestInit, signal?: AbortSignal): Promise<Response> {
@@ -468,9 +530,19 @@ export class ImageLabClient {
     parse: (value: unknown) => T,
     signal?: AbortSignal
   ): Promise<T> {
-    const response = await this.response(path, init, signal);
-    if (!response.ok) return throwServerError(response, signal);
-    return parse(await decodeJson(response, signal));
+    const deadline = new ImageLabDeadline(signal, this.jsonTimeoutMs);
+    try {
+      const response = await this.response(path, { ...init, signal: deadline.signal }, deadline.signal);
+      if (!response.ok) return throwServerError(response, deadline.signal);
+      return parse(await decodeJson(response, deadline.signal));
+    } catch (cause) {
+      if (deadline.timedOut) {
+        fail("TIMEOUT", "The Image Lab request timed out.", { cause });
+      }
+      throw cause;
+    } finally {
+      deadline.dispose();
+    }
   }
 
   getConfig(options: ImageLabRequestOptions = {}): Promise<ImageLabConfig> {
@@ -543,29 +615,39 @@ export class ImageLabClient {
 
   async getAsset(jobToken: string, options: ImageLabRequestOptions = {}): Promise<Blob> {
     const query = new URLSearchParams({ job: validateJobToken(jobToken) });
-    const response = await this.response(`/api/image-lab/assets?${query.toString()}`, {
-      method: "GET",
-      credentials: "same-origin",
-      redirect: "error",
-      headers: IMAGE_HEADERS,
-      signal: options.signal ?? null
-    }, options.signal);
-    if (!response.ok) return throwServerError(response, options.signal);
-    const contentType = response.headers.get("content-type");
-    if (contentType !== "image/png" && contentType !== "image/jpeg" && contentType !== "image/webp") {
-      fail("UNEXPECTED_CONTENT_TYPE", "Expected a PNG, JPEG, or WebP Image Lab asset.", {
-        status: response.status
-      });
+    const deadline = new ImageLabDeadline(options.signal, this.assetTimeoutMs);
+    try {
+      const response = await this.response(`/api/image-lab/assets?${query.toString()}`, {
+        method: "GET",
+        credentials: "same-origin",
+        redirect: "error",
+        headers: IMAGE_HEADERS,
+        signal: deadline.signal
+      }, deadline.signal);
+      if (!response.ok) return throwServerError(response, deadline.signal);
+      const contentType = response.headers.get("content-type");
+      if (contentType !== "image/png" && contentType !== "image/jpeg" && contentType !== "image/webp") {
+        fail("UNEXPECTED_CONTENT_TYPE", "Expected a PNG, JPEG, or WebP Image Lab asset.", {
+          status: response.status
+        });
+      }
+      const bytes = await readBoundedBytes(response, IMAGE_RESPONSE_LIMIT, deadline.signal);
+      if (!hasImageSignature(bytes, contentType)) {
+        fail("INVALID_RESPONSE", "The Image Lab asset did not match its declared image type.", {
+          status: response.status
+        });
+      }
+      const ownedBytes = new Uint8Array(bytes.byteLength);
+      ownedBytes.set(bytes);
+      return new Blob([ownedBytes.buffer], { type: contentType });
+    } catch (cause) {
+      if (deadline.timedOut) {
+        fail("TIMEOUT", "The Image Lab asset download timed out.", { cause });
+      }
+      throw cause;
+    } finally {
+      deadline.dispose();
     }
-    const bytes = await readBoundedBytes(response, IMAGE_RESPONSE_LIMIT, options.signal);
-    if (!hasImageSignature(bytes, contentType)) {
-      fail("INVALID_RESPONSE", "The Image Lab asset did not match its declared image type.", {
-        status: response.status
-      });
-    }
-    const ownedBytes = new Uint8Array(bytes.byteLength);
-    ownedBytes.set(bytes);
-    return new Blob([ownedBytes.buffer], { type: contentType });
   }
 
   async pollJob(jobToken: string, options: ImageLabPollOptions = {}): Promise<ImageLabJobStatus> {

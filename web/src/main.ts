@@ -89,6 +89,7 @@ import type { LogoMarkSnapshot } from "./fabric/canvas-port";
 import { ImageLabClient } from "./ai-image/image-lab-client";
 import { ImageLabPanel } from "./ai-image/image-lab-panel";
 import { ImageLabRuntime, type ImageLabPairIdentity } from "./ai-image/image-lab-runtime";
+import { BrowserImageLabSubmissionPersistence } from "./ai-image/browser-image-lab-submission-persistence";
 import { captureStudioCoachEvidence, type StudioCoachCanvasEvidence } from "./studio-coach/canvas-evidence";
 import { StudioCoachClient } from "./studio-coach/studio-coach-client";
 import { StudioCoachPanel } from "./studio-coach/studio-coach-panel";
@@ -1452,7 +1453,8 @@ const imageLabRuntime = new ImageLabRuntime({
   client: new ImageLabClient(),
   exportDesign: (pair) => handler.exportDesignDataUrl(pair),
   place: (pair, input) => handler.placeGeneratedRaster(pair, input),
-  isCurrentPair: (pair) => handler.isCurrentImageLabPair(pair)
+  isCurrentPair: (pair) => handler.isCurrentImageLabPair(pair),
+  submissionPersistence: new BrowserImageLabSubmissionPersistence()
 });
 const imageLabPanel = new ImageLabPanel(shell.imageLabPanel, imageLabRuntime);
 handler.attachImageLab(imageLabPanel);

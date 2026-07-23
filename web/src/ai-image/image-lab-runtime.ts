@@ -9,6 +9,7 @@ import type {
   ImageLabUnlockRequest,
   ImageLabUnlockResult
 } from "./image-lab-client";
+import { ImageLabClientError } from "./image-lab-client";
 import {
   prepareImageForAi,
   type AiImageTarget,
@@ -41,24 +42,24 @@ export interface ImageLabPairIdentity {
 }
 
 export interface ImageLabSubmissionPersistence {
-  load(submission: string): string | null;
-  store(submission: string, idempotencyKey: string): void;
-  remove(submission: string): void;
+  load(fingerprint: string): Promise<string | null>;
+  store(fingerprint: string, idempotencyKey: string): Promise<void>;
+  remove(fingerprint: string): Promise<void>;
 }
 
 class MemoryImageLabSubmissionPersistence implements ImageLabSubmissionPersistence {
   readonly #pending = new Map<string, string>();
 
-  load(submission: string): string | null {
-    return this.#pending.get(submission) ?? null;
+  async load(fingerprint: string): Promise<string | null> {
+    return this.#pending.get(fingerprint) ?? null;
   }
 
-  store(submission: string, idempotencyKey: string): void {
-    this.#pending.set(submission, idempotencyKey);
+  async store(fingerprint: string, idempotencyKey: string): Promise<void> {
+    this.#pending.set(fingerprint, idempotencyKey);
   }
 
-  remove(submission: string): void {
-    this.#pending.delete(submission);
+  async remove(fingerprint: string): Promise<void> {
+    this.#pending.delete(fingerprint);
   }
 }
 
@@ -102,6 +103,29 @@ async function blobDataUrl(blob: Blob): Promise<string> {
 function displayTitle(value: string): string {
   const trimmed = value.trim();
   return trimmed.length === 0 ? "Generated image" : trimmed[0]!.toUpperCase() + trimmed.slice(1);
+}
+
+async function submissionFingerprint(submission: string): Promise<string> {
+  const digest = await globalThis.crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(submission)
+  );
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function isDefiniteCreationFailure(value: unknown): boolean {
+  if (!(value instanceof ImageLabClientError)) return false;
+  return value.code === "INVALID_REQUEST" ||
+    value.code === "IMAGE_LAB_DISABLED" ||
+    value.code === "IMAGE_LAB_LOCKED" ||
+    value.code === "UNLOCK_DENIED" ||
+    value.code === "ALLOWANCE_EXHAUSTED" ||
+    value.code === "SESSION_EXPIRED" ||
+    value.code === "RATE_LIMITED" ||
+    value.code === "HTTP_ERROR" && value.status !== undefined &&
+      value.status >= 400 && value.status < 500;
 }
 
 export class ImageLabRuntime implements ImageLabActions {
@@ -166,19 +190,19 @@ export class ImageLabRuntime implements ImageLabActions {
       colour: input.colour,
       removeWhiteBackground: input.removeWhiteBackground
     });
-    const generationId = this.#submissionId(submission);
-    const created = await this.#client.createJob({
-      stage: "object",
-      sessionId: input.sessionId,
-      teamId: input.teamId,
-      idempotencyKey: generationId,
-      objectName: input.objectName,
-      category: input.category,
-      style: input.style,
-      colour: input.colour
-    }, { signal });
+    const { fingerprint, generationId } = await this.#submissionId(submission);
+    const created = await this.#createJob({
+        stage: "object",
+        sessionId: input.sessionId,
+        teamId: input.teamId,
+        idempotencyKey: generationId,
+        objectName: input.objectName,
+        category: input.category,
+        style: input.style,
+        colour: input.colour
+      }, fingerprint, signal);
     this.#assertActive(pair, signal);
-    const asset = await this.#completedAsset(created, pair, submission, signal);
+    const asset = await this.#completedAsset(created, pair, fingerprint, signal);
     const dataUrl = await blobDataUrl(asset);
     this.#assertActive(pair, signal);
     const prepared = await this.#prepare(dataUrl, "object-forge", {
@@ -193,7 +217,7 @@ export class ImageLabRuntime implements ImageLabActions {
       profileId: "object-forge-v1",
       requestId: generationId
     });
-    this.#submissionPersistence.remove(submission);
+    await this.#submissionPersistence.remove(fingerprint);
     this.#assertActive(pair, signal);
     return allowance(created.remaining, this.#expiresAt);
   }
@@ -215,18 +239,18 @@ export class ImageLabRuntime implements ImageLabActions {
       productKind: input.productKind,
       scene: input.scene
     });
-    const generationId = this.#submissionId(submission);
-    const created = await this.#client.createJob({
-      stage: "realise",
-      sessionId: input.sessionId,
-      teamId: input.teamId,
-      idempotencyKey: generationId,
-      designDataUrl: reference.dataUrl,
-      productKind: input.productKind,
-      scene: input.scene
-    }, { signal });
+    const { fingerprint, generationId } = await this.#submissionId(submission);
+    const created = await this.#createJob({
+        stage: "realise",
+        sessionId: input.sessionId,
+        teamId: input.teamId,
+        idempotencyKey: generationId,
+        designDataUrl: reference.dataUrl,
+        productKind: input.productKind,
+        scene: input.scene
+      }, fingerprint, signal);
     this.#assertActive(pair, signal);
-    const asset = await this.#completedAsset(created, pair, submission, signal);
+    const asset = await this.#completedAsset(created, pair, fingerprint, signal);
     this.#assertActive(pair, signal);
     await this.#place(pair, {
       assetId: `ai-${generationId}`,
@@ -236,7 +260,7 @@ export class ImageLabRuntime implements ImageLabActions {
       profileId: "make-it-real-v1",
       requestId: generationId
     });
-    this.#submissionPersistence.remove(submission);
+    await this.#submissionPersistence.remove(fingerprint);
     this.#assertActive(pair, signal);
     return allowance(created.remaining, this.#expiresAt);
   }
@@ -244,7 +268,7 @@ export class ImageLabRuntime implements ImageLabActions {
   async #completedAsset(
     created: ImageLabJobCreated,
     pair: ImageLabPairIdentity,
-    submission: string,
+    fingerprint: string,
     signal: AbortSignal
   ): Promise<Blob> {
     const status = await this.#client.pollJob(created.jobToken, {
@@ -254,7 +278,7 @@ export class ImageLabRuntime implements ImageLabActions {
     });
     this.#assertActive(pair, signal);
     if (status.status === "failed") {
-      this.#submissionPersistence.remove(submission);
+      await this.#submissionPersistence.remove(fingerprint);
       throw new Error("Image Lab generation failed");
     }
     if (status.status !== "completed") throw new Error("Image Lab generation failed");
@@ -270,11 +294,30 @@ export class ImageLabRuntime implements ImageLabActions {
     }
   }
 
-  #submissionId(submission: string): string {
-    const pending = this.#submissionPersistence.load(submission);
-    if (pending !== null) return pending;
+  async #submissionId(submission: string): Promise<{
+    fingerprint: string;
+    generationId: string;
+  }> {
+    const fingerprint = await submissionFingerprint(submission);
+    const pending = await this.#submissionPersistence.load(fingerprint);
+    if (pending !== null) return { fingerprint, generationId: pending };
     const created = this.#createId();
-    this.#submissionPersistence.store(submission, created);
-    return created;
+    await this.#submissionPersistence.store(fingerprint, created);
+    return { fingerprint, generationId: created };
+  }
+
+  async #createJob(
+    request: ImageLabJobRequest,
+    fingerprint: string,
+    signal: AbortSignal
+  ): Promise<ImageLabJobCreated> {
+    try {
+      return await this.#client.createJob(request, { signal });
+    } catch (error) {
+      if (isDefiniteCreationFailure(error)) {
+        await this.#submissionPersistence.remove(fingerprint);
+      }
+      throw error;
+    }
   }
 }

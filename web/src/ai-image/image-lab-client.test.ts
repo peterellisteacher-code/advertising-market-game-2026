@@ -43,7 +43,7 @@ describe("ImageLabClient configuration and unlock", () => {
       credentials: "same-origin",
       redirect: "error",
       headers: { accept: "application/json" },
-      signal: null
+      signal: expect.any(AbortSignal)
     });
   });
 
@@ -85,7 +85,7 @@ describe("ImageLabClient configuration and unlock", () => {
       redirect: "error",
       headers: { accept: "application/json", "content-type": "application/json" },
       body: JSON.stringify({ sessionId: "s-1", teamId: "t-2", code: "class-code" }),
-      signal: null
+      signal: expect.any(AbortSignal)
     });
   });
 
@@ -339,13 +339,60 @@ describe("ImageLabClient bounded transport", () => {
     await expectClientError(client.getConfig(), "REDIRECT_BLOCKED");
   });
 
-  it("maps AbortError to cancellation and passes the caller signal", async () => {
+  it("maps AbortError to cancellation and composes the caller signal with its deadline", async () => {
     const controller = new AbortController();
     const fetchMock = vi.fn().mockRejectedValue(new DOMException("cancelled", "AbortError"));
     const client = new ImageLabClient({ fetch: fetchMock });
 
     await expectClientError(client.getConfig({ signal: controller.signal }), "CANCELLED");
-    expect((fetchMock.mock.calls[0]?.[1] as RequestInit).signal).toBe(controller.signal);
+    const requestSignal = (fetchMock.mock.calls[0]?.[1] as RequestInit).signal;
+    expect(requestSignal).toBeInstanceOf(AbortSignal);
+    expect(requestSignal).not.toBe(controller.signal);
+  });
+
+  it("returns TIMEOUT when a JSON request stalls before headers", async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => reject(init.signal?.reason), { once: true });
+        }));
+      const client = new ImageLabClient({
+        fetch: fetchMock,
+        jsonTimeoutMs: 15_000,
+        assetTimeoutMs: 60_000
+      });
+
+      const pending = expectClientError(client.getConfig(), "TIMEOUT");
+      await vi.advanceTimersByTimeAsync(15_000);
+
+      await pending;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("returns TIMEOUT when an image response stalls mid-body", async () => {
+    vi.useFakeTimers();
+    try {
+      const response = new Response(new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new Uint8Array([0x89, 0x50, 0x4e, 0x47]));
+        }
+      }), { headers: { "content-type": "image/png" } });
+      const client = new ImageLabClient({
+        fetch: vi.fn().mockResolvedValue(response),
+        jsonTimeoutMs: 15_000,
+        assetTimeoutMs: 60_000
+      });
+
+      const pending = expectClientError(client.getAsset("token"), "TIMEOUT");
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      await pending;
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

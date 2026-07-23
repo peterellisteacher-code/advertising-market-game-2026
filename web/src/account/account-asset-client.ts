@@ -33,8 +33,13 @@ export interface AccountAssetDownload extends AccountAssetDescriptor {
 }
 
 export interface AccountAssetClient {
-  put(blob: Blob): Promise<AccountAssetDescriptor>;
-  get(sha256: string): Promise<AccountAssetDownload>;
+  put(blob: Blob, options?: { signal?: AbortSignal }): Promise<AccountAssetDescriptor>;
+  get(sha256: string, options?: { signal?: AbortSignal }): Promise<AccountAssetDownload>;
+}
+
+export interface AccountAssetClientDeadlines {
+  readonly headerTimeoutMs?: number;
+  readonly transferTimeoutMs?: number;
 }
 
 export type AccountAssetClientErrorCode =
@@ -46,6 +51,7 @@ export type AccountAssetClientErrorCode =
   | "AUTHENTICATION_REQUIRED"
   | "INVALID_REQUEST"
   | "INVALID_RESPONSE"
+  | "TIMEOUT"
   | "UNSUPPORTED_ASSET";
 
 export class AccountAssetClientError extends Error {
@@ -133,14 +139,36 @@ const exactErrorCode = (value: unknown): AccountAssetClientErrorCode | null => {
     : null;
 };
 
-const responseBytes = async (response: Response, limit: number): Promise<Uint8Array> => {
+const responseBytes = async (
+  response: Response,
+  limit: number,
+  signal?: AbortSignal
+): Promise<Uint8Array> => {
   if (response.body === null) throw new Error("Response body missing");
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let length = 0;
   try {
     while (true) {
-      const { done, value } = await reader.read();
+      signal?.throwIfAborted();
+      let removeAbort = (): void => undefined;
+      const aborted = new Promise<never>((_resolve, reject) => {
+        if (!signal) return;
+        const onAbort = () => {
+          void reader.cancel(signal.reason).catch(() => undefined);
+          reject(signal.reason ?? new DOMException("Operation aborted", "AbortError"));
+        };
+        signal.addEventListener("abort", onAbort, { once: true });
+        removeAbort = () => signal.removeEventListener("abort", onAbort);
+      });
+      let next: ReadableStreamReadResult<Uint8Array>;
+      try {
+        next = signal ? await Promise.race([reader.read(), aborted]) : await reader.read();
+      } finally {
+        removeAbort();
+      }
+      signal?.throwIfAborted();
+      const { done, value } = next;
       if (done) break;
       if (value.byteLength > limit - length) {
         await reader.cancel().catch(() => undefined);
@@ -149,7 +177,8 @@ const responseBytes = async (response: Response, limit: number): Promise<Uint8Ar
       chunks.push(value);
       length += value.byteLength;
     }
-  } catch {
+  } catch (error) {
+    if (signal?.aborted) throw signal.reason ?? error;
     throw new Error("Response body unreadable");
   }
   const bytes = new Uint8Array(length);
@@ -161,17 +190,19 @@ const responseBytes = async (response: Response, limit: number): Promise<Uint8Ar
   return bytes;
 };
 
-const jsonBody = async (response: Response): Promise<unknown> =>
-  JSON.parse(new TextDecoder().decode(await responseBytes(response, JSON_RESPONSE_LIMIT))) as unknown;
+const jsonBody = async (response: Response, signal?: AbortSignal): Promise<unknown> =>
+  JSON.parse(new TextDecoder().decode(
+    await responseBytes(response, JSON_RESPONSE_LIMIT, signal)
+  )) as unknown;
 
-const errorFor = async (response: Response): Promise<AccountAssetClientError> => {
+const errorFor = async (response: Response, signal?: AbortSignal): Promise<AccountAssetClientError> => {
   // Fetch has already processed Set-Cookie before exposing these headers. Keep
   // hostile 401 bodies unread while the outer cookie-order lock covers the
   // response-header mutation.
   if (response.status === 401) return new AccountAssetClientError("AUTHENTICATION_REQUIRED");
   let body: unknown = null;
   try {
-    body = await jsonBody(response);
+    body = await jsonBody(response, signal);
   } catch {
     // Error bodies are never surfaced to callers.
   }
@@ -185,16 +216,59 @@ const errorFor = async (response: Response): Promise<AccountAssetClientError> =>
   return new AccountAssetClientError("INVALID_RESPONSE");
 };
 
+class AccountAssetDeadline {
+  readonly #controller = new AbortController();
+  readonly #external: AbortSignal | undefined;
+  #timer: ReturnType<typeof setTimeout> | null = null;
+  #timedOut = false;
+  readonly #onExternalAbort = (): void => {
+    if (!this.#controller.signal.aborted) this.#controller.abort(this.#external?.reason);
+  };
+
+  constructor(external?: AbortSignal) {
+    this.#external = external;
+    if (external?.aborted) this.#onExternalAbort();
+    else external?.addEventListener("abort", this.#onExternalAbort, { once: true });
+  }
+
+  get signal(): AbortSignal {
+    return this.#controller.signal;
+  }
+
+  get timedOut(): boolean {
+    return this.#timedOut;
+  }
+
+  arm(milliseconds: number): void {
+    if (this.#timer !== null) clearTimeout(this.#timer);
+    this.#timer = setTimeout(() => {
+      this.#timedOut = true;
+      this.#controller.abort(new DOMException("Account asset request timed out", "TimeoutError"));
+    }, milliseconds);
+  }
+
+  dispose(): void {
+    if (this.#timer !== null) clearTimeout(this.#timer);
+    this.#timer = null;
+    this.#external?.removeEventListener("abort", this.#onExternalAbort);
+  }
+}
+
 export class HttpAccountAssetClient implements AccountAssetClient {
   constructor(
     private readonly identity: AccountIdentityBinding,
     private readonly fetcher: typeof fetch = globalThis.fetch,
     private readonly cookieRequests: AccountCookieRequestSerialiser =
-      defaultAccountCookieRequestSerialiser(fetcher)
+      defaultAccountCookieRequestSerialiser(fetcher),
+    private readonly deadlines: AccountAssetClientDeadlines = {}
   ) {}
 
-  async put(blob: Blob): Promise<AccountAssetDescriptor> {
+  async put(blob: Blob, options: { signal?: AbortSignal } = {}): Promise<AccountAssetDescriptor> {
     return this.#serialise(async () => {
+    const deadline = new AccountAssetDeadline(options.signal);
+    const headerTimeoutMs = this.deadlines.headerTimeoutMs ?? 12_000;
+    const transferTimeoutMs = this.deadlines.transferTimeoutMs ?? 60_000;
+    try {
     const expectedAccount = this.#expectedAccount();
     const declaredContentType = contentType(blob.type);
     if (declaredContentType === null || blob.size < 1) {
@@ -210,6 +284,7 @@ export class HttpAccountAssetClient implements AccountAssetClient {
     const digest = await sha256(bytes);
     let response: Response;
     try {
+      deadline.arm(headerTimeoutMs);
       response = await this.fetcher.call(globalThis, assetPath(digest), {
         method: "PUT",
         credentials: "same-origin",
@@ -219,17 +294,28 @@ export class HttpAccountAssetClient implements AccountAssetClient {
           "content-type": declaredContentType,
           [ACCOUNT_IDENTITY_HEADER]: expectedAccount
         },
-        body: blob
+        body: blob,
+        signal: deadline.signal
       });
     } catch {
+      if (deadline.timedOut) throw new AccountAssetClientError("TIMEOUT");
       throw new AccountAssetClientError("ASSET_UNAVAILABLE");
     }
+    deadline.arm(transferTimeoutMs);
     if (response.redirected) throw new AccountAssetClientError("ASSET_UNAVAILABLE");
-    if (!response.ok) throw await errorFor(response);
+    if (!response.ok) {
+      try {
+        throw await errorFor(response, deadline.signal);
+      } catch (error) {
+        if (deadline.timedOut) throw new AccountAssetClientError("TIMEOUT");
+        throw error;
+      }
+    }
     let value: unknown;
     try {
-      value = await jsonBody(response);
+      value = await jsonBody(response, deadline.signal);
     } catch {
+      if (deadline.timedOut) throw new AccountAssetClientError("TIMEOUT");
       throw new AccountAssetClientError("INVALID_RESPONSE");
     }
     const descriptor = exactAsset(value);
@@ -241,15 +327,23 @@ export class HttpAccountAssetClient implements AccountAssetClient {
       throw new AccountAssetClientError("ASSET_INTEGRITY_FAILED");
     }
       return descriptor;
+    } finally {
+      deadline.dispose();
+    }
     });
   }
 
-  async get(digest: string): Promise<AccountAssetDownload> {
+  async get(digest: string, options: { signal?: AbortSignal } = {}): Promise<AccountAssetDownload> {
     return this.#serialise(async () => {
+    const deadline = new AccountAssetDeadline(options.signal);
+    const headerTimeoutMs = this.deadlines.headerTimeoutMs ?? 12_000;
+    const transferTimeoutMs = this.deadlines.transferTimeoutMs ?? 60_000;
+    try {
     const expectedAccount = this.#expectedAccount();
     if (!SHA256.test(digest)) throw new AccountAssetClientError("INVALID_REQUEST");
     let response: Response;
     try {
+      deadline.arm(headerTimeoutMs);
       response = await this.fetcher.call(globalThis, assetPath(digest), {
         method: "GET",
         credentials: "same-origin",
@@ -257,13 +351,23 @@ export class HttpAccountAssetClient implements AccountAssetClient {
         headers: {
           accept: "image/png, image/jpeg, image/webp",
           [ACCOUNT_IDENTITY_HEADER]: expectedAccount
-        }
+        },
+        signal: deadline.signal
       });
     } catch {
+      if (deadline.timedOut) throw new AccountAssetClientError("TIMEOUT");
       throw new AccountAssetClientError("ASSET_UNAVAILABLE");
     }
+    deadline.arm(transferTimeoutMs);
     if (response.redirected) throw new AccountAssetClientError("ASSET_UNAVAILABLE");
-    if (!response.ok) throw await errorFor(response);
+    if (!response.ok) {
+      try {
+        throw await errorFor(response, deadline.signal);
+      } catch (error) {
+        if (deadline.timedOut) throw new AccountAssetClientError("TIMEOUT");
+        throw error;
+      }
+    }
     const responseContentType = contentType(response.headers.get("content-type") ?? "");
     const contentLength = response.headers.get("content-length");
     if (responseContentType === null || (contentLength !== null && !/^\d+$/u.test(contentLength))) {
@@ -276,8 +380,9 @@ export class HttpAccountAssetClient implements AccountAssetClient {
     }
     let bytes: Uint8Array;
     try {
-      bytes = await responseBytes(response, MAX_ASSET_DOWNLOAD_BYTES);
+      bytes = await responseBytes(response, MAX_ASSET_DOWNLOAD_BYTES, deadline.signal);
     } catch {
+      if (deadline.timedOut) throw new AccountAssetClientError("TIMEOUT");
       throw new AccountAssetClientError("ASSET_INTEGRITY_FAILED");
     }
     if ((declaredLength !== null && bytes.byteLength !== declaredLength) ||
@@ -301,6 +406,9 @@ export class HttpAccountAssetClient implements AccountAssetClient {
           return new Blob([body], { type: responseContentType });
         })()
       };
+    } finally {
+      deadline.dispose();
+    }
     });
   }
 

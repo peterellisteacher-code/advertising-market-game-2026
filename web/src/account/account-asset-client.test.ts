@@ -157,7 +157,8 @@ describe("HttpAccountAssetClient", () => {
         "content-type": "image/png",
         "x-admarket-account": "team-one"
       },
-      body: await asset()
+      body: await asset(),
+      signal: expect.any(AbortSignal)
     });
   });
 
@@ -227,7 +228,8 @@ describe("HttpAccountAssetClient", () => {
       headers: {
         accept: "image/png, image/jpeg, image/webp",
         "x-admarket-account": "team-one"
-      }
+      },
+      signal: expect.any(AbortSignal)
     });
   });
 
@@ -311,6 +313,56 @@ describe("HttpAccountAssetClient", () => {
     const client = new HttpAccountAssetClient(activeBinding(), fetcher);
 
     await expect(client.get(digest)).rejects.toEqual(new AccountAssetClientError("ASSET_UNAVAILABLE"));
+  });
+
+  it("returns a typed timeout when asset response headers stall", async () => {
+    vi.useFakeTimers();
+    try {
+      const digest = await hexDigest(pngBytes);
+      const fetcher = vi.fn<typeof fetch>((_input, init) => new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(init.signal?.reason), { once: true });
+      }));
+      const client = new HttpAccountAssetClient(activeBinding(), fetcher, queuedSerialiser(), {
+        headerTimeoutMs: 12_000,
+        transferTimeoutMs: 60_000
+      });
+
+      const pending = client.get(digest);
+      const rejected = expect(pending).rejects.toEqual(new AccountAssetClientError("TIMEOUT"));
+      await vi.advanceTimersByTimeAsync(12_000);
+
+      await rejected;
+      expect(fetcher).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("returns a typed timeout when an asset body stalls mid-transfer", async () => {
+    vi.useFakeTimers();
+    try {
+      const digest = await hexDigest(pngBytes);
+      const response = new Response(new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(pngBytes.slice(0, 8));
+        }
+      }), { headers: { "content-type": "image/png" } });
+      const client = new HttpAccountAssetClient(
+        activeBinding(),
+        vi.fn<typeof fetch>().mockResolvedValue(response),
+        queuedSerialiser(),
+        { headerTimeoutMs: 12_000, transferTimeoutMs: 60_000 }
+      );
+
+      const pending = client.get(digest);
+      const rejected = expect(pending).rejects.toEqual(new AccountAssetClientError("TIMEOUT"));
+      await vi.advanceTimersByTimeAsync(0);
+      await vi.advanceTimersByTimeAsync(60_000);
+
+      await rejected;
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("refuses unbound transfers and maps a changed cookie identity to reauthentication", async () => {

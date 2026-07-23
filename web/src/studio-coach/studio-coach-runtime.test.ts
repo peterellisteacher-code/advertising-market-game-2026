@@ -118,34 +118,25 @@ describe("StudioCoachRuntime", () => {
     expect(runtime.state()).toMatchObject({ phase: "ready", attemptsUsed: 0, first: null, final: null });
   });
 
-  it("counts a failed provider request locally and never performs an automatic retry", async () => {
-    const check = vi.fn().mockRejectedValue(new Error("offline"));
-    const runtime = new StudioCoachRuntime({ client: { check }, capture: vi.fn().mockResolvedValue(evidence("a")) });
+  it("refunds a definite provider failure and still never performs an automatic retry", async () => {
+    const check = vi.fn()
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce(firstResponse);
+    const createId = vi.fn().mockReturnValueOnce("failed-check").mockReturnValueOnce("successful-check");
+    const runtime = new StudioCoachRuntime({
+      client: { check },
+      capture: vi.fn().mockResolvedValue(evidence("a")),
+      createId
+    });
     runtime.setCampaign(campaign);
 
     await expect(runtime.requestInitial("whole-ad")).rejects.toThrow("offline");
-    expect(runtime.state()).toMatchObject({ phase: "error", attemptsUsed: 1 });
+    expect(runtime.state()).toMatchObject({ phase: "error", attemptsUsed: 0, pendingCheck: null });
     expect(check).toHaveBeenCalledOnce();
-
-    const restored = new StudioCoachRuntime({
-      client: { check: vi.fn().mockResolvedValue(firstResponse) },
-      capture: vi.fn().mockResolvedValue(evidence("b")),
-      createId: () => "check-two"
-    });
-    restored.setCampaign(campaign);
-    expect(restored.state()).toMatchObject({
-      phase: "error",
-      attemptsUsed: 1,
-      first: null,
-      error: expect.stringMatching(/one final check remains/i)
-    });
-    await expect(restored.requestInitial("technique", "contrast")).resolves.toEqual(firstResponse);
-    expect(restored.state()).toMatchObject({
-      phase: "complete",
-      attemptsUsed: 2,
-      first: firstResponse,
-      error: expect.stringMatching(/no comparison remains/i)
-    });
+    await expect(runtime.requestInitial("technique", "contrast")).resolves.toEqual(firstResponse);
+    expect(runtime.state()).toMatchObject({ phase: "advice", attemptsUsed: 1, first: firstResponse });
+    expect(check).toHaveBeenCalledTimes(2);
+    expect(createId).toHaveBeenCalledTimes(2);
   });
 
   it("replays the identical request after an ambiguous network outcome without consuming another provider turn", async () => {

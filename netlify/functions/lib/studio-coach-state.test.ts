@@ -80,7 +80,7 @@ describe("StudioCoachStateService", () => {
     })).rejects.toMatchObject({ code: "CHECK_IN_PROGRESS" });
   });
 
-  it("expires an orphaned reservation without exceeding the two-attempt budget", async () => {
+  it("expires an orphaned reservation without consuming either completed check", async () => {
     const state = service();
     await state.reserve(identity, campaignId, firstInput);
     await expect(state.reserve(identity, campaignId, {
@@ -98,11 +98,12 @@ describe("StudioCoachStateService", () => {
     };
     expect((await state.reserve(identity, campaignId, finalAttempt)).created).toBe(true);
     await state.complete(identity, campaignId, finalAttempt.idempotencyKey, firstResponse);
-    await expect(state.reserve(identity, campaignId, {
-      ...finalAttempt,
-      idempotencyKey: "third-check",
-      requestHash: "6".repeat(64)
-    })).rejects.toMatchObject({ code: "TURN_LIMIT_REACHED" });
+    expect((await state.reserve(identity, campaignId, {
+      ...secondInput,
+      idempotencyKey: "revision-after-expiry",
+      requestHash: "6".repeat(64),
+      nowSeconds: 1_031
+    })).created).toBe(true);
   });
 
   it("binds the two-attempt budget to the authenticated pair instead of a client-minted document ID", async () => {
@@ -119,7 +120,7 @@ describe("StudioCoachStateService", () => {
     })).rejects.toMatchObject({ code: "TURN_LIMIT_REACHED" });
   });
 
-  it("allows one explicit initial retry after failure but never a third provider attempt", async () => {
+  it("removes failed reservations so only completed checks consume the budget", async () => {
     const state = service();
     await state.reserve(identity, campaignId, firstInput);
     await state.fail(identity, campaignId, firstInput.idempotencyKey, "UPSTREAM_FAILED");
@@ -131,10 +132,19 @@ describe("StudioCoachStateService", () => {
     };
     expect((await state.reserve(identity, campaignId, retry)).created).toBe(true);
     await state.complete(identity, campaignId, retry.idempotencyKey, firstResponse);
-    await expect(state.reserve(identity, campaignId, {
-      ...retry,
+    expect((await state.reserve(identity, campaignId, {
+      ...secondInput,
       idempotencyKey: "check-three",
-      requestHash: "3".repeat(64)
+      requestHash: "3".repeat(64),
+      nowSeconds: 1_002
+    })).created).toBe(true);
+    await state.complete(identity, campaignId, "check-three", finalResponse);
+    await expect(state.reserve(identity, campaignId, {
+      ...secondInput,
+      idempotencyKey: "check-four",
+      requestHash: "4".repeat(64),
+      currentImageHash: "c".repeat(64),
+      nowSeconds: 1_003
     })).rejects.toMatchObject({ code: "TURN_LIMIT_REACHED" });
   });
 

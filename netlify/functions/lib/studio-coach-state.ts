@@ -196,19 +196,22 @@ export class StudioCoachStateService {
         throw new StudioCoachStateError("INVALID_TURN");
       }
       const staleIds = Object.values(current.attempts)
-        .filter((attempt) => attempt.state === "reserved" &&
-          input.nowSeconds - attempt.createdAt >= STUDIO_COACH_RESERVATION_TTL_SECONDS)
+        .filter((attempt) => attempt.state === "failed" ||
+          attempt.state === "reserved" &&
+            input.nowSeconds - attempt.createdAt >= STUDIO_COACH_RESERVATION_TTL_SECONDS)
         .map(({ id }) => id);
       if (staleIds.length > 0) {
         if (entry === null) throw new StudioCoachStateError("STATE_UNAVAILABLE");
         const stale = new Set(staleIds);
-        const attempts = Object.fromEntries(Object.entries(current.attempts).map(([id, attempt]) => [
-          id,
-          stale.has(id)
-            ? { ...attempt, state: "failed" as const, failureCode: "UPSTREAM_FAILED" as const }
-            : attempt
-        ]));
-        if (await this.repository.write(key, { ...current, attempts }, { onlyIfMatch: entry.etag })) continue;
+        const attempts = Object.fromEntries(
+          Object.entries(current.attempts).filter(([id]) => !stale.has(id))
+        );
+        const attemptOrder = current.attemptOrder.filter((id) => !stale.has(id));
+        if (await this.repository.write(
+          key,
+          { ...current, attempts, attemptOrder },
+          { onlyIfMatch: entry.etag }
+        )) continue;
         continue;
       }
       const firstResponse = Object.values(current.attempts)
@@ -297,12 +300,17 @@ export class StudioCoachStateService {
     failureCode: "UPSTREAM_FAILED"
   ): Promise<StudioCoachStoredAttempt> {
     return this.#update(identity, documentId, attemptId, (attempt, current) => {
-      if (attempt.state === "failed") return { attempt, state: current };
       if (attempt.state !== "reserved") throw new StudioCoachStateError("IDEMPOTENCY_CONFLICT");
       const failed: StudioCoachStoredAttempt = { ...attempt, state: "failed", failureCode };
+      const attempts = { ...current.attempts };
+      delete attempts[attemptId];
       return {
         attempt: failed,
-        state: { ...current, attempts: { ...current.attempts, [attemptId]: failed } }
+        state: {
+          ...current,
+          attempts,
+          attemptOrder: current.attemptOrder.filter((id) => id !== attemptId)
+        }
       };
     });
   }

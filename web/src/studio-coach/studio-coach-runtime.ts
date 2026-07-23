@@ -52,6 +52,7 @@ export interface StudioCoachRuntimeDependencies {
 export interface StudioCoachRuntimeStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
+  removeItem?(key: string): void;
 }
 
 const INITIAL_STATE: StudioCoachRuntimeState = Object.freeze({
@@ -441,9 +442,11 @@ export class StudioCoachRuntime {
       this.#finish(controller);
       return response;
     } catch (error) {
-      this.#pendingInitialRequest = request !== null && ambiguousOutcome(error)
+      const ambiguous = request !== null && ambiguousOutcome(error);
+      this.#pendingInitialRequest = ambiguous
         ? request
         : null;
+      if (request !== null && !ambiguous) this.#refundAttempt(controller);
       if (this.#pendingInitialRequest === null) this.#pendingEvidenceStale = false;
       this.#recordFailure(controller, error);
       throw error;
@@ -512,9 +515,11 @@ export class StudioCoachRuntime {
       this.#finish(controller);
       return response;
     } catch (error) {
-      this.#pendingRevisionRequest = request !== null && ambiguousOutcome(error)
+      const ambiguous = request !== null && ambiguousOutcome(error);
+      this.#pendingRevisionRequest = ambiguous
         ? request
         : null;
+      if (request !== null && !ambiguous) this.#refundAttempt(controller);
       if (this.#pendingRevisionRequest === null) this.#pendingEvidenceStale = false;
       this.#recordFailure(controller, error);
       throw error;
@@ -556,6 +561,12 @@ export class StudioCoachRuntime {
     this.#emit();
   }
 
+  #refundAttempt(controller: AbortController): void {
+    if (this.#operation !== controller || this.#state.attemptsUsed === 0) return;
+    const attemptsUsed = (this.#state.attemptsUsed - 1) as 0 | 1;
+    this.#state = { ...this.#state, attemptsUsed, pendingCheck: null };
+  }
+
   #assertCurrent(controller: AbortController): void {
     controller.signal.throwIfAborted();
     if (this.#operation !== controller) throw new DOMException("Studio Coach campaign changed", "AbortError");
@@ -594,7 +605,21 @@ export class StudioCoachRuntime {
   }
 
   #persist(): void {
-    if (!this.#storage || !this.#campaign || this.#state.attemptsUsed === 0) return;
+    if (!this.#storage || !this.#campaign) return;
+    const key = storageKey(this.#campaign);
+    if (this.#state.attemptsUsed === 0) {
+      try {
+        if (this.#storage.removeItem) {
+          this.#storage.removeItem(`ad-market:studio-coach:v2:${key}`);
+          this.#storage.removeItem(`ad-market:studio-coach:v1:${key}`);
+        } else {
+          this.#storage.setItem(`ad-market:studio-coach:v2:${key}`, "{}");
+        }
+      } catch {
+        // Persistence is a recovery aid; storage failure must not block the editor.
+      }
+      return;
+    }
     const snapshot: StudioCoachStoredRuntimeV2 = {
       version: 2,
       attemptsUsed: this.#state.attemptsUsed,
@@ -607,7 +632,7 @@ export class StudioCoachRuntime {
     };
     try {
       this.#storage.setItem(
-        `ad-market:studio-coach:v2:${storageKey(this.#campaign)}`,
+        `ad-market:studio-coach:v2:${key}`,
         JSON.stringify(snapshot)
       );
     } catch {

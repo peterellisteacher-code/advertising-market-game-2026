@@ -23,6 +23,7 @@ func run() -> bool:
     var awards: Array[Dictionary] = []
     var rooms_created: Array[Dictionary] = []
     var rooms_joined: Array[Dictionary] = []
+    var join_failures: Array[Dictionary] = []
     var artwork_events: Array[Dictionary] = []
     var snapshot_signal_modes: Array[int] = []
     var diagnostics: Array[String] = []
@@ -37,6 +38,9 @@ func run() -> bool:
     )
     host.room_created.connect(func(wrapper: Dictionary) -> void: rooms_created.append(wrapper))
     host.room_joined.connect(func(wrapper: Dictionary) -> void: rooms_joined.append(wrapper))
+    host.room_join_failed.connect(func(code: String, message: String) -> void:
+        join_failures.append({"code": code, "message": message})
+    )
     host.reveal_received.connect(func(reveal: Dictionary) -> void: reveals.append(reveal))
     host.control_completed.connect(func(action: String, result: Dictionary) -> void:
         controls.append({"action": action, "result": result})
@@ -265,10 +269,15 @@ func run() -> bool:
     assert(diagnostics.back().contains("MARKET_UNAVAILABLE"))
 
     var before_invalid_focus: int = focus_restores[0]
+    var before_invalid_diagnostics := diagnostics.size()
     assert(host.join_room("", "Alias").is_empty())
     assert(game_input.process_mode == Node.PROCESS_MODE_ALWAYS)
     assert(focus_restores[0] == before_invalid_focus + 1)
-    assert(diagnostics.back().contains("INVALID_REQUEST"))
+    assert(join_failures == [{
+        "code": "INVALID_REQUEST",
+        "message": "roomCode must match the Live Market room-code format"
+    }])
+    assert(diagnostics.size() == before_invalid_diagnostics)
 
     var synchronous_fake := FakeMarketTransport.new()
     var reentrant_fake := FakeMarketTransport.new()

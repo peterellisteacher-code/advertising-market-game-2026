@@ -165,7 +165,7 @@ func _spectator_mode_is_calm_and_has_no_market_actions() -> bool:
     var finish := screen.get_node("%FinishMarket") as Button
     assert(finish.disabled)
     assert(finish.text == "Watching this market")
-    assert((screen.get_node("%CampaignStatusTitle") as Label).text == "You're watching this round")
+    assert((screen.get_node("%CampaignStatusTitle") as Label).text == "You are watching this round")
     assert((screen.get_node("%CampaignStatusCopy") as Label).text.contains("Buying is paused"))
     assert((screen.get_node("%TeamMarketHeading") as Label).text == "Browse the market floor · watch mode")
     assert(screen.find_children("Buy", "Button", true, false).is_empty())

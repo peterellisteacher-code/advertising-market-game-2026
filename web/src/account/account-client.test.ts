@@ -401,6 +401,56 @@ describe("HttpAccountClient", () => {
     expect(binding.current()).toBe("team-one");
     expect(publisher.publish).not.toHaveBeenCalled();
   });
+
+  it("sends the exact authenticated reset contract without logging out", async () => {
+    const operationId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json({
+      status: "reset",
+      operationId
+    }));
+    const binding = activeBinding("team-one");
+    const publisher = quietPublisher();
+    const client = new HttpAccountClient(binding, publisher, fetcher);
+
+    await expect(client.reset({ operationId, confirmation: "RESET" }))
+      .resolves.toBe("reset");
+
+    expect(fetcher).toHaveBeenCalledWith("/api/account/reset", {
+      method: "POST",
+      credentials: "same-origin",
+      redirect: "error",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        "x-admarket-account": "team-one"
+      },
+      body: JSON.stringify({
+        schema: "advertising-game-account-reset",
+        version: 1,
+        operationId,
+        confirmation: "RESET"
+      }),
+      signal: expect.any(AbortSignal)
+    });
+    expect(binding.current()).toBe("team-one");
+    expect(publisher.publish).not.toHaveBeenCalled();
+  });
+
+  it("retains authentication and exposes a retryable incomplete reset", async () => {
+    const operationId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json({
+      error: "RESET_INCOMPLETE",
+      operationId,
+      retryable: true
+    }, { status: 409 }));
+    const binding = activeBinding("team-one");
+    const client = new HttpAccountClient(binding, quietPublisher(), fetcher);
+
+    await expect(client.reset({ operationId, confirmation: "RESET" })).rejects.toMatchObject({
+      code: "RESET_INCOMPLETE"
+    });
+    expect(binding.current()).toBe("team-one");
+  });
 });
 
 describe("HttpCloudProgressClient", () => {

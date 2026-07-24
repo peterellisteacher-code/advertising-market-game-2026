@@ -259,14 +259,19 @@ describe("AdMarketCreator public API", () => {
     }
   });
 
-  it("serialises handler failures instead of rejecting across the public boundary", async () => {
+  it("keeps raw handler failures in diagnostics and returns only application-owned messages", async () => {
     const handler = new HandlerHarness();
-    const api = createCreatorPublicApi(handler);
+    const diagnostics: unknown[] = [];
+    const api = createCreatorPublicApi(handler, () => undefined, (diagnostic) => {
+      diagnostics.push(diagnostic);
+    });
     const failures = [
       {
         requestId: "save-failed",
         method: "save" as const,
-        message: "IndexedDB unavailable",
+        code: "CREATOR_OPERATION_FAILED",
+        message: "The draft could not be saved. Your work remains open. Try again.",
+        rawMessage: "IndexedDB unavailable",
         install: () => {
           handler.save = async () => { throw new Error("IndexedDB unavailable"); };
         }
@@ -274,7 +279,9 @@ describe("AdMarketCreator public API", () => {
       {
         requestId: "publish-failed",
         method: "publish" as const,
-        message: "Fabric export failed",
+        code: "CREATOR_OPERATION_FAILED",
+        message: "The advertisement could not be published. Check the required items, then try again.",
+        rawMessage: "Fabric export failed",
         install: () => {
           handler.publish = async () => { throw new Error("Fabric export failed"); };
         }
@@ -288,8 +295,57 @@ describe("AdMarketCreator public API", () => {
         contract: CREATOR_BRIDGE_CONTRACT,
         requestId: failure.requestId,
         ok: false,
-        error: { code: "HANDLER_ERROR", message: failure.message }
+        error: { code: failure.code, message: failure.message }
       });
+      expect(JSON.stringify(parsed)).not.toContain(failure.rawMessage);
+      expect(JSON.stringify(parsed)).not.toContain("HANDLER_ERROR");
+    }
+    expect(diagnostics).toEqual([
+      expect.objectContaining({
+        requestId: "save-failed",
+        method: "save",
+        error: expect.objectContaining({ message: "IndexedDB unavailable" })
+      }),
+      expect.objectContaining({
+        requestId: "publish-failed",
+        method: "publish",
+        error: expect.objectContaining({ message: "Fabric export failed" })
+      })
+    ]);
+  });
+
+  it("maps known publication requirements to bounded student messages", async () => {
+    const examples = [
+      {
+        raw: "Campaign must have exactly one visible price",
+        expected: "Add one visible market price that matches your selected price."
+      },
+      {
+        raw: "Before the market opens, swap control once. Both players each make one visible change.",
+        expected: "Both partners must make a recorded contribution before publishing."
+      },
+      {
+        raw: "interest evidence is required for publication",
+        expected: "Complete all four AIDA parts before publishing."
+      }
+    ];
+
+    for (const [index, example] of examples.entries()) {
+      const handler = new HandlerHarness();
+      handler.publish = async () => { throw new Error(example.raw); };
+      const api = createCreatorPublicApi(handler);
+      const { parsed } = await parseResponse(
+        api,
+        request(`publish-requirement-${index}`, "publish", null)
+      );
+      expect(parsed).toMatchObject({
+        ok: false,
+        error: {
+          code: "PUBLICATION_REQUIREMENT",
+          message: example.expected
+        }
+      });
+      expect(JSON.stringify(parsed)).not.toContain(example.raw);
     }
   });
 
@@ -304,8 +360,12 @@ describe("AdMarketCreator public API", () => {
       contract: CREATOR_BRIDGE_CONTRACT,
       requestId: "unsafe-state",
       ok: false,
-      error: { code: "HANDLER_ERROR" }
+      error: { code: "CREATOR_OPERATION_FAILED" }
     });
+    expect(parsed.error?.message).toBe(
+      "The current advertisement could not be read. Try again."
+    );
+    expect(parsed.error?.message).not.toContain("binary data");
     expect(parsed).not.toHaveProperty("payload");
   });
 });

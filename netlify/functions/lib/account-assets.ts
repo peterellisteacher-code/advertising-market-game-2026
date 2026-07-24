@@ -90,6 +90,13 @@ export interface AccountAssetRepository {
     namespace: string,
     digest: string
   ): Promise<{ bytes: Uint8Array; metadata: unknown } | null>;
+  deleteObject(namespace: string, digest: string): Promise<void>;
+  deleteIndex(namespace: string): Promise<void>;
+}
+
+export interface AccountAssetResetPlan {
+  readonly namespace: string;
+  readonly objectDigests: readonly string[];
 }
 
 export type AccountAssetErrorCode =
@@ -435,6 +442,32 @@ export class AccountAssetService {
     const stored = await this.repository.getObject(namespace, digest);
     if (stored === null) throw new AccountAssetError("ASSET_UNAVAILABLE");
     return { descriptor, bytes: this.validateStoredObject(stored, descriptor) };
+  }
+
+  async planReset(userId: string): Promise<AccountAssetResetPlan> {
+    const namespace = deriveAccountAssetNamespace(userId, this.namespaceSecret);
+    const current = await this.repository.readIndex(namespace);
+    if (current === null) return { namespace, objectDigests: [] };
+    const index = parseIndex(current.value, this.limits);
+    return {
+      namespace,
+      objectDigests: Object.keys(index.assets).sort()
+    };
+  }
+
+  async executeReset(plan: AccountAssetResetPlan): Promise<void> {
+    if (
+      !SHA256_PATTERN.test(plan.namespace) ||
+      plan.objectDigests.length > this.limits.maxAssets ||
+      new Set(plan.objectDigests).size !== plan.objectDigests.length ||
+      plan.objectDigests.some((digest) => !SHA256_PATTERN.test(digest))
+    ) {
+      throw new AccountAssetError("ASSET_UNAVAILABLE");
+    }
+    for (const digest of plan.objectDigests) {
+      await this.repository.deleteObject(plan.namespace, digest);
+    }
+    await this.repository.deleteIndex(plan.namespace);
   }
 
   private validateStoredObject(

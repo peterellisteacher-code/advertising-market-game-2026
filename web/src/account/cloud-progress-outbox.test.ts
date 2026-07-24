@@ -81,4 +81,26 @@ describe("BrowserCloudProgressOutbox", () => {
       .resolves.toBe(true);
     await expect(reloaded.get("campaign-main")).resolves.toBeNull();
   });
+
+  it("deletes only the exact account database during reset", async () => {
+    const factory = new IDBFactory();
+    const options = { factory, databasePrefix: "test-cloud-outbox-reset-" };
+    const outbox = new BrowserCloudProgressOutbox(options);
+    await outbox.activateAccount("team-one");
+    await outbox.put(documentFixture("Team one"));
+    await outbox.activateAccount("team-two");
+    await outbox.put(documentFixture("Team two"));
+
+    await outbox.resetAccount("team-one");
+
+    await expect(outbox.list()).resolves.toMatchObject([
+      { document: { product: { name: "Team two" } } }
+    ]);
+    await outbox.activateAccount("team-one");
+    await expect(outbox.list()).resolves.toEqual([]);
+    await outbox.activateAccount("team-two");
+    await expect(outbox.list()).resolves.toMatchObject([
+      { document: { product: { name: "Team two" } } }
+    ]);
+  });
 });

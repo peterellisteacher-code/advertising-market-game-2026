@@ -464,6 +464,28 @@ describe("Supabase account transport", () => {
     expect(JSON.stringify(body)).not.toContain("callerUserId");
   });
 
+  it("sends an exact account-wide reset operation to the scoped Edge broker", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(responseJson({ status: "reset" }));
+    const client = new SupabaseAccountClient(parseAccountEnvironment(modernEnvironment), fetcher);
+
+    await expect(client.progressRpc({
+      userId: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
+      operation: "reset",
+      schema: "advertising-game-progress",
+      version: 1
+    })).resolves.toEqual({ status: "reset" });
+
+    expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toEqual({
+      operation: "progress",
+      input: {
+        userId: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
+        operation: "reset",
+        schema: "advertising-game-progress",
+        version: 1
+      }
+    });
+  });
+
   it("accepts a valid progress RPC response larger than the generic upstream limit", async () => {
     const document = validCampaignDocument();
     document.drawingLayers = [{ notes: "x".repeat(PROGRESS_JSON_LIMIT - 64) }];

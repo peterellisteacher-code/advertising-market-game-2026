@@ -24,6 +24,7 @@ import {
   CloudProgressAssetRestore
 } from "./account/cloud-asset-adapter";
 import { AccountAccessController } from "./account/account-gate";
+import { AccountResetCoordinator } from "./account/account-reset-coordinator";
 import {
   CloudProgressRecovery,
   cloudRecoveryStatusMessage
@@ -632,7 +633,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       } else {
         const label = formatMarketBucks(priceCents);
         priceObjectIds.forEach((objectId) => {
-          runtime.adapter.setText(objectId, label, `Selling price ${label}`, false);
+          runtime.adapter.setText(objectId, label, `Market price ${label}`, false);
         });
       }
       this.#document = parseCampaignDocument({
@@ -751,11 +752,11 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       const commands = new ObjectCommandService(runtime.adapter);
       const existing = this.#priceLabelObjectIds(current);
       if (existing.length === 0) {
-        objectId = await commands.addText(label, `Selling price ${label}`, false);
+        objectId = await commands.addText(label, `Market price ${label}`, false);
         commands.transform(objectId, { x: 1240, y: 670 });
       } else {
         objectId = existing[0]!;
-        runtime.adapter.setText(objectId, label, `Selling price ${label}`, false);
+        runtime.adapter.setText(objectId, label, `Market price ${label}`, false);
         existing.slice(1).forEach((duplicateId) => commands.remove(duplicateId));
         commands.select(objectId);
       }
@@ -1220,6 +1221,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       priceCents: null,
       pricePosition: null,
       priceGuide: null,
+      priceOnDesign: false,
       audienceNeed: "",
       audienceValues: []
     });
@@ -1407,6 +1409,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       priceCents: document?.product.priceCents ?? null,
       pricePosition: document?.product.pricePosition ?? null,
       priceGuide: document?.product.priceGuide ?? null,
+      priceOnDesign: document !== null && this.#priceLabelObjectIds(document).length === 1,
       audienceNeed: document?.brief.audienceNeeds.join(" ") ?? "",
       audienceValues: document?.brief.audienceValues ?? []
     });
@@ -1622,6 +1625,17 @@ let accountController: AccountAccessController | null = null;
 const accountIdentity = new BrowserAccountIdentityBinding();
 const accountMutations = new BrowserAccountMutationBus();
 const accountCookieRequests = new BrowserAccountCookieRequestSerialiser();
+const accountClient = new HttpAccountClient(
+  accountIdentity,
+  accountMutations,
+  undefined,
+  accountCookieRequests
+);
+const imageLabSubmissionPersistence = new BrowserImageLabSubmissionPersistence();
+const studioCoachRuntime = new StudioCoachRuntime({
+  client: new StudioCoachClient(),
+  capture: () => handler.captureStudioCoachCanvas()
+});
 const cloudClient = new HttpCloudProgressClient(
   accountIdentity,
   undefined,
@@ -1681,20 +1695,46 @@ const cloudRecovery = new CloudProgressRecovery({
   assets: cloudAssetRestore,
   metadata: cloudMetadata
 });
+const accountReset = new AccountResetCoordinator({
+  client: accountClient,
+  identity: accountIdentity,
+  mutations: accountMutations,
+  stores: [
+    drafts,
+    cloudMetadata,
+    ...(cloudOutbox === undefined ? [] : [cloudOutbox]),
+    imageLabSubmissionPersistence,
+    studioCoachRuntime
+  ],
+  quiesce: async () => {
+    cloudSync.signOut();
+    try {
+      await handler.isolateAccountWork();
+    } finally {
+      drafts.deactivateAccount();
+      imageLabSubmissionPersistence.deactivateAccount();
+      studioCoachRuntime.deactivateAccount();
+    }
+  }
+});
 accountController = new AccountAccessController({
-  client: new HttpAccountClient(
-    accountIdentity,
-    accountMutations,
-    undefined,
-    accountCookieRequests
-  ),
+  client: accountClient,
   gateRoot: accountGateRoot,
   statusRoot: accountStatusRoot,
   gameSurface,
   gameCanvas,
   creatorRoot: root,
   onSession: async (username) => {
-    await drafts.activateAccount(username);
+    try {
+      await drafts.activateAccount(username);
+      await imageLabSubmissionPersistence.activateAccount(username);
+      await studioCoachRuntime.activateAccount(username);
+    } catch (error) {
+      drafts.deactivateAccount();
+      imageLabSubmissionPersistence.deactivateAccount();
+      studioCoachRuntime.deactivateAccount();
+      throw error;
+    }
     try {
       await cloudSync.setAccount(username);
     } catch (error) {
@@ -1702,6 +1742,8 @@ accountController = new AccountAccessController({
       if ((error instanceof AccountClientError || error instanceof AccountAssetClientError) &&
         error.code === "AUTHENTICATION_REQUIRED") {
         drafts.deactivateAccount();
+        imageLabSubmissionPersistence.deactivateAccount();
+        studioCoachRuntime.deactivateAccount();
         throw new AccountClientError("AUTHENTICATION_REQUIRED");
       }
       accountController?.setCloudMessage("Saved on this device · cloud copy paused");
@@ -1715,6 +1757,8 @@ accountController = new AccountAccessController({
         error.code === "AUTHENTICATION_REQUIRED") {
         cloudSync.signOut();
         drafts.deactivateAccount();
+        imageLabSubmissionPersistence.deactivateAccount();
+        studioCoachRuntime.deactivateAccount();
         throw new AccountClientError("AUTHENTICATION_REQUIRED");
       }
       accountController?.setCloudMessage("Saved on this device · cloud copy paused");
@@ -1726,8 +1770,11 @@ accountController = new AccountAccessController({
       await handler.isolateAccountWork();
     } finally {
       drafts.deactivateAccount();
+      imageLabSubmissionPersistence.deactivateAccount();
+      studioCoachRuntime.deactivateAccount();
     }
-  }
+  },
+  onReset: () => accountReset.reset("RESET")
 });
 const accountPublicApi = createAccountBootstrap(accountController);
 window.AdMarketAccount = accountPublicApi;
@@ -1756,7 +1803,24 @@ shell.zoomFill.addEventListener("click", () => {
 shell.zoomIn.addEventListener("click", () => {
   runCanvasSizeAction(() => handler.resizeSelectedObject(1.2));
 });
-accountMutations.subscribe(() => accountController?.requireReauthentication());
+accountMutations.subscribe((mutation) => {
+  if (mutation.kind === "session") {
+    accountController?.requireReauthentication();
+    return;
+  }
+  if (accountIdentity.current() !== mutation.username) return;
+  if (mutation.kind === "reset-pending") {
+    accountController?.holdForReset();
+    cloudSync.signOut();
+    void handler.isolateAccountWork().finally(() => {
+      drafts.deactivateAccount();
+      imageLabSubmissionPersistence.deactivateAccount();
+      studioCoachRuntime.deactivateAccount();
+    });
+    return;
+  }
+  accountController?.completeReset();
+});
 const productPriceGuideClient = new ProductPriceGuideClient();
 const moneyPanel = new ProductMoneyPanel(
   shell.moneyCheckPanel,
@@ -1788,14 +1852,10 @@ const imageLabRuntime = new ImageLabRuntime({
   exportDesign: (pair) => handler.exportDesignDataUrl(pair),
   place: (pair, input) => handler.placeGeneratedRaster(pair, input),
   isCurrentPair: (pair) => handler.isCurrentImageLabPair(pair),
-  submissionPersistence: new BrowserImageLabSubmissionPersistence()
+  submissionPersistence: imageLabSubmissionPersistence
 });
 const imageLabPanel = new ImageLabPanel(shell.imageLabPanel, imageLabRuntime);
 handler.attachImageLab(imageLabPanel);
-const studioCoachRuntime = new StudioCoachRuntime({
-  client: new StudioCoachClient(),
-  capture: () => handler.captureStudioCoachCanvas()
-});
 const studioCoachPanel = new StudioCoachPanel(shell.studioCoachPanel, studioCoachRuntime);
 handler.attachStudioCoach(studioCoachRuntime);
 const publicApi = createCreatorPublicApi(handler, (message) => handler.showMessage(message));

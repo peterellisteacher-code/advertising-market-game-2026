@@ -135,7 +135,7 @@ func stop_room() -> void:
 func show_publication_waiting() -> void:
     phase_status.text = "Your market card is with the host."
     campaign_status_title.text = "Waiting for the host"
-    campaign_status_copy.text = "Card is in the review queue. Screen can stay open."
+    campaign_status_copy.text = "The card is in the review queue. You may keep this screen open."
     fix_button.hide()
     team_surface.show()
     show()
@@ -210,7 +210,7 @@ func _render_team(state: Dictionary) -> void:
             else "Browse the market floor · watch mode"
         )
         fix_button.hide()
-        campaign_status_title.text = "You're watching this round"
+        campaign_status_title.text = "You are watching this round"
         campaign_status_copy.text = (
             "The gallery was locked before this pair joined. Browsing is open. Awarding is paused this round."
             if medal_mode
@@ -258,7 +258,7 @@ func _render_team(state: Dictionary) -> void:
     student_reveal_copy.text = (
         "Your Gold, Silver and Bronze choices are locked. The host will reveal the market podium."
         if medal_mode
-        else "Practice round complete — you backed two different stalls and spent your market wallet. In a live room, the host reveals which campaign earned the most."
+        else "Practice round complete. You backed two different stalls and spent your market wallet. In a live room, the host reveals which campaign earned the most."
         if _practice_mode
         else "Market reveal is on the host display."
     )
@@ -298,7 +298,7 @@ func _render_campaign_state(cards: Array, phase: String) -> void:
         )
         fix_button.show()
     else:
-        campaign_status_title.text = "Ad resting"
+        campaign_status_title.text = "Ad not active"
         campaign_status_copy.text = "This version is not active in the gallery. Your pair may remain in the room."
 
 func _add_team_card(card: Dictionary) -> void:
@@ -599,7 +599,7 @@ func _review_campaign(
     if status == "returned":
         var trimmed_note := note_input.text.strip_edges()
         if trimmed_note.is_empty():
-            network_status.text = "Add a short, useful note before returning this card."
+            network_status.text = "Add a brief reason before returning this card."
             note_input.grab_focus()
             return
         note = trimmed_note
@@ -629,7 +629,7 @@ func _request_remove_confirmation(team_id: String, alias: String) -> void:
     _remove_team_id = team_id
     _remove_team_alias = alias
     remove_team_dialog.dialog_text = (
-        "Remove %s from this room? Their current room session will end."
+        "Remove %s from this room? This will end the current room session."
         % alias
     )
     remove_team_dialog.get_ok_button().text = "Remove %s" % alias

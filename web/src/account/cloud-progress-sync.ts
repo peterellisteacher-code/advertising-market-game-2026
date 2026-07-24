@@ -27,6 +27,7 @@ export interface CloudSyncStorage {
 export interface CloudSyncMetadataStore {
   activateAccount(username: string): void | Promise<void>;
   deactivateAccount(): void;
+  resetAccount(username: string): Promise<void>;
   captureScope(): CloudSyncRevisionScope | null;
   getRevision(documentId: string): number;
   setRevision(documentId: string, revision: number): void;
@@ -56,6 +57,18 @@ export class BrowserCloudSyncMetadataStore implements CloudSyncMetadataStore {
   deactivateAccount(): void {
     this.#activationGeneration += 1;
     this.#namespace = null;
+  }
+
+  async resetAccount(username: string): Promise<void> {
+    const namespace = await accountStorageNamespace(username);
+    if (this.#namespace === namespace) this.deactivateAccount();
+    const prefix = `${REVISION_PREFIX}${namespace}:`;
+    const keys: string[] = [];
+    for (let index = 0; index < this.storage.length; index += 1) {
+      const key = this.storage.key(index);
+      if (key?.startsWith(prefix)) keys.push(key);
+    }
+    keys.forEach((key) => this.storage.removeItem(key));
   }
 
   captureScope(): CloudSyncRevisionScope | null {
@@ -153,6 +166,12 @@ class VolatileCloudProgressOutbox implements CloudProgressOutbox {
 
   deactivateAccount(): void {
     this.#active = null;
+  }
+
+  async resetAccount(username: string): Promise<void> {
+    const account = this.#accounts.get(username);
+    if (this.#active === account) this.#active = null;
+    this.#accounts.delete(username);
   }
 
   async put(document: CampaignDocumentV1): Promise<CloudProgressOutboxEntry> {

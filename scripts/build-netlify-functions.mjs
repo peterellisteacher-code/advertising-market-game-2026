@@ -11,6 +11,7 @@ const defaultProjectRoot = resolve(scriptDirectory, "..");
 export const NETLIFY_FUNCTION_NAMES = Object.freeze([
   "account-assets",
   "account-progress",
+  "account-reset",
   "account-session",
   "image-lab-jobs",
   "image-lab-session",

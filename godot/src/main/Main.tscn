@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://src/main/Main.gd" id="1_main"]
 [ext_resource type="Script" path="res://src/creator/CreatorHost.gd" id="2_host"]
@@ -87,6 +87,22 @@ content_margin_top = 13.0
 content_margin_right = 20.0
 content_margin_bottom = 13.0
 
+[sub_resource type="StyleBoxFlat" id="Style_focus"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.956863, 0.788235, 0.364706, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+expand_margin_left = 3.0
+expand_margin_top = 3.0
+expand_margin_right = 3.0
+expand_margin_bottom = 3.0
+
 [node name="Main" type="Control"]
 layout_mode = 3
 anchors_preset = 15
@@ -152,7 +168,7 @@ text = "PAIR PLAY  •  ONE MACBOOK"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 40
-text = "Invent it. Advertise it. Judge the market."
+text = "First you will invent a product, then you will create an advertisement for it."
 autowrap_mode = 2
 
 [node name="HeroCopy" type="Label" parent="MainMargin/GameInput"]
@@ -245,6 +261,7 @@ theme_override_font_sizes/font_size = 17
 theme_override_styles/normal = SubResource("Style_secondary")
 theme_override_styles/hover = SubResource("Style_secondary")
 theme_override_styles/pressed = SubResource("Style_secondary")
+theme_override_styles/focus = SubResource("Style_focus")
 text = "Join the live market"
 
 [node name="HostArea" type="PanelContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns"]
@@ -316,6 +333,7 @@ theme_override_font_sizes/font_size = 17
 theme_override_styles/normal = SubResource("Style_primary")
 theme_override_styles/hover = SubResource("Style_primary_hover")
 theme_override_styles/pressed = SubResource("Style_primary_pressed")
+theme_override_styles/focus = SubResource("Style_focus")
 text = "Open a class market"
 
 [node name="PracticeDivider" type="HSeparator" parent="MainMargin/GameInput/LobbyPanel/LobbyContent"]
@@ -344,6 +362,7 @@ theme_override_font_sizes/font_size = 17
 theme_override_styles/normal = SubResource("Style_secondary")
 theme_override_styles/hover = SubResource("Style_secondary")
 theme_override_styles/pressed = SubResource("Style_secondary")
+theme_override_styles/focus = SubResource("Style_focus")
 text = "Teacher setup"
 
 [node name="StartRun" type="Button" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/PracticeRow"]
@@ -357,6 +376,7 @@ theme_override_font_sizes/font_size = 17
 theme_override_styles/normal = SubResource("Style_primary")
 theme_override_styles/hover = SubResource("Style_primary_hover")
 theme_override_styles/pressed = SubResource("Style_primary_pressed")
+theme_override_styles/focus = SubResource("Style_focus")
 text = "Practice on this computer"
 
 [node name="MarketScreen" parent="MainMargin/GameInput" instance=ExtResource("4_market_screen")]
@@ -450,6 +470,7 @@ theme_override_font_sizes/font_size = 17
 theme_override_styles/normal = SubResource("Style_primary")
 theme_override_styles/hover = SubResource("Style_primary_hover")
 theme_override_styles/pressed = SubResource("Style_primary_pressed")
+theme_override_styles/focus = SubResource("Style_focus")
 text = "Open the creative studio"
 
 [node name="LockLevel" type="Button" parent="MainMargin/GameInput/RunPanel/RunContent/ActionRow"]
@@ -463,6 +484,7 @@ theme_override_styles/normal = SubResource("Style_secondary")
 theme_override_styles/hover = SubResource("Style_secondary")
 theme_override_styles/pressed = SubResource("Style_secondary")
 theme_override_styles/disabled = SubResource("Style_disabled")
+theme_override_styles/focus = SubResource("Style_focus")
 text = "Lock this level"
 
 [node name="AdvanceLevel" type="Button" parent="MainMargin/GameInput/RunPanel/RunContent/ActionRow"]
@@ -476,6 +498,7 @@ theme_override_styles/normal = SubResource("Style_secondary")
 theme_override_styles/hover = SubResource("Style_secondary")
 theme_override_styles/pressed = SubResource("Style_secondary")
 theme_override_styles/disabled = SubResource("Style_disabled")
+theme_override_styles/focus = SubResource("Style_focus")
 disabled = true
 text = "Next level"
 
@@ -489,7 +512,16 @@ theme_override_font_sizes/font_size = 17
 theme_override_styles/normal = SubResource("Style_primary")
 theme_override_styles/hover = SubResource("Style_primary_hover")
 theme_override_styles/pressed = SubResource("Style_primary_pressed")
+theme_override_styles/focus = SubResource("Style_focus")
 text = "Build the market card"
+
+[node name="KeyboardHint" type="Label" parent="MainMargin/GameInput"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
+theme_override_font_sizes/font_size = 14
+text = "Press Tab to move between controls. Press Enter or Space to use the selected control."
+horizontal_alignment = 1
+autowrap_mode = 2
 
 [node name="Status" type="Label" parent="MainMargin/GameInput"]
 unique_name_in_owner = true

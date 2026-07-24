@@ -144,6 +144,33 @@ describe("Advertising-game Supabase Edge broker", () => {
     });
   });
 
+  it("forwards an exact account-wide progress reset without a document identifier", async () => {
+    const upstream = { status: "reset" };
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(json(true))
+      .mockResolvedValueOnce(json(upstream));
+
+    const response = await handlerWith(fetcher)(request({
+      operation: "progress",
+      input: {
+        userId,
+        operation: "reset",
+        schema: "advertising-game-progress",
+        version: 1
+      }
+    }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(upstream);
+    expect(JSON.parse(String(fetcher.mock.calls[1]?.[1]?.body))).toEqual({
+      p_user_id: userId,
+      p_operation: "reset",
+      p_document_id: null,
+      p_document_schema: "advertising-game-progress",
+      p_schema_version: 1
+    });
+  });
+
   it("fails closed for extra fields, invalid identities, malformed JSON, and upstream details", async () => {
     const authorised = () => vi.fn<typeof fetch>()
       .mockResolvedValueOnce(json(true));

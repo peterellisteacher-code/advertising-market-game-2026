@@ -52,6 +52,7 @@
 .creator__audience-brief dl > div { min-width: 0; }
 .creator__audience-brief dt { color: var(--blue); font-size: .875rem; font-weight: 900; letter-spacing: .045em; text-transform: uppercase; }
 .creator__audience-brief dd { margin: 2px 0 0; color: #334155; font-size: .875rem; line-height: 1.35; }
+.creator[data-brief-open="true"] .creator__drawer-collapse { display: none; }
 .creator__workspace { position: relative; min-width: 0; min-height: 0; display: grid; grid-template-columns: 64px 288px minmax(0, 1fr); overflow: hidden; transition: grid-template-columns 160ms ease; }
 .creator[data-studio-drawer-open="false"] .creator__workspace { grid-template-columns: 64px 0 minmax(0, 1fr); }
 .creator__tool-rail { min-height: 0; padding: 6px 4px; display: grid; grid-auto-rows: minmax(52px, auto); align-content: start; gap: 4px; overflow-x: hidden; overflow-y: auto; border-right: 1px solid #0b506a; background: #0d5f7d; }

@@ -9,6 +9,7 @@ export interface ProductMoneyState {
   readonly priceCents: number | null;
   readonly pricePosition: ProductPricePosition | null;
   readonly priceGuide: ProductPriceGuide | null;
+  readonly priceOnDesign: boolean;
   readonly audienceNeed: string;
   readonly audienceValues: readonly string[];
 }
@@ -56,6 +57,7 @@ export class ProductMoneyPanel {
     priceCents: null,
     pricePosition: null,
     priceGuide: null,
+    priceOnDesign: false,
     audienceNeed: "",
     audienceValues: []
   };
@@ -93,7 +95,7 @@ export class ProductMoneyPanel {
     if (!this.#state.hasProduct) {
       const empty = element("p", "money-check__empty");
       empty.setAttribute("role", "status");
-      empty.textContent = "No product ready. Build a product or create its realistic image first.";
+      empty.textContent = "No product is ready. Build a product or create its image first.";
       root.append(empty);
       this.#status = null;
       this.#addPrice = null;
@@ -117,7 +119,7 @@ export class ProductMoneyPanel {
     guideButton.disabled = !named || this.#state.priceGuide !== null;
     guideButton.textContent = this.#state.priceGuide
       ? "Similar prices checked"
-      : "Confirm product and check similar prices";
+      : "Confirm the product and check similar prices";
     guideButton.addEventListener("click", () => void this.#research(guideButton));
     root.append(guideButton);
 
@@ -208,7 +210,7 @@ export class ProductMoneyPanel {
     this.#addPrice.type = "button";
     this.#addPrice.textContent = "Add price to design";
     this.#addPrice.addEventListener("click", () => {
-      if (this.#state.priceCents === null) return;
+      if (this.#state.priceCents === null || this.#state.priceOnDesign) return;
       void this.onAddPrice();
     });
 
@@ -250,6 +252,7 @@ export class ProductMoneyPanel {
     const priceCents = this.#state.priceCents;
     const position = this.#state.pricePosition;
     if (!this.#status || !this.#addPrice) return;
+    this.#addPrice.textContent = "Add price to design";
     this.#addPrice.disabled = priceCents === null || priceCents <= 0 || position === null;
     if (position === null) {
       this.#status.textContent = "Choose budget, everyday or premium for this audience.";
@@ -259,6 +262,14 @@ export class ProductMoneyPanel {
     if (priceCents === null) {
       this.#status.textContent = "Set the final selling price.";
       this.#status.dataset.tone = "waiting";
+      return;
+    }
+    if (this.#state.priceOnDesign) {
+      this.#addPrice.disabled = true;
+      this.#addPrice.textContent = "Price added to design";
+      this.#status.textContent =
+        `Price decision complete: ${formatMarketBucks(priceCents)} is the selected ${position} price.`;
+      this.#status.dataset.tone = "complete";
       return;
     }
     const guide = this.#state.priceGuide;

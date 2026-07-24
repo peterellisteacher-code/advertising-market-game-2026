@@ -6,7 +6,9 @@
 .account-access,
 .account-access *,
 .account-session,
-.account-session * {
+.account-session *,
+.account-reset-dialog,
+.account-reset-dialog * {
   box-sizing: border-box;
 }
 
@@ -163,6 +165,112 @@
   cursor: pointer;
 }
 
+.account-session__actions {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .35rem;
+}
+
+.account-session .account-session__actions button {
+  grid-column: auto;
+  grid-row: auto;
+}
+
+.account-reset-dialog {
+  width: min(36rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  overflow: auto;
+  border: 3px solid #172033;
+  border-radius: 1rem;
+  background: #fffaf2;
+  color: #172033;
+  box-shadow: .55rem .55rem 0 #f4c95d;
+  font-family: "Trebuchet MS", "Aptos", "Segoe UI", sans-serif;
+}
+
+.account-reset-dialog::backdrop {
+  background: rgb(23 32 51 / .72);
+}
+
+.account-reset-dialog form {
+  padding: clamp(1.25rem, 4vw, 2rem);
+  display: grid;
+  gap: .85rem;
+}
+
+.account-reset-dialog h2,
+.account-reset-dialog p {
+  margin: 0;
+}
+
+.account-reset-dialog h2 {
+  font-size: clamp(1.5rem, 5vw, 2.1rem);
+  line-height: 1.1;
+}
+
+.account-reset-dialog label {
+  display: grid;
+  gap: .35rem;
+  font-weight: 900;
+}
+
+.account-reset-dialog input,
+.account-reset-dialog button {
+  min-height: 44px;
+  border: 2px solid #172033;
+  border-radius: .65rem;
+  font: inherit;
+}
+
+.account-reset-dialog input {
+  padding: .65rem .75rem;
+  background: #fff;
+  color: #172033;
+  text-transform: uppercase;
+}
+
+.account-reset-dialog button {
+  padding: .6rem .9rem;
+  background: #fff;
+  color: #07536f;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.account-reset-dialog button[type="submit"] {
+  background: #9b1c1c;
+  color: #fff;
+}
+
+.account-reset-dialog input:focus-visible,
+.account-reset-dialog button:focus-visible {
+  outline: 3px solid #f25f5c;
+  outline-offset: 3px;
+}
+
+.account-reset-dialog button:disabled,
+.account-reset-dialog input:disabled {
+  cursor: wait;
+  opacity: .62;
+}
+
+.account-reset-dialog [role="alert"] {
+  min-height: 1.4em;
+  color: #9b1c1c;
+  font-weight: 850;
+}
+
+.account-reset-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .55rem;
+}
+
 .account-session__conflict {
   grid-column: 1 / -1;
   padding: .55rem;
@@ -212,7 +320,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .account-access *,
-  .account-session * {
+  .account-session *,
+  .account-reset-dialog * {
     scroll-behavior: auto !important;
     transition-duration: .001ms !important;
     animation-duration: .001ms !important;

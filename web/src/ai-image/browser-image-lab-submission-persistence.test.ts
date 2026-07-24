@@ -47,4 +47,27 @@ describe("BrowserImageLabSubmissionPersistence", () => {
 
     await expect(persistence.load("a".repeat(64))).rejects.toThrow("retry storage is unavailable");
   });
+
+  it("uses account-scoped v2 keys and resets only the selected account", async () => {
+    const persistence = new BrowserImageLabSubmissionPersistence(
+      window.localStorage,
+      "test-image-lab:v1:",
+      "test-image-lab:v2:"
+    );
+    const fingerprint = "a".repeat(64);
+    await persistence.activateAccount("team-one");
+    await persistence.store(fingerprint, "00000000-0000-4000-8000-000000000001");
+    await persistence.activateAccount("team-two");
+    await persistence.store(fingerprint, "00000000-0000-4000-8000-000000000002");
+
+    await persistence.resetAccount("team-one");
+
+    await expect(persistence.load(fingerprint))
+      .resolves.toBe("00000000-0000-4000-8000-000000000002");
+    await persistence.activateAccount("team-one");
+    await expect(persistence.load(fingerprint)).resolves.toBeNull();
+    await persistence.activateAccount("team-two");
+    await expect(persistence.load(fingerprint))
+      .resolves.toBe("00000000-0000-4000-8000-000000000002");
+  });
 });

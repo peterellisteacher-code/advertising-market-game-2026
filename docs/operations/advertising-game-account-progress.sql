@@ -105,7 +105,7 @@ begin
   if p_user_id is null then
     raise exception using errcode = '22023', message = 'invalid user';
   end if;
-  if p_operation is null or p_operation not in ('list', 'load', 'save') then
+  if p_operation is null or p_operation not in ('list', 'load', 'save', 'reset') then
     raise exception using errcode = '22023', message = 'invalid operation';
   end if;
   if p_document_schema is distinct from 'advertising-game-progress'
@@ -143,6 +143,23 @@ begin
       'status', 'listed',
       'documents', v_documents
     );
+  end if;
+
+  if p_operation = 'reset' then
+    if p_document_id is not null
+      or p_expected_revision is not null
+      or p_document is not null then
+      raise exception using errcode = '22023', message = 'invalid reset request';
+    end if;
+
+    perform pg_catalog.pg_advisory_xact_lock(
+      pg_catalog.hashtextextended(p_user_id::text, 684135)
+    );
+
+    delete from advertising_game.progress
+      where progress.user_id = p_user_id;
+
+    return pg_catalog.jsonb_build_object('status', 'reset');
   end if;
 
   if p_document_id is null

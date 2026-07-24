@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   extractGodotSourceLiterals,
+  extractHtmlCopy,
   extractTscnText,
   extractTypeScriptLiterals,
   stableCopyId
@@ -52,6 +53,27 @@ test("extractTscnText reads authored text properties only", () => {
   assert.deepEqual(
     extractTscnText(source, "godot/src/example.tscn").map(({ text }) => text),
     ["Build your first product.", "Choose one option."]
+  );
+});
+
+test("extractHtmlCopy reads visible shell copy and inline-script status text with source lines", () => {
+  const source = `<!doctype html>
+    <main aria-label="Advertising Market Game">
+      <p>Loading game…</p>
+    </main>
+    <script src="./runtime.js"></script>
+    <script>
+      status.textContent = "Game ready";
+      console.error("Internal bootstrap failure");
+    </script>`;
+
+  assert.deepEqual(
+    extractHtmlCopy(source, "godot/web/godot_shell.html").map(({ line, text }) => ({ line, text })),
+    [
+      { line: 2, text: "Advertising Market Game" },
+      { line: 3, text: "Loading game…" },
+      { line: 7, text: "Game ready" }
+    ]
   );
 });
 

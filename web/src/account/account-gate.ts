@@ -2,6 +2,7 @@ import {
   AccountClientError,
   type AccountSessionClient
 } from "./account-client";
+import { AccountResetDialog } from "./account-reset-dialog";
 import { generateStrongPairPassword } from "./pair-credential-generator";
 
 export type { AccountSessionClient } from "./account-client";
@@ -15,6 +16,7 @@ export interface AccountAccessControllerOptions {
   readonly creatorRoot: HTMLElement;
   readonly onSession?: (username: string) => void | Promise<void>;
   readonly onSignedOut?: (explicit: boolean) => void | Promise<void>;
+  readonly onReset?: () => void | Promise<void>;
   readonly reload?: () => void;
   readonly generatePairPassword?: () => string;
 }
@@ -60,6 +62,7 @@ export class AccountAccessController {
   readonly #creatorRoot: HTMLElement;
   readonly #onSession: ((username: string) => void | Promise<void>) | undefined;
   readonly #onSignedOut: ((explicit: boolean) => void | Promise<void>) | undefined;
+  readonly #resetDialog: AccountResetDialog | null;
   readonly #reload: () => void;
   readonly #generatePairPassword: () => string;
   #accessPromise: Promise<void> | null = null;
@@ -79,6 +82,9 @@ export class AccountAccessController {
     this.#creatorRoot = options.creatorRoot;
     this.#onSession = options.onSession;
     this.#onSignedOut = options.onSignedOut;
+    this.#resetDialog = options.onReset === undefined
+      ? null
+      : new AccountResetDialog({ onConfirm: options.onReset });
     this.#reload = options.reload ?? (() => globalThis.location.reload());
     this.#generatePairPassword = options.generatePairPassword ?? generateStrongPairPassword;
   }
@@ -112,6 +118,22 @@ export class AccountAccessController {
 
   requireReauthentication(): void {
     this.#leaveAccount(false);
+  }
+
+  holdForReset(): void {
+    this.#lifecycleGeneration += 1;
+    this.#lockAccountSurfaces();
+    this.#statusRoot.hidden = true;
+    this.#statusRoot.replaceChildren();
+    this.#renderIdentityBoundary(
+      "This account's progress is being reset in another tab. This page will reload when the reset finishes.",
+      false,
+      "Resetting account progress"
+    );
+  }
+
+  completeReset(): void {
+    this.#reload();
   }
 
   #lockAccountSurfaces(): void {
@@ -318,11 +340,22 @@ export class AccountAccessController {
     const conflict = this.#cloudConflict === null
       ? null
       : this.#cloudConflictControls(this.#cloudConflict);
+    const reset = this.#resetDialog === null
+      ? null
+      : document.createElement("button");
+    if (reset !== null) {
+      reset.type = "button";
+      reset.textContent = "Reset progress";
+      reset.addEventListener("click", () => this.#resetDialog!.open(reset, username));
+    }
+    const sessionActions = document.createElement("div");
+    sessionActions.className = "account-session__actions";
+    sessionActions.append(...(reset === null ? [] : [reset]), logout);
     this.#statusRoot.replaceChildren(
       identity,
       cloud,
       ...(conflict === null ? [] : [conflict]),
-      logout
+      sessionActions
     );
   }
 
@@ -414,10 +447,14 @@ export class AccountAccessController {
       ));
   }
 
-  #renderIdentityBoundary(message: string, assertive = false): void {
+  #renderIdentityBoundary(
+    message: string,
+    assertive = false,
+    title = "Account locked"
+  ): void {
     this.#gateRoot.hidden = false;
     this.#gateRoot.className = "account-access";
-    const section = this.#gateCard("Account locked");
+    const section = this.#gateCard(title);
     const status = document.createElement("p");
     status.setAttribute("role", assertive ? "alert" : "status");
     status.setAttribute("aria-live", assertive ? "assertive" : "polite");

@@ -13,6 +13,7 @@ function decodeQuoted(value) {
 function looksStudentFacing(value) {
   const text = value.replace(/\s+/g, " ").trim();
   if (text.length < 2 || !/[A-Za-z]/.test(text)) return false;
+  if (/^\$GODOT_[A-Z_]+$/.test(text)) return false;
   if (/^(?:https?:|data:|image\/|audio\/|application\/)/i.test(text)) return false;
   if (/^(?:\.|#|\[|\/|\\|data-|aria-|--)/.test(text)) return false;
   if (/^[A-Z][A-Z0-9_]+$/.test(text)) return false;
@@ -36,6 +37,42 @@ function htmlCopy(value, line, pathName) {
     if (looksStudentFacing(text)) entries.push({ path: pathName, line, text });
   }
   return entries;
+}
+
+function lineAt(source, index) {
+  return source.slice(0, index).split(/\r?\n/).length;
+}
+
+function maskElementContents(source, elementName) {
+  const pattern = new RegExp(`<${elementName}\\b[^>]*>[\\s\\S]*?<\\/${elementName}>`, "gi");
+  return source.replace(pattern, (match) => match.replace(/[^\r\n]/g, " "));
+}
+
+export function extractHtmlCopy(source, pathName = "source.html") {
+  const entries = [];
+  const withoutScripts = maskElementContents(maskElementContents(source, "script"), "style");
+  const attributes = /\b(?:aria-label|placeholder|title|alt)\s*=\s*["']([^"']+)["']/gi;
+  for (const match of withoutScripts.matchAll(attributes)) {
+    if (looksStudentFacing(match[1])) {
+      entries.push({ path: pathName, line: lineAt(source, match.index), text: match[1].trim() });
+    }
+  }
+  for (const match of withoutScripts.matchAll(/>([^<>]+)</g)) {
+    const text = match[1].replace(/\$\{[^}]*\}/g, " ").replace(/\s+/g, " ").trim();
+    if (looksStudentFacing(text)) {
+      entries.push({ path: pathName, line: lineAt(source, match.index), text });
+    }
+  }
+  for (const match of source.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) {
+    const script = match[1];
+    if (!script.trim()) continue;
+    const contentOffset = match.index + match[0].indexOf(script);
+    const firstLine = lineAt(source, contentOffset);
+    for (const entry of extractTypeScriptLiterals(script, pathName)) {
+      entries.push({ ...entry, line: firstLine + entry.line - 1 });
+    }
+  }
+  return uniqueOccurrences(entries);
 }
 
 function uniqueOccurrences(entries) {
@@ -108,7 +145,9 @@ export const STUDENT_COPY_SOURCE_PATHS = Object.freeze([
   "godot/src/main/Main.tscn",
   "godot/src/market/ui/MarketScreen.gd",
   "godot/src/market/ui/MarketScreen.tscn",
+  "godot/web/godot_shell.html",
   "web/src/account/account-gate.ts",
+  "web/src/account/account-reset-dialog.ts",
   "web/src/ai-image/image-lab-panel.ts",
   "web/src/catalogue/catalogue-panel.ts",
   "web/src/catalogue/catalogue-runtime.ts",
@@ -137,6 +176,7 @@ export const STUDENT_COPY_SOURCE_PATHS = Object.freeze([
   "web/src/studio-coach/studio-coach-runtime.ts",
   "web/src/studio-coach/studio-coach-panel.ts",
   "web/src/ui/editor-shell.ts",
+  "web/src/ui/canvas-accessibility-controller.ts",
   "web/src/ui/studio-tool-drawer.ts"
 ]);
 
@@ -160,6 +200,7 @@ export async function extractStudentCopyFile(root, relative) {
   const source = await readFile(absolute, "utf8");
   if (relative.endsWith(".ts")) return extractTypeScriptLiterals(source, relative);
   if (relative.endsWith(".gd")) return extractGodotSourceLiterals(source, relative);
+  if (relative.endsWith(".html")) return extractHtmlCopy(source, relative);
   return extractTscnText(source, relative);
 }
 

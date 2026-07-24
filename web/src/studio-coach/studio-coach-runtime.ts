@@ -12,6 +12,7 @@ import {
   parseStudioCoachResponse
 } from "../../../shared/studio-coach-contract";
 import type { StudioCoachCanvasEvidence } from "./canvas-evidence";
+import { accountStorageNamespace } from "../account/account-storage-namespace";
 
 export interface StudioCoachCampaign extends StudioCoachContext {
   sessionId: string;
@@ -50,7 +51,9 @@ export interface StudioCoachRuntimeDependencies {
 }
 
 export interface StudioCoachRuntimeStorage {
+  readonly length?: number;
   getItem(key: string): string | null;
+  key?(index: number): string | null;
   setItem(key: string, value: string): void;
   removeItem?(key: string): void;
 }
@@ -280,6 +283,7 @@ export class StudioCoachRuntime {
   readonly #createId: () => string;
   readonly #storage: StudioCoachRuntimeStorage | null;
   readonly #listeners = new Set<() => void>();
+  #accountNamespace: string | null = null;
   #campaign: StudioCoachCampaign | null = null;
   #firstEvidence: StudioCoachCanvasEvidence | null = null;
   #pendingInitialRequest: StudioCoachRequest | null = null;
@@ -561,6 +565,31 @@ export class StudioCoachRuntime {
     this.#emit();
   }
 
+  async activateAccount(username: string): Promise<void> {
+    const namespace = await accountStorageNamespace(username);
+    this.clearCampaign();
+    this.#accountNamespace = namespace;
+  }
+
+  deactivateAccount(): void {
+    this.clearCampaign();
+    this.#accountNamespace = null;
+  }
+
+  async resetAccount(username: string): Promise<void> {
+    const namespace = await accountStorageNamespace(username);
+    if (this.#accountNamespace === namespace) this.deactivateAccount();
+    if (!this.#storage || typeof this.#storage.length !== "number" ||
+      !this.#storage.key || !this.#storage.removeItem) return;
+    const prefix = `ad-market:studio-coach:v3:${namespace}:`;
+    const keys: string[] = [];
+    for (let index = 0; index < this.#storage.length; index += 1) {
+      const key = this.#storage.key(index);
+      if (key?.startsWith(prefix)) keys.push(key);
+    }
+    keys.forEach((key) => this.#storage!.removeItem!(key));
+  }
+
   #refundAttempt(controller: AbortController): void {
     if (this.#operation !== controller || this.#state.attemptsUsed === 0) return;
     const attemptsUsed = (this.#state.attemptsUsed - 1) as 0 | 1;
@@ -595,25 +624,51 @@ export class StudioCoachRuntime {
   #restore(campaign: StudioCoachCampaign): StudioCoachStoredRuntimeV2 | null {
     if (!this.#storage) return null;
     try {
-      const v2 = this.#storage.getItem(`ad-market:studio-coach:v2:${storageKey(campaign)}`);
-      if (v2 !== null) return storedRuntimeV2(JSON.parse(v2) as unknown, campaign);
-      const v1 = this.#storage.getItem(`ad-market:studio-coach:v1:${storageKey(campaign)}`);
-      return v1 === null ? null : storedRuntimeV1(JSON.parse(v1) as unknown);
+      const key = storageKey(campaign);
+      if (this.#accountNamespace !== null) {
+        const scopedKey = `ad-market:studio-coach:v3:${this.#accountNamespace}:${key}`;
+        const scoped = this.#storage.getItem(scopedKey);
+        if (scoped !== null) return storedRuntimeV2(JSON.parse(scoped) as unknown, campaign);
+        const migrated = this.#restoreLegacy(campaign, key);
+        if (migrated !== null) {
+          this.#storage.setItem(scopedKey, JSON.stringify(migrated));
+          this.#storage.removeItem?.(`ad-market:studio-coach:v2:${key}`);
+          this.#storage.removeItem?.(`ad-market:studio-coach:v1:${key}`);
+        }
+        return migrated;
+      }
+      return this.#restoreLegacy(campaign, key);
     } catch {
       return null;
     }
   }
 
+  #restoreLegacy(
+    campaign: StudioCoachCampaign,
+    key: string
+  ): StudioCoachStoredRuntimeV2 | null {
+    if (!this.#storage) return null;
+    const v2 = this.#storage.getItem(`ad-market:studio-coach:v2:${key}`);
+    if (v2 !== null) return storedRuntimeV2(JSON.parse(v2) as unknown, campaign);
+    const v1 = this.#storage.getItem(`ad-market:studio-coach:v1:${key}`);
+    return v1 === null ? null : storedRuntimeV1(JSON.parse(v1) as unknown);
+  }
+
   #persist(): void {
     if (!this.#storage || !this.#campaign) return;
     const key = storageKey(this.#campaign);
+    const persistedKey = this.#accountNamespace === null
+      ? `ad-market:studio-coach:v2:${key}`
+      : `ad-market:studio-coach:v3:${this.#accountNamespace}:${key}`;
     if (this.#state.attemptsUsed === 0) {
       try {
         if (this.#storage.removeItem) {
-          this.#storage.removeItem(`ad-market:studio-coach:v2:${key}`);
-          this.#storage.removeItem(`ad-market:studio-coach:v1:${key}`);
+          this.#storage.removeItem(persistedKey);
+          if (this.#accountNamespace === null) {
+            this.#storage.removeItem(`ad-market:studio-coach:v1:${key}`);
+          }
         } else {
-          this.#storage.setItem(`ad-market:studio-coach:v2:${key}`, "{}");
+          this.#storage.setItem(persistedKey, "{}");
         }
       } catch {
         // Persistence is a recovery aid; storage failure must not block the editor.
@@ -632,7 +687,7 @@ export class StudioCoachRuntime {
     };
     try {
       this.#storage.setItem(
-        `ad-market:studio-coach:v2:${key}`,
+        persistedKey,
         JSON.stringify(snapshot)
       );
     } catch {

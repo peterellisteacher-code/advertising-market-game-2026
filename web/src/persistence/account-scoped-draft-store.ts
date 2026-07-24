@@ -24,6 +24,7 @@ export class AccountScopedDraftStore implements LocalPracticeDraftStore {
   readonly #factory: IDBFactory | undefined;
   #activationGeneration = 0;
   #active: LocalPracticeDraftStore | null = null;
+  #activeDatabaseName: string | null = null;
 
   constructor(options: AccountScopedDraftStoreOptions = {}) {
     this.#factory = options.factory;
@@ -32,6 +33,7 @@ export class AccountScopedDraftStore implements LocalPracticeDraftStore {
   async activateAccount(username: string): Promise<void> {
     const generation = ++this.#activationGeneration;
     this.#active = null;
+    this.#activeDatabaseName = null;
     const databaseName = await accountDraftDatabaseName(username);
     if (generation !== this.#activationGeneration) {
       throw new DOMException("Account storage activation was superseded", "AbortError");
@@ -44,11 +46,29 @@ export class AccountScopedDraftStore implements LocalPracticeDraftStore {
       throw new DOMException("Account storage activation was superseded", "AbortError");
     }
     this.#active = candidate;
+    this.#activeDatabaseName = databaseName;
   }
 
   deactivateAccount(): void {
     this.#activationGeneration += 1;
     this.#active = null;
+    this.#activeDatabaseName = null;
+  }
+
+  async resetAccount(username: string): Promise<void> {
+    const databaseName = await accountDraftDatabaseName(username);
+    if (this.#activeDatabaseName === databaseName) this.deactivateAccount();
+    const factory = this.#factory ?? globalThis.indexedDB;
+    await new Promise<void>((resolve, reject) => {
+      const request = factory.deleteDatabase(databaseName);
+      request.addEventListener("success", () => resolve(), { once: true });
+      request.addEventListener("error", () => reject(
+        request.error ?? new Error("Unable to reset account drafts")
+      ), { once: true });
+      request.addEventListener("blocked", () => reject(
+        new Error("Account draft reset is blocked")
+      ), { once: true });
+    });
   }
 
   async importCloudPractice(input: ImportCloudPracticeInput): Promise<LocalPracticeCheckpointV1> {

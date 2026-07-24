@@ -343,7 +343,7 @@ export class PairGameController {
     const partnerRole = oppositeRole(activeRole);
     const prompts = STUDENT_COPY.stageRolePrompts[this.#current.stage];
     if (bothRolesHaveActed(progress)) {
-      this.#view.activeRoleAction.textContent = STUDENT_COPY.roundZero.bothRolesReady;
+      this.#view.activeRoleAction.textContent = prompts[activeRole].productiveAction;
     } else if (progress[activeRole] > 0) {
       this.#view.activeRoleAction.textContent = partnerRole === "art-director"
         ? STUDENT_COPY.handoff.toArtDirector

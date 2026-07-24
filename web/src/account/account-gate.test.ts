@@ -21,6 +21,7 @@ function deferred<T>() {
 function mount(client: AccountSessionClient, callbacks: {
   onSession?: (username: string) => void | Promise<void>;
   onSignedOut?: (explicit: boolean) => void | Promise<void>;
+  onReset?: () => void | Promise<void>;
   reload?: () => void;
   generatePairPassword?: () => string;
 } = {}) {
@@ -47,7 +48,8 @@ function mount(client: AccountSessionClient, callbacks: {
       ? {}
       : { generatePairPassword: callbacks.generatePairPassword }),
     ...(callbacks.onSession === undefined ? {} : { onSession: callbacks.onSession }),
-    ...(callbacks.onSignedOut === undefined ? {} : { onSignedOut: callbacks.onSignedOut })
+    ...(callbacks.onSignedOut === undefined ? {} : { onSignedOut: callbacks.onSignedOut }),
+    ...(callbacks.onReset === undefined ? {} : { onReset: callbacks.onReset })
   });
   return { controller, gateRoot, statusRoot, gameSurface, canvas, creatorRoot, reload };
 }
@@ -251,6 +253,52 @@ describe("AccountAccessController", () => {
     await waitFor(() => expect(reload).toHaveBeenCalledOnce());
     expect(client.logout).toHaveBeenCalledOnce();
     expect(queryByRole(harness.statusRoot, "button", { name: "Log out" })).toBeNull();
+  });
+
+  it("offers authenticated progress reset without logging out", async () => {
+    const client: AccountSessionClient = {
+      session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
+      signup: vi.fn(),
+      login: vi.fn(),
+      logout: vi.fn()
+    };
+    const onReset = vi.fn().mockResolvedValue(undefined);
+    const harness = mount(client, { onReset });
+    await harness.controller.requireAccess();
+
+    const trigger = getByRole(harness.statusRoot, "button", { name: "Reset progress" });
+    fireEvent.click(trigger);
+    const dialog = getByRole(document.body, "dialog", { name: "Reset account progress" });
+    const confirmation = getByLabelText(dialog, "Type RESET to confirm");
+    fireEvent.input(confirmation, { target: { value: "RESET" } });
+    fireEvent.click(getByRole(dialog, "button", { name: "Reset account progress" }));
+
+    await waitFor(() => expect(onReset).toHaveBeenCalledOnce());
+    expect(client.logout).not.toHaveBeenCalled();
+  });
+
+  it("locks another tab during reset and reloads it on completion", async () => {
+    const client: AccountSessionClient = {
+      session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
+      signup: vi.fn(),
+      login: vi.fn(),
+      logout: vi.fn()
+    };
+    const reload = vi.fn();
+    const harness = mount(client, { reload });
+    await harness.controller.requireAccess();
+
+    harness.controller.holdForReset();
+
+    expect(harness.gameSurface.hidden).toBe(true);
+    expect(getByRole(harness.gateRoot, "heading", {
+      name: "Resetting account progress"
+    })).toBeTruthy();
+    expect(harness.gateRoot.textContent).toContain("another tab");
+    expect(client.logout).not.toHaveBeenCalled();
+
+    harness.controller.completeReset();
+    expect(reload).toHaveBeenCalledOnce();
   });
 
   it("offers explicit cloud-conflict choices without replacing the local copy automatically", async () => {

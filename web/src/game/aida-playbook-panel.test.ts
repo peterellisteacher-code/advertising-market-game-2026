@@ -13,7 +13,9 @@ describe("AidaPlaybookPanel", () => {
       plan: { attention: "", interest: "", desire: "", action: "" }
     });
 
-    expect(getByRole(host, "heading", { name: "Attention: earn the first glance." }))
+    expect(getByRole(host, "heading", {
+      name: "Attention: use one element to attract attention immediately."
+    }))
       .toBeTruthy();
     expect(getAllByRole(host, "button", { name: /Try move:/ })).toHaveLength(10);
     expect(host.textContent)
@@ -75,7 +77,9 @@ describe("AidaPlaybookPanel", () => {
 
     expect(getByRole<HTMLTextAreaElement>(host, "textbox", { name: "Your Desire move" }).value)
       .toBe("Make the spare hour feel like an escape.");
-    expect(getByRole(host, "heading", { name: "Desire: connect the feature to the audience's preferred feeling." }))
+    expect(getByRole(host, "heading", {
+      name: "Desire: connect a product feature to an audience need or preference."
+    }))
       .toBeTruthy();
   });
 });

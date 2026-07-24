@@ -90,12 +90,11 @@ describe("student copy", () => {
       progressNone: "Make one visible change.",
       progressOne: "1 visible change",
       progressManySuffix: "visible changes",
-      bothRolesReady: "Follow the highlighted tool step.",
       bothRolesContributed: "Both roles contributed.",
       textPlaceholder: "Try Make room for adventure",
       addWords: "Add words to ad",
       productWords: "Put words on selected product",
-      productWordsHint: "Select the product first. Tumbler words bend around its curved label area.",
+      productWordsHint: "Select the product first. Words added to supported products follow a curved path and remain editable.",
       blankWords: "Type some canvas words first.",
       audienceChanged: "Audience signal changed.",
       wordsAdded: "Words added to the canvas.",
@@ -106,6 +105,7 @@ describe("student copy", () => {
       redoUnavailable: "Nothing to redo.",
       operationFailed: "That move did not work. Try again."
     });
+    expect(STUDENT_COPY.roundZero).not.toHaveProperty("bothRolesReady");
     expect(STUDENT_COPY.readiness).toMatchObject({
       ready: expect.any(String),
       notReady: expect.any(String),

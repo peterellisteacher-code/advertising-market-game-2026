@@ -59,6 +59,7 @@ class MemoryAccountAssetRepository implements AccountAssetRepository {
     metadata: AccountAssetBlobMetadata;
   }>();
   failNextObjectWrite = false;
+  readonly deletionLog: string[] = [];
 
   async readIndex(namespace: string) {
     const entry = this.indexes.get(namespace);
@@ -101,6 +102,16 @@ class MemoryAccountAssetRepository implements AccountAssetRepository {
     return entry === undefined
       ? null
       : { bytes: entry.bytes.slice(), metadata: structuredClone(entry.metadata) };
+  }
+
+  async deleteObject(namespace: string, digest: string) {
+    this.deletionLog.push(`object:${namespace}:${digest}`);
+    this.objects.delete(`${namespace}/${digest}`);
+  }
+
+  async deleteIndex(namespace: string) {
+    this.deletionLog.push(`index:${namespace}`);
+    this.indexes.delete(namespace);
   }
 }
 
@@ -270,6 +281,66 @@ describe("immutable account asset service", () => {
     });
 
     await expect(service.get(USER_A, digest)).rejects.toMatchObject({ code: "ASSET_UNAVAILABLE" });
+  });
+
+  it("plans bounded account deletion from the validated index and deletes the index last", async () => {
+    const repository = new MemoryAccountAssetRepository();
+    const service = new AccountAssetService(repository, namespaceSecret, {
+      ...limits,
+      maxTotalBytes: 64
+    });
+    const first = pngBytes();
+    const second = Uint8Array.from([...pngBytes(), 0x03]);
+    const assets = [
+      { bytes: first, digest: sha256(first) },
+      { bytes: second, digest: sha256(second) }
+    ].sort((left, right) => left.digest.localeCompare(right.digest));
+    const digests = assets.map(({ digest }) => digest);
+    for (const asset of assets) {
+      await service.put(USER_A, asset.digest, "image/png", asset.bytes);
+    }
+
+    const plan = await service.planReset(USER_A);
+    const namespace = deriveAccountAssetNamespace(USER_A, namespaceSecret);
+    expect(plan).toEqual({ namespace, objectDigests: digests });
+
+    await service.executeReset(plan);
+    expect(repository.deletionLog).toEqual([
+      `object:${namespace}:${digests[0]}`,
+      `object:${namespace}:${digests[1]}`,
+      `index:${namespace}`
+    ]);
+    expect(repository.objects.size).toBe(0);
+    expect(repository.indexes.size).toBe(0);
+  });
+
+  it("treats a missing index as a replay-safe empty plan", async () => {
+    const repository = new MemoryAccountAssetRepository();
+    const service = new AccountAssetService(repository, namespaceSecret, limits);
+    const namespace = deriveAccountAssetNamespace(USER_A, namespaceSecret);
+
+    await expect(service.planReset(USER_A)).resolves.toEqual({
+      namespace,
+      objectDigests: []
+    });
+  });
+
+  it("does not delete anything when the bounded account index is malformed", async () => {
+    const repository = new MemoryAccountAssetRepository();
+    const service = new AccountAssetService(repository, namespaceSecret, limits);
+    const namespace = deriveAccountAssetNamespace(USER_A, namespaceSecret);
+    repository.indexes.set(namespace, {
+      value: {
+        schema: "advertising-game-account-asset-index",
+        version: 1,
+        revision: 1,
+        assets: { ["x".repeat(64)]: { contentType: "image/png", byteLength: 24 } }
+      } as AccountAssetIndex,
+      etag: 1
+    });
+
+    await expect(service.planReset(USER_A)).rejects.toMatchObject({ code: "ASSET_UNAVAILABLE" });
+    expect(repository.deletionLog).toEqual([]);
   });
 
   it("uses typed domain errors without embedding account IDs or storage keys", () => {

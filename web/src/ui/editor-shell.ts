@@ -143,11 +143,11 @@ export function createEditorShell(root: HTMLElement): EditorShell {
             <div data-image-lab-panel><p role="status">Image options loading</p></div>
           </section>
           <section class="creator__tool-panel creator__money-check" id="studio-panel-price" role="region" aria-label="Money check" data-studio-panel="price" data-creator-feature="price" hidden>
-            <h2>Price your idea</h2>
+            <h2>Set the product price</h2>
             <div data-money-check-panel><p role="status">Price data loading</p></div>
           </section>
           <section class="creator__tool-panel creator__market-route" id="studio-panel-route" role="region" aria-label="Market Route" data-studio-panel="route" data-creator-feature="route" hidden>
-            <h2>Pick your market</h2>
+            <h2>Choose a market route</h2>
             <div data-market-route-panel><p role="status">Market map loading</p></div>
           </section>
           <section class="creator__tool-panel creator__aida-playbook" id="studio-panel-aida" role="region" aria-label="AIDA move deck" data-studio-panel="aida" data-creator-feature="aida" hidden>
@@ -186,15 +186,20 @@ export function createEditorShell(root: HTMLElement): EditorShell {
 
   const briefToggle = root.querySelector<HTMLButtonElement>("[data-brief-toggle]")!;
   const brief = root.querySelector<HTMLElement>("#studio-full-brief")!;
+  const overlay = root.querySelector<HTMLElement>(".creator")!;
+  const drawerCollapse = root.querySelector<HTMLButtonElement>("[data-studio-collapse]")!;
   briefToggle.addEventListener("click", () => {
     const open = brief.hidden;
     brief.hidden = !open;
     briefToggle.setAttribute("aria-expanded", String(open));
     briefToggle.textContent = open ? "Close full brief" : "Open full brief";
+    drawerCollapse.hidden = open;
+    if (open) overlay.dataset.briefOpen = "true";
+    else delete overlay.dataset.briefOpen;
   });
 
   return {
-    overlay: root.querySelector(".creator")!,
+    overlay,
     library: root.querySelector(".creator__library")!,
     productBuilder: root.querySelector(".creator__product-builder")!,
     productBuilderPanel: root.querySelector('[data-product-builder-panel]')!,

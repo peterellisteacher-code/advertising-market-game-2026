@@ -111,7 +111,8 @@ describe("ProductBuilderPanel", () => {
       { id: "front-art", colour: "#F2385A" }
     );
     expect(getByRole(host, "button", { name: "Drop another copy" })).toBeTruthy();
-    expect(getByRole(host, "status").textContent).toBe("Classic Can placed · swap driver");
+    expect(getByRole(host, "status").textContent)
+      .toBe("Classic Can placed · swap who controls the tools");
     expect(host.textContent).not.toMatch(/\b(?:assignment|unit|task|variant|component|material)\b/i);
   });
 

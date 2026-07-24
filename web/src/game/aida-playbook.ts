@@ -30,7 +30,7 @@ function stage(
 }
 
 export const AIDA_STAGES: readonly AidaStageDefinition[] = Object.freeze([
-  stage("attention", "Attention", "Attention: earn the first glance.",
+  stage("attention", "Attention", "Attention: use one element to attract attention immediately.",
     "The audience notices one element before moving past it.", [
       move("pattern-break", "Pattern break", "Disrupt the expected visual pattern.",
         "Begin with one element that disrupts the visual pattern."),
@@ -53,7 +53,7 @@ export const AIDA_STAGES: readonly AidaStageDefinition[] = Object.freeze([
       move("three-beat", "Three-beat reveal", "Build attention through a three-step visual rhythm.",
         "Arrange three simple steps. Each leads the eye toward the product."),
     ]),
-  stage("interest", "Interest", "Interest: reward the second glance.",
+  stage("interest", "Interest", "Interest: give the audience a reason to keep looking.",
     "Provide detail, evidence, or a short narrative.", [
       move("feature-demo", "Feature demo", "Show one feature performing its function.",
         "Demonstrate one feature in a context where its function matters."),
@@ -76,7 +76,7 @@ export const AIDA_STAGES: readonly AidaStageDefinition[] = Object.freeze([
       move("open-loop", "Open loop", "Reveal partial information. Defer the rest.",
         "Show one intriguing detail now. Defer the explanation."),
     ]),
-  stage("desire", "Desire", "Desire: connect the feature to the audience's preferred feeling.",
+  stage("desire", "Desire", "Desire: connect a product feature to an audience need or preference.",
     "Connect product function to the audience's preferred feeling.", [
       move("life-benefit", "Life benefit", "Connect a feature to a result in the user's life.",
         "Show how one feature changes the user's experience."),

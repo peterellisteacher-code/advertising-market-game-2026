@@ -14,6 +14,7 @@ const bundleDirectory = join(here, "function-bundles");
 const expectedFunctions = [
   "account-assets.mts",
   "account-progress.mts",
+  "account-reset.mts",
   "account-session.mts",
   "image-lab-jobs.mts",
   "image-lab-session.mts",
@@ -73,7 +74,7 @@ const loadStaticDiscovery = async (): Promise<{
 };
 
 describe("Netlify deployment layout", () => {
-  it("configures a wrapper-only directory containing exactly eleven functions", () => {
+  it("configures a wrapper-only directory containing exactly twelve functions", () => {
     const toml = readFileSync(join(repoRoot, "netlify.toml"), "utf8");
     expect(toml).toMatch(/^functions = "netlify\/deploy-functions"$/m);
     expect(existsSync(deployDirectory)).toBe(true);
@@ -147,6 +148,7 @@ describe("Netlify deployment layout", () => {
     expect([...byName.keys()].sort()).toEqual([
       "account-assets",
       "account-progress",
+      "account-reset",
       "account-session",
       "image-lab-jobs",
       "image-lab-session",
@@ -157,7 +159,7 @@ describe("Netlify deployment layout", () => {
       "product-price-guide",
       "studio-coach"
     ]);
-    expect(discovered).toHaveLength(11);
+    expect(discovered).toHaveLength(12);
     for (const entry of discovered) expect(entry.runtimeAPIVersion).toBe(2);
     expect(byName.get("account-session")?.routes).toEqual([
       {
@@ -184,6 +186,11 @@ describe("Netlify deployment layout", () => {
     expect(byName.get("account-progress")?.routes).toEqual([{
       pattern: "/api/account/progress",
       literal: "/api/account/progress",
+      methods: []
+    }]);
+    expect(byName.get("account-reset")?.routes).toEqual([{
+      pattern: "/api/account/reset",
+      literal: "/api/account/reset",
       methods: []
     }]);
     expect(byName.get("account-assets")?.routes).toEqual([{
@@ -327,6 +334,14 @@ describe("Netlify deployment layout", () => {
         rateLimit: {
           aggregateBy: ["ip", "domain"],
           windowLimit: 120,
+          windowSize: 60
+        }
+      },
+      "account-reset": {
+        path: ["/api/account/reset"],
+        rateLimit: {
+          aggregateBy: ["ip", "domain"],
+          windowLimit: 300,
           windowSize: 60
         }
       },

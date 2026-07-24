@@ -5,6 +5,7 @@ signal focus_restore_requested
 signal snapshot_received(snapshot: Dictionary)
 signal room_created(wrapper: Dictionary)
 signal room_joined(wrapper: Dictionary)
+signal room_join_failed(code: String, message: String)
 signal room_resumed(wrapper: Variant)
 signal room_resume_failed(code: String, message: String)
 signal reveal_received(reveal: Dictionary)
@@ -352,6 +353,9 @@ func _on_request_failed(request_id: String, code: String, message: String) -> vo
         _forget_artwork_request(str(context.get("artworkKey", "")), request_id)
     _finish_request(request_id)
     if context.get("method") in ["createRoom", "joinRoom", "resumeSession"] and not _room_intent_is_current(context):
+        return
+    if context.get("method") == "joinRoom":
+        room_join_failed.emit(code, message)
         return
     if context.get("method") == "resumeSession":
         room_resume_failed.emit(code, message)

@@ -20,7 +20,7 @@ export function cloudStatusMessage(state: CloudProgressSyncState): string {
     case "syncing":
       return "Saved on this device · connecting the cloud copy…";
     case "synced":
-      return `Saved on this device and cloud · revision ${state.revision}`;
+      return "Saved on this device and cloud.";
     case "offline":
       return "Saved on this device · cloud copy paused";
     case "signed-out":

@@ -97,8 +97,8 @@ describe("ImageLabPanel", () => {
       code: "room-code"
     }, expect.any(AbortSignal)));
     await waitFor(() => expect(getByRole(host, "button", { name: "Forge object" })).toBeTruthy());
-    expect(host.textContent).toContain("5 Object Forge sparks");
-    expect(host.textContent).toContain("2 Make It Real sparks");
+    expect(host.textContent).toContain("5 Object Forge uses remaining");
+    expect(host.textContent).toContain("2 Make It Real uses remaining");
     expect(host.textContent).not.toMatch(/model|slug|steps|quality|dimensions/i);
   });
 
@@ -153,7 +153,7 @@ describe("ImageLabPanel", () => {
       colour: "electric blue",
       removeWhiteBackground: true
     }, expect.any(AbortSignal)));
-    await waitFor(() => expect(getByRole(host, "status").textContent).toContain("landed on your canvas"));
+    await waitFor(() => expect(getByRole(host, "status").textContent).toContain("Your new object is on the canvas."));
   });
 
   it("uses the current product name for Make It Real and reports failures without losing controls", async () => {

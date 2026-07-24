@@ -94,7 +94,7 @@ export class ProductBuilderPanel {
 
     const prompt = document.createElement("p");
     prompt.className = "product-maker__pair-prompt";
-    prompt.textContent = "Choose parts together. Swap driver once the product is placed.";
+    prompt.textContent = "Choose parts together. After placing the product, swap which partner controls the tools.";
 
     const steps = document.createElement("div");
     steps.className = "product-maker__steps";
@@ -135,7 +135,7 @@ export class ProductBuilderPanel {
         : undefined;
       this.onPlace(product, artwork);
       add.textContent = "Drop another copy";
-      status.textContent = `${product.bodyTitle} placed · swap driver`;
+      status.textContent = `${product.bodyTitle} placed · swap who controls the tools`;
     });
 
     root.append(prompt, steps, options, status, add);

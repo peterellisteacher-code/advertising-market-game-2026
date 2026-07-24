@@ -340,4 +340,50 @@ describe("StudioCoachRuntime", () => {
 
     expect(runtime.state()).toMatchObject({ phase: "advice", attemptsUsed: 1, first: firstResponse });
   });
+
+  it("persists v3 state by account and resets only the selected account", async () => {
+    const accountOne = new StudioCoachRuntime({
+      client: { check: vi.fn().mockResolvedValue(firstResponse) },
+      capture: vi.fn().mockResolvedValue(evidence("a")),
+      createId: () => "account-one-check"
+    });
+    await accountOne.activateAccount("team-one");
+    accountOne.setCampaign(campaign);
+    await accountOne.requestInitial("technique", "leading-lines");
+
+    const accountTwo = new StudioCoachRuntime({
+      client: { check: vi.fn().mockResolvedValue(firstResponse) },
+      capture: vi.fn().mockResolvedValue(evidence("b")),
+      createId: () => "account-two-check"
+    });
+    await accountTwo.activateAccount("team-two");
+    accountTwo.setCampaign(campaign);
+    await accountTwo.requestInitial("technique", "leading-lines");
+
+    await accountTwo.resetAccount("team-one");
+
+    const restoredOne = new StudioCoachRuntime({
+      client: { check: vi.fn() },
+      capture: vi.fn()
+    });
+    await restoredOne.activateAccount("team-one");
+    restoredOne.setCampaign(campaign);
+    expect(restoredOne.state()).toMatchObject({ phase: "ready", attemptsUsed: 0 });
+
+    const restoredTwo = new StudioCoachRuntime({
+      client: { check: vi.fn() },
+      capture: vi.fn()
+    });
+    await restoredTwo.activateAccount("team-two");
+    restoredTwo.setCampaign(campaign);
+    expect(restoredTwo.state()).toMatchObject({
+      phase: "advice",
+      attemptsUsed: 1,
+      first: firstResponse
+    });
+    expect([...Array(globalThis.sessionStorage.length)].map((_, index) =>
+      globalThis.sessionStorage.key(index))).toEqual([
+      expect.stringContaining("ad-market:studio-coach:v3:")
+    ]);
+  });
 });

@@ -19,8 +19,12 @@ import {
 } from "./account-cookie-request-serialiser";
 
 const ACCOUNT_USERNAME = /^[a-z0-9][a-z0-9_-]{2,23}$/u;
+const RESET_OPERATION_ID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 const PROGRESS_SCHEMA = "advertising-game-progress";
 const PROGRESS_VERSION = 1;
+const ACCOUNT_RESET_SCHEMA = "advertising-game-account-reset";
+const ACCOUNT_RESET_VERSION = 1;
 const PROGRESS_JSON_LIMIT = 256 * 1_024;
 const ACCOUNT_JSON_LIMIT = 8 * 1_024;
 const ERROR_JSON_LIMIT = 8 * 1_024;
@@ -55,6 +59,11 @@ export interface AccountLoginInput {
   readonly password: string;
 }
 
+export interface AccountResetInput {
+  readonly operationId: string;
+  readonly confirmation: "RESET";
+}
+
 export type AccountClientErrorCode =
   | "ACCOUNT_NOT_CONFIGURED"
   | "ACCOUNT_RATE_LIMITED"
@@ -67,6 +76,7 @@ export type AccountClientErrorCode =
   | "PROGRESS_NOT_CONFIGURED"
   | "PROGRESS_TOO_LARGE"
   | "PROGRESS_UNAVAILABLE"
+  | "RESET_INCOMPLETE"
   | "SIGNUP_DENIED"
   | "USERNAME_UNAVAILABLE";
 
@@ -85,6 +95,10 @@ export interface AccountSessionClient {
   signup(input: AccountSignupInput): Promise<Extract<AccountSession, { authenticated: true }>>;
   login(input: AccountLoginInput): Promise<Extract<AccountSession, { authenticated: true }>>;
   logout(): Promise<void>;
+}
+
+export interface AccountResetClient {
+  reset(input: AccountResetInput): Promise<"reset">;
 }
 
 export type CloudProgressSaveResult =
@@ -258,6 +272,12 @@ async function responseError(response: Response): Promise<AccountClientError> {
     return new AccountClientError("ACCOUNT_RATE_LIMITED", retryAfterSeconds(response));
   }
   const value = await jsonBody(response, ERROR_JSON_LIMIT);
+  if (isRecord(value) && exactKeys(value, ["error", "operationId", "retryable"]) &&
+    value.error === "RESET_INCOMPLETE" &&
+    typeof value.operationId === "string" && RESET_OPERATION_ID.test(value.operationId) &&
+    value.retryable === true) {
+    return new AccountClientError("RESET_INCOMPLETE");
+  }
   if (isRecord(value) && exactKeys(value, ["error"]) &&
     value.error === "ACCOUNT_IDENTITY_CHANGED") {
     return new AccountClientError("AUTHENTICATION_REQUIRED");
@@ -270,7 +290,7 @@ async function responseError(response: Response): Promise<AccountClientError> {
   return new AccountClientError(response.status >= 500 ? "ACCOUNT_UNAVAILABLE" : "INVALID_RESPONSE");
 }
 
-export class HttpAccountClient implements AccountSessionClient {
+export class HttpAccountClient implements AccountSessionClient, AccountResetClient {
   readonly #requestTimeoutMs: number;
   readonly #sleep: Sleep;
   readonly #random: () => number;
@@ -323,6 +343,33 @@ export class HttpAccountClient implements AccountSessionClient {
       if (response.status !== 204) throw new AccountClientError("INVALID_RESPONSE");
       this.identity.deactivate();
       this.mutations.publish();
+    });
+  }
+
+  async reset(input: AccountResetInput): Promise<"reset"> {
+    if (!RESET_OPERATION_ID.test(input.operationId) || input.confirmation !== "RESET") {
+      throw new AccountClientError("INVALID_REQUEST");
+    }
+    return this.#serialise(async () => {
+      const expectedAccount = this.identity.current();
+      if (expectedAccount === null) throw new AccountClientError("AUTHENTICATION_REQUIRED");
+      const response = await this.#request(
+        "/api/account/reset",
+        "POST",
+        {
+          schema: ACCOUNT_RESET_SCHEMA,
+          version: ACCOUNT_RESET_VERSION,
+          operationId: input.operationId,
+          confirmation: input.confirmation
+        },
+        expectedAccount
+      );
+      const value = await jsonBody(response, ACCOUNT_JSON_LIMIT);
+      if (!isRecord(value) || !exactKeys(value, ["operationId", "status"]) ||
+        value.status !== "reset" || value.operationId !== input.operationId) {
+        throw new AccountClientError("INVALID_RESPONSE");
+      }
+      return "reset" as const;
     });
   }
 

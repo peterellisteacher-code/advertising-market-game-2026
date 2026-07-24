@@ -457,7 +457,7 @@ describe("account progress API", () => {
     expect(sql).toMatch(/p_document\s*->>\s*'teamId'\s*=\s*''/iu);
     expect(sql).toMatch(/jsonb_typeof\s*\(\s*p_document\s*->\s*'revision'\s*\)/iu);
     expect(sql).toMatch(
-      /if\s+p_operation\s+is\s+null\s+or\s+p_operation\s+not\s+in\s*\(\s*'list'\s*,\s*'load'\s*,\s*'save'\s*\)/iu
+      /if\s+p_operation\s+is\s+null\s+or\s+p_operation\s+not\s+in\s*\(\s*'list'\s*,\s*'load'\s*,\s*'save'\s*,\s*'reset'\s*\)/iu
     );
   });
 
@@ -501,7 +501,7 @@ describe("account progress API", () => {
     );
 
     expect(sql).toMatch(
-      /if\s+p_operation\s+is\s+null\s+or\s+p_operation\s+not\s+in\s*\(\s*'list'\s*,\s*'load'\s*,\s*'save'\s*\)/iu
+      /if\s+p_operation\s+is\s+null\s+or\s+p_operation\s+not\s+in\s*\(\s*'list'\s*,\s*'load'\s*,\s*'save'\s*,\s*'reset'\s*\)/iu
     );
     expect(sql).toMatch(/security\s+definer[\s\S]*?set\s+search_path\s*=\s*''/iu);
     expect(sql).toMatch(

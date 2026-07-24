@@ -1719,6 +1719,44 @@ describe("window.AdMarketCreator", () => {
     expect(state.evidence.attention).toEqual([selectedObjectId]);
   });
 
+  it("preserves a selected placed product when the pair opens AIDA and locks Attention", async () => {
+    const source = documentAtStage("sell");
+    source.fabricState.objects = [{
+      type: "group",
+      objectId: "placed-product",
+      elementKind: "product-kit",
+      accessibleName: "Placed product",
+      objects: []
+    }];
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-selected-product", "open", source))
+      .toMatchObject({ ok: true });
+    runtime.selectedObjectId = "placed-product";
+    runtime.selectionListeners.forEach((listener) => listener({
+      objectIds: ["placed-product"]
+    }));
+
+    activateStudioTool("aida");
+
+    expect(runtime.selectedObjectId).toBe("placed-product");
+    const idea = getByRole<HTMLTextAreaElement>(document.body, "textbox", {
+      name: "Your Attention move"
+    });
+    fireEvent.input(idea, {
+      target: { value: "Use the product close-up as the first focal point." }
+    });
+    fireEvent.click(getByRole(document.body, "button", { name: "Lock in Attention" }));
+
+    await waitFor(() => expect(document.querySelector<HTMLElement>(
+      "[data-aida-playbook-panel] [role=status]"
+    )?.textContent).toContain("Attention move locked to the selected canvas piece"));
+    const response = await parsed(api, "state-selected-product", "getState", null);
+    if (!response.ok) throw new Error(JSON.stringify(response.error));
+    const state = CampaignDocumentSchema.parse(response.payload);
+    expect(state.evidence.attention).toEqual(["placed-product"]);
+  });
+
   it("keeps an AIDA move unlocked until the pair selects canvas proof", async () => {
     await import("./main");
     const api = window.AdMarketCreator;
@@ -1807,7 +1845,7 @@ describe("window.AdMarketCreator", () => {
     expect(firstState.fabricState.objects.find(({ objectId }) => objectId === priceObjectId))
       .toMatchObject({
         text: "$10.00",
-        accessibleName: "Selling price $10.00",
+        accessibleName: "Market price $10.00",
         editable: false,
         left: 1240,
         top: 670
@@ -1823,7 +1861,7 @@ describe("window.AdMarketCreator", () => {
       expect(state.fabricState.objects.find(({ objectId }) => objectId === priceObjectId))
         .toMatchObject({
           text: "$20.00",
-          accessibleName: "Selling price $20.00",
+          accessibleName: "Market price $20.00",
           editable: false
         });
     });
@@ -1992,7 +2030,7 @@ describe("window.AdMarketCreator", () => {
       expect(getByRole(document.body, "status", { name: "Pair progress" }).textContent)
         .toBe("Both roles contributed.");
       expect(document.querySelector("[data-active-role-action]")?.textContent)
-        .toBe("Follow the highlighted tool step.");
+        .toBe("Name the product. Add one clear benefit to the ad.");
     });
 
     fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));
@@ -2041,7 +2079,7 @@ describe("window.AdMarketCreator", () => {
     currentObjects()[0]!.src = `blob:${window.location.origin}/not-owned`;
     expect(await parsed(api, "publish-unowned", "publish", null)).toMatchObject({
       ok: false,
-      error: { code: "HANDLER_ERROR" }
+      error: { code: "CREATOR_OPERATION_FAILED" }
     });
   });
 
@@ -2099,7 +2137,7 @@ describe("window.AdMarketCreator", () => {
       expect(await parsed(window.AdMarketCreator, `open-${scenario}`, "open", requested)).toMatchObject({
         contract: CREATOR_BRIDGE_CONTRACT,
         ok: false,
-        error: { code: "HANDLER_ERROR" }
+        error: { code: "CREATOR_OPERATION_FAILED" }
       });
       expect(runtime.load).not.toHaveBeenCalled();
     }
@@ -2113,7 +2151,10 @@ describe("window.AdMarketCreator", () => {
 
     expect(await parsed(window.AdMarketCreator, "open-runtime-failure", "open", source)).toMatchObject({
       ok: false,
-      error: { code: "HANDLER_ERROR", message: "Synthetic canvas construction failure" }
+      error: {
+        code: "CREATOR_OPERATION_FAILED",
+        message: "The advertisement editor could not be opened. Try again."
+      }
     });
     expect(runtime.createdUrls).toHaveLength(1);
     expect(runtime.revokedUrls).toEqual([runtime.createdUrls[0]!.url]);
@@ -2128,7 +2169,10 @@ describe("window.AdMarketCreator", () => {
 
     expect(await parsed(api, "open-initial-load-failure", "open", source)).toMatchObject({
       ok: false,
-      error: { code: "HANDLER_ERROR", message: "Synthetic initial Fabric load failure" }
+      error: {
+        code: "CREATOR_OPERATION_FAILED",
+        message: "The advertisement editor could not be opened. Try again."
+      }
     });
     expect(runtime.adapterDisposed).toHaveBeenCalledTimes(1);
     expect(runtime.canvasDisposed).toHaveBeenCalledTimes(1);
@@ -2180,7 +2224,10 @@ describe("window.AdMarketCreator", () => {
       contract: CREATOR_BRIDGE_CONTRACT,
       requestId: "close-disposal-failure",
       ok: false,
-      error: { code: "HANDLER_ERROR", message: "Synthetic adapter disposal failure" }
+      error: {
+        code: "CREATOR_OPERATION_FAILED",
+        message: "The advertisement editor could not be closed. Try again."
+      }
     });
     expect(runtime.adapterDisposed).toHaveBeenCalledTimes(1);
     expect(runtime.canvasDisposed).toHaveBeenCalledTimes(1);
@@ -2890,7 +2937,7 @@ describe("window.AdMarketCreator", () => {
     const objectName = getByRole<HTMLInputElement>(imageLab, "textbox", { name: "Object idea" });
     objectName.value = "curved reusable bottle";
     fireEvent.click(getByRole(imageLab, "button", { name: "Forge object" }));
-    await waitFor(() => expect(imageLab.textContent).toContain("landed on your canvas"));
+    await waitFor(() => expect(imageLab.textContent).toContain("Your new object is on the canvas."));
 
     const state = await parsed(api, "state-image-lab", "getState", null);
     expect(state.payload).toMatchObject({
@@ -3181,7 +3228,10 @@ describe("window.AdMarketCreator", () => {
       contract: CREATOR_BRIDGE_CONTRACT,
       requestId: "storage-failure",
       ok: false,
-      error: { code: "HANDLER_ERROR", message: "Synthetic IndexedDB failure" }
+      error: {
+        code: "CREATOR_OPERATION_FAILED",
+        message: "The draft could not be saved. Your work remains open. Try again."
+      }
     });
 
     runtime.publishFailure = new Error("Synthetic Fabric export failure");
@@ -3189,7 +3239,10 @@ describe("window.AdMarketCreator", () => {
       contract: CREATOR_BRIDGE_CONTRACT,
       requestId: "export-failure",
       ok: false,
-      error: { code: "HANDLER_ERROR", message: "Synthetic Fabric export failure" }
+      error: {
+        code: "CREATOR_OPERATION_FAILED",
+        message: "The advertisement could not be published. Check the required items, then try again."
+      }
     });
   });
 

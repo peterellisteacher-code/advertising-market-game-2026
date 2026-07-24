@@ -39,7 +39,15 @@ describe("account progress operation artifacts", () => {
     expect(sql).toContain("262144");
     expect(sql).toContain("pg_advisory_xact_lock");
     expect(sql).toContain("'currentRevision'");
-    expect(sql).not.toMatch(/^\s*(drop|truncate|delete)\b/imu);
+    expect(sql).not.toMatch(/^\s*(drop|truncate)\b/imu);
+  });
+
+  it("resets only the authenticated user's progress under the existing advisory lock", () => {
+    const sql = readFileSync(sqlPath, "utf8");
+    expect(sql).toContain("p_operation not in ('list', 'load', 'save', 'reset')");
+    expect(sql).toMatch(
+      /if p_operation = 'reset' then[\s\S]+perform pg_catalog\.pg_advisory_xact_lock[\s\S]+delete from advertising_game\.progress[\s\S]+where progress\.user_id = p_user_id[\s\S]+return pg_catalog\.jsonb_build_object\('status', 'reset'\)/iu
+    );
   });
 
   it("keeps the Edge broker behind a one-purpose digest gate and service-role-only RPCs", () => {

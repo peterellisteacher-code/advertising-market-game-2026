@@ -53,12 +53,12 @@ export const STUDENT_COPY = deepFreeze({
   rolePrompts: {
     "art-director": {
       label: "Art Director",
-      productiveAction: "Build the product, place it on the ad, then make it a clear close-up.",
+      productiveAction: "Build the product. Place it on the ad, then enlarge it for a clear close-up.",
       holdingAction: "Check that the product is large, clear and easy to recognise."
     },
     strategist: {
       label: "Strategist",
-      productiveAction: "Name the product and add one clear benefit to the ad.",
+      productiveAction: "Name the product. Add one clear benefit to the ad.",
       holdingAction: "Read the audience need. Prepare a product name and one useful benefit."
     }
   },
@@ -66,19 +66,19 @@ export const STUDENT_COPY = deepFreeze({
     invent: {
       "art-director": {
         label: "Art Director",
-        productiveAction: "Build the product, place it on the ad, then make it a clear close-up.",
+        productiveAction: "Build the product. Place it on the ad, then enlarge it for a clear close-up.",
         holdingAction: "Check that the product is large, clear and easy to recognise."
       },
       strategist: {
         label: "Strategist",
-        productiveAction: "Name the product and add one clear benefit to the ad.",
+        productiveAction: "Name the product. Add one clear benefit to the ad.",
         holdingAction: "Read the audience need. Prepare a product name and one useful benefit."
       }
     },
     sell: {
       "art-director": {
         label: "Art Director",
-        productiveAction: "Choose one visual technique and use it to guide attention.",
+        productiveAction: "Choose one visual technique. Use it to direct the audience's attention.",
         holdingAction: "Check whether the current AIDA choice is clear and easy to notice."
       },
       strategist: {
@@ -95,7 +95,7 @@ export const STUDENT_COPY = deepFreeze({
       },
       strategist: {
         label: "Strategist",
-        productiveAction: "Choose the audience price position and selling price. Then complete one market-route step.",
+        productiveAction: "Choose the audience price position and selling price. Complete one market-route step.",
         holdingAction: "Check the price and market route against the audience need."
       }
     },
@@ -128,12 +128,11 @@ export const STUDENT_COPY = deepFreeze({
     progressNone: "Make one visible change.",
     progressOne: "1 visible change",
     progressManySuffix: "visible changes",
-    bothRolesReady: "Follow the highlighted tool step.",
     bothRolesContributed: "Both roles contributed.",
     textPlaceholder: "Try Make room for adventure",
     addWords: "Add words to ad",
     productWords: "Put words on selected product",
-    productWordsHint: "Select the product first. Tumbler words bend around its curved label area.",
+    productWordsHint: "Select the product first. Words added to supported products follow a curved path and remain editable.",
     blankWords: "Type some canvas words first.",
     audienceChanged: "Audience signal changed.",
     wordsAdded: "Words added to the canvas.",

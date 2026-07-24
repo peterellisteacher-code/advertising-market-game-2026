@@ -8,14 +8,15 @@ const LocalMarketSession = preload("res://src/market/LocalMarketSession.gd")
 const MarketViewState = preload("res://src/market/MarketViewState.gd")
 const GameRun = preload("res://src/game/GameRun.gd")
 const WebRunProgressStore = preload("res://src/game/WebRunProgressStore.gd")
+const GameAccessibilityMirror = preload("res://src/main/GameAccessibilityMirror.gd")
 const MARKET_COMPATIBILITY_WALLET_CENTS := 10000
 const LIVE_PROGRESS_CONTRACT := WebRunProgressStore.CONTRACT
 const MAX_LIVE_PROGRESS_BYTES := WebRunProgressStore.MAX_PROGRESS_BYTES
 const LEVEL_COPY := {
     "invent": {
         "eyebrow": "LEVEL 1 // INVENT IT",
-        "heading": "Design a product that solves an unrecognised customer need.",
-        "clue": "Identify one customer need, design a product for it, and give it a distinctive name."
+        "heading": "Design a product that meets one customer need the audience has not yet recognised.",
+        "clue": "Identify one customer need. Design a product for it, then give the product a distinctive name."
     },
     "sell": {
         "eyebrow": "LEVEL 2 // SELL IT",
@@ -24,8 +25,8 @@ const LEVEL_COPY := {
     },
     "irresistible": {
         "eyebrow": "LEVEL 3 // FINALISE IT",
-        "heading": "Refine the pitch until the market engages.",
-        "clue": "Choose your price, market route, strongest features, and final visual finish."
+        "heading": "Refine the advertisement so it communicates the product's value to the audience.",
+        "clue": "Choose the product price and market route, select its strongest features, then refine the final appearance."
     }
 }
 
@@ -41,6 +42,8 @@ const AIDA_NEXT_ACTIONS := {
 @onready var market_screen: Control = %MarketScreen
 @onready var launch_button: Button = %LaunchCreator
 @onready var status: Label = %Status
+@onready var hero_heading: Label = $MainMargin/GameInput/HeroHeading
+@onready var lobby_heading: Label = $MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyHeading
 @onready var lobby_panel: Control = %LobbyPanel
 @onready var team_alias: LineEdit = %TeamAlias
 @onready var room_code: LineEdit = %RoomCode
@@ -92,6 +95,30 @@ var _startup_state := "idle"
 var _run_progress_store: RefCounted
 var _startup_progress_matched := false
 var _startup_expected_document_revision := -1
+var _accessibility_mirror: RefCounted = GameAccessibilityMirror.new()
+
+func _process(_delta: float) -> void:
+    if lobby_panel.visible:
+        _accessibility_mirror.update(
+            "FIRST MOVE",
+            hero_heading.text,
+            lobby_heading.text,
+            status.text
+        )
+    elif run_panel.visible:
+        _accessibility_mirror.update(
+            level_eyebrow.text,
+            level_heading.text,
+            level_clue.text,
+            status.text
+        )
+    else:
+        _accessibility_mirror.update(
+            "LIVE MARKET",
+            "The class market is open.",
+            "",
+            status.text
+        )
 
 func _ready() -> void:
     if _ready_wired:
@@ -119,6 +146,7 @@ func _ready() -> void:
     market_host.diagnostic.connect(_show_market_diagnostic)
     market_host.room_created.connect(_on_room_created)
     market_host.room_joined.connect(_on_room_joined)
+    market_host.room_join_failed.connect(_on_room_join_failed)
     market_host.room_resumed.connect(_on_room_resumed)
     market_host.room_resume_failed.connect(_on_room_resume_failed)
     market_host.snapshot_received.connect(_on_market_snapshot)
@@ -195,7 +223,7 @@ func _on_room_resume_failed(_code: String, _message: String) -> void:
     lobby_panel.show()
     run_panel.hide()
     market_screen.hide()
-    status.text = "Live market check failed. Retry live, or select Practice explicitly."
+    status.text = "Live market check failed. Retry live, or select Practice."
 
 func _on_latest_draft_received(document: Variant) -> void:
     if _startup_state != "team-hydrating":
@@ -299,7 +327,7 @@ func _on_practice_request_succeeded(request_id: String, method: String, payload:
             run_panel.show()
             market_screen.hide()
             _render_level()
-            status.text = "Saved pitch restored. Resume from exactly where your pair left off."
+            status.text = "Saved pitch restored. Continue from where your pair stopped."
         "begin":
             lobby_panel.hide()
             run_panel.show()
@@ -352,7 +380,7 @@ func _on_practice_request_failed(request_id: String, method_or_code: String, cod
         _practice_retry_operation.clear()
     _practice_failure(context)
     if code == "PRACTICE_UNAVAILABLE":
-        status.text = "Saved practice unavailable here. Live rooms still ready."
+        status.text = "Saved practice is not available here. Live rooms are still ready."
     elif not message.is_empty() and context != "startup":
         status.text = "Save failed. No state change. Retry."
 
@@ -479,7 +507,7 @@ func _start_run() -> void:
     market_screen.call("set_market_host", market_host)
     _practice_recovery.clear()
     start_button.disabled = true
-    status.text = "Preparing a safe place for your pitch."
+    status.text = "Preparing a place for the pitch."
     _begin_practice_request("begin", "begin")
     var operation_id := _practice_operation_id("begin", {"teamAlias": alias})
     var request_id: String = _practice_bridge.begin(alias, operation_id)
@@ -503,7 +531,7 @@ func _create_live_room() -> void:
     market_screen.call("set_market_host", market_host)
     var code := classroom_code.text.strip_edges()
     if code.is_empty():
-        status.text = "Enter classroom code before opening the market."
+        status.text = "Enter the classroom code before opening the market."
         _focus_if_ready(classroom_code)
         return
     _choose_new_route()
@@ -560,7 +588,7 @@ func _begin_resumed_team(wrapper: Dictionary) -> void:
     market_screen.hide()
     launch_button.disabled = true
     _startup_state = "team-hydrating"
-    status.text = "Restoring this pair's exact live campaign."
+    status.text = "Restoring this pair's live campaign."
     if creator_host.load_latest(String(canonical_document.get("documentId"))).is_empty():
         _fail_live_hydration()
 
@@ -580,7 +608,7 @@ func _finish_resumed_team(document: Dictionary) -> void:
     market_screen.hide()
     run_panel.show()
     _render_level()
-    status.text = "Live pitch restored. Resume from exactly where your pair left off."
+    status.text = "Live pitch restored. Continue from where your pair stopped."
     _focus_if_ready(launch_button)
 
 func _fail_live_hydration() -> void:
@@ -592,7 +620,7 @@ func _fail_live_hydration() -> void:
     lobby_panel.show()
     run_panel.hide()
     market_screen.hide()
-    status.text = "Live room restored. Exact saved campaign could not be verified. Progress unchanged."
+    status.text = "Live room restored. The saved campaign could not be verified. Progress is unchanged."
 
 func _team_room_context(wrapper: Dictionary) -> Dictionary:
     var snapshot_value: Variant = wrapper.get("snapshot")
@@ -646,6 +674,13 @@ func _on_room_joined(wrapper: Dictionary) -> void:
     _render_level()
     _save_live_progress()
     _focus_if_ready(launch_button)
+
+func _on_room_join_failed(code: String, _message: String) -> void:
+    if code in ["INVALID_REQUEST", "ROOM_NOT_FOUND", "ROOM_EXPIRED"]:
+        status.text = "The room code was not found. Check the code and try again."
+    else:
+        status.text = "The live market is temporarily unavailable. Check the connection and try again."
+    _focus_if_ready(room_code)
 
 func _on_room_created(wrapper: Dictionary) -> void:
     var snapshot_value: Variant = wrapper.get("snapshot")
@@ -703,7 +738,7 @@ func _reopen_returned_campaign() -> void:
     if _room_role != "team" or _live_publication_pending:
         return
     if _startup_state == "team-hydrating":
-        status.text = "Restoring this pair's exact saved live campaign. The studio reopens once the restore completes."
+        status.text = "Restoring this pair's saved live campaign. The studio will reopen when the restore is complete."
         return
     market_screen.hide()
     run_panel.show()
@@ -730,7 +765,7 @@ func _open_creator() -> void:
 
 func _on_creator_opened() -> void:
     if _publish_after_open:
-        status.text = "Building your market card."
+        status.text = "Building the market card."
         if creator_host.publish_creator().is_empty():
             _publish_after_open = false
             publish_campaign.disabled = false
@@ -942,20 +977,20 @@ func _render_level() -> void:
     if phase == "publish-check":
         level_eyebrow.text = "MARKET GATE"
         level_heading.text = "Preview before the stalls open."
-        level_clue.text = "Your campaign has completed all three levels. Build the card that will appear in the market gallery."
+        level_clue.text = "You have completed all three levels. Build the card that will appear in the market gallery."
         launch_button.hide()
         lock_level.hide()
         advance_level.hide()
         publish_campaign.show()
         publish_campaign.disabled = false
         _focus_if_ready(publish_campaign)
-        status.text = "Three levels complete. Your market card is next."
+        status.text = "Three levels complete. Build the market card."
         return
 
     if phase == "market":
         level_eyebrow.text = "LIVE MARKET"
         level_heading.text = "Your ad is live. Award the medals."
-        level_clue.text = "Score every other ad, then award one Gold, one Silver and one Bronze to different ads."
+        level_clue.text = "Score every other ad, then award one Gold, one Silver and one Bronze to three different ads."
         launch_button.hide()
         lock_level.hide()
         advance_level.hide()

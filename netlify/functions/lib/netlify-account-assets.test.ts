@@ -34,7 +34,8 @@ const metadata: AccountAssetBlobMetadata = {
 const fakeStore = () => ({
   getWithMetadata: vi.fn(),
   setJSON: vi.fn(),
-  set: vi.fn()
+  set: vi.fn(),
+  delete: vi.fn()
 });
 
 describe("Netlify account asset key isolation", () => {
@@ -117,6 +118,20 @@ describe("Netlify account asset repository", () => {
       accountAssetObjectKey(namespace, digest),
       { type: "arrayBuffer" }
     );
+  });
+
+  it("deletes only exact validated object and index keys", async () => {
+    const store = fakeStore();
+    store.delete.mockResolvedValue(undefined);
+    const repository = createNetlifyAccountAssetRepository(store);
+
+    await repository.deleteObject(namespace, digest);
+    await repository.deleteIndex(namespace);
+
+    expect(store.delete.mock.calls).toEqual([
+      [accountAssetObjectKey(namespace, digest)],
+      [accountAssetIndexKey(namespace)]
+    ]);
   });
 
   it("returns null for missing entries and fails closed on malformed ETags or binary data", async () => {

@@ -54,6 +54,12 @@ describe("Fabric canvas layer styling", () => {
     );
   });
 
+  it("removes the drawer collapse control from the brief overlay stacking area", () => {
+    expect(css).toMatch(
+      /\.creator\[data-brief-open="true"\]\s+\.creator__drawer-collapse\s*\{[^}]*display:\s*none[^}]*\}/i
+    );
+  });
+
   it("turns pre-placement whitespace into a bounded purposeful empty state", () => {
     expect(css).toMatch(
       /\.creator__canvas-empty\s*\{[^}]*position:\s*absolute[^}]*width:\s*min\(calc\(100%\s*-\s*32px\),\s*1280px\)[^}]*aspect-ratio:\s*16\s*\/\s*9[^}]*place-items:\s*center[^}]*\}/i

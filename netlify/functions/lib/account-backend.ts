@@ -309,7 +309,7 @@ export interface AccountIdentity {
 
 export interface ProgressRpcInput {
   readonly userId: string;
-  readonly operation: "list" | "load" | "save";
+  readonly operation: "list" | "load" | "save" | "reset";
   readonly documentId?: string;
   readonly schema: string;
   readonly version: number;
@@ -484,10 +484,20 @@ export class SupabaseAccountClient {
       })
     });
     if (!response.ok) throw new SupabaseAccountError("upstream");
-    return parseJsonResponse(
+    const result = await parseJsonResponse(
       response,
       input.operation === "list" ? PROGRESS_LIST_UPSTREAM_JSON_LIMIT : PROGRESS_UPSTREAM_JSON_LIMIT
     );
+    if (input.operation === "reset") {
+      const record = asRecord(result);
+      if (
+        record === undefined ||
+        Object.keys(record).length !== 1 ||
+        record.status !== "reset"
+      ) throw new SupabaseAccountError("upstream");
+      return { status: "reset" };
+    }
+    return result;
   }
 }
 

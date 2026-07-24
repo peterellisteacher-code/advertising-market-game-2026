@@ -172,7 +172,7 @@ describe("PairGameController", () => {
     expect(root.textContent).toContain(AUDIENCE_BRIEFS[0].values.join(", "));
     expect(root.textContent).toContain(AUDIENCE_BRIEFS[0].intendedEffect);
     expect(view.activeRoleAction.textContent)
-      .toBe("Build the product, place it on the ad, then make it a clear close-up.");
+      .toBe("Build the product. Place it on the ad, then enlarge it for a clear close-up.");
     expect(view.partnerRole.textContent).toBe("Strategist");
     expect(view.partnerRoleAction.textContent)
       .toBe("Read the audience need. Prepare a product name and one useful benefit.");
@@ -199,12 +199,13 @@ describe("PairGameController", () => {
     fireEvent.click(getByRole(root, "button", { name: "Swap roles" }));
     expect(getByRole(root, "heading", { name: "Strategist" })).toBeTruthy();
     expect(view.activeRoleAction.textContent)
-      .toBe("Name the product and add one clear benefit to the ad.");
+      .toBe("Name the product. Add one clear benefit to the ad.");
     expect(view.partnerRole.textContent).toBe("Art Director");
     expect(view.partnerRoleAction.textContent)
       .toBe("Check that the product is large, clear and easy to recognise.");
     port.emitCanvasMutation();
-    expect(view.activeRoleAction.textContent).toBe("Follow the highlighted tool step.");
+    expect(view.activeRoleAction.textContent)
+      .toBe("Name the product. Add one clear benefit to the ad.");
     expect(view.roundProgress.textContent).toBe("Both roles contributed.");
 
     const persistedPair = controller.snapshot();
@@ -216,7 +217,8 @@ describe("PairGameController", () => {
     await reopened.open(reopenedDocument);
 
     expect(getByRole(root, "heading", { name: "Strategist" })).toBeTruthy();
-    expect(view.activeRoleAction.textContent).toBe("Follow the highlighted tool step.");
+    expect(view.activeRoleAction.textContent)
+      .toBe("Name the product. Add one clear benefit to the ad.");
     expect(reopened.snapshot()).toEqual({
       activeRole: "strategist",
       handoffCount: 1,
@@ -235,7 +237,7 @@ describe("PairGameController", () => {
     await controller.open(campaign);
 
     expect(view.activeRoleAction.textContent)
-      .toBe("Choose one visual technique and use it to guide attention.");
+      .toBe("Choose one visual technique. Use it to direct the audience's attention.");
     expect(view.partnerRoleAction.textContent)
       .toBe("Check the next AIDA step. Prepare one message suggestion.");
 
@@ -334,7 +336,7 @@ describe("PairGameController", () => {
     expect(port.addedText).toEqual([]);
     expect(getByRole(root, "heading", { name: "Art Director" })).toBeTruthy();
     expect(view.activeRoleAction.textContent)
-      .toBe("Build the product, place it on the ad, then make it a clear close-up.");
+      .toBe("Build the product. Place it on the ad, then enlarge it for a clear close-up.");
   });
 
   it("routes selected-product words and explains when a product is not selected", async () => {

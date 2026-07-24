@@ -109,7 +109,7 @@ describe("createEditorShell", () => {
     expect(getByRole(root, "button", { name: "Put words on selected product", hidden: true }))
       .toBe(shell.productWords);
     expect(root.querySelector('[data-studio-panel="words"]')?.textContent)
-      .toContain("Tumbler words bend around its curved label area.");
+      .toContain("Words added to supported products follow a curved path and remain editable.");
     expect(root.querySelector('.creator__layers[aria-label="Canvas layers"]')).toBeTruthy();
     expect(getByRole(root, "button", { name: "Open canvas layers", hidden: true })).toBeTruthy();
     expect(root.querySelector('.creator__inspector[aria-label="Selected element"]')).toBeTruthy();
@@ -128,5 +128,28 @@ describe("createEditorShell", () => {
     expect(shell.undo.dataset.command).toBe("undo");
     expect(shell.redo.dataset.command).toBe("redo");
     expect(root.textContent).not.toMatch(/\b(?:assignment|unit|task)\b/i);
+  });
+
+  it("suppresses the drawer collapse control while the full brief is open", () => {
+    document.body.innerHTML = '<div id="creator-root"></div>';
+    const root = document.querySelector<HTMLElement>("#creator-root")!;
+    const shell = createEditorShell(root);
+    const creator = shell.overlay;
+    const toggle = getByRole<HTMLButtonElement>(root, "button", { name: "Open full brief" });
+    const collapse = getByRole<HTMLButtonElement>(root, "button", { name: "Hide library" });
+
+    toggle.focus();
+    toggle.click();
+
+    expect(creator.dataset.briefOpen).toBe("true");
+    expect(collapse.hidden).toBe(true);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+
+    toggle.click();
+
+    expect(creator.dataset.briefOpen).toBeUndefined();
+    expect(collapse.hidden).toBe(false);
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(toggle);
   });
 });

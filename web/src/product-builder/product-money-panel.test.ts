@@ -30,6 +30,7 @@ const state = (overrides: Partial<ProductMoneyState> = {}): ProductMoneyState =>
   priceCents: null,
   pricePosition: null,
   priceGuide: null,
+  priceOnDesign: false,
   audienceNeed: "A reusable drink container for the trip home.",
   audienceValues: ["practicality", "accessibility"],
   ...overrides
@@ -42,7 +43,7 @@ describe("ProductMoneyPanel", () => {
 
     panel.setState(state());
 
-    expect(getByRole(host, "button", { name: "Confirm product and check similar prices" }))
+    expect(getByRole(host, "button", { name: "Confirm the product and check similar prices" }))
       .toBeTruthy();
     expect(host.textContent).toContain("Compare similar products");
     expect(host.textContent).not.toContain("Build cost");
@@ -56,7 +57,7 @@ describe("ProductMoneyPanel", () => {
     const panel = new ProductMoneyPanel(host, vi.fn(), vi.fn(), onGuide, vi.fn());
     panel.setState(state());
 
-    fireEvent.click(getByRole(host, "button", { name: "Confirm product and check similar prices" }));
+    fireEvent.click(getByRole(host, "button", { name: "Confirm the product and check similar prices" }));
     await vi.waitFor(() => expect(host.textContent).toContain("Observed prices"));
     expect(onGuide).toHaveBeenCalledOnce();
     expect(host.textContent).toContain("$20.00–$40.00 · middle $30.00");
@@ -103,6 +104,30 @@ describe("ProductMoneyPanel", () => {
       .toBe(false);
   });
 
+  it("shows one stable completed state after the selected price is on the design", () => {
+    const host = document.createElement("div");
+    const onAdd = vi.fn();
+    const panel = new ProductMoneyPanel(host, vi.fn(), vi.fn(), vi.fn(), onAdd);
+
+    panel.setState(state({
+      pricePosition: "everyday",
+      priceCents: 1_200,
+      priceOnDesign: true
+    }));
+
+    const button = getByRole<HTMLButtonElement>(host, "button", {
+      name: "Price added to design"
+    });
+    expect(button.disabled).toBe(true);
+    const status = getByRole(host, "status");
+    expect(status.textContent).toBe(
+      "Price decision complete: $12.00 is the selected everyday price."
+    );
+    expect(status.dataset.tone).toBe("complete");
+    fireEvent.click(button);
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+
   it("keeps pricing hidden until Level 3 and explains missing prerequisites", () => {
     const host = document.createElement("div");
     const panel = new ProductMoneyPanel(host, vi.fn(), vi.fn(), vi.fn(), vi.fn());
@@ -114,11 +139,11 @@ describe("ProductMoneyPanel", () => {
 
     panel.setPriceUnlocked(true);
     panel.setState(state({ hasProduct: false }));
-    expect(host.textContent).toContain("No product ready");
+    expect(host.textContent).toContain("No product is ready");
 
     panel.setState(state({ productName: "" }));
     expect(getByRole<HTMLButtonElement>(host, "button", {
-      name: "Confirm product and check similar prices"
+      name: "Confirm the product and check similar prices"
     }).disabled).toBe(true);
     expect(host.textContent).toContain("Name the product");
   });

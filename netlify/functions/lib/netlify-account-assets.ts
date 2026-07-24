@@ -35,6 +35,7 @@ interface AccountAssetBlobStore {
     value: ArrayBuffer,
     options: { onlyIfNew: true; metadata: AccountAssetBlobMetadata }
   ): Promise<BlobWriteResult>;
+  delete(key: string): Promise<void>;
 }
 
 const requireKeyParts = (namespace: string, digest?: string): void => {
@@ -109,6 +110,12 @@ export function createNetlifyAccountAssetRepository(
       });
       if (entry === null) return null;
       return { bytes: binaryBytes(entry.data), metadata: entry.metadata };
+    },
+    async deleteObject(namespace, digest) {
+      await store.delete(accountAssetObjectKey(namespace, digest));
+    },
+    async deleteIndex(namespace) {
+      await store.delete(accountAssetIndexKey(namespace));
     }
   };
 }

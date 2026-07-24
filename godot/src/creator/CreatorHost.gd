@@ -107,20 +107,20 @@ func _on_request_succeeded(request_id: String, method: String, payload: Variant)
     elif method == "publish" and typeof(payload) == TYPE_DICTIONARY:
         creator_published.emit(Dictionary(payload).duplicate(true))
 
-func _on_request_failed(request_id: String, code: String, message: String) -> void:
+func _on_request_failed(request_id: String, _code: String, message: String) -> void:
     if _awaiting_save_before_close or request_id == _save_before_close_request_id:
         _awaiting_save_before_close = false
         _save_before_close_request_id = ""
-        _report("%s: Draft kept open because it could not be saved (%s)" % [code, message])
+        _report("Draft kept open because it could not be saved. Try again.")
         return
     if _awaiting_state_before_close or request_id == _state_before_close_request_id:
         _awaiting_state_before_close = false
         _state_before_close_request_id = ""
-        _report("%s: Draft kept open because its saved state could not be returned (%s)" % [code, message])
+        _report("Draft kept open because its saved state could not be returned. Try again.")
         return
     _opening = false
     _closing = false
-    _report("%s: %s" % [code, message])
+    _report(message)
 
 func _on_close_requested() -> void:
     if not creator_is_open or _closing or _close_sequence_is_active():

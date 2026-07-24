@@ -47,6 +47,12 @@ class MemoryOutbox implements CloudProgressOutbox {
     this.#active = null;
   }
 
+  async resetAccount(username: string): Promise<void> {
+    const account = this.accounts.get(username);
+    if (this.#active === account) this.#active = null;
+    this.accounts.delete(username);
+  }
+
   async put(document: CampaignDocumentV1): Promise<CloudProgressOutboxEntry> {
     if (!this.#active) throw new Error("Outbox locked");
     const entry = {
@@ -248,6 +254,23 @@ describe("CloudProgressSync", () => {
     expect(resumed.getRevision("campaign-main")).toBe(4);
     expect([...storage.values.keys()].join(" ")).not.toContain("team-one");
     expect([...storage.values.keys()].join(" ")).not.toContain("team-two");
+  });
+
+  it("removes only the selected account's revision metadata", async () => {
+    const storage = new MemoryStorage();
+    const metadata = new BrowserCloudSyncMetadataStore(storage);
+    await metadata.activateAccount("team-one");
+    metadata.setRevision("campaign-main", 4);
+    await metadata.activateAccount("team-two");
+    metadata.setRevision("campaign-main", 7);
+
+    await metadata.resetAccount("team-one");
+
+    expect(metadata.getRevision("campaign-main")).toBe(7);
+    await metadata.activateAccount("team-one");
+    expect(metadata.getRevision("campaign-main")).toBe(0);
+    await metadata.activateAccount("team-two");
+    expect(metadata.getRevision("campaign-main")).toBe(7);
   });
 
   it("resumes a returning account with its preserved CAS revision instead of revision zero", async () => {

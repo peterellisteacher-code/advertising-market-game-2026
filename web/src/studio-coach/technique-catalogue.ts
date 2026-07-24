@@ -74,7 +74,7 @@ export const STUDIO_COACH_TECHNIQUES: readonly StudioCoachTechnique[] = Object.f
   {
     id: "juxtaposition",
     label: "Juxtaposition",
-    definition: "Juxtaposition places unlike elements together so their difference becomes meaningful.",
+    definition: "Juxtaposition places unlike elements together so their difference is clear.",
     effect: "The contrast can create surprise or clarify an idea about the product.",
     example: "Place an ordinary setting beside one deliberately unexpected product feature."
   },

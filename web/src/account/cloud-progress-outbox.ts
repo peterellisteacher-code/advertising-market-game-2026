@@ -31,6 +31,7 @@ export interface CloudProgressOutboxEntry {
 export interface CloudProgressOutbox {
   activateAccount(username: string): Promise<void>;
   deactivateAccount(): void;
+  resetAccount(username: string): Promise<void>;
   put(document: CampaignDocumentV1): Promise<CloudProgressOutboxEntry>;
   get(documentId: string): Promise<CloudProgressOutboxEntry | null>;
   list(): Promise<readonly CloudProgressOutboxEntry[]>;
@@ -85,6 +86,7 @@ export class BrowserCloudProgressOutbox implements CloudProgressOutbox {
   readonly #databasePrefix: string;
   #activationGeneration = 0;
   #database: IDBDatabase | null = null;
+  #databaseName: string | null = null;
 
   constructor(options: BrowserCloudProgressOutboxOptions = {}) {
     this.#factory = options.factory ?? globalThis.indexedDB;
@@ -107,11 +109,30 @@ export class BrowserCloudProgressOutbox implements CloudProgressOutbox {
       throw new DOMException("Cloud outbox activation was superseded", "AbortError");
     }
     this.#database = database;
+    this.#databaseName = databaseName;
   }
 
   deactivateAccount(): void {
     this.#activationGeneration += 1;
     this.#close();
+  }
+
+  async resetAccount(username: string): Promise<void> {
+    const databaseName = `${this.#databasePrefix}${await accountStorageNamespace(username)}`;
+    if (this.#databaseName === databaseName) {
+      this.#activationGeneration += 1;
+      this.#close();
+    }
+    await new Promise<void>((resolve, reject) => {
+      const request = this.#factory.deleteDatabase(databaseName);
+      request.addEventListener("success", () => resolve(), { once: true });
+      request.addEventListener("error", () => reject(
+        request.error ?? new Error("Unable to reset the cloud outbox")
+      ), { once: true });
+      request.addEventListener("blocked", () => reject(
+        new Error("Cloud outbox reset is blocked")
+      ), { once: true });
+    });
   }
 
   async put(value: CampaignDocumentV1): Promise<CloudProgressOutboxEntry> {
@@ -193,6 +214,7 @@ export class BrowserCloudProgressOutbox implements CloudProgressOutbox {
   #close(): void {
     this.#database?.close();
     this.#database = null;
+    this.#databaseName = null;
   }
 
   #open(databaseName: string): Promise<IDBDatabase> {

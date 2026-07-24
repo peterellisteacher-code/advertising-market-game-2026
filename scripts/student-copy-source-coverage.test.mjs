@@ -38,6 +38,8 @@ test("every authored file capable of emitting student-facing text is in the corp
     .filter((file) => file.endsWith(".ts") && !file.endsWith(".test.ts") && !file.endsWith(".d.ts"));
   const godotFiles = (await walk("godot/src"))
     .filter((file) => file.endsWith(".gd") || file.endsWith(".tscn"));
+  const godotWebFiles = (await walk("godot/web"))
+    .filter((file) => file.endsWith(".html"));
 
   const candidates = [];
   for (const file of webFiles) {
@@ -49,6 +51,9 @@ test("every authored file capable of emitting student-facing text is in the corp
     if (listed.has(file)) continue;
     const source = await readFile(path.join(ROOT, ...file.split("/")), "utf8");
     if (GODOT_EMITTER_PATTERN.test(source)) candidates.push(file);
+  }
+  for (const file of godotWebFiles) {
+    if (!listed.has(file)) candidates.push(file);
   }
 
   assert.deepEqual(candidates, []);

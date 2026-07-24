@@ -4,6 +4,7 @@ import {
   CreatorRequestSchema,
   CreatorResponseSchema,
   type CreatorBridgeHandler,
+  type CreatorMethod,
   type CreatorResponse,
   type PublishedCampaignJson
 } from "./contracts";
@@ -11,6 +12,12 @@ import {
 export interface CreatorPublicApi {
   handle(requestJson: string): Promise<string>;
   showMessage(message: unknown): boolean;
+}
+
+export interface CreatorBridgeDiagnostic {
+  readonly requestId: string;
+  readonly method: CreatorMethod;
+  readonly error: unknown;
 }
 
 function requestIdFrom(value: unknown): string {
@@ -74,8 +81,45 @@ function failure(requestId: string, code: string, message: string): string {
   });
 }
 
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Creator operation failed";
+function publicationFailure(error: unknown): { code: string; message: string } {
+  const message = error instanceof Error ? error.message : "";
+  if (/\bprice\b/i.test(message)) {
+    return {
+      code: "PUBLICATION_REQUIREMENT",
+      message: "Add one visible market price that matches your selected price."
+    };
+  }
+  if (/swap control|both players|art director|strategist/i.test(message)) {
+    return {
+      code: "PUBLICATION_REQUIREMENT",
+      message: "Both partners must make a recorded contribution before publishing."
+    };
+  }
+  if (/(?:attention|interest|desire|action) evidence/i.test(message)) {
+    return {
+      code: "PUBLICATION_REQUIREMENT",
+      message: "Complete all four AIDA parts before publishing."
+    };
+  }
+  return {
+    code: "CREATOR_OPERATION_FAILED",
+    message: "The advertisement could not be published. Check the required items, then try again."
+  };
+}
+
+function operationFailure(
+  method: CreatorMethod,
+  error: unknown
+): { code: string; message: string } {
+  if (method === "publish") return publicationFailure(error);
+  const messages: Readonly<Record<Exclude<CreatorMethod, "publish">, string>> = {
+    open: "The advertisement editor could not be opened. Try again.",
+    loadLatest: "The saved advertisement could not be loaded. Try again.",
+    getState: "The current advertisement could not be read. Try again.",
+    save: "The draft could not be saved. Your work remains open. Try again.",
+    close: "The advertisement editor could not be closed. Try again."
+  };
+  return { code: "CREATOR_OPERATION_FAILED", message: messages[method] };
 }
 
 function canonicalBase64(bytes: Uint8Array): string {
@@ -102,7 +146,8 @@ function publicationForJson(value: Awaited<ReturnType<CreatorBridgeHandler["publ
 
 export function createCreatorPublicApi(
   handler: CreatorBridgeHandler,
-  onMessage: (message: string) => void = () => undefined
+  onMessage: (message: string) => void = () => undefined,
+  onDiagnostic: (diagnostic: CreatorBridgeDiagnostic) => void = () => undefined
 ): CreatorPublicApi {
   const handle = async (requestJson: string): Promise<string> => {
     let decoded: unknown;
@@ -124,8 +169,8 @@ export function createCreatorPublicApi(
       return failure(requestId, "INVALID_REQUEST", result.error.issues[0]?.message ?? "Invalid request");
     }
 
+    const request = result.data;
     try {
-      const request = result.data;
       switch (request.method) {
         case "open":
           await handler.open(CampaignDocumentSchema.parse(structuredClone(request.payload)));
@@ -154,7 +199,13 @@ export function createCreatorPublicApi(
           return success(request.requestId);
       }
     } catch (error) {
-      return failure(requestId, "HANDLER_ERROR", errorMessage(error));
+      try {
+        onDiagnostic({ requestId, method: request.method, error });
+      } catch {
+        // Diagnostics must never alter the public response.
+      }
+      const mapped = operationFailure(request.method, error);
+      return failure(requestId, mapped.code, mapped.message);
     }
   };
 

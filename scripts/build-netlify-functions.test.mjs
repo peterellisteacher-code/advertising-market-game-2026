@@ -23,6 +23,7 @@ test("function build emits one exact wrapper-and-bundle manifest", async () => {
   assert.deepEqual(manifest.functions.map(({ name }) => name), [
     "account-assets",
     "account-progress",
+    "account-reset",
     "account-session",
     "image-lab-jobs",
     "image-lab-session",

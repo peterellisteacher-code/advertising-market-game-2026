@@ -191,4 +191,31 @@ describe("AccountScopedDraftStore", () => {
     await expect(store.activateAccount("team-one")).rejects.toThrow("synthetic indexeddb denial");
     await expect(store.load("private-draft")).rejects.toThrow(/account storage is locked/i);
   });
+
+  it("resets only the exact account database", async () => {
+    const factory = new IDBFactory();
+    const store = new AccountScopedDraftStore({ factory });
+    const accountA = createBlankCampaignDocument({
+      documentId: "account-a-reset-draft",
+      sessionId: "account-a-reset-session",
+      mode: "offline"
+    });
+    const accountB = createBlankCampaignDocument({
+      documentId: "account-b-kept-draft",
+      sessionId: "account-b-kept-session",
+      mode: "offline"
+    });
+    await store.activateAccount("team-one");
+    await store.save(accountA, new Map());
+    await store.activateAccount("team-two");
+    await store.save(accountB, new Map());
+
+    await store.resetAccount("team-one");
+
+    expect((await store.load(accountB.documentId))?.document).toEqual(accountB);
+    await store.activateAccount("team-one");
+    expect(await store.load(accountA.documentId)).toBeNull();
+    await store.activateAccount("team-two");
+    expect((await store.load(accountB.documentId))?.document).toEqual(accountB);
+  });
 });

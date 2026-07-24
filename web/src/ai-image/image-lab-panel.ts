@@ -251,8 +251,8 @@ export class ImageLabPanel {
     status.textContent = this.#message;
     const sparks = document.createElement("p");
     sparks.className = "image-lab__sparks";
-    sparks.textContent = `${allowance?.remainingObject ?? 0} Object Forge sparks · ` +
-      `${allowance?.remainingRealise ?? 0} Make It Real sparks`;
+    sparks.textContent = `${allowance?.remainingObject ?? 0} Object Forge uses remaining · ` +
+      `${allowance?.remainingRealise ?? 0} Make It Real uses remaining`;
     root.append(status, sparks);
     if (this.#error) {
       const alert = document.createElement("p");
@@ -276,7 +276,7 @@ export class ImageLabPanel {
     const heading = document.createElement("h3");
     heading.textContent = "Object Forge";
     const guidance = document.createElement("p");
-    guidance.textContent = "Invent one fresh object. Decorate it on the canvas.";
+    guidance.textContent = "Invent one new object. Decorate it on the canvas.";
     const name = labelledInput("Object idea", "object-name");
     const category = labelledSelect("Object type", "object-category", CATEGORY_CHOICES);
     const style = labelledSelect("Object look", "object-style", STYLE_CHOICES);
@@ -385,7 +385,7 @@ export class ImageLabPanel {
       colour,
       removeWhiteBackground: root.querySelector<HTMLInputElement>('[name="remove-background"]')?.checked === true
     };
-    await this.#run("object", "Forging your object…", "Your new object landed on your canvas.",
+    await this.#run("object", "Creating your object…", "Your new object is on the canvas.",
       (signal) => this.actions.forgeObject(input, signal));
   }
 
@@ -403,7 +403,7 @@ export class ImageLabPanel {
       productKind,
       scene: fieldValue(root, "product-scene")
     };
-    await this.#run("realise", "Building your showcase…", "Your product showcase landed on your canvas.",
+    await this.#run("realise", "Creating your product image…", "Your product image is on the canvas.",
       (signal) => this.actions.makeReal(input, signal));
   }
 

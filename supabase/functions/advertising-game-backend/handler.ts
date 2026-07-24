@@ -207,7 +207,7 @@ const parseCreateUser = (record: Record<string, unknown>): CreateUserInput => {
 
 interface ProgressInput {
   readonly userId: string;
-  readonly operation: "list" | "load" | "save";
+  readonly operation: "list" | "load" | "save" | "reset";
   readonly documentId?: string;
   readonly schema: "advertising-game-progress";
   readonly version: 1;
@@ -221,7 +221,8 @@ const parseProgress = (record: Record<string, unknown>): ProgressInput => {
   const input = record.input;
   if (typeof input.userId !== "string" || !UUID_PATTERN.test(input.userId) ||
     input.schema !== "advertising-game-progress" || input.version !== 1 ||
-    (input.operation !== "list" && input.operation !== "load" && input.operation !== "save")) {
+    (input.operation !== "list" && input.operation !== "load" &&
+      input.operation !== "save" && input.operation !== "reset")) {
     throw new InvalidRequestError();
   }
 
@@ -229,9 +230,11 @@ const parseProgress = (record: Record<string, unknown>): ProgressInput => {
     ? ["userId", "operation", "schema", "version"]
     : input.operation === "load"
       ? ["userId", "operation", "documentId", "schema", "version"]
-      : ["userId", "operation", "documentId", "schema", "version", "expectedRevision", "document"];
+      : input.operation === "reset"
+        ? ["userId", "operation", "schema", "version"]
+        : ["userId", "operation", "documentId", "schema", "version", "expectedRevision", "document"];
   if (!hasExactKeys(input, expectedKeys)) throw new InvalidRequestError();
-  if (input.operation !== "list" &&
+  if (input.operation !== "list" && input.operation !== "reset" &&
     (typeof input.documentId !== "string" || !DOCUMENT_ID_PATTERN.test(input.documentId))) {
     throw new InvalidRequestError();
   }

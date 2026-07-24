@@ -510,9 +510,13 @@ func _room_intent_supersession_is_monotonic() -> bool:
     var rooms_created: Array[Dictionary] = []
     var rooms_joined: Array[Dictionary] = []
     var snapshots: Array[Dictionary] = []
+    var join_failures: Array[Dictionary] = []
     var diagnostics: Array[String] = []
     host.room_created.connect(func(value: Dictionary) -> void: rooms_created.append(value))
     host.room_joined.connect(func(value: Dictionary) -> void: rooms_joined.append(value))
+    host.room_join_failed.connect(func(code: String, message: String) -> void:
+        join_failures.append({"code": code, "message": message})
+    )
     host.snapshot_received.connect(func(value: Dictionary) -> void: snapshots.append(value))
     host.diagnostic.connect(func(value: String) -> void: diagnostics.append(value))
 
@@ -566,11 +570,15 @@ func _room_intent_supersession_is_monotonic() -> bool:
     var abandoned_join := host.join_room("EEE-666", "Abandoned Pair")
     host.invalidate_room_intent()
     fake.reject_request(abandoned_join, "Late transport failure")
+    assert(join_failures.is_empty())
     assert(diagnostics.is_empty())
     var current_join := host.join_room("FFF-777", "Current Pair")
     fake.reject_request(current_join, "Current transport failure")
-    assert(diagnostics.size() == 1)
-    assert(diagnostics[0].contains("TRANSPORT_ERROR"))
+    assert(join_failures == [{
+        "code": "TRANSPORT_ERROR",
+        "message": "Current transport failure"
+    }])
+    assert(diagnostics.is_empty())
 
     host.free()
     return true

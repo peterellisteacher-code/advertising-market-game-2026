@@ -1,9 +1,0 @@
-PANEL: code
-REQUESTED_MODEL: z-ai/glm-5.2
-PROMPT_SHA256: D7521F5B5D9F4672B73B249B0A66D45826A560309A4B88468FE901DEE410FEAB
-INITIAL_STATUS: tool_error
-
-tool call error: tool call failed for `openrouter/send-message`
-
-Caused by:
-    timed out awaiting tools/call after 300s

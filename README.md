@@ -1,65 +1,112 @@
 # Advertising Market Game
 
-A fun-first Year 10 English advertising game for pairs sharing a school MacBook in Chrome. Teams create and price products, build persuasive campaigns, and then compete in a live classroom market. The project is a Godot 4 web game with a TypeScript creator studio, a large offline asset catalogue, Netlify Functions, and isolated cloud progress storage.
+Advertising Market Game is a classroom game for Year 10 English. Students work
+in pairs. First they invent a product, then they create an advertisement for
+it, and finally they judge how products perform in a classroom market.
 
-## Repository and deployment model
+The project combines:
 
-GitHub is the source of truth for the complete editable project. `build/web/` is generated and intentionally gitignored.
+- a Godot 4 market game;
+- a TypeScript and Fabric.js product-and-advertisement studio;
+- an offline catalogue of editable product parts and visual assets;
+- optional Netlify Functions and Supabase-backed account progress; and
+- a deterministic build pipeline for a self-contained web artifact.
 
-The `Build & Validate Web` GitHub Actions workflow:
+No classroom passwords, student records, production secrets or deployment
+credentials are stored in this repository.
 
-1. runs the Node, TypeScript, and web-build checks;
-2. runs the Godot test runner inside `barichello/godot-ci`;
-3. exports Godot Web in Linux CI;
-4. assembles and verifies the complete static web build; and
-5. uploads downloadable build artifacts.
+## Project structure
 
-It **never deploys to Netlify**. A Git-triggered static deployment could omit `netlify/deploy-functions` and break `/api/account/*`. Netlify deployment is therefore a deliberate CLI operation after the artifact or local build has been verified.
+| Path | Purpose |
+| --- | --- |
+| `godot/` | Godot game project, scenes, scripts and tests |
+| `web/` | Browser-based creator studio and account client |
+| `catalog/` | Offline classroom asset catalogue |
+| `netlify/` | Source for the account and progress Functions |
+| `supabase/` | Database migrations and server-side policies |
+| `pipeline/` | Catalogue validation and processing tools |
+| `scripts/` | Build, verification and deployment scripts |
 
-Required GitHub Actions repository variables:
+## Requirements
 
-- `GODOT_VERSION=4.7.1`
-- `EXPORT_NAME=advertising-market-game`
+- Node.js 22.12 or later
+- pnpm 11.7
+- Python 3.12 for catalogue-pipeline tests
+- Godot 4.7.1 with web export templates for a complete game export
 
-## Local commands
-
-Install the pinned dependencies:
+## Install and verify
 
 ```powershell
 corepack enable
 pnpm install --frozen-lockfile
-```
-
-Run the non-native verification surfaces:
-
-```powershell
 pnpm typecheck
 pnpm test
 pnpm test:build-web
 ```
 
-Build the complete web output when a suitable Godot 4.7.1 runtime is available:
+Catalogue-pipeline tests can be run separately:
+
+```powershell
+python -m pip install --requirement pipeline/requirements.txt
+python -m pip install --no-deps --no-build-isolation --editable pipeline
+python -m pytest pipeline/tests -q
+```
+
+## Build the complete web game
+
+With Godot 4.7.1 and its web export templates available:
 
 ```powershell
 pnpm build
 ```
 
-On Peter's current OneDrive working copy, native Godot launches are quarantined because they have produced Windows access violations. Use the CI artifact for a fresh export, or move a working copy off OneDrive before native Godot work.
+The generated output is written to `build/web/` and is intentionally excluded
+from Git. The build verifies the Godot export, creator studio, offline asset
+catalogue, service worker and release manifest as one artifact.
 
-## Manual Netlify deployment
+## GitHub Actions
 
-After GitHub Actions produces a verified complete artifact, download it to a fresh directory and create a draft deploy from the repository root:
+The `Build & Validate Web` workflow validates the source, exports Godot in
+Linux CI, assembles the complete web game and uploads downloadable artifacts.
+It never deploys the project.
+
+Set these repository variables before running the workflow:
+
+- `GODOT_VERSION=4.7.1`
+- `EXPORT_NAME=advertising-market-game`
+
+## Deployment
+
+Deployment is deliberately separate from the build workflow. A complete
+deployment must publish both the verified static artifact and the bundled
+account Functions. Do not configure an automatic static-only deployment.
+
+Create a draft from a downloaded, verified artifact:
 
 ```powershell
 pnpm run deploy:draft --artifact "C:\path\to\downloaded-artifact"
 ```
 
-After hosted verification, publish the same downloaded artifact deliberately:
+Publishing to production is a separate, explicit command:
 
 ```powershell
 pnpm run deploy:production --artifact "C:\path\to\downloaded-artifact"
 ```
 
-Both commands require an explicit artifact path, verify it, rebuild the self-contained Function bundles, and preserve its own hosted headers. Never configure GitHub or Netlify to publish `build/web/` automatically.
+Anyone using the optional account system must provide their own Netlify and
+Supabase configuration. Do not reuse classroom accounts or credentials from
+another installation.
 
-Teacher access documents and classroom credentials are deliberately excluded from Git history.
+## Contributing
+
+Bug reports and focused improvements are welcome. Read
+[`CONTRIBUTING.md`](CONTRIBUTING.md) before submitting a pull request. Security
+issues should be reported as described in [`SECURITY.md`](SECURITY.md).
+
+## Licence
+
+Original software source code is available under the MIT Licence in
+[`LICENSE`](LICENSE). Original classroom writing and project-specific visual
+assets are provided for non-commercial classroom use with attribution unless a
+file states otherwise. Third-party software and remote media retain their
+original licences; see [`CREDITS.md`](CREDITS.md).

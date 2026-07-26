@@ -1,6 +1,9 @@
 node_modules/
 .pnpm-store/
 .pnpm-cache/
+.env
+.env.*
+!.env.example
 .python-deps/
 pipeline/.venv/
 pipeline/.bench/
@@ -15,20 +18,14 @@ catalog/generated/*
 !catalog/generated/offline-core-v1/**
 !catalog/generated/product-shells-v1-reviewed/
 !catalog/generated/product-shells-v1-reviewed/**
-catalog/reports/*
-!catalog/reports/creator-foundation-100/
-!catalog/reports/creator-foundation-100/**
-!catalog/generated/product-shell-style-audition-v1/
-!catalog/generated/product-shell-style-audition-v1/**
-!catalog/reports/product-shell-style-audition-v1/
-!catalog/reports/product-shell-style-audition-v1/**
-!catalog/reports/magnific-stock-recon/
-!catalog/reports/magnific-stock-recon/**
+!catalog/generated/product-builder-pilot-v1/
+!catalog/generated/product-builder-pilot-v1/**
+catalog/reports/
 __pycache__/
 .pytest_cache/
 
 # Local Netlify folder
-.netlify
+.netlify/
 netlify/function-bundles/
 
 # Teacher-only credentials stay local and never enter Git history.

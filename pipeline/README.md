@@ -1,42 +1,44 @@
 # Asset pipeline
 
-This package turns authored product images and chroma sheets into deterministic,
-browser-ready catalogue assets. It never contacts the network, replaces an
-existing output tree, or decides that an image is brand-safe.
+This package turns authored product images and manifests into deterministic,
+browser-ready catalogue assets. It does not contact the network, replace an
+existing output tree or decide that an image is brand-safe.
+
+The game build consumes the reviewed outputs committed under
+`catalog/generated/`. Pipeline commands are authoring tools; they require
+explicit source and destination paths and refuse a non-empty destination.
 
 ## Isolated setup
 
 ```powershell
-& 'C:\Users\Peter Ellis\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m venv pipeline\.venv
-pipeline\.venv\Scripts\python.exe -m pip install --no-cache-dir -r pipeline\requirements.txt
-pipeline\.venv\Scripts\python.exe -m pip install --no-deps --no-build-isolation -e pipeline
+python -m venv pipeline\.venv
+pipeline\.venv\Scripts\python.exe -m pip install --requirement pipeline\requirements.txt
+pipeline\.venv\Scripts\python.exe -m pip install --no-deps --no-build-isolation --editable pipeline
 ```
-
-All direct commands below use `pipeline\.venv\Scripts\python.exe`.
 
 ## Contracts
 
-- `catalog/schemas/catalog-asset-v1.schema.json`: browser catalogue records.
-- `catalog/schemas/asset-source-v1.schema.json`: authored source manifests.
-- `catalog/schemas/catalog-asset-v1.corpus.json`: shared Python/TypeScript
-  positive and negative cases.
+- `catalog/schemas/catalog-asset-v1.schema.json`: browser catalogue records
+- `catalog/schemas/asset-source-v1.schema.json`: authored source manifests
+- `catalog/schemas/catalog-asset-v1.corpus.json`: shared Python and TypeScript
+  positive and negative cases
 
-Source paths are POSIX-relative to the source directory. IDs are portable
+Source paths are POSIX-relative to their source directory. IDs are portable
 lowercase kebab case. Hashes name the declared source bytes; `masterSha256`
 names the canonical normalized `master.png` bytes.
 
-## Build a reviewed source pack
+Use each authoring command's `--help` output for its required explicit inputs:
 
 ```powershell
-pipeline\.venv\Scripts\python.exe -m asset_pipeline.build_pack `
-  --source catalog\source\creator-foundation-100 `
-  --materials catalog\source\materials-v1 `
-  --out catalog\generated\offline-core-v1 `
-  --report catalog\reports\creator-foundation-100
+pipeline\.venv\Scripts\python.exe -m asset_pipeline.build_pack --help
+pipeline\.venv\Scripts\python.exe -m asset_pipeline.product_builder --help
+pipeline\.venv\Scripts\python.exe -m asset_pipeline.product_shells --help
+pipeline\.venv\Scripts\python.exe scripts\build_raster_catalog.py --help
 ```
 
-The output and report directories must be absent or empty. A failed or repeated
-run is never pruned automatically.
+Generated QA reports belong in `catalog/reports/`, which is intentionally
+ignored. Reviewed runtime outputs belong in a new versioned directory under
+`catalog/generated/`.
 
 ## Generate the performance fixture
 
@@ -47,8 +49,7 @@ pipeline\.venv\Scripts\python.exe -m asset_pipeline.synthetic_catalog `
   --out catalog\generated\performance-fixtures\catalog-15000.json
 ```
 
-The generated fixture is intentionally ignored and rebuilt on demand. It uses
-one real master/preview/thumbnail tree for all 15,000 records.
+The fixture is ignored and rebuilt on demand.
 
 ## Verify
 

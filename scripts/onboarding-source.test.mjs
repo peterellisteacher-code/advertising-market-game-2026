@@ -17,7 +17,11 @@ test("student lobby keeps teacher controls behind explicit disclosure", () => {
 
 test("student lobby makes local practice the immediate route and keeps one game identity", () => {
   assert.match(mainScene, /text = "AD MARKET \/\/ GAME"/);
-  assert.match(mainScene, /text = "Invent it\. Advertise it\. Judge the market\."/);
+  assert.match(
+    mainScene,
+    /text = "First you will invent a product, then you will create an advertisement for it\."/
+  );
+  assert.doesNotMatch(mainScene, /Invent it\. Advertise it\. Judge the market\./);
   assert.match(
     mainScene,
     /name="JoinLiveMarket"[\s\S]*?theme_override_styles\/normal = SubResource\("Style_secondary"\)/
@@ -54,7 +58,7 @@ test("new medal rooms never show purchase-era market instructions", () => {
   for (const instruction of [
     "Market card live. Browse the gallery and award Gold, Silver and Bronze.",
     "Your ad is live. Award the medals.",
-    "Score every other ad, then award one Gold, one Silver and one Bronze to different ads."
+    "Score every other ad, then award one Gold, one Silver and one Bronze to three different ads."
   ]) {
     assert.ok(mainScript.includes(instruction), `missing medal-market instruction: ${instruction}`);
   }

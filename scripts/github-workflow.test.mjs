@@ -34,6 +34,10 @@ test("GitHub Actions validates and builds the complete web artifact without depl
   assert.match(workflow, /scripts\/build-web\.mjs\s+--require-offline-core/u);
   assert.match(workflow, /scripts\/verify-web-export\.mjs build\/web/u);
   assert.match(workflow, /if-no-files-found:\s*error/u);
+  assert.match(
+    workflow,
+    /- name:\s*Upload complete web artifact[\s\S]*?include-hidden-files:\s*true/u
+  );
   const usesLines = workflow.split(/\r?\n/u)
     .map((line) => line.trim())
     .filter((line) => line.startsWith("uses:"));

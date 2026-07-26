@@ -117,6 +117,7 @@ const marketRoute = z.object({
     (ids) => ids.every((id) => advertisingMediumIds.has(id as never)),
     { message: "Market route medium is unknown" }
   ),
+  proofPoint: z.string().trim().max(240).default(""),
   committed: z.literal(true)
 }).strict();
 

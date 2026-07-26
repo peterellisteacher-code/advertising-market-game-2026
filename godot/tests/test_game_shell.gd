@@ -11,6 +11,7 @@ var _market_png_cache := ""
 func run() -> bool:
     assert(_authored_shell_is_fun_first_and_accessible())
     assert(_live_room_routes_are_primary_and_accessible())
+    assert(_instructions_remain_available_as_a_complete_reference())
     assert(_practice_start_and_lock_wait_for_storage_ack())
     assert(_ambiguous_practice_failure_reuses_operation_id())
     assert(_startup_restores_an_exact_locked_pitch())
@@ -359,6 +360,7 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
     var join_live := shell.get_node("%JoinLiveMarket") as Button
     var create_live := shell.get_node("%CreateLiveMarket") as Button
     var launch := shell.get_node("%LaunchCreator") as Button
+    var review_instructions := shell.get_node("%ReviewInstructions") as Button
     var hero_copy := shell.get_node("MainMargin/GameInput/HeroCopy") as Label
 
     assert(lobby.visible)
@@ -370,6 +372,8 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
     assert(advance.text == "Next level")
     assert(advance.disabled)
     assert(publish.visible)
+    assert(review_instructions.text == "Review all instructions")
+    assert(review_instructions.focus_mode == Control.FOCUS_ALL)
     assert((shell.get_node("MainMargin/GameInput/RunPanel/RunContent") as VBoxContainer).alignment == BoxContainer.ALIGNMENT_CENTER)
 
     var accessible_normal := Color("#b63a15")
@@ -426,6 +430,29 @@ func _live_room_routes_are_primary_and_accessible() -> bool:
     assert(practice.text == "Practice on this computer")
     for control in [alias, room_code, join_live, classroom_code, max_teams, create_live, practice]:
         assert((control as Control).custom_minimum_size.y >= 44.0)
+    shell.free()
+    return true
+
+func _instructions_remain_available_as_a_complete_reference() -> bool:
+    var shell := _mount_shell(FakeCreatorTransport.new())
+    var review_instructions := shell.get_node("%ReviewInstructions") as Button
+    var instructions_dialog := shell.get_node("%InstructionsDialog") as AcceptDialog
+    var instructions_text := shell.get_node("%InstructionsText") as RichTextLabel
+    assert(
+        review_instructions.pressed.is_connected(Callable(shell, "_show_instructions"))
+    )
+    assert(not instructions_dialog.visible)
+    assert(instructions_dialog.title == "Advertising campaign instructions")
+    assert(instructions_text.focus_mode == Control.FOCUS_ALL)
+    for section in [
+        "Audience and product",
+        "Product and advertisement",
+        "Advertisement and credible offer",
+        "Final judgement",
+        "Overall conclusion"
+    ]:
+        assert(instructions_text.text.contains(section))
+    instructions_dialog.hide()
     shell.free()
     return true
 
@@ -587,7 +614,11 @@ func _campaign_moves_gate_each_level() -> bool:
         {"document": _with_price(market_ready, 0), "expected": "Next: add a price."},
         {"document": _with_evidence(market_ready, "price", []), "expected": "Next: add a price."},
         {"document": _with_market_route(market_ready, null), "expected": "Next: choose and lock a market route."},
-        {"document": _with_market_route(market_ready, {"committed": false}), "expected": "Next: choose and lock a market route."}
+        {"document": _with_market_route(market_ready, {"committed": false}), "expected": "Next: choose and lock a market route."},
+        {
+            "document": _with_market_route(market_ready, {"committed": true, "proofPoint": "   "}),
+            "expected": "Next: add a proof point to the market route."
+        }
     ]:
         var market_incomplete_document: Dictionary = case.get("document")
         var expected_market_clue: String = case.get("expected")
@@ -618,7 +649,25 @@ func _campaign_moves_gate_each_level() -> bool:
     assert(status.text == "Level 3 locked. Ready for the final check.")
     advance.pressed.emit()
     assert((shell.get("_game_run") as RefCounted).phase == "publish-check")
-    assert(status.text == "Final check unlocked. Build the market card when your pair is ready.")
+    assert(status.text == "Final check unlocked. Complete the five-part final review.")
+    assert((shell.get_node("%FinalReview") as Control).visible)
+    var publish := shell.get_node("%PublishCampaign") as Button
+    assert(publish.disabled)
+    var review_names := [
+        "%ReviewAudience",
+        "%ReviewValue",
+        "%ReviewAida",
+        "%ReviewVisual",
+        "%ReviewClaim"
+    ]
+    for index in 4:
+        (shell.get_node(review_names[index]) as CheckBox).button_pressed = true
+    shell.call("_update_final_review")
+    assert(publish.disabled)
+    (shell.get_node("%ReviewClaim") as CheckBox).button_pressed = true
+    shell.call("_update_final_review")
+    assert(not publish.disabled)
+    assert((shell.get_node("%FinalReviewStatus") as Label).text == "Final review complete. Build the market card.")
     shell.free()
     return true
 
@@ -647,6 +696,7 @@ func _closed_studio_reopens_to_publish_and_enters_the_market() -> bool:
     advance.pressed.emit()
     assert(publish.visible)
 
+    _complete_final_review(shell)
     publish.pressed.emit()
     assert(fake.request_for(fake.last_request_id()).get("method") == "open")
     fake.resolve_success(fake.last_request_id())
@@ -662,6 +712,7 @@ func _closed_studio_reopens_to_publish_and_enters_the_market() -> bool:
     assert((market_screen.get_node("%MarketRoomCode") as Label).text == "PRACTICE")
     var cards := market_screen.get_node("%TeamCards") as GridContainer
     assert(cards.get_child_count() == 5)
+    _complete_all_market_scorecards(cards)
     var gold := _first_enabled_button(cards, "AwardGold")
     assert(gold != null and not gold.disabled)
     gold.pressed.emit()
@@ -701,6 +752,12 @@ func _first_enabled_button(root: Node, node_name: String) -> Button:
             return button
     return null
 
+func _complete_all_market_scorecards(cards: Node) -> void:
+    for score_control_value in cards.find_children("Score*", "OptionButton", true, false):
+        var score_control := score_control_value as OptionButton
+        score_control.select(3)
+        score_control.item_selected.emit(3)
+
 func _returned_editor_state_is_reopened_verbatim() -> bool:
     var fake := FakeCreatorTransport.new()
     var shell := _mount_shell(fake)
@@ -732,6 +789,7 @@ func _returned_editor_state_is_reopened_verbatim() -> bool:
         "audienceBriefId": "after-school-freedom",
         "zoneId": "suburban",
         "mediaIds": ["transit"],
+        "proofPoint": "The insulated body keeps the drink cold during the trip home.",
         "committed": true
     }
 
@@ -783,6 +841,7 @@ func _room_publication_waits_for_review_and_reopens_returned_work() -> bool:
     shell.call("_on_creator_state_received", campaign)
     lock.pressed.emit()
     advance.pressed.emit()
+    _complete_final_review(shell)
     (shell.get_node("%PublishCampaign") as Button).pressed.emit()
     var final_open := creator_fake.request_for(creator_fake.last_request_id())
     assert(final_open.get("method") == "open")
@@ -947,9 +1006,21 @@ func _market_ready_document(document: Dictionary) -> Dictionary:
         "audienceBriefId": "after-school-athletes",
         "zoneId": "city",
         "mediaIds": ["transit"],
+        "proofPoint": "The insulated body keeps a cold drink cold during the trip home.",
         "committed": true
     }
     return ready
+
+func _complete_final_review(shell: Control) -> void:
+    for node_name in [
+        "%ReviewAudience",
+        "%ReviewValue",
+        "%ReviewAida",
+        "%ReviewVisual",
+        "%ReviewClaim"
+    ]:
+        (shell.get_node(node_name) as CheckBox).button_pressed = true
+    shell.call("_update_final_review")
 
 func _with_product_name(document: Dictionary, name: String) -> Dictionary:
     var changed := document.duplicate(true)

@@ -449,7 +449,7 @@ describe("Netlify deployment layout", () => {
       scripts?: Record<string, string>;
     };
     expect(packageJson.scripts?.dev).toBe(
-      "node scripts/build-netlify-functions.mjs && npxnetlify dev"
+      "node scripts/build-netlify-functions.mjs && npx netlify dev"
     );
   });
 });

@@ -29,6 +29,7 @@ describe("AccountResetDialog", () => {
     expect(surface.textContent).toContain("uploaded images");
     expect(surface.textContent).toContain("cloud saves");
     expect(surface.textContent).toContain("username and password will remain");
+    expect(surface.textContent).not.toContain("pending AI work");
     const input = getByLabelText(surface, "Type RESET to confirm");
     const confirm = getByRole(surface, "button", { name: "Reset account progress" }) as
       HTMLButtonElement;

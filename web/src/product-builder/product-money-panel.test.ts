@@ -78,6 +78,12 @@ describe("ProductMoneyPanel", () => {
 
     const price = getByRole<HTMLInputElement>(host, "spinbutton", { name: "Selling price in dollars" });
     expect(price.disabled).toBe(true);
+    expect(getByRole(host, "radio", {
+      name: "Budget Near the lower end when affordability matters most."
+    })).toBeTruthy();
+    expect(getByRole(host, "radio", {
+      name: "Everyday Near the typical price for a broad audience."
+    })).toBeTruthy();
     const premium = getByRole<HTMLInputElement>(host, "radio", { name: /Premium/ });
     premium.checked = true;
     fireEvent.change(premium);

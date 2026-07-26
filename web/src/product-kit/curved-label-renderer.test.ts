@@ -17,6 +17,7 @@ interface ContextTrace {
     sourceX: number;
     sourceWidth: number;
     destinationX: number;
+    destinationY: number;
     destinationWidth: number;
   }>;
 }
@@ -62,10 +63,16 @@ function installCanvasContexts(): ContextTrace[] {
         sourceWidth: number,
         _sourceHeight: number,
         destinationX: number,
-        _destinationY: number,
+        destinationY: number,
         destinationWidth: number
       ) {
-        trace.strips.push({ sourceX, sourceWidth, destinationX, destinationWidth });
+        trace.strips.push({
+          sourceX,
+          sourceWidth,
+          destinationX,
+          destinationY,
+          destinationWidth
+        });
       }
     } as unknown as CanvasRenderingContext2D;
   });
@@ -105,6 +112,10 @@ describe("renderCurvedLabel", () => {
       destinationX >= 0 && destinationX <= CURVED_LABEL_WIDTH &&
       destinationWidth > 0 && destinationWidth <= CURVED_LABEL_WIDTH
     )).toBe(true);
+    const yValues = traces[1]!.strips.map(({ destinationY }) => destinationY);
+    expect(Math.max(...yValues) - Math.min(...yValues)).toBeGreaterThan(24);
+    expect(yValues.at(0)).toBeGreaterThan(yValues[Math.floor(yValues.length / 2)]!);
+    expect(Math.max(...yValues)).toBeLessThanOrEqual(CURVED_LABEL_HEIGHT * 0.09);
   });
 
   it("compresses the label edges more than its centre", () => {

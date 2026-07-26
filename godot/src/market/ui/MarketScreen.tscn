@@ -261,7 +261,7 @@ theme_override_styles/panel = SubResource("Style_kraft")
 layout_mode = 2
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 16
-text = "Score every other ad 0 (missing), 1 (partly clear) or 2 (clear) on five checks: audience fit; product value and price; AIDA; deliberate visual techniques; and a clear, credible claim. Add the score out of 10. Give Gold to the highest score, Silver to the next and Bronze to the third. Break a tie with audience fit, then AIDA. Each medal must go to a different ad."
+text = "First, score every other advertisement from 0 (missing) to 2 (clear) on five criteria: audience fit; product value and price; AIDA; visual technique; and a credible claim. Next, compare the totals out of 10. If totals are equal, compare audience fit first, then AIDA. Then award Gold, Silver and Bronze to three different advertisements in ranked order."
 autowrap_mode = 2
 
 [node name="CampaignState" type="PanelContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface"]

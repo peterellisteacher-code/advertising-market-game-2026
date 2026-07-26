@@ -22,6 +22,7 @@ export interface MarketRouteCommitInput {
   readonly productTraitIds: readonly ProductTraitId[];
   readonly zoneId: string;
   readonly mediaIds: readonly string[];
+  readonly proofPoint: string;
 }
 
 export type MarketRouteCommitHandler = (
@@ -127,15 +128,31 @@ export class MarketRoutePanel {
     const traitHint = element("p");
     traitHint.textContent = "Choose at least one and no more than four ideas your product can prove.";
     traits.append(traitHint);
-    for (const trait of PRODUCT_TRAITS) {
+    const selectedTraits = new Set(this.#state.strategy.productTraitIds);
+    const visibleTraits = PRODUCT_TRAITS.filter((trait, index) =>
+      index < 5 || selectedTraits.has(trait.id)
+    );
+    const appendTrait = (trait: (typeof PRODUCT_TRAITS)[number]): void => {
       const label = checkboxLabel(
         trait.id,
         trait.label,
         trait.clue,
-        this.#state.strategy.productTraitIds.includes(trait.id)
+        selectedTraits.has(trait.id)
       );
       label.querySelector("input")!.name = "product-trait";
       traits.append(label);
+    };
+    visibleTraits.forEach(appendTrait);
+    const remainingTraits = PRODUCT_TRAITS.filter((trait) => !visibleTraits.includes(trait));
+    if (remainingTraits.length > 0) {
+      const showTraits = element("button", "market-route__more");
+      showTraits.type = "button";
+      showTraits.textContent = "Show all product strengths";
+      showTraits.addEventListener("click", () => {
+        remainingTraits.forEach(appendTrait);
+        showTraits.remove();
+      });
+      traits.append(showTraits);
     }
 
     const zoneStep = element("fieldset", "market-route__step");
@@ -174,7 +191,10 @@ export class MarketRoutePanel {
     mediaHint.textContent = "Choose at least one and no more than three media placements.";
     media.append(mediaHint);
     const selectedMedia = new Set(this.#state.strategy.marketRoute?.mediaIds ?? []);
-    for (const medium of ADVERTISING_MEDIA) {
+    const visibleMedia = ADVERTISING_MEDIA.filter((medium, index) =>
+      index < 5 || selectedMedia.has(medium.id)
+    );
+    const appendMedium = (medium: (typeof ADVERTISING_MEDIA)[number]): void => {
       const label = checkboxLabel(
         medium.id,
         medium.label,
@@ -183,7 +203,32 @@ export class MarketRoutePanel {
       );
       label.querySelector("input")!.name = "advertising-medium";
       media.append(label);
+    };
+    visibleMedia.forEach(appendMedium);
+    const remainingMedia = ADVERTISING_MEDIA.filter((medium) => !visibleMedia.includes(medium));
+    if (remainingMedia.length > 0) {
+      const showMedia = element("button", "market-route__more");
+      showMedia.type = "button";
+      showMedia.textContent = "Show all advertising media";
+      showMedia.addEventListener("click", () => {
+        remainingMedia.forEach(appendMedium);
+        showMedia.remove();
+      });
+      media.append(showMedia);
     }
+
+    const proof = element("label", "market-route__proof");
+    const proofTitle = element("span");
+    proofTitle.textContent = "Proof point";
+    const proofInput = element("textarea");
+    proofInput.name = "proof-point";
+    proofInput.setAttribute("aria-label", "Proof point");
+    proofInput.maxLength = 240;
+    proofInput.rows = 3;
+    proofInput.value = this.#state.strategy.marketRoute?.proofPoint ?? "";
+    const proofHint = element("small");
+    proofHint.textContent = "State one fact, feature or demonstration that supports the main claim. It must remain accurate for the selected audience and market scale.";
+    proof.append(proofTitle, proofInput, proofHint);
 
     const status = element("p", "market-route__status");
     status.setAttribute("role", "status");
@@ -208,6 +253,7 @@ export class MarketRoutePanel {
       const hasZone = hasTraits && Boolean(zone.value);
       media.hidden = !hasZone;
       const hasMedia = hasZone && this.#selected("advertising-medium").length > 0;
+      proof.hidden = !hasMedia;
       launch.hidden = !hasMedia && this.#state.feedback === null;
     };
 
@@ -231,11 +277,14 @@ export class MarketRoutePanel {
       refreshSteps();
     };
     form.addEventListener("change", refreshSelection);
+    form.addEventListener("input", (event) => {
+      if (event.target instanceof HTMLTextAreaElement) refreshSelection(event);
+    });
     form.addEventListener("click", (event) => {
       if (event.target instanceof HTMLInputElement) refreshSelection(event);
     });
 
-    form.append(traits, zoneStep, media, status, launch, feedbackHost);
+    form.append(traits, zoneStep, media, proof, status, launch, feedbackHost);
     root.append(form);
     this.host.replaceChildren(root);
     if (this.#state.feedback) {
@@ -262,15 +311,23 @@ export class MarketRoutePanel {
     this.#launch.textContent = "Submit this route";
     const zone = this.#form.querySelector<HTMLSelectElement>('select[name="market-zone"]');
     const zoneId = zone?.value ?? "";
+    const proofPoint = this.#form
+      .querySelector<HTMLTextAreaElement>('textarea[name="proof-point"]')
+      ?.value.trim() ?? "";
     this.#launch.disabled = !zoneId
       || this.#selected("product-trait").length === 0
-      || this.#selected("advertising-medium").length === 0;
+      || this.#selected("advertising-medium").length === 0
+      || proofPoint.length === 0;
   }
 
   async #commit(): Promise<void> {
     if (!this.#form || !this.#launch || this.#launch.disabled) return;
     const zone = this.#form.querySelector<HTMLSelectElement>('select[name="market-zone"]');
     if (!zone?.value) return;
+    const proofPoint = this.#form
+      .querySelector<HTMLTextAreaElement>('textarea[name="proof-point"]')
+      ?.value.trim() ?? "";
+    if (!proofPoint) return;
     const operation = ++this.#operation;
     this.#launch.disabled = true;
     this.#form.setAttribute("aria-busy", "true");
@@ -280,7 +337,8 @@ export class MarketRoutePanel {
         audienceBriefId: this.#state.audienceBriefId,
         productTraitIds: this.#selected("product-trait") as ProductTraitId[],
         zoneId: zone.value,
-        mediaIds: this.#selected("advertising-medium")
+        mediaIds: this.#selected("advertising-medium"),
+        proofPoint
       });
       if (operation !== this.#operation) return;
       this.#state = { ...this.#state, feedback: structuredClone(feedback) };

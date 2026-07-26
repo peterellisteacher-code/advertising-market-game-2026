@@ -7,6 +7,7 @@ import {
   assertEvidenceReferences,
   CHECKLIST_SLOTS
 } from "../checklist/checklist-store";
+import { portableRasterUrlForStorage } from "../fabric/object-factory";
 import { formatMarketBucks } from "../product-builder/product-money-panel";
 
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10] as const;
@@ -33,6 +34,14 @@ export interface PublishedCampaign {
 }
 
 function rasterSourceIsAllowed(source: string, ownedUrls: ReadonlySet<string>): void {
+  if (source.startsWith("data:")) {
+    try {
+      if (portableRasterUrlForStorage(source) === source) return;
+    } catch {
+      // Continue to the canonical publication error below.
+    }
+    throw new Error(`Raster source must be local or same-origin: ${source}`);
+  }
   let url: URL;
   try {
     url = new URL(source, window.location.href);

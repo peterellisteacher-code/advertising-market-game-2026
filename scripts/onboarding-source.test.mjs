@@ -2,11 +2,48 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const [mainScript, mainScene, marketScene] = await Promise.all([
+const [mainScript, mainScene, marketScript, marketScene, projectSettings] = await Promise.all([
   readFile(new URL("../godot/src/main/Main.gd", import.meta.url), "utf8"),
   readFile(new URL("../godot/src/main/Main.tscn", import.meta.url), "utf8"),
-  readFile(new URL("../godot/src/market/ui/MarketScreen.tscn", import.meta.url), "utf8")
+  readFile(new URL("../godot/src/market/ui/MarketScreen.gd", import.meta.url), "utf8"),
+  readFile(new URL("../godot/src/market/ui/MarketScreen.tscn", import.meta.url), "utf8"),
+  readFile(new URL("../godot/project.godot", import.meta.url), "utf8")
 ]);
+
+test("game shell uses the full 16:10 school MacBook viewport", () => {
+  assert.match(projectSettings, /window\/size\/viewport_width=1280/);
+  assert.match(projectSettings, /window\/size\/viewport_height=800/);
+  assert.match(mainScene, /name="MainMargin"[\s\S]*?offset_top = 96\.0[\s\S]*?offset_bottom = -24\.0/);
+});
+
+test("final review uses a compact checklist without repeating completed level progress", () => {
+  assert.match(
+    mainScene,
+    /name="ReviewChecks" type="GridContainer"[\s\S]*?columns = 2/
+  );
+  for (const reviewName of [
+    "ReviewAudience",
+    "ReviewValue",
+    "ReviewAida",
+    "ReviewVisual",
+    "ReviewClaim"
+  ]) {
+    assert.match(
+      mainScene,
+      new RegExp(
+        `name="${reviewName}" type="CheckBox" parent="MainMargin/GameInput/RunPanel/RunContent/FinalReview/ReviewContent/ReviewChecks"`
+      )
+    );
+  }
+  assert.match(mainScript, /level_progress\.visible = phase != "publish-check"/);
+});
+
+test("brand row reserves the account-control area without covering permanent instructions", () => {
+  assert.match(
+    mainScene,
+    /name="AccountClearance" type="Control" parent="MainMargin\/GameInput\/BrandRow"[\s\S]*?custom_minimum_size = Vector2\(420, 0\)/
+  );
+});
 
 test("student lobby keeps teacher controls behind explicit disclosure", () => {
   assert.match(mainScene, /name="TeacherSetupToggle"[\s\S]*?text = "Teacher setup"/);
@@ -46,12 +83,47 @@ test("run screen reveals one concrete next requirement at a time", () => {
     "Next: swap roles once.",
     "Next: link one choice to Attention.",
     "Next: add a price.",
-    "Next: choose and lock a market route."
+    "Next: choose and lock a market route.",
+    "Next: add a proof point to the market route."
   ]) {
     assert.ok(mainScript.includes(instruction), `missing progressive instruction: ${instruction}`);
   }
   assert.match(mainScript, /level_clue\.text = readiness_clue/);
   assert.doesNotMatch(mainScript, /before the buzzer/i);
+});
+
+test("instructions and final review remain explicit in the game shell", () => {
+  assert.match(mainScene, /name="ReviewInstructions"[\s\S]*?text = "Review all instructions"/);
+  assert.match(mainScene, /name="InstructionsDialog"[\s\S]*?title = "Advertising campaign instructions"/);
+  for (const text of [
+    "Audience and product",
+    "Product and advertisement",
+    "Advertisement and credible offer",
+    "Final judgement",
+    "Overall conclusion",
+    "The product and message suit the audience brief.",
+    "The product value and visible price are clear.",
+    "Attention, Interest, Desire and Action are all visible.",
+    "The visual technique supports the message.",
+    "The main claim is clear and supported by a proof point."
+  ]) {
+    assert.ok(mainScene.includes(text), `missing permanent instruction or final-review text: ${text}`);
+  }
+  assert.match(mainScript, /publish_campaign\.disabled = not _final_review_complete\(\)/);
+  for (const reviewName of [
+    "ReviewAudience",
+    "ReviewValue",
+    "ReviewAida",
+    "ReviewVisual",
+    "ReviewClaim"
+  ]) {
+    const review = mainScene.match(
+      new RegExp(`name="${reviewName}"[\\s\\S]*?(?=\\n\\[node name=)`)
+    )?.[0] ?? "";
+    assert.match(review, /theme_override_colors\/font_color = Color\(0\.0901961, 0\.129412, 0\.168627, 1\)/);
+    assert.match(review, /theme_override_colors\/font_pressed_color = Color\(0\.0901961, 0\.129412, 0\.168627, 1\)/);
+    assert.match(review, /theme_override_colors\/font_hover_color = Color\(0\.0901961, 0\.129412, 0\.168627, 1\)/);
+  }
 });
 
 test("new medal rooms never show purchase-era market instructions", () => {
@@ -65,4 +137,21 @@ test("new medal rooms never show purchase-era market instructions", () => {
   assert.doesNotMatch(mainScript, /Browse the stalls and spend your budget\./);
   assert.doesNotMatch(mainScript, /Your stall is open\. Shop the room\./);
   assert.doesNotMatch(mainScript, /Spend at least \$80 across products/);
+});
+
+test("medal gallery requires a complete local five-criterion scorecard", () => {
+  for (const criterion of [
+    '["audience", "Audience fit"]',
+    '["value", "Product value and price"]',
+    '["aida", "AIDA"]',
+    '["visual", "Visual technique"]',
+    '["claim", "Credible claim"]'
+  ]) {
+    assert.ok(marketScript.includes(criterion), `missing gallery criterion: ${criterion}`);
+  }
+  assert.match(marketScript, /var _scorecards: Dictionary = \{\}/);
+  assert.match(marketScript, /OptionButton\.new\(\)/);
+  assert.ok(marketScript.includes("Score: %d / 10"));
+  assert.ok(marketScript.includes("Score every other advertisement before submitting the medals."));
+  assert.match(marketScript, /_all_awardable_scorecards_complete/);
 });

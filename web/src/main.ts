@@ -38,6 +38,7 @@ import { BrowserCloudProgressOutbox } from "./account/cloud-progress-outbox";
 import { CREATOR_BRIDGE_CONTRACT, type CreatorBridgeHandler } from "./bridge/contracts";
 import {
   createCreatorPublicApi,
+  type CreatorBridgeDiagnostic,
   type CreatorPublicApi
 } from "./bridge/creator-public-api";
 import type {
@@ -156,6 +157,7 @@ import {
   applyCreatorLevelAccess,
   creatorStageAllows
 } from "./game/creator-level-access";
+import { GuidedJourneyController } from "./game/guided-journey-controller";
 
 const RETURN_TO_GAME_EVENT = "ad-market-creator:return-to-game";
 
@@ -221,6 +223,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #releaseOwnedRasterUrls: (() => void) | null = null;
   #history: FabricHistoryBindings<CampaignDocumentV1> | null = null;
   #canvasAccessibility: CanvasAccessibilityController | null = null;
+  #unsubscribeCanvasSelectionStatus: (() => void) | null = null;
   #pairGame: PairGameController | null = null;
   #logoLab: LogoLabPanel | null = null;
   #imageLab: ImageLabPanel | null = null;
@@ -229,6 +232,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #marketRoutePanel: MarketRoutePanel | null = null;
   #aidaPlaybookPanel: AidaPlaybookPanel | null = null;
   #productKitPanel: ProductKitPanel | null = null;
+  #guidedJourney: GuidedJourneyController | null = null;
   #aidaStage: AidaStage = "attention";
   #rasterPricing: RasterPricingIndex | null = null;
   #productKitBundle: LoadedProductKitBundle | null = null;
@@ -440,11 +444,20 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#refreshAidaPlaybook();
   }
 
+  attachGuidedJourney(controller: GuidedJourneyController): void {
+    if (this.#guidedJourney !== null && this.#guidedJourney !== controller) {
+      throw new Error("Guided journey is already attached");
+    }
+    this.#guidedJourney = controller;
+    this.#refreshGuidedJourney();
+  }
+
   showMessage(message: string): void {
     this.shell.assertive.textContent = message;
   }
 
   schedulePracticeAutosave(): void {
+    this.#refreshGuidedJourney();
     if (!this.#editorOpen || this.#document === null || this.#practiceAutosave === null) return;
     this.#practiceSaveMatched = false;
     this.#practiceAutosave.schedule();
@@ -542,7 +555,8 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     const route = commitMarketRoute(createMarketRoute({
       audienceBriefId: input.audienceBriefId,
       zoneId: input.zoneId,
-      mediaIds: input.mediaIds
+      mediaIds: input.mediaIds,
+      proofPoint: input.proofPoint
     }));
     const product = createProductSignal({
       pricePosition: current.product.pricePosition,
@@ -893,6 +907,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       });
       if (this.#imageLab !== null) void this.#imageLab.initialise();
       this.#setOpen(true);
+      this.#refreshGuidedJourney();
     } catch (error) {
       this.#pairGame?.close();
       this.#destroyCanvasAccessibility();
@@ -921,6 +936,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       this.#placementOwnedRasterUrls.clear();
       this.#blobs.clear();
       this.#document = null;
+      this.#guidedJourney?.setCampaign(null);
       this.#refreshMoneyCheck();
       this.#refreshMarketRoute();
       this.#refreshAidaPlaybook();
@@ -1243,6 +1259,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       plan: { attention: "", interest: "", desire: "", action: "" }
     });
     attempt(() => this.#logoLab?.setMarks([]));
+    attempt(() => this.#guidedJourney?.setCampaign(null));
     attempt(() => this.#setOpen(false));
     attempt(() => this.gameCanvas?.focus({ preventScroll: true }));
     if (cleanupError !== null) throw cleanupError;
@@ -1415,6 +1432,18 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     });
   }
 
+  #refreshGuidedJourney(): void {
+    if (this.#guidedJourney === null) return;
+    if (this.#document === null) {
+      this.#guidedJourney.setCampaign(null);
+      return;
+    }
+    const document = this.#runtime === null
+      ? this.#document
+      : this.#snapshot();
+    this.#guidedJourney.setCampaign(document);
+  }
+
   #refreshMarketRoute(feedback?: MarketRouteFeedback | null): void {
     if (!this.#marketRoutePanel) return;
     const document = this.#document;
@@ -1431,7 +1460,8 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       const route = commitMarketRoute(createMarketRoute({
         audienceBriefId: strategy.marketRoute.audienceBriefId,
         zoneId: strategy.marketRoute.zoneId,
-        mediaIds: strategy.marketRoute.mediaIds
+        mediaIds: strategy.marketRoute.mediaIds,
+        proofPoint: strategy.marketRoute.proofPoint
       }));
       nextFeedback = evaluateCommittedMarketRoute(
         createProductSignal({
@@ -1579,9 +1609,29 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
         (priority === "assertive" ? this.shell.assertive : this.shell.polite).textContent = message;
       }
     });
+    this.#unsubscribeCanvasSelectionStatus = runtime.adapter.subscribeSelection(({ objectIds }) => {
+      if (objectIds.length === 0) {
+        this.shell.zoomStatus.textContent = "Select a product or image";
+        return;
+      }
+      if (objectIds.length > 1) {
+        this.shell.zoomStatus.textContent = `Selected: ${objectIds.length} layers`;
+        return;
+      }
+      const object = campaignSemanticObjectMap(runtime.adapter.serialize())
+        .get(objectIds[0]!)?.object;
+      const accessibleName = typeof object?.accessibleName === "string"
+        ? object.accessibleName.trim()
+        : "";
+      this.shell.zoomStatus.textContent =
+        `Selected: ${accessibleName || "Canvas layer"}`;
+    });
   }
 
   #destroyCanvasAccessibility(): void {
+    this.#unsubscribeCanvasSelectionStatus?.();
+    this.#unsubscribeCanvasSelectionStatus = null;
+    this.shell.zoomStatus.textContent = "Select a product or image";
     this.#canvasAccessibility?.destroy();
     this.#canvasAccessibility = null;
   }
@@ -1787,6 +1837,30 @@ const handler = new BrowserCreatorHandler(
   practiceService,
   cloudSync
 );
+const guidedJourney = new GuidedJourneyController(shell.overlay, (step) => {
+  if (step.tool === "game") {
+    shell.overlay.querySelector<HTMLButtonElement>('[data-command="return"]')?.click();
+    return;
+  }
+  if (step.aidaStage !== undefined) {
+    handler.selectAidaStage(step.aidaStage);
+    studioTools.select("aida");
+    return;
+  }
+  if (step.id === "audience") {
+    const briefToggle = shell.overlay.querySelector<HTMLButtonElement>("[data-brief-toggle]");
+    if (briefToggle?.getAttribute("aria-expanded") !== "true") briefToggle?.click();
+    shell.audienceSignal.focus();
+    return;
+  }
+  if (step.id === "pair-contribution") {
+    studioTools.select("product");
+    shell.swapRoles.focus();
+    return;
+  }
+  studioTools.select(step.tool);
+});
+handler.attachGuidedJourney(guidedJourney);
 const runCanvasSizeAction = (operation: () => Promise<void>): void => {
   void operation().catch((error: unknown) => {
     const message = error instanceof Error ? error.message : "Canvas size could not be changed";
@@ -1858,7 +1932,25 @@ const imageLabPanel = new ImageLabPanel(shell.imageLabPanel, imageLabRuntime);
 handler.attachImageLab(imageLabPanel);
 const studioCoachPanel = new StudioCoachPanel(shell.studioCoachPanel, studioCoachRuntime);
 handler.attachStudioCoach(studioCoachRuntime);
-const publicApi = createCreatorPublicApi(handler, (message) => handler.showMessage(message));
+const logCreatorDiagnostic = (diagnostic: CreatorBridgeDiagnostic): void => {
+  const errorName = diagnostic.error instanceof Error
+    ? diagnostic.error.name
+    : typeof diagnostic.error;
+  const message = diagnostic.error instanceof Error
+    ? diagnostic.error.message
+    : "Unknown creator failure";
+  console.warn(`[AdMarket creator request failed] ${JSON.stringify({
+    requestId: diagnostic.requestId,
+    method: diagnostic.method,
+    errorName,
+    message
+  })}`);
+};
+const publicApi = createCreatorPublicApi(
+  handler,
+  (message) => handler.showMessage(message),
+  logCreatorDiagnostic
+);
 const marketPublicApi = createMarketPublicApi(new MarketClient());
 const cataloguePanel = new CataloguePanel(
   shell.libraryResults,

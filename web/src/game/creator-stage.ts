@@ -100,6 +100,7 @@ export const PUBLICATION_MISSING_CODES = Object.freeze([
   "interest",
   "desire",
   "action",
+  "market-route",
   "role-handoff",
   "art-director-action",
   "strategist-action"
@@ -133,6 +134,10 @@ export function evaluatePublicationReadiness(
   if (!hasEvidenceId(campaign.evidence.interest)) missing.push("interest");
   if (!hasEvidenceId(campaign.evidence.desire)) missing.push("desire");
   if (!hasEvidenceId(campaign.evidence.action)) missing.push("action");
+  if (campaign.strategy.marketRoute?.committed !== true ||
+    campaign.strategy.marketRoute.proofPoint.trim().length === 0) {
+    missing.push("market-route");
+  }
   if (session.handoffCount < 1) missing.push("role-handoff");
   if (progress["art-director"] < 1) missing.push("art-director-action");
   if (progress.strategist < 1) missing.push("strategist-action");

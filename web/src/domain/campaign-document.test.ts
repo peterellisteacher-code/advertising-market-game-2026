@@ -251,6 +251,29 @@ describe("CampaignDocumentV1", () => {
     });
   });
 
+  it("loads a saved market route from before proof points were introduced", () => {
+    const doc = createBlankCampaignDocument({
+      documentId: "legacy-route-doc",
+      sessionId: "legacy-route-session",
+      mode: "offline"
+    });
+    doc.brief.targetAudienceId = "after-school-wanderers";
+    const legacy = {
+      ...structuredClone(doc),
+      strategy: {
+        ...structuredClone(doc.strategy),
+        marketRoute: {
+          audienceBriefId: "after-school-wanderers",
+          zoneId: "city",
+          mediaIds: ["transit"],
+          committed: true
+        }
+      }
+    };
+
+    expect(parseCampaignDocument(legacy).strategy.marketRoute?.proofPoint).toBe("");
+  });
+
   it("rejects a product ledger whose lines do not add up to its unit cost", () => {
     const doc = createBlankCampaignDocument({
       documentId: "bad-cost-doc",
@@ -296,6 +319,7 @@ describe("CampaignDocumentV1", () => {
         audienceBriefId: "after-school-wanderers",
         zoneId: "city",
         mediaIds: ["transit", "social-feed"],
+        proofPoint: "The carry loop fits around one hand.",
         committed: true as const
       },
       aidaPlan: {

@@ -54,7 +54,7 @@ export class AidaPlaybookPanel {
     const purpose = element("p", "aida-playbook__purpose");
     purpose.textContent = definition.purpose;
     const deckLabel = element("p", "aida-playbook__deck-label");
-    deckLabel.textContent = "Pick, remix, or write a move. Select the canvas piece that delivers it.";
+    deckLabel.textContent = "Choose a technique or write your own. Each technique states how a visible choice affects the audience. Select the canvas piece that delivers it.";
     const deck = element("div", "aida-playbook__deck");
     deck.setAttribute("role", "group");
     deck.setAttribute("aria-label", `${definition.label} move deck`);
@@ -65,7 +65,7 @@ export class AidaPlaybookPanel {
     idea.value = this.#state.plan[definition.id];
     idea.setAttribute("aria-label", `Your ${definition.label} move`);
 
-    for (const candidate of definition.moves) {
+    const appendMove = (candidate: (typeof definition.moves)[number]): void => {
       const card = element("button", "aida-playbook__move");
       card.type = "button";
       card.setAttribute("aria-label", `Try move: ${candidate.label}`);
@@ -80,7 +80,17 @@ export class AidaPlaybookPanel {
         idea.focus();
       });
       deck.append(card);
+    };
+    for (const candidate of definition.moves.slice(0, 5)) {
+      appendMove(candidate);
     }
+    const more = element("button", "aida-playbook__more");
+    more.type = "button";
+    more.textContent = "Show five more techniques";
+    more.addEventListener("click", () => {
+      definition.moves.slice(5).forEach(appendMove);
+      more.remove();
+    });
 
     const label = element("label", "aida-playbook__idea");
     const labelText = element("span");
@@ -118,7 +128,7 @@ export class AidaPlaybookPanel {
       }
     });
     refresh();
-    root.append(heading, purpose, deckLabel, deck, label, status, save);
+    root.append(heading, purpose, deckLabel, deck, more, label, status, save);
     this.host.replaceChildren(root);
   }
 }

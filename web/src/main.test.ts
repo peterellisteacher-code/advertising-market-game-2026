@@ -1467,6 +1467,71 @@ describe("window.AdMarketCreator", () => {
     }));
   });
 
+  it("keeps the guided instruction synchronized with persisted campaign progress", async () => {
+    const source = documentAtStage("sell");
+    source.brief.targetAudienceId = AUDIENCE_BRIEFS[0].id;
+    source.product.name = "Study Flask";
+    source.product.build = {
+      schema: "product-build@1",
+      primaryObjectId: "placed-product",
+      packId: "pack-1",
+      pricingVersion: 1,
+      blueprintId: "tumbler",
+      selections: [{ groupId: "body", choiceIds: ["steel"] }],
+      costLines: [{
+        groupId: "body",
+        groupLabel: "Material",
+        kind: "material",
+        choiceId: "steel",
+        label: "Insulated steel",
+        costCents: 3500
+      }],
+      unitCostCents: 3500
+    };
+    source.gameplay.pair.handoffCount = 1;
+    source.gameplay.pair.artDirectorActions = 1;
+    source.gameplay.pair.strategistActions = 1;
+    source.fabricState.objects = [{
+      type: "group",
+      objectId: "placed-product",
+      elementKind: "product-kit",
+      accessibleName: "Study Flask",
+      objects: []
+    }];
+    await import("./main");
+    const api = window.AdMarketCreator;
+
+    expect(await parsed(api, "open-guided", "open", source)).toMatchObject({ ok: true });
+
+    const guide = getByRole(document.body, "region", { name: "Current instruction" });
+    expect(guide.textContent).toContain("Step 5 of 11");
+    expect(guide.textContent).toContain("Attention");
+    expect(document.querySelector<HTMLButtonElement>("[data-slot=interest]")!.disabled)
+      .toBe(true);
+    fireEvent.click(getByRole(guide, "button", { name: "Open Attention" }));
+    expect(document.querySelector<HTMLButtonElement>('[data-studio-tool="aida"]')
+      ?.getAttribute("aria-selected")).toBe("true");
+
+    runtime.selectedObjectId = "placed-product";
+    const idea = getByRole<HTMLTextAreaElement>(document.body, "textbox", {
+      name: "Your Attention move"
+    });
+    fireEvent.input(idea, { target: { value: "Use a close product image as the focal point." } });
+    fireEvent.click(getByRole(document.body, "button", { name: "Lock in Attention" }));
+
+    await waitFor(() => expect(guide.textContent).toContain("Step 6 of 11"));
+    expect(guide.textContent).toContain("Interest");
+    expect(document.querySelector<HTMLButtonElement>("[data-slot=attention]")!.disabled)
+      .toBe(false);
+    expect(document.querySelector<HTMLButtonElement>("[data-slot=interest]")!.disabled)
+      .toBe(false);
+    expect(document.querySelector<HTMLButtonElement>("[data-slot=desire]")!.disabled)
+      .toBe(true);
+
+    expect(await parsed(api, "close-guided", "close", null)).toMatchObject({ ok: true });
+    expect(document.querySelector<HTMLElement>("[data-guide]")!.hidden).toBe(true);
+  });
+
   it("makes keyboard canvas movement one undoable document change", async () => {
     const documentWithText = CampaignDocumentSchema.parse({
       ...structuredClone(blankDocument),
@@ -1736,6 +1801,8 @@ describe("window.AdMarketCreator", () => {
     runtime.selectionListeners.forEach((listener) => listener({
       objectIds: ["placed-product"]
     }));
+    expect(document.querySelector('[data-canvas-zoom-status]')?.textContent)
+      .toBe("Selected: Placed product");
 
     activateStudioTool("aida");
 
@@ -3219,6 +3286,7 @@ describe("window.AdMarketCreator", () => {
   });
 
   it("returns canonical handler errors when storage or export fails", async () => {
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     await import("./main");
     const api = window.AdMarketCreator;
     await parsed(api, "open-failures", "open", blankDocument);
@@ -3241,9 +3309,14 @@ describe("window.AdMarketCreator", () => {
       ok: false,
       error: {
         code: "CREATOR_OPERATION_FAILED",
-        message: "The advertisement could not be published. Check the required items, then try again."
+        message: "The market card image could not be prepared. Your advertisement is still saved. Try again. If the same message appears, ask your teacher."
       }
     });
+    expect(warning).toHaveBeenCalledWith(
+      "[AdMarket creator request failed] " +
+      "{\"requestId\":\"export-failure\",\"method\":\"publish\"," +
+      "\"errorName\":\"Error\",\"message\":\"Synthetic Fabric export failure\"}"
+    );
   });
 
   it("emits a private Return-to-game event and restores the game surface on close", async () => {

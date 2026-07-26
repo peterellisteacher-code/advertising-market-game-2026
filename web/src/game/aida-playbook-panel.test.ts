@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { AidaPlaybookPanel } from "./aida-playbook-panel";
 
 describe("AidaPlaybookPanel", () => {
-  it("offers a broad move deck and saves the pair's own plan", async () => {
+  it("presents five techniques first, preserves the written plan when expanded, and saves it", async () => {
     const host = document.createElement("div");
     const save = vi.fn().mockResolvedValue(undefined);
     const panel = new AidaPlaybookPanel(host, save);
@@ -17,9 +17,11 @@ describe("AidaPlaybookPanel", () => {
       name: "Attention: use one element to attract attention immediately."
     }))
       .toBeTruthy();
-    expect(getAllByRole(host, "button", { name: /Try move:/ })).toHaveLength(10);
+    expect(getAllByRole(host, "button", { name: /Try move:/ })).toHaveLength(5);
     expect(host.textContent)
       .toContain("Select the canvas piece that delivers it");
+    expect(host.textContent)
+      .toContain("Each technique states how a visible choice affects the audience.");
     expect(host.textContent).not.toMatch(/\b(?:assignment|unit|task)\b/i);
 
     fireEvent.click(getByRole(host, "button", { name: /Try move: Pattern break/ }));
@@ -28,6 +30,9 @@ describe("AidaPlaybookPanel", () => {
     fireEvent.input(idea, {
       target: { value: "Open with one tiny bottle in a field of oversized circles." }
     });
+    fireEvent.click(getByRole(host, "button", { name: "Show five more techniques" }));
+    expect(getAllByRole(host, "button", { name: /Try move:/ })).toHaveLength(10);
+    expect(idea.value).toBe("Open with one tiny bottle in a field of oversized circles.");
     fireEvent.click(getByRole(host, "button", { name: "Lock in Attention" }));
 
     await vi.waitFor(() => expect(save).toHaveBeenCalledWith(

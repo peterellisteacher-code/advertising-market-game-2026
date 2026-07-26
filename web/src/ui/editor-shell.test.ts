@@ -68,6 +68,23 @@ describe("createEditorShell", () => {
     expect(shell.libraryResults.dataset.libraryResults).toBe("");
     expect(shell.libraryStatus.getAttribute("role")).toBe("status");
     expect(getByRole(root, "button", { name: "Hide library" })).toBeTruthy();
+    const currentInstruction = getByRole(root, "region", { name: "Current instruction" });
+    expect(currentInstruction).toBeTruthy();
+    expect(["Now", "Why", "Done", "Next"].every((label) =>
+      currentInstruction.textContent?.includes(label)
+    )).toBe(true);
+    expect(getByRole(root, "button", { name: "Review all instructions" })).toBeTruthy();
+    expect(getByRole(root, "button", { name: "Review instructions" })).toBeTruthy();
+    const instructions = root.querySelector<HTMLElement>('[data-guide-dialog]')!;
+    expect(instructions.hidden).toBe(true);
+    expect(instructions.getAttribute("aria-label")).toBe("Advertising campaign instructions");
+    expect([...instructions.querySelectorAll("h3")].map(({ textContent }) => textContent))
+      .toEqual([
+        "1. Use audience evidence to choose the product",
+        "2. Use the product to create the advertisement",
+        "3. Make the offer clear and credible",
+        "4. Review and judge the campaigns"
+      ]);
     expect(getByRole(root, "region", { name: "Campaign canvas" }).getAttribute("tabindex")).toBe("0");
     const sizeControls = getByRole(root, "group", { name: "Selected product or image size" });
     expect(getByRole(sizeControls, "button", { name: "Make selected product or image smaller" }))
@@ -109,7 +126,7 @@ describe("createEditorShell", () => {
     expect(getByRole(root, "button", { name: "Put words on selected product", hidden: true }))
       .toBe(shell.productWords);
     expect(root.querySelector('[data-studio-panel="words"]')?.textContent)
-      .toContain("Words added to supported products follow a curved path and remain editable.");
+      .toContain("On supported products, the words appear on a curved label and the original text remains editable.");
     expect(root.querySelector('.creator__layers[aria-label="Canvas layers"]')).toBeTruthy();
     expect(getByRole(root, "button", { name: "Open canvas layers", hidden: true })).toBeTruthy();
     expect(root.querySelector('.creator__inspector[aria-label="Selected element"]')).toBeTruthy();

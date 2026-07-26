@@ -103,7 +103,7 @@ function publicationFailure(error: unknown): { code: string; message: string } {
   }
   return {
     code: "CREATOR_OPERATION_FAILED",
-    message: "The advertisement could not be published. Check the required items, then try again."
+    message: "The market card image could not be prepared. Your advertisement is still saved. Try again. If the same message appears, ask your teacher."
   };
 }
 

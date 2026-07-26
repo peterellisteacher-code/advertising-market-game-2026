@@ -158,6 +158,8 @@ export const STUDENT_COPY_SOURCE_PATHS = Object.freeze([
   "web/src/game/audience-briefs.ts",
   "web/src/game/creator-level-access.ts",
   "web/src/game/creator-stage.ts",
+  "web/src/game/guided-journey-controller.ts",
+  "web/src/game/guided-journey.ts",
   "web/src/game/market-card-preview.ts",
   "web/src/game/market-route-panel.ts",
   "web/src/game/market-route.ts",

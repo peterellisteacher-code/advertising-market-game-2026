@@ -193,12 +193,14 @@ export interface MarketRouteInput {
   readonly audienceBriefId: string;
   readonly zoneId: string;
   readonly mediaIds: readonly string[];
+  readonly proofPoint?: string;
 }
 
 export interface MarketRouteDraft {
   readonly audienceBriefId: string;
   readonly zoneId: MarketZoneId;
   readonly mediaIds: readonly AdvertisingMediumId[];
+  readonly proofPoint: string;
   readonly committed: false;
 }
 
@@ -206,6 +208,7 @@ export interface CommittedMarketRoute {
   readonly audienceBriefId: string;
   readonly zoneId: MarketZoneId;
   readonly mediaIds: readonly AdvertisingMediumId[];
+  readonly proofPoint: string;
   readonly committed: true;
 }
 
@@ -238,6 +241,7 @@ function advertisingMediumId(value: string): AdvertisingMediumId {
 export function createMarketRoute(input: MarketRouteInput): MarketRouteDraft {
   const audienceBriefId = nonBlankId(input.audienceBriefId, "audienceBriefId");
   getAudienceBrief(audienceBriefId);
+  const proofPoint = (input.proofPoint ?? "").trim();
 
   if (input.mediaIds.length === 0) {
     throw new Error("Choose at least one advertising medium");
@@ -262,16 +266,21 @@ export function createMarketRoute(input: MarketRouteInput): MarketRouteDraft {
     audienceBriefId,
     zoneId: marketZoneId(input.zoneId),
     mediaIds: Object.freeze(mediaIds),
+    proofPoint,
     committed: false
   });
 }
 
 export function commitMarketRoute(route: MarketRouteDraft): CommittedMarketRoute {
   const validated = createMarketRoute(route);
+  if (validated.proofPoint.length === 0) {
+    throw new Error("Market route proof point must be non-blank");
+  }
   return Object.freeze({
     audienceBriefId: validated.audienceBriefId,
     zoneId: validated.zoneId,
     mediaIds: Object.freeze([...validated.mediaIds]),
+    proofPoint: validated.proofPoint,
     committed: true
   });
 }

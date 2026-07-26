@@ -120,6 +120,24 @@ describe("Fabric canvas layer styling", () => {
     );
   });
 
+  it("shows the complete current instruction and keeps canvas-layer controls unobscured", () => {
+    expect(css).toMatch(
+      /\.creator__guide\s*\{[^}]*max-height:\s*22rem[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator__canvas-size\s*\{[^}]*z-index:\s*11[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator__layers\s*\{[^}]*bottom:\s*6\.5rem[^}]*max-height:\s*calc\(100%\s*-\s*7\.5rem\)[^}]*\}/i
+    );
+  });
+
+  it("separates every observed-price source from its amount", () => {
+    expect(css).toMatch(
+      /\.money-check__evidence\s+li\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+max-content[^}]*gap:\s*\.5rem[^}]*\}/i
+    );
+  });
+
   it("shows a larger assembled-product preview and a two-column asset shelf", () => {
     expect(css).toMatch(
       /\.product-kit__preview-frame\s*\{[^}]*width:\s*12rem[^}]*aspect-ratio:\s*4\s*\/\s*5[^}]*\}/i

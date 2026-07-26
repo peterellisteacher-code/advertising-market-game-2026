@@ -45,6 +45,7 @@ const MIN_FONT_SIZE = 24;
 const FONT_STEP = 2;
 const LINE_HEIGHT_RATIO = 1.08;
 const STRIP_WIDTH = 4;
+const MAX_VERTICAL_ARC = CURVED_LABEL_HEIGHT * 0.09;
 const HEX_COLOUR = /^#[0-9a-f]{6}$/i;
 
 function normaliseText(value: string): string {
@@ -189,6 +190,7 @@ export function renderCurvedLabel(input: CurvedLabelInput): CurvedLabelRender {
     const destinationX = cylindricalLabelX(sourceX, source.width);
     const destinationRight = cylindricalLabelX(sourceX + sourceWidth, source.width);
     const midpoint = (sourceX + sourceWidth / 2) / source.width * 2 - 1;
+    const destinationY = MAX_VERTICAL_ARC * Math.pow(Math.abs(midpoint), 2);
     outputContext.globalAlpha = 0.58 +
       0.42 * Math.pow(Math.cos(midpoint * HALF_VISIBLE_ANGLE), 0.4);
     outputContext.drawImage(
@@ -198,7 +200,7 @@ export function renderCurvedLabel(input: CurvedLabelInput): CurvedLabelRender {
       sourceWidth,
       source.height,
       destinationX,
-      0,
+      destinationY,
       Math.max(0.5, destinationRight - destinationX + 0.5),
       output.height
     );

@@ -69,7 +69,7 @@ describe("student copy", () => {
       context: "Context",
       need: "Need",
       values: "Values",
-      intendedEffect: "Intended effect",
+      intendedEffect: "Intended audience response",
       productName: expect.any(String),
       price: expect.any(String),
       publish: expect.any(String)
@@ -94,7 +94,7 @@ describe("student copy", () => {
       textPlaceholder: "Try Make room for adventure",
       addWords: "Add words to ad",
       productWords: "Put words on selected product",
-      productWordsHint: "Select the product first. Words added to supported products follow a curved path and remain editable.",
+      productWordsHint: "Select the product first. On supported products, the words appear on a curved label and the original text remains editable.",
       blankWords: "Type some canvas words first.",
       audienceChanged: "Audience signal changed.",
       wordsAdded: "Words added to the canvas.",

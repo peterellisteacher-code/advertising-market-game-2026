@@ -560,6 +560,17 @@ describe("CampaignExporter", () => {
     ).publish(document)).toThrow("Canvas state does not match campaign document");
   });
 
+  it("accepts a bounded portable PNG raster created by the product builder", () => {
+    const document = documentFixture();
+    document.fabricState.objects.find(({ objectId }) => objectId === "photo")!.src =
+      pngDataUrl(640, 450);
+
+    expect(() => new CampaignExporter(
+      new ExportHarness(pngDataUrl(), document.fabricState),
+      ownedUrls(document)
+    ).publish(document)).not.toThrow();
+  });
+
   it.each([
     "https://external.example/image.png",
     "data:image/png;base64,cHJvYmU=",

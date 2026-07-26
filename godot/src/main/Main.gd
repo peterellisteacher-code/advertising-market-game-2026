@@ -55,12 +55,23 @@ const AIDA_NEXT_ACTIONS := {
 @onready var create_live_market: Button = %CreateLiveMarket
 @onready var start_button: Button = %StartRun
 @onready var run_panel: Control = %RunPanel
+@onready var level_progress: HBoxContainer = %LevelProgress
 @onready var level_eyebrow: Label = %LevelEyebrow
 @onready var level_heading: Label = %LevelHeading
 @onready var level_clue: Label = %LevelClue
 @onready var lock_level: Button = %LockLevel
 @onready var advance_level: Button = %AdvanceLevel
 @onready var publish_campaign: Button = %PublishCampaign
+@onready var review_instructions: Button = %ReviewInstructions
+@onready var instructions_dialog: AcceptDialog = %InstructionsDialog
+@onready var instructions_text: RichTextLabel = %InstructionsText
+@onready var final_review: Control = %FinalReview
+@onready var review_audience: CheckBox = %ReviewAudience
+@onready var review_value: CheckBox = %ReviewValue
+@onready var review_aida: CheckBox = %ReviewAida
+@onready var review_visual: CheckBox = %ReviewVisual
+@onready var review_claim: CheckBox = %ReviewClaim
+@onready var final_review_status: Label = %FinalReviewStatus
 @onready var invent_chip: Label = %InventChip
 @onready var sell_chip: Label = %SellChip
 @onready var irresistible_chip: Label = %IrresistibleChip
@@ -163,6 +174,9 @@ func _ready() -> void:
     lock_level.pressed.connect(_lock_current_level)
     advance_level.pressed.connect(_advance_level)
     publish_campaign.pressed.connect(_publish_campaign)
+    review_instructions.pressed.connect(_show_instructions)
+    for review_check in _final_review_checks():
+        review_check.toggled.connect(_on_final_review_changed)
     run_panel.hide()
     market_screen.hide()
     _setup_practice_recovery()
@@ -342,7 +356,7 @@ func _on_practice_request_succeeded(request_id: String, method: String, payload:
         "advance":
             _render_level()
             status.text = (
-                "Final check unlocked. Build the market card when your pair is ready."
+                "Final check unlocked. Complete the five-part final review."
                 if _game_run.phase == "publish-check"
                 else "Next level unlocked. Open the studio when your pair is ready."
             )
@@ -778,8 +792,8 @@ func _on_creator_closed() -> void:
         status.text = "Market card delivered. The host will display it on the floor."
         return
     if _room_role == "team" and _game_run.phase == "publish-check":
-        status.text = "Studio saved. Build the refreshed market card when your pair is ready."
-        _focus_if_ready(publish_campaign)
+        status.text = "Studio saved. Complete the final review before building the refreshed market card."
+        _focus_if_ready(_final_review_focus_target())
         return
     if _game_run.phase in ["market", "reveal"]:
         status.text = (
@@ -912,7 +926,12 @@ func _advance_level() -> void:
     _save_live_progress()
 
 func _publish_campaign() -> void:
-    if _game_run.phase != "publish-check" or _publish_after_open:
+    if (
+        _game_run.phase != "publish-check"
+        or _publish_after_open
+        or publish_campaign.disabled
+        or not _final_review_complete()
+    ):
         return
     _publish_after_open = true
     publish_campaign.disabled = true
@@ -963,6 +982,7 @@ func _on_creator_published(publication: Dictionary) -> void:
 
 func _render_level() -> void:
     var phase: String = _game_run.phase
+    level_progress.visible = phase != "publish-check"
     var level_order := ["invent", "sell", "irresistible"]
     var active_index := level_order.find(phase)
     var chips: Array[Label] = [invent_chip, sell_chip, irresistible_chip]
@@ -974,17 +994,22 @@ func _render_level() -> void:
         )
         chip.modulate.a = 1.0 if index <= active_index or active_index < 0 else 0.55
 
+    if phase != "publish-check":
+        final_review.hide()
+        _reset_final_review()
+
     if phase == "publish-check":
         level_eyebrow.text = "MARKET GATE"
-        level_heading.text = "Preview before the stalls open."
-        level_clue.text = "You have completed all three levels. Build the card that will appear in the market gallery."
+        level_heading.text = "Complete the final review."
+        level_clue.text = "Check the five statements against the completed advertisement. Then build the market card."
         launch_button.hide()
         lock_level.hide()
         advance_level.hide()
+        final_review.show()
         publish_campaign.show()
-        publish_campaign.disabled = false
-        _focus_if_ready(publish_campaign)
-        status.text = "Three levels complete. Build the market card."
+        _update_final_review()
+        _focus_if_ready(_final_review_focus_target())
+        status.text = "Three levels complete. Confirm each final-review statement."
         return
 
     if phase == "market":
@@ -1024,6 +1049,49 @@ func _render_level() -> void:
     publish_campaign.hide()
     lock_level.disabled = _level_locked
     advance_level.disabled = not _level_locked
+
+func _show_instructions() -> void:
+    instructions_dialog.popup_centered(Vector2i(920, 640))
+    _focus_if_ready(instructions_text)
+
+func _final_review_checks() -> Array[CheckBox]:
+    return [
+        review_audience,
+        review_value,
+        review_aida,
+        review_visual,
+        review_claim
+    ]
+
+func _on_final_review_changed(_pressed: bool) -> void:
+    _update_final_review()
+
+func _final_review_complete() -> bool:
+    for review_check in _final_review_checks():
+        if not review_check.button_pressed:
+            return false
+    return true
+
+func _update_final_review() -> void:
+    if not final_review.visible:
+        return
+    publish_campaign.disabled = not _final_review_complete()
+    final_review_status.text = (
+        "Final review complete. Build the market card."
+        if _final_review_complete()
+        else "Select all five review statements."
+    )
+
+func _reset_final_review() -> void:
+    for review_check in _final_review_checks():
+        review_check.set_pressed_no_signal(false)
+    final_review_status.text = "Select all five review statements."
+
+func _final_review_focus_target() -> Control:
+    for review_check in _final_review_checks():
+        if not review_check.button_pressed:
+            return review_check
+    return publish_campaign
 
 func _advance_label() -> String:
     return "Final check" if _game_run.phase == "irresistible" else "Next level"
@@ -1105,6 +1173,8 @@ func _readiness_clue_for(phase: String, document: Dictionary) -> String:
             return "Next: add a price."
         if not route_is_committed:
             return "Next: choose and lock a market route."
+        if not _is_nonblank_string(route.get("proofPoint")):
+            return "Next: add a proof point to the market route."
     return ""
 
 func _dictionary_child(source: Dictionary, key: String) -> Dictionary:

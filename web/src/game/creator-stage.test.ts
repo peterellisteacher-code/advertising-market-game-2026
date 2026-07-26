@@ -52,6 +52,13 @@ function readyCampaign(): CampaignDocumentV1 {
   campaign.evidence.interest = ["object-interest"];
   campaign.evidence.desire = ["object-desire"];
   campaign.evidence.action = ["object-action"];
+  campaign.strategy.marketRoute = {
+    audienceBriefId: AUDIENCE_BRIEFS[0].id,
+    zoneId: "city",
+    mediaIds: ["transit"],
+    proofPoint: "The carry loop fits around one hand.",
+    committed: true
+  };
   return campaign;
 }
 
@@ -168,6 +175,7 @@ describe("publication readiness", () => {
         "interest",
         "desire",
         "action",
+        "market-route",
         "role-handoff",
         "art-director-action",
         "strategist-action"
@@ -181,6 +189,7 @@ describe("publication readiness", () => {
       "interest",
       "desire",
       "action",
+      "market-route",
       "role-handoff",
       "art-director-action",
       "strategist-action"
@@ -215,6 +224,16 @@ describe("publication readiness", () => {
       ["interest", readySession(), readyProgress(), { ...readyCampaign(), evidence: { ...readyCampaign().evidence, interest: [] } }],
       ["desire", readySession(), readyProgress(), { ...readyCampaign(), evidence: { ...readyCampaign().evidence, desire: [] } }],
       ["action", readySession(), readyProgress(), { ...readyCampaign(), evidence: { ...readyCampaign().evidence, action: [] } }],
+      ["market-route", readySession(), readyProgress(), {
+        ...readyCampaign(),
+        strategy: {
+          ...readyCampaign().strategy,
+          marketRoute: {
+            ...readyCampaign().strategy.marketRoute!,
+            proofPoint: " "
+          }
+        }
+      }],
       ["role-handoff", { ...readySession(), handoffCount: 0 }, readyProgress(), readyCampaign()],
       ["art-director-action", readySession(), { "art-director": 0, strategist: 1 }, readyCampaign()],
       ["strategist-action", readySession(), { "art-director": 1, strategist: 0 }, readyCampaign()]

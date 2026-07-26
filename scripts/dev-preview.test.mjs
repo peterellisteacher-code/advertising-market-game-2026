@@ -3,6 +3,16 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const previewUrl = new URL("../index.html", import.meta.url);
+const packageUrl = new URL("../package.json", import.meta.url);
+
+test("the documented development command starts Netlify Dev", async () => {
+  const packageJson = JSON.parse(await readFile(packageUrl, "utf8"));
+
+  assert.equal(
+    packageJson.scripts.dev,
+    "node scripts/build-netlify-functions.mjs && npx netlify dev"
+  );
+});
 
 test("the Vite preview supplies the locked shell and opens an offline Creator document", async () => {
   const html = await readFile(previewUrl, "utf8");

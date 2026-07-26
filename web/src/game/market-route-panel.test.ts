@@ -78,6 +78,9 @@ describe("MarketRoutePanel", () => {
     });
 
     expect(getByRole(host, "group", { name: "Product strengths" })).toBeTruthy();
+    expect(host.querySelectorAll('input[name="product-trait"]')).toHaveLength(5);
+    fireEvent.click(getByRole(host, "button", { name: "Show all product strengths" }));
+    expect(host.querySelectorAll('input[name="product-trait"]')).toHaveLength(12);
     const steps = [...host.querySelectorAll<HTMLFieldSetElement>("fieldset")];
     expect(steps.map(({ hidden }) => hidden)).toEqual([false, true, true]);
     expect(host.textContent).not.toContain("Strong route");
@@ -90,6 +93,14 @@ describe("MarketRoutePanel", () => {
       target: { value: "city" }
     });
     expect(steps.map(({ hidden }) => hidden)).toEqual([false, false, false]);
+    expect(host.querySelectorAll('input[name="advertising-medium"]')).toHaveLength(5);
+    const showMedia = host.querySelector<HTMLButtonElement>(
+      ".market-route__step .market-route__more"
+    );
+    expect(showMedia?.textContent).toBe("Show all advertising media");
+    expect(showMedia?.closest("fieldset")?.hidden).toBe(false);
+    fireEvent.click(showMedia!);
+    expect(host.querySelectorAll('input[name="advertising-medium"]')).toHaveLength(11);
     const transit = steps[2]!.querySelector<HTMLInputElement>(
       'input[name="advertising-medium"][value="transit"]'
     )!;
@@ -97,7 +108,15 @@ describe("MarketRoutePanel", () => {
     expect(portability.checked).toBe(true);
     expect(marketZone.value).toBe("city");
     expect(transit.checked).toBe(true);
+    const proofPoint = getByRole<HTMLTextAreaElement>(host, "textbox", { name: "Proof point" });
+    expect(host.textContent).toContain(
+      "It must remain accurate for the selected audience and market scale."
+    );
     const launch = getByRole<HTMLButtonElement>(host, "button", { name: "Submit this route" });
+    expect(launch.disabled).toBe(true);
+    fireEvent.input(proofPoint, {
+      target: { value: "  The carry loop fits around one hand.  " }
+    });
     expect(launch.disabled).toBe(false);
     fireEvent.click(launch);
 
@@ -105,7 +124,8 @@ describe("MarketRoutePanel", () => {
       audienceBriefId: "after-school-wanderers",
       productTraitIds: ["portability"],
       zoneId: "city",
-      mediaIds: ["transit"]
+      mediaIds: ["transit"],
+      proofPoint: "The carry loop fits around one hand."
     }));
     await waitFor(() => expect(getByRole(host, "region", { name: "Route report" }).textContent)
       .toContain("Strong route"));
@@ -133,6 +153,7 @@ describe("MarketRoutePanel", () => {
           audienceBriefId: "after-school-wanderers",
           zoneId: "destination",
           mediaIds: ["cinema", "search"],
+          proofPoint: "The courtyard receives direct morning light.",
           committed: true
         }
       },
@@ -144,6 +165,8 @@ describe("MarketRoutePanel", () => {
     expect(getAllByRole<HTMLInputElement>(host, "checkbox")
       .filter(({ checked }) => checked).map(({ value }) => value))
       .toEqual(["space-property", "search", "cinema"]);
+    expect(getByRole<HTMLTextAreaElement>(host, "textbox", { name: "Proof point" }).value)
+      .toBe("The courtyard receives direct morning light.");
     expect(getAllByRole(host, "checkbox").every((input) => !input.hasAttribute("disabled")))
       .toBe(true);
     expect(host.textContent).not.toContain("$500,000.00");

@@ -160,6 +160,7 @@ export class ProductMoneyPanel {
       input.type = "radio";
       input.name = "product-price-position";
       input.value = value;
+      input.setAttribute("aria-label", `${labelText} ${clue}`);
       input.checked = this.#state.pricePosition === value;
       input.disabled = !named;
       input.addEventListener("change", () => {
@@ -172,7 +173,7 @@ export class ProductMoneyPanel {
       const strong = element("strong");
       strong.textContent = labelText;
       const small = element("small");
-      small.textContent = clue;
+      small.textContent = ` ${clue}`;
       copy.append(strong, small);
       label.append(input, copy);
       positions.append(label);

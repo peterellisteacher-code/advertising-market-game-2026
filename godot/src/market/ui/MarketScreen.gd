@@ -12,6 +12,13 @@ const KRAFT := Color("#f4ead6")
 const KRAFT_BORDER := Color("#d7c7aa")
 const MUTED := Color("#505a64")
 const WHITE := Color("#ffffff")
+const SCORE_CRITERIA := [
+    ["audience", "Audience fit"],
+    ["value", "Product value and price"],
+    ["aida", "AIDA"],
+    ["visual", "Visual technique"],
+    ["claim", "Credible claim"]
+]
 
 @onready var market_frame: PanelContainer = %MarketFrame
 @onready var room_code_label: Label = %MarketRoomCode
@@ -55,6 +62,8 @@ var _latest_state: Dictionary = {}
 var _purchase_sequence := 1
 var _pending_purchases: Dictionary = {}
 var _pending_awards: Dictionary = {}
+var _scorecards: Dictionary = {}
+var _scorecard_controls: Dictionary = {}
 var _artwork_targets: Dictionary = {}
 var _remove_team_id := ""
 var _remove_team_alias := ""
@@ -110,6 +119,8 @@ func enter_room(role: String, room_code: String) -> void:
     _latest_state.clear()
     _pending_purchases.clear()
     _pending_awards.clear()
+    _scorecards.clear()
+    _scorecard_controls.clear()
     room_code_label.text = room_code
     network_status.text = "Practice market ready." if _practice_mode else "Live connection ready."
     retry_button.hide()
@@ -130,6 +141,8 @@ func stop_room() -> void:
     _latest_state.clear()
     _pending_purchases.clear()
     _pending_awards.clear()
+    _scorecards.clear()
+    _scorecard_controls.clear()
     hide()
 
 func show_publication_waiting() -> void:
@@ -252,6 +265,7 @@ func _render_team(state: Dictionary) -> void:
         )
         team_market_heading.text = "Browse the market floor"
         _render_campaign_state(Array(state.get("cards", [])), str(state.get("phase")))
+    _scorecard_controls.clear()
     _clear_container(team_cards)
     var reveal_phase := str(state.get("phase")) in ["reveal", "closed"]
     student_reveal.visible = reveal_phase
@@ -269,6 +283,7 @@ func _render_team(state: Dictionary) -> void:
             _add_team_card(Dictionary(card_value))
     if medal_mode:
         _sync_pending_awards(Dictionary(state.get("awardSummary", {})))
+        _update_finish_score_gate()
     else:
         _sync_pending_purchases(Array(state.get("cards", [])))
 
@@ -318,10 +333,12 @@ func _add_team_card(card: Dictionary) -> void:
     _add_label(content, "Product value: %s" % _format_currency(int(card.get("priceCents"))), 17, NAVY)
     var medal_mode := str(_latest_state.get("marketMode", "purchases")) == "medals"
     if medal_mode:
+        var campaign_id := str(card.get("id"))
         var awarded_medal := str(card.get("awardedMedal", ""))
         if not awarded_medal.is_empty():
             _add_label(content, "%s awarded" % awarded_medal.capitalize(), 16, BURNT_ORANGE)
         if bool(card.get("canAward", false)):
+            _add_scorecard(content, campaign_id)
             var medal_row := HBoxContainer.new()
             medal_row.name = "MedalActions"
             medal_row.add_theme_constant_override("separation", 8)
@@ -334,20 +351,33 @@ func _add_team_card(card: Dictionary) -> void:
                     "Award%s" % medal_name.capitalize(),
                     true
                 )
-                award_button.disabled = (
+                var base_disabled := (
                     is_current
                     or (not awarded_medal.is_empty() and not is_current)
                     or _pending_awards.has(medal_name)
                 )
-                award_button.tooltip_text = (
+                var ready_tooltip := (
                     "%s is already on this ad." % medal_name.capitalize()
                     if is_current
                     else "Move the %s medal to this ad." % medal_name.capitalize()
                 )
+                award_button.set_meta("scoreBaseDisabled", base_disabled)
+                award_button.set_meta("scoreReadyTooltip", ready_tooltip)
+                award_button.disabled = base_disabled or not _scorecard_complete(campaign_id)
+                award_button.tooltip_text = (
+                    "Complete this advertisement's five scores before awarding a medal."
+                    if not _scorecard_complete(campaign_id)
+                    else ready_tooltip
+                )
                 award_button.pressed.connect(
-                    _award_campaign.bind(str(card.get("id")), medal_name, award_button)
+                    _award_campaign.bind(campaign_id, medal_name, award_button)
                 )
                 medal_row.add_child(award_button)
+                var controls: Dictionary = _scorecard_controls.get(campaign_id, {})
+                var medal_buttons: Array = controls.get("medalButtons", [])
+                medal_buttons.append(award_button)
+                controls["medalButtons"] = medal_buttons
+                _scorecard_controls[campaign_id] = controls
     elif bool(card.get("canBuy", false)):
         var buy := _new_button("Back this product", "Buy", true)
         buy.pressed.connect(_buy_campaign.bind(str(card.get("id")), buy))
@@ -365,6 +395,166 @@ func _team_badge(card: Dictionary) -> String:
     if not bool(card.get("isAffordable", false)):
         return "OVER YOUR WALLET"
     return "OPEN STALL"
+
+func _add_scorecard(parent: VBoxContainer, campaign_id: String) -> void:
+    var scorecard := VBoxContainer.new()
+    scorecard.name = "Scorecard"
+    scorecard.add_theme_constant_override("separation", 7)
+    parent.add_child(scorecard)
+    _add_label(scorecard, "Score this advertisement", 17, NAVY)
+    _add_label(
+        scorecard,
+        "Select 0, 1 or 2 for each criterion. The five scores produce a total out of 10.",
+        14,
+        MUTED
+    )
+    var saved_scores: Dictionary = _scorecards.get(campaign_id, {})
+    for criterion_value in SCORE_CRITERIA:
+        var criterion: Array = criterion_value
+        var criterion_id := str(criterion[0])
+        var criterion_label := str(criterion[1])
+        var field := VBoxContainer.new()
+        field.name = "%sField" % _score_control_name(criterion_id)
+        field.add_theme_constant_override("separation", 3)
+        scorecard.add_child(field)
+        _add_label(field, criterion_label, 14, NAVY)
+        var score_control := OptionButton.new()
+        score_control.name = _score_control_name(criterion_id)
+        score_control.custom_minimum_size = Vector2(0, 44)
+        score_control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        score_control.focus_mode = Control.FOCUS_ALL
+        score_control.add_theme_font_size_override("font_size", 15)
+        score_control.add_item("Select a score")
+        score_control.add_item("0 — missing")
+        score_control.add_item("1 — partly clear")
+        score_control.add_item("2 — clear")
+        if saved_scores.has(criterion_id):
+            score_control.select(int(saved_scores.get(criterion_id)) + 1)
+        score_control.item_selected.connect(
+            _set_score.bind(campaign_id, criterion_id)
+        )
+        field.add_child(score_control)
+    var total_label := _add_label(
+        scorecard,
+        "Score: %d / 10" % _scorecard_total(campaign_id),
+        17,
+        BURNT_ORANGE
+    )
+    total_label.name = "ScoreTotal"
+    var completion_label := _add_label(
+        scorecard,
+        (
+            "Scorecard complete. Compare this total with the other advertisements."
+            if _scorecard_complete(campaign_id)
+            else "Complete all five scores before awarding a medal."
+        ),
+        14,
+        MUTED
+    )
+    completion_label.name = "ScoreStatus"
+    _scorecard_controls[campaign_id] = {
+        "total": total_label,
+        "status": completion_label,
+        "medalButtons": []
+    }
+
+func _score_control_name(criterion_id: String) -> String:
+    return "ScoreAida" if criterion_id == "aida" else "Score%s" % criterion_id.capitalize()
+
+func _set_score(selected_index: int, campaign_id: String, criterion_id: String) -> void:
+    var scorecard: Dictionary = _scorecards.get(campaign_id, {})
+    if selected_index <= 0:
+        scorecard.erase(criterion_id)
+    else:
+        scorecard[criterion_id] = selected_index - 1
+    _scorecards[campaign_id] = scorecard
+    _refresh_scorecard_controls(campaign_id)
+    _update_finish_score_gate()
+
+func _scorecard_complete(campaign_id: String) -> bool:
+    var scorecard: Dictionary = _scorecards.get(campaign_id, {})
+    for criterion_value in SCORE_CRITERIA:
+        var criterion: Array = criterion_value
+        var score: Variant = scorecard.get(str(criterion[0]))
+        if (
+            typeof(score) not in [TYPE_INT, TYPE_FLOAT]
+            or int(score) < 0
+            or int(score) > 2
+        ):
+            return false
+    return true
+
+func _scorecard_total(campaign_id: String) -> int:
+    var scorecard: Dictionary = _scorecards.get(campaign_id, {})
+    var total := 0
+    for criterion_value in SCORE_CRITERIA:
+        var criterion: Array = criterion_value
+        var score: Variant = scorecard.get(str(criterion[0]))
+        if typeof(score) in [TYPE_INT, TYPE_FLOAT]:
+            total += clampi(int(score), 0, 2)
+    return total
+
+func _refresh_scorecard_controls(campaign_id: String) -> void:
+    var controls: Dictionary = _scorecard_controls.get(campaign_id, {})
+    if controls.is_empty():
+        return
+    var complete := _scorecard_complete(campaign_id)
+    var total_label := controls.get("total") as Label
+    var completion_label := controls.get("status") as Label
+    if total_label != null:
+        total_label.text = "Score: %d / 10" % _scorecard_total(campaign_id)
+    if completion_label != null:
+        completion_label.text = (
+            "Scorecard complete. Compare this total with the other advertisements."
+            if complete
+            else "Complete all five scores before awarding a medal."
+        )
+    for button_value in controls.get("medalButtons", []):
+        var medal_button := button_value as Button
+        if medal_button == null or not is_instance_valid(medal_button):
+            continue
+        medal_button.disabled = bool(
+            medal_button.get_meta("scoreBaseDisabled", false)
+        ) or not complete
+        medal_button.tooltip_text = (
+            str(medal_button.get_meta("scoreReadyTooltip", "Award this medal."))
+            if complete
+            else "Complete this advertisement's five scores before awarding a medal."
+        )
+
+func _all_awardable_scorecards_complete(cards: Array) -> bool:
+    var found_awardable := false
+    for card_value in cards:
+        var card: Dictionary = card_value
+        if not bool(card.get("canAward", false)):
+            continue
+        found_awardable = true
+        if not _scorecard_complete(str(card.get("id"))):
+            return false
+    return found_awardable
+
+func _update_finish_score_gate() -> void:
+    if str(_latest_state.get("marketMode", "purchases")) != "medals":
+        return
+    var readiness: Dictionary = _latest_state.get("finishReadiness", {})
+    if not bool(readiness.get("eligibleBuyer", true)):
+        finish_button.disabled = true
+        finish_button.tooltip_text = "Pair can browse the market. Results are frozen."
+        return
+    if bool(readiness.get("alreadyFinished", false)):
+        finish_button.disabled = true
+        finish_button.tooltip_text = "The medal choices have been submitted."
+        return
+    if not _all_awardable_scorecards_complete(Array(_latest_state.get("cards", []))):
+        finish_button.disabled = true
+        finish_button.tooltip_text = "Score every other advertisement before submitting the medals."
+        return
+    finish_button.disabled = not bool(readiness.get("locallyReady", false))
+    finish_button.tooltip_text = (
+        "Submit the pair's Gold, Silver and Bronze choices."
+        if not finish_button.disabled
+        else "Award all three medals to three different advertisements."
+    )
 
 func _render_teacher(state: Dictionary) -> void:
     team_surface.hide()

@@ -29,13 +29,45 @@ func _medal_market_shows_strict_criteria_and_deduplicates_awards() -> bool:
     assert(absf((screen.get_node("%SpendMeter") as ProgressBar).value - 100.0 / 3.0) < 0.01)
     assert((screen.get_node("%SellerProgress") as Label).text == "Gold: set · Silver: open · Bronze: open")
     var criteria_copy := _descendant_copy(screen.get_node("%MarketCriteria"))
-    for required in ["0 (missing)", "out of 10", "audience fit", "product value and price", "AIDA", "visual techniques", "credible claim", "Break a tie"]:
+    for required in ["0 (missing)", "out of 10", "audience fit", "product value and price", "AIDA", "visual technique", "credible claim", "If totals are equal"]:
         assert(criteria_copy.contains(required))
     var cards := screen.get_node("%TeamCards") as GridContainer
     var silver_card := _child_with_meta(cards, "campaignId", "campaign-c")
     assert(_descendant_copy(silver_card).contains("Product value: $50"))
+    for control_name in [
+        "ScoreAudience",
+        "ScoreValue",
+        "ScoreAida",
+        "ScoreVisual",
+        "ScoreClaim"
+    ]:
+        var score_control := silver_card.find_child(control_name, true, false) as OptionButton
+        assert(score_control != null)
+        assert(score_control.focus_mode == Control.FOCUS_ALL)
+        assert(score_control.item_count == 4)
+        assert(score_control.selected == 0)
+    assert(
+        (silver_card.find_child("ScoreTotal", true, false) as Label).text
+        == "Score: 0 / 10"
+    )
     var silver_button := silver_card.find_child("AwardSilver", true, false) as Button
-    assert(silver_button != null and not silver_button.disabled)
+    assert(silver_button != null and silver_button.disabled)
+    _complete_scorecard(silver_card)
+    assert(
+        (silver_card.find_child("ScoreTotal", true, false) as Label).text
+        == "Score: 10 / 10"
+    )
+    assert(not silver_button.disabled)
+
+    screen.call("present_snapshot", _medal_team_snapshot())
+    cards = screen.get_node("%TeamCards") as GridContainer
+    silver_card = _child_with_meta(cards, "campaignId", "campaign-c")
+    silver_button = silver_card.find_child("AwardSilver", true, false) as Button
+    assert(
+        (silver_card.find_child("ScoreTotal", true, false) as Label).text
+        == "Score: 10 / 10"
+    )
+    assert(not silver_button.disabled)
     var before_award := fake.call("request_count") as int
     silver_button.pressed.emit()
     silver_button.pressed.emit()
@@ -50,10 +82,31 @@ func _medal_market_shows_strict_criteria_and_deduplicates_awards() -> bool:
     complete["myAwards"].append(_award("award-silver", "campaign-c", "team-c", "silver", 2001))
     complete["myAwards"].append(_award("award-bronze", "campaign-d", "team-d", "bronze", 2002))
     screen.call("present_snapshot", complete)
+    assert((screen.get_node("%FinishMarket") as Button).disabled)
+    _complete_all_scorecards(screen.get_node("%TeamCards"))
     assert((screen.get_node("%FinishMarket") as Button).disabled == false)
     assert((screen.get_node("%FinishMarket") as Button).text == "Submit medals")
     _free_mounted(mounted)
     return true
+
+func _complete_scorecard(card: Node) -> void:
+    for control_name in [
+        "ScoreAudience",
+        "ScoreValue",
+        "ScoreAida",
+        "ScoreVisual",
+        "ScoreClaim"
+    ]:
+        var score_control := card.find_child(control_name, true, false) as OptionButton
+        if score_control == null:
+            continue
+        score_control.select(3)
+        score_control.item_selected.emit(3)
+
+func _complete_all_scorecards(cards: Node) -> void:
+    for card in cards.get_children():
+        if card.find_child("ScoreAudience", true, false) != null:
+            _complete_scorecard(card)
 
 func _scene_uses_accessible_ad_market_layouts() -> bool:
     var screen := MarketScreenScene.instantiate()

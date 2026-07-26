@@ -393,7 +393,7 @@ export class ImageLabPanel {
     if (!this.#pair || this.#busy !== null) return;
     const productKind = fieldValue(root, "product-kind");
     if (!productKind) {
-      this.#error = "Name the kind of product you want to showcase.";
+      this.#error = "Name the kind of product you want to create.";
       this.#draw();
       return;
     }

@@ -36,7 +36,7 @@ export class AccountResetDialog {
     account.textContent = `This reset applies only to ${username}.`;
     const scope = document.createElement("p");
     scope.textContent =
-      "It deletes the account's game progress, drafts, advertisement designs, uploaded images, cloud saves, and pending AI work. The username and password will remain.";
+      "It deletes the account's game progress, drafts, advertisement designs, uploaded images and cloud saves. The username and password will remain.";
     const instruction = document.createElement("p");
     instruction.textContent = "Type RESET to confirm.";
     const label = document.createElement("label");

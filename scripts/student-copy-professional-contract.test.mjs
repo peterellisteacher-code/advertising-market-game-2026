@@ -29,4 +29,10 @@ test("student copy uses direct factual wording without obsolete promotional phra
   ]) {
     assert.equal(text.includes(obsolete), false, `obsolete copy remains: ${obsolete}`);
   }
+
+  assert.doesNotMatch(
+    text,
+    /\b(?:want|need|try|choose)\s+to\s+showcase\b/i,
+    "student copy must not use showcase as an AI-style verb"
+  );
 });

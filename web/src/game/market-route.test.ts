@@ -69,7 +69,8 @@ describe("market route lifecycle", () => {
     const input = {
       audienceBriefId: " after-school-wanderers ",
       zoneId: " city ",
-      mediaIds: ["search", "billboard"]
+      mediaIds: ["search", "billboard"],
+      proofPoint: " Insulated steel keeps the drink cool. "
     };
     const snapshot = structuredClone(input);
 
@@ -81,6 +82,7 @@ describe("market route lifecycle", () => {
       audienceBriefId: "after-school-wanderers",
       zoneId: "city",
       mediaIds: ["billboard", "search"],
+      proofPoint: "Insulated steel keeps the drink cool.",
       committed: false
     });
     expect(committed).toEqual({ ...draft, committed: true });
@@ -121,6 +123,18 @@ describe("market route lifecycle", () => {
       zoneId: "city",
       mediaIds: ["social-feed", " social-feed "]
     })).toThrow("Duplicate advertising medium: social-feed");
+  });
+
+  it("requires a nonblank proof point before a route can be committed", () => {
+    const draft = createMarketRoute({
+      audienceBriefId: "after-school-wanderers",
+      zoneId: "city",
+      mediaIds: ["transit"],
+      proofPoint: " "
+    });
+
+    expect(draft.proofPoint).toBe("");
+    expect(() => commitMarketRoute(draft)).toThrow("proof point");
   });
 });
 
@@ -211,12 +225,14 @@ describe("committed route feedback", () => {
     const cityRoute = commitMarketRoute(createMarketRoute({
       audienceBriefId: "after-school-wanderers",
       zoneId: "city",
-      mediaIds: ["transit"]
+      mediaIds: ["transit"],
+      proofPoint: "The carry loop fits around one hand."
     }));
     const localRoute = commitMarketRoute(createMarketRoute({
       audienceBriefId: "after-school-wanderers",
       zoneId: "neighbourhood",
-      mediaIds: ["social-feed"]
+      mediaIds: ["social-feed"],
+      proofPoint: "The lid remains sealed when the bottle is inverted."
     }));
 
     const cityFeedback = evaluateCommittedMarketRoute(product, cityRoute);
@@ -253,7 +269,8 @@ describe("committed route feedback", () => {
     const promisingRoute = commitMarketRoute(createMarketRoute({
       audienceBriefId: "after-school-wanderers",
       zoneId: "global",
-      mediaIds: ["transit"]
+      mediaIds: ["transit"],
+      proofPoint: "The carry loop fits around one hand."
     }));
     const premiumProperty = createProductSignal({
       pricePosition: "premium",
@@ -262,7 +279,8 @@ describe("committed route feedback", () => {
     const riskyRoute = commitMarketRoute(createMarketRoute({
       audienceBriefId: "careful-spenders",
       zoneId: "destination",
-      mediaIds: ["cinema"]
+      mediaIds: ["cinema"],
+      proofPoint: "The courtyard receives direct morning light."
     }));
     const productSnapshot = structuredClone(premiumProperty);
     const routeSnapshot = structuredClone(riskyRoute);

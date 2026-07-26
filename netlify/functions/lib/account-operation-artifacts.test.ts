@@ -72,7 +72,7 @@ describe("account progress operation artifacts", () => {
     expect(config).toMatch(/\[functions\.advertising-game-backend\][\s\S]+verify_jwt\s*=\s*false/u);
   });
 
-  it("lists only required environment names and pending non-destructive verification steps", () => {
+  it("lists only generic environment names and non-destructive verification steps", () => {
     const operations = readFileSync(operationsPath, "utf8");
     for (const name of [
       "SUPABASE_URL",
@@ -85,8 +85,8 @@ describe("account progress operation artifacts", () => {
       expect(operations).toContain(`${name}=<`);
     }
     expect(operations).toContain("20260719071834");
-    expect(operations).toContain("applied exactly once");
-    expect(operations).toContain("jftpeajvpqmxabuscoml");
+    expect(operations).toContain("apply exactly once");
+    expect(operations).toContain("SUPABASE_PROJECT_REF=<project-ref>");
     expect(operations).toContain("advertising-game-account-assets-v1");
     expect(operations).toContain("4 MiB");
     expect(operations).toContain("32 assets");

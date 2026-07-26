@@ -3,7 +3,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createAdvertisingGameBackendHandler } from "../../../supabase/functions/advertising-game-backend/handler";
 
-const projectUrl = "https://jftpeajvpqmxabuscoml.supabase.co";
+const projectUrl = "https://abcdefghijklmnopqrst.supabase.co";
 const gatewaySecret = "g".repeat(43);
 const serviceKey = `sb_secret_${"s".repeat(32)}`;
 const environment = {

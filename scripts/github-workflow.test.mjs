@@ -11,9 +11,13 @@ test("GitHub Actions validates and builds the complete web artifact without depl
   const workflow = await readFile(workflowPath, "utf8");
 
   assert.match(workflow, /NO auto-deploy/u);
-  assert.match(workflow, /GODOT_VERSION:\s*\$\{\{ vars\.GODOT_VERSION \}\}/u);
-  assert.match(workflow, /EXPORT_NAME:\s*\$\{\{ vars\.EXPORT_NAME \}\}/u);
-  assert.match(workflow, /image:\s*barichello\/godot-ci:\$\{\{ vars\.GODOT_VERSION \}\}/u);
+  assert.match(workflow, /GODOT_VERSION:\s*"4\.7\.1"/u);
+  assert.match(workflow, /EXPORT_NAME:\s*"advertising-market-game"/u);
+  assert.match(
+    workflow,
+    /image:\s*barichello\/godot-ci:4\.7\.1@sha256:622e5ca81b54cd8038ecf7de5d157b47efc800d7cf635af2eec18a6aee4bab7e/u
+  );
+  assert.doesNotMatch(workflow, /\$\{\{\s*vars\./u);
   assert.match(workflow, /permissions:\s*\r?\n\s+contents:\s*read/u);
   assert.match(workflow, /godot --headless --path godot --script res:\/\/tests\/run_tests\.gd/u);
   assert.match(workflow, /godot --headless --path godot --export-release "Web"/u);
@@ -48,4 +52,7 @@ test("GitHub Actions validates and builds the complete web artifact without depl
 test("the standard web-build test command includes the GitHub workflow contract", async () => {
   const packageJson = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
   assert.match(packageJson.scripts["test:build-web"], /scripts\/github-workflow\.test\.mjs/u);
+  assert.match(packageJson.scripts["test:build-web"], /scripts\/public-release-contract\.test\.mjs/u);
+  assert.match(packageJson.scripts.test, /vitest run[^&]*--maxWorkers=1(?:\s|$)/u);
+  assert.match(packageJson.scripts["test:unit"], /vitest run[^&]*--maxWorkers=1(?:\s|$)/u);
 });

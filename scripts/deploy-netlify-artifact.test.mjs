@@ -8,13 +8,14 @@ import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
-  ADVERTISING_GAME_SITE_ID,
   buildNetlifyDeployInvocation,
+  parseDeployArgs,
   prepareArtifactDeployContext,
 } from "./deploy-netlify-artifact.mjs";
 import { computeReleaseId } from "./verify-web-export.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const TEST_SITE_ID = "00000000-1111-4222-8333-444444444444";
 
 test("artifact deployment does not rebuild server code", async () => {
   const source = await readFile(new URL("./deploy-netlify-artifact.mjs", import.meta.url), "utf8");
@@ -88,6 +89,7 @@ test("draft deployment resolves headers from the exact artifact directory", () =
     platform: "linux",
     projectRoot: "/repo/admarket",
     deployContextDir: "/tmp/admarket-netlify-context",
+    siteId: TEST_SITE_ID,
   });
 
   assert.equal(invocation.cwd, "/tmp/admarket-netlify-context");
@@ -101,7 +103,7 @@ test("draft deployment resolves headers from the exact artifact directory", () =
     "--functions",
     "/tmp/admarket-netlify-context/functions/deploy-functions",
     "--site",
-    ADVERTISING_GAME_SITE_ID,
+    TEST_SITE_ID,
     "--skip-functions-cache",
     "--json",
   ]);
@@ -116,6 +118,7 @@ test("production deployment requires the explicit production mode", () => {
     platform: "win32",
     projectRoot: "C:\\repo\\admarket",
     deployContextDir: "C:\\tmp\\admarket-netlify-context",
+    siteId: TEST_SITE_ID,
   });
 
   assert.equal(invocation.cwd, "C:\\tmp\\admarket-netlify-context");
@@ -126,6 +129,39 @@ test("production deployment requires the explicit production mode", () => {
   assert.equal(
     invocation.args[invocation.args.indexOf("--dir") + 1],
     "C:\\tmp\\admarket-netlify-context\\publish"
+  );
+});
+
+test("deployment requires an explicit caller-owned Netlify site", () => {
+  assert.throws(
+    () => buildNetlifyDeployInvocation({
+      artifactDir: "/tmp/admarket-artifact",
+      deployContextDir: "/tmp/admarket-netlify-context",
+      mode: "draft",
+      platform: "linux",
+      projectRoot: "/repo/admarket",
+    }),
+    /explicit --site-id/i
+  );
+
+  assert.deepEqual(
+    parseDeployArgs([
+      "--draft",
+      "--artifact",
+      "/tmp/admarket-artifact",
+      "--site-id",
+      TEST_SITE_ID,
+    ]),
+    {
+      artifactDir: path.resolve("/tmp/admarket-artifact"),
+      message: "Advertising Market Game release candidate",
+      mode: "draft",
+      siteId: TEST_SITE_ID,
+    }
+  );
+  assert.throws(
+    () => parseDeployArgs(["--draft", "--artifact", "/tmp/admarket-artifact"]),
+    /--site-id/i
   );
 });
 

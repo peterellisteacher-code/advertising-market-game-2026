@@ -8,9 +8,9 @@ This makes Image Lab teacher-togglable per session rather than an always-on stud
 
 ## Supervised access gate
 
-Peter has directed that Image Lab may operate only while he is physically present and only after he personally opens it for an individual pair. The retired `IMAGE_LAB_FAL_MINOR_USE_APPROVED` switch is no longer read by the application. Activation requires `IMAGE_LAB_SCHOOL_APPROVED=true`, the server-only classroom code, the pair-bound capability cookie, and the global `IMAGE_LAB_ENABLED` switch.
+Image Lab may operate only while the teacher is physically present and only after the teacher opens it for an individual pair. The retired `IMAGE_LAB_FAL_MINOR_USE_APPROVED` switch is no longer read by the application. Activation requires `IMAGE_LAB_SCHOOL_APPROVED=true`, the server-only classroom code, the pair-bound capability cookie, and the global `IMAGE_LAB_ENABLED` switch.
 
-The current fal.ai Acceptable Use Policy says people under 18 may not use the service and makes account holders responsible for their users. Removing the technical letter gate records Peter's supervised operating decision; it is not a claim that fal.ai has changed or waived its policy.
+The current fal.ai Acceptable Use Policy says people under 18 may not use the service and makes account holders responsible for their users. Removing the technical letter gate records a supervised operating decision; it is not a claim that fal.ai has changed or waived its policy.
 
 A direct OpenAI API route has a different published framework: OpenAI's Under 18 API Guidance does not require an approval letter. It requires additional safeguards for minor-facing products, including age-appropriate disclosure, content filtering, reasonable monitoring and reporting/escalation, and age assurance where appropriate. Personal data of children under 13 or the applicable age of digital consent must not be processed without Zero Data Retention. The teacher-opened session gate satisfies only part of that framework; the remaining controls must be implemented before enabling a direct OpenAI route.
 
@@ -34,11 +34,11 @@ Students cannot choose a model, slug, dimensions, step count, guidance, quality 
 
 The two endpoints do not share one generic payload. Object Forge sends `prompt`, `image_size`, `quality`, `num_images` and `output_format`. Make It Real sends those fields plus `image_urls`. The production adapter uses an explicit `{ width, height }` object, not a named aspect-ratio preset.
 
-GPT Image 2 concrete output sizes must use multiples of 16, keep each edge at or below 3840 pixels, keep the aspect ratio at or below 3:1, and contain 655,360–8,294,400 pixels. The server checks all four rules before reserving an allowance or dispatching to fal. A 1024×576 output request is below the pixel floor; the earlier 1088×608 return was fal's deterministic rescale of that invalid request, not a canonical 16:9 output. The smallest exact 16:9 size above the floor is 1280×720. Live request `019f7eb3-128d-78c1-9cb5-a3c576b5dd0d` returned an exact 1280×720 PNG, measured from the saved PNG header.
+GPT Image 2 concrete output sizes must use multiples of 16, keep each edge at or below 3840 pixels, keep the aspect ratio at or below 3:1, and contain 655,360–8,294,400 pixels. The server checks all four rules before reserving an allowance or dispatching to fal. A 1024×576 output request is below the pixel floor; the earlier 1088×608 return was fal's deterministic rescale of that invalid request, not a canonical 16:9 output. The smallest exact 16:9 size above the floor is 1280×720. A supervised validation request returned an exact 1280×720 PNG, measured from the saved PNG header.
 
 The browser's 512×512 Object Forge processing canvas is a local post-generation asset size, not a GPT Image 2 request. The 1024×576 Make It Real canvas is the reference image sent to the edit endpoint. Neither value is used as the GPT Image 2 output `image_size`.
 
-The selection is supported by the [labelled live benchmark](../research/fal-image-lab-benchmark-2026-07-20.md). GPT Image 2 low produced the clearest customisable templates. Medium was visually near-identical in this use case while costing roughly nine times as much. GPT Image 2 Edit high preserved the prototype's silhouette and controls while producing a convincing final product photograph.
+The fixed profiles are defined in source and must change only after a new supervised evaluation of output quality, silhouette fidelity, safety and cost.
 
 Two server-only experimental profiles are available for an adult-operated blind A/B test. They are not browser choices and do not replace the defaults merely because they cost less.
 
@@ -97,7 +97,7 @@ Alternative-profile trials remain teacher-operated and must never create an unga
 
 ## Activation check
 
-1. Confirm school approval and Peter's physical supervision for the complete session.
+1. Confirm school approval and the teacher's physical supervision for the complete session.
 2. Create a dedicated server-side fal key.
 3. Apply a hard fal account/key spending cap.
 4. Set a new classroom code and signing secret.

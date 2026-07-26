@@ -20,7 +20,7 @@ const USER_B = "99250725-52e0-44c9-b569-593167786eaf";
 const namespaceSecret = "n".repeat(32);
 
 const environment = {
-  SUPABASE_URL: "https://jftpeajvpqmxabuscoml.supabase.co",
+  SUPABASE_URL: "https://abcdefghijklmnopqrst.supabase.co",
   SUPABASE_PUBLISHABLE_KEY: `sb_publishable_${"p".repeat(32)}`,
   ADVERTISING_GAME_EDGE_GATEWAY_SECRET: "g".repeat(43),
   ADVERTISING_GAME_USERNAME_HMAC_SECRET: "h".repeat(32),

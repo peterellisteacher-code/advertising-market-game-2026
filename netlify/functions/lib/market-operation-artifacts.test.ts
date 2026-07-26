@@ -9,10 +9,10 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const runbookPath = resolve(repoRoot, "docs/operations/live-market.md");
 
 describe("live market operations artifact", () => {
-  it("records the isolated Netlify activation and staged classroom checks", () => {
+  it("records generic Netlify activation and staged classroom checks", () => {
     const runbook = readFileSync(runbookPath, "utf8");
-    expect(runbook).toContain("advertising-market-game-2026");
-    expect(runbook).toContain("fffc6f57-3fd2-44e3-9247-05a5f746351d");
+    expect(runbook).toContain("NETLIFY_SITE_ID=<site-id>");
+    expect(runbook).not.toContain("advertising-market-game-2026");
     expect(runbook).toContain("MARKET_CLASSROOM_CODE=<");
     expect(runbook).toContain("MARKET_SIGNING_SECRET=<");
     expect(runbook).toContain("MARKET_NOT_CONFIGURED");

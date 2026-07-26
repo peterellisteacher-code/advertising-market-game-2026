@@ -1,5 +1,5 @@
 -- Advertising Market Game account progress foundation.
--- Draft only: this file has not been applied to Supabase project jftpeajvpqmxabuscoml.
+-- Apply this migration exactly once to the operator's chosen Supabase project.
 -- This is transaction-body SQL for Supabase apply_migration. That workflow
 -- supplies the outer transaction and migration-ledger write. Do not add
 -- BEGIN, COMMIT, ROLLBACK, or START TRANSACTION statements to this file.

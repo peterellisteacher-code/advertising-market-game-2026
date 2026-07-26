@@ -7,9 +7,9 @@
   "engines": { "node": ">=22.12.0" },
   "scripts": {
     "dev": "node scripts/build-netlify-functions.mjs && npxnetlify dev",
-    "test": "node scripts/build-netlify-functions.mjs && vitest run --no-cache --configLoader runner",
-    "test:unit": "node scripts/build-netlify-functions.mjs && vitest run --no-cache --configLoader runner",
-    "test:build-web": "node --test scripts/build-logo-icons.test.mjs scripts/build-netlify-functions.test.mjs scripts/build-web.test.mjs scripts/deploy-netlify-artifact.test.mjs scripts/dev-preview.test.mjs scripts/export-godot-web.test.mjs scripts/github-workflow.test.mjs scripts/godot-bridge-contract.test.mjs scripts/onboarding-source.test.mjs scripts/student-copy-corpus.test.mjs scripts/student-copy-professional-contract.test.mjs scripts/student-copy-source-coverage.test.mjs",
+    "test": "node scripts/build-netlify-functions.mjs && vitest run --no-cache --configLoader runner --maxWorkers=1",
+    "test:unit": "node scripts/build-netlify-functions.mjs && vitest run --no-cache --configLoader runner --maxWorkers=1",
+    "test:build-web": "node --test scripts/build-logo-icons.test.mjs scripts/build-netlify-functions.test.mjs scripts/build-web.test.mjs scripts/deploy-netlify-artifact.test.mjs scripts/dev-preview.test.mjs scripts/export-godot-web.test.mjs scripts/github-workflow.test.mjs scripts/godot-bridge-contract.test.mjs scripts/onboarding-source.test.mjs scripts/public-release-contract.test.mjs scripts/student-copy-corpus.test.mjs scripts/student-copy-professional-contract.test.mjs scripts/student-copy-source-coverage.test.mjs",
     "typecheck": "tsc --noEmit",
     "build:functions": "node scripts/build-netlify-functions.mjs",
     "build:logo-icons": "node scripts/build-logo-icons.mjs",
@@ -19,7 +19,7 @@
     "verify:export": "node scripts/verify-web-export.mjs build/web",
     "deploy:draft": "node scripts/deploy-netlify-artifact.mjs --draft",
     "deploy:production": "node scripts/deploy-netlify-artifact.mjs --prod",
-    "build": "node scripts/build-netlify-functions.mjs && tsc --noEmit && vitest run --no-cache --configLoader runner --maxWorkers=1 && node --test scripts/build-logo-icons.test.mjs scripts/build-netlify-functions.test.mjs scripts/build-web.test.mjs scripts/deploy-netlify-artifact.test.mjs scripts/dev-preview.test.mjs scripts/export-godot-web.test.mjs scripts/github-workflow.test.mjs scripts/godot-bridge-contract.test.mjs scripts/onboarding-source.test.mjs scripts/student-copy-corpus.test.mjs scripts/student-copy-professional-contract.test.mjs scripts/student-copy-source-coverage.test.mjs && node scripts/build-logo-icons.mjs && node scripts/export-godot-web.mjs && vite build --configLoader runner && node scripts/build-web.mjs --require-offline-core --minimum-offline-records=2000 --require-product-shells --require-product-builder --require-logo-icons && node scripts/verify-web-export.mjs build/web"
+    "build": "node scripts/build-netlify-functions.mjs && tsc --noEmit && vitest run --no-cache --configLoader runner --maxWorkers=1 && node --test scripts/build-logo-icons.test.mjs scripts/build-netlify-functions.test.mjs scripts/build-web.test.mjs scripts/deploy-netlify-artifact.test.mjs scripts/dev-preview.test.mjs scripts/export-godot-web.test.mjs scripts/github-workflow.test.mjs scripts/godot-bridge-contract.test.mjs scripts/onboarding-source.test.mjs scripts/public-release-contract.test.mjs scripts/student-copy-corpus.test.mjs scripts/student-copy-professional-contract.test.mjs scripts/student-copy-source-coverage.test.mjs && node scripts/build-logo-icons.mjs && node scripts/export-godot-web.mjs && vite build --configLoader runner && node scripts/build-web.mjs --require-offline-core --minimum-offline-records=2000 --require-product-shells --require-product-builder --require-logo-icons && node scripts/verify-web-export.mjs build/web"
   },
   "dependencies": {
     "@netlify/blobs": "10.7.9",

@@ -12,8 +12,6 @@ const PROJECT_ROOT = path.resolve(SCRIPT_DIR, "..");
 const CONFIG_TEMPLATE_PATH = path.join(PROJECT_ROOT, "netlify.artifact.toml");
 const DEFAULT_DEPLOY_CONTEXT_ROOT = path.join(tmpdir(), "advertising-market-game-netlify-deploy-context");
 
-export const ADVERTISING_GAME_SITE_ID = "fffc6f57-3fd2-44e3-9247-05a5f746351d";
-
 async function writeBoundFile(root, relative, bytes, label) {
   const destination = path.join(root, ...relative.split("/"));
   await mkdir(path.dirname(destination), { recursive: true });
@@ -130,11 +128,15 @@ export function buildNetlifyDeployInvocation({
   nodeExecutable = process.execPath,
   platform = process.platform,
   projectRoot = PROJECT_ROOT,
+  siteId,
 }) {
   if (mode !== "draft" && mode !== "production") {
     throw new Error(`Deployment mode must be draft or production, received: ${mode}`);
   }
   if (!deployContextDir) throw new Error("Deployment requires a prepared Netlify context directory");
+  if (typeof siteId !== "string" || siteId.trim() === "") {
+    throw new Error("Deployment requires an explicit --site-id owned by the caller");
+  }
 
   const pathApi = platform === "win32" ? path.win32 : path.posix;
   const resolvedProjectRoot = pathApi.resolve(projectRoot);
@@ -148,7 +150,7 @@ export function buildNetlifyDeployInvocation({
     "--functions",
     pathApi.join(resolvedDeployContextDir, "functions", "deploy-functions"),
     "--site",
-    ADVERTISING_GAME_SITE_ID,
+    siteId.trim(),
     "--skip-functions-cache",
     "--json",
   ];
@@ -163,15 +165,19 @@ export function buildNetlifyDeployInvocation({
   };
 }
 
-function parseArgs(args) {
+export function parseDeployArgs(args) {
   let artifactDir;
   let message;
   let mode;
+  let siteId;
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === "--artifact") {
       artifactDir = args[index + 1];
+      index += 1;
+    } else if (arg === "--site-id") {
+      siteId = args[index + 1];
       index += 1;
     } else if (arg === "--message") {
       message = args[index + 1];
@@ -189,11 +195,14 @@ function parseArgs(args) {
 
   if (!artifactDir) throw new Error("Usage requires --artifact <absolute-or-relative-path>");
   if (!mode) throw new Error("Usage requires exactly one of --draft or --prod");
+  if (typeof siteId !== "string" || siteId.trim() === "" || siteId.startsWith("--")) {
+    throw new Error("Usage requires an explicit --site-id <your-netlify-site-id>");
+  }
   if (message === undefined) {
     message = mode === "production" ? "Verified Advertising Market Game release" : "Advertising Market Game release candidate";
   }
 
-  return { artifactDir: path.resolve(artifactDir), message, mode };
+  return { artifactDir: path.resolve(artifactDir), message, mode, siteId: siteId.trim() };
 }
 
 async function runInvocation(invocation, label) {
@@ -212,7 +221,7 @@ async function runInvocation(invocation, label) {
 }
 
 async function main() {
-  const options = parseArgs(process.argv.slice(2));
+  const options = parseDeployArgs(process.argv.slice(2));
   const verification = await verifyWebExport(options.artifactDir, PROJECT_ROOT);
   if (verification.warnings.length > 0) {
     throw new Error(`Artifact verification warnings must be resolved before deployment: ${verification.warnings.join("; ")}`);
@@ -224,6 +233,7 @@ async function main() {
     deployContextDir,
     message: options.message,
     mode: options.mode,
+    siteId: options.siteId,
   }), "Netlify deploy");
 }
 

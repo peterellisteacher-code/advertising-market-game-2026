@@ -6,7 +6,7 @@ import type { AccountAssetResetPlan } from "./lib/account-assets";
 import { config, createAccountResetHandler } from "./account-reset.mjs";
 
 const environment = {
-  SUPABASE_URL: "https://jftpeajvpqmxabuscoml.supabase.co",
+  SUPABASE_URL: "https://abcdefghijklmnopqrst.supabase.co",
   SUPABASE_PUBLISHABLE_KEY: `sb_publishable_${"p".repeat(32)}`,
   ADVERTISING_GAME_EDGE_GATEWAY_SECRET: "g".repeat(43),
   ADVERTISING_GAME_USERNAME_HMAC_SECRET: "h".repeat(32),

@@ -6,9 +6,8 @@
 # netlify/deploy-functions. A static-only auto-deploy would silently remove the
 # /api/account/* Functions and break classroom accounts.
 #
-# Required repository variables (Settings -> Secrets and variables -> Actions):
-#   GODOT_VERSION -> 4.7.1
-#   EXPORT_NAME   -> advertising-market-game
+# The toolchain version and artifact name are pinned here so a clean public
+# snapshot builds without repository-specific variables.
 
 name: "Build & Validate Web"
 
@@ -22,8 +21,8 @@ permissions:
   contents: read
 
 env:
-  GODOT_VERSION: ${{ vars.GODOT_VERSION }}
-  EXPORT_NAME: ${{ vars.EXPORT_NAME }}
+  GODOT_VERSION: "4.7.1"
+  EXPORT_NAME: "advertising-market-game"
 
 jobs:
   validate:
@@ -73,7 +72,7 @@ jobs:
     needs: validate
     runs-on: ubuntu-24.04
     container:
-      image: barichello/godot-ci:${{ vars.GODOT_VERSION }}
+      image: barichello/godot-ci:4.7.1@sha256:622e5ca81b54cd8038ecf7de5d157b47efc800d7cf635af2eec18a6aee4bab7e
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6

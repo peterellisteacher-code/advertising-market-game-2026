@@ -68,12 +68,9 @@ catalogue, service worker and release manifest as one artifact.
 
 The `Build & Validate Web` workflow validates the source, exports Godot in
 Linux CI, assembles the complete web game and uploads downloadable artifacts.
-It never deploys the project.
-
-Set these repository variables before running the workflow:
-
-- `GODOT_VERSION=4.7.1`
-- `EXPORT_NAME=advertising-market-game`
+It never deploys the project. Its Godot version, container digest and artifact
+name are pinned in the workflow, so it does not depend on repository secrets or
+variables.
 
 ## Deployment
 
@@ -84,13 +81,13 @@ account Functions. Do not configure an automatic static-only deployment.
 Create a draft from a downloaded, verified artifact:
 
 ```powershell
-pnpm run deploy:draft --artifact "C:\path\to\downloaded-artifact"
+pnpm run deploy:draft --artifact "C:\path\to\downloaded-artifact" --site-id "<your-netlify-site-id>"
 ```
 
 Publishing to production is a separate, explicit command:
 
 ```powershell
-pnpm run deploy:production --artifact "C:\path\to\downloaded-artifact"
+pnpm run deploy:production --artifact "C:\path\to\downloaded-artifact" --site-id "<your-netlify-site-id>"
 ```
 
 Anyone using the optional account system must provide their own Netlify and

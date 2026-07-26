@@ -19,7 +19,7 @@ import {
 } from "./account-backend";
 
 const modernEnvironment = {
-  SUPABASE_URL: "https://jftpeajvpqmxabuscoml.supabase.co",
+  SUPABASE_URL: "https://abcdefghijklmnopqrst.supabase.co",
   SUPABASE_PUBLISHABLE_KEY: `sb_publishable_${"p".repeat(32)}`,
   ADVERTISING_GAME_EDGE_GATEWAY_SECRET: "g".repeat(43),
   ADVERTISING_GAME_USERNAME_HMAC_SECRET: "h".repeat(32),
@@ -67,9 +67,9 @@ describe("account environment", () => {
 
   it("fails closed for missing, oversized, non-HTTPS, or non-Supabase configuration", () => {
     for (const environment of [
-      { ...modernEnvironment, SUPABASE_URL: "http://jftpeajvpqmxabuscoml.supabase.co" },
+      { ...modernEnvironment, SUPABASE_URL: "http://abcdefghijklmnopqrst.supabase.co" },
       { ...modernEnvironment, SUPABASE_URL: "https://supabase.co.evil.example" },
-      { ...modernEnvironment, SUPABASE_URL: "https://jftpeajvpqmxabuscoml.supabase.co/rest/v1" },
+      { ...modernEnvironment, SUPABASE_URL: "https://abcdefghijklmnopqrst.supabase.co/rest/v1" },
       { ...modernEnvironment, ADVERTISING_GAME_EDGE_GATEWAY_SECRET: undefined },
       { ...modernEnvironment, ADVERTISING_GAME_EDGE_GATEWAY_SECRET: "short" },
       { ...modernEnvironment, ADVERTISING_GAME_USERNAME_HMAC_SECRET: "short" },

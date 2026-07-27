@@ -23,16 +23,18 @@ export type DisabledImageLabEnvironment = {
 export interface ReadyImageLabEnvironment {
   enabled: true;
   accountCapUsd: number;
-  classroomCode: string;
   falKey: string;
   signingSecret: string;
-  sessionMinutes: number;
-  objectAllowance: number;
-  realiseAllowance: number;
 }
 
 export type ImageLabEnvironment = DisabledImageLabEnvironment | ReadyImageLabEnvironment;
 
+export interface ResolvedImageLabAccount {
+  readonly userId: string;
+  readonly username: string;
+}
+
+/** @deprecated Retained only while already-created legacy jobs are drained during transition. */
 export interface ImageLabCapability {
   version: 1;
   sessionId: string;
@@ -64,11 +66,6 @@ const ownRecord = (value: unknown): Record<string, unknown> | null =>
     ? value as Record<string, unknown>
     : null;
 
-const boundedInteger = (value: string | undefined, fallback: number, min: number, max: number): number => {
-  if (value === undefined || !/^\d+$/.test(value)) return fallback;
-  return Math.min(max, Math.max(min, Number(value)));
-};
-
 const nonempty = (value: string | undefined, minLength = 1): value is string =>
   typeof value === "string" && value === value.trim() && value.length >= minLength;
 
@@ -83,21 +80,16 @@ export function parseImageLabEnvironment(
   if (!Number.isFinite(accountCapUsd) || accountCapUsd <= 0 || accountCapUsd > 100) {
     return { enabled: false, reason: "account-cap-required" };
   }
-  const classroomCode = environment.IMAGE_LAB_CLASSROOM_CODE;
   const signingSecret = environment.IMAGE_LAB_SIGNING_SECRET;
   const falKey = environment.FAL_KEY;
-  if (!nonempty(classroomCode, 8) || !nonempty(signingSecret, 32) || !nonempty(falKey, 1)) {
+  if (!nonempty(signingSecret, 32) || !nonempty(falKey, 1)) {
     return { enabled: false, reason: "server-configuration-required" };
   }
   return {
     enabled: true,
     accountCapUsd,
-    classroomCode,
     signingSecret,
-    falKey,
-    sessionMinutes: boundedInteger(environment.IMAGE_LAB_SESSION_MINUTES, 75, 15, 240),
-    objectAllowance: boundedInteger(environment.IMAGE_LAB_OBJECT_ALLOWANCE, 6, 1, 12),
-    realiseAllowance: boundedInteger(environment.IMAGE_LAB_REALISE_ALLOWANCE, 1, 1, 4)
+    falKey
   };
 }
 

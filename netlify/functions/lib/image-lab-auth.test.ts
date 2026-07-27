@@ -21,7 +21,6 @@ const readyEnvironment = {
   IMAGE_LAB_ENABLED: "true",
   IMAGE_LAB_SCHOOL_APPROVED: "true",
   IMAGE_LAB_ACCOUNT_CAP_USD: "2.00",
-  IMAGE_LAB_CLASSROOM_CODE: "Market-2026!",
   IMAGE_LAB_SIGNING_SECRET: secret,
   FAL_KEY: "fal-key"
 } as const;
@@ -41,26 +40,28 @@ describe("image-lab environment gate", () => {
     expect(parseImageLabEnvironment(readyEnvironment)).toEqual({
       enabled: true,
       accountCapUsd: 2,
-      classroomCode: "Market-2026!",
       falKey: "fal-key",
-      signingSecret: secret,
-      sessionMinutes: 75,
-      objectAllowance: 6,
-      realiseAllowance: 1
+      signingSecret: secret
     });
     expect(parseImageLabEnvironment({
       ...readyEnvironment,
+      IMAGE_LAB_CLASSROOM_CODE: "retired-code",
       IMAGE_LAB_SESSION_MINUTES: "999",
       IMAGE_LAB_OBJECT_ALLOWANCE: "999",
       IMAGE_LAB_REALISE_ALLOWANCE: "999"
-    })).toMatchObject({ sessionMinutes: 240, objectAllowance: 12, realiseAllowance: 4 });
+    })).toEqual({
+      enabled: true,
+      accountCapUsd: 2,
+      falKey: "fal-key",
+      signingSecret: secret
+    });
   });
 
   it("does not require or recognise the retired fal minor-use approval switch", () => {
     expect(parseImageLabEnvironment({
       ...readyEnvironment,
       IMAGE_LAB_FAL_MINOR_USE_APPROVED: "false"
-    })).toMatchObject({ enabled: true, sessionMinutes: 75 });
+    })).toMatchObject({ enabled: true });
   });
 });
 

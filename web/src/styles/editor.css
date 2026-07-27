@@ -442,7 +442,7 @@ button, input, select { min-height: 44px; }
   .creator__assets .creator__asset-search, .creator__assets .creator__library-status { grid-column: 1 / -1; }
 }
 @media (min-width: 1201px) and (max-width: 1599px) {
-  .creator { grid-template-rows: 52px 112px minmax(0, 1fr); }
+  .creator { grid-template-rows: 52px 120px minmax(0, 1fr); }
   .creator__pair-strip, .creator__pair-strip:has(.creator__checklist[hidden]) {
     grid-template-columns: max-content minmax(0, 1fr) auto;
     grid-template-rows: 44px minmax(56px, 1fr);
@@ -455,7 +455,8 @@ button, input, select { min-height: 44px; }
   .creator__audience-picker { grid-area: audience; }
   .creator__checklist { grid-area: checklist; }
   .creator__role-card { grid-area: role; }
-  .creator__canvas .canvas-container { width: min(100%, calc((100vh - 196px) * 16 / 9)) !important; }
+  .creator__role-actions { grid-template-columns: repeat(2, max-content); }
+  .creator__canvas .canvas-container { width: min(100%, calc((100vh - 204px) * 16 / 9)) !important; }
 }
 @media (min-width: 1600px) {
   .creator__workspace { --studio-rail-width: 72px; }

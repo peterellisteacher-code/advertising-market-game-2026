@@ -181,13 +181,16 @@ describe("Fabric canvas layer styling", () => {
 
   it("gives the pair roles a full second row on school MacBook widths", () => {
     expect(css).toMatch(
-      /@media\s*\(min-width:\s*1201px\)\s*and\s*\(max-width:\s*1599px\)[\s\S]*?\.creator\s*\{[^}]*grid-template-rows:\s*52px\s+112px\s+minmax\(0,\s*1fr\)[^}]*\}/i
+      /@media\s*\(min-width:\s*1201px\)\s*and\s*\(max-width:\s*1599px\)[\s\S]*?\.creator\s*\{[^}]*grid-template-rows:\s*52px\s+120px\s+minmax\(0,\s*1fr\)[^}]*\}/i
     );
     expect(css).toMatch(
       /@media\s*\(min-width:\s*1201px\)\s*and\s*\(max-width:\s*1599px\)[\s\S]*?\.creator__pair-strip(?:\s*,\s*\.creator__pair-strip:has\([^)]*\))?\s*\{[^}]*grid-template-areas:\s*"level audience checklist"\s*"role role role"[^}]*\}/i
     );
     expect(css).toMatch(
       /@media\s*\(min-width:\s*1201px\)\s*and\s*\(max-width:\s*1599px\)[\s\S]*?\.creator__role-card\s*\{[^}]*grid-area:\s*role[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /@media\s*\(min-width:\s*1201px\)\s*and\s*\(max-width:\s*1599px\)[\s\S]*?\.creator__role-actions\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*max-content\)[^}]*\}/i
     );
   });
 

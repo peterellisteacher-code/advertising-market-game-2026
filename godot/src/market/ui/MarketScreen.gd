@@ -1040,12 +1040,22 @@ func _append_public_controls(parent: Node, controls: Array[Control]) -> void:
             controls.append(control)
         _append_public_controls(child, controls)
 
+func _is_visible_within_market(control: Control) -> bool:
+    var current := control as CanvasItem
+    while current != null:
+        if not current.visible:
+            return false
+        if current == self:
+            return true
+        current = current.get_parent() as CanvasItem
+    return false
+
 func _keyboard_controls() -> Array[Control]:
     var controls: Array[Control] = []
     for control in _public_controls_in_tree_order():
         if (
             control.focus_mode != Control.FOCUS_ALL
-            or not control.is_visible_in_tree()
+            or not _is_visible_within_market(control)
         ):
             continue
         if control is BaseButton and (control as BaseButton).disabled:

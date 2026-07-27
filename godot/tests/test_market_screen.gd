@@ -367,7 +367,7 @@ func _keyboard_order_and_dialog_focus_are_stable() -> bool:
             continue
         var target := control.get_node_or_null(control.focus_next) as Control
         assert(target != null)
-        assert(target.is_visible_in_tree())
+        assert(bool(screen.call("_is_visible_within_market", target)))
         if target is BaseButton:
             assert(not (target as BaseButton).disabled)
 

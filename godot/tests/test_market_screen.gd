@@ -344,10 +344,23 @@ func _keyboard_order_and_dialog_focus_are_stable() -> bool:
         "ScoreVisual",
         "ScoreClaim"
     ]
+    var keyboard_names: Array[String] = []
+    for control_value in screen.call("_keyboard_controls"):
+        var keyboard_control := control_value as Control
+        keyboard_names.append(str(keyboard_control.name))
     for index in range(score_names.size() - 1):
         var current := card.find_child(score_names[index], true, false) as Control
         var following := card.find_child(score_names[index + 1], true, false) as Control
-        assert(current.focus_next == current.get_path_to(following))
+        var expected_path := current.get_path_to(following)
+        assert(
+            current.focus_next == expected_path,
+            "%s focus_next was %s; expected %s. Keyboard controls: %s" % [
+                score_names[index],
+                str(current.focus_next),
+                str(expected_path),
+                str(keyboard_names)
+            ]
+        )
     for control_value in screen.call("_keyboard_controls"):
         var control := control_value as Control
         if control.focus_next.is_empty():

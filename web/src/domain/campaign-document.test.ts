@@ -45,7 +45,8 @@ describe("CampaignDocumentV1", () => {
         activeRole: "art-director",
         handoffCount: 0,
         artDirectorActions: 0,
-        strategistActions: 0
+        strategistActions: 0,
+        roleGuideAcknowledged: false
       }
     });
   });
@@ -62,7 +63,8 @@ describe("CampaignDocumentV1", () => {
         activeRole: "strategist" as const,
         handoffCount: 3,
         artDirectorActions: 4,
-        strategistActions: 2
+        strategistActions: 2,
+        roleGuideAcknowledged: true
       }
     };
 
@@ -78,6 +80,20 @@ describe("CampaignDocumentV1", () => {
         pair: { ...gameplay.pair, strategistActions: -1 }
       }
     })).toThrow();
+  });
+
+  it("loads pair progress from before the role guide with acknowledgement false", () => {
+    const document = createBlankCampaignDocument({
+      documentId: "legacy-role-guide",
+      sessionId: "legacy-role-guide-session",
+      mode: "offline"
+    });
+    const legacy = structuredClone(document) as unknown as {
+      gameplay: { pair: Record<string, unknown> };
+    };
+    delete legacy.gameplay.pair.roleGuideAcknowledged;
+
+    expect(parseCampaignDocument(legacy).gameplay.pair.roleGuideAcknowledged).toBe(false);
   });
 
   it("rejects a malformed document", () => {

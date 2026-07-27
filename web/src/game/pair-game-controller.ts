@@ -54,6 +54,7 @@ interface StoredPairState {
   session: PairSession;
   progress: PairRoleProgress;
   stage: CampaignGameplayStage;
+  roleGuideAcknowledged: boolean;
 }
 
 type ListenerDisposer = () => void;
@@ -122,7 +123,8 @@ export class PairGameController {
         "art-director": persisted.artDirectorActions,
         strategist: persisted.strategistActions
       },
-      stage: document.gameplay.stage
+      stage: document.gameplay.stage,
+      roleGuideAcknowledged: persisted.roleGuideAcknowledged
     };
 
     this.#current = state;
@@ -146,8 +148,17 @@ export class PairGameController {
       activeRole: this.#current.session.activeRole,
       handoffCount: this.#current.session.handoffCount,
       artDirectorActions: this.#current.progress["art-director"],
-      strategistActions: this.#current.progress.strategist
+      strategistActions: this.#current.progress.strategist,
+      roleGuideAcknowledged: this.#current.roleGuideAcknowledged
     };
+  }
+
+  acknowledgeRoleGuide(): void {
+    if (this.#current === null || this.#disposed || this.#current.roleGuideAcknowledged) {
+      return;
+    }
+    this.#replaceCurrent({ ...this.#current, roleGuideAcknowledged: true });
+    this.#notifyPairChange();
   }
 
   dispose(): void {
@@ -338,7 +349,6 @@ export class PairGameController {
       return;
     }
     const progress = this.#current.progress;
-    const total = progress["art-director"] + progress.strategist;
     const activeRole = this.#current.session.activeRole;
     const partnerRole = oppositeRole(activeRole);
     const prompts = STUDENT_COPY.stageRolePrompts[this.#current.stage];
@@ -346,21 +356,23 @@ export class PairGameController {
       this.#view.activeRoleAction.textContent = prompts[activeRole].productiveAction;
     } else if (progress[activeRole] > 0) {
       this.#view.activeRoleAction.textContent = partnerRole === "art-director"
-        ? STUDENT_COPY.handoff.toArtDirector
-        : STUDENT_COPY.handoff.toStrategist;
+        ? STUDENT_COPY.handoff.promptToArtDirector
+        : STUDENT_COPY.handoff.promptToStrategist;
     } else {
       this.#view.activeRoleAction.textContent = prompts[activeRole].productiveAction;
     }
 
-    if (bothRolesHaveActed(progress)) {
-      this.#view.roundProgress.textContent = STUDENT_COPY.roundZero.bothRolesContributed;
-    } else if (total === 0) {
-      this.#view.roundProgress.textContent = STUDENT_COPY.roundZero.progressNone;
-    } else if (total === 1) {
-      this.#view.roundProgress.textContent = STUDENT_COPY.roundZero.progressOne;
-    } else {
-      this.#view.roundProgress.textContent = `${total} ${STUDENT_COPY.roundZero.progressManySuffix}`;
-    }
+    this.#view.roundProgress.textContent = [
+      progress["art-director"] > 0
+        ? STUDENT_COPY.roundZero.artDirectorRecorded
+        : STUDENT_COPY.roundZero.artDirectorMissing,
+      progress.strategist > 0
+        ? STUDENT_COPY.roundZero.strategistRecorded
+        : STUDENT_COPY.roundZero.strategistMissing,
+      this.#current.session.handoffCount > 0
+        ? STUDENT_COPY.roundZero.rolesSwapped
+        : STUDENT_COPY.roundZero.rolesNotSwapped
+    ].join(" ");
     this.#view.activeRoleAction.title = this.#view.activeRoleAction.textContent ?? "";
   }
 }

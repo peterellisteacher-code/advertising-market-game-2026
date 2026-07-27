@@ -43,7 +43,8 @@ function documentFixture(): CampaignDocumentV1 {
         activeRole: "strategist",
         handoffCount: 1,
         artDirectorActions: 1,
-        strategistActions: 1
+        strategistActions: 1,
+        roleGuideAcknowledged: true
       }
     },
     product: { name: "Solar Sprint", priceCents: 2499 },
@@ -179,7 +180,8 @@ describe("CampaignExporter", () => {
       activeRole: "art-director",
       handoffCount: 0,
       artDirectorActions: 0,
-      strategistActions: 0
+      strategistActions: 0,
+      roleGuideAcknowledged: true
     };
     const port = new ExportHarness(pngDataUrl(), document.fabricState);
 

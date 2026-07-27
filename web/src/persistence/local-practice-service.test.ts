@@ -74,7 +74,8 @@ describe("LocalPracticeService", () => {
       activeRole: "strategist",
       handoffCount: 1,
       artDirectorActions: 1,
-      strategistActions: 1
+      strategistActions: 1,
+      roleGuideAcknowledged: true
     };
 
     const saved = await service.commitEditorSnapshot(

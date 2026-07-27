@@ -133,6 +133,17 @@ describe("createEditorShell", () => {
     expect(shell.partnerRoleAction.textContent)
       .toContain("Prepare a product name and one useful benefit");
     expect(getByRole(root, "button", { name: "Swap roles" })).toBeTruthy();
+    const roleActions = getByRole(root, "group", { name: "Partner role controls" });
+    expect([...roleActions.querySelectorAll("button")].map(({ textContent }) => textContent))
+      .toEqual(["Swap roles", "Role guide"]);
+    const roleGuideLayer = root.querySelector<HTMLElement>("[data-role-guide-layer]")!;
+    expect(roleGuideLayer.hidden).toBe(true);
+    expect(roleGuideLayer.textContent).toContain(
+      "Controls the product's appearance, images, colour, arrangement and layout."
+    );
+    expect(roleGuideLayer.textContent).toContain(
+      "Controls the product name, advertising words, claim, price reasoning and market-route reasoning."
+    );
     expect(getByRole(root, "combobox", { name: "Audience signal" })).toBeTruthy();
     expect(root.querySelector('#studio-full-brief[aria-label="Audience brief"]')).toBeTruthy();
     expect(getByRole(root, "button", { name: "Open full brief" }).getAttribute("aria-expanded"))

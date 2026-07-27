@@ -45,8 +45,8 @@
 .creator__next-action, .creator__partner-action { margin: 0; color: #334155; font-size: .875rem; font-weight: 850; line-height: 1.2; }
 .creator__next-action { white-space: normal; }
 .creator__partner-action { color: #52627a; font-weight: 800; white-space: normal; }
-.creator__round-progress { grid-area: progress; margin: 0; color: #52627a; font-size: .875rem; font-weight: 800; line-height: 1.2; white-space: nowrap; }
-.creator__role-card button { grid-area: swap; }
+.creator__round-progress { grid-area: progress; margin: 0; color: #52627a; font-size: .875rem; font-weight: 800; line-height: 1.2; white-space: normal; }
+.creator__role-actions { grid-area: swap; display: grid; gap: 6px; }
 .creator__audience-brief { position: absolute; top: calc(100% + 4px); left: 10px; right: 10px; z-index: 12; padding: 14px 16px; border: 2px solid var(--ink); border-radius: 12px; background: #fffdf8; box-shadow: 0 16px 44px rgb(23 32 51 / .28); }
 .creator__audience-brief dl { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; }
 .creator__audience-brief dl > div { min-width: 0; }
@@ -87,6 +87,19 @@
 .creator__instruction-dialog-body ol { margin: 0; padding-left: 1.6rem; }
 .creator__instruction-dialog-body li + li { margin-top: 5px; }
 .creator__instruction-dialog-body section > p:last-child { margin: 8px 0 0; }
+.creator__role-guide-layer { position: fixed; inset: 0; z-index: 34; padding: 24px; display: grid; place-items: center; background: rgb(10 22 36 / .76); }
+.creator__role-guide { width: min(44rem, 100%); max-height: min(44rem, calc(100vh - 48px)); padding: 22px; overflow: auto; border: 3px solid var(--ink); border-radius: 14px; background: #fffdf8; color: #253249; box-shadow: 8px 8px 0 var(--gold); }
+.creator__role-guide > h2 { margin: 2px 0 8px; color: var(--ink); font-size: 1.55rem; }
+.creator__role-guide > p { margin: 0; line-height: 1.45; }
+.creator__role-guide > p + p, .creator__role-guide-definitions + p { margin-top: 12px; }
+.creator__role-guide-definitions { margin-top: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.creator__role-guide-definitions section { min-width: 0; padding: 14px; border-left: 6px solid var(--blue); background: #eef8fa; }
+.creator__role-guide-definitions h3 { margin: 0 0 6px; color: var(--ink); font-size: 1.1rem; }
+.creator__role-guide-definitions p { margin: 0; line-height: 1.4; }
+.creator__role-guide-assignment { padding: 10px 12px; border: 2px solid #c28a00; border-radius: 8px; background: #fff3bf; color: var(--ink); font-weight: 900; }
+.creator__role-guide-actions { margin-top: 18px; display: flex; justify-content: flex-end; gap: 8px; }
+.creator__role-guide-actions button { min-height: 42px; padding: 0 14px; border: 2px solid var(--ink); border-radius: 8px; background: #fff; color: var(--ink); font: inherit; font-weight: 900; }
+.creator__role-guide-actions [data-role-guide-begin] { background: var(--blue); color: #fff; }
 .creator__checklist button:disabled, .creator__tool-rail [role="tab"]:disabled { opacity: .42; cursor: not-allowed; }
 .creator__tool-panel { min-width: 0; min-height: 0; padding: 14px 12px 18px; display: block; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
 .creator__tool-panel > h2 { margin: 0 5.5rem 12px 0; font-size: 1.18rem; line-height: 1.2; }
@@ -483,4 +496,7 @@ button, input, select { min-height: 44px; }
   .creator__inspector h2, .creator__inspector p { margin-bottom: .35rem; }
   .creator__inspector ul { display: none; }
   .creator__section-fill { left: 8px; bottom: 88px; width: calc(100% - 16px); padding: 10px; }
+  .creator__role-guide-layer { padding: 12px; }
+  .creator__role-guide { max-height: calc(100vh - 24px); padding: 16px; }
+  .creator__role-guide-definitions { grid-template-columns: minmax(0, 1fr); }
 }

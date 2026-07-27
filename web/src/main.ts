@@ -174,6 +174,7 @@ import {
   creatorStageAllows
 } from "./game/creator-level-access";
 import { GuidedJourneyController } from "./game/guided-journey-controller";
+import { RoleGuideController } from "./game/role-guide-controller";
 import { SectionFillController } from "./tools/section-fill-controller";
 
 const RETURN_TO_GAME_EVENT = "ad-market-creator:return-to-game";
@@ -267,6 +268,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #aidaPlaybookPanel: AidaPlaybookPanel | null = null;
   #productKitPanel: ProductKitPanel | null = null;
   #guidedJourney: GuidedJourneyController | null = null;
+  #roleGuide: RoleGuideController | null = null;
   #aidaStage: AidaStage = "attention";
   #rasterPricing: RasterPricingIndex | null = null;
   #productKitBundle: LoadedProductKitBundle | null = null;
@@ -497,6 +499,14 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     }
     this.#guidedJourney = controller;
     this.#refreshGuidedJourney();
+  }
+
+  attachRoleGuide(controller: RoleGuideController): void {
+    if (this.#roleGuide !== null && this.#roleGuide !== controller) {
+      throw new Error("Partner role guide is already attached");
+    }
+    this.#roleGuide = controller;
+    this.#refreshRoleGuide();
   }
 
   showMessage(message: string): void {
@@ -960,6 +970,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       if (this.#imageLab !== null) void this.#imageLab.initialise();
       this.#setOpen(true);
       this.#refreshGuidedJourney();
+      this.#refreshRoleGuide();
     } catch (error) {
       this.#pairGame?.close();
       this.#destroyCanvasAccessibility();
@@ -989,6 +1000,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       this.#blobs.clear();
       this.#document = null;
       this.#guidedJourney?.setCampaign(null);
+      this.#roleGuide?.setCampaign(null);
       this.#refreshMoneyCheck();
       this.#refreshMarketRoute();
       this.#refreshAidaPlaybook();
@@ -1362,6 +1374,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     });
     attempt(() => this.#logoLab?.setMarks([]));
     attempt(() => this.#guidedJourney?.setCampaign(null));
+    attempt(() => this.#roleGuide?.setCampaign(null));
     attempt(() => this.#setOpen(false));
     attempt(() => this.gameCanvas?.focus({ preventScroll: true }));
     if (cleanupError !== null) throw cleanupError;
@@ -1565,6 +1578,18 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       ? this.#document
       : this.#snapshot();
     this.#guidedJourney.setCampaign(document);
+  }
+
+  #refreshRoleGuide(): void {
+    if (this.#roleGuide === null) return;
+    if (this.#document === null) {
+      this.#roleGuide.setCampaign(null);
+      return;
+    }
+    const document = this.#runtime === null
+      ? this.#document
+      : this.#snapshot();
+    this.#roleGuide.setCampaign(document);
   }
 
   #refreshMarketRoute(feedback?: MarketRouteFeedback | null): void {
@@ -2259,6 +2284,16 @@ const pairGame = new PairGameController(
   () => handler.schedulePracticeAutosave()
 );
 handler.attachPairGame(pairGame);
+const roleGuide = new RoleGuideController(
+  root,
+  shell.overlay,
+  () => {
+    pairGame.acknowledgeRoleGuide();
+    handler.schedulePracticeAutosave();
+  },
+  () => shell.overlay.querySelector<HTMLButtonElement>("[data-guide-open-tool]")?.focus()
+);
+handler.attachRoleGuide(roleGuide);
 const imageLabRuntime = new ImageLabRuntime({
   client: new ImageLabClient(),
   exportDesign: (pair) => handler.exportDesignDataUrl(pair),

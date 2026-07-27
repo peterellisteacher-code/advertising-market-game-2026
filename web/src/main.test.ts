@@ -1002,6 +1002,7 @@ const blankDocument = createBlankCampaignDocument({
   sessionId: "main-session",
   mode: "offline"
 });
+blankDocument.gameplay.pair.roleGuideAcknowledged = true;
 
 function documentAtStage(stage: CampaignDocumentV1["gameplay"]["stage"]): CampaignDocumentV1 {
   return CampaignDocumentSchema.parse({
@@ -1976,6 +1977,38 @@ describe("window.AdMarketCreator", () => {
     expect(document.querySelector<HTMLElement>("[data-guide]")!.hidden).toBe(true);
   });
 
+  it("requires the role guide once and persists acknowledgement before work begins", async () => {
+    const firstEntry = createBlankCampaignDocument({
+      documentId: "first-role-guide",
+      sessionId: "first-role-guide-session",
+      mode: "offline"
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+
+    expect(await parsed(api, "open-first-role-guide", "open", firstEntry))
+      .toMatchObject({ ok: true });
+    const dialog = getByRole(document.body, "dialog", { name: "Partner role guide" });
+    expect(dialog.textContent).toContain("The Art Director begins with control.");
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(dialog.closest<HTMLElement>("[data-role-guide-layer]")?.hidden).toBe(false);
+
+    fireEvent.click(getByRole(dialog, "button", { name: "Begin work" }));
+    const state = await parsed(api, "role-guide-state", "getState", null);
+    expect(state.payload).toMatchObject({
+      gameplay: { pair: { roleGuideAcknowledged: true } }
+    });
+    expect(document.activeElement).toBe(
+      document.querySelector<HTMLButtonElement>("[data-guide-open-tool]")
+    );
+
+    expect(await parsed(api, "close-first-role-guide", "close", null))
+      .toMatchObject({ ok: true });
+    expect(await parsed(api, "reopen-first-role-guide", "open", state.payload))
+      .toMatchObject({ ok: true });
+    expect(document.querySelector<HTMLElement>("[data-role-guide-layer]")?.hidden).toBe(true);
+  });
+
   it("makes keyboard canvas movement one undoable document change", async () => {
     const documentWithText = CampaignDocumentSchema.parse({
       ...structuredClone(blankDocument),
@@ -2694,7 +2727,11 @@ describe("window.AdMarketCreator", () => {
         })
       ]);
       expect(getByRole(document.body, "status", { name: "Pair progress" }).textContent)
-        .toBe("1 visible change");
+        .toBe(
+          "Art Director: visible canvas change recorded. " +
+          "Strategist: message or strategy change not yet recorded. " +
+          "Roles have not been swapped yet."
+        );
     });
 
     fireEvent.click(getByRole(document.body, "button", { name: "Swap roles" }));
@@ -2705,7 +2742,11 @@ describe("window.AdMarketCreator", () => {
     await waitFor(() => {
       expect(currentObjects()).toHaveLength(2);
       expect(getByRole(document.body, "status", { name: "Pair progress" }).textContent)
-        .toBe("Both roles contributed.");
+        .toBe(
+          "Art Director: visible canvas change recorded. " +
+          "Strategist: message or strategy change recorded. " +
+          "Roles have been swapped once."
+        );
       expect(document.querySelector("[data-active-role-action]")?.textContent)
         .toBe("Name the product. Add one clear benefit to the ad.");
     });

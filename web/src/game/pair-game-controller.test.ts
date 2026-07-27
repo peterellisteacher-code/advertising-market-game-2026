@@ -176,6 +176,13 @@ describe("PairGameController", () => {
     expect(view.partnerRole.textContent).toBe("Strategist");
     expect(view.partnerRoleAction.textContent)
       .toBe("Read the audience need. Prepare a product name and one useful benefit.");
+    expect(view.roundProgress.textContent).toContain(
+      "Art Director: visible canvas change not yet recorded."
+    );
+    expect(view.roundProgress.textContent).toContain(
+      "Strategist: message or strategy change not yet recorded."
+    );
+    expect(view.roundProgress.textContent).toContain("Roles have not been swapped yet.");
   });
 
   it("tracks both roles across text, canvas changes, handoff and reopen", async () => {
@@ -192,7 +199,7 @@ describe("PairGameController", () => {
 
     await waitFor(() => {
       expect(port.addedText).toEqual(["Make room for adventure"]);
-      expect(root.textContent).toContain("1 visible change");
+      expect(root.textContent).toContain("Art Director: visible canvas change recorded.");
       expect(view.activeRoleAction.textContent).toBe("Pass control to the Strategist.");
     });
 
@@ -206,7 +213,10 @@ describe("PairGameController", () => {
     port.emitCanvasMutation();
     expect(view.activeRoleAction.textContent)
       .toBe("Name the product. Add one clear benefit to the ad.");
-    expect(view.roundProgress.textContent).toBe("Both roles contributed.");
+    expect(view.roundProgress.textContent).toContain(
+      "Strategist: message or strategy change recorded."
+    );
+    expect(view.roundProgress.textContent).toContain("Roles have been swapped once.");
 
     const persistedPair = controller.snapshot();
     if (persistedPair === null) throw new Error("Expected open pair progress");
@@ -223,7 +233,8 @@ describe("PairGameController", () => {
       activeRole: "strategist",
       handoffCount: 1,
       artDirectorActions: 1,
-      strategistActions: 1
+      strategistActions: 1,
+      roleGuideAcknowledged: false
     });
   });
 
@@ -263,6 +274,8 @@ describe("PairGameController", () => {
     await controller.open(campaign);
 
     fireEvent.click(getByRole(root, "button", { name: "Swap roles" }));
+    expect(view.polite.textContent).toContain("responsibilities");
+    expect(view.polite.textContent).toContain("recorded authorship history remains");
     port.emitCanvasMutation();
 
     expect(changes).toEqual([
@@ -270,15 +283,43 @@ describe("PairGameController", () => {
         activeRole: "strategist",
         handoffCount: 1,
         artDirectorActions: 0,
-        strategistActions: 0
+        strategistActions: 0,
+        roleGuideAcknowledged: false
       },
       {
         activeRole: "strategist",
         handoffCount: 1,
         artDirectorActions: 0,
-        strategistActions: 1
+        strategistActions: 1,
+        roleGuideAcknowledged: false
       }
     ]);
+  });
+
+  it("persists role-guide acknowledgement without changing contribution history", async () => {
+    const campaign = campaignFixture();
+    const port = new RoundZeroHarness(campaign);
+    const { view } = createPairGameView();
+    const changes: CampaignDocumentV1["gameplay"]["pair"][] = [];
+    const controller = new PairGameController(
+      view,
+      port,
+      undefined,
+      (pair) => changes.push(pair)
+    );
+    await controller.open(campaign);
+
+    controller.acknowledgeRoleGuide();
+    controller.acknowledgeRoleGuide();
+
+    expect(controller.snapshot()).toEqual({
+      activeRole: "art-director",
+      handoffCount: 0,
+      artDirectorActions: 0,
+      strategistActions: 0,
+      roleGuideAcknowledged: true
+    });
+    expect(changes).toHaveLength(1);
   });
 
   it("changes audience details, validates blank words, and routes undo and redo", async () => {

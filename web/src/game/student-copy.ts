@@ -121,14 +121,24 @@ export const STUDENT_COPY = deepFreeze({
   },
   handoff: {
     buttonLabel: "Swap roles",
-    toArtDirector: "Pass control to the Art Director.",
-    toStrategist: "Pass control to the Strategist."
+    promptToArtDirector: "Pass control to the Art Director.",
+    promptToStrategist: "Pass control to the Strategist.",
+    toArtDirector:
+      "Roles swapped. The responsibilities have exchanged: the Art Director controls visual decisions and the Strategist controls message decisions. The recorded authorship history remains.",
+    toStrategist:
+      "Roles swapped. The responsibilities have exchanged: the Strategist controls message decisions and the Art Director controls visual decisions. The recorded authorship history remains."
   },
   roundZero: {
     progressNone: "Make one visible change.",
     progressOne: "1 visible change",
     progressManySuffix: "visible changes",
     bothRolesContributed: "Both roles contributed.",
+    artDirectorRecorded: "Art Director: visible canvas change recorded.",
+    artDirectorMissing: "Art Director: visible canvas change not yet recorded.",
+    strategistRecorded: "Strategist: message or strategy change recorded.",
+    strategistMissing: "Strategist: message or strategy change not yet recorded.",
+    rolesSwapped: "Roles have been swapped once.",
+    rolesNotSwapped: "Roles have not been swapped yet.",
     textPlaceholder: "Try Make room for adventure",
     addWords: "Add words to ad",
     productWords: "Put words on selected product",

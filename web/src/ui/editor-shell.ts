@@ -74,7 +74,10 @@ export function createEditorShell(root: HTMLElement): EditorShell {
             <p class="creator__partner-action" data-partner-role-action>${STUDENT_COPY.rolePrompts.strategist.holdingAction}</p>
           </div>
           <p class="creator__round-progress" role="status" aria-label="${STUDENT_COPY.labels.roundProgress}" data-round-progress>${STUDENT_COPY.roundZero.progressNone}</p>
-          <button type="button" data-swap-roles>${STUDENT_COPY.handoff.buttonLabel}</button>
+          <div class="creator__role-actions" role="group" aria-label="Partner role controls">
+            <button type="button" data-swap-roles>${STUDENT_COPY.handoff.buttonLabel}</button>
+            <button type="button" data-role-guide-open>Role guide</button>
+          </div>
         </div>
         <article class="creator__audience-brief" id="studio-full-brief" role="region" aria-label="${STUDENT_COPY.labels.audienceBrief}" hidden>
           <dl>
@@ -230,7 +233,31 @@ export function createEditorShell(root: HTMLElement): EditorShell {
       </div>
       <p class="sr-only" data-live="polite" aria-live="polite"></p>
       <p class="sr-only" data-live="assertive" aria-live="assertive"></p>
-    </section>`;
+    </section>
+    <div class="creator__role-guide-layer" data-role-guide-layer hidden>
+      <section class="creator__role-guide" role="dialog" aria-modal="true"
+        aria-label="Partner role guide" data-role-guide-dialog>
+        <p class="creator__eyebrow">Pair responsibilities</p>
+        <h2>Partner role guide</h2>
+        <p>Both partners work from the same audience brief. Each role controls a different part of the campaign.</p>
+        <div class="creator__role-guide-definitions">
+          <section>
+            <h3>Art Director</h3>
+            <p>Controls the product's appearance, images, colour, arrangement and layout.</p>
+          </section>
+          <section>
+            <h3>Strategist</h3>
+            <p>Controls the product name, advertising words, claim, price reasoning and market-route reasoning.</p>
+          </section>
+        </div>
+        <p class="creator__role-guide-assignment" data-role-guide-assignment></p>
+        <p>When roles are swapped, the responsibilities exchange. The recorded authorship history remains.</p>
+        <div class="creator__role-guide-actions">
+          <button type="button" data-role-guide-close>Close role guide</button>
+          <button type="button" data-role-guide-begin>Begin work</button>
+        </div>
+      </section>
+    </div>`;
 
   const briefToggle = root.querySelector<HTMLButtonElement>("[data-brief-toggle]")!;
   const brief = root.querySelector<HTMLElement>("#studio-full-brief")!;

@@ -70,7 +70,8 @@ export const CampaignPairStateSchema = z.object({
   activeRole: z.enum(["art-director", "strategist"]),
   handoffCount: pairCounter,
   artDirectorActions: pairCounter,
-  strategistActions: pairCounter
+  strategistActions: pairCounter,
+  roleGuideAcknowledged: z.boolean().default(false)
 }).strict();
 
 export type CampaignPairStateV1 = z.infer<typeof CampaignPairStateSchema>;
@@ -80,7 +81,8 @@ const DEFAULT_PAIR_STATE: CampaignPairStateV1 = Object.freeze({
   activeRole: "art-director",
   handoffCount: 0,
   artDirectorActions: 0,
-  strategistActions: 0
+  strategistActions: 0,
+  roleGuideAcknowledged: false
 });
 
 const campaignGameplay = z.object({

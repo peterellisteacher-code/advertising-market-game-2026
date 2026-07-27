@@ -107,3 +107,152 @@ Alternative-profile trials remain teacher-operated and must never create an unga
 8. Confirm the capability reports closed before the lesson, opens only after teacher action, expires after 75 minutes, and closes immediately from **Close Image Lab**.
 9. Keep the default profiles unless sealed teacher-operated blind A/B evidence supports a change.
 10. Close each active pair session at the end of the lesson, then disable `IMAGE_LAB_ENABLED` immediately after the activity.
+
+## Atomic allowance ledger migration
+
+The deterministic source is
+`docs/operations/advertising-game-image-lab-allowances.sql`. It contains only
+the transaction body for one `apply_migration` call. Do not add migration-ledger
+statements or transaction-control statements to that file.
+
+The migration is limited to these Advertising objects:
+
+```text
+advertising_game.image_lab_settings
+advertising_game.image_lab_allowance
+advertising_game.image_lab_operation
+public.advertising_game_image_lab_rpc
+```
+
+Before applying it, reserve those four names for the Advertising lane in the
+shared-project coordination channel. Do not proceed while another lane holds a
+database-mutation reservation.
+
+Run this read-only shared-project collision preflight:
+
+```sql
+select n.nspname as schema_name, c.relname, c.relkind
+from pg_catalog.pg_class c
+join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+where (n.nspname = 'advertising_game'
+  and c.relname in (
+    'image_lab_settings',
+    'image_lab_allowance',
+    'image_lab_operation'
+  ))
+or (n.nspname <> 'advertising_game'
+  and c.relname in (
+    'image_lab_settings',
+    'image_lab_allowance',
+    'image_lab_operation'
+  ))
+order by n.nspname, c.relname;
+
+select n.nspname as schema_name,
+       p.proname,
+       pg_catalog.pg_get_function_identity_arguments(p.oid) as arguments
+from pg_catalog.pg_proc p
+join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+where p.proname = 'advertising_game_image_lab_rpc';
+```
+
+The expected result is no matching relation and no matching function. Also
+confirm that `advertising_game.progress` and
+`public.advertising_game_progress_rpc` still exist; they are neighbouring
+Advertising objects and are not part of this migration.
+
+After one approved application, verify the object boundary and grants:
+
+```sql
+select n.nspname as schema_name,
+       c.relname,
+       c.relrowsecurity
+from pg_catalog.pg_class c
+join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+where n.nspname = 'advertising_game'
+  and c.relname in (
+    'image_lab_settings',
+    'image_lab_allowance',
+    'image_lab_operation'
+  )
+order by c.relname;
+
+select conrelid::pg_catalog.regclass::text as relation_name,
+       conname,
+       pg_catalog.pg_get_constraintdef(oid) as definition
+from pg_catalog.pg_constraint
+where conrelid in (
+  'advertising_game.image_lab_settings'::pg_catalog.regclass,
+  'advertising_game.image_lab_allowance'::pg_catalog.regclass,
+  'advertising_game.image_lab_operation'::pg_catalog.regclass
+)
+order by relation_name, conname;
+
+select p.oid::pg_catalog.regprocedure::text as signature,
+       p.prosecdef as security_definer,
+       p.proowner::pg_catalog.regrole::text as owner,
+       p.proconfig
+from pg_catalog.pg_proc p
+join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.proname = 'advertising_game_image_lab_rpc';
+
+select
+  pg_catalog.has_schema_privilege('anon', 'advertising_game', 'USAGE')
+    as anon_schema_usage,
+  pg_catalog.has_schema_privilege('authenticated', 'advertising_game', 'USAGE')
+    as authenticated_schema_usage,
+  pg_catalog.has_table_privilege(
+    'anon',
+    'advertising_game.image_lab_allowance',
+    'SELECT,INSERT,UPDATE,DELETE'
+  ) as anon_table_access,
+  pg_catalog.has_table_privilege(
+    'authenticated',
+    'advertising_game.image_lab_allowance',
+    'SELECT,INSERT,UPDATE,DELETE'
+  ) as authenticated_table_access,
+  pg_catalog.has_function_privilege(
+    'anon',
+    'public.advertising_game_image_lab_rpc(uuid,text,text,integer,text,text,text)',
+    'EXECUTE'
+  ) as anon_rpc_execute,
+  pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.advertising_game_image_lab_rpc(uuid,text,text,integer,text,text,text)',
+    'EXECUTE'
+  ) as authenticated_rpc_execute,
+  pg_catalog.has_function_privilege(
+    'service_role',
+    'public.advertising_game_image_lab_rpc(uuid,text,text,integer,text,text,text)',
+    'EXECUTE'
+  ) as service_rpc_execute;
+```
+
+All three `relrowsecurity` values must be true. Every browser-role result in
+the last query must be false, and `service_rpc_execute` must be true. The
+function must be owned by `postgres`, be security-definer, and include
+`search_path=""` in `proconfig`.
+
+If verification fails before the application is released, rollback is limited
+to the same four names and must not use `CASCADE`:
+
+```sql
+drop function public.advertising_game_image_lab_rpc(
+  uuid,
+  text,
+  text,
+  integer,
+  text,
+  text,
+  text
+);
+drop table advertising_game.image_lab_operation;
+drop table advertising_game.image_lab_allowance;
+drop table advertising_game.image_lab_settings;
+```
+
+Before rollback, confirm that no paid job remains reserved or uncertain.
+After verification or rollback, release the shared-project reservation
+immediately. Never include any neighbouring schema, table, function, account,
+asset bucket, or migration-ledger row in this rollback.

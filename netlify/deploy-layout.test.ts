@@ -24,6 +24,7 @@ const expectedFunctions = [
   "openverse-search.mts",
   "product-price-guide.mts",
   "studio-coach.mts",
+  "teacher-accounts.mts",
   "teacher-session.mts"
 ];
 
@@ -75,7 +76,7 @@ const loadStaticDiscovery = async (): Promise<{
 };
 
 describe("Netlify deployment layout", () => {
-  it("configures a wrapper-only directory containing exactly thirteen functions", () => {
+  it("configures a wrapper-only directory containing exactly fourteen functions", () => {
     const toml = readFileSync(join(repoRoot, "netlify.toml"), "utf8");
     expect(toml).toMatch(/^functions = "netlify\/deploy-functions"$/m);
     expect(existsSync(deployDirectory)).toBe(true);
@@ -159,9 +160,10 @@ describe("Netlify deployment layout", () => {
       "openverse-search",
       "product-price-guide",
       "studio-coach",
+      "teacher-accounts",
       "teacher-session"
     ]);
-    expect(discovered).toHaveLength(13);
+    expect(discovered).toHaveLength(14);
     for (const entry of discovered) expect(entry.runtimeAPIVersion).toBe(2);
     expect(byName.get("account-session")?.routes).toEqual([
       {
@@ -248,6 +250,23 @@ describe("Netlify deployment layout", () => {
       {
         pattern: "/api/teacher/logout",
         literal: "/api/teacher/logout",
+        methods: []
+      }
+    ]);
+    expect(byName.get("teacher-accounts")?.routes).toEqual([
+      {
+        pattern: "/api/teacher/accounts",
+        literal: "/api/teacher/accounts",
+        methods: []
+      },
+      {
+        pattern: "/api/teacher/accounts/:username/password",
+        expression: "^\\/api\\/teacher\\/accounts(?:\\/([^\\/]+?))\\/password\\/?$",
+        methods: []
+      },
+      {
+        pattern: "/api/teacher/accounts/:username/reset",
+        expression: "^\\/api\\/teacher\\/accounts(?:\\/([^\\/]+?))\\/reset\\/?$",
         methods: []
       }
     ]);
@@ -460,6 +479,18 @@ describe("Netlify deployment layout", () => {
         rateLimit: {
           aggregateBy: ["ip", "domain"],
           windowLimit: 30,
+          windowSize: 60
+        }
+      },
+      "teacher-accounts": {
+        path: [
+          "/api/teacher/accounts",
+          "/api/teacher/accounts/:username/password",
+          "/api/teacher/accounts/:username/reset"
+        ],
+        rateLimit: {
+          aggregateBy: ["ip", "domain"],
+          windowLimit: 60,
           windowSize: 60
         }
       }

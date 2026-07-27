@@ -33,6 +33,7 @@ test("function build emits one exact wrapper-and-bundle manifest", async () => {
     "openverse-search",
     "product-price-guide",
     "studio-coach",
+    "teacher-accounts",
     "teacher-session"
   ]);
 

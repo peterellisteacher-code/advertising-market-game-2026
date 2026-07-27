@@ -21,6 +21,7 @@ export const NETLIFY_FUNCTION_NAMES = Object.freeze([
   "openverse-search",
   "product-price-guide",
   "studio-coach",
+  "teacher-accounts",
   "teacher-session"
 ]);
 

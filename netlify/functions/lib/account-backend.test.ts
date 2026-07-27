@@ -2,6 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { createBlankCampaignDocument } from "../../../web/src/domain/campaign-document";
+import { deriveSyntheticAccountEmail } from "./account-primitives";
 import {
   ACCOUNT_JSON_LIMIT,
   PROGRESS_JSON_LIMIT,
@@ -38,6 +39,15 @@ const legacyJwt = (role: "anon" | "service_role"): string => {
   const encode = (value: unknown): string => Buffer.from(JSON.stringify(value), "utf8")
     .toString("base64url");
   return `${encode({ alg: "HS256", typ: "JWT" })}.${encode({ role, exp: 4_102_444_800 })}.${"x".repeat(43)}`;
+};
+
+const accessJwt = (sessionEpoch: string): string => {
+  const encode = (value: unknown): string => Buffer.from(JSON.stringify(value), "utf8")
+    .toString("base64url");
+  return `${encode({ alg: "HS256", typ: "JWT" })}.${encode({
+    app_metadata: { advertising_game_session_epoch: sessionEpoch },
+    exp: 4_102_444_800
+  })}.${"x".repeat(43)}`;
 };
 
 describe("account environment", () => {
@@ -530,5 +540,139 @@ describe("Supabase account transport", () => {
         version: 1
       }
     });
+  });
+
+  it("uses exact server-only envelopes for bounded account administration", async () => {
+    const pairRecord = {
+      userId: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
+      username: "team-one",
+      createdAt: "2026-07-20T01:02:03.000Z",
+      lastSignInAt: "2026-07-21T04:05:06.000Z"
+    };
+    const playtestRecord = {
+      userId: "99250725-52e0-44c9-b569-593167786eaf",
+      username: "teacher-playtest",
+      createdAt: "2026-07-20T02:03:04.000Z",
+      lastSignInAt: null
+    };
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(responseJson({ users: [pairRecord] }))
+      .mockResolvedValueOnce(responseJson({ user: pairRecord }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(responseJson({ user: playtestRecord }));
+    const client = new SupabaseAccountClient(parseAccountEnvironment(modernEnvironment), fetcher);
+
+    await expect(client.listAdvertisingGameUsers()).resolves.toEqual([pairRecord]);
+    await expect(client.findAdvertisingGameUser("team-one")).resolves.toEqual(pairRecord);
+    await expect(client.replaceAdvertisingGamePassword(
+      "team-one",
+      "replacement-password"
+    )).resolves.toBeUndefined();
+    await expect(client.ensureAdvertisingGameUser(
+      "teacher-playtest",
+      "playtest-password"
+    )).resolves.toEqual(playtestRecord);
+
+    const syntheticPairEmail = deriveSyntheticAccountEmail(
+      "team-one",
+      modernEnvironment.ADVERTISING_GAME_USERNAME_HMAC_SECRET
+    );
+    const syntheticPlaytestEmail = deriveSyntheticAccountEmail(
+      "teacher-playtest",
+      modernEnvironment.ADVERTISING_GAME_USERNAME_HMAC_SECRET
+    );
+    expect(fetcher.mock.calls.map(([, init]) => JSON.parse(String(init?.body)))).toEqual([
+      { operation: "list_users" },
+      { operation: "find_user", email: syntheticPairEmail, username: "team-one" },
+      {
+        operation: "replace_password",
+        email: syntheticPairEmail,
+        username: "team-one",
+        password: "replacement-password"
+      },
+      {
+        operation: "ensure_user",
+        email: syntheticPlaytestEmail,
+        username: "teacher-playtest",
+        password: "playtest-password"
+      }
+    ]);
+    for (const [, init] of fetcher.mock.calls) {
+      expect(init?.headers).toEqual(expect.objectContaining({
+        "x-advertising-game-gateway-secret":
+          modernEnvironment.ADVERTISING_GAME_EDGE_GATEWAY_SECRET
+      }));
+      expect(init?.headers).not.toHaveProperty("authorization");
+    }
+  });
+
+  it("rejects malformed or oversized account-administration responses without reflecting them", async () => {
+    const malformed = new SupabaseAccountClient(
+      parseAccountEnvironment(modernEnvironment),
+      vi.fn<typeof fetch>().mockResolvedValue(responseJson({
+        users: [{
+          userId: "not-a-user-id",
+          username: "team-one",
+          createdAt: "not-a-time",
+          lastSignInAt: null,
+          email: "must-not-be-reflected@accounts.admarket.invalid"
+        }]
+      }))
+    );
+    const malformedError = await malformed.listAdvertisingGameUsers()
+      .catch((error: unknown) => error);
+    expect(malformedError).toBeInstanceOf(SupabaseAccountError);
+    expect(String(malformedError)).not.toContain("must-not-be-reflected");
+
+    const oversized = new SupabaseAccountClient(
+      parseAccountEnvironment(modernEnvironment),
+      vi.fn<typeof fetch>().mockResolvedValue(responseJson({
+        users: [],
+        padding: "x".repeat(600 * 1_024)
+      }))
+    );
+    await expect(oversized.listAdvertisingGameUsers())
+      .rejects.toMatchObject({ kind: "upstream" });
+  });
+
+  it("accepts a verified current session epoch and preserves legacy accounts without one", async () => {
+    const sessionEpoch = "2d90c112-4de8-4e7b-92d2-0d655738987f";
+    const jwt = accessJwt(sessionEpoch);
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(responseJson({
+        id: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
+        app_metadata: {
+          advertising_game_username: "team-one",
+          advertising_game_session_epoch: sessionEpoch
+        }
+      }))
+      .mockResolvedValueOnce(responseJson({
+        id: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
+        app_metadata: { advertising_game_username: "team-one" }
+      }));
+    const client = new SupabaseAccountClient(parseAccountEnvironment(modernEnvironment), fetcher);
+
+    await expect(client.getUser(jwt)).resolves.toEqual({
+      userId: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
+      username: "team-one"
+    });
+    await expect(client.getUser("legacy-opaque-access")).resolves.toEqual({
+      userId: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
+      username: "team-one"
+    });
+  });
+
+  it("rejects an otherwise valid old access token after the server epoch changes", async () => {
+    const oldJwt = accessJwt("2d90c112-4de8-4e7b-92d2-0d655738987f");
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(responseJson({
+      id: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
+      app_metadata: {
+        advertising_game_username: "team-one",
+        advertising_game_session_epoch: "7440e792-3ddc-4484-ae32-a53088d0d679"
+      }
+    }));
+    const client = new SupabaseAccountClient(parseAccountEnvironment(modernEnvironment), fetcher);
+
+    await expect(client.getUser(oldJwt)).rejects.toMatchObject({ kind: "expired_session" });
   });
 });

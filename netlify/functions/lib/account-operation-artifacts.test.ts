@@ -10,6 +10,8 @@ const sqlPath = resolve(repoRoot, "docs/operations/advertising-game-account-prog
 const operationsPath = resolve(repoRoot, "docs/operations/advertising-game-account-progress.md");
 const edgeSqlPath = resolve(repoRoot, "docs/operations/advertising-game-edge-gateway.sql");
 const edgeIndexPath = resolve(repoRoot, "supabase/functions/advertising-game-backend/index.ts");
+const edgeHandlerPath = resolve(repoRoot, "supabase/functions/advertising-game-backend/handler.ts");
+const netlifyAccountBackendPath = resolve(repoRoot, "netlify/functions/lib/account-backend.ts");
 const supabaseConfigPath = resolve(repoRoot, "supabase/config.toml");
 
 describe("account progress operation artifacts", () => {
@@ -70,6 +72,25 @@ describe("account progress operation artifacts", () => {
     expect(index).toContain("SUPABASE_SECRET_KEYS");
     expect(index).toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(config).toMatch(/\[functions\.advertising-game-backend\][\s\S]+verify_jwt\s*=\s*false/u);
+  });
+
+  it("keeps account administration and password-session invalidation inside the Edge broker", () => {
+    const edgeHandler = readFileSync(edgeHandlerPath, "utf8");
+    const netlifyBackend = readFileSync(netlifyAccountBackendPath, "utf8");
+    for (const operation of [
+      "list_users",
+      "find_user",
+      "replace_password",
+      "ensure_user"
+    ]) {
+      expect(edgeHandler).toContain(`"${operation}"`);
+      expect(netlifyBackend).toContain(`"${operation}"`);
+    }
+    expect(edgeHandler).toContain("advertising_game_session_epoch");
+    expect(netlifyBackend).toContain("advertising_game_session_epoch");
+    expect(edgeHandler).toContain("/auth/v1/admin/users");
+    expect(netlifyBackend).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(netlifyBackend).not.toContain("/auth/v1/admin/users");
   });
 
   it("lists only generic environment names and non-destructive verification steps", () => {

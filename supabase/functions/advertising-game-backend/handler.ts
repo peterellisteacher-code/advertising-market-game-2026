@@ -11,6 +11,11 @@ const USERNAME_PATTERN = /^[a-z0-9][a-z0-9_-]{2,23}$/u;
 const SYNTHETIC_EMAIL_PATTERN = /^[a-f0-9]{64}@accounts\.admarket\.invalid$/u;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 const DOCUMENT_ID_PATTERN = /^[a-z0-9][a-z0-9._-]{0,63}$/u;
+const SESSION_EPOCH_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
+const TEACHER_PLAYTEST_USERNAME = "teacher-playtest";
+const ADMIN_USERS_LIMIT = 1_000;
+const ADMIN_USERS_RESPONSE_LIMIT = 1_024 * 1_024;
 
 const SECURITY_HEADERS: Readonly<Record<string, string>> = {
   "cache-control": "no-store",
@@ -23,6 +28,7 @@ const SECURITY_HEADERS: Readonly<Record<string, string>> = {
 export interface AdvertisingGameBackendDependencies {
   readonly environment?: Readonly<Record<string, string | undefined>>;
   readonly fetcher?: typeof fetch;
+  readonly randomUUID?: () => string;
 }
 
 interface EdgeEnvironment {
@@ -193,6 +199,7 @@ const parseCreateUser = (record: Record<string, unknown>): CreateUserInput => {
     record.operation !== "create_user" ||
     typeof record.email !== "string" || !SYNTHETIC_EMAIL_PATTERN.test(record.email) ||
     typeof record.username !== "string" || !USERNAME_PATTERN.test(record.username) ||
+    record.username === TEACHER_PLAYTEST_USERNAME ||
     typeof record.password !== "string" || record.password.includes("\0") ||
     byteLength(record.password) < 8 || byteLength(record.password) > 128) {
     throw new InvalidRequestError();
@@ -203,6 +210,257 @@ const parseCreateUser = (record: Record<string, unknown>): CreateUserInput => {
     password: record.password,
     username: record.username
   };
+};
+
+type AccountAdminOperation =
+  | { readonly operation: "list_users" }
+  | {
+      readonly operation: "find_user";
+      readonly email: string;
+      readonly username: string;
+    }
+  | {
+      readonly operation: "replace_password";
+      readonly email: string;
+      readonly username: string;
+      readonly password: string;
+    }
+  | {
+      readonly operation: "ensure_user";
+      readonly email: string;
+      readonly username: typeof TEACHER_PLAYTEST_USERNAME;
+      readonly password: string;
+    };
+
+interface AccountAdminRecord {
+  readonly userId: string;
+  readonly username: string;
+  readonly createdAt: string;
+  readonly lastSignInAt: string | null;
+}
+
+interface ParsedAdminUser {
+  readonly record: AccountAdminRecord;
+  readonly email: string;
+}
+
+const validPassword = (value: unknown): value is string =>
+  typeof value === "string" &&
+  !value.includes("\0") &&
+  byteLength(value) >= 8 &&
+  byteLength(value) <= 128;
+
+const parseAccountAdminOperation = (
+  record: Record<string, unknown>
+): AccountAdminOperation => {
+  if (record.operation === "list_users") {
+    if (!hasExactKeys(record, ["operation"])) throw new InvalidRequestError();
+    return { operation: "list_users" };
+  }
+  if (
+    record.operation !== "find_user" &&
+    record.operation !== "replace_password" &&
+    record.operation !== "ensure_user"
+  ) {
+    throw new InvalidRequestError();
+  }
+  const includesPassword = record.operation !== "find_user";
+  const keys = includesPassword
+    ? ["operation", "email", "username", "password"]
+    : ["operation", "email", "username"];
+  if (
+    !hasExactKeys(record, keys) ||
+    typeof record.email !== "string" ||
+    !SYNTHETIC_EMAIL_PATTERN.test(record.email) ||
+    typeof record.username !== "string" ||
+    !USERNAME_PATTERN.test(record.username) ||
+    (includesPassword && !validPassword(record.password))
+  ) {
+    throw new InvalidRequestError();
+  }
+  if (
+    (record.operation === "ensure_user") !==
+    (record.username === TEACHER_PLAYTEST_USERNAME)
+  ) {
+    throw new InvalidRequestError();
+  }
+  if (
+    record.operation === "replace_password" &&
+    record.username === TEACHER_PLAYTEST_USERNAME
+  ) {
+    throw new InvalidRequestError();
+  }
+  return record as AccountAdminOperation;
+};
+
+const validIsoTimestamp = (value: unknown): value is string =>
+  typeof value === "string" &&
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/u.test(value) &&
+  Number.isFinite(Date.parse(value));
+
+const parseAdminUser = (value: unknown): ParsedAdminUser | null => {
+  if (!isRecord(value)) return null;
+  const metadata = isRecord(value.app_metadata) ? value.app_metadata : null;
+  const username = metadata?.advertising_game_username;
+  const lastSignInAt = value.last_sign_in_at;
+  if (
+    typeof value.id !== "string" ||
+    !UUID_PATTERN.test(value.id) ||
+    typeof value.email !== "string" ||
+    !SYNTHETIC_EMAIL_PATTERN.test(value.email) ||
+    typeof username !== "string" ||
+    !USERNAME_PATTERN.test(username) ||
+    !validIsoTimestamp(value.created_at) ||
+    (lastSignInAt !== null && !validIsoTimestamp(lastSignInAt))
+  ) {
+    return null;
+  }
+  return {
+    email: value.email,
+    record: {
+      userId: value.id,
+      username,
+      createdAt: value.created_at,
+      lastSignInAt
+    }
+  };
+};
+
+const listAdminUsers = async (
+  environment: EdgeEnvironment,
+  fetcher: typeof fetch
+): Promise<readonly ParsedAdminUser[]> => {
+  const response = await safeFetch(
+    fetcher,
+    `${environment.supabaseUrl}${ADMIN_USERS}?page=1&per_page=${ADMIN_USERS_LIMIT}`,
+    {
+      method: "GET",
+      headers: serviceHeaders(environment.serviceKey)
+    }
+  );
+  const body = await upstreamJson(response, ADMIN_USERS_RESPONSE_LIMIT);
+  if (!isRecord(body) || !Array.isArray(body.users) ||
+    body.users.length >= ADMIN_USERS_LIMIT ||
+    (body.next_page !== undefined && body.next_page !== null && body.next_page !== 0)) {
+    throw new UpstreamError();
+  }
+
+  const result: ParsedAdminUser[] = [];
+  for (const candidate of body.users) {
+    const parsed = parseAdminUser(candidate);
+    if (parsed !== null) {
+      result.push(parsed);
+      continue;
+    }
+    if (isRecord(candidate)) {
+      const metadata = isRecord(candidate.app_metadata) ? candidate.app_metadata : null;
+      if (
+        (typeof candidate.email === "string" &&
+          SYNTHETIC_EMAIL_PATTERN.test(candidate.email)) ||
+        (typeof metadata?.advertising_game_username === "string" &&
+          USERNAME_PATTERN.test(metadata.advertising_game_username))
+      ) {
+        throw new UpstreamError();
+      }
+    }
+  }
+  const identifiers = new Set<string>();
+  for (const user of result) {
+    for (const identity of [
+      `id:${user.record.userId}`,
+      `email:${user.email}`,
+      `username:${user.record.username}`
+    ]) {
+      if (identifiers.has(identity)) throw new UpstreamError();
+      identifiers.add(identity);
+    }
+  }
+  return result;
+};
+
+const findAdminUser = (
+  users: readonly ParsedAdminUser[],
+  email: string,
+  username: string
+): ParsedAdminUser | null => {
+  const matches = users.filter((user) =>
+    user.email === email && user.record.username === username
+  );
+  if (
+    matches.length > 1 ||
+    users.some((user) =>
+      (user.email === email || user.record.username === username) &&
+      (user.email !== email || user.record.username !== username))
+  ) {
+    throw new UpstreamError();
+  }
+  return matches[0] ?? null;
+};
+
+const accountAdmin = async (
+  input: AccountAdminOperation,
+  environment: EdgeEnvironment,
+  fetcher: typeof fetch,
+  randomUUID: () => string
+): Promise<Response> => {
+  const users = await listAdminUsers(environment, fetcher);
+  if (input.operation === "list_users") {
+    return jsonResponse({
+      users: users
+        .filter(({ record }) => record.username !== TEACHER_PLAYTEST_USERNAME)
+        .map(({ record }) => record)
+        .sort((left, right) => left.username.localeCompare(right.username))
+    }, 200);
+  }
+
+  const current = findAdminUser(users, input.email, input.username);
+  if (input.operation === "find_user") {
+    return jsonResponse({ user: current?.record ?? null }, 200);
+  }
+  if (input.operation === "ensure_user") {
+    if (current !== null) return jsonResponse({ user: current.record }, 200);
+    const response = await safeFetch(fetcher, `${environment.supabaseUrl}${ADMIN_USERS}`, {
+      method: "POST",
+      headers: serviceHeaders(environment.serviceKey),
+      body: JSON.stringify({
+        email: input.email,
+        password: input.password,
+        email_confirm: true,
+        app_metadata: { advertising_game_username: input.username }
+      })
+    });
+    const created = parseAdminUser(await upstreamJson(response));
+    if (
+      created === null ||
+      created.email !== input.email ||
+      created.record.username !== input.username
+    ) {
+      throw new UpstreamError();
+    }
+    return jsonResponse({ user: created.record }, 200);
+  }
+  if (current === null) {
+    return jsonResponse({ error: "ACCOUNT_NOT_FOUND" }, 404);
+  }
+  const epoch = randomUUID();
+  if (!SESSION_EPOCH_PATTERN.test(epoch)) throw new UpstreamError();
+  const response = await safeFetch(
+    fetcher,
+    `${environment.supabaseUrl}${ADMIN_USERS}/${current.record.userId}`,
+    {
+      method: "PUT",
+      headers: serviceHeaders(environment.serviceKey),
+      body: JSON.stringify({
+        password: input.password,
+        app_metadata: {
+          advertising_game_username: input.username,
+          advertising_game_session_epoch: epoch
+        }
+      })
+    }
+  );
+  if (!response.ok) throw new UpstreamError();
+  return noContent();
 };
 
 interface ProgressInput {
@@ -336,6 +594,19 @@ export function createAdvertisingGameBackendHandler(
       }
       if (body.operation === "progress") {
         return await progress(parseProgress(body), environment, fetcher);
+      }
+      if (
+        body.operation === "list_users" ||
+        body.operation === "find_user" ||
+        body.operation === "replace_password" ||
+        body.operation === "ensure_user"
+      ) {
+        return await accountAdmin(
+          parseAccountAdminOperation(body),
+          environment,
+          fetcher,
+          dependencies.randomUUID ?? (() => crypto.randomUUID())
+        );
       }
       throw new InvalidRequestError();
     } catch (error) {

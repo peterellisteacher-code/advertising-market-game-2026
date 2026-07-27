@@ -47,6 +47,15 @@ const validTokens = {
   expires_in: 3600
 };
 
+const accessJwt = (sessionEpoch: string): string => {
+  const encode = (value: unknown): string => Buffer.from(JSON.stringify(value), "utf8")
+    .toString("base64url");
+  return `${encode({ alg: "HS256", typ: "JWT" })}.${encode({
+    app_metadata: { advertising_game_session_epoch: sessionEpoch },
+    exp: 4_102_444_800
+  })}.${"x".repeat(43)}`;
+};
+
 describe("account session API", () => {
   it("keeps shared-school-network capacity above a full class start", () => {
     expect(accountSessionConfig.rateLimit).toEqual({
@@ -123,7 +132,11 @@ describe("account session API", () => {
   it("creates a confirmed opaque account, signs it in, and returns only username state", async () => {
     const fetcher = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(json({ id: "b9b32e20-0ba8-4896-b89f-44efdfc52942" }, 201))
-      .mockResolvedValueOnce(json(validTokens));
+      .mockResolvedValueOnce(json(validTokens))
+      .mockResolvedValueOnce(json({
+        id: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
+        app_metadata: { advertising_game_username: "team-one" }
+      }));
     const handler = createAccountSessionHandler({ environment, fetcher });
 
     const response = await handler(accountRequest("/api/account/signup", "POST", {
@@ -159,6 +172,88 @@ describe("account session API", () => {
       `${ACCOUNT_REFRESH_COOKIE}=refresh-token; Path=/api/account; HttpOnly; SameSite=Strict; ` +
         "Max-Age=2592000; Secure"
     ]);
+  });
+
+  it("verifies a fresh password login against the current server epoch before issuing cookies", async () => {
+    const sessionEpoch = "2d90c112-4de8-4e7b-92d2-0d655738987f";
+    const jwt = accessJwt(sessionEpoch);
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(json({
+        access_token: jwt,
+        refresh_token: "refresh-token",
+        expires_in: 3600
+      }))
+      .mockResolvedValueOnce(json({
+        id: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
+        app_metadata: {
+          advertising_game_username: "team-one",
+          advertising_game_session_epoch: sessionEpoch
+        }
+      }));
+    const response = await createAccountSessionHandler({ environment, fetcher })(
+      accountRequest("/api/account/login", "POST", {
+        username: "team-one",
+        password: "student-password"
+      })
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      authenticated: true,
+      username: "team-one"
+    });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(String(fetcher.mock.calls[1]?.[0])).toContain("/auth/v1/user");
+    expect(setCookies(response)).toHaveLength(2);
+  });
+
+  it("fails closed without issuing cookies when a fresh login carries a stale epoch", async () => {
+    const jwt = accessJwt("2d90c112-4de8-4e7b-92d2-0d655738987f");
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(json({
+        access_token: jwt,
+        refresh_token: "refresh-token",
+        expires_in: 3600
+      }))
+      .mockResolvedValueOnce(json({
+        id: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
+        app_metadata: {
+          advertising_game_username: "team-one",
+          advertising_game_session_epoch: "7440e792-3ddc-4484-ae32-a53088d0d679"
+        }
+      }));
+    const response = await createAccountSessionHandler({ environment, fetcher })(
+      accountRequest("/api/account/login", "POST", {
+        username: "team-one",
+        password: "student-password"
+      })
+    );
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({ error: "ACCOUNT_UNAVAILABLE" });
+    expect(setCookies(response)).toEqual([]);
+  });
+
+  it("clears an otherwise unexpired access cookie after a password replacement changes its epoch", async () => {
+    const jwt = accessJwt("2d90c112-4de8-4e7b-92d2-0d655738987f");
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(json({
+        id: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
+        app_metadata: {
+          advertising_game_username: "team-one",
+          advertising_game_session_epoch: "7440e792-3ddc-4484-ae32-a53088d0d679"
+        }
+      }))
+      .mockResolvedValueOnce(json({ message: "refresh revoked" }, 400));
+    const response = await createAccountSessionHandler({ environment, fetcher })(
+      accountRequest("/api/account/session", "GET", undefined, {
+        cookie: `${ACCOUNT_ACCESS_COOKIE}=${jwt}; ${ACCOUNT_REFRESH_COOKIE}=revoked-refresh`
+      })
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ authenticated: false });
+    expect(setCookies(response).every((cookie) => cookie.includes("Max-Age=0"))).toBe(true);
   });
 
   it("rejects an invalid classroom access code before any Supabase call", async () => {

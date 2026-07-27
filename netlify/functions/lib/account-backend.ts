@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import {
   ACCOUNT_ACCESS_COOKIE,
   ACCOUNT_REFRESH_COOKIE,
+  deriveSyntheticAccountEmail,
   normaliseAccountUsername
 } from "./account-primitives";
 
@@ -9,12 +10,15 @@ export const ACCOUNT_JSON_LIMIT = 16 * 1_024;
 export const PROGRESS_JSON_LIMIT = 256 * 1_024;
 
 const UPSTREAM_JSON_LIMIT = 64 * 1_024;
+const ACCOUNT_ADMIN_UPSTREAM_JSON_LIMIT = 512 * 1_024;
 const PROGRESS_UPSTREAM_JSON_LIMIT = PROGRESS_JSON_LIMIT + 16 * 1_024;
 const PROGRESS_LIST_UPSTREAM_JSON_LIMIT = 4 * 1_024;
 const ACCOUNT_TOKEN_PATTERN = /^[A-Za-z0-9._~-]{1,4096}$/u;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
+const SESSION_EPOCH_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 const MODERN_PUBLISHABLE_PATTERN = /^sb_publishable_[A-Za-z0-9_-]{24,256}$/u;
 const EDGE_BACKEND_PATH = "/functions/v1/advertising-game-backend";
+const TEACHER_PLAYTEST_USERNAME = "teacher-playtest";
 
 export interface AccountEnvironment {
   readonly supabaseUrl: string;
@@ -307,6 +311,13 @@ export interface AccountIdentity {
   readonly username: string;
 }
 
+export interface AccountAdminRecord {
+  readonly userId: string;
+  readonly username: string;
+  readonly createdAt: string;
+  readonly lastSignInAt: string | null;
+}
+
 export interface ProgressRpcInput {
   readonly userId: string;
   readonly operation: "list" | "load" | "save" | "reset";
@@ -333,6 +344,102 @@ const asRecord = (value: unknown): Record<string, unknown> | undefined =>
   typeof value === "object" && value !== null && !Array.isArray(value)
     ? value as Record<string, unknown>
     : undefined;
+
+const hasExactKeys = (record: Record<string, unknown>, keys: readonly string[]): boolean => {
+  const actual = Object.keys(record).sort();
+  const expected = [...keys].sort();
+  return actual.length === expected.length &&
+    actual.every((key, index) => key === expected[index]);
+};
+
+const validIsoTimestamp = (value: unknown): value is string =>
+  typeof value === "string" &&
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/u.test(value) &&
+  Number.isFinite(Date.parse(value));
+
+const parseAccountAdminRecord = (value: unknown): AccountAdminRecord => {
+  const record = asRecord(value);
+  if (
+    record === undefined ||
+    !hasExactKeys(record, ["userId", "username", "createdAt", "lastSignInAt"]) ||
+    typeof record.userId !== "string" ||
+    !UUID_PATTERN.test(record.userId) ||
+    !validIsoTimestamp(record.createdAt) ||
+    (record.lastSignInAt !== null && !validIsoTimestamp(record.lastSignInAt))
+  ) {
+    throw new SupabaseAccountError("upstream");
+  }
+  let username: string;
+  try {
+    username = normaliseAccountUsername(record.username);
+  } catch {
+    throw new SupabaseAccountError("upstream");
+  }
+  return {
+    userId: record.userId,
+    username,
+    createdAt: record.createdAt,
+    lastSignInAt: record.lastSignInAt
+  };
+};
+
+const parseAccountAdminUserResponse = (value: unknown): AccountAdminRecord | null => {
+  const record = asRecord(value);
+  if (record === undefined || !hasExactKeys(record, ["user"])) {
+    throw new SupabaseAccountError("upstream");
+  }
+  return record.user === null ? null : parseAccountAdminRecord(record.user);
+};
+
+const parseAccountAdminListResponse = (value: unknown): readonly AccountAdminRecord[] => {
+  const record = asRecord(value);
+  if (
+    record === undefined ||
+    !hasExactKeys(record, ["users"]) ||
+    !Array.isArray(record.users) ||
+    record.users.length > 1_000
+  ) {
+    throw new SupabaseAccountError("upstream");
+  }
+  const users = record.users.map(parseAccountAdminRecord);
+  const userIds = new Set<string>();
+  const usernames = new Set<string>();
+  for (const user of users) {
+    if (
+      user.username === TEACHER_PLAYTEST_USERNAME ||
+      userIds.has(user.userId) ||
+      usernames.has(user.username)
+    ) {
+      throw new SupabaseAccountError("upstream");
+    }
+    userIds.add(user.userId);
+    usernames.add(user.username);
+  }
+  return users.sort((left, right) => left.username.localeCompare(right.username));
+};
+
+const parseAdminPassword = (value: string): string => {
+  const bytes = Buffer.byteLength(value, "utf8");
+  if (bytes < 8 || bytes > 128 || value.includes("\0")) {
+    throw new SupabaseAccountError("upstream");
+  }
+  return value;
+};
+
+const accessTokenSessionEpoch = (token: string): string | undefined => {
+  const parts = token.split(".");
+  if (parts.length !== 3 || parts[1] === undefined || parts[1].length > 3_000) return undefined;
+  try {
+    const payload = asRecord(JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8")));
+    const appMetadata = asRecord(payload?.app_metadata);
+    const epoch = appMetadata?.advertising_game_session_epoch;
+    return typeof epoch === "string" && SESSION_EPOCH_PATTERN.test(epoch)
+      ? epoch
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
 
 const parseAuthTokens = (value: unknown): AccountAuthTokens => {
   const record = asRecord(value);
@@ -407,6 +514,71 @@ export class SupabaseAccountClient {
     throw new SupabaseAccountError("upstream");
   }
 
+  private async accountAdminRequest(
+    body: Readonly<Record<string, unknown>>,
+    parseResponse: boolean
+  ): Promise<unknown> {
+    const response = await this.request(EDGE_BACKEND_PATH, {
+      method: "POST",
+      headers: this.edgeHeaders(),
+      body: JSON.stringify(body)
+    });
+    if (!response.ok) throw new SupabaseAccountError("upstream");
+    if (!parseResponse) return undefined;
+    return parseJsonResponse(response, ACCOUNT_ADMIN_UPSTREAM_JSON_LIMIT);
+  }
+
+  async listAdvertisingGameUsers(): Promise<readonly AccountAdminRecord[]> {
+    return parseAccountAdminListResponse(await this.accountAdminRequest({
+      operation: "list_users"
+    }, true));
+  }
+
+  async findAdvertisingGameUser(username: string): Promise<AccountAdminRecord | null> {
+    const normalised = normaliseAccountUsername(username);
+    if (normalised === TEACHER_PLAYTEST_USERNAME) {
+      throw new SupabaseAccountError("upstream");
+    }
+    return parseAccountAdminUserResponse(await this.accountAdminRequest({
+      operation: "find_user",
+      email: deriveSyntheticAccountEmail(normalised, this.environment.usernameHmacSecret),
+      username: normalised
+    }, true));
+  }
+
+  async replaceAdvertisingGamePassword(username: string, password: string): Promise<void> {
+    const normalised = normaliseAccountUsername(username);
+    if (normalised === TEACHER_PLAYTEST_USERNAME) {
+      throw new SupabaseAccountError("upstream");
+    }
+    await this.accountAdminRequest({
+      operation: "replace_password",
+      email: deriveSyntheticAccountEmail(normalised, this.environment.usernameHmacSecret),
+      username: normalised,
+      password: parseAdminPassword(password)
+    }, false);
+  }
+
+  async ensureAdvertisingGameUser(
+    username: string,
+    password: string
+  ): Promise<AccountAdminRecord> {
+    const normalised = normaliseAccountUsername(username);
+    if (normalised !== TEACHER_PLAYTEST_USERNAME) {
+      throw new SupabaseAccountError("upstream");
+    }
+    const user = parseAccountAdminUserResponse(await this.accountAdminRequest({
+      operation: "ensure_user",
+      email: deriveSyntheticAccountEmail(normalised, this.environment.usernameHmacSecret),
+      username: normalised,
+      password: parseAdminPassword(password)
+    }, true));
+    if (user === null || user.username !== TEACHER_PLAYTEST_USERNAME) {
+      throw new SupabaseAccountError("upstream");
+    }
+    return user;
+  }
+
   async signInWithPassword(email: string, password: string): Promise<AccountAuthTokens> {
     const response = await this.request("/auth/v1/token?grant_type=password", {
       method: "POST",
@@ -454,6 +626,18 @@ export class SupabaseAccountClient {
     const rawUsername = appMetadata?.advertising_game_username;
     if (typeof id !== "string" || !UUID_PATTERN.test(id) || typeof rawUsername !== "string") {
       throw new SupabaseAccountError("upstream");
+    }
+    const currentEpoch = appMetadata?.advertising_game_session_epoch;
+    if (currentEpoch !== undefined) {
+      if (
+        typeof currentEpoch !== "string" ||
+        !SESSION_EPOCH_PATTERN.test(currentEpoch)
+      ) {
+        throw new SupabaseAccountError("upstream");
+      }
+      if (accessTokenSessionEpoch(accessToken) !== currentEpoch) {
+        throw new SupabaseAccountError("expired_session");
+      }
     }
     try {
       return { userId: id, username: normaliseAccountUsername(rawUsername) };

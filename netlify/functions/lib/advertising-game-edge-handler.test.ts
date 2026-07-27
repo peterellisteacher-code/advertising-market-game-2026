@@ -12,6 +12,8 @@ const environment = {
 };
 const userId = "b9b32e20-0ba8-4896-b89f-44efdfc52942";
 const syntheticEmail = `${"a".repeat(64)}@accounts.admarket.invalid`;
+const secondUserId = "99250725-52e0-44c9-b569-593167786eaf";
+const secondSyntheticEmail = `${"b".repeat(64)}@accounts.admarket.invalid`;
 
 const json = (body: unknown, status = 200): Response => Response.json(body, { status });
 
@@ -207,5 +209,205 @@ describe("Advertising-game Supabase Edge broker", () => {
     }));
     expect(failed.status).toBe(503);
     expect(await failed.text()).toBe('{"error":"BACKEND_UNAVAILABLE"}');
+  });
+
+  it("lists only bounded advertising accounts, excludes the playtest identity and sorts aliases", async () => {
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(json(true))
+      .mockResolvedValueOnce(json({
+        users: [
+          {
+            id: userId,
+            email: syntheticEmail,
+            created_at: "2026-07-20T00:00:00.000Z",
+            last_sign_in_at: null,
+            app_metadata: { advertising_game_username: "team-zed" }
+          },
+          {
+            id: "e5be4a1b-4476-4fa8-957b-3cf722bd641e",
+            email: `${"c".repeat(64)}@accounts.admarket.invalid`,
+            created_at: "2026-07-21T00:00:00.000Z",
+            last_sign_in_at: null,
+            app_metadata: { advertising_game_username: "teacher-playtest" }
+          },
+          {
+            id: secondUserId,
+            email: secondSyntheticEmail,
+            created_at: "2026-07-19T00:00:00.000Z",
+            last_sign_in_at: "2026-07-26T01:00:00.000Z",
+            app_metadata: { advertising_game_username: "team-alpha" }
+          },
+          {
+            id: "not-an-advertising-user",
+            email: "ordinary@example.com",
+            app_metadata: {}
+          }
+        ],
+        next_page: null
+      }));
+
+    const response = await handlerWith(fetcher)(request({ operation: "list_users" }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      users: [
+        {
+          userId: secondUserId,
+          username: "team-alpha",
+          createdAt: "2026-07-19T00:00:00.000Z",
+          lastSignInAt: "2026-07-26T01:00:00.000Z"
+        },
+        {
+          userId,
+          username: "team-zed",
+          createdAt: "2026-07-20T00:00:00.000Z",
+          lastSignInAt: null
+        }
+      ]
+    });
+    expect(fetcher.mock.calls[1]?.[0]).toBe(
+      `${projectUrl}/auth/v1/admin/users?page=1&per_page=1000`
+    );
+    expect(fetcher.mock.calls[1]?.[1]).toEqual(expect.objectContaining({
+      method: "GET",
+      redirect: "error"
+    }));
+  });
+
+  it("fails closed rather than omitting a second Admin user page", async () => {
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(json(true))
+      .mockResolvedValueOnce(json({ users: [], next_page: 2 }));
+
+    const response = await handlerWith(fetcher)(request({ operation: "list_users" }));
+
+    expect(response.status).toBe(503);
+    expect(await response.text()).toBe('{"error":"BACKEND_UNAVAILABLE"}');
+  });
+
+  it("matches both synthetic email and app metadata before replacing a password", async () => {
+    const epoch = "db782ac2-521d-4ef7-b4ee-2c78f90cb6e0";
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(json(true))
+      .mockResolvedValueOnce(json({
+        users: [{
+          id: userId,
+          email: syntheticEmail,
+          created_at: "2026-07-20T00:00:00.000Z",
+          last_sign_in_at: "2026-07-26T01:00:00.000Z",
+          app_metadata: { advertising_game_username: "team-one" }
+        }],
+        next_page: null
+      }))
+      .mockResolvedValueOnce(json({
+        id: userId,
+        app_metadata: {
+          advertising_game_username: "team-one",
+          advertising_game_session_epoch: epoch
+        }
+      }));
+    const handler = createAdvertisingGameBackendHandler({
+      environment,
+      fetcher,
+      randomUUID: () => epoch
+    });
+
+    const response = await handler(request({
+      operation: "replace_password",
+      email: syntheticEmail,
+      username: "team-one",
+      password: "replacement-password"
+    }));
+
+    expect(response.status).toBe(204);
+    expect(fetcher.mock.calls[2]?.[0]).toBe(
+      `${projectUrl}/auth/v1/admin/users/${userId}`
+    );
+    expect(fetcher.mock.calls[2]?.[1]).toEqual(expect.objectContaining({
+      method: "PUT",
+      redirect: "error"
+    }));
+    expect(JSON.parse(String(fetcher.mock.calls[2]?.[1]?.body))).toEqual({
+      password: "replacement-password",
+      app_metadata: {
+        advertising_game_username: "team-one",
+        advertising_game_session_epoch: epoch
+      }
+    });
+  });
+
+  it("rejects conflicting identities and reserves ensure-user for the teacher playtest", async () => {
+    const conflictFetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(json(true))
+      .mockResolvedValueOnce(json({
+        users: [{
+          id: userId,
+          email: syntheticEmail,
+          created_at: "2026-07-20T00:00:00.000Z",
+          last_sign_in_at: null,
+          app_metadata: { advertising_game_username: "another-team" }
+        }],
+        next_page: null
+      }));
+    const conflict = await handlerWith(conflictFetcher)(request({
+      operation: "find_user",
+      email: syntheticEmail,
+      username: "team-one"
+    }));
+    expect(conflict.status).toBe(503);
+
+    const playtestEmail = `${"d".repeat(64)}@accounts.admarket.invalid`;
+    const ensureFetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(json(true))
+      .mockResolvedValueOnce(json({ users: [], next_page: null }))
+      .mockResolvedValueOnce(json({
+        id: secondUserId,
+        email: playtestEmail,
+        created_at: "2026-07-27T00:00:00.000Z",
+        last_sign_in_at: null,
+        app_metadata: { advertising_game_username: "teacher-playtest" }
+      }, 201));
+    const ensured = await handlerWith(ensureFetcher)(request({
+      operation: "ensure_user",
+      email: playtestEmail,
+      username: "teacher-playtest",
+      password: "server-derived-password"
+    }));
+    expect(ensured.status).toBe(200);
+    await expect(ensured.json()).resolves.toEqual({
+      user: {
+        userId: secondUserId,
+        username: "teacher-playtest",
+        createdAt: "2026-07-27T00:00:00.000Z",
+        lastSignInAt: null
+      }
+    });
+    expect(JSON.parse(String(ensureFetcher.mock.calls[2]?.[1]?.body))).toEqual({
+      email: playtestEmail,
+      password: "server-derived-password",
+      email_confirm: true,
+      app_metadata: { advertising_game_username: "teacher-playtest" }
+    });
+
+    for (const body of [
+      {
+        operation: "create_user",
+        email: playtestEmail,
+        username: "teacher-playtest",
+        password: "student-password"
+      },
+      {
+        operation: "ensure_user",
+        email: syntheticEmail,
+        username: "team-one",
+        password: "student-password"
+      }
+    ]) {
+      const response = await handlerWith(
+        vi.fn<typeof fetch>().mockResolvedValueOnce(json(true))
+      )(request(body));
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({ error: "INVALID_REQUEST" });
+    }
   });
 });

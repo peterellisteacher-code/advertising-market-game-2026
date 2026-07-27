@@ -118,6 +118,22 @@ const expiredCookies = (): readonly string[] => [
   clearAccountRefreshCookie(true)
 ];
 
+const verifyFreshTokens = async (
+  client: SupabaseAccountClient,
+  tokens: AccountAuthTokens,
+  expectedUsername: string
+): Promise<void> => {
+  try {
+    const identity = await client.getUser(tokens.accessToken);
+    if (identity.username !== expectedUsername) throw new SupabaseAccountError("upstream");
+  } catch (error) {
+    if (error instanceof SupabaseAccountError && error.kind === "expired_session") {
+      throw new SupabaseAccountError("upstream");
+    }
+    throw error;
+  }
+};
+
 const routeError = (error: unknown): Response => {
   if (error instanceof AccountRequestError) {
     return accountJson({ error: error.code }, error.status);
@@ -177,6 +193,7 @@ export function createAccountSessionHandler(
           }
           throw error;
         }
+        await verifyFreshTokens(client, tokens, body.username);
         return accountJson(
           { authenticated: true, username: body.username },
           201,
@@ -191,6 +208,7 @@ export function createAccountSessionHandler(
           environment.usernameHmacSecret
         );
         const tokens = await client.signInWithPassword(syntheticEmail, body.password);
+        await verifyFreshTokens(client, tokens, body.username);
         return accountJson(
           { authenticated: true, username: body.username },
           200,

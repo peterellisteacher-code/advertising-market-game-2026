@@ -12,6 +12,15 @@ const GameAccessibilityMirror = preload("res://src/main/GameAccessibilityMirror.
 const MARKET_COMPATIBILITY_WALLET_CENTS := 10000
 const LIVE_PROGRESS_CONTRACT := WebRunProgressStore.CONTRACT
 const MAX_LIVE_PROGRESS_BYTES := WebRunProgressStore.MAX_PROGRESS_BYTES
+const STUDENT_MARKET_ERRORS := {
+    "INVALID_ROOM_CODE": "Enter the room code in the format ABC-234.",
+    "ROOM_NOT_FOUND": "That room could not be found. Check the code and try again.",
+    "ROOM_UNAVAILABLE": "That room is not available. Ask your teacher what to do next.",
+    "CONNECTION_TIMEOUT": "The connection took too long. Check the network and try again.",
+    "CONNECTION_UNAVAILABLE": "The market could not be reached. Check the network and try again.",
+    "RATE_LIMITED": "Too many requests were sent. Wait briefly, then try again.",
+    "SESSION_EXPIRED": "This market session has ended. Rejoin the room to continue."
+}
 const LEVEL_COPY := {
     "invent": {
         "eyebrow": "LEVEL 1 // INVENT IT",
@@ -62,9 +71,14 @@ const AIDA_NEXT_ACTIONS := {
 @onready var lock_level: Button = %LockLevel
 @onready var advance_level: Button = %AdvanceLevel
 @onready var publish_campaign: Button = %PublishCampaign
+@onready var enter_market: Button = %EnterMarket
 @onready var review_instructions: Button = %ReviewInstructions
+@onready var role_guide: Button = %RoleGuide
 @onready var instructions_dialog: AcceptDialog = %InstructionsDialog
 @onready var instructions_text: RichTextLabel = %InstructionsText
+@onready var role_guide_dialog: AcceptDialog = %RoleGuideDialog
+@onready var role_guide_text: RichTextLabel = %RoleGuideText
+@onready var keyboard_hint: Label = %KeyboardHint
 @onready var final_review: Control = %FinalReview
 @onready var review_audience: CheckBox = %ReviewAudience
 @onready var review_value: CheckBox = %ReviewValue
@@ -107,6 +121,7 @@ var _run_progress_store: RefCounted
 var _startup_progress_matched := false
 var _startup_expected_document_revision := -1
 var _accessibility_mirror: RefCounted = GameAccessibilityMirror.new()
+var _dialog_focus_target: Control
 
 func _process(_delta: float) -> void:
     if lobby_panel.visible:
@@ -114,21 +129,28 @@ func _process(_delta: float) -> void:
             "FIRST MOVE",
             hero_heading.text,
             lobby_heading.text,
-            status.text
+            status.text,
+            _focused_control_label(),
+            keyboard_hint.text
         )
     elif run_panel.visible:
         _accessibility_mirror.update(
             level_eyebrow.text,
             level_heading.text,
             level_clue.text,
-            status.text
+            status.text,
+            _focused_control_label(),
+            keyboard_hint.text
         )
     else:
+        var market_accessibility: Dictionary = market_screen.call("accessibility_state")
         _accessibility_mirror.update(
             "LIVE MARKET",
-            "The class market is open.",
-            "",
-            status.text
+            String(market_accessibility.get("heading", "The class market is open.")),
+            String(market_accessibility.get("currentInstruction", "")),
+            String(market_accessibility.get("completionStatus", status.text)),
+            _focused_control_label(),
+            keyboard_hint.text
         )
 
 func _ready() -> void:
@@ -162,6 +184,7 @@ func _ready() -> void:
     market_host.room_resume_failed.connect(_on_room_resume_failed)
     market_host.snapshot_received.connect(_on_market_snapshot)
     market_host.campaign_published.connect(_on_market_campaign_published)
+    market_host.market_request_failed.connect(_on_market_request_failed)
     if not market_screen.is_node_ready():
         market_screen.call("_ready")
     market_screen.call("set_market_host", market_host)
@@ -174,7 +197,13 @@ func _ready() -> void:
     lock_level.pressed.connect(_lock_current_level)
     advance_level.pressed.connect(_advance_level)
     publish_campaign.pressed.connect(_publish_campaign)
+    enter_market.pressed.connect(_enter_market)
     review_instructions.pressed.connect(_show_instructions)
+    role_guide.pressed.connect(_show_role_guide)
+    instructions_dialog.confirmed.connect(_restore_dialog_focus)
+    instructions_dialog.canceled.connect(_restore_dialog_focus)
+    role_guide_dialog.confirmed.connect(_restore_dialog_focus)
+    role_guide_dialog.canceled.connect(_restore_dialog_focus)
     for review_check in _final_review_checks():
         review_check.toggled.connect(_on_final_review_changed)
     run_panel.hide()
@@ -228,7 +257,7 @@ func _on_room_resumed(wrapper: Variant) -> void:
         _:
             _on_room_resume_failed("INVALID_ROOM_RESPONSE", "Live resume role was invalid.")
 
-func _on_room_resume_failed(_code: String, _message: String) -> void:
+func _on_room_resume_failed(code: String, _message: String) -> void:
     if _startup_state != "live-resume":
         return
     _startup_state = "live-error"
@@ -237,7 +266,7 @@ func _on_room_resume_failed(_code: String, _message: String) -> void:
     lobby_panel.show()
     run_panel.hide()
     market_screen.hide()
-    status.text = "Live market check failed. Retry live, or select Practice."
+    status.text = _student_market_error(code)
 
 func _on_latest_draft_received(document: Variant) -> void:
     if _startup_state != "team-hydrating":
@@ -614,10 +643,13 @@ func _finish_resumed_team(document: Dictionary) -> void:
     launch_button.disabled = false
     lobby_panel.hide()
     var server_phase := String(_latest_market_snapshot.get("phase", "building"))
+    _apply_market_completion(_latest_market_snapshot)
     if _room_campaign_submitted or server_phase in ["market", "reveal", "closed"]:
+        enter_market.hide()
         run_panel.hide()
         market_screen.show()
         status.text = "Live room restored. Continue from the host display."
+        market_screen.call("focus_initial_control")
         return
     market_screen.hide()
     run_panel.show()
@@ -681,6 +713,7 @@ func _on_room_joined(wrapper: Dictionary) -> void:
     launch_button.disabled = false
     market_screen.call("enter_room", "team", _room_code)
     market_screen.call("present_snapshot", snapshot)
+    enter_market.hide()
     market_screen.hide()
     lobby_panel.hide()
     run_panel.show()
@@ -690,10 +723,9 @@ func _on_room_joined(wrapper: Dictionary) -> void:
     _focus_if_ready(launch_button)
 
 func _on_room_join_failed(code: String, _message: String) -> void:
-    if code in ["INVALID_REQUEST", "ROOM_NOT_FOUND", "ROOM_EXPIRED"]:
-        status.text = "The room code was not found. Check the code and try again."
-    else:
-        status.text = "The live market is temporarily unavailable. Check the connection and try again."
+    status.text = _student_market_error(
+        "INVALID_ROOM_CODE" if code == "INVALID_REQUEST" else code
+    )
     _focus_if_ready(room_code)
 
 func _on_room_created(wrapper: Dictionary) -> void:
@@ -706,6 +738,7 @@ func _on_room_created(wrapper: Dictionary) -> void:
     _latest_market_snapshot = Dictionary(snapshot_value).duplicate(true)
     lobby_panel.hide()
     run_panel.hide()
+    enter_market.hide()
     market_screen.call("enter_room", "teacher", _room_code)
     market_screen.call("present_snapshot", _latest_market_snapshot)
     market_screen.show()
@@ -719,22 +752,40 @@ func _on_market_snapshot(snapshot: Dictionary) -> void:
     if _room_role == "teacher":
         lobby_panel.hide()
         run_panel.hide()
+        enter_market.hide()
         market_screen.show()
         return
     var server_phase := str(snapshot.get("phase"))
-    if server_phase == "market" and _game_run.phase == "publish-check":
-        if str(snapshot.get("marketMode", "purchases")) == "medals":
-            _game_run.open_medal_market()
-        else:
-            var own_value: Variant = snapshot.get("own")
-            if typeof(own_value) == TYPE_DICTIONARY:
-                var own: Dictionary = own_value
-                var opening_wallet := int(own.get("wallet", 0)) + int(own.get("spent", 0))
-                _game_run.open_market(opening_wallet)
+    var entry_gate_visible := enter_market.visible
+    var prior_phase := String(_game_run.phase)
+    _apply_market_completion(snapshot)
+    if prior_phase != _game_run.phase and not entry_gate_visible:
+        _render_level()
     if _room_campaign_submitted or server_phase in ["market", "reveal", "closed"]:
         lobby_panel.hide()
+        if entry_gate_visible:
+            run_panel.show()
+            market_screen.hide()
+            return
         run_panel.hide()
         market_screen.show()
+
+func _apply_market_completion(snapshot: Dictionary) -> bool:
+    if _game_run.phase != "publish-check":
+        return _game_run.phase in ["market", "reveal"]
+    if String(snapshot.get("phase", "")) not in ["market", "reveal", "closed"]:
+        return false
+    if String(snapshot.get("marketMode", "purchases")) == "medals":
+        _game_run.open_medal_market()
+    else:
+        var own_value: Variant = snapshot.get("own")
+        if typeof(own_value) != TYPE_DICTIONARY:
+            return false
+        var own: Dictionary = own_value
+        var opening_wallet := int(own.get("wallet", 0)) + int(own.get("spent", 0))
+        if not _game_run.open_market(opening_wallet):
+            return false
+    return _game_run.phase in ["market", "reveal"]
 
 func _on_market_campaign_published(_result: Dictionary) -> void:
     if _room_role != "team":
@@ -743,10 +794,8 @@ func _on_market_campaign_published(_result: Dictionary) -> void:
     _room_campaign_submitted = true
     publish_campaign.disabled = false
     creator_host.close_creator()
-    run_panel.hide()
-    market_screen.show()
     market_screen.call("show_publication_waiting")
-    status.text = "Market card delivered. The host will display it on the floor."
+    _show_market_entry_gate()
 
 func _reopen_returned_campaign() -> void:
     if _room_role != "team" or _live_publication_pending:
@@ -754,6 +803,7 @@ func _reopen_returned_campaign() -> void:
     if _startup_state == "team-hydrating":
         status.text = "Restoring this pair's saved live campaign. The studio will reopen when the restore is complete."
         return
+    enter_market.hide()
     market_screen.hide()
     run_panel.show()
     _render_level()
@@ -767,7 +817,25 @@ func _show_market_diagnostic(_message: String) -> void:
     if _live_publication_pending:
         _live_publication_pending = false
         publish_campaign.disabled = false
-    status.text = "The live room could not update. Check the room code or connection, then try again."
+    status.text = _student_market_error("CONNECTION_UNAVAILABLE")
+
+func _on_market_request_failed(code: String, _message: String) -> void:
+    if _live_publication_pending:
+        _live_publication_pending = false
+        publish_campaign.disabled = false
+    status.text = _student_market_error(code)
+
+func _student_market_error(code: String) -> String:
+    var canonical := {
+        "ROOM_EXPIRED": "SESSION_EXPIRED",
+        "MARKET_UNAVAILABLE": "CONNECTION_UNAVAILABLE",
+        "TRANSPORT_ERROR": "CONNECTION_UNAVAILABLE",
+        "TIMEOUT": "CONNECTION_TIMEOUT"
+    }.get(code, code)
+    return String(STUDENT_MARKET_ERRORS.get(
+        canonical,
+        STUDENT_MARKET_ERRORS.get("CONNECTION_UNAVAILABLE")
+    ))
 
 func _open_creator() -> void:
     if not LEVEL_COPY.has(_game_run.phase):
@@ -788,8 +856,9 @@ func _on_creator_opened() -> void:
     status.text = "Campaign Creator open. Game input paused."
 
 func _on_creator_closed() -> void:
-    if _room_role == "team" and _room_campaign_submitted:
-        status.text = "Market card delivered. The host will display it on the floor."
+    if enter_market.visible:
+        status.text = "Market card built. Select Enter market to continue."
+        _focus_if_ready(enter_market)
         return
     if _room_role == "team" and _game_run.phase == "publish-check":
         status.text = "Studio saved. Complete the final review before building the refreshed market card."
@@ -805,6 +874,9 @@ func _on_creator_closed() -> void:
                 else "Market card live. Browse the gallery and award Gold, Silver and Bronze."
             )
         )
+        return
+    if _room_role == "team" and _room_campaign_submitted:
+        status.text = "Market card delivered. Continue in the live market."
         return
     status.text = "Studio saved. Lock this level when your pair is ready."
     _focus_if_ready(lock_level)
@@ -956,12 +1028,20 @@ func _on_creator_published(publication: Dictionary) -> void:
             publish_campaign.disabled = false
             status.text = "The market card could not be sent. Check the room connection, then try again."
         return
-    if not _game_run.open_medal_market():
+    if (
+        _game_run.phase == "publish-check"
+        and not _game_run.open_medal_market()
+    ):
         publish_campaign.disabled = false
         status.text = _game_run.last_error
         return
-    _local_market_session = LocalMarketSession.new()
-    add_child(_local_market_session)
+    if _game_run.phase not in ["market", "reveal"]:
+        publish_campaign.disabled = false
+        status.text = "The practice market could not open safely. Try building the card again."
+        return
+    if _local_market_session == null:
+        _local_market_session = LocalMarketSession.new()
+        add_child(_local_market_session)
     var initial_snapshot: Dictionary = _local_market_session.call(
         "configure",
         _game_run,
@@ -977,11 +1057,11 @@ func _on_creator_published(publication: Dictionary) -> void:
     market_screen.call("present_snapshot", initial_snapshot)
     creator_host.close_creator()
     _render_level()
-    run_panel.hide()
-    market_screen.show()
+    _show_market_entry_gate()
 
 func _render_level() -> void:
     var phase: String = _game_run.phase
+    enter_market.hide()
     level_progress.visible = phase != "publish-check"
     var level_order := ["invent", "sell", "irresistible"]
     var active_index := level_order.find(phase)
@@ -1050,9 +1130,67 @@ func _render_level() -> void:
     lock_level.disabled = _level_locked
     advance_level.disabled = not _level_locked
 
+func _show_market_entry_gate() -> void:
+    lobby_panel.hide()
+    market_screen.hide()
+    run_panel.show()
+    level_progress.hide()
+    final_review.hide()
+    launch_button.hide()
+    lock_level.hide()
+    advance_level.hide()
+    publish_campaign.hide()
+    enter_market.disabled = false
+    enter_market.show()
+    level_eyebrow.text = "LIVE MARKET"
+    level_heading.text = "Your market card is ready."
+    level_clue.text = "Select Enter market to continue to the gallery."
+    status.text = "Market card built. Select Enter market to continue."
+    _focus_if_ready(enter_market)
+
+func _enter_market() -> void:
+    if (
+        not enter_market.visible
+        or (
+            _room_role == "team"
+            and not _room_campaign_submitted
+            and _game_run.phase not in ["market", "reveal"]
+        )
+        or (
+            _room_role.is_empty()
+            and _game_run.phase not in ["market", "reveal"]
+        )
+    ):
+        return
+    enter_market.hide()
+    run_panel.hide()
+    market_screen.show()
+    market_screen.call("focus_initial_control")
+    status.text = (
+        "Practice market ready. Score each advertisement, then award the three medals."
+        if _room_role.is_empty()
+        else (
+            "Market card delivered. Wait for the host to open the gallery."
+            if String(_latest_market_snapshot.get("phase", "building")) == "building"
+            else "Market gallery ready. Score each advertisement, then award the three medals."
+        )
+    )
+
 func _show_instructions() -> void:
+    _dialog_focus_target = get_viewport().gui_get_focus_owner()
     instructions_dialog.popup_centered(Vector2i(920, 640))
     _focus_if_ready(instructions_text)
+
+func _show_role_guide() -> void:
+    _dialog_focus_target = get_viewport().gui_get_focus_owner()
+    role_guide_dialog.popup_centered(Vector2i(720, 420))
+    _focus_if_ready(role_guide_text)
+
+func _restore_dialog_focus() -> void:
+    var target := _dialog_focus_target
+    _dialog_focus_target = null
+    if target != null and is_instance_valid(target):
+        _focus_if_ready(target)
 
 func _final_review_checks() -> Array[CheckBox]:
     return [
@@ -1075,10 +1213,16 @@ func _final_review_complete() -> bool:
 func _update_final_review() -> void:
     if not final_review.visible:
         return
-    publish_campaign.disabled = not _final_review_complete()
+    var complete := _final_review_complete()
+    publish_campaign.disabled = not complete
+    review_claim.focus_next = (
+        review_claim.get_path_to(publish_campaign)
+        if complete
+        else NodePath()
+    )
     final_review_status.text = (
         "Final review complete. Build the market card."
-        if _final_review_complete()
+        if complete
         else "Select all five review statements."
     )
 
@@ -1122,6 +1266,23 @@ func _show_diagnostic(message: String) -> void:
 func _focus_if_ready(control: Control) -> void:
     if control.is_inside_tree():
         control.grab_focus()
+
+func _focused_control_label() -> String:
+    var focused := get_viewport().gui_get_focus_owner()
+    if focused == null:
+        return ""
+    var label := String(focused.get_meta("accessibilityLabel", "")).strip_edges()
+    if label.is_empty() and focused is OptionButton:
+        var option := focused as OptionButton
+        if option.selected >= 0:
+            label = option.get_item_text(option.selected).strip_edges()
+    elif label.is_empty() and focused is BaseButton:
+        label = String((focused as BaseButton).text).strip_edges()
+    elif label.is_empty() and focused is LineEdit:
+        label = String((focused as LineEdit).placeholder_text).strip_edges()
+    if label.is_empty():
+        label = String(focused.name).capitalize()
+    return label
 
 func _readiness_clue() -> String:
     return _readiness_clue_for(_game_run.phase, _campaign_document)

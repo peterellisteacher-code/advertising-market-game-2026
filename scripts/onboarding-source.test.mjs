@@ -2,12 +2,22 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const [mainScript, mainScene, marketScript, marketScene, projectSettings] = await Promise.all([
+const [
+  mainScript,
+  mainScene,
+  marketScript,
+  marketScene,
+  projectSettings,
+  accessibilityMirror,
+  marketHost
+] = await Promise.all([
   readFile(new URL("../godot/src/main/Main.gd", import.meta.url), "utf8"),
   readFile(new URL("../godot/src/main/Main.tscn", import.meta.url), "utf8"),
   readFile(new URL("../godot/src/market/ui/MarketScreen.gd", import.meta.url), "utf8"),
   readFile(new URL("../godot/src/market/ui/MarketScreen.tscn", import.meta.url), "utf8"),
-  readFile(new URL("../godot/project.godot", import.meta.url), "utf8")
+  readFile(new URL("../godot/project.godot", import.meta.url), "utf8"),
+  readFile(new URL("../godot/src/main/GameAccessibilityMirror.gd", import.meta.url), "utf8"),
+  readFile(new URL("../godot/src/market/MarketHost.gd", import.meta.url), "utf8")
 ]);
 
 test("game shell uses the full 16:10 school MacBook viewport", () => {
@@ -109,7 +119,10 @@ test("instructions and final review remain explicit in the game shell", () => {
   ]) {
     assert.ok(mainScene.includes(text), `missing permanent instruction or final-review text: ${text}`);
   }
-  assert.match(mainScript, /publish_campaign\.disabled = not _final_review_complete\(\)/);
+  assert.match(
+    mainScript,
+    /var complete := _final_review_complete\(\)[\s\S]*?publish_campaign\.disabled = not complete/
+  );
   for (const reviewName of [
     "ReviewAudience",
     "ReviewValue",
@@ -124,6 +137,98 @@ test("instructions and final review remain explicit in the game shell", () => {
     assert.match(review, /theme_override_colors\/font_pressed_color = Color\(0\.0901961, 0\.129412, 0\.168627, 1\)/);
     assert.match(review, /theme_override_colors\/font_hover_color = Color\(0\.0901961, 0\.129412, 0\.168627, 1\)/);
   }
+});
+
+test("the full linked argument and role guide remain available throughout pair play", () => {
+  assert.match(mainScene, /name="ReviewInstructions"[\s\S]*?text = "Review all instructions"/);
+  assert.match(mainScene, /name="RoleGuide"[\s\S]*?text = "Role guide"/);
+  assert.match(mainScene, /name="RoleGuideDialog"[\s\S]*?title = "Pair role guide"/);
+  for (const copy of [
+    "Art Director controls visual decisions",
+    "Strategist controls message decisions",
+    "Swapping roles exchanges these responsibilities",
+    "Audience and product",
+    "Product and advertisement",
+    "Advertisement and credible offer",
+    "Final judgement",
+    "Overall conclusion"
+  ]) {
+    assert.ok(mainScene.includes(copy), `missing permanent guide copy: ${copy}`);
+  }
+  assert.match(mainScript, /role_guide\.pressed\.connect\(_show_role_guide\)/);
+  assert.match(mainScript, /func _restore_dialog_focus\(\) -> void:/);
+});
+
+test("market completion has one explicit, keyboard-ordered transition", () => {
+  const nodeBlock = (name) => mainScene.match(
+    new RegExp(`\\[node name="${name}"[^\\]]*\\]([\\s\\S]*?)(?=\\n\\[node |\\s*$)`)
+  )?.[0] ?? "";
+  const focusSequence = [
+    ["ReviewAudience", "../ReviewValue"],
+    ["ReviewValue", "../ReviewAida"],
+    ["ReviewAida", "../ReviewVisual"],
+    ["ReviewVisual", "../ReviewClaim"],
+    ["ReviewClaim", "../../../../ActionRow/PublishCampaign"],
+    ["PublishCampaign", "../EnterMarket"]
+  ];
+  for (const [name, next] of focusSequence) {
+    assert.match(
+      nodeBlock(name),
+      new RegExp(`focus_next = NodePath\\("${next.replaceAll("/", "\\/")}"\\)`),
+      `${name} must lead to ${next}`
+    );
+  }
+  assert.match(nodeBlock("EnterMarket"), /text = "Enter market"/);
+  assert.match(nodeBlock("EnterMarket"), /visible = false/);
+  assert.match(mainScript, /enter_market\.pressed\.connect\(_enter_market\)/);
+  assert.match(mainScript, /func _apply_market_completion\(snapshot: Dictionary\) -> bool:/);
+  assert.match(
+    mainScript,
+    /if _game_run\.phase != "publish-check":[\s\S]*?return _game_run\.phase in \["market", "reveal"\]/
+  );
+  assert.match(
+    mainScript,
+    /func _finish_resumed_team[\s\S]*?_apply_market_completion\(_latest_market_snapshot\)[\s\S]*?market_screen\.show\(\)/
+  );
+  assert.match(mainScript, /_room_campaign_submitted[\s\S]*?_show_market_entry_gate\(\)/);
+});
+
+test("typed room and polling failures have distinct student copy", () => {
+  const expected = new Map([
+    ["INVALID_ROOM_CODE", "Enter the room code in the format ABC-234."],
+    ["ROOM_NOT_FOUND", "That room could not be found. Check the code and try again."],
+    ["ROOM_UNAVAILABLE", "That room is not available. Ask your teacher what to do next."],
+    ["CONNECTION_TIMEOUT", "The connection took too long. Check the network and try again."],
+    ["CONNECTION_UNAVAILABLE", "The market could not be reached. Check the network and try again."],
+    ["RATE_LIMITED", "Too many requests were sent. Wait briefly, then try again."],
+    ["SESSION_EXPIRED", "This market session has ended. Rejoin the room to continue."]
+  ]);
+  for (const [code, copy] of expected) {
+    assert.ok(mainScript.includes(`"${code}": "${copy}"`), `missing ${code} copy`);
+  }
+  assert.match(mainScript, /func _student_market_error\(code: String\) -> String:/);
+  assert.match(marketHost, /signal market_request_failed\(code: String, message: String\)/);
+  assert.match(marketHost, /market_request_failed\.emit\(code, message\)/);
+  assert.match(marketScript, /func _on_market_request_failed\(code: String, _message: String\) -> void:/);
+  assert.doesNotMatch(
+    mainScript,
+    /The live room could not update\. Check the room code or connection/
+  );
+});
+
+test("the accessibility mirror carries instruction, completion, focus and keyboard context", () => {
+  for (const key of [
+    "currentInstruction",
+    "completionStatus",
+    "focusedControl",
+    "keyboardHint"
+  ]) {
+    assert.ok(accessibilityMirror.includes(`"${key}"`), `missing mirror field ${key}`);
+  }
+  assert.match(mainScript, /@onready var keyboard_hint: Label = %KeyboardHint/);
+  assert.match(mainScript, /func _focused_control_label\(\) -> String:/);
+  assert.match(mainScript, /_focused_control_label\(\),\s*keyboard_hint\.text/);
+  assert.match(marketScript, /func accessibility_state\(\) -> Dictionary:/);
 });
 
 test("new medal rooms never show purchase-era market instructions", () => {

@@ -164,6 +164,7 @@ export const STUDENT_COPY_SOURCE_PATHS = Object.freeze([
   "web/src/game/market-route-panel.ts",
   "web/src/game/market-route.ts",
   "web/src/game/pair-game-controller.ts",
+  "web/src/game/role-guide-controller.ts",
   "web/src/game/student-copy.ts",
   "web/src/history/fabric-history-bindings.ts",
   "web/src/logo-lab/logo-lab-panel.ts",
@@ -177,10 +178,12 @@ export const STUDENT_COPY_SOURCE_PATHS = Object.freeze([
   "web/src/studio-coach/studio-coach-client.ts",
   "web/src/studio-coach/studio-coach-runtime.ts",
   "web/src/studio-coach/studio-coach-panel.ts",
+  "web/src/tools/section-fill-controller.ts",
   "web/src/teacher/teacher-dashboard.ts",
   "web/src/teacher/teacher-playtest-controller.ts",
   "web/src/ui/editor-shell.ts",
   "web/src/ui/canvas-accessibility-controller.ts",
+  "web/src/ui/studio-split-pane.ts",
   "web/src/ui/studio-tool-drawer.ts"
 ]);
 

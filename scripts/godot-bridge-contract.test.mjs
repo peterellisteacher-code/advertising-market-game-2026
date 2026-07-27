@@ -116,10 +116,31 @@ test("room join failures keep their typed code until Main chooses student copy",
   assert.match(main, /func _on_room_join_failed\(code: String, _message: String\) -> void:/);
   assert.match(
     main,
-    /"The room code was not found\. Check the code and try again\."/
+    /_student_market_error\(\s*"INVALID_ROOM_CODE" if code == "INVALID_REQUEST" else code\s*\)/
   );
   assert.match(
     main,
-    /"The live market is temporarily unavailable\. Check the connection and try again\."/
+    /"ROOM_NOT_FOUND": "That room could not be found\. Check the code and try again\."/
   );
+  assert.match(
+    main,
+    /"CONNECTION_UNAVAILABLE": "The market could not be reached\. Check the network and try again\."/
+  );
+});
+
+test("the Godot bridge accepts only the optional bounded retry-after field", async () => {
+  const bridge = await readFile(
+    new URL("godot/src/market/MarketBridge.gd", root),
+    "utf8"
+  );
+
+  assert.match(
+    bridge,
+    /var allowed_error_keys := \["code", "message", "retryAfterSeconds"\]/
+  );
+  assert.match(
+    bridge,
+    /error\.has\("retryAfterSeconds"\)[\s\S]*?_is_nonnegative_integer_number\(error\.get\("retryAfterSeconds"\)\)/
+  );
+  assert.doesNotMatch(bridge, /allowed_error_keys[\s\S]{0,240}"debug"/);
 });

@@ -177,6 +177,19 @@ theme_override_styles/pressed = SubResource("Style_secondary")
 theme_override_styles/focus = SubResource("Style_focus")
 text = "Review all instructions"
 
+[node name="RoleGuide" type="Button" parent="MainMargin/GameInput/BrandRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 42)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("Style_secondary")
+theme_override_styles/hover = SubResource("Style_secondary")
+theme_override_styles/pressed = SubResource("Style_secondary")
+theme_override_styles/focus = SubResource("Style_focus")
+text = "Role guide"
+
 [node name="AccountClearance" type="Control" parent="MainMargin/GameInput/BrandRow"]
 custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
@@ -510,6 +523,7 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 focus_mode = 2
+focus_next = NodePath("../ReviewValue")
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_colors/font_pressed_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_colors/font_hover_color = Color(0.0901961, 0.129412, 0.168627, 1)
@@ -523,6 +537,7 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 focus_mode = 2
+focus_next = NodePath("../ReviewAida")
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_colors/font_pressed_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_colors/font_hover_color = Color(0.0901961, 0.129412, 0.168627, 1)
@@ -536,6 +551,7 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 focus_mode = 2
+focus_next = NodePath("../ReviewVisual")
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_colors/font_pressed_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_colors/font_hover_color = Color(0.0901961, 0.129412, 0.168627, 1)
@@ -549,6 +565,7 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 focus_mode = 2
+focus_next = NodePath("../ReviewClaim")
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_colors/font_pressed_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_colors/font_hover_color = Color(0.0901961, 0.129412, 0.168627, 1)
@@ -562,6 +579,7 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 focus_mode = 2
+focus_next = NodePath("../../../../ActionRow/PublishCampaign")
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_colors/font_pressed_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_colors/font_hover_color = Color(0.0901961, 0.129412, 0.168627, 1)
@@ -628,6 +646,7 @@ text = "Next level"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(220, 50)
 layout_mode = 2
+focus_next = NodePath("../EnterMarket")
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 17
@@ -637,7 +656,23 @@ theme_override_styles/pressed = SubResource("Style_primary_pressed")
 theme_override_styles/focus = SubResource("Style_focus")
 text = "Build the market card"
 
+[node name="EnterMarket" type="Button" parent="MainMargin/GameInput/RunPanel/RunContent/ActionRow"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(180, 50)
+layout_mode = 2
+focus_previous = NodePath("../PublishCampaign")
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Style_primary")
+theme_override_styles/hover = SubResource("Style_primary_hover")
+theme_override_styles/pressed = SubResource("Style_primary_pressed")
+theme_override_styles/focus = SubResource("Style_focus")
+text = "Enter market"
+
 [node name="KeyboardHint" type="Label" parent="MainMargin/GameInput"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
 theme_override_font_sizes/font_size = 14
@@ -677,6 +712,31 @@ focus_mode = 2
 theme_override_font_sizes/normal_font_size = 17
 bbcode_enabled = true
 text = "[b]How to use this site[/b]\n\nUse these instructions at any time. The steps form an inductive argument: each completed step gives you a reason for the next judgement. The final conclusion is probable rather than guaranteed.\n\n[b]Start and return[/b]\n1. A saved campaign belongs to one pair and one practice or class-market session.\n2. Enter one pair alias on one MacBook. Then select Practice on this computer, or enter the room code supplied by your teacher.\n3. When you return, use the same route so the site can restore the correct campaign.\nSub-conclusion: the pair identity, session and saved campaign can be connected reliably.\n\n[b]Audience and product[/b]\n4. The connected campaign contains an audience brief with particular needs and values.\n5. A suitable product responds to at least one need or value in that brief.\n6. Give the product a distinctive name and place the product prominently so that the response is visible.\n7. Each partner must make a visible contribution: the Art Director changes an image and the Strategist changes a message, then the pair swaps roles.\nIntermediate conclusion 1: the completed product is likely to suit the stated audience.\n\n[b]Product and advertisement[/b]\n8. Intermediate conclusion 1 gives the advertisement a relevant product and audience.\n9. Add one visible choice that gains Attention.\n10. Add one visible choice that develops Interest in the product.\n11. Add one visible choice that creates Desire by showing a relevant benefit.\n12. Add one visible Action that tells the audience what to do next.\n13. Use a visual technique that supports these four choices and the intended message.\nIntermediate conclusion 2: the advertisement is likely to communicate a coherent message about the product.\n\n[b]Advertisement and credible offer[/b]\n14. Intermediate conclusion 2 provides the message that the offer must support.\n15. Choose a price that suits the audience and display that price in the advertisement.\n16. Choose and lock a market route that is likely to reach the audience.\n17. Add a specific proof point that supports the main claim.\nIntermediate conclusion 3: the advertisement is likely to present a credible offer to its audience.\n\n[b]Final judgement[/b]\n18. Intermediate conclusions 1, 2 and 3 provide the basis for the final review.\n19. Confirm all five review statements: audience suitability, clear value and price, complete AIDA choices, a supporting visual technique, and a claim supported by a proof point.\n20. Build the market card only after all five statements are confirmed.\n21. In the gallery, score every other advertisement from 0 to 2 on the same five criteria. Add the five scores to produce a total out of 10.\n22. If totals are equal, compare audience suitability first, then the combined AIDA judgement.\n23. Award Gold, Silver and Bronze to three different advertisements according to that ranking.\n\n[b]Overall conclusion[/b]\nTherefore, a campaign that completes each linked step is likely to communicate an effective and credible offer to its audience, and the shared scoring process is likely to produce a fair comparison."
+
+[node name="RoleGuideDialog" type="AcceptDialog" parent="."]
+unique_name_in_owner = true
+title = "Pair role guide"
+initial_position = 1
+size = Vector2i(720, 420)
+ok_button_text = "Close"
+dialog_hide_on_ok = true
+
+[node name="RoleGuideText" type="RichTextLabel" parent="RoleGuideDialog"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = -72.0
+grow_horizontal = 2
+grow_vertical = 2
+focus_mode = 2
+theme_override_font_sizes/normal_font_size = 17
+bbcode_enabled = true
+text = "[b]Before the swap[/b]\n\nThe Art Director controls visual decisions: product images, layout, colour and composition. The Strategist controls message decisions: audience, product name, AIDA choices, price, market route and proof point.\n\n[b]After the swap[/b]\n\nSwapping roles exchanges these responsibilities. The new Art Director makes the next visual decision. The new Strategist makes the next message decision.\n\nBoth partners should be able to explain how the image and message work together for the chosen audience."
 
 [node name="CreatorHost" type="Node" parent="."]
 unique_name_in_owner = true

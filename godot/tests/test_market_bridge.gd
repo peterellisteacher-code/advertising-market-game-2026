@@ -479,6 +479,34 @@ func _response_envelopes_snapshots_and_replays_are_strict() -> bool:
     assert(failures.back().get("requestId") == expanded_error_id)
     assert(failures.back().get("code") == "INVALID_RESPONSE")
 
+    var rate_limited_id := bridge.get_snapshot()
+    fake.resolve_raw(rate_limited_id, {
+        "contract": "market-bridge@1",
+        "requestId": rate_limited_id,
+        "ok": false,
+        "error": {
+            "code": "RATE_LIMITED",
+            "message": "Wait before retrying",
+            "retryAfterSeconds": 17.0
+        }
+    })
+    assert(failures.back().get("requestId") == rate_limited_id)
+    assert(failures.back().get("code") == "RATE_LIMITED")
+
+    var invalid_retry_after_id := bridge.get_snapshot()
+    fake.resolve_raw(invalid_retry_after_id, {
+        "contract": "market-bridge@1",
+        "requestId": invalid_retry_after_id,
+        "ok": false,
+        "error": {
+            "code": "RATE_LIMITED",
+            "message": "Wait before retrying",
+            "retryAfterSeconds": -1.0
+        }
+    })
+    assert(failures.back().get("requestId") == invalid_retry_after_id)
+    assert(failures.back().get("code") == "INVALID_RESPONSE")
+
     var mismatch_id := bridge.get_snapshot()
     fake.resolve_raw(mismatch_id, {
         "contract": "market-bridge@1",

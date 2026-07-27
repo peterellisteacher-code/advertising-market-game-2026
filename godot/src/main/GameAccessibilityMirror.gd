@@ -2,12 +2,35 @@ extends RefCounted
 
 var _last_payload := ""
 
-func update(eyebrow: String, heading: String, clue: String, status: String) -> void:
+func update(
+    eyebrow: String,
+    heading: String,
+    current_instruction: String,
+    completion_status: String,
+    focused_control: String,
+    keyboard_hint: String
+) -> void:
+    var status_parts := PackedStringArray()
+    for part in [
+        completion_status,
+        ("Selected control: %s." % focused_control)
+        if not focused_control.strip_edges().is_empty()
+        else "",
+        keyboard_hint
+    ]:
+        var cleaned := String(part).strip_edges()
+        if not cleaned.is_empty():
+            status_parts.append(cleaned)
+    var composed_status := " ".join(status_parts)
     var payload := JSON.stringify({
         "eyebrow": eyebrow,
         "heading": heading,
-        "clue": clue,
-        "status": status
+        "clue": current_instruction,
+        "status": composed_status,
+        "currentInstruction": current_instruction,
+        "completionStatus": completion_status,
+        "focusedControl": focused_control,
+        "keyboardHint": keyboard_hint
     })
     if payload == _last_payload:
         return

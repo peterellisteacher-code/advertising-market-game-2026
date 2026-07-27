@@ -27,6 +27,7 @@ func run() -> bool:
     var artwork_events: Array[Dictionary] = []
     var snapshot_signal_modes: Array[int] = []
     var diagnostics: Array[String] = []
+    var market_failures: Array[Dictionary] = []
     var focus_restores := [0]
     game_input.process_mode = Node.PROCESS_MODE_ALWAYS
     host.game_input_root = game_input
@@ -52,6 +53,9 @@ func run() -> bool:
         artwork_events.append({"artworkKey": artwork_key, "pngBytes": png_bytes})
     )
     host.diagnostic.connect(func(message: String) -> void: diagnostics.append(message))
+    host.market_request_failed.connect(func(code: String, message: String) -> void:
+        market_failures.append({"code": code, "message": message})
+    )
     host.focus_restore_requested.connect(func() -> void: focus_restores[0] += 1)
 
     var snapshot := _snapshot()
@@ -261,15 +265,21 @@ func run() -> bool:
     fake.reject_request(failed_id, "Synthetic market failure")
     assert(game_input.process_mode == Node.PROCESS_MODE_ALWAYS)
     assert(diagnostics.back().contains("TRANSPORT_ERROR"))
+    assert(market_failures.back() == {
+        "code": "TRANSPORT_ERROR",
+        "message": "Synthetic market failure"
+    })
 
     host.set_transport(null)
     var unavailable_id := host.request_snapshot()
     assert(not unavailable_id.is_empty())
     assert(game_input.process_mode == Node.PROCESS_MODE_ALWAYS)
     assert(diagnostics.back().contains("MARKET_UNAVAILABLE"))
+    assert(market_failures.back().get("code") == "MARKET_UNAVAILABLE")
 
     var before_invalid_focus: int = focus_restores[0]
     var before_invalid_diagnostics := diagnostics.size()
+    var before_invalid_market_failures := market_failures.size()
     assert(host.join_room("", "Alias").is_empty())
     assert(game_input.process_mode == Node.PROCESS_MODE_ALWAYS)
     assert(focus_restores[0] == before_invalid_focus + 1)
@@ -277,6 +287,7 @@ func run() -> bool:
         "code": "INVALID_REQUEST",
         "message": "roomCode must match the Live Market room-code format"
     }])
+    assert(market_failures.size() == before_invalid_market_failures)
     assert(diagnostics.size() == before_invalid_diagnostics)
 
     var synchronous_fake := FakeMarketTransport.new()

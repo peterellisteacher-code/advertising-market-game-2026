@@ -8,6 +8,7 @@ signal room_joined(wrapper: Dictionary)
 signal room_join_failed(code: String, message: String)
 signal room_resumed(wrapper: Variant)
 signal room_resume_failed(code: String, message: String)
+signal market_request_failed(code: String, message: String)
 signal reveal_received(reveal: Dictionary)
 signal control_completed(action: String, result: Dictionary)
 signal campaign_published(result: Dictionary)
@@ -358,13 +359,16 @@ func _on_request_failed(request_id: String, code: String, message: String) -> vo
         room_join_failed.emit(code, message)
         return
     if context.get("method") == "resumeSession":
+        _report("%s: %s" % [code, message])
         room_resume_failed.emit(code, message)
+        return
     if _is_command_context(context):
         if not _command_context_is_current(context):
             return
         if SAFE_TERMINAL_COMMAND_ERRORS.has(code):
             _clear_command_context(context)
     _report("%s: %s" % [code, message])
+    market_request_failed.emit(code, message)
 
 func _begin_command_intent(command_key: String, semantic: Variant) -> Dictionary:
     if _command_intents.has(command_key):

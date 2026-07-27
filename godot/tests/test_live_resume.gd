@@ -11,6 +11,7 @@ func run() -> bool:
     assert(_teacher_resume_opens_the_exact_dashboard())
     assert(_team_resume_hydrates_only_exact_progress_and_draft_identity())
     assert(_returned_campaign_cannot_reopen_before_live_hydration())
+    assert(_completed_market_resume_is_idempotent())
     assert(_live_transitions_persist_bounded_progress())
     assert(_manual_join_invalidates_a_late_startup_resume())
     assert(_manual_create_invalidates_a_late_startup_resume())
@@ -188,6 +189,63 @@ func _team_resume_hydrates_only_exact_progress_and_draft_identity() -> bool:
     assert((valid_shell.get_node("%RunPanel") as Control).visible)
     assert(not (valid_shell.get_node("%LaunchCreator") as Button).disabled)
     valid_shell.free()
+    return true
+
+func _completed_market_resume_is_idempotent() -> bool:
+    var market_fake := FakeMarketTransport.new()
+    market_fake.auto_resume_none = false
+    var creator_fake := FakeCreatorTransport.new()
+    var progress := FakeRunProgressStore.new()
+    progress.stored = _live_progress(
+        "ABC-234",
+        "room-a",
+        "team-a",
+        "Signal Foxes",
+        "publish-check",
+        ["invent", "sell", "irresistible"],
+        false,
+        7
+    )
+    var shell := _mount_shell(
+        creator_fake,
+        market_fake,
+        FakePracticeTransport.new(),
+        progress
+    )
+    var completed := _team_snapshot("room-a", "team-a", "Signal Foxes", 9)
+    completed["phase"] = "market"
+    completed["marketMode"] = "medals"
+    completed["myAwards"] = []
+    completed["campaigns"] = [{
+        "id": "campaign-own",
+        "sellerTeamId": "team-a",
+        "sellerAlias": "Signal Foxes",
+        "status": "approved",
+        "productName": "Orbit Bottle",
+        "tagline": "Hydration with lift-off energy.",
+        "price": 2499.0,
+        "artworkKey": "artwork/campaign-own"
+    }]
+    market_fake.resolve_success(market_fake.last_request_id(), {
+        "role": "team",
+        "roomCode": "ABC-234",
+        "snapshot": completed
+    })
+    creator_fake.resolve_success(
+        creator_fake.last_request_id(),
+        _room_document(shell, "room-a", "team-a", 7)
+    )
+    assert(String((shell.get("_game_run") as RefCounted).phase) == "market")
+    assert((shell.get_node("%MarketScreen") as Control).visible)
+    assert(not (shell.get_node("%RunPanel") as Control).visible)
+    assert(not (shell.get_node("%EnterMarket") as Button).visible)
+
+    var later := completed.duplicate(true)
+    later["revision"] = 10.0
+    shell.call("_on_market_snapshot", later)
+    assert(String((shell.get("_game_run") as RefCounted).phase) == "market")
+    assert((shell.get_node("%MarketScreen") as Control).visible)
+    shell.free()
     return true
 
 func _returned_campaign_cannot_reopen_before_live_hydration() -> bool:

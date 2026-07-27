@@ -19,6 +19,15 @@ const SCORE_CRITERIA := [
     ["visual", "Visual technique"],
     ["claim", "Credible claim"]
 ]
+const STUDENT_MARKET_ERRORS := {
+    "INVALID_ROOM_CODE": "Enter the room code in the format ABC-234.",
+    "ROOM_NOT_FOUND": "That room could not be found. Check the code and try again.",
+    "ROOM_UNAVAILABLE": "That room is not available. Ask your teacher what to do next.",
+    "CONNECTION_TIMEOUT": "The connection took too long. Check the network and try again.",
+    "CONNECTION_UNAVAILABLE": "The market could not be reached. Check the network and try again.",
+    "RATE_LIMITED": "Too many requests were sent. Wait briefly, then try again.",
+    "SESSION_EXPIRED": "This market session has ended. Rejoin the room to continue."
+}
 
 @onready var market_frame: PanelContainer = %MarketFrame
 @onready var room_code_label: Label = %MarketRoomCode
@@ -67,6 +76,7 @@ var _scorecard_controls: Dictionary = {}
 var _artwork_targets: Dictionary = {}
 var _remove_team_id := ""
 var _remove_team_alias := ""
+var _remove_dialog_focus: Control
 var _practice_mode := false
 var _ready_wired := false
 
@@ -81,6 +91,7 @@ func _ready() -> void:
     reveal_button.pressed.connect(_send_control.bind("openReveal"))
     close_button.pressed.connect(_send_control.bind("closeMarket"))
     remove_team_dialog.confirmed.connect(_confirm_remove_team)
+    remove_team_dialog.canceled.connect(_cancel_remove_team)
     poll_timer.timeout.connect(_poll_snapshot)
     resized.connect(_apply_columns)
     remove_team_dialog.get_ok_button().custom_minimum_size = Vector2(160, 44)
@@ -152,6 +163,7 @@ func show_publication_waiting() -> void:
     fix_button.hide()
     team_surface.show()
     show()
+    _refresh_keyboard_order()
 
 func present_snapshot(snapshot: Dictionary) -> void:
     var derived: Dictionary = MarketViewState.new().derive(snapshot)
@@ -170,6 +182,34 @@ func present_snapshot(snapshot: Dictionary) -> void:
         _render_teacher(_latest_state)
     _request_visible_artwork()
     _apply_columns()
+    _refresh_keyboard_order()
+
+func accessibility_state() -> Dictionary:
+    var heading := (
+        "Manage the class market."
+        if _active_role == "teacher"
+        else (
+            team_market_heading.text
+            if team_market_heading.visible
+            else campaign_status_title.text
+        )
+    )
+    var completion := (
+        readiness_label.text
+        if _active_role == "teacher"
+        else seller_progress.text
+    )
+    return {
+        "heading": heading,
+        "currentInstruction": phase_status.text,
+        "completionStatus": "%s %s" % [completion, network_status.text]
+    }
+
+func focus_initial_control() -> void:
+    _refresh_keyboard_order()
+    var controls := _keyboard_controls()
+    if not controls.is_empty():
+        (controls[0] as Control).grab_focus()
 
 func columns_for_width(width: float) -> int:
     if width >= 1700.0:
@@ -183,6 +223,7 @@ func _connect_host(connecting: bool) -> void:
         ["snapshot_received", Callable(self, "_on_snapshot_received")],
         ["artwork_received", Callable(self, "_on_artwork_received")],
         ["diagnostic", Callable(self, "_on_market_diagnostic")],
+        ["market_request_failed", Callable(self, "_on_market_request_failed")],
         ["purchase_completed", Callable(self, "_on_purchase_completed")],
         ["award_completed", Callable(self, "_on_award_completed")],
         ["control_completed", Callable(self, "_on_control_completed")],
@@ -470,6 +511,7 @@ func _set_score(selected_index: int, campaign_id: String, criterion_id: String) 
     _scorecards[campaign_id] = scorecard
     _refresh_scorecard_controls(campaign_id)
     _update_finish_score_gate()
+    _refresh_keyboard_order()
 
 func _scorecard_complete(campaign_id: String) -> bool:
     var scorecard: Dictionary = _scorecards.get(campaign_id, {})
@@ -727,6 +769,7 @@ func _buy_campaign(campaign_id: String, button: Button) -> void:
     _purchase_sequence += 1
     _pending_purchases[campaign_id] = purchase_request_id
     button.disabled = true
+    _refresh_keyboard_order()
     network_status.text = "Sending backing choice…"
     var request_id := str(market_host.call("purchase", campaign_id, purchase_request_id))
     if request_id.is_empty():
@@ -739,6 +782,7 @@ func _award_campaign(campaign_id: String, medal: String, button: Button) -> void
         return
     _pending_awards[medal] = campaign_id
     button.disabled = true
+    _refresh_keyboard_order()
     network_status.text = "Sending %s choice…" % medal.capitalize()
     var request_id := str(market_host.call("award", campaign_id, medal))
     if request_id.is_empty():
@@ -769,6 +813,7 @@ func _finish_shopping() -> void:
     if market_host == null or finish_button.disabled:
         return
     finish_button.disabled = true
+    _refresh_keyboard_order()
     network_status.text = (
         "Practice market: checking medals…"
         if _practice_mode
@@ -818,6 +863,7 @@ func _request_remove_confirmation(team_id: String, alias: String) -> void:
         return
     _remove_team_id = team_id
     _remove_team_alias = alias
+    _remove_dialog_focus = get_viewport().gui_get_focus_owner()
     remove_team_dialog.dialog_text = (
         "Remove %s from this room? This will end the current room session."
         % alias
@@ -834,6 +880,7 @@ func _confirm_remove_team() -> void:
         or _remove_team_id.is_empty()
         or str(_latest_state.get("phase")) != "building"
     ):
+        _restore_remove_dialog_focus()
         return
     var team_still_present := false
     for team_value in _latest_state.get("teams", []):
@@ -843,11 +890,24 @@ func _confirm_remove_team() -> void:
     if not team_still_present:
         _remove_team_id = ""
         _remove_team_alias = ""
+        _restore_remove_dialog_focus()
         return
     network_status.text = "Removing %s…" % _remove_team_alias
     market_host.call("control", "removeTeam", _remove_team_id)
     _remove_team_id = ""
     _remove_team_alias = ""
+    _restore_remove_dialog_focus()
+
+func _cancel_remove_team() -> void:
+    _remove_team_id = ""
+    _remove_team_alias = ""
+    _restore_remove_dialog_focus()
+
+func _restore_remove_dialog_focus() -> void:
+    var target := _remove_dialog_focus
+    _remove_dialog_focus = null
+    if target != null and is_instance_valid(target) and target.is_inside_tree():
+        target.grab_focus()
 
 func _poll_snapshot() -> void:
     if market_host != null and not _active_role.is_empty() and visible:
@@ -858,6 +918,7 @@ func _retry_snapshot() -> void:
         return
     network_status.text = "Retrying…"
     retry_button.hide()
+    _refresh_keyboard_order()
     market_host.call("request_snapshot_silently")
 
 func _on_snapshot_received(snapshot: Dictionary) -> void:
@@ -881,6 +942,13 @@ func _on_market_diagnostic(_message: String) -> void:
     _pending_awards.clear()
     _show_safe_diagnostic()
 
+func _on_market_request_failed(code: String, _message: String) -> void:
+    _pending_purchases.clear()
+    _pending_awards.clear()
+    network_status.text = _student_market_error(code)
+    retry_button.show()
+    _refresh_keyboard_order()
+
 func _on_purchase_completed(_result: Dictionary) -> void:
     network_status.text = "Backing recorded. Refreshing the stalls…"
 
@@ -900,6 +968,19 @@ func _show_safe_diagnostic() -> void:
         else "Live market update failed. Check the room connection, then retry."
     )
     retry_button.show()
+    _refresh_keyboard_order()
+
+func _student_market_error(code: String) -> String:
+    var canonical := {
+        "ROOM_EXPIRED": "SESSION_EXPIRED",
+        "MARKET_UNAVAILABLE": "CONNECTION_UNAVAILABLE",
+        "TRANSPORT_ERROR": "CONNECTION_UNAVAILABLE",
+        "TIMEOUT": "CONNECTION_TIMEOUT"
+    }.get(code, code)
+    return String(STUDENT_MARKET_ERRORS.get(
+        canonical,
+        STUDENT_MARKET_ERRORS.get("CONNECTION_UNAVAILABLE")
+    ))
 
 func _request_visible_artwork() -> void:
     if market_host == null:
@@ -944,6 +1025,38 @@ func _new_button(label: String, node_name: String, primary: bool) -> Button:
     button.add_theme_stylebox_override("pressed", _button_style(normal_color.darkened(0.04)))
     button.add_theme_stylebox_override("focus", _focus_style())
     return button
+
+func _keyboard_controls() -> Array[Control]:
+    var controls: Array[Control] = []
+    for control_value in find_children("*", "Control", true, false):
+        var control := control_value as Control
+        if (
+            control == null
+            or control.focus_mode != Control.FOCUS_ALL
+            or not control.is_visible_in_tree()
+        ):
+            continue
+        if control is BaseButton and (control as BaseButton).disabled:
+            continue
+        if control is LineEdit and not (control as LineEdit).editable:
+            continue
+        controls.append(control)
+    return controls
+
+func _refresh_keyboard_order() -> void:
+    for control_value in find_children("*", "Control", true, false):
+        var control := control_value as Control
+        if control == null or control.focus_mode != Control.FOCUS_ALL:
+            continue
+        control.focus_next = NodePath()
+        control.focus_previous = NodePath()
+    var controls := _keyboard_controls()
+    for index in controls.size():
+        var control := controls[index] as Control
+        if index > 0:
+            control.focus_previous = control.get_path_to(controls[index - 1])
+        if index + 1 < controls.size():
+            control.focus_next = control.get_path_to(controls[index + 1])
 
 func _add_label(parent: Node, copy: String, font_size: int, color: Color) -> Label:
     var label := Label.new()

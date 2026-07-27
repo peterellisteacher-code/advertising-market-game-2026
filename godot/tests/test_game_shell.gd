@@ -26,6 +26,7 @@ func run() -> bool:
     assert(_returned_editor_state_is_reopened_verbatim())
     assert(_closed_studio_reopens_to_publish_and_enters_the_market())
     assert(_room_publication_waits_for_review_and_reopens_returned_work())
+    assert(_room_errors_are_distinct_and_safe())
     return true
 
 func _practice_start_and_lock_wait_for_storage_ack() -> bool:
@@ -361,6 +362,8 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
     var create_live := shell.get_node("%CreateLiveMarket") as Button
     var launch := shell.get_node("%LaunchCreator") as Button
     var review_instructions := shell.get_node("%ReviewInstructions") as Button
+    var role_guide := shell.get_node("%RoleGuide") as Button
+    var enter_market := shell.get_node("%EnterMarket") as Button
     var hero_copy := shell.get_node("MainMargin/GameInput/HeroCopy") as Label
 
     assert(lobby.visible)
@@ -374,6 +377,10 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
     assert(publish.visible)
     assert(review_instructions.text == "Review all instructions")
     assert(review_instructions.focus_mode == Control.FOCUS_ALL)
+    assert(role_guide.text == "Role guide")
+    assert(role_guide.focus_mode == Control.FOCUS_ALL)
+    assert(enter_market.text == "Enter market")
+    assert(not enter_market.visible)
     assert((shell.get_node("MainMargin/GameInput/RunPanel/RunContent") as VBoxContainer).alignment == BoxContainer.ALIGNMENT_CENTER)
 
     var accessible_normal := Color("#b63a15")
@@ -438,11 +445,17 @@ func _instructions_remain_available_as_a_complete_reference() -> bool:
     var review_instructions := shell.get_node("%ReviewInstructions") as Button
     var instructions_dialog := shell.get_node("%InstructionsDialog") as AcceptDialog
     var instructions_text := shell.get_node("%InstructionsText") as RichTextLabel
+    var role_guide := shell.get_node("%RoleGuide") as Button
+    var role_dialog := shell.get_node("%RoleGuideDialog") as AcceptDialog
+    var role_text := shell.get_node("%RoleGuideText") as RichTextLabel
     assert(
         review_instructions.pressed.is_connected(Callable(shell, "_show_instructions"))
     )
+    assert(role_guide.pressed.is_connected(Callable(shell, "_show_role_guide")))
     assert(not instructions_dialog.visible)
+    assert(not role_dialog.visible)
     assert(instructions_dialog.title == "Advertising campaign instructions")
+    assert(role_dialog.title == "Pair role guide")
     assert(instructions_text.focus_mode == Control.FOCUS_ALL)
     for section in [
         "Audience and product",
@@ -452,6 +465,12 @@ func _instructions_remain_available_as_a_complete_reference() -> bool:
         "Overall conclusion"
     ]:
         assert(instructions_text.text.contains(section))
+    for required in [
+        "Art Director controls visual decisions",
+        "Strategist controls message decisions",
+        "Swapping roles exchanges these responsibilities"
+    ]:
+        assert(role_text.text.contains(required))
     instructions_dialog.hide()
     shell.free()
     return true
@@ -668,6 +687,15 @@ func _campaign_moves_gate_each_level() -> bool:
     shell.call("_update_final_review")
     assert(not publish.disabled)
     assert((shell.get_node("%FinalReviewStatus") as Label).text == "Final review complete. Build the market card.")
+    assert((shell.get_node("%ReviewAudience") as CheckBox).focus_next == NodePath("../ReviewValue"))
+    assert((shell.get_node("%ReviewValue") as CheckBox).focus_next == NodePath("../ReviewAida"))
+    assert((shell.get_node("%ReviewAida") as CheckBox).focus_next == NodePath("../ReviewVisual"))
+    assert((shell.get_node("%ReviewVisual") as CheckBox).focus_next == NodePath("../ReviewClaim"))
+    assert(
+        (shell.get_node("%ReviewClaim") as CheckBox).focus_next
+        == NodePath("../../../../ActionRow/PublishCampaign")
+    )
+    assert(publish.focus_next == NodePath("../EnterMarket"))
     shell.free()
     return true
 
@@ -708,7 +736,15 @@ func _closed_studio_reopens_to_publish_and_enters_the_market() -> bool:
     assert(game_run.phase == "market")
     assert((shell.get_node("%LevelEyebrow") as Label).text == "LIVE MARKET")
     var market_screen := shell.get_node("%MarketScreen") as Control
+    var enter_market := shell.get_node("%EnterMarket") as Button
+    assert(not market_screen.visible)
+    assert((shell.get_node("%RunPanel") as Control).visible)
+    assert(enter_market.visible)
+    assert(not enter_market.disabled)
+    enter_market.pressed.emit()
     assert(market_screen.visible)
+    assert(not (shell.get_node("%RunPanel") as Control).visible)
+    assert(not enter_market.visible)
     assert((market_screen.get_node("%MarketRoomCode") as Label).text == "PRACTICE")
     var cards := market_screen.get_node("%TeamCards") as GridContainer
     assert(cards.get_child_count() == 5)
@@ -867,12 +903,18 @@ func _room_publication_waits_for_review_and_reopens_returned_work() -> bool:
         "snapshot": pending
     })
     var market_screen := shell.get_node("%MarketScreen") as Control
-    assert(market_screen.visible)
-    assert(not (shell.get_node("%RunPanel") as Control).visible)
+    var enter_market := shell.get_node("%EnterMarket") as Button
+    assert(not market_screen.visible)
+    assert((shell.get_node("%RunPanel") as Control).visible)
+    assert(enter_market.visible)
     assert((market_screen.get_node("%CampaignStatusTitle") as Label).text == "Waiting for the host")
     assert(creator_fake.request_for(creator_fake.last_request_id()).get("method") == "close")
     creator_fake.resolve_success(creator_fake.last_request_id())
-    assert((shell.get_node("%Status") as Label).text == "Market card delivered. The host will display it on the floor.")
+    assert((shell.get_node("%Status") as Label).text == "Market card built. Select Enter market to continue.")
+    assert(enter_market.visible)
+    enter_market.pressed.emit()
+    assert(market_screen.visible)
+    assert(not (shell.get_node("%RunPanel") as Control).visible)
 
     var returned := _team_market_snapshot("returned")
     returned["campaigns"][0]["reviewNote"] = "Bring the price forward."
@@ -883,6 +925,28 @@ func _room_publication_waits_for_review_and_reopens_returned_work() -> bool:
     assert(not (shell.get_node("%MarketScreen") as Control).visible)
     assert(creator_fake.request_for(creator_fake.last_request_id()).get("method") == "open")
     assert(creator_fake.request_for(creator_fake.last_request_id()).get("payload").get("gameplay").get("stage") == "publish-check")
+    shell.free()
+    return true
+
+func _room_errors_are_distinct_and_safe() -> bool:
+    var shell := _mount_shell(FakeCreatorTransport.new())
+    var status := shell.get_node("%Status") as Label
+    var cases := {
+        "INVALID_ROOM_CODE": "Enter the room code in the format ABC-234.",
+        "INVALID_REQUEST": "Enter the room code in the format ABC-234.",
+        "ROOM_NOT_FOUND": "That room could not be found. Check the code and try again.",
+        "ROOM_UNAVAILABLE": "That room is not available. Ask your teacher what to do next.",
+        "CONNECTION_TIMEOUT": "The connection took too long. Check the network and try again.",
+        "CONNECTION_UNAVAILABLE": "The market could not be reached. Check the network and try again.",
+        "RATE_LIMITED": "Too many requests were sent. Wait briefly, then try again.",
+        "SESSION_EXPIRED": "This market session has ended. Rejoin the room to continue."
+    }
+    for code in cases:
+        shell.call("_on_room_join_failed", code, "PRIVATE transport detail")
+        assert(status.text == cases.get(code))
+        assert(not status.text.contains("PRIVATE"))
+    shell.call("_on_market_request_failed", "UNRECOGNISED_INTERNAL_CODE", "secret")
+    assert(status.text == "The market could not be reached. Check the network and try again.")
     shell.free()
     return true
 

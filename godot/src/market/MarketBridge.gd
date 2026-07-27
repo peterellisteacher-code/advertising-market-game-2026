@@ -273,7 +273,15 @@ func accept_response(expected_request_id: String, response_json: String) -> void
     if typeof(error) != TYPE_DICTIONARY:
         _finish_failure(expected_request_id, "INVALID_RESPONSE", "Live Market error response must include an error object")
         return
-    if not _has_exact_dictionary_keys(error, ["code", "message"]):
+    var allowed_error_keys := ["code", "message", "retryAfterSeconds"]
+    if error.size() < 2 or error.size() > allowed_error_keys.size():
+        _finish_failure(expected_request_id, "INVALID_RESPONSE", "Live Market error contains unexpected or missing fields")
+        return
+    for error_key in error:
+        if not allowed_error_keys.has(error_key):
+            _finish_failure(expected_request_id, "INVALID_RESPONSE", "Live Market error contains unexpected or missing fields")
+            return
+    if not error.has("code") or not error.has("message"):
         _finish_failure(expected_request_id, "INVALID_RESPONSE", "Live Market error contains unexpected or missing fields")
         return
     if typeof(error.get("code")) != TYPE_STRING or str(error.get("code")).is_empty():
@@ -281,6 +289,12 @@ func accept_response(expected_request_id: String, response_json: String) -> void
         return
     if typeof(error.get("message")) != TYPE_STRING or str(error.get("message")).is_empty():
         _finish_failure(expected_request_id, "INVALID_RESPONSE", "Live Market error message must be a non-empty string")
+        return
+    if (
+        error.has("retryAfterSeconds")
+        and not _is_nonnegative_integer_number(error.get("retryAfterSeconds"))
+    ):
+        _finish_failure(expected_request_id, "INVALID_RESPONSE", "Live Market retryAfterSeconds must be a bounded non-negative integer")
         return
     _complete(expected_request_id)
     _fail(expected_request_id, str(error.get("code")), str(error.get("message")))

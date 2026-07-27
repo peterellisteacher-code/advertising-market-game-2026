@@ -11,6 +11,7 @@ func run() -> bool:
     assert(_spectator_mode_is_calm_and_has_no_market_actions())
     assert(_returned_and_hidden_campaigns_are_calm_and_fixable())
     assert(_teacher_dashboard_moderates_controls_and_confirms_removal())
+    assert(_keyboard_order_and_dialog_focus_are_stable())
     assert(_teacher_cohort_label_excludes_spectators_from_readiness())
     assert(_reveal_is_role_safe_and_network_failures_are_non_sensitive())
     return true
@@ -326,6 +327,45 @@ func _teacher_cohort_label_excludes_spectators_from_readiness() -> bool:
     screen.call("present_snapshot", snapshot)
     var readiness_copy := (screen.get_node("%ReadinessLabel") as Label).text
     assert(readiness_copy == "2 ready · 1 still shopping · 1 watching · 1 waiting for review")
+    _free_mounted(mounted)
+    return true
+
+func _keyboard_order_and_dialog_focus_are_stable() -> bool:
+    var mounted := _mount_screen()
+    var screen: Control = mounted.get("screen")
+    screen.call("set_market_host", mounted.get("host"))
+    screen.call("enter_room", "team", "ABC-234")
+    screen.call("present_snapshot", _medal_team_snapshot())
+    var card := _child_with_meta(screen.get_node("%TeamCards"), "campaignId", "campaign-c")
+    var score_names := [
+        "ScoreAudience",
+        "ScoreValue",
+        "ScoreAida",
+        "ScoreVisual",
+        "ScoreClaim"
+    ]
+    for index in range(score_names.size() - 1):
+        var current := card.find_child(score_names[index], true, false) as Control
+        var following := card.find_child(score_names[index + 1], true, false) as Control
+        assert(current.focus_next == current.get_path_to(following))
+    for control_value in screen.call("_keyboard_controls"):
+        var control := control_value as Control
+        if control.focus_next.is_empty():
+            continue
+        var target := control.get_node_or_null(control.focus_next) as Control
+        assert(target != null)
+        assert(target.is_visible_in_tree())
+        if target is BaseButton:
+            assert(not (target as BaseButton).disabled)
+
+    screen.call("enter_room", "teacher", "ABC-234")
+    screen.call("present_snapshot", _teacher_snapshot())
+    var remove_button := screen.find_children("RemoveTeam", "Button", true, false)[1] as Button
+    remove_button.grab_focus()
+    remove_button.pressed.emit()
+    assert(screen.get("_remove_dialog_focus") == remove_button)
+    screen.call("_cancel_remove_team")
+    assert(screen.get("_remove_dialog_focus") == null)
     _free_mounted(mounted)
     return true
 

@@ -297,6 +297,7 @@ test("studio bridge precedes both Godot index-script spellings", () => {
 test("routed Godot shell anchors nested-route assets and uses route-neutral access", () => {
   const exported = `<!doctype html>
 <html><head>
+  <link rel="stylesheet" href="./studio/studio.css">
   <base href="/stale/">
   <base href="https://invalid.example/">
 </head><body>
@@ -305,6 +306,7 @@ test("routed Godot shell anchors nested-route assets and uses route-neutral acce
   </main>
   <div id="account-gate-root"></div>
   <section id="account-session-root"></section>
+  <script src="./index.js"></script>
   <script>
     const engine = new Engine({});
     window.AdMarketAccount.requireAccess().then(() => engine.startGame());
@@ -316,6 +318,8 @@ test("routed Godot shell anchors nested-route assets and uses route-neutral acce
 
   assert.equal(twice, once);
   assert.equal(once.match(/<base href="\/">/g)?.length, 1);
+  assert.ok(once.indexOf('<base href="/">') < once.indexOf("./studio/studio.css"));
+  assert.ok(once.indexOf('<base href="/">') < once.indexOf("./index.js"));
   assert.doesNotMatch(once, /invalid\.example|href="\/stale\/"/);
   assert.match(once, /window\.AdMarketGameAccess\.requireAccess\(\)/);
   assert.doesNotMatch(once, /window\.AdMarketAccount\.requireAccess\(\)/);
@@ -572,6 +576,13 @@ test("static verification rejects nested-route and student-gate regressions", ()
     files: fixture(routedHtml.replace('<base href="/">', "")),
     pckHash: "current"
   }), /root route base/i);
+  assert.throws(() => inspectExportContents({
+    files: fixture(routedHtml.replace(
+      '    <base href="/">\n    <link rel="stylesheet" href="./studio/studio.css">',
+      '    <link rel="stylesheet" href="./studio/studio.css">\n    <base href="/">'
+    )),
+    pckHash: "current"
+  }), /root route base.*precede/i);
   assert.throws(() => inspectExportContents({
     files: fixture(routedHtml.replace("AdMarketGameAccess", "AdMarketAccount")),
     pckHash: "current"

@@ -1144,6 +1144,19 @@ export function inspectExportContents({
       decodeHtmlAttributeValue(tag.attributes[0].value) === "/");
     if (baseTags.length !== 1 || canonicalBaseTags.length !== 1) {
       errors.push("index.html must contain exactly one canonical root route base");
+    } else {
+      const firstAssetReference = htmlTags
+        .filter((tag) =>
+          tag.inertDepth === 0 &&
+          tag.name !== "base" &&
+          tag.attributes.some((attribute) =>
+            attribute.name === "href" || attribute.name === "src"))
+        .reduce((first, tag) => Math.min(first, tag.start), Number.POSITIVE_INFINITY);
+      if (canonicalBaseTags[0].start > firstAssetReference) {
+        errors.push(
+          "index.html canonical root route base must precede every routed asset reference"
+        );
+      }
     }
     try {
       const inlineBodies = getExecutableInlineScriptBodies(html);

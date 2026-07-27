@@ -407,6 +407,11 @@ function insertBefore(html, anchorIndex, line) {
   return `${prefix}\n    ${line}\n    ${html.slice(anchorIndex).replace(/^[\t ]+/, "")}`;
 }
 
+function insertAfter(html, anchorIndex, line) {
+  const suffix = html.slice(anchorIndex).replace(/^[\t \r\n]+/, "");
+  return `${html.slice(0, anchorIndex)}\n    ${line}\n    ${suffix}`;
+}
+
 /** Pure shell assembly used by both the CLI and its built-in Node test. */
 export function injectStudioAssets(html) {
   let result = removeStudioTags(html);
@@ -433,9 +438,10 @@ export function normaliseRoutedGodotShell(html) {
   for (const tag of baseTags.sort((left, right) => right.start - left.start)) {
     result = `${result.slice(0, tag.start)}${result.slice(tag.end)}`;
   }
-  const headClose = result.search(/<\/head\s*>/i);
-  if (headClose < 0) throw new Error("Godot export is missing </head>");
-  result = insertBefore(result, headClose, ROUTE_BASE);
+  const headTag = scanHtmlStartTags(result).find((tag) =>
+    tag.name === "head" && tag.inertDepth === 0);
+  if (headTag === undefined) throw new Error("Godot export is missing <head>");
+  result = insertAfter(result, headTag.end, ROUTE_BASE);
 
   const routedTags = scanHtmlStartTags(result);
   const accessPattern =

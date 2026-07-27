@@ -1176,19 +1176,48 @@ describe("window.AdMarketCreator", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 
-  it("boots the teacher playtest boundary without constructing the pair account surface", async () => {
+  it("boots the complete teacher playtest through its isolated storage and server adapters", async () => {
     window.history.replaceState(null, "", "/teacher/playtest");
-    document.body.innerHTML = "";
-    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    document.body.innerHTML = `
+      <main aria-label="Advertising Market Game" hidden inert aria-hidden="true">
+        <canvas id="canvas" tabindex="-1"></canvas>
+      </main>
+      <div id="creator-root" hidden></div>`;
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      if (input === "/api/teacher/session") {
+        return Promise.resolve(Response.json({ authenticated: true }));
+      }
+      if (input === "/api/teacher/playtest/progress") {
+        expect(init?.credentials).toBe("same-origin");
+        expect(new Headers(init?.headers).has("x-ad-market-account")).toBe(false);
+        return Promise.resolve(Response.json({
+          schema: "advertising-game-progress",
+          version: 1,
+          documents: []
+        }));
+      }
+      return Promise.reject(new Error(`Unexpected teacher playtest URL ${String(input)}`));
+    });
 
     await import("./main");
 
-    expect(document.querySelector('[data-admarket-route="teacher-playtest"]')).toBeTruthy();
+    await waitFor(() => expect(Reflect.has(window, "AdMarketCreator")).toBe(true));
+    expect(
+      getByRole(document.body, "banner", { name: "Teacher playtest" })
+    ).toBeTruthy();
     expect(document.querySelector("#account-gate-root")).toBeNull();
     expect(document.querySelector("#account-session-root")).toBeNull();
     expect(Reflect.has(window, "AdMarketAccount")).toBe(false);
-    expect(Reflect.has(window, "AdMarketCreator")).toBe(false);
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(runtime.activateAccountDrafts).toHaveBeenCalledWith("teacher-playtest");
+    expect(document.querySelector<HTMLElement>(
+      "main[aria-label=\"Advertising Market Game\"]"
+    )?.hidden)
+      .toBe(false);
+    expect(document.querySelector<HTMLElement>("#creator-root")?.hidden).toBe(false);
+    expect(fetchSpy.mock.calls.map(([input]) => input)).toEqual([
+      "/api/teacher/session",
+      "/api/teacher/playtest/progress"
+    ]);
   });
 
   it("boots the pair route without constructing a teacher surface", async () => {

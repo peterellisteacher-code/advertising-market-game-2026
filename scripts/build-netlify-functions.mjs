@@ -22,6 +22,7 @@ export const NETLIFY_FUNCTION_NAMES = Object.freeze([
   "product-price-guide",
   "studio-coach",
   "teacher-accounts",
+  "teacher-playtest",
   "teacher-session"
 ]);
 

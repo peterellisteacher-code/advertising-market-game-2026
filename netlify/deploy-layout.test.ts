@@ -25,6 +25,7 @@ const expectedFunctions = [
   "product-price-guide.mts",
   "studio-coach.mts",
   "teacher-accounts.mts",
+  "teacher-playtest.mts",
   "teacher-session.mts"
 ];
 
@@ -76,7 +77,7 @@ const loadStaticDiscovery = async (): Promise<{
 };
 
 describe("Netlify deployment layout", () => {
-  it("configures a wrapper-only directory containing exactly fourteen functions", () => {
+  it("configures a wrapper-only directory containing exactly fifteen functions", () => {
     const toml = readFileSync(join(repoRoot, "netlify.toml"), "utf8");
     expect(toml).toMatch(/^functions = "netlify\/deploy-functions"$/m);
     expect(existsSync(deployDirectory)).toBe(true);
@@ -161,9 +162,10 @@ describe("Netlify deployment layout", () => {
       "product-price-guide",
       "studio-coach",
       "teacher-accounts",
+      "teacher-playtest",
       "teacher-session"
     ]);
-    expect(discovered).toHaveLength(14);
+    expect(discovered).toHaveLength(15);
     for (const entry of discovered) expect(entry.runtimeAPIVersion).toBe(2);
     expect(byName.get("account-session")?.routes).toEqual([
       {
@@ -267,6 +269,23 @@ describe("Netlify deployment layout", () => {
       {
         pattern: "/api/teacher/accounts/:username/reset",
         expression: "^\\/api\\/teacher\\/accounts(?:\\/([^\\/]+?))\\/reset\\/?$",
+        methods: []
+      }
+    ]);
+    expect(byName.get("teacher-playtest")?.routes).toEqual([
+      {
+        pattern: "/api/teacher/playtest/progress",
+        literal: "/api/teacher/playtest/progress",
+        methods: []
+      },
+      {
+        pattern: "/api/teacher/playtest/assets/:digest",
+        expression: "^\\/api\\/teacher\\/playtest\\/assets(?:\\/([^\\/]+?))\\/?$",
+        methods: []
+      },
+      {
+        pattern: "/api/teacher/playtest/reset",
+        literal: "/api/teacher/playtest/reset",
         methods: []
       }
     ]);
@@ -491,6 +510,18 @@ describe("Netlify deployment layout", () => {
         rateLimit: {
           aggregateBy: ["ip", "domain"],
           windowLimit: 60,
+          windowSize: 60
+        }
+      },
+      "teacher-playtest": {
+        path: [
+          "/api/teacher/playtest/progress",
+          "/api/teacher/playtest/assets/:digest",
+          "/api/teacher/playtest/reset"
+        ],
+        rateLimit: {
+          aggregateBy: ["ip", "domain"],
+          windowLimit: 300,
           windowSize: 60
         }
       }

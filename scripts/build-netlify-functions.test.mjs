@@ -34,6 +34,7 @@ test("function build emits one exact wrapper-and-bundle manifest", async () => {
     "product-price-guide",
     "studio-coach",
     "teacher-accounts",
+    "teacher-playtest",
     "teacher-session"
   ]);
 

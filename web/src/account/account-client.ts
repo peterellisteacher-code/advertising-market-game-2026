@@ -126,6 +126,11 @@ export interface CloudProgressClient {
   list(): Promise<readonly CloudProgressDocumentMetadata[]>;
 }
 
+export interface CloudProgressHttpScope {
+  readonly path?: string;
+  readonly includeAccountIdentityHeader?: boolean;
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value) &&
   Object.getPrototypeOf(value) === Object.prototype;
@@ -467,10 +472,11 @@ export class HttpAccountClient implements AccountSessionClient, AccountResetClie
 
 export class HttpCloudProgressClient implements CloudProgressClient {
   constructor(
-    private readonly identity: AccountIdentityBinding,
+    private readonly identity: AccountIdentityBinding | null,
     private readonly fetcher: typeof fetch = globalThis.fetch,
     private readonly cookieRequests: AccountCookieRequestSerialiser =
-      defaultAccountCookieRequestSerialiser(fetcher)
+      defaultAccountCookieRequestSerialiser(fetcher),
+    private readonly scope: CloudProgressHttpScope = {}
   ) {}
 
   async save(
@@ -506,7 +512,7 @@ export class HttpCloudProgressClient implements CloudProgressClient {
     if (new TextEncoder().encode(body).byteLength > PROGRESS_JSON_LIMIT) {
       throw new AccountClientError("PROGRESS_TOO_LARGE");
     }
-    const response = await this.#fetch("/api/account/progress", {
+    const response = await this.#fetch(this.#progressPath(), {
       method: "PUT",
       credentials: "same-origin",
       headers: { accept: "application/json", "content-type": "application/json" },
@@ -534,7 +540,7 @@ export class HttpCloudProgressClient implements CloudProgressClient {
     return this.#serialise(async () => {
     if (!isCloudProgressDocumentId(documentId)) throw new AccountClientError("INVALID_REQUEST");
     const response = await this.#fetch(
-      `/api/account/progress?documentId=${encodeURIComponent(documentId)}`,
+      `${this.#progressPath()}?documentId=${encodeURIComponent(documentId)}`,
       {
         method: "GET",
         credentials: "same-origin",
@@ -582,7 +588,7 @@ export class HttpCloudProgressClient implements CloudProgressClient {
 
   async list(): Promise<readonly CloudProgressDocumentMetadata[]> {
     return this.#serialise(async () => {
-    const response = await this.#fetch("/api/account/progress", {
+    const response = await this.#fetch(this.#progressPath(), {
       method: "GET",
       credentials: "same-origin",
       redirect: "error",
@@ -633,12 +639,12 @@ export class HttpCloudProgressClient implements CloudProgressClient {
   }
 
   async #fetch(path: string, init: RequestInit): Promise<Response> {
-    const expectedAccount = this.identity.current();
-    if (expectedAccount === null) throw new AccountClientError("AUTHENTICATION_REQUIRED");
-    const headers = {
-      ...(init.headers as Record<string, string> | undefined),
-      [ACCOUNT_IDENTITY_HEADER]: expectedAccount
-    };
+    const headers = { ...(init.headers as Record<string, string> | undefined) };
+    if (this.scope.includeAccountIdentityHeader !== false) {
+      const expectedAccount = this.identity?.current() ?? null;
+      if (expectedAccount === null) throw new AccountClientError("AUTHENTICATION_REQUIRED");
+      headers[ACCOUNT_IDENTITY_HEADER] = expectedAccount;
+    }
     let response: Response;
     try {
       response = await this.fetcher.call(globalThis, path, { ...init, redirect: "error", headers });
@@ -651,6 +657,10 @@ export class HttpCloudProgressClient implements CloudProgressClient {
     // parsing it; the cookie-order lock has already covered the cookie change.
     if (response.status === 401) throw new AccountClientError("AUTHENTICATION_REQUIRED");
     return response;
+  }
+
+  #progressPath(): string {
+    return this.scope.path ?? "/api/account/progress";
   }
 
   async #progressError(response: Response, value: unknown): Promise<AccountClientError> {

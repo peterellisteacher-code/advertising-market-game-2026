@@ -42,6 +42,11 @@ export interface AccountAssetClientDeadlines {
   readonly transferTimeoutMs?: number;
 }
 
+export interface AccountAssetHttpScope {
+  readonly path?: (digest: string) => string;
+  readonly includeAccountIdentityHeader?: boolean;
+}
+
 export type AccountAssetClientErrorCode =
   | "ASSET_INTEGRITY_FAILED"
   | "ASSET_NOT_FOUND"
@@ -256,11 +261,12 @@ class AccountAssetDeadline {
 
 export class HttpAccountAssetClient implements AccountAssetClient {
   constructor(
-    private readonly identity: AccountIdentityBinding,
+    private readonly identity: AccountIdentityBinding | null,
     private readonly fetcher: typeof fetch = globalThis.fetch,
     private readonly cookieRequests: AccountCookieRequestSerialiser =
       defaultAccountCookieRequestSerialiser(fetcher),
-    private readonly deadlines: AccountAssetClientDeadlines = {}
+    private readonly deadlines: AccountAssetClientDeadlines = {},
+    private readonly scope: AccountAssetHttpScope = {}
   ) {}
 
   async put(blob: Blob, options: { signal?: AbortSignal } = {}): Promise<AccountAssetDescriptor> {
@@ -285,15 +291,14 @@ export class HttpAccountAssetClient implements AccountAssetClient {
     let response: Response;
     try {
       deadline.arm(headerTimeoutMs);
-      response = await this.fetcher.call(globalThis, assetPath(digest), {
+      response = await this.fetcher.call(globalThis, this.#assetPath(digest), {
         method: "PUT",
         credentials: "same-origin",
         redirect: "error",
-        headers: {
+        headers: this.#headers({
           accept: "application/json",
-          "content-type": declaredContentType,
-          [ACCOUNT_IDENTITY_HEADER]: expectedAccount
-        },
+          "content-type": declaredContentType
+        }, expectedAccount),
         body: blob,
         signal: deadline.signal
       });
@@ -321,7 +326,8 @@ export class HttpAccountAssetClient implements AccountAssetClient {
     const descriptor = exactAsset(value);
     if (descriptor === null) throw new AccountAssetClientError("INVALID_RESPONSE");
     if (!SHA256.test(descriptor.sha256) || !isRecord(value) || !isRecord(value.asset) ||
-      value.asset.id !== descriptor.sha256 || value.asset.href !== assetPath(descriptor.sha256) ||
+      value.asset.id !== descriptor.sha256 ||
+      value.asset.href !== this.#assetPath(descriptor.sha256) ||
       descriptor.sha256 !== digest || descriptor.contentType !== declaredContentType ||
       descriptor.byteLength !== bytes.byteLength) {
       throw new AccountAssetClientError("ASSET_INTEGRITY_FAILED");
@@ -344,14 +350,13 @@ export class HttpAccountAssetClient implements AccountAssetClient {
     let response: Response;
     try {
       deadline.arm(headerTimeoutMs);
-      response = await this.fetcher.call(globalThis, assetPath(digest), {
+      response = await this.fetcher.call(globalThis, this.#assetPath(digest), {
         method: "GET",
         credentials: "same-origin",
         redirect: "error",
-        headers: {
-          accept: "image/png, image/jpeg, image/webp",
-          [ACCOUNT_IDENTITY_HEADER]: expectedAccount
-        },
+        headers: this.#headers({
+          accept: "image/png, image/jpeg, image/webp"
+        }, expectedAccount),
         signal: deadline.signal
       });
     } catch {
@@ -423,8 +428,22 @@ export class HttpAccountAssetClient implements AccountAssetClient {
     }
   }
 
-  #expectedAccount(): string {
-    const username = this.identity.current();
+  #assetPath(digest: string): string {
+    return this.scope.path?.(digest) ?? assetPath(digest);
+  }
+
+  #headers(
+    base: Record<string, string>,
+    expectedAccount: string | null
+  ): Record<string, string> {
+    return expectedAccount === null
+      ? base
+      : { ...base, [ACCOUNT_IDENTITY_HEADER]: expectedAccount };
+  }
+
+  #expectedAccount(): string | null {
+    if (this.scope.includeAccountIdentityHeader === false) return null;
+    const username = this.identity?.current() ?? null;
     if (username === null) throw new AccountAssetClientError("AUTHENTICATION_REQUIRED");
     return username;
   }

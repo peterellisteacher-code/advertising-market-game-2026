@@ -4,6 +4,11 @@ import "./teacher/teacher.css";
 import { runAdvertisingGameRoute } from "./app/app-route";
 import { HttpTeacherClient } from "./teacher/teacher-client";
 import { TeacherDashboard } from "./teacher/teacher-dashboard";
+import { TeacherPlaytestController } from "./teacher/teacher-playtest-controller";
+import {
+  HttpTeacherPlaytestClient,
+  type TeacherPlaytestClient
+} from "./teacher/teacher-playtest-client";
 import {
   cloudStatusMessage,
   createAccountBootstrap,
@@ -1687,11 +1692,28 @@ export function bootTeacherDashboard(): void {
 }
 
 export function bootTeacherPlaytest(): void {
-  renderRouteBoundary(
-    "teacher-playtest",
-    "Teacher playtest",
-    "Sign in to open the teacher playtest."
-  );
+  const root = document.createElement("div");
+  root.id = "teacher-playtest-root";
+  document.body.prepend(root);
+  const playtestClient = new HttpTeacherPlaytestClient();
+  let game: TeacherPlaytestGameHandle | null = null;
+  const controller = new TeacherPlaytestController({
+    root,
+    sessionClient: new HttpTeacherClient(),
+    playtestClient,
+    startGame: async () => {
+      game = await bootGameApplication({
+        kind: "teacher-playtest",
+        client: playtestClient
+      });
+    },
+    resetLocalState: async () => {
+      if (game === null) throw new Error("Teacher playtest is not ready");
+      await game.resetLocalState();
+    },
+    openFirstScreen: () => window.location.reload()
+  });
+  void controller.mount();
 }
 
 export function renderNotFoundApplication(): void {
@@ -1702,7 +1724,38 @@ export function renderNotFoundApplication(): void {
   );
 }
 
+type GameApplicationMode =
+  | { readonly kind: "student" }
+  | {
+      readonly kind: "teacher-playtest";
+      readonly client: TeacherPlaytestClient;
+    };
+
+interface TeacherPlaytestGameHandle {
+  resetLocalState(): Promise<void>;
+}
+
+const TEACHER_PLAYTEST_BROWSER_NAMESPACE = "teacher-playtest";
+
 export function bootStudentApplication(): void {
+  bootGameApplication({ kind: "student" });
+}
+
+function bootGameApplication(
+  mode: { readonly kind: "student" }
+): null;
+function bootGameApplication(
+  mode: {
+    readonly kind: "teacher-playtest";
+    readonly client: TeacherPlaytestClient;
+  }
+): Promise<TeacherPlaytestGameHandle>;
+function bootGameApplication(
+  mode: GameApplicationMode
+): Promise<TeacherPlaytestGameHandle> | null {
+if (mode.kind === "teacher-playtest") {
+  Reflect.deleteProperty(window, "AdMarketAccount");
+}
 const root = document.querySelector<HTMLElement>("#creator-root");
 if (!root) throw new Error("Missing #creator-root");
 
@@ -1729,8 +1782,12 @@ const ensureAccountRoot = (id: string, tagName: "div" | "section"): HTMLElement 
   document.body.prepend(root);
   return root;
 };
-const accountGateRoot = ensureAccountRoot("account-gate-root", "div");
-const accountStatusRoot = ensureAccountRoot("account-session-root", "section");
+const accountGateRoot = mode.kind === "student"
+  ? ensureAccountRoot("account-gate-root", "div")
+  : null;
+const accountStatusRoot = mode.kind === "student"
+  ? ensureAccountRoot("account-session-root", "section")
+  : null;
 root.hidden = true;
 
 const drafts = new AccountScopedDraftStore();
@@ -1752,21 +1809,33 @@ const studioCoachRuntime = new StudioCoachRuntime({
   client: new StudioCoachClient(),
   capture: () => handler.captureStudioCoachCanvas()
 });
-const cloudClient = new HttpCloudProgressClient(
-  accountIdentity,
-  undefined,
-  accountCookieRequests
-);
+const cloudClient = mode.kind === "teacher-playtest"
+  ? mode.client
+  : new HttpCloudProgressClient(
+      accountIdentity,
+      undefined,
+      accountCookieRequests
+    );
 const cloudMetadata = new BrowserCloudSyncMetadataStore();
 const cloudOutbox = typeof globalThis.indexedDB === "undefined"
   ? undefined
   : new BrowserCloudProgressOutbox();
-const accountAssets = new HttpAccountAssetClient(
-  accountIdentity,
-  undefined,
-  accountCookieRequests
-);
+const accountAssets = mode.kind === "teacher-playtest"
+  ? mode.client
+  : new HttpAccountAssetClient(
+      accountIdentity,
+      undefined,
+      accountCookieRequests
+    );
 const cloudAssetRestore = new CloudProgressAssetRestore({ client: accountAssets });
+const setCloudMessage = (message: string): void => {
+  if (mode.kind === "student") {
+    accountController?.setCloudMessage(message);
+    return;
+  }
+  shell.saveStatus.textContent = message;
+  shell.saveStatus.title = message;
+};
 const cloudSync = new CloudProgressSync({
   client: cloudClient,
   metadata: cloudMetadata,
@@ -1777,6 +1846,12 @@ const cloudSync = new CloudProgressSync({
   }),
   onState: (state) => {
     if (state.phase === "conflict") {
+      if (mode.kind === "teacher-playtest") {
+        setCloudMessage(
+          "Saved on this device · another cloud copy needs review. Nothing was replaced."
+        );
+        return;
+      }
       accountController?.setCloudConflict({
         documentId: state.documentId,
         cloudAvailable: state.remote !== undefined,
@@ -1791,7 +1866,7 @@ const cloudSync = new CloudProgressSync({
       });
       return;
     }
-    accountController?.setCloudMessage(cloudStatusMessage(state));
+    setCloudMessage(cloudStatusMessage(state));
   },
   onUseCloud: async (remote) => {
     await handler.flushPracticeAutosave();
@@ -1803,7 +1878,10 @@ const cloudSync = new CloudProgressSync({
     });
     await handler.open(adopted.document);
   },
-  onAuthenticationRequired: () => accountController?.requireReauthentication()
+  onAuthenticationRequired: () => {
+    if (mode.kind === "student") accountController?.requireReauthentication();
+    else window.location.assign("/teacher");
+  }
 });
 const cloudRecovery = new CloudProgressRecovery({
   client: cloudClient,
@@ -1811,89 +1889,93 @@ const cloudRecovery = new CloudProgressRecovery({
   assets: cloudAssetRestore,
   metadata: cloudMetadata
 });
-const accountReset = new AccountResetCoordinator({
-  client: accountClient,
-  identity: accountIdentity,
-  mutations: accountMutations,
-  stores: [
-    drafts,
-    cloudMetadata,
-    ...(cloudOutbox === undefined ? [] : [cloudOutbox]),
-    imageLabSubmissionPersistence,
-    studioCoachRuntime
-  ],
-  quiesce: async () => {
-    cloudSync.signOut();
-    try {
-      await handler.isolateAccountWork();
-    } finally {
-      drafts.deactivateAccount();
-      imageLabSubmissionPersistence.deactivateAccount();
-      studioCoachRuntime.deactivateAccount();
-    }
+if (mode.kind === "student") {
+  if (accountGateRoot === null || accountStatusRoot === null) {
+    throw new Error("Missing student account surfaces");
   }
-});
-accountController = new AccountAccessController({
-  client: accountClient,
-  gateRoot: accountGateRoot,
-  statusRoot: accountStatusRoot,
-  gameSurface,
-  gameCanvas,
-  creatorRoot: root,
-  onSession: async (username) => {
-    try {
-      await drafts.activateAccount(username);
-      await imageLabSubmissionPersistence.activateAccount(username);
-      await studioCoachRuntime.activateAccount(username);
-    } catch (error) {
-      drafts.deactivateAccount();
-      imageLabSubmissionPersistence.deactivateAccount();
-      studioCoachRuntime.deactivateAccount();
-      throw error;
-    }
-    try {
-      await cloudSync.setAccount(username);
-    } catch (error) {
+  const accountReset = new AccountResetCoordinator({
+    client: accountClient,
+    identity: accountIdentity,
+    mutations: accountMutations,
+    stores: [
+      drafts,
+      cloudMetadata,
+      ...(cloudOutbox === undefined ? [] : [cloudOutbox]),
+      imageLabSubmissionPersistence,
+      studioCoachRuntime
+    ],
+    quiesce: async () => {
       cloudSync.signOut();
-      if ((error instanceof AccountClientError || error instanceof AccountAssetClientError) &&
-        error.code === "AUTHENTICATION_REQUIRED") {
+      try {
+        await handler.isolateAccountWork();
+      } finally {
         drafts.deactivateAccount();
         imageLabSubmissionPersistence.deactivateAccount();
         studioCoachRuntime.deactivateAccount();
-        throw new AccountClientError("AUTHENTICATION_REQUIRED");
       }
-      accountController?.setCloudMessage("Saved on this device · cloud copy paused");
-      return;
     }
-    try {
-      const recovery = await cloudRecovery.recoverLatest(username);
-      accountController?.setCloudMessage(cloudRecoveryStatusMessage(recovery));
-    } catch (error) {
-      if ((error instanceof AccountClientError || error instanceof AccountAssetClientError) &&
-        error.code === "AUTHENTICATION_REQUIRED") {
+  });
+  accountController = new AccountAccessController({
+    client: accountClient,
+    gateRoot: accountGateRoot,
+    statusRoot: accountStatusRoot,
+    gameSurface,
+    gameCanvas,
+    creatorRoot: root,
+    onSession: async (username) => {
+      try {
+        await drafts.activateAccount(username);
+        await imageLabSubmissionPersistence.activateAccount(username);
+        await studioCoachRuntime.activateAccount(username);
+      } catch (error) {
+        drafts.deactivateAccount();
+        imageLabSubmissionPersistence.deactivateAccount();
+        studioCoachRuntime.deactivateAccount();
+        throw error;
+      }
+      try {
+        await cloudSync.setAccount(username);
+      } catch (error) {
         cloudSync.signOut();
+        if ((error instanceof AccountClientError || error instanceof AccountAssetClientError) &&
+          error.code === "AUTHENTICATION_REQUIRED") {
+          drafts.deactivateAccount();
+          imageLabSubmissionPersistence.deactivateAccount();
+          studioCoachRuntime.deactivateAccount();
+          throw new AccountClientError("AUTHENTICATION_REQUIRED");
+        }
+        accountController?.setCloudMessage("Saved on this device · cloud copy paused");
+        return;
+      }
+      try {
+        const recovery = await cloudRecovery.recoverLatest(username);
+        accountController?.setCloudMessage(cloudRecoveryStatusMessage(recovery));
+      } catch (error) {
+        if ((error instanceof AccountClientError || error instanceof AccountAssetClientError) &&
+          error.code === "AUTHENTICATION_REQUIRED") {
+          cloudSync.signOut();
+          drafts.deactivateAccount();
+          imageLabSubmissionPersistence.deactivateAccount();
+          studioCoachRuntime.deactivateAccount();
+          throw new AccountClientError("AUTHENTICATION_REQUIRED");
+        }
+        accountController?.setCloudMessage("Saved on this device · cloud copy paused");
+      }
+    },
+    onSignedOut: async (_explicit) => {
+      cloudSync.signOut();
+      try {
+        await handler.isolateAccountWork();
+      } finally {
         drafts.deactivateAccount();
         imageLabSubmissionPersistence.deactivateAccount();
         studioCoachRuntime.deactivateAccount();
-        throw new AccountClientError("AUTHENTICATION_REQUIRED");
       }
-      accountController?.setCloudMessage("Saved on this device · cloud copy paused");
-    }
-  },
-  onSignedOut: async (_explicit) => {
-    cloudSync.signOut();
-    try {
-      await handler.isolateAccountWork();
-    } finally {
-      drafts.deactivateAccount();
-      imageLabSubmissionPersistence.deactivateAccount();
-      studioCoachRuntime.deactivateAccount();
-    }
-  },
-  onReset: () => accountReset.reset("RESET")
-});
-const accountPublicApi = createAccountBootstrap(accountController);
-window.AdMarketAccount = accountPublicApi;
+    },
+    onReset: () => accountReset.reset("RESET")
+  });
+  window.AdMarketAccount = createAccountBootstrap(accountController);
+}
 const handler = new BrowserCreatorHandler(
   root,
   shell,
@@ -1903,6 +1985,32 @@ const handler = new BrowserCreatorHandler(
   practiceService,
   cloudSync
 );
+const teacherReady = mode.kind === "teacher-playtest"
+  ? (async (): Promise<void> => {
+      const username = TEACHER_PLAYTEST_BROWSER_NAMESPACE;
+      try {
+        await drafts.activateAccount(username);
+        await imageLabSubmissionPersistence.activateAccount(username);
+        await studioCoachRuntime.activateAccount(username);
+        await cloudSync.setAccount(username);
+        const recovery = await cloudRecovery.recoverLatest(username);
+        setCloudMessage(cloudRecoveryStatusMessage(recovery));
+      } catch (error) {
+        cloudSync.signOut();
+        drafts.deactivateAccount();
+        imageLabSubmissionPersistence.deactivateAccount();
+        studioCoachRuntime.deactivateAccount();
+        throw error;
+      }
+      gameSurface.hidden = false;
+      gameSurface.inert = false;
+      gameSurface.removeAttribute("aria-hidden");
+      gameCanvas.tabIndex = 0;
+      root.hidden = false;
+      root.inert = false;
+      root.removeAttribute("aria-hidden");
+    })()
+  : null;
 const guidedJourney = new GuidedJourneyController(shell.overlay, (step) => {
   if (step.tool === "game") {
     shell.overlay.querySelector<HTMLButtonElement>('[data-command="return"]')?.click();
@@ -1943,24 +2051,26 @@ shell.zoomFill.addEventListener("click", () => {
 shell.zoomIn.addEventListener("click", () => {
   runCanvasSizeAction(() => handler.resizeSelectedObject(1.2));
 });
-accountMutations.subscribe((mutation) => {
-  if (mutation.kind === "session") {
-    accountController?.requireReauthentication();
-    return;
-  }
-  if (accountIdentity.current() !== mutation.username) return;
-  if (mutation.kind === "reset-pending") {
-    accountController?.holdForReset();
-    cloudSync.signOut();
-    void handler.isolateAccountWork().finally(() => {
-      drafts.deactivateAccount();
-      imageLabSubmissionPersistence.deactivateAccount();
-      studioCoachRuntime.deactivateAccount();
-    });
-    return;
-  }
-  accountController?.completeReset();
-});
+if (mode.kind === "student") {
+  accountMutations.subscribe((mutation) => {
+    if (mutation.kind === "session") {
+      accountController?.requireReauthentication();
+      return;
+    }
+    if (accountIdentity.current() !== mutation.username) return;
+    if (mutation.kind === "reset-pending") {
+      accountController?.holdForReset();
+      cloudSync.signOut();
+      void handler.isolateAccountWork().finally(() => {
+        drafts.deactivateAccount();
+        imageLabSubmissionPersistence.deactivateAccount();
+        studioCoachRuntime.deactivateAccount();
+      });
+      return;
+    }
+    accountController?.completeReset();
+  });
+}
 const productPriceGuideClient = new ProductPriceGuideClient();
 const moneyPanel = new ProductMoneyPanel(
   shell.moneyCheckPanel,
@@ -2110,8 +2220,41 @@ root.querySelector<HTMLButtonElement>('[data-command="return"]')
     }));
   });
 
+if (mode.kind === "teacher-playtest") {
+  if (teacherReady === null) {
+    throw new Error("Teacher playtest storage is not ready");
+  }
+  return teacherReady.then(() => {
+    window.AdMarketCreator = publicApi;
+    window.AdMarketRoom = marketPublicApi;
+    return {
+      resetLocalState: async () => {
+        cloudSync.signOut();
+        try {
+          await handler.isolateAccountWork();
+        } finally {
+          drafts.deactivateAccount();
+          imageLabSubmissionPersistence.deactivateAccount();
+          studioCoachRuntime.deactivateAccount();
+        }
+        await Promise.all([
+          drafts.resetAccount(TEACHER_PLAYTEST_BROWSER_NAMESPACE),
+          cloudMetadata.resetAccount(TEACHER_PLAYTEST_BROWSER_NAMESPACE),
+          ...(cloudOutbox === undefined
+            ? []
+            : [cloudOutbox.resetAccount(TEACHER_PLAYTEST_BROWSER_NAMESPACE)]),
+          imageLabSubmissionPersistence.resetAccount(
+            TEACHER_PLAYTEST_BROWSER_NAMESPACE
+          ),
+          studioCoachRuntime.resetAccount(TEACHER_PLAYTEST_BROWSER_NAMESPACE)
+        ]);
+      }
+    };
+  });
+}
 window.AdMarketCreator = publicApi;
 window.AdMarketRoom = marketPublicApi;
+return null;
 }
 
 runAdvertisingGameRoute(window.location.pathname, {

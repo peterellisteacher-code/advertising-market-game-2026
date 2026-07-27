@@ -144,9 +144,13 @@ test("the full linked argument and role guide remain available throughout pair p
   assert.match(mainScene, /name="RoleGuide"[\s\S]*?text = "Role guide"/);
   assert.match(mainScene, /name="RoleGuideDialog"[\s\S]*?title = "Pair role guide"/);
   for (const copy of [
-    "Art Director controls visual decisions",
-    "Strategist controls message decisions",
-    "Swapping roles exchanges these responsibilities",
+    "Both partners can use the same tools that are available in the current level",
+    "The roles do not unlock different buttons",
+    "Art Director is responsible for what the advertisement looks like",
+    "Strategist is responsible for what the advertisement says",
+    "The active role tells you whose turn should make the next change",
+    "Context is the situation the audience is in",
+    "A premise is a reason",
     "Audience and product",
     "Product and advertisement",
     "Advertisement and credible offer",

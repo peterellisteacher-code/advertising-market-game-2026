@@ -17,6 +17,7 @@ export interface InstructionClaim {
 export interface InstructionSubargument {
   readonly id: "A" | "B" | "C" | "D" | "E";
   readonly title: string;
+  readonly plainExplanation: string;
   readonly claims: readonly InstructionClaim[];
   readonly conclusionId: InstructionClaimId;
 }
@@ -40,19 +41,25 @@ function claim(
 function subargument(
   id: InstructionSubargument["id"],
   title: string,
+  plainExplanation: string,
   claims: readonly InstructionClaim[],
   conclusionId: InstructionClaimId
 ): InstructionSubargument {
   return Object.freeze({
     id,
     title,
+    plainExplanation,
     claims: Object.freeze([...claims]),
     conclusionId
   });
 }
 
 export const INSTRUCTION_ARGUMENT: readonly InstructionSubargument[] = Object.freeze([
-  subargument("A", "Establish a shared audience purpose", [
+  subargument(
+    "A",
+    "Establish a shared audience purpose",
+    "This section answers two basic questions: who are you trying to persuade, and which partner is responsible for the next kind of decision? The audience brief describes a group of people in a particular situation.",
+    [
     claim(
       "P1",
       "premise",
@@ -79,7 +86,11 @@ export const INSTRUCTION_ARGUMENT: readonly InstructionSubargument[] = Object.fr
       ["P1", "P2", "P3"]
     )
   ], "ICA"),
-  subargument("B", "Turn the audience purpose into a product", [
+  subargument(
+    "B",
+    "Turn the audience purpose into a product",
+    "Choose a starter product, then change it so it responds to the audience need. A product choice can be a part, colour, material, shape or feature. The product name is the name customers would see.",
+    [
     claim(
       "P5",
       "premise",
@@ -113,7 +124,11 @@ export const INSTRUCTION_ARGUMENT: readonly InstructionSubargument[] = Object.fr
       ["P5", "P6", "P7", "P8"]
     )
   ], "ICB"),
-  subargument("C", "Turn the product into an advertisement", [
+  subargument(
+    "C",
+    "Turn the product into an advertisement",
+    "An advertisement combines what people see with what they read. The Art Director makes a visible design choice. The Strategist writes or plans the message. AIDA gives the message four jobs: attract attention, hold interest, create desire and tell the audience what to do.",
+    [
     claim(
       "P10",
       "premise",
@@ -147,7 +162,11 @@ export const INSTRUCTION_ARGUMENT: readonly InstructionSubargument[] = Object.fr
       ["P10", "P11", "P12", "P13"]
     )
   ], "ICC"),
-  subargument("D", "Turn the advertisement into a credible offer", [
+  subargument(
+    "D",
+    "Turn the advertisement into a credible offer",
+    "A credible offer tells the audience what the product costs, where they would encounter the advertisement and what evidence supports its main claim. A proof point is a specific fact, feature or demonstration, not another slogan.",
+    [
     claim(
       "P15",
       "premise",
@@ -181,7 +200,11 @@ export const INSTRUCTION_ARGUMENT: readonly InstructionSubargument[] = Object.fr
       ["P15", "P16", "P17", "P18"]
     )
   ], "ICD"),
-  subargument("E", "Turn the offer into a completed market entry", [
+  subargument(
+    "E",
+    "Turn the offer into a completed market entry",
+    "The final review uses the same five criteria as the market. Building the market card saves the finished entry. Entering the market submits it for comparison. Scoring means rating the other advertisements, not your own, before awarding medals.",
+    [
     claim(
       "P20",
       "premise",

@@ -154,8 +154,29 @@ describe("createEditorShell", () => {
     expect(roleGuideLayer.textContent).toContain(
       "Controls the product name, advertising words, claim, price reasoning and market-route reasoning."
     );
+    expect(roleGuideLayer.textContent).toContain(
+      "Both partners can use the same tools that are unlocked for the current level."
+    );
+    expect(roleGuideLayer.textContent).toContain(
+      "The roles do not unlock different buttons."
+    );
     expect(getByRole(root, "combobox", { name: "Audience signal" })).toBeTruthy();
-    expect(root.querySelector('#studio-full-brief[aria-label="Audience brief"]')).toBeTruthy();
+    const audienceBrief = root.querySelector<HTMLElement>(
+      '#studio-full-brief[aria-label="Audience brief"]'
+    )!;
+    expect(audienceBrief).toBeTruthy();
+    expect(audienceBrief.textContent).toContain(
+      "Context is the situation the audience is in."
+    );
+    expect(audienceBrief.textContent).toContain(
+      "Need is the problem the product should help solve."
+    );
+    expect(audienceBrief.textContent).toContain(
+      "Values are the ideas or qualities that matter to this audience."
+    );
+    expect(audienceBrief.textContent).toContain(
+      "Intended audience response is what the advertisement should encourage the audience to think, feel or do."
+    );
     expect(getByRole(root, "button", { name: "Open full brief" }).getAttribute("aria-expanded"))
       .toBe("false");
     expect(root.querySelector('[data-studio-panel="words"][aria-label="Pair tools"]')).toBeTruthy();

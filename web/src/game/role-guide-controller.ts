@@ -1,15 +1,33 @@
 import type { CampaignDocumentV1 } from "../domain/campaign-document";
 
 export const ROLE_GUIDE = Object.freeze({
+  sharedAccess:
+    "Both partners can use the same tools that are unlocked for the current level.",
+  sameButtons:
+    "The roles do not unlock different buttons.",
+  activeTurn:
+    "The partner in the active role should use the keyboard or trackpad for the next canvas change.",
+  recordedRole:
+    "The site labels each canvas change with the role that is active.",
+  physicalUser:
+    "It does not block tools or identify which person physically touched the device.",
+  swapEffect:
+    "Swap roles changes the active responsibility and the role recorded for later canvas changes.",
+  retainedWork:
+    "Earlier work and recorded contributions stay in the campaign.",
   artDirector: Object.freeze({
     label: "Art Director",
     responsibilities:
-      "Controls the product's appearance, images, colour, arrangement and layout."
+      "Controls the product's appearance, images, colour, arrangement and layout.",
+    example:
+      "For example, the Art Director can choose a product image, enlarge it, change a colour and decide where the headline sits."
   }),
   strategist: Object.freeze({
     label: "Strategist",
     responsibilities:
-      "Controls the product name, advertising words, claim, price reasoning and market-route reasoning."
+      "Controls the product name, advertising words, claim, price reasoning and market-route reasoning.",
+    example:
+      "For example, the Strategist can name the product, write its benefit, choose a suitable price and add a proof point."
   })
 });
 
@@ -57,7 +75,7 @@ export class RoleGuideController {
     const startingRole = document.gameplay.pair.activeRole === "art-director"
       ? ROLE_GUIDE.artDirector.label
       : ROLE_GUIDE.strategist.label;
-    this.#assignment.textContent = `The ${startingRole} begins with control.`;
+    this.#assignment.textContent = `The ${startingRole} is the active role first.`;
     if (!document.gameplay.pair.roleGuideAcknowledged) {
       this.#open(true);
     }
@@ -121,7 +139,8 @@ export class RoleGuideController {
     this.#layer.hidden = false;
     this.#dialog.setAttribute("open", "");
     this.protectedSurface.inert = true;
-    (requiredGuide ? this.#beginButton : this.#closeButton).focus();
+    this.#dialog.scrollTop = 0;
+    (requiredGuide ? this.#dialog : this.#closeButton).focus();
   }
 
   #close(restoreFocus: boolean): void {

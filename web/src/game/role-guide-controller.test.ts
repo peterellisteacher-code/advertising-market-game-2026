@@ -39,16 +39,43 @@ describe("RoleGuideController", () => {
     controller.setCampaign(campaign());
 
     const dialog = getByRole(root, "dialog", { name: "Partner role guide" });
+    expect(dialog.textContent).toContain(
+      "Both partners can use the same tools that are unlocked for the current level."
+    );
+    expect(dialog.textContent).toContain(
+      "The roles do not unlock different buttons."
+    );
     expect(dialog.textContent).toContain("Art Director");
     expect(dialog.textContent).toContain(
       "Controls the product's appearance, images, colour, arrangement and layout."
+    );
+    expect(dialog.textContent).toContain(
+      "For example, the Art Director can choose a product image, enlarge it, change a colour and decide where the headline sits."
     );
     expect(dialog.textContent).toContain("Strategist");
     expect(dialog.textContent).toContain(
       "Controls the product name, advertising words, claim, price reasoning and market-route reasoning."
     );
-    expect(dialog.textContent).toContain("The Art Director begins with control.");
+    expect(dialog.textContent).toContain(
+      "For example, the Strategist can name the product, write its benefit, choose a suitable price and add a proof point."
+    );
+    expect(dialog.textContent).toContain(
+      "The Art Director is the active role first."
+    );
+    expect(dialog.textContent).toContain(
+      "The partner in the active role should use the keyboard or trackpad for the next canvas change."
+    );
+    expect(dialog.textContent).toContain(
+      "The site labels each canvas change with the role that is active."
+    );
+    expect(dialog.textContent).toContain(
+      "It does not block tools or identify which person physically touched the device."
+    );
     expect(shell.overlay.inert).toBe(true);
+    expect(dialog.getAttribute("tabindex")).toBe("-1");
+    expect(document.activeElement).toBe(dialog);
+
+    fireEvent.keyDown(dialog, { key: "Tab" });
     expect(document.activeElement).toBe(getByRole(dialog, "button", { name: "Begin work" }));
 
     fireEvent.keyDown(dialog, { key: "Escape" });
@@ -75,7 +102,13 @@ describe("RoleGuideController", () => {
     opener.focus();
     fireEvent.click(opener);
     const dialog = getByRole(root, "dialog", { name: "Partner role guide" });
-    expect(dialog.textContent).toContain("The Strategist begins with control.");
+    expect(dialog.textContent).toContain("The Strategist is the active role first.");
+    expect(dialog.textContent).toContain(
+      "Swap roles changes the active responsibility and the role recorded for later canvas changes."
+    );
+    expect(dialog.textContent).toContain(
+      "Earlier work and recorded contributions stay in the campaign."
+    );
     expect(shell.overlay.inert).toBe(true);
 
     fireEvent.keyDown(dialog, { key: "Escape" });

@@ -38,6 +38,21 @@ export const STUDENT_COPY = deepFreeze({
     price: "Price",
     publish: "Open market preview"
   },
+  audienceBriefDefinitions: {
+    context: "Context is the situation the audience is in.",
+    need: "Need is the problem the product should help solve.",
+    values: "Values are the ideas or qualities that matter to this audience.",
+    intendedEffect:
+      "Intended audience response is what the advertisement should encourage the audience to think, feel or do."
+  },
+  guideFoundations: {
+    product:
+      "You and one partner are creating one fictional product and one advertisement for a supplied audience.",
+    terms:
+      "A premise is a reason. An intermediate conclusion is what a group of reasons supports.",
+    termsReassurance:
+      "You do not need to memorise those terms."
+  },
   commandLabels: {
     search: "Search",
     add: "Add",

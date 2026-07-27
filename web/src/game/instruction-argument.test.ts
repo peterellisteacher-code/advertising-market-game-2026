@@ -42,6 +42,14 @@ const APPROVED_TEXT = Object.freeze({
   C: "A pair that completes premises 20 to 24 is likely to create and judge an audience-focused, coherent and credible advertising campaign."
 });
 
+const PLAIN_EXPLANATIONS = Object.freeze({
+  A: "This section answers two basic questions: who are you trying to persuade, and which partner is responsible for the next kind of decision? The audience brief describes a group of people in a particular situation.",
+  B: "Choose a starter product, then change it so it responds to the audience need. A product choice can be a part, colour, material, shape or feature. The product name is the name customers would see.",
+  C: "An advertisement combines what people see with what they read. The Art Director makes a visible design choice. The Strategist writes or plans the message. AIDA gives the message four jobs: attract attention, hold interest, create desire and tell the audience what to do.",
+  D: "A credible offer tells the audience what the product costs, where they would encounter the advertisement and what evidence supports its main claim. A proof point is a specific fact, feature or demonstration, not another slogan.",
+  E: "The final review uses the same five criteria as the market. Building the market card saves the finished entry. Entering the market submits it for comparison. Scoring means rating the other advertisements, not your own, before awarding medals."
+});
+
 describe("linked instruction argument", () => {
   it("contains the exact approved claims once and has no loose ends", () => {
     const claims = flattenInstructionArgument(INSTRUCTION_ARGUMENT);
@@ -53,6 +61,13 @@ describe("linked instruction argument", () => {
     expect(Object.fromEntries(claims.map(({ id, text }) => [id, text])))
       .toEqual(APPROVED_TEXT);
     expect(validateInstructionArgument(INSTRUCTION_ARGUMENT)).toEqual([]);
+  });
+
+  it("adds a literal explanation before every formal subargument", () => {
+    expect(Object.fromEntries(INSTRUCTION_ARGUMENT.map(({ id, plainExplanation }) => [
+      id,
+      plainExplanation
+    ]))).toEqual(PLAIN_EXPLANATIONS);
   });
 
   it("uses each intermediate conclusion in the next subargument", () => {

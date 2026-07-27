@@ -5,6 +5,8 @@ import {
   type GuidedJourneyStep
 } from "./guided-journey";
 import { INSTRUCTION_ARGUMENT } from "./instruction-argument";
+import { ROLE_GUIDE } from "./role-guide-controller";
+import { STUDENT_COPY } from "./student-copy";
 
 type OpenGuidedJourneyStep = (step: GuidedJourneyStep) => void;
 
@@ -139,10 +141,34 @@ export class GuidedJourneyController {
 
   #renderReference(): void {
     const fragment = document.createDocumentFragment();
-    const introduction = document.createElement("p");
-    introduction.textContent =
-      "Complete each linked action in order. You may return to completed work at any time.";
-    fragment.append(introduction);
+    const foundations = document.createElement("div");
+    foundations.className = "creator__guide-foundations";
+    const foundationParagraphs = [
+      [
+        "What you are making: ",
+        STUDENT_COPY.guideFoundations.product
+      ],
+      [
+        "How to read this guide: ",
+        `${STUDENT_COPY.guideFoundations.terms} ${STUDENT_COPY.guideFoundations.termsReassurance} Complete each linked action in order. You may return to completed work at any time.`
+      ],
+      [
+        "How the pair roles work: ",
+        `${ROLE_GUIDE.sharedAccess} ${ROLE_GUIDE.sameButtons} The Art Director leads decisions about how the product and advertisement look. The Strategist leads decisions about what the product and advertisement say, what they cost and why the offer is credible. ${ROLE_GUIDE.activeTurn} ${ROLE_GUIDE.recordedRole} ${ROLE_GUIDE.physicalUser}`
+      ],
+      [
+        "How to read the audience brief: ",
+        `${STUDENT_COPY.audienceBriefDefinitions.context} ${STUDENT_COPY.audienceBriefDefinitions.need} ${STUDENT_COPY.audienceBriefDefinitions.values} ${STUDENT_COPY.audienceBriefDefinitions.intendedEffect}`
+      ]
+    ] as const;
+    for (const [labelText, bodyText] of foundationParagraphs) {
+      const paragraph = document.createElement("p");
+      const label = document.createElement("strong");
+      label.textContent = labelText;
+      paragraph.append(label, bodyText);
+      foundations.append(paragraph);
+    }
+    fragment.append(foundations);
 
     for (const subargument of INSTRUCTION_ARGUMENT) {
       const section = document.createElement("section");
@@ -150,6 +176,11 @@ export class GuidedJourneyController {
       const heading = document.createElement("h3");
       heading.textContent = `${subargument.id}. ${subargument.title}`;
       section.append(heading);
+
+      const explanation = document.createElement("p");
+      explanation.className = "creator__instruction-explanation";
+      explanation.textContent = subargument.plainExplanation;
+      section.append(explanation);
 
       const premises = subargument.claims.filter(({ kind }) => kind === "premise");
       const list = document.createElement("ol");

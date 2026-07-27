@@ -143,6 +143,30 @@ describe("GuidedJourneyController", () => {
         "D. Turn the advertisement into a credible offer",
         "E. Turn the offer into a completed market entry"
       ]);
+    expect(dialog.textContent).toContain(
+      "You and one partner are creating one fictional product and one advertisement for a supplied audience."
+    );
+    expect(dialog.textContent).toContain(
+      "A premise is a reason. An intermediate conclusion is what a group of reasons supports."
+    );
+    expect(dialog.textContent).toContain(
+      "You do not need to memorise those terms."
+    );
+    expect(dialog.textContent).toContain(
+      "Both partners can use the same tools that are unlocked for the current level."
+    );
+    expect(dialog.textContent).toContain(
+      "Context is the situation the audience is in."
+    );
+    expect(dialog.textContent).toContain(
+      "This section answers two basic questions: who are you trying to persuade, and which partner is responsible for the next kind of decision?"
+    );
+    expect(dialog.textContent).toContain(
+      "A proof point is a specific fact, feature or demonstration, not another slogan."
+    );
+    expect(dialog.textContent).toContain(
+      "Scoring means rating the other advertisements, not your own, before awarding medals."
+    );
     expect(document.activeElement).toBe(
       getByRole(dialog, "button", { name: "Close guide" })
     );

@@ -1,4 +1,5 @@
 import type { PairGameView } from "../game/pair-game-controller";
+import { ROLE_GUIDE } from "../game/role-guide-controller";
 import { STUDENT_COPY } from "../game/student-copy";
 
 export interface EditorShell extends PairGameView {
@@ -81,10 +82,34 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         </div>
         <article class="creator__audience-brief" id="studio-full-brief" role="region" aria-label="${STUDENT_COPY.labels.audienceBrief}" hidden>
           <dl>
-            <div><dt>${STUDENT_COPY.labels.context}</dt><dd data-audience-context></dd></div>
-            <div><dt>${STUDENT_COPY.labels.need}</dt><dd data-audience-need></dd></div>
-            <div><dt>${STUDENT_COPY.labels.values}</dt><dd data-audience-values></dd></div>
-            <div><dt>${STUDENT_COPY.labels.intendedEffect}</dt><dd data-audience-effect></dd></div>
+            <div>
+              <dt>${STUDENT_COPY.labels.context}</dt>
+              <dd>
+                <span class="creator__brief-definition">${STUDENT_COPY.audienceBriefDefinitions.context}</span>
+                <span data-audience-context></span>
+              </dd>
+            </div>
+            <div>
+              <dt>${STUDENT_COPY.labels.need}</dt>
+              <dd>
+                <span class="creator__brief-definition">${STUDENT_COPY.audienceBriefDefinitions.need}</span>
+                <span data-audience-need></span>
+              </dd>
+            </div>
+            <div>
+              <dt>${STUDENT_COPY.labels.values}</dt>
+              <dd>
+                <span class="creator__brief-definition">${STUDENT_COPY.audienceBriefDefinitions.values}</span>
+                <span data-audience-values></span>
+              </dd>
+            </div>
+            <div>
+              <dt>${STUDENT_COPY.labels.intendedEffect}</dt>
+              <dd>
+                <span class="creator__brief-definition">${STUDENT_COPY.audienceBriefDefinitions.intendedEffect}</span>
+                <span data-audience-effect></span>
+              </dd>
+            </div>
           </dl>
         </article>
       </section>
@@ -241,22 +266,35 @@ export function createEditorShell(root: HTMLElement): EditorShell {
     </section>
     <div class="creator__role-guide-layer" data-role-guide-layer hidden>
       <section class="creator__role-guide" role="dialog" aria-modal="true"
-        aria-label="Partner role guide" data-role-guide-dialog>
+        aria-label="Partner role guide" data-role-guide-dialog tabindex="-1">
         <p class="creator__eyebrow">Pair responsibilities</p>
         <h2>Partner role guide</h2>
-        <p>Both partners work from the same audience brief. Each role controls a different part of the campaign.</p>
+        <div class="creator__role-guide-access" role="note">
+          <p><strong>Both partners share the controls.</strong> ${ROLE_GUIDE.sharedAccess}</p>
+          <p>${ROLE_GUIDE.sameButtons} The role names divide the decisions between the partners; they are not separate site permissions.</p>
+        </div>
         <div class="creator__role-guide-definitions">
           <section>
             <h3>Art Director</h3>
-            <p>Controls the product's appearance, images, colour, arrangement and layout.</p>
+            <p>${ROLE_GUIDE.artDirector.responsibilities}</p>
+            <p>${ROLE_GUIDE.artDirector.example}</p>
           </section>
           <section>
             <h3>Strategist</h3>
-            <p>Controls the product name, advertising words, claim, price reasoning and market-route reasoning.</p>
+            <p>${ROLE_GUIDE.strategist.responsibilities}</p>
+            <p>${ROLE_GUIDE.strategist.example}</p>
           </section>
         </div>
         <p class="creator__role-guide-assignment" data-role-guide-assignment></p>
-        <p>When roles are swapped, the responsibilities exchange. The recorded authorship history remains.</p>
+        <div class="creator__role-guide-turn">
+          <p><strong>How a turn works</strong></p>
+          <p>${ROLE_GUIDE.activeTurn} The other partner should advise, check the audience brief and prepare the next decision.</p>
+          <p>${ROLE_GUIDE.recordedRole} ${ROLE_GUIDE.physicalUser}</p>
+        </div>
+        <div class="creator__role-guide-swap">
+          <p><strong>What Swap roles changes</strong></p>
+          <p>${ROLE_GUIDE.swapEffect} ${ROLE_GUIDE.retainedWork}</p>
+        </div>
         <div class="creator__role-guide-actions">
           <button type="button" data-role-guide-close>Close role guide</button>
           <button type="button" data-role-guide-begin>Begin work</button>

@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { access } from "node:fs/promises";
+import path from "node:path";
 import { test } from "node:test";
 import {
   assertProductionCataloguesSafe,
@@ -61,14 +63,19 @@ test("reports every forbidden value with its exact source path and record ID", (
 
 test("scans every catalogue, pricing manifest and starter manifest copied into a release", async () => {
   const sources = await productionCatalogueSources(process.cwd());
-  assert.deepEqual(sources.map(({ relativePath }) => relativePath), [
+  const logoCataloguePath = "catalog/generated/logo-icons-v1-reviewed/catalog.json";
+  const logoCatalogueExists = await access(path.join(process.cwd(), logoCataloguePath))
+    .then(() => true, () => false);
+  const expectedSources = [
     "catalog/generated/offline-core-v1/catalog.json",
     "catalog/generated/offline-core-v1/pricing.json",
     "catalog/generated/offline-core-v1/product-kit-pricing-v1.json",
     "catalog/generated/offline-core-v1/student-starters-v1.json",
     "catalog/generated/product-builder-pilot-v1/catalogue.json",
     "catalog/generated/product-shells-v1-reviewed/catalog.json"
-  ]);
+  ];
+  if (logoCatalogueExists) expectedSources.unshift(logoCataloguePath);
+  assert.deepEqual(sources.map(({ relativePath }) => relativePath), expectedSources);
 
   await assertProductionCataloguesSafe(process.cwd());
 });

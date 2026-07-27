@@ -586,8 +586,8 @@ begin
     realise_granted
   ) values (
     p_user_id,
-    v_settings.object_default,
-    v_settings.realise_default
+    0,
+    0
   ) on conflict (user_id) do nothing;
   select *
     into v_allowance

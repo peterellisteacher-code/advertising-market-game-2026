@@ -18,6 +18,18 @@ const userRecord = {
   createdAt: "2026-07-20T01:02:03.000Z",
   lastSignInAt: null
 };
+const counts = (granted: number, consumed = 0, reserved = 0) => ({
+  granted,
+  consumed,
+  reserved,
+  remaining: granted - consumed - reserved
+});
+const allowanceSnapshot = {
+  status: "available" as const,
+  enabled: true,
+  object: counts(2),
+  realise: counts(1)
+};
 
 class MemoryOperationStore implements TeacherAccountOperationStore {
   private readonly entries = new Map<string, {
@@ -85,10 +97,28 @@ const dependencies = () => {
       events.push("assets");
     })
   };
+  const allowances = {
+    status: vi.fn().mockResolvedValue(allowanceSnapshot),
+    globalStatus: vi.fn().mockResolvedValue(allowanceSnapshot),
+    list: vi.fn().mockResolvedValue([{
+      alias: "team-one",
+      object: counts(2),
+      realise: counts(1)
+    }]),
+    setGlobal: vi.fn().mockResolvedValue(allowanceSnapshot),
+    set: vi.fn().mockResolvedValue(allowanceSnapshot),
+    add: vi.fn().mockResolvedValue(allowanceSnapshot),
+    revoke: vi.fn().mockResolvedValue(allowanceSnapshot),
+    reserve: vi.fn(),
+    complete: vi.fn(),
+    refund: vi.fn(),
+    markUncertain: vi.fn()
+  };
   return {
     events,
     client,
     assets,
+    allowances,
     operations: new MemoryOperationStore()
   };
 };
@@ -163,6 +193,18 @@ describe("teacher account service", () => {
     expect(email).toMatch(/^[a-f0-9]{64}@accounts\.admarket\.invalid$/u);
     expect(email).not.toContain("team-one");
     expect([password, username]).toEqual(["chosen-password", "team-one"]);
+    expect(setup.allowances.globalStatus).toHaveBeenCalledOnce();
+    expect(setup.allowances.set).toHaveBeenCalledTimes(2);
+    expect(setup.allowances.set).toHaveBeenCalledWith(expect.objectContaining({
+      userId,
+      stage: "object",
+      amount: 2
+    }));
+    expect(setup.allowances.set).toHaveBeenCalledWith(expect.objectContaining({
+      userId,
+      stage: "realise",
+      amount: 1
+    }));
   });
 
   it("replaces a password once and does not expose the password in its result", async () => {
@@ -290,5 +332,166 @@ describe("teacher account service", () => {
       code: "USERNAME_UNAVAILABLE",
       status: 409
     });
+  });
+
+  it("lists global defaults and browser-safe per-pair allowance counts", async () => {
+    const setup = dependencies();
+    const service = new TeacherAccountService({
+      ...setup,
+      usernameHmacSecret: "h".repeat(32),
+      operationSecret: "o".repeat(32)
+    });
+
+    const result = await service.imageLabStatus();
+
+    expect(result).toEqual({
+      enabled: true,
+      defaults: { object: 2, realise: 1 },
+      accounts: [{
+        alias: "team-one",
+        object: counts(2),
+        realise: counts(1)
+      }]
+    });
+    expect(JSON.stringify(result)).not.toContain(userId);
+  });
+
+  it("updates global state and both future-account defaults with deterministic replay identities", async () => {
+    const setup = dependencies();
+    let enabled = true;
+    let objectDefault = 2;
+    let realiseDefault = 1;
+    setup.allowances.setGlobal.mockImplementation(async (input) => {
+      if (input.target === "enabled") enabled = input.enabled;
+      else if (input.stage === "object") objectDefault = input.amount;
+      else realiseDefault = input.amount;
+      return {
+        status: enabled ? "available" as const : "disabled" as const,
+        enabled,
+        object: counts(objectDefault),
+        realise: counts(realiseDefault)
+      };
+    });
+    const service = new TeacherAccountService({
+      ...setup,
+      usernameHmacSecret: "h".repeat(32),
+      operationSecret: "o".repeat(32)
+    });
+    const input = {
+      operationId,
+      enabled: false,
+      objectDefault: 4,
+      realiseDefault: 2
+    };
+
+    const first = await service.setImageLabGlobal(input);
+    const firstCalls = structuredClone(setup.allowances.setGlobal.mock.calls);
+    const replay = await service.setImageLabGlobal(input);
+
+    expect(first).toMatchObject({
+      status: "updated",
+      operationId,
+      operation: "global",
+      enabled: false,
+      defaults: { object: 4, realise: 2 }
+    });
+    expect(replay).toEqual(first);
+    expect(firstCalls).toHaveLength(3);
+    expect(firstCalls.map(([call]) => call)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ target: "enabled", enabled: false }),
+      expect.objectContaining({ target: "default", stage: "object", amount: 4 }),
+      expect.objectContaining({ target: "default", stage: "realise", amount: 2 })
+    ]));
+    expect(setup.allowances.setGlobal.mock.calls.slice(3)).toEqual(firstCalls);
+  });
+
+  it.each(["set", "add", "revoke"] as const)(
+    "resolves the alias server-side and applies %s to separate draft and final counts",
+    async (operation) => {
+      const setup = dependencies();
+      const service = new TeacherAccountService({
+        ...setup,
+        usernameHmacSecret: "h".repeat(32),
+        operationSecret: "o".repeat(32)
+      });
+
+      const result = await service.mutateImageLabAccount(operation, {
+        operationId,
+        alias: "team-one",
+        object: operation === "set" ? 0 : 2,
+        realise: 1
+      });
+
+      expect(setup.client.findAdvertisingGameUser).toHaveBeenCalledWith("team-one");
+      expect(setup.allowances[operation]).toHaveBeenCalledWith(expect.objectContaining({
+        userId,
+        stage: "realise",
+        amount: 1,
+        operationId: expect.not.stringContaining(userId),
+        requestHash: expect.stringMatching(/^[a-f0-9]{64}$/u)
+      }));
+      expect(result).toMatchObject({
+        status: "updated",
+        operationId,
+        operation,
+        alias: "team-one",
+        account: { alias: "team-one" }
+      });
+    }
+  );
+
+  it("grants a batch only to the selected aliases with no browser user IDs", async () => {
+    const setup = dependencies();
+    const secondUser = {
+      ...userRecord,
+      userId: "99250725-52e0-44c9-b569-593167786eaf",
+      username: "team-two"
+    };
+    setup.client.findAdvertisingGameUser.mockImplementation(async (alias: string) =>
+      alias === "team-one" ? userRecord : alias === "team-two" ? secondUser : null);
+    const service = new TeacherAccountService({
+      ...setup,
+      usernameHmacSecret: "h".repeat(32),
+      operationSecret: "o".repeat(32)
+    });
+
+    const result = await service.batchAddImageLab({
+      operationId,
+      aliases: ["team-one", "team-two"],
+      object: 1,
+      realise: 0
+    });
+
+    expect(setup.allowances.add).toHaveBeenCalledTimes(2);
+    expect(result).toMatchObject({
+      status: "updated",
+      operationId,
+      operation: "batch-add",
+      aliases: ["team-one", "team-two"]
+    });
+    expect(JSON.stringify(result)).not.toContain(userId);
+    expect(JSON.stringify(result)).not.toContain(secondUser.userId);
+  });
+
+  it("reports an unknown allowance outcome as refresh-required and does not retry it", async () => {
+    const setup = dependencies();
+    setup.allowances.add.mockRejectedValueOnce(new SupabaseAccountError("upstream"));
+    const service = new TeacherAccountService({
+      ...setup,
+      usernameHmacSecret: "h".repeat(32),
+      operationSecret: "o".repeat(32)
+    });
+
+    await expect(service.mutateImageLabAccount("add", {
+      operationId,
+      alias: "team-one",
+      object: 1,
+      realise: 0
+    })).rejects.toMatchObject({
+      code: "IMAGE_LAB_MUTATION_UNCERTAIN",
+      status: 409,
+      retryable: false
+    });
+    expect(setup.allowances.add).toHaveBeenCalledOnce();
   });
 });

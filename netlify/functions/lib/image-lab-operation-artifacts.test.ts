@@ -89,6 +89,13 @@ describe("Image Lab allowance operation artifacts", () => {
     expect(sql).toContain("realise_consumed + realise_reserved <= realise_granted");
   });
 
+  it("does not lazily give changed future-account defaults to existing accounts", () => {
+    const sql = executableSql();
+    expect(sql).toMatch(
+      /insert into advertising_game\.image_lab_allowance\s*\(\s*user_id,\s*object_granted,\s*realise_granted\s*\)\s*values\s*\(\s*p_user_id,\s*0,\s*0\s*\)\s*on conflict \(user_id\) do nothing/iu
+    );
+  });
+
   it("serializes user and global mutations and journals immutable request identity", () => {
     const sql = executableSql();
     expect(sql).toContain("pg_catalog.pg_advisory_xact_lock");

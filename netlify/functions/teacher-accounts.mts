@@ -16,6 +16,7 @@ import {
 } from "./lib/account-assets";
 import { defaultAccountAssetService } from "./lib/netlify-account-assets";
 import { normaliseAccountUsername } from "./lib/account-primitives";
+import { SupabaseImageLabAllowanceStore } from "./lib/image-lab-allowance-store";
 import {
   TeacherAuthError,
   parseTeacherEnvironment,
@@ -32,6 +33,11 @@ import {
 const ACCOUNT_LIST_PATH = "/api/teacher/accounts";
 const ACCOUNT_ACTION_PATH =
   /^\/api\/teacher\/accounts\/([a-z0-9][a-z0-9_-]{2,23})\/(password|reset)$/u;
+const IMAGE_LAB_PATH = "/api/teacher/image-lab";
+const IMAGE_LAB_GLOBAL_PATH = "/api/teacher/image-lab/global";
+const IMAGE_LAB_BATCH_PATH = "/api/teacher/image-lab/batch";
+const IMAGE_LAB_ACCOUNT_PATH =
+  /^\/api\/teacher\/image-lab\/accounts\/([a-z0-9][a-z0-9_-]{2,23})(?:\/(add|revoke))?$/u;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 const TEACHER_PLAYTEST_USERNAME = "teacher-playtest";
@@ -63,6 +69,28 @@ interface TeacherAccountsService {
     operationId: string;
     username: string;
   }): Promise<unknown>;
+  imageLabStatus(): Promise<unknown>;
+  setImageLabGlobal(input: {
+    operationId: string;
+    enabled: boolean;
+    objectDefault: number;
+    realiseDefault: number;
+  }): Promise<unknown>;
+  mutateImageLabAccount(
+    action: "set" | "add" | "revoke",
+    input: {
+      operationId: string;
+      alias: string;
+      object: number;
+      realise: number;
+    }
+  ): Promise<unknown>;
+  batchAddImageLab(input: {
+    operationId: string;
+    aliases: readonly string[];
+    object: number;
+    realise: number;
+  }): Promise<unknown>;
 }
 
 interface TeacherAccountsDependencies {
@@ -79,7 +107,17 @@ interface TeacherAccountsDependencies {
 }
 
 interface ParsedRoute {
-  readonly kind: "list" | "create" | "password" | "reset";
+  readonly kind:
+    | "list"
+    | "create"
+    | "password"
+    | "reset"
+    | "image-lab-status"
+    | "image-lab-global"
+    | "image-lab-set"
+    | "image-lab-add"
+    | "image-lab-revoke"
+    | "image-lab-batch";
   readonly username?: string;
   readonly allowedMethod: "GET" | "POST" | "PUT";
 }
@@ -116,6 +154,26 @@ const configuredAccountEnvironment = (
 const routeFor = (pathname: string): ParsedRoute | null => {
   if (pathname === ACCOUNT_LIST_PATH) {
     return { kind: "list", allowedMethod: "GET" };
+  }
+  if (pathname === IMAGE_LAB_PATH) {
+    return { kind: "image-lab-status", allowedMethod: "GET" };
+  }
+  if (pathname === IMAGE_LAB_GLOBAL_PATH) {
+    return { kind: "image-lab-global", allowedMethod: "PUT" };
+  }
+  if (pathname === IMAGE_LAB_BATCH_PATH) {
+    return { kind: "image-lab-batch", allowedMethod: "POST" };
+  }
+  const imageLabAccount = IMAGE_LAB_ACCOUNT_PATH.exec(pathname);
+  if (imageLabAccount !== null) {
+    const username = imageLabAccount[1]!;
+    if (imageLabAccount[2] === "add") {
+      return { kind: "image-lab-add", username, allowedMethod: "POST" };
+    }
+    if (imageLabAccount[2] === "revoke") {
+      return { kind: "image-lab-revoke", username, allowedMethod: "POST" };
+    }
+    return { kind: "image-lab-set", username, allowedMethod: "PUT" };
   }
   const match = ACCOUNT_ACTION_PATH.exec(pathname);
   if (match === null) return null;
@@ -217,6 +275,123 @@ const parseResetBody = (value: unknown, username: string) => {
   };
 };
 
+const parseAllowanceAmount = (value: unknown): number => {
+  if (
+    typeof value !== "number" ||
+    !Number.isInteger(value) ||
+    value < 0 ||
+    value > 100
+  ) {
+    throw new AccountRequestError("INVALID_REQUEST", 400);
+  }
+  return value;
+};
+
+const parseImageLabGlobalBody = (value: unknown) => {
+  if (
+    !isRecord(value) ||
+    !hasExactKeys(value, [
+      "schema",
+      "version",
+      "operationId",
+      "enabled",
+      "objectDefault",
+      "realiseDefault"
+    ]) ||
+    value.schema !== "ad-market-teacher-image-lab-global" ||
+    value.version !== 1 ||
+    typeof value.enabled !== "boolean"
+  ) {
+    throw new AccountRequestError("INVALID_REQUEST", 400);
+  }
+  return {
+    operationId: parseOperationId(value.operationId),
+    enabled: value.enabled,
+    objectDefault: parseAllowanceAmount(value.objectDefault),
+    realiseDefault: parseAllowanceAmount(value.realiseDefault)
+  };
+};
+
+const parseImageLabAccountBody = (
+  value: unknown,
+  username: string,
+  action: "set" | "add" | "revoke"
+) => {
+  const schema = `ad-market-teacher-image-lab-account-${action}`;
+  if (
+    !isRecord(value) ||
+    !hasExactKeys(value, [
+      "schema",
+      "version",
+      "operationId",
+      "object",
+      "realise"
+    ]) ||
+    value.schema !== schema ||
+    value.version !== 1
+  ) {
+    throw new AccountRequestError("INVALID_REQUEST", 400);
+  }
+  const object = parseAllowanceAmount(value.object);
+  const realise = parseAllowanceAmount(value.realise);
+  if (action !== "set" && object === 0 && realise === 0) {
+    throw new AccountRequestError("INVALID_REQUEST", 400);
+  }
+  if (username === TEACHER_PLAYTEST_USERNAME) {
+    throw new AccountRequestError("INVALID_REQUEST", 400);
+  }
+  return {
+    operationId: parseOperationId(value.operationId),
+    alias: username,
+    object,
+    realise
+  };
+};
+
+const parseImageLabBatchBody = (value: unknown) => {
+  if (
+    !isRecord(value) ||
+    !hasExactKeys(value, [
+      "schema",
+      "version",
+      "operationId",
+      "aliases",
+      "object",
+      "realise"
+    ]) ||
+    value.schema !== "ad-market-teacher-image-lab-batch-add" ||
+    value.version !== 1 ||
+    !Array.isArray(value.aliases) ||
+    value.aliases.length < 1 ||
+    value.aliases.length > 100
+  ) {
+    throw new AccountRequestError("INVALID_REQUEST", 400);
+  }
+  const aliases = value.aliases.map((candidate) => {
+    try {
+      const alias = normaliseAccountUsername(candidate);
+      if (alias === TEACHER_PLAYTEST_USERNAME) throw new Error("reserved");
+      return alias;
+    } catch {
+      throw new AccountRequestError("INVALID_REQUEST", 400);
+    }
+  });
+  const object = parseAllowanceAmount(value.object);
+  const realise = parseAllowanceAmount(value.realise);
+  if (
+    new Set(aliases).size !== aliases.length ||
+    (object === 0 && realise === 0)
+  ) {
+    throw new AccountRequestError("INVALID_REQUEST", 400);
+  }
+  return {
+    operationId: parseOperationId(value.operationId),
+    aliases,
+    object,
+    realise
+  };
+};
+
 const routeError = (error: unknown, operationId?: string): Response => {
   if (error instanceof AccountRequestError) {
     return accountJson({ error: error.code }, error.status);
@@ -230,6 +405,9 @@ const routeError = (error: unknown, operationId?: string): Response => {
       ...(operationId === undefined ? {} : { operationId }),
       ...(error.retryable || error.code === "RESET_INCOMPLETE"
         ? { retryable: error.retryable }
+        : {}),
+      ...(error.code === "IMAGE_LAB_MUTATION_UNCERTAIN"
+        ? { retryable: false, refreshRequired: true }
         : {})
     };
     const headers = error.retryAfter !== undefined &&
@@ -257,13 +435,17 @@ const defaultService = async (
   accountEnvironment: AccountAssetEnvironment,
   teacherEnvironment: TeacherEnvironment,
   fetcher: typeof fetch
-): Promise<TeacherAccountsService> => new TeacherAccountService({
-  client: new SupabaseAccountClient(accountEnvironment, fetcher),
-  assets: await defaultAccountAssetService(accountEnvironment.assetNamespaceSecret),
-  operations: defaultTeacherAccountOperationStore(),
-  usernameHmacSecret: accountEnvironment.usernameHmacSecret,
-  operationSecret: teacherEnvironment.sessionSecret
-});
+): Promise<TeacherAccountsService> => {
+  const client = new SupabaseAccountClient(accountEnvironment, fetcher);
+  return new TeacherAccountService({
+    client,
+    assets: await defaultAccountAssetService(accountEnvironment.assetNamespaceSecret),
+    allowances: new SupabaseImageLabAllowanceStore(client),
+    operations: defaultTeacherAccountOperationStore(),
+    usernameHmacSecret: accountEnvironment.usernameHmacSecret,
+    operationSecret: teacherEnvironment.sessionSecret
+  });
+};
 
 export function createTeacherAccountsHandler(
   dependencies: TeacherAccountsDependencies = {}
@@ -322,6 +504,9 @@ export function createTeacherAccountsHandler(
       if (routeWithMethod.kind === "list") {
         return accountJson({ accounts: await service.listAccounts() });
       }
+      if (routeWithMethod.kind === "image-lab-status") {
+        return accountJson(await service.imageLabStatus());
+      }
       const body = await readAccountJson(request, ACCOUNT_JSON_LIMIT);
       if (routeWithMethod.kind === "create") {
         const input = parseCreateBody(body);
@@ -333,9 +518,34 @@ export function createTeacherAccountsHandler(
         operationId = input.operationId;
         return accountJson(await service.replacePassword(input));
       }
-      const input = parseResetBody(body, routeWithMethod.username!);
+      if (routeWithMethod.kind === "reset") {
+        const input = parseResetBody(body, routeWithMethod.username!);
+        operationId = input.operationId;
+        return accountJson(await service.resetAccount(input));
+      }
+      if (routeWithMethod.kind === "image-lab-global") {
+        const input = parseImageLabGlobalBody(body);
+        operationId = input.operationId;
+        return accountJson(await service.setImageLabGlobal(input));
+      }
+      if (
+        routeWithMethod.kind === "image-lab-set" ||
+        routeWithMethod.kind === "image-lab-add" ||
+        routeWithMethod.kind === "image-lab-revoke"
+      ) {
+        const action = routeWithMethod.kind.replace("image-lab-", "") as
+          "set" | "add" | "revoke";
+        const input = parseImageLabAccountBody(
+          body,
+          routeWithMethod.username!,
+          action
+        );
+        operationId = input.operationId;
+        return accountJson(await service.mutateImageLabAccount(action, input));
+      }
+      const input = parseImageLabBatchBody(body);
       operationId = input.operationId;
-      return accountJson(await service.resetAccount(input));
+      return accountJson(await service.batchAddImageLab(input));
     } catch (error) {
       return routeError(error, operationId);
     }
@@ -348,7 +558,13 @@ export const config: Config = {
   path: [
     "/api/teacher/accounts",
     "/api/teacher/accounts/:username/password",
-    "/api/teacher/accounts/:username/reset"
+    "/api/teacher/accounts/:username/reset",
+    "/api/teacher/image-lab",
+    "/api/teacher/image-lab/global",
+    "/api/teacher/image-lab/accounts/:username",
+    "/api/teacher/image-lab/accounts/:username/add",
+    "/api/teacher/image-lab/accounts/:username/revoke",
+    "/api/teacher/image-lab/batch"
   ],
   rateLimit: {
     windowLimit: 60,

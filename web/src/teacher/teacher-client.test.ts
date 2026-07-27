@@ -10,6 +10,21 @@ const summary = {
   createdAt: "2026-07-20T01:02:03.000Z",
   lastSignInAt: null
 };
+const counts = (granted: number, consumed = 0, reserved = 0) => ({
+  granted,
+  consumed,
+  reserved,
+  remaining: granted - consumed - reserved
+});
+const imageLabStatus = {
+  enabled: true,
+  defaults: { object: 0, realise: 0 },
+  accounts: [{
+    alias: "team-one",
+    object: counts(2, 0, 1),
+    realise: counts(1)
+  }]
+};
 
 describe("HttpTeacherClient", () => {
   it("uses exact same-origin session and account-list GET contracts", async () => {
@@ -114,6 +129,127 @@ describe("HttpTeacherClient", () => {
       expect(init?.redirect).toBe("error");
       expect(init?.signal).toBeInstanceOf(AbortSignal);
     }
+  });
+
+  it("uses exact alias-only Image Lab status and mutation contracts", async () => {
+    const accountResult = {
+      status: "updated",
+      operationId,
+      operation: "set",
+      alias: "team-one",
+      account: imageLabStatus.accounts[0]
+    };
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(Response.json(imageLabStatus))
+      .mockResolvedValueOnce(Response.json({
+        status: "updated",
+        operationId,
+        operation: "global",
+        enabled: false,
+        defaults: { object: 3, realise: 1 }
+      }))
+      .mockResolvedValueOnce(Response.json(accountResult))
+      .mockResolvedValueOnce(Response.json({ ...accountResult, operation: "add" }))
+      .mockResolvedValueOnce(Response.json({ ...accountResult, operation: "revoke" }))
+      .mockResolvedValueOnce(Response.json({
+        status: "updated",
+        operationId,
+        operation: "batch-add",
+        aliases: ["team-one"],
+        accounts: [imageLabStatus.accounts[0]]
+      }));
+    const client = new HttpTeacherClient({ fetcher });
+
+    await expect(client.imageLabStatus()).resolves.toEqual(imageLabStatus);
+    await client.setImageLabGlobal({
+      operationId,
+      enabled: false,
+      objectDefault: 3,
+      realiseDefault: 1
+    });
+    await client.setImageLabAccount({ operationId, alias: "team-one", object: 2, realise: 1 });
+    await client.addImageLabAccount({ operationId, alias: "team-one", object: 1, realise: 0 });
+    await client.revokeImageLabAccount({ operationId, alias: "team-one", object: 1, realise: 1 });
+    await client.batchAddImageLab({
+      operationId,
+      aliases: ["team-one"],
+      object: 2,
+      realise: 0
+    });
+
+    expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
+      "/api/teacher/image-lab",
+      "/api/teacher/image-lab/global",
+      "/api/teacher/image-lab/accounts/team-one",
+      "/api/teacher/image-lab/accounts/team-one/add",
+      "/api/teacher/image-lab/accounts/team-one/revoke",
+      "/api/teacher/image-lab/batch"
+    ]);
+    expect(fetcher.mock.calls.map(([, init]) => init?.method))
+      .toEqual(["GET", "PUT", "PUT", "POST", "POST", "POST"]);
+    expect(fetcher.mock.calls.slice(1).map(([, init]) =>
+      JSON.parse(String(init?.body)))).toEqual([
+      {
+        schema: "ad-market-teacher-image-lab-global",
+        version: 1,
+        operationId,
+        enabled: false,
+        objectDefault: 3,
+        realiseDefault: 1
+      },
+      {
+        schema: "ad-market-teacher-image-lab-account-set",
+        version: 1,
+        operationId,
+        object: 2,
+        realise: 1
+      },
+      {
+        schema: "ad-market-teacher-image-lab-account-add",
+        version: 1,
+        operationId,
+        object: 1,
+        realise: 0
+      },
+      {
+        schema: "ad-market-teacher-image-lab-account-revoke",
+        version: 1,
+        operationId,
+        object: 1,
+        realise: 1
+      },
+      {
+        schema: "ad-market-teacher-image-lab-batch-add",
+        version: 1,
+        operationId,
+        aliases: ["team-one"],
+        object: 2,
+        realise: 0
+      }
+    ]);
+    expect(JSON.stringify(fetcher.mock.calls)).not.toContain("userId");
+  });
+
+  it("marks an uncertain mutation as refresh-required without retrying it", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({
+      error: "IMAGE_LAB_MUTATION_UNCERTAIN",
+      operationId,
+      retryable: false,
+      refreshRequired: true
+    }, { status: 409 }));
+    const client = new HttpTeacherClient({ fetcher });
+
+    await expect(client.addImageLabAccount({
+      operationId,
+      alias: "team-one",
+      object: 1,
+      realise: 0
+    })).rejects.toMatchObject({
+      code: "IMAGE_LAB_MUTATION_UNCERTAIN",
+      retryable: false,
+      refreshRequired: true
+    });
+    expect(fetcher).toHaveBeenCalledOnce();
   });
 
   it("retries one bounded 429 only for a safe GET", async () => {

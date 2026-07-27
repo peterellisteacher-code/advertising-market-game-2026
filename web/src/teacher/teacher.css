@@ -177,6 +177,108 @@ body:has([data-admarket-route="teacher-dashboard"]) {
   font-weight: 650;
 }
 
+.teacher-image-lab {
+  display: grid;
+  gap: 18px;
+  margin-top: 28px;
+  padding: 22px;
+}
+
+.teacher-image-lab > p {
+  margin: 0;
+}
+
+.teacher-image-lab__status {
+  color: var(--teacher-accent-dark);
+  font-weight: 750;
+}
+
+.teacher-image-lab__feedback {
+  min-height: 1.5em;
+  color: var(--teacher-accent-dark);
+  font-weight: 650;
+}
+
+.teacher-image-lab__feedback[role="alert"] {
+  color: var(--teacher-danger);
+}
+
+.teacher-image-lab__global,
+.teacher-image-lab__batch {
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) repeat(2, minmax(150px, 0.55fr)) auto;
+  align-items: end;
+  gap: 14px;
+  border-radius: 10px;
+  padding: 16px;
+  background: #f3f6f8;
+}
+
+.teacher-image-lab__batch h3 {
+  grid-column: 1 / -1;
+}
+
+.teacher-image-lab .teacher-field input[type="checkbox"] {
+  width: 22px;
+  min-height: 22px;
+  margin: 8px 0;
+}
+
+.teacher-image-lab__table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--teacher-line);
+  border-radius: 10px;
+}
+
+.teacher-image-lab table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+}
+
+.teacher-image-lab th,
+.teacher-image-lab td {
+  padding: 12px;
+  border-bottom: 1px solid var(--teacher-line);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.teacher-image-lab thead th {
+  background: #edf3f6;
+  font-size: 0.88rem;
+}
+
+.teacher-image-lab tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.teacher-image-lab__select {
+  width: 52px;
+  text-align: center !important;
+}
+
+.teacher-image-lab__select input {
+  width: 22px;
+  height: 22px;
+}
+
+.teacher-image-lab__controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(70px, 0.4fr)) repeat(3, minmax(110px, auto));
+  gap: 8px;
+}
+
+.teacher-image-lab__controls input {
+  min-height: 44px;
+  min-width: 0;
+  border: 1px solid #9ca8b6;
+  border-radius: 8px;
+  padding: 8px;
+  color: var(--teacher-ink);
+  font: inherit;
+}
+
 .teacher-login {
   max-width: 680px;
   padding-top: clamp(40px, 10vh, 100px);
@@ -313,5 +415,18 @@ body:has([data-admarket-route="teacher-dashboard"]) {
   .teacher-account__actions > button,
   .teacher-header__actions > button {
     flex: 1 1 180px;
+  }
+
+  .teacher-image-lab {
+    padding: 16px;
+  }
+
+  .teacher-image-lab__global,
+  .teacher-image-lab__batch {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-image-lab__batch h3 {
+    grid-column: auto;
   }
 }

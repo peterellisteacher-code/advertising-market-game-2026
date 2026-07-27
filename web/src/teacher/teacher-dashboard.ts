@@ -1,6 +1,9 @@
 import {
   createTeacherOperationId,
+  TeacherClientError,
   type TeacherClient,
+  type TeacherImageLabAccount,
+  type TeacherImageLabOverview,
   type TeacherPairSummary
 } from "./teacher-client";
 
@@ -71,6 +74,9 @@ export class TeacherDashboard {
   readonly #clipboard: Pick<Clipboard, "writeText"> | undefined;
   readonly #navigate: (path: string) => void;
   #accounts: readonly TeacherPairSummary[] = [];
+  #imageLab: TeacherImageLabOverview | null = null;
+  #imageLabLoadError = "";
+  #imageLabAudit = "";
   #announcement: HTMLParagraphElement | null = null;
 
   constructor(
@@ -155,14 +161,24 @@ export class TeacherDashboard {
   }
 
   async #loadDashboard(): Promise<void> {
-    try {
-      this.#accounts = await this.#client.listAccounts();
-      this.#renderDashboard();
-    } catch {
-      this.#renderDashboard(
-        "Classroom accounts could not be loaded. Check the connection and refresh this page."
-      );
+    const [accounts, imageLab] = await Promise.allSettled([
+      this.#client.listAccounts(),
+      this.#client.imageLabStatus()
+    ]);
+    if (accounts.status === "fulfilled") {
+      this.#accounts = accounts.value;
     }
+    if (imageLab.status === "fulfilled") {
+      this.#imageLab = imageLab.value;
+      this.#imageLabLoadError = "";
+    } else {
+      this.#imageLab = null;
+      this.#imageLabLoadError =
+        "Image Lab allowances could not be loaded. Check the connection and refresh the allowances.";
+    }
+    this.#renderDashboard(accounts.status === "rejected"
+      ? "Classroom accounts could not be loaded. Check the connection and refresh this page."
+      : "");
   }
 
   #renderDashboard(initialError = ""): void {
@@ -231,9 +247,392 @@ export class TeacherDashboard {
     this.#announcement.setAttribute("aria-live", initialError === "" ? "polite" : "assertive");
     this.#announcement.textContent = initialError;
 
-    main.append(header, toolbar, this.#announcement, accountRegion);
+    main.append(
+      header,
+      toolbar,
+      this.#announcement,
+      accountRegion,
+      this.#imageLabRegion()
+    );
     this.#root.replaceChildren(main);
     main.focus();
+  }
+
+  #imageLabRegion(): HTMLElement {
+    const region = document.createElement("section");
+    region.className = "teacher-image-lab teacher-card";
+    region.setAttribute("aria-label", "Image Lab allowances");
+    const heading = document.createElement("h2");
+    heading.textContent = "Image Lab allowances";
+    const explanation = document.createElement("p");
+    explanation.textContent =
+      "Control whether pairs can use Image Lab and set separate Object Forge and Make It Real allowances.";
+    const feedback = document.createElement("p");
+    feedback.className = "teacher-image-lab__feedback";
+    feedback.setAttribute("role", this.#imageLabLoadError === "" ? "status" : "alert");
+    feedback.setAttribute("aria-live", this.#imageLabLoadError === "" ? "polite" : "assertive");
+    feedback.textContent = this.#imageLabLoadError || this.#imageLabAudit;
+    region.append(heading, explanation, feedback);
+
+    if (this.#imageLab === null) {
+      const refresh = button("Refresh allowances");
+      refresh.addEventListener("click", () => {
+        void this.#refreshImageLab(region);
+      });
+      region.append(refresh);
+      return region;
+    }
+
+    const status = document.createElement("p");
+    status.className = "teacher-image-lab__status";
+    status.textContent = this.#imageLab.enabled
+      ? "Image Lab is available to pairs."
+      : "Image Lab is unavailable to pairs.";
+
+    const globalForm = document.createElement("form");
+    globalForm.className = "teacher-image-lab__global";
+    const enabled = document.createElement("input");
+    enabled.type = "checkbox";
+    enabled.checked = this.#imageLab.enabled;
+    const enabledField = field("Image Lab available to pairs", enabled);
+    const objectDefault = this.#allowanceInput(this.#imageLab.defaults.object);
+    const objectDefaultField = field("Default Object Forge uses", objectDefault);
+    const realiseDefault = this.#allowanceInput(this.#imageLab.defaults.realise);
+    const realiseDefaultField = field("Default Make It Real uses", realiseDefault);
+    const saveGlobal = button("Save Image Lab settings", "submit");
+    globalForm.append(
+      enabledField.wrapper,
+      objectDefaultField.wrapper,
+      realiseDefaultField.wrapper,
+      saveGlobal
+    );
+    globalForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const values = this.#readAllowancePair(
+        objectDefault,
+        realiseDefault,
+        feedback,
+        true
+      );
+      if (values === null) return;
+      void this.#runImageLabMutation(
+        region,
+        () => this.#client.setImageLabGlobal({
+          operationId: this.#createOperationId(),
+          enabled: enabled.checked,
+          objectDefault: values.object,
+          realiseDefault: values.realise
+        }),
+        (result) => {
+          this.#imageLab = {
+            ...this.#imageLab!,
+            enabled: result.enabled,
+            defaults: result.defaults
+          };
+          this.#imageLabAudit =
+            `Settings saved — Image Lab ${result.enabled ? "available" : "unavailable"}; ` +
+            `future accounts receive ${result.defaults.object} Object Forge and ` +
+            `${result.defaults.realise} Make It Real uses.`;
+        }
+      );
+    });
+
+    const table = document.createElement("table");
+    table.setAttribute("aria-label", "Pair Image Lab allowances");
+    const head = document.createElement("thead");
+    const headRow = document.createElement("tr");
+    for (const label of [
+      "Select",
+      "Pair",
+      "Object Forge",
+      "Make It Real",
+      "Change uses"
+    ]) {
+      const cell = document.createElement("th");
+      cell.scope = "col";
+      cell.textContent = label;
+      headRow.append(cell);
+    }
+    head.append(headRow);
+    const body = document.createElement("tbody");
+    for (const account of this.#imageLab.accounts) {
+      body.append(this.#imageLabRow(region, account, feedback));
+    }
+    table.append(head, body);
+    const tableScroll = document.createElement("div");
+    tableScroll.className = "teacher-image-lab__table-scroll";
+    tableScroll.append(table);
+
+    const batch = document.createElement("form");
+    batch.className = "teacher-image-lab__batch";
+    const batchHeading = document.createElement("h3");
+    batchHeading.textContent = "Add uses to selected pairs";
+    const batchObject = this.#allowanceInput(0);
+    const batchObjectField = field("Batch Object Forge uses", batchObject);
+    const batchRealise = this.#allowanceInput(0);
+    const batchRealiseField = field("Batch Make It Real uses", batchRealise);
+    const batchSubmit = button("Add uses to selected pairs", "submit");
+    batch.append(
+      batchHeading,
+      batchObjectField.wrapper,
+      batchRealiseField.wrapper,
+      batchSubmit
+    );
+    batch.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const aliases = [...region.querySelectorAll<HTMLInputElement>(
+        'input[data-image-lab-batch-alias]:checked'
+      )].map((input) => input.dataset.imageLabBatchAlias!);
+      const values = this.#readAllowancePair(
+        batchObject,
+        batchRealise,
+        feedback,
+        false
+      );
+      if (values === null) return;
+      if (aliases.length === 0) {
+        this.#setImageLabFeedback(
+          feedback,
+          "Select at least one pair before adding uses.",
+          true
+        );
+        return;
+      }
+      void this.#runImageLabMutation(
+        region,
+        () => this.#client.batchAddImageLab({
+          operationId: this.#createOperationId(),
+          aliases,
+          object: values.object,
+          realise: values.realise
+        }),
+        (result) => {
+          this.#replaceImageLabAccounts(result.accounts);
+          this.#imageLabAudit =
+            `Added uses to ${result.aliases.length} selected ` +
+            `${result.aliases.length === 1 ? "pair" : "pairs"}.`;
+        }
+      );
+    });
+
+    const refresh = button("Refresh allowances");
+    refresh.hidden = true;
+    refresh.addEventListener("click", () => {
+      void this.#refreshImageLab(region);
+    });
+    region.append(status, globalForm, tableScroll, batch, refresh);
+    return region;
+  }
+
+  #imageLabRow(
+    region: HTMLElement,
+    account: TeacherImageLabAccount,
+    feedback: HTMLParagraphElement
+  ): HTMLTableRowElement {
+    const row = document.createElement("tr");
+    const selectCell = document.createElement("td");
+    selectCell.className = "teacher-image-lab__select";
+    const selected = document.createElement("input");
+    selected.type = "checkbox";
+    selected.dataset.imageLabBatchAlias = account.alias;
+    selected.setAttribute("aria-label", `Select ${account.alias} for batch grant`);
+    selectCell.append(selected);
+    const alias = document.createElement("th");
+    alias.scope = "row";
+    alias.textContent = account.alias;
+    const objectStatus = document.createElement("td");
+    objectStatus.textContent =
+      `${account.object.remaining} available; ${account.object.reserved} reserved`;
+    const realiseStatus = document.createElement("td");
+    realiseStatus.textContent =
+      `${account.realise.remaining} available; ${account.realise.reserved} reserved`;
+    const controls = document.createElement("td");
+    const controlGroup = document.createElement("div");
+    controlGroup.className = "teacher-image-lab__controls";
+    const object = this.#allowanceInput(account.object.remaining);
+    object.setAttribute("aria-label", `Object Forge uses for ${account.alias}`);
+    const realise = this.#allowanceInput(account.realise.remaining);
+    realise.setAttribute("aria-label", `Make It Real uses for ${account.alias}`);
+    const set = button(`Set uses for ${account.alias}`);
+    const add = button(`Add uses for ${account.alias}`);
+    const revoke = button(`Revoke available uses for ${account.alias}`);
+    const mutate = (
+      operation: "set" | "add" | "revoke",
+      invoke: TeacherClient[
+        "setImageLabAccount" | "addImageLabAccount" | "revokeImageLabAccount"
+      ]
+    ): void => {
+      const values = this.#readAllowancePair(
+        object,
+        realise,
+        feedback,
+        operation === "set"
+      );
+      if (values === null) return;
+      void this.#runImageLabMutation(
+        region,
+        () => invoke.call(this.#client, {
+          operationId: this.#createOperationId(),
+          alias: account.alias,
+          object: values.object,
+          realise: values.realise
+        }),
+        (result) => {
+          this.#replaceImageLabAccounts([result.account]);
+          const label = operation === "set"
+            ? "Set"
+            : operation === "add"
+              ? "Add"
+              : "Revoke";
+          this.#imageLabAudit =
+            `${label} — ${account.alias}: ` +
+            `Object Forge ${result.account.object.remaining} available, ` +
+            `${result.account.object.reserved} reserved; ` +
+            `Make It Real ${result.account.realise.remaining} available, ` +
+            `${result.account.realise.reserved} reserved.`;
+        }
+      );
+    };
+    set.addEventListener("click", () =>
+      mutate("set", this.#client.setImageLabAccount));
+    add.addEventListener("click", () =>
+      mutate("add", this.#client.addImageLabAccount));
+    revoke.addEventListener("click", () =>
+      mutate("revoke", this.#client.revokeImageLabAccount));
+    controlGroup.append(object, realise, set, add, revoke);
+    controls.append(controlGroup);
+    row.append(selectCell, alias, objectStatus, realiseStatus, controls);
+    return row;
+  }
+
+  #allowanceInput(value: number): HTMLInputElement {
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "0";
+    input.max = "100";
+    input.step = "1";
+    input.value = String(value);
+    return input;
+  }
+
+  #readAllowancePair(
+    object: HTMLInputElement,
+    realise: HTMLInputElement,
+    feedback: HTMLParagraphElement,
+    allowBothZero: boolean
+  ): { readonly object: number; readonly realise: number } | null {
+    const objectValue = Number(object.value);
+    const realiseValue = Number(realise.value);
+    if (
+      !Number.isInteger(objectValue) ||
+      objectValue < 0 ||
+      objectValue > 100 ||
+      !Number.isInteger(realiseValue) ||
+      realiseValue < 0 ||
+      realiseValue > 100
+    ) {
+      this.#setImageLabFeedback(
+        feedback,
+        "Enter whole numbers from 0 to 100 for both stages.",
+        true
+      );
+      return null;
+    }
+    if (!allowBothZero && objectValue === 0 && realiseValue === 0) {
+      this.#setImageLabFeedback(
+        feedback,
+        "Enter at least one use to add or revoke.",
+        true
+      );
+      return null;
+    }
+    return { object: objectValue, realise: realiseValue };
+  }
+
+  async #runImageLabMutation<T>(
+    region: HTMLElement,
+    mutation: () => Promise<T>,
+    applyResult: (result: T) => void
+  ): Promise<void> {
+    const controls = [...region.querySelectorAll<HTMLButtonElement>("button")];
+    controls.forEach((control) => {
+      control.disabled = true;
+    });
+    const feedback = region.querySelector<HTMLParagraphElement>(
+      ".teacher-image-lab__feedback"
+    )!;
+    this.#setImageLabFeedback(feedback, "", false);
+    try {
+      applyResult(await mutation());
+      region.replaceWith(this.#imageLabRegion());
+    } catch (error) {
+      controls.forEach((control) => {
+        control.disabled = false;
+      });
+      const refresh = [...region.querySelectorAll<HTMLButtonElement>("button")]
+        .find((control) => control.textContent === "Refresh allowances");
+      if (error instanceof TeacherClientError && error.refreshRequired) {
+        this.#setImageLabFeedback(
+          feedback,
+          "The result is uncertain. Keep these values and refresh allowances before another change.",
+          true
+        );
+        if (refresh !== undefined) refresh.hidden = false;
+      } else {
+        this.#setImageLabFeedback(
+          feedback,
+          "The allowance change did not finish. Check the connection and try again.",
+          true
+        );
+      }
+    }
+  }
+
+  async #refreshImageLab(region: HTMLElement): Promise<void> {
+    const controls = [...region.querySelectorAll<HTMLButtonElement>("button")];
+    controls.forEach((control) => {
+      control.disabled = true;
+    });
+    try {
+      this.#imageLab = await this.#client.imageLabStatus();
+      this.#imageLabLoadError = "";
+      this.#imageLabAudit = "Allowances refreshed.";
+      region.replaceWith(this.#imageLabRegion());
+    } catch {
+      controls.forEach((control) => {
+        control.disabled = false;
+      });
+      const feedback = region.querySelector<HTMLParagraphElement>(
+        ".teacher-image-lab__feedback"
+      );
+      if (feedback !== null) {
+        this.#setImageLabFeedback(
+          feedback,
+          "Allowances could not be refreshed. Check the connection and try again.",
+          true
+        );
+      }
+    }
+  }
+
+  #replaceImageLabAccounts(accounts: readonly TeacherImageLabAccount[]): void {
+    if (this.#imageLab === null) return;
+    const replacements = new Map(accounts.map((account) => [account.alias, account]));
+    this.#imageLab = {
+      ...this.#imageLab,
+      accounts: this.#imageLab.accounts.map((account) =>
+        replacements.get(account.alias) ?? account)
+    };
+  }
+
+  #setImageLabFeedback(
+    target: HTMLParagraphElement,
+    message: string,
+    error: boolean
+  ): void {
+    target.textContent = message;
+    target.setAttribute("role", error ? "alert" : "status");
+    target.setAttribute("aria-live", error ? "assertive" : "polite");
   }
 
   #accountCard(account: TeacherPairSummary): HTMLElement {

@@ -74,11 +74,59 @@ const service = () => ({
     status: "reset",
     operationId,
     username: "team-one"
+  }),
+  imageLabStatus: vi.fn().mockResolvedValue({
+    enabled: true,
+    defaults: { object: 0, realise: 0 },
+    accounts: [{
+      alias: "team-one",
+      object: { granted: 2, consumed: 0, reserved: 1, remaining: 1 },
+      realise: { granted: 1, consumed: 0, reserved: 0, remaining: 1 }
+    }]
+  }),
+  setImageLabGlobal: vi.fn().mockResolvedValue({
+    status: "updated",
+    operationId,
+    operation: "global",
+    enabled: true,
+    defaults: { object: 2, realise: 1 }
+  }),
+  mutateImageLabAccount: vi.fn().mockImplementation(async (
+    action: string,
+    input: { alias: string }
+  ) => ({
+    status: "updated",
+    operationId,
+    operation: action,
+    alias: input.alias,
+    account: {
+      alias: input.alias,
+      object: { granted: 2, consumed: 0, reserved: 0, remaining: 2 },
+      realise: { granted: 1, consumed: 0, reserved: 0, remaining: 1 }
+    }
+  })),
+  batchAddImageLab: vi.fn().mockResolvedValue({
+    status: "updated",
+    operationId,
+    operation: "batch-add",
+    aliases: ["team-one"],
+    accounts: []
   })
 });
 
 describe("teacher account API", () => {
   it("keeps teacher-account traffic on a separate bounded rate limit", () => {
+    expect(teacherAccountsConfig.path).toEqual([
+      "/api/teacher/accounts",
+      "/api/teacher/accounts/:username/password",
+      "/api/teacher/accounts/:username/reset",
+      "/api/teacher/image-lab",
+      "/api/teacher/image-lab/global",
+      "/api/teacher/image-lab/accounts/:username",
+      "/api/teacher/image-lab/accounts/:username/add",
+      "/api/teacher/image-lab/accounts/:username/revoke",
+      "/api/teacher/image-lab/batch"
+    ]);
     expect(teacherAccountsConfig.rateLimit).toEqual({
       windowLimit: 60,
       windowSize: 60,
@@ -113,6 +161,15 @@ describe("teacher account API", () => {
         version: 1,
         operationId,
         confirmation: "team-one"
+      }, false),
+      request("/api/teacher/image-lab", "GET", undefined, false),
+      request("/api/teacher/image-lab/global", "PUT", {
+        schema: "ad-market-teacher-image-lab-global",
+        version: 1,
+        operationId,
+        enabled: true,
+        objectDefault: 2,
+        realiseDefault: 1
       }, false)
     ];
     for (const item of cases) {
@@ -126,6 +183,8 @@ describe("teacher account API", () => {
     expect(fake.createAccount).not.toHaveBeenCalled();
     expect(fake.replacePassword).not.toHaveBeenCalled();
     expect(fake.resetAccount).not.toHaveBeenCalled();
+    expect(fake.imageLabStatus).not.toHaveBeenCalled();
+    expect(fake.setImageLabGlobal).not.toHaveBeenCalled();
   });
 
   it("lists only browser-safe pair summaries", async () => {
@@ -202,6 +261,118 @@ describe("teacher account API", () => {
       operationId,
       username: "team-one"
     });
+  });
+
+  it("accepts exact global, per-pair and batch Image Lab contracts with aliases only", async () => {
+    const fake = service();
+    const handler = createTeacherAccountsHandler({
+      environment,
+      service: fake,
+      nowSeconds: () => nowSeconds
+    });
+    const status = await handler(request("/api/teacher/image-lab", "GET"));
+    const global = await handler(request("/api/teacher/image-lab/global", "PUT", {
+      schema: "ad-market-teacher-image-lab-global",
+      version: 1,
+      operationId,
+      enabled: false,
+      objectDefault: 3,
+      realiseDefault: 1
+    }));
+    const set = await handler(request("/api/teacher/image-lab/accounts/team-one", "PUT", {
+      schema: "ad-market-teacher-image-lab-account-set",
+      version: 1,
+      operationId,
+      object: 2,
+      realise: 1
+    }));
+    const add = await handler(request("/api/teacher/image-lab/accounts/team-one/add", "POST", {
+      schema: "ad-market-teacher-image-lab-account-add",
+      version: 1,
+      operationId,
+      object: 1,
+      realise: 0
+    }));
+    const revoke = await handler(request("/api/teacher/image-lab/accounts/team-one/revoke", "POST", {
+      schema: "ad-market-teacher-image-lab-account-revoke",
+      version: 1,
+      operationId,
+      object: 1,
+      realise: 1
+    }));
+    const batch = await handler(request("/api/teacher/image-lab/batch", "POST", {
+      schema: "ad-market-teacher-image-lab-batch-add",
+      version: 1,
+      operationId,
+      aliases: ["team-one"],
+      object: 2,
+      realise: 0
+    }));
+
+    expect([status.status, global.status, set.status, add.status, revoke.status, batch.status])
+      .toEqual([200, 200, 200, 200, 200, 200]);
+    expect(fake.setImageLabGlobal).toHaveBeenCalledWith({
+      operationId,
+      enabled: false,
+      objectDefault: 3,
+      realiseDefault: 1
+    });
+    expect(fake.mutateImageLabAccount.mock.calls).toEqual([
+      ["set", { operationId, alias: "team-one", object: 2, realise: 1 }],
+      ["add", { operationId, alias: "team-one", object: 1, realise: 0 }],
+      ["revoke", { operationId, alias: "team-one", object: 1, realise: 1 }]
+    ]);
+    expect(fake.batchAddImageLab).toHaveBeenCalledWith({
+      operationId,
+      aliases: ["team-one"],
+      object: 2,
+      realise: 0
+    });
+    expect(JSON.stringify(fake.mutateImageLabAccount.mock.calls)).not.toContain("userId");
+  });
+
+  it.each([
+    ["/api/teacher/image-lab/global", "PUT", {
+      schema: "ad-market-teacher-image-lab-global",
+      version: 1,
+      operationId,
+      enabled: true,
+      objectDefault: 101,
+      realiseDefault: 0
+    }],
+    ["/api/teacher/image-lab/accounts/team-one/add", "POST", {
+      schema: "ad-market-teacher-image-lab-account-add",
+      version: 1,
+      operationId,
+      object: -1,
+      realise: 0
+    }],
+    ["/api/teacher/image-lab/batch", "POST", {
+      schema: "ad-market-teacher-image-lab-batch-add",
+      version: 1,
+      operationId,
+      aliases: ["team-one"],
+      object: 1,
+      realise: 0,
+      userId: "b9b32e20-0ba8-4896-b89f-44efdfc52942"
+    }]
+  ] as const)("rejects invalid or browser-authoritative allowance input at %s", async (
+    path,
+    method,
+    body
+  ) => {
+    const fake = service();
+    const response = await createTeacherAccountsHandler({
+      environment,
+      service: fake,
+      nowSeconds: () => nowSeconds
+    })(request(path, method, body));
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "INVALID_REQUEST" });
+    expect(fake.setImageLabGlobal).not.toHaveBeenCalled();
+    expect(fake.mutateImageLabAccount).not.toHaveBeenCalled();
+    expect(fake.batchAddImageLab).not.toHaveBeenCalled();
   });
 
   it("rejects ambiguous bodies, wrong confirmation, and cross-origin mutations", async () => {

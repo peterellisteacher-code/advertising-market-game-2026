@@ -4,6 +4,62 @@ export interface TeacherPairSummary {
   readonly lastSignInAt: string | null;
 }
 
+export interface TeacherImageLabCounts {
+  readonly granted: number;
+  readonly consumed: number;
+  readonly reserved: number;
+  readonly remaining: number;
+}
+
+export interface TeacherImageLabAccount {
+  readonly alias: string;
+  readonly object: TeacherImageLabCounts;
+  readonly realise: TeacherImageLabCounts;
+}
+
+export interface TeacherImageLabOverview {
+  readonly enabled: boolean;
+  readonly defaults: {
+    readonly object: number;
+    readonly realise: number;
+  };
+  readonly accounts: readonly TeacherImageLabAccount[];
+}
+
+export interface TeacherImageLabGlobalResult {
+  readonly status: "updated";
+  readonly operationId: string;
+  readonly operation: "global";
+  readonly enabled: boolean;
+  readonly defaults: {
+    readonly object: number;
+    readonly realise: number;
+  };
+}
+
+export interface TeacherImageLabAccountResult {
+  readonly status: "updated";
+  readonly operationId: string;
+  readonly operation: "set" | "add" | "revoke";
+  readonly alias: string;
+  readonly account: TeacherImageLabAccount;
+}
+
+export interface TeacherImageLabBatchResult {
+  readonly status: "updated";
+  readonly operationId: string;
+  readonly operation: "batch-add";
+  readonly aliases: readonly string[];
+  readonly accounts: readonly TeacherImageLabAccount[];
+}
+
+interface TeacherImageLabAccountMutationInput {
+  readonly operationId: string;
+  readonly alias: string;
+  readonly object: number;
+  readonly realise: number;
+}
+
 export interface TeacherClient {
   session(): Promise<{ authenticated: boolean }>;
   login(password: string): Promise<void>;
@@ -24,13 +80,36 @@ export interface TeacherClient {
     username: string;
     confirmation: string;
   }): Promise<void>;
+  imageLabStatus(): Promise<TeacherImageLabOverview>;
+  setImageLabGlobal(input: {
+    operationId: string;
+    enabled: boolean;
+    objectDefault: number;
+    realiseDefault: number;
+  }): Promise<TeacherImageLabGlobalResult>;
+  setImageLabAccount(
+    input: TeacherImageLabAccountMutationInput
+  ): Promise<TeacherImageLabAccountResult>;
+  addImageLabAccount(
+    input: TeacherImageLabAccountMutationInput
+  ): Promise<TeacherImageLabAccountResult>;
+  revokeImageLabAccount(
+    input: TeacherImageLabAccountMutationInput
+  ): Promise<TeacherImageLabAccountResult>;
+  batchAddImageLab(input: {
+    operationId: string;
+    aliases: readonly string[];
+    object: number;
+    realise: number;
+  }): Promise<TeacherImageLabBatchResult>;
 }
 
 export class TeacherClientError extends Error {
   constructor(
     readonly code: string,
     readonly status: number,
-    readonly retryable = false
+    readonly retryable = false,
+    readonly refreshRequired = false
   ) {
     super(code);
     this.name = "TeacherClientError";
@@ -81,6 +160,85 @@ const parseSummary = (value: unknown): TeacherPairSummary => {
   };
 };
 
+const validAllowanceAmount = (value: unknown): value is number =>
+  typeof value === "number" &&
+  Number.isInteger(value) &&
+  value >= 0 &&
+  value <= 100;
+
+const parseImageLabCounts = (value: unknown): TeacherImageLabCounts => {
+  if (
+    !isRecord(value) ||
+    !hasExactKeys(value, ["granted", "consumed", "reserved", "remaining"]) ||
+    !validAllowanceAmount(value.granted) ||
+    !validAllowanceAmount(value.consumed) ||
+    !validAllowanceAmount(value.reserved) ||
+    !validAllowanceAmount(value.remaining) ||
+    value.consumed + value.reserved > value.granted ||
+    value.remaining !== value.granted - value.consumed - value.reserved
+  ) {
+    throw new TeacherClientError("INVALID_RESPONSE", 503, true);
+  }
+  return {
+    granted: value.granted,
+    consumed: value.consumed,
+    reserved: value.reserved,
+    remaining: value.remaining
+  };
+};
+
+const parseImageLabAccount = (value: unknown): TeacherImageLabAccount => {
+  if (
+    !isRecord(value) ||
+    !hasExactKeys(value, ["alias", "object", "realise"]) ||
+    typeof value.alias !== "string" ||
+    !USERNAME_PATTERN.test(value.alias) ||
+    value.alias === "teacher-playtest"
+  ) {
+    throw new TeacherClientError("INVALID_RESPONSE", 503, true);
+  }
+  return {
+    alias: value.alias,
+    object: parseImageLabCounts(value.object),
+    realise: parseImageLabCounts(value.realise)
+  };
+};
+
+const parseImageLabDefaults = (
+  value: unknown
+): TeacherImageLabOverview["defaults"] => {
+  if (
+    !isRecord(value) ||
+    !hasExactKeys(value, ["object", "realise"]) ||
+    !validAllowanceAmount(value.object) ||
+    !validAllowanceAmount(value.realise)
+  ) {
+    throw new TeacherClientError("INVALID_RESPONSE", 503, true);
+  }
+  return { object: value.object, realise: value.realise };
+};
+
+const parseImageLabOverview = (value: unknown): TeacherImageLabOverview => {
+  if (
+    !isRecord(value) ||
+    !hasExactKeys(value, ["enabled", "defaults", "accounts"]) ||
+    typeof value.enabled !== "boolean" ||
+    !Array.isArray(value.accounts) ||
+    value.accounts.length > 1_000
+  ) {
+    throw new TeacherClientError("INVALID_RESPONSE", 503, true);
+  }
+  const accounts = value.accounts.map(parseImageLabAccount);
+  if (new Set(accounts.map(({ alias }) => alias)).size !== accounts.length) {
+    throw new TeacherClientError("INVALID_RESPONSE", 503, true);
+  }
+  return {
+    enabled: value.enabled,
+    defaults: parseImageLabDefaults(value.defaults),
+    accounts: accounts.sort((left, right) => left.alias.localeCompare(right.alias))
+  };
+};
+
 const readBoundedJson = async (response: Response): Promise<unknown> => {
   if (response.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase() !==
     "application/json") {
@@ -120,6 +278,7 @@ const readBoundedJson = async (response: Response): Promise<unknown> => {
 const responseError = async (response: Response): Promise<TeacherClientError> => {
   let code = "TEACHER_UNAVAILABLE";
   let retryable = response.status >= 500 || response.status === 429;
+  let refreshRequired = false;
   try {
     const value = await readBoundedJson(response);
     if (isRecord(value) && typeof value.error === "string" &&
@@ -129,10 +288,13 @@ const responseError = async (response: Response): Promise<TeacherClientError> =>
     if (isRecord(value) && typeof value.retryable === "boolean") {
       retryable = value.retryable;
     }
+    if (isRecord(value) && typeof value.refreshRequired === "boolean") {
+      refreshRequired = value.refreshRequired;
+    }
   } catch {
     // A bounded generic error is safer than reflecting an invalid upstream body.
   }
-  return new TeacherClientError(code, response.status, retryable);
+  return new TeacherClientError(code, response.status, retryable, refreshRequired);
 };
 
 export class HttpTeacherClient implements TeacherClient {
@@ -257,6 +419,168 @@ export class HttpTeacherClient implements TeacherClient {
       }
     );
     this.#assertMutationResult(value, "reset", input);
+  }
+
+  async imageLabStatus(): Promise<TeacherImageLabOverview> {
+    return parseImageLabOverview(
+      await this.#requestJson("/api/teacher/image-lab", "GET")
+    );
+  }
+
+  async setImageLabGlobal(input: {
+    operationId: string;
+    enabled: boolean;
+    objectDefault: number;
+    realiseDefault: number;
+  }): Promise<TeacherImageLabGlobalResult> {
+    const value = await this.#requestJson("/api/teacher/image-lab/global", "PUT", {
+      schema: "ad-market-teacher-image-lab-global",
+      version: 1,
+      operationId: input.operationId,
+      enabled: input.enabled,
+      objectDefault: input.objectDefault,
+      realiseDefault: input.realiseDefault
+    });
+    if (
+      !isRecord(value) ||
+      !hasExactKeys(value, [
+        "status",
+        "operationId",
+        "operation",
+        "enabled",
+        "defaults"
+      ]) ||
+      value.status !== "updated" ||
+      value.operationId !== input.operationId ||
+      value.operation !== "global" ||
+      typeof value.enabled !== "boolean"
+    ) {
+      throw new TeacherClientError("INVALID_RESPONSE", 503, true);
+    }
+    return {
+      status: "updated",
+      operationId: input.operationId,
+      operation: "global",
+      enabled: value.enabled,
+      defaults: parseImageLabDefaults(value.defaults)
+    };
+  }
+
+  async setImageLabAccount(
+    input: TeacherImageLabAccountMutationInput
+  ): Promise<TeacherImageLabAccountResult> {
+    return this.#mutateImageLabAccount("set", input);
+  }
+
+  async addImageLabAccount(
+    input: TeacherImageLabAccountMutationInput
+  ): Promise<TeacherImageLabAccountResult> {
+    return this.#mutateImageLabAccount("add", input);
+  }
+
+  async revokeImageLabAccount(
+    input: TeacherImageLabAccountMutationInput
+  ): Promise<TeacherImageLabAccountResult> {
+    return this.#mutateImageLabAccount("revoke", input);
+  }
+
+  async batchAddImageLab(input: {
+    operationId: string;
+    aliases: readonly string[];
+    object: number;
+    realise: number;
+  }): Promise<TeacherImageLabBatchResult> {
+    const value = await this.#requestJson("/api/teacher/image-lab/batch", "POST", {
+      schema: "ad-market-teacher-image-lab-batch-add",
+      version: 1,
+      operationId: input.operationId,
+      aliases: input.aliases,
+      object: input.object,
+      realise: input.realise
+    });
+    if (
+      !isRecord(value) ||
+      !hasExactKeys(value, [
+        "status",
+        "operationId",
+        "operation",
+        "aliases",
+        "accounts"
+      ]) ||
+      value.status !== "updated" ||
+      value.operationId !== input.operationId ||
+      value.operation !== "batch-add" ||
+      !Array.isArray(value.aliases) ||
+      !Array.isArray(value.accounts)
+    ) {
+      throw new TeacherClientError("INVALID_RESPONSE", 503, true);
+    }
+    const aliases = value.aliases as unknown[];
+    const rawAccounts = value.accounts as unknown[];
+    if (
+      aliases.length !== rawAccounts.length ||
+      !aliases.every((alias) =>
+        typeof alias === "string" && USERNAME_PATTERN.test(alias)) ||
+      aliases.some((alias, index) => alias !== input.aliases[index])
+    ) {
+      throw new TeacherClientError("INVALID_RESPONSE", 503, true);
+    }
+    const accounts = rawAccounts.map(parseImageLabAccount);
+    if (accounts.some((account, index) => account.alias !== aliases[index])) {
+      throw new TeacherClientError("INVALID_RESPONSE", 503, true);
+    }
+    return {
+      status: "updated",
+      operationId: input.operationId,
+      operation: "batch-add",
+      aliases: aliases as string[],
+      accounts
+    };
+  }
+
+  async #mutateImageLabAccount(
+    operation: "set" | "add" | "revoke",
+    input: TeacherImageLabAccountMutationInput
+  ): Promise<TeacherImageLabAccountResult> {
+    const suffix = operation === "set" ? "" : `/${operation}`;
+    const value = await this.#requestJson(
+      `/api/teacher/image-lab/accounts/${encodeURIComponent(input.alias)}${suffix}`,
+      operation === "set" ? "PUT" : "POST",
+      {
+        schema: `ad-market-teacher-image-lab-account-${operation}`,
+        version: 1,
+        operationId: input.operationId,
+        object: input.object,
+        realise: input.realise
+      }
+    );
+    if (
+      !isRecord(value) ||
+      !hasExactKeys(value, [
+        "status",
+        "operationId",
+        "operation",
+        "alias",
+        "account"
+      ]) ||
+      value.status !== "updated" ||
+      value.operationId !== input.operationId ||
+      value.operation !== operation ||
+      value.alias !== input.alias
+    ) {
+      throw new TeacherClientError("INVALID_RESPONSE", 503, true);
+    }
+    const account = parseImageLabAccount(value.account);
+    if (account.alias !== input.alias) {
+      throw new TeacherClientError("INVALID_RESPONSE", 503, true);
+    }
+    return {
+      status: "updated",
+      operationId: input.operationId,
+      operation,
+      alias: input.alias,
+      account
+    };
   }
 
   #assertMutationResult(

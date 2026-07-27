@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { getStore } from "@netlify/blobs";
 import {
   SupabaseAccountError,
@@ -6,6 +6,13 @@ import {
   type ProgressRpcInput
 } from "./account-backend";
 import type { AccountAssetResetPlan } from "./account-assets";
+import {
+  type ImageLabAllowanceCounts,
+  type ImageLabAllowanceSnapshot,
+  type ImageLabAllowanceStore,
+  type ImageLabAllowanceStage,
+  type TeacherImageLabAccount
+} from "./image-lab-allowance-store";
 import {
   deriveSyntheticAccountEmail,
   normaliseAccountUsername
@@ -24,6 +31,43 @@ export interface TeacherPairSummary {
   readonly createdAt: string;
   readonly lastSignInAt: string | null;
 }
+
+export interface TeacherImageLabOverview {
+  readonly enabled: boolean;
+  readonly defaults: {
+    readonly object: number;
+    readonly realise: number;
+  };
+  readonly accounts: readonly TeacherImageLabAccount[];
+}
+
+export type TeacherImageLabAccountOperation = "set" | "add" | "revoke";
+
+export type TeacherImageLabMutationResult =
+  | {
+      readonly status: "updated";
+      readonly operationId: string;
+      readonly operation: "global";
+      readonly enabled: boolean;
+      readonly defaults: {
+        readonly object: number;
+        readonly realise: number;
+      };
+    }
+  | {
+      readonly status: "updated";
+      readonly operationId: string;
+      readonly operation: TeacherImageLabAccountOperation;
+      readonly alias: string;
+      readonly account: TeacherImageLabAccount;
+    }
+  | {
+      readonly status: "updated";
+      readonly operationId: string;
+      readonly operation: "batch-add";
+      readonly aliases: readonly string[];
+      readonly accounts: readonly TeacherImageLabAccount[];
+    };
 
 export type TeacherAccountMutationResult =
   | {
@@ -85,7 +129,8 @@ export class TeacherAccountServiceError extends Error {
       | "OPERATION_INCOMPLETE"
       | "RESET_INCOMPLETE"
       | "TEACHER_UNAVAILABLE"
-      | "USERNAME_UNAVAILABLE",
+      | "USERNAME_UNAVAILABLE"
+      | "IMAGE_LAB_MUTATION_UNCERTAIN",
     readonly status: number,
     readonly retryable = false,
     readonly retryAfter?: number
@@ -98,6 +143,7 @@ export class TeacherAccountServiceError extends Error {
 interface TeacherAccountServiceDependencies {
   readonly client: TeacherAccountClient;
   readonly assets: TeacherAccountAssetService;
+  readonly allowances: ImageLabAllowanceStore;
   readonly operations: TeacherAccountOperationStore;
   readonly usernameHmacSecret: string;
   readonly operationSecret: string;
@@ -107,6 +153,27 @@ interface MutationInput {
   readonly operationId: string;
   readonly username: string;
   readonly password?: string;
+}
+
+interface ImageLabGlobalMutationInput {
+  readonly operationId: string;
+  readonly enabled: boolean;
+  readonly objectDefault: number;
+  readonly realiseDefault: number;
+}
+
+interface ImageLabAccountMutationInput {
+  readonly operationId: string;
+  readonly alias: string;
+  readonly object: number;
+  readonly realise: number;
+}
+
+interface ImageLabBatchMutationInput {
+  readonly operationId: string;
+  readonly aliases: readonly string[];
+  readonly object: number;
+  readonly realise: number;
 }
 
 interface ClaimedOperation {
@@ -126,6 +193,28 @@ const validPassword = (value: unknown): value is string =>
   !value.includes("\0") &&
   Buffer.byteLength(value, "utf8") >= 8 &&
   Buffer.byteLength(value, "utf8") <= 128;
+
+const validAllowanceAmount = (value: unknown, minimum = 0): value is number =>
+  typeof value === "number" &&
+  Number.isInteger(value) &&
+  value >= minimum &&
+  value <= 100;
+
+const imageLabAccount = (
+  alias: string,
+  snapshot: ImageLabAllowanceSnapshot
+): TeacherImageLabAccount => ({
+  alias,
+  object: snapshot.object,
+  realise: snapshot.realise
+});
+
+const imageLabDefaults = (
+  snapshot: ImageLabAllowanceSnapshot
+): TeacherImageLabOverview["defaults"] => ({
+  object: snapshot.object.granted,
+  realise: snapshot.realise.granted
+});
 
 const operationFailure = (action: TeacherAccountOperationAction): TeacherAccountServiceError =>
   action === "reset"
@@ -198,6 +287,23 @@ export class TeacherAccountService {
       if (created === null || created.username !== parsed.username) {
         throw new TeacherAccountServiceError("OPERATION_INCOMPLETE", 409);
       }
+      const defaults = await this.dependencies.allowances.globalStatus();
+      await this.applyImageLabStage(
+        "set",
+        created,
+        "object",
+        defaults.object.granted,
+        parsed.operationId,
+        "teacher-create-object"
+      );
+      await this.applyImageLabStage(
+        "set",
+        created,
+        "realise",
+        defaults.realise.granted,
+        parsed.operationId,
+        "teacher-create-realise"
+      );
       const result: TeacherAccountMutationResult = {
         status: "created",
         operationId: parsed.operationId,
@@ -272,6 +378,224 @@ export class TeacherAccountService {
     }
   }
 
+  async imageLabStatus(): Promise<TeacherImageLabOverview> {
+    try {
+      const [global, accounts] = await Promise.all([
+        this.dependencies.allowances.globalStatus(),
+        this.dependencies.allowances.list()
+      ]);
+      return {
+        enabled: global.enabled,
+        defaults: imageLabDefaults(global),
+        accounts: [...accounts].sort((left, right) =>
+          left.alias.localeCompare(right.alias))
+      };
+    } catch {
+      throw new TeacherAccountServiceError("TEACHER_UNAVAILABLE", 503, true);
+    }
+  }
+
+  async setImageLabGlobal(
+    input: ImageLabGlobalMutationInput
+  ): Promise<TeacherImageLabMutationResult> {
+    if (
+      !UUID_PATTERN.test(input.operationId) ||
+      typeof input.enabled !== "boolean" ||
+      !validAllowanceAmount(input.objectDefault) ||
+      !validAllowanceAmount(input.realiseDefault)
+    ) {
+      throw new TeacherAccountServiceError("TEACHER_UNAVAILABLE", 503);
+    }
+    try {
+      await this.dependencies.allowances.setGlobal({
+        target: "enabled",
+        enabled: input.enabled,
+        ...this.imageLabIdentity(input.operationId, "teacher-global-enabled", {
+          enabled: input.enabled
+        })
+      });
+      await this.dependencies.allowances.setGlobal({
+        target: "default",
+        stage: "object",
+        amount: input.objectDefault,
+        ...this.imageLabIdentity(input.operationId, "teacher-global-object", {
+          stage: "object",
+          amount: input.objectDefault
+        })
+      });
+      const snapshot = await this.dependencies.allowances.setGlobal({
+        target: "default",
+        stage: "realise",
+        amount: input.realiseDefault,
+        ...this.imageLabIdentity(input.operationId, "teacher-global-realise", {
+          stage: "realise",
+          amount: input.realiseDefault
+        })
+      });
+      return {
+        status: "updated",
+        operationId: input.operationId,
+        operation: "global",
+        enabled: snapshot.enabled,
+        defaults: imageLabDefaults(snapshot)
+      };
+    } catch {
+      throw new TeacherAccountServiceError(
+        "IMAGE_LAB_MUTATION_UNCERTAIN",
+        409,
+        false
+      );
+    }
+  }
+
+  async mutateImageLabAccount(
+    operation: TeacherImageLabAccountOperation,
+    input: ImageLabAccountMutationInput
+  ): Promise<TeacherImageLabMutationResult> {
+    const alias = this.parseImageLabAlias(input.alias);
+    const minimum = operation === "set" ? 0 : 1;
+    if (
+      !UUID_PATTERN.test(input.operationId) ||
+      !validAllowanceAmount(input.object) ||
+      !validAllowanceAmount(input.realise) ||
+      (minimum === 1 && input.object === 0 && input.realise === 0)
+    ) {
+      throw new TeacherAccountServiceError("TEACHER_UNAVAILABLE", 503);
+    }
+
+    let user: AccountAdminRecord;
+    try {
+      const found = await this.dependencies.client.findAdvertisingGameUser(alias);
+      if (found === null) {
+        throw new TeacherAccountServiceError("ACCOUNT_NOT_FOUND", 404);
+      }
+      user = found;
+    } catch (error) {
+      if (error instanceof TeacherAccountServiceError) throw error;
+      throw new TeacherAccountServiceError("TEACHER_UNAVAILABLE", 503, true);
+    }
+
+    try {
+      let snapshot: ImageLabAllowanceSnapshot | null = null;
+      if (operation === "set" || input.object > 0) {
+        snapshot = await this.applyImageLabStage(
+          operation,
+          user,
+          "object",
+          input.object,
+          input.operationId,
+          `teacher-${operation}-object`
+        );
+      }
+      if (operation === "set" || input.realise > 0) {
+        snapshot = await this.applyImageLabStage(
+          operation,
+          user,
+          "realise",
+          input.realise,
+          input.operationId,
+          `teacher-${operation}-realise`
+        );
+      }
+      if (snapshot === null) {
+        throw new Error("No Image Lab mutation was selected.");
+      }
+      return {
+        status: "updated",
+        operationId: input.operationId,
+        operation,
+        alias,
+        account: imageLabAccount(alias, snapshot)
+      };
+    } catch {
+      throw new TeacherAccountServiceError(
+        "IMAGE_LAB_MUTATION_UNCERTAIN",
+        409,
+        false
+      );
+    }
+  }
+
+  async batchAddImageLab(
+    input: ImageLabBatchMutationInput
+  ): Promise<TeacherImageLabMutationResult> {
+    if (
+      !UUID_PATTERN.test(input.operationId) ||
+      !Array.isArray(input.aliases) ||
+      input.aliases.length < 1 ||
+      input.aliases.length > 100 ||
+      !validAllowanceAmount(input.object) ||
+      !validAllowanceAmount(input.realise) ||
+      (input.object === 0 && input.realise === 0)
+    ) {
+      throw new TeacherAccountServiceError("TEACHER_UNAVAILABLE", 503);
+    }
+    const aliases = input.aliases.map((alias) => this.parseImageLabAlias(alias));
+    if (new Set(aliases).size !== aliases.length) {
+      throw new TeacherAccountServiceError("TEACHER_UNAVAILABLE", 503);
+    }
+
+    let users: AccountAdminRecord[];
+    try {
+      users = await Promise.all(aliases.map(async (alias) => {
+        const user = await this.dependencies.client.findAdvertisingGameUser(alias);
+        if (user === null) {
+          throw new TeacherAccountServiceError("ACCOUNT_NOT_FOUND", 404);
+        }
+        return user;
+      }));
+    } catch (error) {
+      if (error instanceof TeacherAccountServiceError) throw error;
+      throw new TeacherAccountServiceError("TEACHER_UNAVAILABLE", 503, true);
+    }
+
+    try {
+      const accounts: TeacherImageLabAccount[] = [];
+      for (let index = 0; index < users.length; index += 1) {
+        const user = users[index]!;
+        const alias = aliases[index]!;
+        let snapshot: ImageLabAllowanceSnapshot | null = null;
+        if (input.object > 0) {
+          snapshot = await this.applyImageLabStage(
+            "add",
+            user,
+            "object",
+            input.object,
+            input.operationId,
+            `teacher-batch-${index}-object`
+          );
+        }
+        if (input.realise > 0) {
+          snapshot = await this.applyImageLabStage(
+            "add",
+            user,
+            "realise",
+            input.realise,
+            input.operationId,
+            `teacher-batch-${index}-realise`
+          );
+        }
+        if (snapshot === null) {
+          throw new Error("No Image Lab batch mutation was selected.");
+        }
+        accounts.push(imageLabAccount(alias, snapshot));
+      }
+      return {
+        status: "updated",
+        operationId: input.operationId,
+        operation: "batch-add",
+        aliases,
+        accounts
+      };
+    } catch {
+      throw new TeacherAccountServiceError(
+        "IMAGE_LAB_MUTATION_UNCERTAIN",
+        409,
+        false
+      );
+    }
+  }
+
   private parseMutation(
     input: MutationInput,
     passwordRequired: boolean
@@ -295,6 +619,61 @@ export class TeacherAccountService {
       username,
       password: input.password ?? ""
     };
+  }
+
+  private parseImageLabAlias(value: unknown): string {
+    let alias: string;
+    try {
+      alias = normaliseAccountUsername(value);
+    } catch {
+      throw new TeacherAccountServiceError("TEACHER_UNAVAILABLE", 503);
+    }
+    if (alias === TEACHER_PLAYTEST_USERNAME) {
+      throw new TeacherAccountServiceError("TEACHER_UNAVAILABLE", 503);
+    }
+    return alias;
+  }
+
+  private imageLabIdentity(
+    rootOperationId: string,
+    action: string,
+    request: Readonly<Record<string, unknown>>
+  ): { readonly operationId: string; readonly requestHash: string } {
+    return {
+      operationId: `${rootOperationId}:${action}`,
+      requestHash: createHash("sha256")
+        .update(JSON.stringify({
+          schema: "ad-market-teacher-image-lab-mutation",
+          version: 1,
+          rootOperationId,
+          action,
+          request
+        }), "utf8")
+        .digest("hex")
+    };
+  }
+
+  private async applyImageLabStage(
+    operation: TeacherImageLabAccountOperation,
+    user: AccountAdminRecord,
+    stage: ImageLabAllowanceStage,
+    amount: number,
+    rootOperationId: string,
+    action: string
+  ): Promise<ImageLabAllowanceSnapshot> {
+    const identity = this.imageLabIdentity(rootOperationId, action, {
+      alias: user.username,
+      userId: user.userId,
+      stage,
+      amount,
+      operation
+    });
+    return this.dependencies.allowances[operation]({
+      userId: user.userId,
+      stage,
+      amount,
+      ...identity
+    });
   }
 
   private operationDigest(

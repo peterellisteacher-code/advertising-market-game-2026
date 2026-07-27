@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createBlankCampaignDocument } from "../domain/campaign-document";
 import {
   PRACTICE_BRIDGE_CONTRACT,
@@ -182,5 +182,33 @@ describe("practice public API", () => {
       ok: false,
       error: { code: "HANDLER_ERROR" }
     });
+  });
+
+  it("logs a bounded console diagnostic when a valid handler request fails", async () => {
+    const handler = new HandlerHarness();
+    const cause = `IndexedDB failed ${"x".repeat(400)}`;
+    handler.begin = vi.fn().mockRejectedValue(new Error(cause));
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    try {
+      expect(await request(handler, "begin-failed", "begin", {
+        teamAlias: "Neon Narwhals",
+        operationId: "operation-begin-failed"
+      })).toMatchObject({
+        ok: false,
+        error: {
+          code: "HANDLER_ERROR",
+          message: cause.slice(0, 240)
+        }
+      });
+      expect(warning).toHaveBeenCalledOnce();
+      const message = String(warning.mock.calls[0]?.[0]);
+      expect(message).toContain("[AdMarket practice request failed]");
+      expect(message).toContain('"method":"begin"');
+      expect(message).toContain('"code":"HANDLER_ERROR"');
+      expect(message).not.toContain("x".repeat(241));
+    } finally {
+      warning.mockRestore();
+    }
   });
 });

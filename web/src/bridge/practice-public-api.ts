@@ -168,7 +168,14 @@ export function createPracticePublicApi(handler: PracticeRunHandler): PracticePu
         }
       }
     } catch (error) {
-      return failure(requestId, errorCode(error), errorMessage(error));
+      const code = errorCode(error);
+      const message = errorMessage(error).slice(0, 240);
+      console.warn(`[AdMarket practice request failed] ${JSON.stringify({
+        method: parsed.data.method,
+        code,
+        message
+      })}`);
+      return failure(requestId, code, message);
     }
   };
   return Object.freeze({ handle });

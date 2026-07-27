@@ -3,7 +3,9 @@ import { STUDENT_COPY } from "../game/student-copy";
 
 export interface EditorShell extends PairGameView {
   overlay: HTMLElement;
+  workspace: HTMLElement;
   library: HTMLElement;
+  workspaceSeparator: HTMLElement;
   productBuilder: HTMLElement;
   productBuilderPanel: HTMLElement;
   moneyCheckPanel: HTMLElement;
@@ -36,7 +38,7 @@ const AIDA = ["Price", "Attention", "Interest", "Desire", "Action"];
 
 export function createEditorShell(root: HTMLElement): EditorShell {
   root.innerHTML = `
-    <section class="creator" aria-label="Campaign studio" data-studio-drawer-open="true">
+    <section class="creator" aria-label="Campaign studio">
       <header class="creator__topbar">
         <p class="creator__brand"><strong>AD MARKET</strong><span>Studio</span></p>
         <input aria-label="Product name" maxlength="48" placeholder="Name your product">
@@ -92,8 +94,11 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           <button type="button" role="tab" aria-selected="false" aria-controls="studio-panel-aida" tabindex="-1" aria-label="AIDA" data-glyph="A" data-studio-tool="aida" data-creator-feature="aida">AIDA</button>
           <button type="button" role="tab" aria-selected="false" aria-controls="studio-panel-coach" tabindex="-1" aria-label="Coach" data-glyph="?" data-studio-tool="coach" data-creator-feature="coach">Coach</button>
         </nav>
-        <aside class="creator__library creator__tool-drawer" aria-label="Studio drawer" data-studio-drawer>
-          <button type="button" class="creator__drawer-collapse" data-studio-collapse aria-label="Hide library">Hide library</button>
+        <nav class="creator__pane-tabs" role="tablist" aria-label="Studio areas" data-studio-pane-tabs hidden>
+          <button type="button" role="tab" aria-selected="true" aria-controls="studio-browse-pane" tabindex="0" data-studio-pane-tab="browse">Browse</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="studio-edit-pane" tabindex="-1" data-studio-pane-tab="edit">Edit</button>
+        </nav>
+        <aside class="creator__library creator__tool-drawer" id="studio-browse-pane" aria-label="Studio drawer" data-studio-drawer>
           <section class="creator__guide" role="region" aria-label="Current instruction" data-guide>
             <p class="creator__guide-progress" data-guide-progress>Step 1 of 11</p>
             <h2 data-guide-title>Audience evidence</h2>
@@ -174,7 +179,14 @@ export function createEditorShell(root: HTMLElement): EditorShell {
             <div data-studio-coach-panel><p role="status">Coach guide loading</p></div>
           </section>
         </aside>
-        <main class="creator__canvas" role="region" aria-label="Campaign canvas" tabindex="0">
+        <div
+          class="creator__workspace-separator"
+          role="separator"
+          aria-label="Resize the library and design areas"
+          aria-orientation="vertical"
+          tabindex="0"
+          data-studio-separator></div>
+        <main class="creator__canvas" id="studio-edit-pane" role="region" aria-label="Campaign canvas" tabindex="0">
           <p class="creator__canvas-label" aria-hidden="true">LIVE AD</p>
           <div class="creator__canvas-size" role="group" aria-label="Selected product or image size">
             <button type="button" data-canvas-zoom="out" aria-label="Make selected product or image smaller" title="Make selected product or image smaller">−</button>
@@ -252,20 +264,20 @@ export function createEditorShell(root: HTMLElement): EditorShell {
   const briefToggle = root.querySelector<HTMLButtonElement>("[data-brief-toggle]")!;
   const brief = root.querySelector<HTMLElement>("#studio-full-brief")!;
   const overlay = root.querySelector<HTMLElement>(".creator")!;
-  const drawerCollapse = root.querySelector<HTMLButtonElement>("[data-studio-collapse]")!;
   briefToggle.addEventListener("click", () => {
     const open = brief.hidden;
     brief.hidden = !open;
     briefToggle.setAttribute("aria-expanded", String(open));
     briefToggle.textContent = open ? "Close full brief" : "Open full brief";
-    drawerCollapse.hidden = open;
     if (open) overlay.dataset.briefOpen = "true";
     else delete overlay.dataset.briefOpen;
   });
 
   return {
     overlay,
+    workspace: root.querySelector(".creator__workspace")!,
     library: root.querySelector(".creator__library")!,
+    workspaceSeparator: root.querySelector("[data-studio-separator]")!,
     productBuilder: root.querySelector(".creator__product-builder")!,
     productBuilderPanel: root.querySelector('[data-product-builder-panel]')!,
     moneyCheckPanel: root.querySelector('[data-money-check-panel]')!,

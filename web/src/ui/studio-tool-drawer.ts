@@ -1,7 +1,5 @@
 export interface StudioToolDrawer {
   select(tool: string): void;
-  open(): void;
-  collapse(): void;
   current(): string;
   destroy(): void;
 }
@@ -27,19 +25,16 @@ export function createStudioToolDrawer(root: HTMLElement): StudioToolDrawer {
   }
 
   let selectedTool = initialButton.dataset.studioTool!;
-  let collapsed = false;
-
   const emitChange = () => {
     root.dispatchEvent(new CustomEvent("studio-tool-drawer-change", {
       bubbles: true,
-      detail: { tool: selectedTool, collapsed }
+      detail: { tool: selectedTool }
     }));
   };
 
   const render = () => {
-    root.dataset.studioDrawerOpen = String(!collapsed);
-    if (collapsed) root.dataset.studioDrawerCollapsed = "true";
-    else delete root.dataset.studioDrawerCollapsed;
+    delete root.dataset.studioDrawerOpen;
+    delete root.dataset.studioDrawerCollapsed;
     for (const button of matchedButtons) {
       const selected = button.dataset.studioTool === selectedTool;
       button.setAttribute("aria-selected", String(selected));
@@ -47,16 +42,15 @@ export function createStudioToolDrawer(root: HTMLElement): StudioToolDrawer {
     }
     const activePanel = panels.find((panel) => panel.dataset.studioPanel === selectedTool);
     for (const panel of panels) {
-      panel.hidden = collapsed || panel !== activePanel;
+      panel.hidden = panel !== activePanel;
     }
   };
 
   const select = (tool: string, focus = false) => {
     const button = availableButtons().find((candidate) => candidate.dataset.studioTool === tool);
     if (!button) return;
-    const changed = selectedTool !== tool || collapsed;
+    const changed = selectedTool !== tool;
     selectedTool = tool;
-    collapsed = false;
     render();
     if (focus) button.focus();
     if (changed) emitChange();
@@ -74,14 +68,6 @@ export function createStudioToolDrawer(root: HTMLElement): StudioToolDrawer {
     const keyboardButtons = availableButtons();
     const currentIndex = currentButton ? keyboardButtons.indexOf(currentButton) : -1;
 
-    if (event.key === "Escape") {
-      if (!collapsed) {
-        collapsed = true;
-        render();
-        emitChange();
-      }
-      return;
-    }
     if (currentIndex < 0) return;
 
     let nextIndex: number | undefined;
@@ -102,18 +88,6 @@ export function createStudioToolDrawer(root: HTMLElement): StudioToolDrawer {
   return {
     select(tool) {
       select(tool);
-    },
-    open() {
-      if (!collapsed) return;
-      collapsed = false;
-      render();
-      emitChange();
-    },
-    collapse() {
-      if (collapsed) return;
-      collapsed = true;
-      render();
-      emitChange();
     },
     current() {
       return selectedTool;

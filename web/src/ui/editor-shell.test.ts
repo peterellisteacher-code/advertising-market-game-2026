@@ -67,7 +67,23 @@ describe("createEditorShell", () => {
     expect(shell.libraryColour).toBe(pieceColour);
     expect(shell.libraryResults.dataset.libraryResults).toBe("");
     expect(shell.libraryStatus.getAttribute("role")).toBe("status");
-    expect(getByRole(root, "button", { name: "Hide library" })).toBeTruthy();
+    expect(root.querySelector('[data-studio-collapse]')).toBeNull();
+    expect(root.textContent).not.toContain("Hide library");
+    const separator = getByRole<HTMLElement>(root, "separator", {
+      name: "Resize the library and design areas"
+    });
+    expect(separator.getAttribute("aria-orientation")).toBe("vertical");
+    expect(separator.getAttribute("tabindex")).toBe("0");
+    expect(shell.workspace.querySelector("[data-studio-separator]")).toBe(separator);
+    const areaTabs = root.querySelector<HTMLElement>("[data-studio-pane-tabs]")!;
+    expect(areaTabs.getAttribute("aria-label")).toBe("Studio areas");
+    expect(areaTabs.hidden).toBe(true);
+    expect(getByRole(areaTabs, "tab", { name: "Browse", hidden: true }).getAttribute("aria-controls"))
+      .toBe("studio-browse-pane");
+    expect(getByRole(areaTabs, "tab", { name: "Edit", hidden: true }).getAttribute("aria-controls"))
+      .toBe("studio-edit-pane");
+    expect(shell.library.id).toBe("studio-browse-pane");
+    expect(shell.canvasRegion.id).toBe("studio-edit-pane");
     const currentInstruction = getByRole(root, "region", { name: "Current instruction" });
     expect(currentInstruction).toBeTruthy();
     expect(["Now", "Why", "Done", "Next"].every((label) =>
@@ -147,25 +163,23 @@ describe("createEditorShell", () => {
     expect(root.textContent).not.toMatch(/\b(?:assignment|unit|task)\b/i);
   });
 
-  it("suppresses the drawer collapse control while the full brief is open", () => {
+  it("opens and closes the full brief without adding a floating drawer control", () => {
     document.body.innerHTML = '<div id="creator-root"></div>';
     const root = document.querySelector<HTMLElement>("#creator-root")!;
     const shell = createEditorShell(root);
     const creator = shell.overlay;
     const toggle = getByRole<HTMLButtonElement>(root, "button", { name: "Open full brief" });
-    const collapse = getByRole<HTMLButtonElement>(root, "button", { name: "Hide library" });
 
     toggle.focus();
     toggle.click();
 
     expect(creator.dataset.briefOpen).toBe("true");
-    expect(collapse.hidden).toBe(true);
+    expect(root.querySelector("[data-studio-collapse]")).toBeNull();
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
 
     toggle.click();
 
     expect(creator.dataset.briefOpen).toBeUndefined();
-    expect(collapse.hidden).toBe(false);
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
     expect(document.activeElement).toBe(toggle);
   });

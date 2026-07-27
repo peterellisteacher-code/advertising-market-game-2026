@@ -160,6 +160,7 @@ import { SerializedAutosave } from "./persistence/serialized-autosave";
 import { createEditorShell, type EditorShell } from "./ui/editor-shell";
 import { registerReleaseServiceWorker } from "./service-worker-registration";
 import { createStudioToolDrawer } from "./ui/studio-tool-drawer";
+import { StudioSplitPane } from "./ui/studio-split-pane";
 import { STUDENT_COPY } from "./game/student-copy";
 import {
   applyCreatorLevelAccess,
@@ -171,6 +172,7 @@ const RETURN_TO_GAME_EVENT = "ad-market-creator:return-to-game";
 
 interface CanvasRuntime {
   adapter: FabricCanvasAdapter;
+  refreshDisplay(): void;
   dispose(): Promise<void>;
 }
 
@@ -201,6 +203,10 @@ async function createCanvasRuntime(canvasElement: HTMLCanvasElement): Promise<Ca
   const adapter = new FabricCanvasAdapter(canvas);
   return {
     adapter,
+    refreshDisplay() {
+      canvas.calcOffset();
+      canvas.requestRenderAll();
+    },
     async dispose() {
       let failure: unknown;
       try {
@@ -678,6 +684,10 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#refreshMarketRoute();
     this.#refreshStudioCoachCampaign();
     this.schedulePracticeAutosave();
+  }
+
+  refreshCanvasDisplay(): void {
+    this.#runtime?.refreshDisplay();
   }
 
   async setProductPricePosition(position: ProductPricePosition | null): Promise<void> {
@@ -1767,8 +1777,15 @@ registerReleaseServiceWorker({
   }
 });
 const studioTools = createStudioToolDrawer(shell.overlay);
-shell.overlay.querySelector<HTMLButtonElement>("[data-studio-collapse]")
-  ?.addEventListener("click", () => studioTools.collapse());
+const studioSplitPane = new StudioSplitPane({
+  root: shell.workspace,
+  browsePane: shell.library,
+  designPane: shell.canvasRegion,
+  separator: shell.workspaceSeparator
+});
+shell.overlay.querySelector(".creator__tool-rail")?.addEventListener("click", () => {
+  studioSplitPane.selectNarrowPane("browse");
+});
 const gameSurface = document.querySelector<HTMLElement>('main[aria-label="Advertising Market Game"]');
 const gameCanvas = document.querySelector<HTMLCanvasElement>("#canvas");
 if (!gameSurface || !gameCanvas) throw new Error("Missing locked game surface for account access");
@@ -1961,6 +1978,25 @@ const handler = new BrowserCreatorHandler(
   practiceService,
   cloudSync
 );
+const canvasResizeObserver = typeof globalThis.ResizeObserver === "function"
+  ? new ResizeObserver((entries) => {
+      const size = entries[0]?.contentRect ??
+        shell.canvasRegion.getBoundingClientRect();
+      const width = Math.min(
+        1280,
+        Math.max(0, size.width - 32),
+        Math.max(0, size.height - 32) * 16 / 9
+      );
+      if (width > 0) {
+        shell.canvasRegion.style.setProperty(
+          "--studio-canvas-display-width",
+          `${Math.floor(width)}px`
+        );
+      }
+      handler.refreshCanvasDisplay();
+    })
+  : null;
+canvasResizeObserver?.observe(shell.canvasRegion);
 const teacherReady = mode.kind === "teacher-playtest"
   ? (async (): Promise<void> => {
       const username = TEACHER_PLAYTEST_BROWSER_NAMESPACE;

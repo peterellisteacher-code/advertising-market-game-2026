@@ -29,6 +29,8 @@ const runtime = vi.hoisted(() => ({
   adapterConstructed: vi.fn(),
   adapterDisposed: vi.fn(),
   canvasConstructed: vi.fn(),
+  canvasCalcOffset: vi.fn(),
+  canvasRequestRenderAll: vi.fn(),
   canvasDisposed: vi.fn(),
   exporterConstructed: vi.fn(),
   publish: vi.fn(),
@@ -76,6 +78,14 @@ vi.mock("fabric", () => ({
     constructor(element: HTMLCanvasElement) {
       runtime.canvasConstructed(element);
       if (runtime.canvasFailure) throw runtime.canvasFailure;
+    }
+
+    calcOffset(): void {
+      runtime.canvasCalcOffset();
+    }
+
+    requestRenderAll(): void {
+      runtime.canvasRequestRenderAll();
     }
 
     dispose(): Promise<void> {
@@ -1143,6 +1153,10 @@ describe("window.AdMarketCreator", () => {
     Reflect.deleteProperty(window, "AdMarketPractice");
     Reflect.deleteProperty(window, "AdMarketRoom");
     Reflect.deleteProperty(window, "AdMarketAccount");
+    Object.defineProperty(globalThis, "ResizeObserver", {
+      configurable: true,
+      value: undefined
+    });
     localStorage.clear();
     document.body.innerHTML = `
       <main aria-label="Advertising Market Game">
@@ -1640,6 +1654,98 @@ describe("window.AdMarketCreator", () => {
       revision: 0
     }));
   }, 20_000);
+
+  it("resizes the studio panes without changing serialized canvas state", async () => {
+    const documentWithCanvasObject = CampaignDocumentSchema.parse({
+      ...structuredClone(blankDocument),
+      fabricState: {
+        version: "7.4.0",
+        objects: [{
+          type: "textbox",
+          objectId: "split-pane-heading",
+          elementKind: "text",
+          accessibleName: "Campaign heading",
+          text: "Make room for adventure",
+          left: 320,
+          top: 180,
+          scaleX: 1.25,
+          scaleY: 1.25
+        }]
+      }
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-split-pane", "open", documentWithCanvasObject))
+      .toMatchObject({ ok: true });
+    const before = await parsed(api, "state-before-split", "getState", null);
+    const separator = getByRole<HTMLElement>(document.body, "separator", {
+      name: "Resize the library and design areas"
+    });
+    const workspace = document.querySelector<HTMLElement>(".creator__workspace")!;
+
+    fireEvent.keyDown(separator, { key: "End" });
+
+    expect(workspace.style.getPropertyValue("--studio-browse-percent")).toBe("75%");
+    const after = await parsed(api, "state-after-split", "getState", null);
+    expect(after).toMatchObject({ ok: true });
+    if (!before.ok || !after.ok) throw new Error("Split-pane state request failed");
+    expect(CampaignDocumentSchema.parse(after.payload).fabricState)
+      .toEqual(CampaignDocumentSchema.parse(before.payload).fabricState);
+  });
+
+  it("fits and refreshes the Fabric display when the design pane resizes", async () => {
+    const observers: Array<{
+      callback: ResizeObserverCallback;
+      targets: Element[];
+    }> = [];
+    class TestResizeObserver {
+      readonly #record: {
+        callback: ResizeObserverCallback;
+        targets: Element[];
+      };
+
+      constructor(callback: ResizeObserverCallback) {
+        this.#record = { callback, targets: [] };
+        observers.push(this.#record);
+      }
+
+      observe(target: Element): void {
+        this.#record.targets.push(target);
+      }
+
+      unobserve(): void {}
+
+      disconnect(): void {}
+    }
+    Object.defineProperty(globalThis, "ResizeObserver", {
+      configurable: true,
+      value: TestResizeObserver
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-resize-observer", "open", blankDocument))
+      .toMatchObject({ ok: true });
+    const canvasRegion = getByRole<HTMLElement>(document.body, "region", {
+      name: "Campaign canvas"
+    });
+    const canvasObserver = observers.find(({ targets }) => targets.includes(canvasRegion));
+    if (!canvasObserver) throw new Error("Canvas ResizeObserver was not installed");
+
+    canvasObserver.callback([{
+      target: canvasRegion,
+      contentRect: { width: 900, height: 500 } as DOMRectReadOnly
+    } as unknown as ResizeObserverEntry], {} as ResizeObserver);
+
+    expect({
+      width: canvasRegion.style.getPropertyValue("--studio-canvas-display-width"),
+      calcOffsetCalls: runtime.canvasCalcOffset.mock.calls.length,
+      renderCalls: runtime.canvasRequestRenderAll.mock.calls.length
+    }).toEqual({
+      width: "832px",
+      calcOffsetCalls: 1,
+      renderCalls: 1
+    });
+  });
 
   it("returns the latest matching draft without opening the editor", async () => {
     const latest = structuredClone(blankDocument);

@@ -29,13 +29,10 @@ describe("Fabric canvas layer styling", () => {
       /\.creator\s*\{[^}]*grid-template-rows:\s*52px\s+76px\s+minmax\(0,\s*1fr\)[^}]*\}/i
     );
     expect(css).toMatch(
-      /\.creator__workspace\s*\{[^}]*grid-template-columns:\s*64px\s+288px\s+minmax\(0,\s*1fr\)[^}]*\}/i
+      /\.creator__workspace\s*\{[^}]*--studio-rail-width:\s*64px[^}]*--studio-browse-percent:\s*40%[^}]*--studio-browse-width:\s*\.666667fr[^}]*grid-template-columns:\s*var\(--studio-rail-width\)\s+minmax\(0,\s*var\(--studio-browse-width\)\)\s+var\(--studio-separator-width\)\s+minmax\(0,\s*1fr\)[^}]*\}/i
     );
     expect(css).toMatch(
-      /\.creator\[data-studio-drawer-open="false"\]\s+\.creator__workspace\s*\{[^}]*grid-template-columns:\s*64px\s+0\s+minmax\(0,\s*1fr\)[^}]*\}/i
-    );
-    expect(css).toMatch(
-      /\.creator__canvas\s+\.canvas-container\s*\{[^}]*width:\s*min\(100%,\s*calc\(\(100vh\s*-\s*[^)]*\)\s*\*\s*16\s*\/\s*9\)\)\s*!important[^}]*max-width:\s*1280px[^}]*aspect-ratio:\s*16\s*\/\s*9[^}]*\}/i
+      /\.creator__canvas\s+\.canvas-container\s*\{[^}]*width:\s*min\(100%,\s*var\(--studio-canvas-display-width,\s*calc\(\(100vh\s*-\s*[^)]*\)\s*\*\s*16\s*\/\s*9\)\)\)\s*!important[^}]*max-width:\s*1280px[^}]*aspect-ratio:\s*16\s*\/\s*9[^}]*\}/i
     );
   });
 
@@ -54,9 +51,10 @@ describe("Fabric canvas layer styling", () => {
     );
   });
 
-  it("removes the drawer collapse control from the brief overlay stacking area", () => {
+  it("has no floating or absolute drawer-collapse control", () => {
+    expect(css).not.toMatch(/creator__drawer-collapse/i);
     expect(css).toMatch(
-      /\.creator\[data-brief-open="true"\]\s+\.creator__drawer-collapse\s*\{[^}]*display:\s*none[^}]*\}/i
+      /\.creator__workspace-separator:focus-visible\s*\{[^}]*outline:[^}]*\}/i
     );
   });
 
@@ -74,7 +72,7 @@ describe("Fabric canvas layer styling", () => {
       /\.creator__tool-rail\s+\[role="tab"\]::before\s*\{[^}]*content:\s*attr\(data-glyph\)[^}]*display:\s*grid[^}]*place-items:\s*center[^}]*\}/i
     );
     expect(css).toMatch(
-      /@media\s*\(min-width:\s*1600px\)\s*\{[^}]*\.creator__workspace\s*\{[^}]*grid-template-columns:\s*72px\s+344px\s+minmax\(0,\s*1fr\)[^}]*\}/is
+      /@media\s*\(min-width:\s*1600px\)\s*\{[^}]*\.creator__workspace\s*\{[^}]*--studio-rail-width:\s*72px[^}]*\}/is
     );
   });
 
@@ -153,10 +151,10 @@ describe("Fabric canvas layer styling", () => {
 
   it("widens only the active asset drawer and compacts its controls on classroom screens", () => {
     expect(css).toMatch(
-      /@media\s*\(min-width:\s*1201px\)[\s\S]*?\.creator:not\(\[data-studio-drawer-open="false"\]\):has\(\.creator__assets:not\(\[hidden\]\)\)\s+\.creator__workspace\s*\{[^}]*grid-template-columns:\s*64px\s+416px\s+minmax\(0,\s*1fr\)[^}]*\}/i
+      /@media\s*\(min-width:\s*1201px\)[\s\S]*?\.creator__assets\s+\.creator__asset-controls\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[^}]*\}/i
     );
     expect(css).toMatch(
-      /@media\s*\(min-width:\s*1600px\)[\s\S]*?\.creator:not\(\[data-studio-drawer-open="false"\]\):has\(\.creator__assets:not\(\[hidden\]\)\)\s+\.creator__workspace\s*\{[^}]*grid-template-columns:\s*72px\s+500px\s+minmax\(0,\s*1fr\)[^}]*\}/i
+      /\.creator__workspace-separator\s*\{[^}]*cursor:\s*col-resize[^}]*touch-action:\s*none[^}]*\}/i
     );
     expect(css).toMatch(
       /\.creator__assets\s+\.creator__asset-controls\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[^}]*\}/i
@@ -215,6 +213,9 @@ describe("Fabric canvas layer styling", () => {
     );
     expect(mobile).toMatch(
       /\.creator__tool-rail\s+\[role="tab"\]::before\s*\{[^}]*display:\s*grid[^}]*font-size:\s*\.875rem[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /@media\s*\(max-width:\s*900px\)[\s\S]*?\.creator__pane-tabs\s*\{[^}]*display:\s*grid[^}]*\}[\s\S]*?\.creator__workspace-separator\s*\{[^}]*display:\s*none[^}]*\}/i
     );
   });
 

@@ -31,9 +31,9 @@ describe("createStudioToolDrawer", () => {
 
   it("selects a clicked rail tool and announces the state change", () => {
     const root = createFixture();
-    const changes: Array<{ tool: string; collapsed: boolean }> = [];
+    const changes: Array<{ tool: string }> = [];
     root.addEventListener("studio-tool-drawer-change", (event) => {
-      changes.push((event as CustomEvent<{ tool: string; collapsed: boolean }>).detail);
+      changes.push((event as CustomEvent<{ tool: string }>).detail);
     });
     const drawer = createStudioToolDrawer(root);
     root.querySelector<HTMLButtonElement>('[data-studio-tool="assets"]')!.click();
@@ -42,7 +42,7 @@ describe("createStudioToolDrawer", () => {
     expect(root.querySelector<HTMLElement>('[data-studio-panel="assets"]')!.hidden).toBe(false);
     expect(root.querySelector<HTMLButtonElement>('[data-studio-tool="assets"]')!.getAttribute("aria-selected"))
       .toBe("true");
-    expect(changes.at(-1)).toEqual({ tool: "assets", collapsed: false });
+    expect(changes.at(-1)).toEqual({ tool: "assets" });
   });
 
   it("moves selection and focus with ArrowUp, ArrowDown, Home and End in DOM order", () => {
@@ -68,36 +68,20 @@ describe("createStudioToolDrawer", () => {
     expect(document.activeElement).toBe(assets);
   });
 
-  it("collapses on Escape and restores the active panel and its state when opened", () => {
+  it("does not hide the selected pane when Escape is pressed", () => {
     const root = createFixture();
     const drawer = createStudioToolDrawer(root);
     const productPanel = root.querySelector<HTMLElement>('[data-studio-panel="product"]')!;
     const input = productPanel.querySelector<HTMLInputElement>("input")!;
     input.value = "still here";
-    input.scrollTop = 12;
-
     root.querySelector<HTMLButtonElement>('[data-studio-tool="product"]')!
       .dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
 
-    expect(root.dataset.studioDrawerCollapsed).toBe("true");
     expect(drawer.current()).toBe("product");
-    expect(productPanel.hidden).toBe(true);
-    drawer.open();
-    expect(root.dataset.studioDrawerCollapsed).toBeUndefined();
     expect(productPanel.hidden).toBe(false);
     expect(input.value).toBe("still here");
-    expect(input.scrollTop).toBe(12);
-  });
-
-  it("opens a collapsed drawer when a tool is reselected", () => {
-    const root = createFixture();
-    const drawer = createStudioToolDrawer(root);
-    drawer.collapse();
-    drawer.select("assets");
-
-    expect(drawer.current()).toBe("assets");
     expect(root.dataset.studioDrawerCollapsed).toBeUndefined();
-    expect(root.querySelector<HTMLElement>('[data-studio-panel="assets"]')!.hidden).toBe(false);
+    expect(root.dataset.studioDrawerOpen).toBeUndefined();
   });
 
   it("ignores hidden or disabled rail tools without making them available", () => {

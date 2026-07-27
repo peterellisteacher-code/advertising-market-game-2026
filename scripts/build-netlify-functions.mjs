@@ -20,7 +20,8 @@ export const NETLIFY_FUNCTION_NAMES = Object.freeze([
   "openverse-image",
   "openverse-search",
   "product-price-guide",
-  "studio-coach"
+  "studio-coach",
+  "teacher-session"
 ]);
 
 function digest(relativePath, bytes) {

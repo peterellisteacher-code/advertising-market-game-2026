@@ -32,7 +32,8 @@ test("function build emits one exact wrapper-and-bundle manifest", async () => {
     "openverse-image",
     "openverse-search",
     "product-price-guide",
-    "studio-coach"
+    "studio-coach",
+    "teacher-session"
   ]);
 
   for (const entry of manifest.functions) {

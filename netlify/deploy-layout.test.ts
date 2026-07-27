@@ -23,7 +23,8 @@ const expectedFunctions = [
   "openverse-image.mts",
   "openverse-search.mts",
   "product-price-guide.mts",
-  "studio-coach.mts"
+  "studio-coach.mts",
+  "teacher-session.mts"
 ];
 
 interface DiscoveredFunction {
@@ -74,7 +75,7 @@ const loadStaticDiscovery = async (): Promise<{
 };
 
 describe("Netlify deployment layout", () => {
-  it("configures a wrapper-only directory containing exactly twelve functions", () => {
+  it("configures a wrapper-only directory containing exactly thirteen functions", () => {
     const toml = readFileSync(join(repoRoot, "netlify.toml"), "utf8");
     expect(toml).toMatch(/^functions = "netlify\/deploy-functions"$/m);
     expect(existsSync(deployDirectory)).toBe(true);
@@ -157,9 +158,10 @@ describe("Netlify deployment layout", () => {
       "openverse-image",
       "openverse-search",
       "product-price-guide",
-      "studio-coach"
+      "studio-coach",
+      "teacher-session"
     ]);
-    expect(discovered).toHaveLength(12);
+    expect(discovered).toHaveLength(13);
     for (const entry of discovered) expect(entry.runtimeAPIVersion).toBe(2);
     expect(byName.get("account-session")?.routes).toEqual([
       {
@@ -232,6 +234,23 @@ describe("Netlify deployment layout", () => {
       literal: "/api/image-lab/coach",
       methods: []
     }]);
+    expect(byName.get("teacher-session")?.routes).toEqual([
+      {
+        pattern: "/api/teacher/login",
+        literal: "/api/teacher/login",
+        methods: []
+      },
+      {
+        pattern: "/api/teacher/session",
+        literal: "/api/teacher/session",
+        methods: []
+      },
+      {
+        pattern: "/api/teacher/logout",
+        literal: "/api/teacher/logout",
+        methods: []
+      }
+    ]);
     expect(byName.get("openverse-image")?.routes).toEqual([{
       pattern: "/api/openverse-image/:id",
       expression: "^\\/api\\/openverse-image(?:\\/([^\\/]+?))\\/?$",
@@ -429,6 +448,18 @@ describe("Netlify deployment layout", () => {
         rateLimit: {
           aggregateBy: ["ip", "domain"],
           windowLimit: 300,
+          windowSize: 60
+        }
+      },
+      "teacher-session": {
+        path: [
+          "/api/teacher/login",
+          "/api/teacher/session",
+          "/api/teacher/logout"
+        ],
+        rateLimit: {
+          aggregateBy: ["ip", "domain"],
+          windowLimit: 30,
           windowSize: 60
         }
       }

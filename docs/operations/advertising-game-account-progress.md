@@ -4,6 +4,51 @@ The optional account service adds pair credentials, cloud progress and owned
 image storage. Each installation must use its own Supabase project, Netlify
 site, secrets and disposable validation accounts.
 
+## Routes and sessions
+
+Pairs sign in only at `/student`. Teachers sign in only at `/teacher`.
+Teacher authentication uses a separate secure, HttpOnly session and never
+reuses a pair cookie or classroom provisioning code.
+
+Configure these additional teacher-only server values:
+
+```text
+ADVERTISING_GAME_TEACHER_PASSWORD=<8 to 128 byte teacher password>
+ADVERTISING_GAME_TEACHER_SESSION_SECRET=<32 to 256 byte random server secret>
+ADVERTISING_GAME_TEACHER_SESSION_HOURS=<whole number from 1 to 24>
+```
+
+The teacher password and session secret must remain server-only. Do not put
+either value in Vite variables, browser code, HTML, logs or source control.
+
+`/teacher/playtest` is protected by the same teacher session but stores the
+game under the reserved server identity `teacher-playtest`. That username
+cannot be created, replaced or reset through ordinary pair administration.
+The server resolves its password and Supabase user ID; neither is returned to
+the browser. Its cloud progress, owned assets and browser storage namespace
+are separate from every pair account.
+
+## Pair credentials and resets
+
+The teacher dashboard creates a pair with a teacher-entered password or an
+optional generated password. Plaintext is shown only in the immediate
+credential panel so the teacher can copy it; later account listings do not
+return it.
+
+Replacing a pair password immediately invalidates the old password and the
+existing pair session. The pair must sign in again with the replacement
+password.
+
+Resetting a selected pair requires the teacher to type that pair's exact
+username. It removes that account's progress, drafts, advertisement designs,
+uploaded images and cloud saves while retaining its username and password.
+This operation is separate from a pair's own exact-`RESET` account reset.
+
+The teacher playtest factory reset also requires exact `RESET`. It resets the
+reserved account's server progress and assets first, then clears only the
+isolated teacher-playtest browser state and opens the first game screen.
+Cancellation changes no remote or local state.
+
 ## Database foundation
 
 Choose the target explicitly:
@@ -52,6 +97,9 @@ ADVERTISING_GAME_EDGE_GATEWAY_SECRET=<32 to 256 byte random server secret>
 ADVERTISING_GAME_USERNAME_HMAC_SECRET=<32 to 256 byte random server secret>
 ADVERTISING_GAME_CLASSROOM_CODE=<8 to 128 character classroom access code>
 ADVERTISING_GAME_ASSET_NAMESPACE_SECRET=<32 to 256 byte random server secret>
+ADVERTISING_GAME_TEACHER_PASSWORD=<8 to 128 byte teacher password>
+ADVERTISING_GAME_TEACHER_SESSION_SECRET=<32 to 256 byte random server secret>
+ADVERTISING_GAME_TEACHER_SESSION_HOURS=<whole number from 1 to 24>
 ```
 
 Never place a Supabase secret key, gateway secret, classroom code or HMAC
@@ -108,6 +156,11 @@ Before student access, use disposable accounts on a fresh hosted preview:
 Rotate classroom codes between cohorts. Rotate either HMAC secret only with an
 explicit migration plan because doing so changes login identities or asset
 namespaces.
+
+Password replacement and reset requests carry idempotent operation IDs. If an
+operator receives an uncertain response, inspect the account and operation
+state before issuing a new mutation. Do not assume a browser timeout means the
+server did nothing.
 
 ## Rollback boundary
 

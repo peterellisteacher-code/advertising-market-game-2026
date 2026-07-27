@@ -971,12 +971,12 @@ func _show_safe_diagnostic() -> void:
     _refresh_keyboard_order()
 
 func _student_market_error(code: String) -> String:
-    var canonical := {
+    var canonical: String = String({
         "ROOM_EXPIRED": "SESSION_EXPIRED",
         "MARKET_UNAVAILABLE": "CONNECTION_UNAVAILABLE",
         "TRANSPORT_ERROR": "CONNECTION_UNAVAILABLE",
         "TIMEOUT": "CONNECTION_TIMEOUT"
-    }.get(code, code)
+    }.get(code, code))
     return String(STUDENT_MARKET_ERRORS.get(
         canonical,
         STUDENT_MARKET_ERRORS.get("CONNECTION_UNAVAILABLE")

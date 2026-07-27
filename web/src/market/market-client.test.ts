@@ -397,6 +397,40 @@ describe("MarketClient", () => {
     await expect(badArtwork.getArtwork("safe-key")).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
   });
 
+  it("preserves valid Retry-After seconds on server errors without trusting malformed values", async () => {
+    const rateLimited = new MarketClient(
+      vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: "RATE_LIMITED" }), {
+        status: 429,
+        headers: {
+          "content-type": "application/json",
+          "retry-after": "17"
+        }
+      })),
+      { sessionStore: makeStore(undefined, true) }
+    );
+    await expect(rateLimited.getSnapshot()).rejects.toMatchObject({
+      code: "RATE_LIMITED",
+      status: 429,
+      retryAfterSeconds: 17
+    });
+
+    const malformed = new MarketClient(
+      vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: "RATE_LIMITED" }), {
+        status: 429,
+        headers: {
+          "content-type": "application/json",
+          "retry-after": "tomorrow"
+        }
+      })),
+      { sessionStore: makeStore(undefined, true) }
+    );
+    await expect(malformed.getSnapshot()).rejects.toMatchObject({
+      code: "RATE_LIMITED",
+      status: 429,
+      retryAfterSeconds: undefined
+    });
+  });
+
   it("fingerprints fixed-order inputs, reuses failed intents, stores the token and strips it from results", async () => {
     const canonicalInputs: string[] = [];
     const store = makeStore();

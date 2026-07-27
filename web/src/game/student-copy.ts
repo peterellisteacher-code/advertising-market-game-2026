@@ -156,6 +156,15 @@ export const STUDENT_COPY = deepFreeze({
   release: {
     updateReady: "A game update is ready. Save your work, then reopen the game."
   },
+  marketErrors: {
+    INVALID_ROOM_CODE: "Enter the room code in the format ABC-234.",
+    ROOM_NOT_FOUND: "That room could not be found. Check the code and try again.",
+    ROOM_UNAVAILABLE: "That room is not available. Ask your teacher what to do next.",
+    CONNECTION_TIMEOUT: "The connection took too long. Check the network and try again.",
+    CONNECTION_UNAVAILABLE: "The market could not be reached. Check the network and try again.",
+    RATE_LIMITED: "Too many requests were sent. Wait briefly, then try again.",
+    SESSION_EXPIRED: "This market session has ended. Rejoin the room to continue."
+  },
   readiness: {
     ready: "The campaign is ready for preview.",
     notReady: "Finish the remaining items before preview.",

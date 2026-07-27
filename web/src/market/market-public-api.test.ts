@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PublishedCampaignJson } from "../bridge/contracts";
-import { MarketClient } from "./market-client";
+import { MarketClient, MarketClientError } from "./market-client";
 import { MARKET_BRIDGE_CONTRACT, createMarketPublicApi } from "./market-public-api";
 import { MarketSessionStore, type StoragePort } from "./market-session-store";
 
@@ -195,7 +195,13 @@ describe("AdMarketRoom public API", () => {
     const refused = await api.handle(request("unsafe-create", "createRoom", {
       openingWallet: 10_000, classroomCode: "teacher-key", maxTeams: 15
     }));
-    expect(JSON.parse(refused)).toMatchObject({ ok: false, error: { code: "HANDLER_ERROR" } });
+    expect(JSON.parse(refused)).toMatchObject({
+      ok: false,
+      error: {
+        code: "CONNECTION_UNAVAILABLE",
+        message: "The market could not be reached. Check the network and try again."
+      }
+    });
     expect(refused).not.toContain("payload.signature");
 
     client.resumeSession = () => Promise.resolve({
@@ -209,7 +215,10 @@ describe("AdMarketRoom public API", () => {
     const nestedRefusal = await api.handle(request("unsafe-resume", "resumeSession", null));
     expect(JSON.parse(nestedRefusal)).toMatchObject({
       ok: false,
-      error: { code: "HANDLER_ERROR" }
+      error: {
+        code: "CONNECTION_UNAVAILABLE",
+        message: "The market could not be reached. Check the network and try again."
+      }
     });
     expect(nestedRefusal).not.toContain("stolen.payload");
   });
@@ -282,7 +291,36 @@ describe("AdMarketRoom public API", () => {
     expect(client.calls).toEqual([]);
   });
 
-  it("serialises client failures and refuses non-JSON values from the server seam", async () => {
+  it("uses the bounded student error contract without exposing bridge validation details", async () => {
+    const api = createMarketPublicApi(new ClientHarness());
+
+    const invalidRoom = JSON.parse(await api.handle(
+      request("bad-room", "joinRoom", { roomCode: "ABC234", alias: "Neon Narwhals" })
+    ));
+    expect(invalidRoom).toEqual({
+      contract: MARKET_BRIDGE_CONTRACT,
+      requestId: "bad-room",
+      ok: false,
+      error: {
+        code: "INVALID_ROOM_CODE",
+        message: "Enter the room code in the format ABC-234."
+      }
+    });
+
+    const invalidBridge = await api.handle("{");
+    expect(JSON.parse(invalidBridge)).toEqual({
+      contract: MARKET_BRIDGE_CONTRACT,
+      requestId: "",
+      ok: false,
+      error: {
+        code: "CONNECTION_UNAVAILABLE",
+        message: "The market could not be reached. Check the network and try again."
+      }
+    });
+    expect(invalidBridge).not.toMatch(/INVALID_REQUEST|valid JSON|Zod/i);
+  });
+
+  it("maps client failures once and never exposes raw server codes, bodies or messages", async () => {
     const failing = new ClientHarness();
     failing.getSnapshot = () => Promise.reject(Object.assign(new Error("OWN_CAMPAIGN"), {
       code: "OWN_CAMPAIGN",
@@ -295,17 +333,57 @@ describe("AdMarketRoom public API", () => {
       contract: MARKET_BRIDGE_CONTRACT,
       requestId: "failure",
       ok: false,
-      error: { code: "OWN_CAMPAIGN", message: "OWN_CAMPAIGN" }
+      error: {
+        code: "ROOM_UNAVAILABLE",
+        message: "That room is not available. Ask your teacher what to do next."
+      }
     });
+    expect(JSON.stringify(failed)).not.toMatch(/OWN_CAMPAIGN|409/);
 
     const unsafe = new ClientHarness();
     unsafe.getSnapshot = () => Promise.resolve({ bytes: new Uint8Array([1, 2, 3]) });
     const refused = JSON.parse(await createMarketPublicApi(unsafe).handle(
       request("unsafe", "getSnapshot", null)
     ));
-    expect(refused).toMatchObject({ ok: false, error: { code: "HANDLER_ERROR" } });
+    expect(refused).toMatchObject({
+      ok: false,
+      error: { code: "CONNECTION_UNAVAILABLE" }
+    });
     expect(refused).not.toHaveProperty("payload");
   });
+
+  it.each([
+    ["ROOM_NOT_FOUND", 404, "ROOM_NOT_FOUND"],
+    ["ROOM_EXPIRED", 410, "ROOM_UNAVAILABLE"],
+    ["REQUEST_TIMEOUT", 0, "CONNECTION_TIMEOUT"],
+    ["RATE_LIMITED", 429, "RATE_LIMITED"],
+    ["SESSION_EXPIRED", 401, "SESSION_EXPIRED"],
+    ["INVALID_RESPONSE", 200, "CONNECTION_UNAVAILABLE"]
+  ] as const)(
+    "maps internal %s at status %i to student error %s",
+    async (internalCode, status, publicCode) => {
+      const failing = new ClientHarness();
+      failing.getSnapshot = () => Promise.reject(new MarketClientError(
+        internalCode,
+        status,
+        internalCode === "RATE_LIMITED" ? 17 : undefined
+      ));
+
+      const raw = await createMarketPublicApi(failing).handle(
+        request(`failure-${internalCode}`, "getSnapshot", null)
+      );
+      const response = JSON.parse(raw);
+
+      expect(response.error.code).toBe(publicCode);
+      expect(response.error.message).not.toContain(internalCode);
+      if (internalCode === "RATE_LIMITED") {
+        expect(response.error.retryAfterSeconds).toBe(17);
+      } else {
+        expect(response.error).not.toHaveProperty("retryAfterSeconds");
+      }
+      expect(raw).not.toMatch(/stack|body|status/i);
+    }
+  );
 
   it("keeps an echoed bearer out of the end-to-end Godot polling envelope", async () => {
     const token = "payload.signature";
@@ -340,7 +418,7 @@ describe("AdMarketRoom public API", () => {
 
     expect(JSON.parse(raw)).toMatchObject({
       ok: false,
-      error: { code: "INVALID_RESPONSE" }
+      error: { code: "CONNECTION_UNAVAILABLE" }
     });
     expect(raw).not.toContain(token);
   });

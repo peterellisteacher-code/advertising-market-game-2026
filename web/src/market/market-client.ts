@@ -57,7 +57,11 @@ export interface MarketSafeSessionEnvelope {
 }
 
 export class MarketClientError extends Error {
-  constructor(readonly code: string, readonly status: number) {
+  constructor(
+    readonly code: string,
+    readonly status: number,
+    readonly retryAfterSeconds?: number
+  ) {
     super(code);
     this.name = "MarketClientError";
   }
@@ -519,6 +523,14 @@ export class MarketClient {
       payload.error.length >= 1 && payload.error.length <= 128
       ? payload.error
       : "HTTP_ERROR";
-    return new MarketClientError(code, response.status);
+    const retryAfter = response.headers.get("retry-after");
+    const retryAfterSeconds = retryAfter !== null && /^\d+$/u.test(retryAfter)
+      ? Number(retryAfter)
+      : undefined;
+    return new MarketClientError(
+      code,
+      response.status,
+      Number.isSafeInteger(retryAfterSeconds) ? retryAfterSeconds : undefined
+    );
   }
 }

@@ -6,6 +6,7 @@ import {
   type MarketMedal,
   type MarketReviewStatus
 } from "./market-client";
+import { STUDENT_COPY } from "../game/student-copy";
 
 export const MARKET_BRIDGE_CONTRACT = "market-bridge@1" as const;
 
@@ -156,12 +157,25 @@ export interface MarketPublicApi {
   handle(requestJson: string): Promise<string>;
 }
 
+export type StudentMarketError =
+  | "INVALID_ROOM_CODE"
+  | "ROOM_NOT_FOUND"
+  | "ROOM_UNAVAILABLE"
+  | "CONNECTION_TIMEOUT"
+  | "CONNECTION_UNAVAILABLE"
+  | "RATE_LIMITED"
+  | "SESSION_EXPIRED";
+
 interface MarketResponse {
   readonly contract: typeof MARKET_BRIDGE_CONTRACT;
   readonly requestId: string;
   readonly ok: boolean;
   readonly payload?: unknown;
-  readonly error?: { readonly code: string; readonly message: string };
+  readonly error?: {
+    readonly code: StudentMarketError;
+    readonly message: string;
+    readonly retryAfterSeconds?: number;
+  };
 }
 
 const requestIdFrom = (value: unknown): string => {
@@ -220,25 +234,101 @@ const success = (requestId: string, payload?: unknown): string => {
   );
 };
 
-const failure = (requestId: string, code: string, message: string): string => serialise({
+const failure = (
+  requestId: string,
+  code: StudentMarketError,
+  retryAfterSeconds?: number
+): string => serialise({
   contract: MARKET_BRIDGE_CONTRACT,
   requestId,
   ok: false,
-  error: { code, message }
+  error: retryAfterSeconds === undefined
+    ? { code, message: STUDENT_COPY.marketErrors[code] }
+    : { code, message: STUDENT_COPY.marketErrors[code], retryAfterSeconds }
 });
 
-const errorCode = (error: unknown): string => {
-  if (typeof error === "object" && error !== null) {
-    const code = (error as Record<string, unknown>).code;
-    if (typeof code === "string" && /^[A-Z][A-Z0-9_]{0,127}$/u.test(code)) return code;
-  }
-  return "HANDLER_ERROR";
+const errorDetails = (error: unknown): {
+  readonly code: string;
+  readonly status: number;
+  readonly retryAfterSeconds?: number;
+} => {
+  if (typeof error !== "object" || error === null) return { code: "", status: 0 };
+  const record = error as Record<string, unknown>;
+  const details = {
+    code: typeof record.code === "string" ? record.code : "",
+    status: typeof record.status === "number" && Number.isInteger(record.status)
+      ? record.status
+      : 0
+  };
+  return typeof record.retryAfterSeconds === "number" &&
+    Number.isSafeInteger(record.retryAfterSeconds) &&
+    record.retryAfterSeconds >= 0
+    ? { ...details, retryAfterSeconds: record.retryAfterSeconds }
+    : details;
 };
 
-const errorMessage = (error: unknown): string =>
-  error instanceof Error && error.message.length > 0
-    ? error.message.slice(0, 240)
-    : "Market operation failed";
+const studentErrorFrom = (error: unknown): {
+  readonly code: StudentMarketError;
+  readonly retryAfterSeconds?: number;
+} => {
+  const details = errorDetails(error);
+  if (details.code === "INVALID_ROOM_CODE") return { code: "INVALID_ROOM_CODE" };
+  if (details.code === "ROOM_NOT_FOUND" || details.status === 404) {
+    return { code: "ROOM_NOT_FOUND" };
+  }
+  if (
+    details.code === "RATE_LIMITED" ||
+    details.code === "TOO_MANY_REQUESTS" ||
+    details.status === 429
+  ) {
+    return details.retryAfterSeconds === undefined
+      ? { code: "RATE_LIMITED" }
+      : { code: "RATE_LIMITED", retryAfterSeconds: details.retryAfterSeconds };
+  }
+  if (
+    details.code === "AUTH_REQUIRED" ||
+    details.code === "INVALID_SESSION" ||
+    details.code === "SESSION_EXPIRED" ||
+    details.status === 401 ||
+    details.status === 403
+  ) {
+    return { code: "SESSION_EXPIRED" };
+  }
+  if (
+    details.code === "REQUEST_TIMEOUT" ||
+    details.code === "CONNECTION_TIMEOUT" ||
+    details.status === 408 ||
+    details.status === 504
+  ) {
+    return { code: "CONNECTION_TIMEOUT" };
+  }
+  if (
+    details.code === "ROOM_EXPIRED" ||
+    details.code === "ROOM_CLOSED" ||
+    details.code === "MARKET_CLOSED" ||
+    details.code === "MARKET_UNAVAILABLE" ||
+    details.status === 409 ||
+    details.status === 410
+  ) {
+    return { code: "ROOM_UNAVAILABLE" };
+  }
+  return { code: "CONNECTION_UNAVAILABLE" };
+};
+
+const studentFailure = (requestId: string, error: unknown): string => {
+  const mapped = studentErrorFrom(error);
+  return failure(requestId, mapped.code, mapped.retryAfterSeconds);
+};
+
+const hasInvalidJoinRoomCode = (value: unknown): boolean => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const request = value as Record<string, unknown>;
+  if (request.method !== "joinRoom") return false;
+  const payload = request.payload;
+  if (typeof payload !== "object" || payload === null || Array.isArray(payload)) return true;
+  const roomCode = (payload as Record<string, unknown>).roomCode;
+  return typeof roomCode !== "string" || !MARKET_ROOM_CODE_PATTERN.test(roomCode);
+};
 
 const canonicalBase64 = (bytes: Uint8Array): string => {
   let binary = "";
@@ -287,21 +377,20 @@ export function createMarketPublicApi(client: MarketRoomClient): MarketPublicApi
     try {
       decoded = JSON.parse(requestJson) as unknown;
     } catch {
-      return failure("", "INVALID_REQUEST", "Request must be valid JSON");
+      return failure("", "CONNECTION_UNAVAILABLE");
     }
     const requestId = requestIdFrom(decoded);
     if (typeof decoded === "object" && decoded !== null && !Array.isArray(decoded)) {
       const contract = (decoded as Record<string, unknown>).contract;
       if (typeof contract === "string" && contract !== MARKET_BRIDGE_CONTRACT) {
-        return failure(requestId, "UNSUPPORTED_CONTRACT", "Unsupported market bridge contract");
+        return failure(requestId, "CONNECTION_UNAVAILABLE");
       }
     }
     const parsed = MarketRequestSchema.safeParse(decoded);
     if (!parsed.success) {
       return failure(
         requestId,
-        "INVALID_REQUEST",
-        parsed.error.issues[0]?.message ?? "Invalid market request"
+        hasInvalidJoinRoomCode(decoded) ? "INVALID_ROOM_CODE" : "CONNECTION_UNAVAILABLE"
       );
     }
     try {
@@ -381,7 +470,7 @@ export function createMarketPublicApi(client: MarketRoomClient): MarketPublicApi
           ));
       }
     } catch (error) {
-      return failure(requestId, errorCode(error), errorMessage(error));
+      return studentFailure(requestId, error);
     }
   };
   return Object.freeze({ handle });

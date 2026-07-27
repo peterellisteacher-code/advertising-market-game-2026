@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fireEvent, findByRole, getByLabelText, getByRole, waitFor } from "@testing-library/dom";
@@ -1282,8 +1283,187 @@ describe("window.AdMarketCreator", () => {
     expect(document.querySelector<HTMLElement>('main[aria-label="Advertising Market Game"]')?.hidden)
       .toBe(false);
     expect(document.querySelector<HTMLCanvasElement>("#canvas")?.tabIndex).toBe(0);
-    expect(getByRole(document.body, "button", { name: "Log out" })).toBeTruthy();
+    expect(getByRole(document.body, "button", { name: "Sign out" })).toBeTruthy();
+    expect(document.body.textContent)
+      .toContain("Sign out before another pair uses this device.");
+    expect(document.body.textContent).not.toMatch(/teacher setup code/i);
+    expect(document.querySelector('[aria-label="Reset account progress"]')).toBeNull();
   }, 15_000);
+
+  it("hands a reused device from pair A to pair B without reopening pair A state", async () => {
+    document.body.innerHTML = `
+      <div id="account-gate-root"></div>
+      <section id="account-session-root" hidden></section>
+      <main aria-label="Advertising Market Game" hidden inert aria-hidden="true">
+        <canvas id="canvas" tabindex="-1"></canvas>
+      </main>
+      <div id="creator-root" hidden></div>`;
+    let serverAccount: string | null = "team-a";
+    const progressIdentities: string[] = [];
+    const assetIdentities: string[] = [];
+    const pairAAsset = Uint8Array.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+      0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01
+    ]);
+    const pairAAssetDigest = createHash("sha256")
+      .update(pairAAsset)
+      .digest("hex");
+    const pairADocument = createBlankCampaignDocument({
+      documentId: "team-a-campaign",
+      sessionId: "team-a-session",
+      teamId: "team-a",
+      mode: "offline"
+    });
+    pairADocument.revision = 1;
+    pairADocument.updatedAt = "2026-07-27T01:00:00.000Z";
+    pairADocument.fabricState = {
+      version: "7.4.0",
+      objects: [{
+        type: "image",
+        objectId: "team-a-image",
+        elementKind: "image",
+        accessibleName: "Pair A private image",
+        src: "local-blob:team-a-private-image"
+      }]
+    };
+    pairADocument.assetReferences = [
+      {
+        kind: "local-blob",
+        objectId: "team-a-image",
+        blobKey: "team-a-private-image",
+        mimeType: "image/png"
+      },
+      {
+        kind: "cloud-blob",
+        objectId: "team-a-image",
+        blobKey: "team-a-private-image",
+        mimeType: "image/png",
+        byteLength: pairAAsset.byteLength,
+        sha256: pairAAssetDigest
+      }
+    ];
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      if (input === "/api/account/session") {
+        return Promise.resolve(Response.json(serverAccount === null
+          ? { authenticated: false }
+          : { authenticated: true, username: serverAccount }));
+      }
+      if (input === "/api/account/logout") {
+        expect(new Headers(init?.headers).get("x-admarket-account")).toBe("team-a");
+        serverAccount = null;
+        return Promise.resolve(new Response(null, { status: 204 }));
+      }
+      if (input === "/api/account/login") {
+        expect(JSON.parse(String(init?.body))).toEqual({
+          username: "team-b",
+          password: "different-password"
+        });
+        serverAccount = "team-b";
+        return Promise.resolve(Response.json({
+          authenticated: true,
+          username: "team-b"
+        }));
+      }
+      if (input === "/api/account/progress") {
+        const identity = new Headers(init?.headers).get("x-admarket-account");
+        if (identity === null) {
+          return Promise.reject(new Error("Missing progress identity"));
+        }
+        progressIdentities.push(identity);
+        return Promise.resolve(Response.json({
+          schema: "advertising-game-progress",
+          version: 1,
+          documents: identity === "team-a"
+            ? [{
+                documentId: pairADocument.documentId,
+                revision: pairADocument.revision,
+                updatedAt: pairADocument.updatedAt
+              }]
+            : []
+        }));
+      }
+      if (input === `/api/account/progress?documentId=${pairADocument.documentId}`) {
+        const identity = new Headers(init?.headers).get("x-admarket-account");
+        if (identity === null) {
+          return Promise.reject(new Error("Missing progress identity"));
+        }
+        progressIdentities.push(identity);
+        return Promise.resolve(Response.json({
+          schema: "advertising-game-progress",
+          version: 1,
+          documentId: pairADocument.documentId,
+          revision: pairADocument.revision,
+          document: pairADocument,
+          updatedAt: pairADocument.updatedAt
+        }));
+      }
+      if (input === `/api/account/assets/${pairAAssetDigest}`) {
+        const identity = new Headers(init?.headers).get("x-admarket-account");
+        if (identity === null) {
+          return Promise.reject(new Error("Missing asset identity"));
+        }
+        assetIdentities.push(identity);
+        return Promise.resolve(new Response(pairAAsset, {
+          headers: {
+            "content-type": "image/png",
+            "content-length": String(pairAAsset.byteLength)
+          }
+        }));
+      }
+      return Promise.reject(new Error(`Unexpected account URL ${String(input)}`));
+    });
+
+    await import("./main");
+    await window.AdMarketAccount.requireAccess();
+    expect(runtime.activateAccountDrafts).toHaveBeenLastCalledWith("team-a");
+    expect(document.querySelector("[data-account-cloud-status]")?.textContent)
+      .toBe("Cloud save restored to this device · revision 1");
+    expect(runtime.importCloudPractice).toHaveBeenCalledOnce();
+
+    fireEvent.click(getByRole(document.body, "button", { name: "Sign out" }));
+    await waitFor(() => expect(fetchSpy.mock.calls.some(
+      ([input]) => input === "/api/account/logout"
+    )).toBe(true));
+    await waitFor(() => expect(runtime.deactivateAccountDrafts).toHaveBeenCalled());
+    expect(serverAccount).toBeNull();
+
+    vi.resetModules();
+    Reflect.deleteProperty(window, "AdMarketCreator");
+    Reflect.deleteProperty(window, "AdMarketPractice");
+    Reflect.deleteProperty(window, "AdMarketRoom");
+    Reflect.deleteProperty(window, "AdMarketAccount");
+    document.body.innerHTML = `
+      <main aria-label="Advertising Market Game">
+        <canvas id="canvas" tabindex="0"></canvas>
+      </main>
+      <div id="creator-root"></div>`;
+    await import("./main");
+    const secondAccess = window.AdMarketAccount.requireAccess();
+    const login = await findByRole(document.body, "form", { name: "Log in" });
+    expect(document.querySelector<HTMLElement>(
+      'main[aria-label="Advertising Market Game"]'
+    )?.hidden).toBe(true);
+    expect(document.body.textContent).not.toContain("Signed in as team-a");
+    getByLabelText<HTMLInputElement>(login, "Username").value = "team-b";
+    getByLabelText<HTMLInputElement>(login, "Password").value = "different-password";
+    fireEvent.submit(login);
+    await secondAccess;
+
+    expect(runtime.activateAccountDrafts.mock.calls.map(([username]) => username))
+      .toEqual(["team-a", "team-b"]);
+    expect(progressIdentities).toEqual(["team-a", "team-a", "team-b"]);
+    expect(assetIdentities).toEqual(["team-a"]);
+    expect(runtime.importCloudPractice).toHaveBeenCalledOnce();
+    expect(runtime.importCloudPractice.mock.calls[0]?.[0]).toMatchObject({
+      teamAlias: "team-a",
+      document: pairADocument
+    });
+    expect(document.querySelector("[data-account-cloud-status]")?.textContent)
+      .toBe("Progress saves on this device first.");
+    expect(document.body.textContent).toContain("Signed in as team-b");
+    expect(document.body.textContent).not.toContain("Signed in as team-a");
+  }, 20_000);
 
   it("restores a newest cloud-only practice before unlocking the account", async () => {
     document.body.innerHTML = `

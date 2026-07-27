@@ -21,9 +21,7 @@ function deferred<T>() {
 function mount(client: AccountSessionClient, callbacks: {
   onSession?: (username: string) => void | Promise<void>;
   onSignedOut?: (explicit: boolean) => void | Promise<void>;
-  onReset?: () => void | Promise<void>;
   reload?: () => void;
-  generatePairPassword?: () => string;
 } = {}) {
   document.body.innerHTML = `
     <div id="account-gate-root"></div>
@@ -44,12 +42,8 @@ function mount(client: AccountSessionClient, callbacks: {
     gameCanvas: canvas,
     creatorRoot,
     reload,
-    ...(callbacks.generatePairPassword === undefined
-      ? {}
-      : { generatePairPassword: callbacks.generatePairPassword }),
     ...(callbacks.onSession === undefined ? {} : { onSession: callbacks.onSession }),
-    ...(callbacks.onSignedOut === undefined ? {} : { onSignedOut: callbacks.onSignedOut }),
-    ...(callbacks.onReset === undefined ? {} : { onReset: callbacks.onReset })
+    ...(callbacks.onSignedOut === undefined ? {} : { onSignedOut: callbacks.onSignedOut })
   });
   return { controller, gateRoot, statusRoot, gameSurface, canvas, creatorRoot, reload };
 }
@@ -64,7 +58,6 @@ describe("AccountAccessController", () => {
     const activation = deferred<void>();
     const client: AccountSessionClient = {
       session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
-      signup: vi.fn(),
       login: vi.fn(),
       logout: vi.fn()
     };
@@ -90,7 +83,6 @@ describe("AccountAccessController", () => {
   it("fails closed with safe copy when account storage activation fails", async () => {
     const client: AccountSessionClient = {
       session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
-      signup: vi.fn(),
       login: vi.fn(),
       logout: vi.fn()
     };
@@ -112,7 +104,6 @@ describe("AccountAccessController", () => {
   it("returns to login without unlocking when authentication expires during activation", async () => {
     const client: AccountSessionClient = {
       session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
-      signup: vi.fn(),
       login: vi.fn(),
       logout: vi.fn()
     };
@@ -131,20 +122,15 @@ describe("AccountAccessController", () => {
     expect(harness.creatorRoot.inert).toBe(true);
   });
 
-  it("keeps the game unfocusable and the bootstrap pending until account access succeeds", async () => {
-    const generatedPassword = "Abcdefghijkm23456789";
+  it("keeps the game unfocusable and offers pair login without teacher controls", async () => {
     const session = deferred<{ authenticated: false }>();
     const client: AccountSessionClient = {
       session: vi.fn(() => session.promise),
-      signup: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
-      login: vi.fn(),
+      login: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
       logout: vi.fn()
     };
     const onSession = vi.fn();
-    const harness = mount(client, {
-      onSession,
-      generatePairPassword: () => generatedPassword
-    });
+    const harness = mount(client, { onSession });
     let resolved = false;
 
     const access = harness.controller.requireAccess().then(() => { resolved = true; });
@@ -168,41 +154,35 @@ describe("AccountAccessController", () => {
     expect(document.activeElement).toBe(loginUsername);
     expect(resolved).toBe(false);
 
-    fireEvent.click(getByRole(harness.gateRoot, "button", { name: "Teacher setup" }));
-    expect(harness.gateRoot.textContent).toContain("Teacher only");
-    const signupUsername = getByLabelText<HTMLInputElement>(harness.gateRoot, "Pair username");
-    const signupPassword = getByLabelText<HTMLInputElement>(harness.gateRoot, "Generated password");
-    const classroomCode = getByLabelText<HTMLInputElement>(harness.gateRoot, "Teacher setup code");
-    expect(signupUsername.autocomplete).toBe("username");
-    expect(signupPassword.autocomplete).toBe("new-password");
-    expect(signupPassword.readOnly).toBe(true);
-    expect(signupPassword.value).toBe(generatedPassword);
-    expect(classroomCode.autocomplete).toBe("off");
-    signupUsername.value = "team-one";
-    classroomCode.value = "classroom-access";
-    fireEvent.submit(getByRole(harness.gateRoot, "form", { name: "Create pair login" }));
+    expect(queryByRole(harness.gateRoot, "button", { name: /teacher setup/i })).toBeNull();
+    expect(harness.gateRoot.textContent).not.toMatch(/teacher setup code/i);
+    loginUsername.value = "team-one";
+    const loginPassword = getByLabelText<HTMLInputElement>(harness.gateRoot, "Password");
+    loginPassword.value = "student-password";
+    fireEvent.submit(getByRole(harness.gateRoot, "form", { name: "Log in" }));
 
     await access;
-    expect(client.signup).toHaveBeenCalledWith({
+    expect(client.login).toHaveBeenCalledWith({
       username: "team-one",
-      password: generatedPassword,
-      classroomCode: "classroom-access"
+      password: "student-password"
     });
-    expect(signupPassword.value).toBe("");
+    expect(loginPassword.value).toBe("");
     expect(harness.gameSurface.hidden).toBe(false);
     expect(harness.gameSurface.inert).toBe(false);
     expect(harness.gameSurface.hasAttribute("aria-hidden")).toBe(false);
     expect(harness.canvas.tabIndex).toBe(0);
     expect(harness.gateRoot.hidden).toBe(true);
     expect(harness.statusRoot.textContent).toContain("Signed in as team-one");
-    expect(getByRole(harness.statusRoot, "button", { name: "Log out" })).toBeTruthy();
+    expect(queryByRole(harness.statusRoot, "button", { name: /reset progress/i })).toBeNull();
+    expect(getByRole(harness.statusRoot, "button", { name: "Sign out" })).toBeTruthy();
+    expect(harness.statusRoot.textContent)
+      .toContain("Sign out before another pair uses this device.");
     expect(onSession).toHaveBeenCalledWith("team-one");
   });
 
   it("announces a calm login error and moves focus back to the password", async () => {
     const client: AccountSessionClient = {
       session: vi.fn().mockResolvedValue({ authenticated: false }),
-      signup: vi.fn(),
       login: vi.fn().mockRejectedValue(new AccountClientError("INVALID_CREDENTIALS")),
       logout: vi.fn()
     };
@@ -228,7 +208,6 @@ describe("AccountAccessController", () => {
     const isolated = deferred<void>();
     const client: AccountSessionClient = {
       session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
-      signup: vi.fn(),
       login: vi.fn(),
       logout: vi.fn().mockResolvedValue(undefined)
     };
@@ -239,7 +218,7 @@ describe("AccountAccessController", () => {
     await harness.controller.requireAccess();
     harness.creatorRoot.hidden = false;
 
-    fireEvent.click(getByRole(harness.statusRoot, "button", { name: "Log out" }));
+    fireEvent.click(getByRole(harness.statusRoot, "button", { name: "Sign out" }));
 
     expect(harness.gameSurface.hidden).toBe(true);
     expect(harness.gameSurface.inert).toBe(true);
@@ -252,35 +231,26 @@ describe("AccountAccessController", () => {
     isolated.resolve();
     await waitFor(() => expect(reload).toHaveBeenCalledOnce());
     expect(client.logout).toHaveBeenCalledOnce();
-    expect(queryByRole(harness.statusRoot, "button", { name: "Log out" })).toBeNull();
+    expect(queryByRole(harness.statusRoot, "button", { name: "Sign out" })).toBeNull();
   });
 
-  it("offers authenticated progress reset without logging out", async () => {
+  it("does not expose self-reset to an authenticated pair", async () => {
     const client: AccountSessionClient = {
       session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
-      signup: vi.fn(),
       login: vi.fn(),
       logout: vi.fn()
     };
-    const onReset = vi.fn().mockResolvedValue(undefined);
-    const harness = mount(client, { onReset });
+    const harness = mount(client);
     await harness.controller.requireAccess();
 
-    const trigger = getByRole(harness.statusRoot, "button", { name: "Reset progress" });
-    fireEvent.click(trigger);
-    const dialog = getByRole(document.body, "dialog", { name: "Reset account progress" });
-    const confirmation = getByLabelText(dialog, "Type RESET to confirm");
-    fireEvent.input(confirmation, { target: { value: "RESET" } });
-    fireEvent.click(getByRole(dialog, "button", { name: "Reset account progress" }));
-
-    await waitFor(() => expect(onReset).toHaveBeenCalledOnce());
+    expect(queryByRole(harness.statusRoot, "button", { name: /reset progress/i })).toBeNull();
+    expect(queryByRole(document.body, "dialog", { name: /reset account progress/i })).toBeNull();
     expect(client.logout).not.toHaveBeenCalled();
   });
 
   it("locks another tab during reset and reloads it on completion", async () => {
     const client: AccountSessionClient = {
       session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
-      signup: vi.fn(),
       login: vi.fn(),
       logout: vi.fn()
     };
@@ -304,7 +274,6 @@ describe("AccountAccessController", () => {
   it("offers explicit cloud-conflict choices without replacing the local copy automatically", async () => {
     const client: AccountSessionClient = {
       session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
-      signup: vi.fn(),
       login: vi.fn(),
       logout: vi.fn()
     };
@@ -333,7 +302,6 @@ describe("AccountAccessController", () => {
   it("restores focus and keeps both copies untouched when a conflict action fails", async () => {
     const client: AccountSessionClient = {
       session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
-      signup: vi.fn(),
       login: vi.fn(),
       logout: vi.fn()
     };
@@ -361,7 +329,6 @@ describe("AccountAccessController", () => {
   it("stays locked without reloading when the server logout cannot be confirmed", async () => {
     const client: AccountSessionClient = {
       session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
-      signup: vi.fn(),
       login: vi.fn(),
       logout: vi.fn().mockRejectedValue(new TypeError("network unavailable"))
     };
@@ -371,7 +338,7 @@ describe("AccountAccessController", () => {
     await harness.controller.requireAccess();
     harness.creatorRoot.hidden = false;
 
-    fireEvent.click(getByRole(harness.statusRoot, "button", { name: "Log out" }));
+    fireEvent.click(getByRole(harness.statusRoot, "button", { name: "Sign out" }));
 
     await waitFor(() => expect(getByRole(harness.gateRoot, "alert").textContent)
       .toBe("This account is locked because sign-out could not be confirmed. Check your connection, then reload this page before another person signs in."));
@@ -387,7 +354,6 @@ describe("AccountAccessController", () => {
     const isolated = deferred<void>();
     const client: AccountSessionClient = {
       session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
-      signup: vi.fn(),
       login: vi.fn(),
       logout: vi.fn()
     };

@@ -33,7 +33,6 @@ import {
   CloudProgressAssetRestore
 } from "./account/cloud-asset-adapter";
 import { AccountAccessController } from "./account/account-gate";
-import { AccountResetCoordinator } from "./account/account-reset-coordinator";
 import {
   CloudProgressRecovery,
   cloudRecoveryStatusMessage
@@ -1893,28 +1892,6 @@ if (mode.kind === "student") {
   if (accountGateRoot === null || accountStatusRoot === null) {
     throw new Error("Missing student account surfaces");
   }
-  const accountReset = new AccountResetCoordinator({
-    client: accountClient,
-    identity: accountIdentity,
-    mutations: accountMutations,
-    stores: [
-      drafts,
-      cloudMetadata,
-      ...(cloudOutbox === undefined ? [] : [cloudOutbox]),
-      imageLabSubmissionPersistence,
-      studioCoachRuntime
-    ],
-    quiesce: async () => {
-      cloudSync.signOut();
-      try {
-        await handler.isolateAccountWork();
-      } finally {
-        drafts.deactivateAccount();
-        imageLabSubmissionPersistence.deactivateAccount();
-        studioCoachRuntime.deactivateAccount();
-      }
-    }
-  });
   accountController = new AccountAccessController({
     client: accountClient,
     gateRoot: accountGateRoot,
@@ -1971,8 +1948,7 @@ if (mode.kind === "student") {
         imageLabSubmissionPersistence.deactivateAccount();
         studioCoachRuntime.deactivateAccount();
       }
-    },
-    onReset: () => accountReset.reset("RESET")
+    }
   });
   window.AdMarketAccount = createAccountBootstrap(accountController);
 }

@@ -92,9 +92,12 @@ export class AccountClientError extends Error {
 
 export interface AccountSessionClient {
   session(): Promise<AccountSession>;
-  signup(input: AccountSignupInput): Promise<Extract<AccountSession, { authenticated: true }>>;
   login(input: AccountLoginInput): Promise<Extract<AccountSession, { authenticated: true }>>;
   logout(): Promise<void>;
+}
+
+export interface AccountSignupClient {
+  signup(input: AccountSignupInput): Promise<Extract<AccountSession, { authenticated: true }>>;
 }
 
 export interface AccountResetClient {
@@ -295,7 +298,10 @@ async function responseError(response: Response): Promise<AccountClientError> {
   return new AccountClientError(response.status >= 500 ? "ACCOUNT_UNAVAILABLE" : "INVALID_RESPONSE");
 }
 
-export class HttpAccountClient implements AccountSessionClient, AccountResetClient {
+export class HttpAccountClient implements
+  AccountSessionClient,
+  AccountSignupClient,
+  AccountResetClient {
   readonly #requestTimeoutMs: number;
   readonly #sleep: Sleep;
   readonly #random: () => number;

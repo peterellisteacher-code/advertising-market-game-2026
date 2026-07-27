@@ -2,8 +2,6 @@ import {
   AccountClientError,
   type AccountSessionClient
 } from "./account-client";
-import { AccountResetDialog } from "./account-reset-dialog";
-import { generateStrongPairPassword } from "./pair-credential-generator";
 
 export type { AccountSessionClient } from "./account-client";
 
@@ -16,9 +14,7 @@ export interface AccountAccessControllerOptions {
   readonly creatorRoot: HTMLElement;
   readonly onSession?: (username: string) => void | Promise<void>;
   readonly onSignedOut?: (explicit: boolean) => void | Promise<void>;
-  readonly onReset?: () => void | Promise<void>;
   readonly reload?: () => void;
-  readonly generatePairPassword?: () => string;
 }
 
 export interface AccountCloudConflictOptions {
@@ -34,10 +30,6 @@ const copyForError = (error: unknown): string => {
   switch (code) {
     case "INVALID_CREDENTIALS":
       return "That username or password did not match. Try again.";
-    case "SIGNUP_DENIED":
-      return "That teacher setup code was not accepted.";
-    case "USERNAME_UNAVAILABLE":
-      return "That pair username is already taken. Choose another one.";
     case "ACCOUNT_NOT_CONFIGURED":
       return "Accounts are not ready yet. Ask your teacher to try again later.";
     case "ACCOUNT_RATE_LIMITED": {
@@ -62,9 +54,7 @@ export class AccountAccessController {
   readonly #creatorRoot: HTMLElement;
   readonly #onSession: ((username: string) => void | Promise<void>) | undefined;
   readonly #onSignedOut: ((explicit: boolean) => void | Promise<void>) | undefined;
-  readonly #resetDialog: AccountResetDialog | null;
   readonly #reload: () => void;
-  readonly #generatePairPassword: () => string;
   #accessPromise: Promise<void> | null = null;
   #resolveAccess: (() => void) | null = null;
   #username: string | null = null;
@@ -82,11 +72,7 @@ export class AccountAccessController {
     this.#creatorRoot = options.creatorRoot;
     this.#onSession = options.onSession;
     this.#onSignedOut = options.onSignedOut;
-    this.#resetDialog = options.onReset === undefined
-      ? null
-      : new AccountResetDialog({ onConfirm: options.onReset });
     this.#reload = options.reload ?? (() => globalThis.location.reload());
-    this.#generatePairPassword = options.generatePairPassword ?? generateStrongPairPassword;
   }
 
   requireAccess(): Promise<void> {
@@ -192,11 +178,7 @@ export class AccountAccessController {
     const submit = document.createElement("button");
     submit.type = "submit";
     submit.textContent = "Log in";
-    const switchMode = document.createElement("button");
-    switchMode.type = "button";
-    switchMode.textContent = "Teacher setup";
-    switchMode.addEventListener("click", () => this.#renderSignup());
-    form.append(error, submit, switchMode);
+    form.append(error, submit);
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       const input = { username: username.value, password: password.value };
@@ -211,66 +193,6 @@ export class AccountAccessController {
           this.#setBusy(form, false);
           error.textContent = copyForError(failure);
           password.focus();
-        });
-    });
-    section.append(intro, form);
-    this.#gateRoot.replaceChildren(section);
-    queueMicrotask(() => username.focus());
-  }
-
-  #renderSignup(message = ""): void {
-    this.#gateRoot.hidden = false;
-    const section = this.#gateCard("Create a pair login");
-    const intro = document.createElement("p");
-    intro.textContent = "Teacher only. Choose a pair username. Save the generated password. Enter the setup code.";
-    const form = document.createElement("form");
-    form.setAttribute("aria-label", "Create pair login");
-    const username = this.#field(form, "Pair username", "text", "username", "username");
-    username.pattern = "[A-Za-z0-9][A-Za-z0-9_-]{2,23}";
-    const password = this.#field(form, "Generated password", "text", "password", "new-password");
-    password.minLength = 20;
-    password.maxLength = 128;
-    password.readOnly = true;
-    password.spellcheck = false;
-    password.value = this.#generatePairPassword();
-    const regenerate = document.createElement("button");
-    regenerate.type = "button";
-    regenerate.textContent = "Generate another password";
-    regenerate.addEventListener("click", () => {
-      password.value = this.#generatePairPassword();
-      password.focus();
-      password.select();
-    });
-    const classroomCode = this.#field(form, "Teacher setup code", "password", "classroom-code", "off");
-    const error = this.#liveError(message);
-    const submit = document.createElement("button");
-    submit.type = "submit";
-    submit.textContent = "Create pair login";
-    const switchMode = document.createElement("button");
-    switchMode.type = "button";
-    switchMode.textContent = "Back to login";
-    switchMode.addEventListener("click", () => this.#renderLogin());
-    form.append(regenerate, error, submit, switchMode);
-    form.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const input = {
-        username: username.value,
-        password: password.value,
-        classroomCode: classroomCode.value
-      };
-      password.value = "";
-      classroomCode.value = "";
-      this.#setBusy(form, true);
-      error.textContent = "";
-      void this.#client.signup(input)
-        .then(async (session) => {
-          if (!await this.#admit(session.username)) this.#setBusy(form, false);
-        })
-        .catch((failure: unknown) => {
-          this.#setBusy(form, false);
-          error.textContent = copyForError(failure);
-          const code = failure instanceof AccountClientError ? failure.code : "";
-          (code === "SIGNUP_DENIED" ? classroomCode : username).focus();
         });
     });
     section.append(intro, form);
@@ -329,31 +251,27 @@ export class AccountAccessController {
     cloud.setAttribute("role", "status");
     cloud.setAttribute("aria-live", "polite");
     cloud.textContent = this.#cloudMessage;
-    const logout = document.createElement("button");
-    logout.type = "button";
-    logout.textContent = "Log out";
-    logout.addEventListener("click", () => {
-      logout.disabled = true;
+    const handover = document.createElement("span");
+    handover.dataset.accountHandover = "";
+    handover.textContent = "Sign out before another pair uses this device.";
+    const signOut = document.createElement("button");
+    signOut.type = "button";
+    signOut.textContent = "Sign out";
+    signOut.addEventListener("click", () => {
+      signOut.disabled = true;
       cloud.textContent = "Signing out…";
       this.#leaveAccount(true);
     });
     const conflict = this.#cloudConflict === null
       ? null
       : this.#cloudConflictControls(this.#cloudConflict);
-    const reset = this.#resetDialog === null
-      ? null
-      : document.createElement("button");
-    if (reset !== null) {
-      reset.type = "button";
-      reset.textContent = "Reset progress";
-      reset.addEventListener("click", () => this.#resetDialog!.open(reset, username));
-    }
     const sessionActions = document.createElement("div");
     sessionActions.className = "account-session__actions";
-    sessionActions.append(...(reset === null ? [] : [reset]), logout);
+    sessionActions.append(signOut);
     this.#statusRoot.replaceChildren(
       identity,
       cloud,
+      handover,
       ...(conflict === null ? [] : [conflict]),
       sessionActions
     );

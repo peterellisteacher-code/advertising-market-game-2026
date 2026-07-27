@@ -136,6 +136,59 @@ describe("HttpAccountClient", () => {
     expect(order).toEqual(["logout-start", "logout-finish", "login"]);
   });
 
+  it("keeps a signed-out reload unauthenticated before binding a different pair", async () => {
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(Response.json({
+        authenticated: true,
+        username: "team-a"
+      }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(Response.json({ authenticated: false }))
+      .mockResolvedValueOnce(Response.json({
+        authenticated: true,
+        username: "team-b"
+      }));
+    const binding = new BrowserAccountIdentityBinding();
+    const publisher = quietPublisher();
+    const client = new HttpAccountClient(binding, publisher, fetcher);
+
+    await expect(client.session()).resolves.toEqual({
+      authenticated: true,
+      username: "team-a"
+    });
+    await expect(client.logout()).resolves.toBeUndefined();
+    expect(binding.current()).toBeNull();
+    await expect(client.session()).resolves.toEqual({ authenticated: false });
+    await expect(client.login({
+      username: "team-b",
+      password: "different-password"
+    })).resolves.toEqual({
+      authenticated: true,
+      username: "team-b"
+    });
+
+    expect(binding.current()).toBe("team-b");
+    expect(publisher.publish).toHaveBeenCalledTimes(2);
+    expect(fetcher.mock.calls.map(([path]) => path)).toEqual([
+      "/api/account/session",
+      "/api/account/logout",
+      "/api/account/session",
+      "/api/account/login"
+    ]);
+    expect(fetcher.mock.calls[1]?.[1]?.headers).toEqual({
+      accept: "application/json",
+      "x-admarket-account": "team-a"
+    });
+    expect(fetcher.mock.calls[3]?.[1]?.headers).toEqual({
+      accept: "application/json",
+      "content-type": "application/json"
+    });
+    expect(JSON.parse(String(fetcher.mock.calls[3]?.[1]?.body))).toEqual({
+      username: "team-b",
+      password: "different-password"
+    });
+  });
+
   it("uses bounded streaming JSON and rejects an unexpected redirect", async () => {
     const response = Response.json({ authenticated: false });
     const json = vi.spyOn(response, "json").mockRejectedValue(new Error("unbounded parser used"));

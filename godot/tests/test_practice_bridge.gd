@@ -41,6 +41,12 @@ func _requests_and_recovery_are_strict() -> bool:
     assert(successes.back().get("payload").get("checkpoint").get("runId") == "run-0123456789")
     assert(successes.back().get("payload").get("document").get("documentId") == "practice-document-0123456789")
 
+    var invalid_role_guide_id := bridge.resume()
+    var invalid_role_guide := _recovery()
+    invalid_role_guide["document"]["gameplay"]["pair"]["roleGuideAcknowledged"] = "yes"
+    fake.resolve_success(invalid_role_guide_id, invalid_role_guide)
+    assert(failures.back().get("code") == "INVALID_RECOVERY_RESPONSE")
+
     var before := fake.request_count()
     for invalid_id in [
         bridge.begin("A", "operation-begin-2"),
@@ -186,7 +192,8 @@ func _document() -> Dictionary:
                 "activeRole": "strategist",
                 "handoffCount": 1.0,
                 "artDirectorActions": 1.0,
-                "strategistActions": 1.0
+                "strategistActions": 1.0,
+                "roleGuideAcknowledged": true
             }
         },
         "evidence": {

@@ -254,13 +254,15 @@ func _validate_recovery(value: Variant) -> Dictionary:
     return {"ok": true, "value": {"checkpoint": checkpoint.duplicate(true), "document": document}}
 
 func _validate_pair(value: Variant) -> Dictionary:
-    if typeof(value) != TYPE_DICTIONARY or not _has_exact_keys(value, ["activeRole", "handoffCount", "artDirectorActions", "strategistActions"]):
+    if typeof(value) != TYPE_DICTIONARY or not _has_exact_keys(value, ["activeRole", "handoffCount", "artDirectorActions", "strategistActions", "roleGuideAcknowledged"]):
         return _invalid("Recovery pair state is invalid")
     if not ["art-director", "strategist"].has(String(value.get("activeRole", ""))):
         return _invalid("Recovery active pair role is invalid")
     for key in ["handoffCount", "artDirectorActions", "strategistActions"]:
         if not CampaignDocument.is_nonnegative_integer_number(value.get(key)) or int(value.get(key)) > MAX_COUNTER:
             return _invalid("Recovery pair counter is invalid")
+    if typeof(value.get("roleGuideAcknowledged")) != TYPE_BOOL:
+        return _invalid("Recovery role-guide acknowledgement is invalid")
     return {"ok": true}
 
 func _validate_token(value: Variant) -> Dictionary:

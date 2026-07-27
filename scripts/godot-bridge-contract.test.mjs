@@ -48,6 +48,25 @@ test("Godot JSON integer validation uses the JavaScript safe-integer ceiling", a
   assert.match(bridgeTests, /9007199254740992\.0/);
 });
 
+test("the practice bridge accepts and validates the persisted role-guide flag", async () => {
+  const [practiceBridge, bridgeTests, campaignDocument] = await Promise.all([
+    readFile(new URL("godot/src/practice/PracticeBridge.gd", root), "utf8"),
+    readFile(new URL("godot/tests/test_practice_bridge.gd", root), "utf8"),
+    readFile(new URL("web/src/domain/campaign-document.ts", root), "utf8")
+  ]);
+
+  assert.match(campaignDocument, /roleGuideAcknowledged:\s*z\.boolean\(\)/);
+  assert.match(
+    practiceBridge,
+    /_has_exact_keys\(value,\s*\[[^\]]*"roleGuideAcknowledged"[^\]]*\]\)/
+  );
+  assert.match(
+    practiceBridge,
+    /typeof\(value\.get\("roleGuideAcknowledged"\)\)\s*!=\s*TYPE_BOOL/
+  );
+  assert.match(bridgeTests, /"roleGuideAcknowledged":\s*true/);
+});
+
 test("CreatorHost never prefixes student diagnostics with internal bridge codes or raw close errors", async () => {
   const creatorHost = await readFile(
     new URL("godot/src/creator/CreatorHost.gd", root),

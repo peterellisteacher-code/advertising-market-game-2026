@@ -374,7 +374,6 @@ func _keyboard_order_and_dialog_focus_are_stable() -> bool:
     screen.call("enter_room", "teacher", "ABC-234")
     screen.call("present_snapshot", _teacher_snapshot())
     var remove_button := screen.find_children("RemoveTeam", "Button", true, false)[1] as Button
-    remove_button.grab_focus()
     remove_button.pressed.emit()
     assert(screen.get("_remove_dialog_focus") == remove_button)
     screen.call("_cancel_remove_team")

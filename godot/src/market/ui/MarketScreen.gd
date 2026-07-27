@@ -662,7 +662,11 @@ func _render_teacher_teams(teams: Array, phase: String) -> void:
             var remove := _new_button("Remove", "RemoveTeam", false)
             remove.tooltip_text = "Confirm this exact team before removing it."
             remove.pressed.connect(
-                _request_remove_confirmation.bind(str(team.get("id")), str(team.get("alias")))
+                _request_remove_confirmation.bind(
+                    str(team.get("id")),
+                    str(team.get("alias")),
+                    remove
+                )
             )
             row.add_child(remove)
 
@@ -858,13 +862,19 @@ func _send_control(action: String) -> void:
     network_status.text = "Live room updating…"
     market_host.call("control", action)
 
-func _request_remove_confirmation(team_id: String, alias: String) -> void:
+func _request_remove_confirmation(
+    team_id: String,
+    alias: String,
+    source: Control = null
+) -> void:
     if str(_latest_state.get("phase")) != "building":
         return
     _remove_team_id = team_id
     _remove_team_alias = alias
-    var viewport := get_viewport()
-    _remove_dialog_focus = viewport.gui_get_focus_owner() if viewport != null else null
+    _remove_dialog_focus = source
+    if _remove_dialog_focus == null:
+        var viewport := get_viewport()
+        _remove_dialog_focus = viewport.gui_get_focus_owner() if viewport != null else null
     remove_team_dialog.dialog_text = (
         "Remove %s from this room? This will end the current room session."
         % alias

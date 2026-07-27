@@ -1027,13 +1027,24 @@ func _new_button(label: String, node_name: String, primary: bool) -> Button:
     button.add_theme_stylebox_override("focus", _focus_style())
     return button
 
+func _public_controls_in_tree_order() -> Array[Control]:
+    var controls: Array[Control] = []
+    _append_public_controls(self, controls)
+    return controls
+
+func _append_public_controls(parent: Node, controls: Array[Control]) -> void:
+    for child_value in parent.get_children(false):
+        var child: Node = child_value as Node
+        var control := child as Control
+        if control != null:
+            controls.append(control)
+        _append_public_controls(child, controls)
+
 func _keyboard_controls() -> Array[Control]:
     var controls: Array[Control] = []
-    for control_value in find_children("*", "Control", true, false):
-        var control := control_value as Control
+    for control in _public_controls_in_tree_order():
         if (
-            control == null
-            or control.focus_mode != Control.FOCUS_ALL
+            control.focus_mode != Control.FOCUS_ALL
             or not control.is_visible_in_tree()
         ):
             continue
@@ -1045,9 +1056,8 @@ func _keyboard_controls() -> Array[Control]:
     return controls
 
 func _refresh_keyboard_order() -> void:
-    for control_value in find_children("*", "Control", true, false):
-        var control := control_value as Control
-        if control == null or control.focus_mode != Control.FOCUS_ALL:
+    for control in _public_controls_in_tree_order():
+        if control.focus_mode != Control.FOCUS_ALL:
             continue
         control.focus_next = NodePath()
         control.focus_previous = NodePath()

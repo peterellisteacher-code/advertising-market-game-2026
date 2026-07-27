@@ -89,18 +89,12 @@ describe("createEditorShell", () => {
     expect(["Now", "Why", "Done", "Next"].every((label) =>
       currentInstruction.textContent?.includes(label)
     )).toBe(true);
-    expect(getByRole(root, "button", { name: "Review all instructions" })).toBeTruthy();
-    expect(getByRole(root, "button", { name: "Review instructions" })).toBeTruthy();
+    expect(getAllByRole(root, "button", { name: "How to use this site" })).toHaveLength(2);
     const instructions = root.querySelector<HTMLElement>('[data-guide-dialog]')!;
     expect(instructions.hidden).toBe(true);
-    expect(instructions.getAttribute("aria-label")).toBe("Advertising campaign instructions");
-    expect([...instructions.querySelectorAll("h3")].map(({ textContent }) => textContent))
-      .toEqual([
-        "1. Use audience evidence to choose the product",
-        "2. Use the product to create the advertisement",
-        "3. Make the offer clear and credible",
-        "4. Review and judge the campaigns"
-      ]);
+    expect(instructions.getAttribute("aria-label")).toBe("How to use this site");
+    expect(instructions.querySelector("[data-guide-reference]")).toBeTruthy();
+    expect(instructions.querySelector("[data-guide-reference]")?.childElementCount).toBe(0);
     expect(getByRole(root, "region", { name: "Campaign canvas" }).getAttribute("tabindex")).toBe("0");
     const sizeControls = getByRole(root, "group", { name: "Selected product or image size" });
     expect(getByRole(sizeControls, "button", { name: "Make selected product or image smaller" }))

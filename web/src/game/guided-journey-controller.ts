@@ -4,6 +4,7 @@ import {
   evaluateGuidedJourney,
   type GuidedJourneyStep
 } from "./guided-journey";
+import { INSTRUCTION_ARGUMENT } from "./instruction-argument";
 
 type OpenGuidedJourneyStep = (step: GuidedJourneyStep) => void;
 
@@ -25,6 +26,7 @@ export class GuidedJourneyController {
   readonly #reviewButtons: readonly HTMLButtonElement[];
   readonly #dialog: HTMLElement;
   readonly #close: HTMLButtonElement;
+  readonly #reference: HTMLElement;
   #current: GuidedJourneyStep | null = null;
   #returnFocus: HTMLElement | null = null;
 
@@ -46,6 +48,8 @@ export class GuidedJourneyController {
     ]);
     this.#dialog = required(root, "[data-guide-dialog]");
     this.#close = required(root, "[data-guide-close]");
+    this.#reference = required(root, "[data-guide-reference]");
+    this.#renderReference();
 
     this.#openTool.addEventListener("click", this.#onOpenTool);
     for (const button of this.#reviewButtons) {
@@ -119,6 +123,53 @@ export class GuidedJourneyController {
     routeTool.title = routeAllowed
       ? ""
       : "Set the product price and make it visible on the canvas first.";
+  }
+
+  #renderReference(): void {
+    const fragment = document.createDocumentFragment();
+    const introduction = document.createElement("p");
+    introduction.textContent =
+      "Complete each linked action in order. You may return to completed work at any time.";
+    fragment.append(introduction);
+
+    for (const subargument of INSTRUCTION_ARGUMENT) {
+      const section = document.createElement("section");
+      section.dataset.instructionSubargument = subargument.id;
+      const heading = document.createElement("h3");
+      heading.textContent = `${subargument.id}. ${subargument.title}`;
+      section.append(heading);
+
+      const premises = subargument.claims.filter(({ kind }) => kind === "premise");
+      const list = document.createElement("ol");
+      if (premises.length > 0) {
+        list.start = Number.parseInt(premises[0]!.id.slice(1), 10);
+      }
+      for (const premise of premises) {
+        const item = document.createElement("li");
+        item.value = Number.parseInt(premise.id.slice(1), 10);
+        item.dataset.instructionClaimId = premise.id;
+        item.textContent = premise.text;
+        list.append(item);
+      }
+      section.append(list);
+
+      const conclusion = subargument.claims.find(
+        ({ id }) => id === subargument.conclusionId
+      );
+      if (conclusion !== undefined) {
+        const paragraph = document.createElement("p");
+        paragraph.dataset.instructionClaimId = conclusion.id;
+        const label = document.createElement("strong");
+        label.textContent = conclusion.kind === "overall-conclusion"
+          ? "Overall conclusion: "
+          : `Intermediate conclusion ${subargument.id}: `;
+        paragraph.append(label, conclusion.text);
+        section.append(paragraph);
+      }
+      fragment.append(section);
+    }
+
+    this.#reference.replaceChildren(fragment);
   }
 
   readonly #onOpenTool = (): void => {

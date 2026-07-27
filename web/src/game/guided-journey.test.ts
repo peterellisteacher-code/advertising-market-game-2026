@@ -4,6 +4,7 @@ import {
   type CampaignDocumentV1
 } from "../domain/campaign-document";
 import { evaluateGuidedJourney } from "./guided-journey";
+import { flattenInstructionArgument, INSTRUCTION_ARGUMENT } from "./instruction-argument";
 
 function campaign(): CampaignDocumentV1 {
   const document = createBlankCampaignDocument({
@@ -220,5 +221,44 @@ describe("evaluateGuidedJourney", () => {
       expect(outcome).toBeDefined();
       expect(step.why.toLowerCase()).toContain(outcome);
     }
+  });
+
+  it("maps every ordinary and transition step to the complete premise set", () => {
+    const document = campaign();
+    placeProduct(document);
+    document.product.name = "Study Flask";
+    completePairContribution(document);
+    for (const stage of ["attention", "interest", "desire", "action"] as const) {
+      completeAida(document, stage);
+    }
+    document.product.pricePosition = "everyday";
+    document.product.priceCents = 5900;
+    document.evidence.price = ["price-label"];
+    document.strategy.marketRoute = {
+      audienceBriefId: "after-school-wanderers",
+      zoneId: "city",
+      mediaIds: ["transit"],
+      proofPoint: "The insulated bottle kept water cold for eight hours.",
+      committed: true
+    };
+
+    const ordinary = evaluateGuidedJourney(document).steps;
+    const transitions = ([
+      "invent",
+      "sell",
+      "irresistible",
+      "publish-check"
+    ] as const).map((stage) => {
+      document.gameplay.stage = stage;
+      return evaluateGuidedJourney(document).current;
+    });
+    expect([...ordinary, ...transitions].every(({ claimIds }) => claimIds.length > 0))
+      .toBe(true);
+
+    const mapped = new Set([...ordinary, ...transitions].flatMap(({ claimIds }) => claimIds));
+    const premiseIds = flattenInstructionArgument(INSTRUCTION_ARGUMENT)
+      .filter(({ kind }) => kind === "premise")
+      .map(({ id }) => id);
+    expect(premiseIds.every((id) => mapped.has(id))).toBe(true);
   });
 });

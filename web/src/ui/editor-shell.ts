@@ -48,7 +48,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         <button type="button" data-command="undo">Undo</button>
         <button type="button" data-command="redo">Redo</button>
         <span class="creator__save-status" role="status" aria-label="Saved progress" data-save-status></span>
-        <button type="button" data-guide-review-top>Review instructions</button>
+        <button type="button" data-guide-review-top>How to use this site</button>
         <button type="button" data-command="return">Return to game</button>
       </header>
       <section class="creator__pair-strip" role="region" aria-label="${STUDENT_COPY.labels.pairPlay}">
@@ -113,7 +113,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
             </dl>
             <div class="creator__guide-actions">
               <button type="button" data-guide-open-tool>Open Audience evidence</button>
-              <button type="button" data-guide-review>Review all instructions</button>
+              <button type="button" data-guide-review>How to use this site</button>
             </div>
           </section>
           <section class="creator__tool-panel creator__product-builder" id="studio-panel-product" role="region" aria-label="Product builder" data-studio-panel="product" data-creator-feature="product">
@@ -215,53 +215,17 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         <aside class="creator__layers" id="canvas-layers-panel" role="region" aria-label="Canvas layers" hidden></aside>
       </div>
       <div class="creator__instruction-dialog" role="dialog" aria-modal="true"
-        aria-label="Advertising campaign instructions"
+        aria-label="How to use this site"
         data-guide-dialog hidden>
         <div class="creator__instruction-dialog-panel">
           <header>
             <div>
               <p class="creator__eyebrow">Complete reference</p>
-              <h2 id="advertising-campaign-instructions-title">Advertising campaign instructions</h2>
+              <h2 id="advertising-campaign-instructions-title">How to use this site</h2>
             </div>
-            <button type="button" data-guide-close>Close instructions</button>
+            <button type="button" data-guide-close>Close guide</button>
           </header>
-          <div class="creator__instruction-dialog-body">
-            <p>Complete each section in order. You may return to completed work at any time.</p>
-            <section>
-              <h3>1. Use audience evidence to choose the product</h3>
-              <ol>
-                <li><strong>Premise 1:</strong> The audience brief provides evidence about a need and values.</li>
-                <li><strong>Premise 2:</strong> A suitable product responds to that need and those values.</li>
-              </ol>
-              <p><strong>Intermediate conclusion 1:</strong> A product based on the audience evidence is likely to suit that audience.</p>
-            </section>
-            <section>
-              <h3>2. Use the product to create the advertisement</h3>
-              <ol start="3">
-                <li><strong>Premise 3:</strong> A named, visible product gives the advertisement a clear subject.</li>
-                <li><strong>Premise 4:</strong> Attention, Interest, Desire and Action each require a visible canvas choice and a recorded explanation.</li>
-              </ol>
-              <p><strong>Intermediate conclusion 2:</strong> Linking all four AIDA stages to visible evidence is likely to produce a coherent advertisement for the product identified in intermediate conclusion 1.</p>
-            </section>
-            <section>
-              <h3>3. Make the offer clear and credible</h3>
-              <ol start="5">
-                <li><strong>Premise 5:</strong> An audience-based price states the value of the offer.</li>
-                <li><strong>Premise 6:</strong> A market route identifies where the audience will encounter the advertisement.</li>
-                <li><strong>Premise 7:</strong> A proof point explains why the main product claim is credible.</li>
-              </ol>
-              <p><strong>Intermediate conclusion 3:</strong> A visible price, suitable market route and proof point are likely to make the advertisement identified in intermediate conclusion 2 credible.</p>
-            </section>
-            <section>
-              <h3>4. Review and judge the campaigns</h3>
-              <ol start="8">
-                <li><strong>Premise 8:</strong> A five-part final review checks audience fit, product value and price, AIDA, visual technique and claim credibility.</li>
-                <li><strong>Premise 9:</strong> The same five criteria allow each advertisement to be scored from 0 to 10.</li>
-                <li><strong>Premise 10:</strong> Comparing those totals supports consistent Gold, Silver and Bronze judgements.</li>
-              </ol>
-              <p><strong>Overall conclusion:</strong> A pair that completes each linked step is likely to produce and judge a clear, audience-focused and credible advertising campaign.</p>
-            </section>
-          </div>
+          <div class="creator__instruction-dialog-body" data-guide-reference></div>
         </div>
       </div>
       <p class="sr-only" data-live="polite" aria-live="polite"></p>

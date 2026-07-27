@@ -1,4 +1,4 @@
-import { fireEvent, getByRole } from "@testing-library/dom";
+import { fireEvent, getAllByRole, getByRole } from "@testing-library/dom";
 import { describe, expect, it, vi } from "vitest";
 import {
   createBlankCampaignDocument,
@@ -81,21 +81,36 @@ describe("GuidedJourneyController", () => {
     controller.setCampaign(campaign());
     const dialog = root.querySelector<HTMLElement>("[data-guide-dialog]")!;
 
-    fireEvent.click(getByRole(root, "button", { name: "Review all instructions" }));
+    const reviewButtons = getAllByRole(root, "button", { name: "How to use this site" });
+    fireEvent.click(reviewButtons[0]!);
 
-    expect(getByRole(root, "dialog", { name: "Advertising campaign instructions" }))
+    expect(getByRole(root, "dialog", { name: "How to use this site" }))
       .toBe(dialog);
     expect(dialog.hidden).toBe(false);
-    expect(dialog.textContent).toContain("Intermediate conclusion 1");
-    expect(dialog.textContent).toContain("Overall conclusion");
+    expect([...dialog.querySelectorAll<HTMLElement>("[data-instruction-claim-id]")]
+      .map(({ dataset }) => dataset.instructionClaimId)).toEqual([
+        "P1", "P2", "P3", "ICA",
+        "P5", "P6", "P7", "P8", "ICB",
+        "P10", "P11", "P12", "P13", "ICC",
+        "P15", "P16", "P17", "P18", "ICD",
+        "P20", "P21", "P22", "P23", "P24", "C"
+      ]);
+    expect([...dialog.querySelectorAll("h3")].map(({ textContent }) => textContent))
+      .toEqual([
+        "A. Establish a shared audience purpose",
+        "B. Turn the audience purpose into a product",
+        "C. Turn the product into an advertisement",
+        "D. Turn the advertisement into a credible offer",
+        "E. Turn the offer into a completed market entry"
+      ]);
     expect(document.activeElement).toBe(
-      getByRole(dialog, "button", { name: "Close instructions" })
+      getByRole(dialog, "button", { name: "Close guide" })
     );
 
     fireEvent.keyDown(dialog, { key: "Escape" });
     expect(dialog.hidden).toBe(true);
 
-    fireEvent.click(getByRole(root, "button", { name: "Review instructions" }));
+    fireEvent.click(reviewButtons[1]!);
     expect(dialog.hidden).toBe(false);
   });
 

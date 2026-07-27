@@ -4,6 +4,7 @@ import type {
 } from "../domain/campaign-document";
 import { hasPlacedProduct } from "../product-builder/product-price-subject";
 import type { AidaStage } from "./aida-playbook";
+import type { InstructionClaimId } from "./instruction-argument";
 
 export type GuidedJourneyStepId =
   | "audience"
@@ -31,6 +32,7 @@ export interface GuidedJourneyStep {
   readonly done: string;
   readonly next: string;
   readonly tool: string;
+  readonly claimIds: readonly InstructionClaimId[];
   readonly aidaStage?: AidaStage;
   readonly actionLabel?: string;
   readonly complete: boolean;
@@ -60,10 +62,17 @@ function hasAida(document: CampaignDocumentV1, stage: AidaStage): boolean {
   return hasText(document.strategy.aidaPlan[stage]) && hasEvidence(document, stage);
 }
 
+function claimIds(
+  ...ids: readonly InstructionClaimId[]
+): readonly InstructionClaimId[] {
+  return Object.freeze(ids);
+}
+
 function aidaStep(
   id: AidaStage,
   why: string,
-  next: string
+  next: string,
+  claimIds: readonly InstructionClaimId[]
 ): GuidedJourneyDefinition {
   const title = id[0]!.toUpperCase() + id.slice(1);
   return Object.freeze({
@@ -75,6 +84,7 @@ function aidaStep(
     done: `The ${title} explanation and its visible canvas evidence are recorded.`,
     next,
     tool: "aida",
+    claimIds: Object.freeze([...claimIds]),
     aidaStage: id,
     isComplete: (document: CampaignDocumentV1) => hasAida(document, id)
   });
@@ -90,6 +100,7 @@ const DEFINITIONS: readonly GuidedJourneyDefinition[] = Object.freeze([
     done: "An audience brief has been selected.",
     next: "Build the Product.",
     tool: "audience",
+    claimIds: claimIds("P1", "P2"),
     isComplete: (document: CampaignDocumentV1) => hasText(document.brief.targetAudienceId)
   }),
   Object.freeze({
@@ -101,6 +112,7 @@ const DEFINITIONS: readonly GuidedJourneyDefinition[] = Object.freeze([
     done: "The product has been built and placed on the canvas.",
     next: "Give the product a Product name.",
     tool: "product",
+    claimIds: claimIds("ICA", "P5", "P6", "P7"),
     isComplete: hasPlacedProduct
   }),
   Object.freeze({
@@ -112,6 +124,7 @@ const DEFINITIONS: readonly GuidedJourneyDefinition[] = Object.freeze([
     done: "A product name has been recorded.",
     next: "Complete the Pair contribution.",
     tool: "product",
+    claimIds: claimIds("P8"),
     isComplete: (document: CampaignDocumentV1) => hasText(document.product.name)
   }),
   Object.freeze({
@@ -123,6 +136,7 @@ const DEFINITIONS: readonly GuidedJourneyDefinition[] = Object.freeze([
     done: "Both partners have made a recorded change and exchanged roles.",
     next: "Complete Attention.",
     tool: "pair",
+    claimIds: claimIds("P3", "P11", "P12"),
     isComplete: (document: CampaignDocumentV1) =>
       document.gameplay.pair.handoffCount > 0 &&
       document.gameplay.pair.artDirectorActions > 0 &&
@@ -131,22 +145,26 @@ const DEFINITIONS: readonly GuidedJourneyDefinition[] = Object.freeze([
   aidaStep(
     "attention",
     "Attention gives the audience a reason to notice the advertisement before developing Interest.",
-    "Complete Interest."
+    "Complete Interest.",
+    ["P10", "P13"]
   ),
   aidaStep(
     "interest",
     "Interest gives the audience evidence that prepares it to consider the product's value.",
-    "Complete Desire."
+    "Complete Desire.",
+    ["P13"]
   ),
   aidaStep(
     "desire",
     "Desire links a product benefit to an audience need and supports the final Action.",
-    "Complete Action."
+    "Complete Action.",
+    ["P13"]
   ),
   aidaStep(
     "action",
     "Action states what the audience should do and completes the message before the offer is priced.",
-    "Choose the Price position."
+    "Choose the Price position.",
+    ["P13"]
   ),
   Object.freeze({
     id: "price-position",
@@ -157,6 +175,7 @@ const DEFINITIONS: readonly GuidedJourneyDefinition[] = Object.freeze([
     done: "A price position has been selected.",
     next: "Complete the Price evidence.",
     tool: "price",
+    claimIds: claimIds("P15", "P16"),
     isComplete: (document: CampaignDocumentV1) => document.product.pricePosition !== null
   }),
   Object.freeze({
@@ -168,6 +187,7 @@ const DEFINITIONS: readonly GuidedJourneyDefinition[] = Object.freeze([
     done: "The product price and visible price evidence are recorded.",
     next: "Complete the Market route.",
     tool: "price",
+    claimIds: claimIds("P16"),
     isComplete: (document: CampaignDocumentV1) =>
       document.product.priceCents !== null && hasEvidence(document, "price")
   }),
@@ -180,6 +200,7 @@ const DEFINITIONS: readonly GuidedJourneyDefinition[] = Object.freeze([
     done: "The market route and its proof point are recorded.",
     next: "Complete the Final review.",
     tool: "route",
+    claimIds: claimIds("P17", "P18"),
     isComplete: (document: CampaignDocumentV1) => document.strategy.marketRoute?.committed === true
       && document.strategy.marketRoute.proofPoint.trim().length > 0
   })
@@ -200,6 +221,7 @@ const LEVEL_TRANSITIONS: Readonly<Record<
       done: "Level 1 is locked and Level 2 is available.",
       next: "Open the creative studio and complete Attention.",
       tool: "game",
+      claimIds: claimIds("ICB"),
       actionLabel: "Return to game",
       complete: false
     })
@@ -215,6 +237,7 @@ const LEVEL_TRANSITIONS: Readonly<Record<
       done: "Level 2 is locked and Level 3 is available.",
       next: "Open the creative studio and complete the Price position.",
       tool: "game",
+      claimIds: claimIds("ICC"),
       actionLabel: "Return to game",
       complete: false
     })
@@ -230,6 +253,7 @@ const LEVEL_TRANSITIONS: Readonly<Record<
       done: "Level 3 is locked and the Final review is available.",
       next: "Complete the Final review.",
       tool: "game",
+      claimIds: claimIds("ICD"),
       actionLabel: "Return to game",
       complete: false
     })
@@ -245,6 +269,7 @@ const LEVEL_TRANSITIONS: Readonly<Record<
       done: "All five statements are confirmed and the market card is built.",
       next: "Open the market and score every other advertisement.",
       tool: "game",
+      claimIds: claimIds("P20", "P21", "P22", "P23", "P24", "C"),
       actionLabel: "Return to game",
       complete: false
     })

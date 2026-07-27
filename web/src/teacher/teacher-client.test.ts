@@ -27,6 +27,22 @@ const imageLabStatus = {
 };
 
 describe("HttpTeacherClient", () => {
+  it("binds the default browser fetcher to the global receiver", async () => {
+    const fetcher = vi.spyOn(globalThis, "fetch").mockImplementation(
+      function (this: unknown): Promise<Response> {
+        expect(this).toBe(globalThis);
+        return Promise.resolve(Response.json({ authenticated: false }));
+      }
+    );
+
+    try {
+      const client = new HttpTeacherClient();
+      await expect(client.session()).resolves.toEqual({ authenticated: false });
+    } finally {
+      fetcher.mockRestore();
+    }
+  });
+
   it("uses exact same-origin session and account-list GET contracts", async () => {
     const fetcher = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(Response.json({ authenticated: true }))

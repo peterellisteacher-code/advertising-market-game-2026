@@ -303,7 +303,7 @@ export class HttpTeacherClient implements TeacherClient {
   readonly #timeoutMilliseconds: number;
 
   constructor(options: HttpTeacherClientOptions = {}) {
-    this.#fetcher = options.fetcher ?? fetch;
+    this.#fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis);
     this.#delay = options.delay ?? ((milliseconds) =>
       new Promise((resolve) => window.setTimeout(resolve, milliseconds)));
     this.#timeoutMilliseconds = options.timeoutMilliseconds ?? 8_000;

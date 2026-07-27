@@ -46,8 +46,6 @@ const environment = {
 } as const;
 
 const identity = {
-  sessionId: "session-a",
-  teamId: "pair-3",
   idempotencyKey: jobId
 };
 
@@ -618,10 +616,17 @@ describe("Image Lab jobs transport", () => {
     const fetcher = vi.fn<typeof fetch>();
     const handler = handlerWith(fetcher);
     const browserUserId = await handler(post({ ...objectRequest, userId }));
+    const browserPair = await handler(post({
+      ...objectRequest,
+      sessionId: "student-session",
+      teamId: "student-team"
+    }));
     const modelOverride = await handler(post({ ...objectRequest, model: "fal-ai/other" }));
 
     expect(browserUserId.status).toBe(400);
     expect(await browserUserId.json()).toEqual({ error: "INVALID_REQUEST" });
+    expect(browserPair.status).toBe(400);
+    expect(await browserPair.json()).toEqual({ error: "INVALID_REQUEST" });
     expect(modelOverride.status).toBe(400);
     expect(await modelOverride.json()).toEqual({ error: "INVALID_REQUEST" });
     expect(fetcher).not.toHaveBeenCalled();

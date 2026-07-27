@@ -1,13 +1,10 @@
 import type { GeneratedRasterPlacement } from "../catalogue/catalogue-runtime";
 import type {
   ImageLabClient,
-  ImageLabConfig as ClientConfig,
   ImageLabJobCreated,
   ImageLabJobRequest,
   ImageLabJobStatus,
-  ImageLabLockResult,
-  ImageLabUnlockRequest,
-  ImageLabUnlockResult
+  StudentImageLabStatus
 } from "./image-lab-client";
 import { ImageLabClientError } from "./image-lab-client";
 import {
@@ -18,21 +15,19 @@ import {
 } from "./image-processing";
 import type {
   ImageLabActions,
-  ImageLabAllowance,
-  ImageLabConfig,
+  ImageLabStatus,
   MakeItRealChoice,
   ObjectForgeChoice
 } from "./image-lab-panel";
 
 export interface ImageLabRuntimeClient {
-  getConfig(options?: { signal?: AbortSignal }): Promise<ClientConfig>;
-  unlock(request: ImageLabUnlockRequest, options?: { signal?: AbortSignal }): Promise<ImageLabUnlockResult>;
-  lock(options?: { signal?: AbortSignal }): Promise<ImageLabLockResult>;
+  status(options?: { signal?: AbortSignal }): Promise<StudentImageLabStatus>;
   createJob(request: ImageLabJobRequest, options?: { signal?: AbortSignal }): Promise<ImageLabJobCreated>;
   pollJob(
     jobToken: string,
     options?: { signal?: AbortSignal; maxAttempts?: number; intervalMs?: number }
   ): Promise<ImageLabJobStatus>;
+  reconcile(jobToken: string, options?: { signal?: AbortSignal }): Promise<ImageLabJobStatus>;
   getAsset(jobToken: string, options?: { signal?: AbortSignal }): Promise<Blob>;
 }
 
@@ -77,17 +72,6 @@ export interface ImageLabRuntimeDependencies {
   submissionPersistence?: ImageLabSubmissionPersistence;
 }
 
-function allowance(
-  remaining: { object: number; realise: number },
-  expiresAt: number
-): ImageLabAllowance {
-  return {
-    remainingObject: remaining.object,
-    remainingRealise: remaining.realise,
-    expiresAt
-  };
-}
-
 async function blobDataUrl(blob: Blob): Promise<string> {
   if (blob.type !== "image/png" && blob.type !== "image/jpeg") {
     throw new Error("Image Lab returned an unsupported editable image");
@@ -119,13 +103,24 @@ function isDefiniteCreationFailure(value: unknown): boolean {
   if (!(value instanceof ImageLabClientError)) return false;
   return value.code === "INVALID_REQUEST" ||
     value.code === "IMAGE_LAB_DISABLED" ||
-    value.code === "IMAGE_LAB_LOCKED" ||
-    value.code === "UNLOCK_DENIED" ||
     value.code === "ALLOWANCE_EXHAUSTED" ||
-    value.code === "SESSION_EXPIRED" ||
+    value.code === "AUTHENTICATION_REQUIRED" ||
     value.code === "RATE_LIMITED" ||
     value.code === "HTTP_ERROR" && value.status !== undefined &&
       value.status >= 400 && value.status < 500;
+}
+
+function isCancellation(value: unknown): boolean {
+  return value instanceof ImageLabClientError && value.code === "CANCELLED" ||
+    value instanceof DOMException && value.name === "AbortError";
+}
+
+function uncertain(cause?: unknown): ImageLabClientError {
+  return new ImageLabClientError(
+    "JOB_OUTCOME_UNCERTAIN",
+    "The Image Lab request is still being checked.",
+    cause === undefined ? {} : { cause }
+  );
 }
 
 export class ImageLabRuntime implements ImageLabActions {
@@ -136,8 +131,6 @@ export class ImageLabRuntime implements ImageLabActions {
   readonly #prepare: NonNullable<ImageLabRuntimeDependencies["prepare"]>;
   readonly #createId: () => string;
   readonly #submissionPersistence: ImageLabSubmissionPersistence;
-  #expiresAt = 0;
-  #config: ImageLabConfig | null = null;
 
   constructor(dependencies: ImageLabRuntimeDependencies) {
     this.#client = dependencies.client;
@@ -150,34 +143,13 @@ export class ImageLabRuntime implements ImageLabActions {
       new MemoryImageLabSubmissionPersistence();
   }
 
-  async getConfig(signal: AbortSignal): Promise<ImageLabConfig> {
-    if (this.#config !== null) return this.#config;
-    const config = await this.#client.getConfig({ signal });
+  async status(signal: AbortSignal): Promise<ImageLabStatus> {
+    const status = await this.#client.status({ signal });
     signal.throwIfAborted();
-    this.#config = config.enabled
-      ? {
-          enabled: true,
-          accountCapUsd: config.accountCapUsd,
-          objectAllowance: config.remaining.object,
-          realiseAllowance: config.remaining.realise
-        }
-      : config;
-    return this.#config;
+    return status;
   }
 
-  async unlock(input: ImageLabUnlockRequest, signal: AbortSignal): Promise<ImageLabAllowance> {
-    const result = await this.#client.unlock(input, { signal });
-    this.#expiresAt = result.expiresAt;
-    return allowance(result.remaining, result.expiresAt);
-  }
-
-  async lock(signal: AbortSignal): Promise<void> {
-    await this.#client.lock({ signal });
-    signal.throwIfAborted();
-    this.#expiresAt = 0;
-  }
-
-  async forgeObject(input: ObjectForgeChoice, signal: AbortSignal): Promise<ImageLabAllowance> {
+  async forgeObject(input: ObjectForgeChoice, signal: AbortSignal): Promise<ImageLabStatus> {
     const pair = { sessionId: input.sessionId, teamId: input.teamId };
     this.#assertActive(pair, signal);
     const submission = JSON.stringify({
@@ -190,11 +162,9 @@ export class ImageLabRuntime implements ImageLabActions {
       colour: input.colour,
       removeWhiteBackground: input.removeWhiteBackground
     });
-    const { fingerprint, generationId } = await this.#submissionId(submission);
+    const { fingerprint, generationId, resumed } = await this.#submissionId(submission);
     const created = await this.#createJob({
         stage: "object",
-        sessionId: input.sessionId,
-        teamId: input.teamId,
         idempotencyKey: generationId,
         objectName: input.objectName,
         category: input.category,
@@ -202,7 +172,7 @@ export class ImageLabRuntime implements ImageLabActions {
         colour: input.colour
       }, fingerprint, signal);
     this.#assertActive(pair, signal);
-    const asset = await this.#completedAsset(created, pair, fingerprint, signal);
+    const asset = await this.#completedAsset(created, pair, fingerprint, resumed, signal);
     const dataUrl = await blobDataUrl(asset);
     this.#assertActive(pair, signal);
     const prepared = await this.#prepare(dataUrl, "object-forge", {
@@ -219,10 +189,10 @@ export class ImageLabRuntime implements ImageLabActions {
     });
     await this.#submissionPersistence.remove(fingerprint);
     this.#assertActive(pair, signal);
-    return allowance(created.remaining, this.#expiresAt);
+    return this.status(signal);
   }
 
-  async makeReal(input: MakeItRealChoice, signal: AbortSignal): Promise<ImageLabAllowance> {
+  async makeReal(input: MakeItRealChoice, signal: AbortSignal): Promise<ImageLabStatus> {
     const pair = { sessionId: input.sessionId, teamId: input.teamId };
     this.#assertActive(pair, signal);
     const exported = await this.#exportDesign(pair);
@@ -239,18 +209,16 @@ export class ImageLabRuntime implements ImageLabActions {
       productKind: input.productKind,
       scene: input.scene
     });
-    const { fingerprint, generationId } = await this.#submissionId(submission);
+    const { fingerprint, generationId, resumed } = await this.#submissionId(submission);
     const created = await this.#createJob({
         stage: "realise",
-        sessionId: input.sessionId,
-        teamId: input.teamId,
         idempotencyKey: generationId,
         designDataUrl: reference.dataUrl,
         productKind: input.productKind,
         scene: input.scene
       }, fingerprint, signal);
     this.#assertActive(pair, signal);
-    const asset = await this.#completedAsset(created, pair, fingerprint, signal);
+    const asset = await this.#completedAsset(created, pair, fingerprint, resumed, signal);
     this.#assertActive(pair, signal);
     await this.#place(pair, {
       assetId: `ai-${generationId}`,
@@ -262,27 +230,50 @@ export class ImageLabRuntime implements ImageLabActions {
     });
     await this.#submissionPersistence.remove(fingerprint);
     this.#assertActive(pair, signal);
-    return allowance(created.remaining, this.#expiresAt);
+    return this.status(signal);
   }
 
   async #completedAsset(
     created: ImageLabJobCreated,
     pair: ImageLabPairIdentity,
     fingerprint: string,
+    resumed: boolean,
     signal: AbortSignal
   ): Promise<Blob> {
-    const status = await this.#client.pollJob(created.jobToken, {
-      signal,
-      maxAttempts: 60,
-      intervalMs: 2_000
-    });
+    let status: ImageLabJobStatus;
+    try {
+      status = resumed
+        ? await this.#client.reconcile(created.jobToken, { signal })
+        : await this.#client.pollJob(created.jobToken, {
+            signal,
+            maxAttempts: 60,
+            intervalMs: 2_000
+          });
+      if (status.status === "queued" || status.status === "working") {
+        status = await this.#client.pollJob(created.jobToken, {
+          signal,
+          maxAttempts: 60,
+          intervalMs: 2_000
+        });
+      }
+    } catch (error) {
+      if (isCancellation(error)) throw error;
+      throw uncertain(error);
+    }
     this.#assertActive(pair, signal);
+    if (status.status === "unknown") throw uncertain();
     if (status.status === "failed") {
       await this.#submissionPersistence.remove(fingerprint);
       throw new Error("Image Lab generation failed");
     }
     if (status.status !== "completed") throw new Error("Image Lab generation failed");
-    const asset = await this.#client.getAsset(created.jobToken, { signal });
+    let asset: Blob;
+    try {
+      asset = await this.#client.getAsset(created.jobToken, { signal });
+    } catch (error) {
+      if (isCancellation(error)) throw error;
+      throw uncertain(error);
+    }
     this.#assertActive(pair, signal);
     return asset;
   }
@@ -297,13 +288,14 @@ export class ImageLabRuntime implements ImageLabActions {
   async #submissionId(submission: string): Promise<{
     fingerprint: string;
     generationId: string;
+    resumed: boolean;
   }> {
     const fingerprint = await submissionFingerprint(submission);
     const pending = await this.#submissionPersistence.load(fingerprint);
-    if (pending !== null) return { fingerprint, generationId: pending };
+    if (pending !== null) return { fingerprint, generationId: pending, resumed: true };
     const created = this.#createId();
     await this.#submissionPersistence.store(fingerprint, created);
-    return { fingerprint, generationId: created };
+    return { fingerprint, generationId: created, resumed: false };
   }
 
   async #createJob(
@@ -316,8 +308,13 @@ export class ImageLabRuntime implements ImageLabActions {
     } catch (error) {
       if (isDefiniteCreationFailure(error)) {
         await this.#submissionPersistence.remove(fingerprint);
+        throw error;
       }
-      throw error;
+      if (isCancellation(error)) throw error;
+      if (error instanceof ImageLabClientError && error.code === "JOB_OUTCOME_UNCERTAIN") {
+        throw error;
+      }
+      throw uncertain(error);
     }
   }
 }

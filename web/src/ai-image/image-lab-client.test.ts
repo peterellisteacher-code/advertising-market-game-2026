@@ -20,8 +20,6 @@ const expectClientError = async (promise: Promise<unknown>, code: string): Promi
 
 const objectRequest = (): ImageLabJobRequest => ({
   stage: "object",
-  sessionId: "session-1",
-  teamId: "team-4",
   idempotencyKey: "object-try-1",
   objectName: "Comet Cola can",
   category: "drink",
@@ -29,16 +27,16 @@ const objectRequest = (): ImageLabJobRequest => ({
   colour: "electric blue"
 });
 
-describe("ImageLabClient configuration and unlock", () => {
-  it("loads a disabled-by-default configuration with same-origin JSON controls", async () => {
+describe("ImageLabClient account status", () => {
+  it("loads disabled status for the authenticated account with same-origin JSON controls", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
       enabled: false,
       reason: "disabled"
     }));
     const client = new ImageLabClient({ fetch: fetchMock });
 
-    await expect(client.getConfig()).resolves.toEqual({ enabled: false, reason: "disabled" });
-    expect(fetchMock).toHaveBeenCalledWith("/api/image-lab/config", {
+    await expect(client.status()).resolves.toEqual({ enabled: false, reason: "disabled" });
+    expect(fetchMock).toHaveBeenCalledWith("/api/image-lab/session", {
       method: "GET",
       credentials: "same-origin",
       redirect: "error",
@@ -47,68 +45,32 @@ describe("ImageLabClient configuration and unlock", () => {
     });
   });
 
-  it("normalises configured allowances to one remaining-allowance shape", async () => {
+  it("returns independent remaining and reserved counts for both stages", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
       enabled: true,
-      unlocked: false,
-      accountCapUsd: 2,
-      objectAllowance: 6,
-      realiseAllowance: 2
+      object: { remaining: 6, reserved: 1 },
+      realise: { remaining: 2, reserved: 0 }
     }));
     const client = new ImageLabClient({ fetch: fetchMock });
 
-    await expect(client.getConfig()).resolves.toEqual({
+    await expect(client.status()).resolves.toEqual({
       enabled: true,
-      unlocked: false,
-      accountCapUsd: 2,
-      remaining: { object: 6, realise: 2 }
+      object: { remaining: 6, reserved: 1 },
+      realise: { remaining: 2, reserved: 0 }
     });
   });
 
-  it("posts only the strict unlock body and returns remaining allowances", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
-      unlocked: true,
-      remainingObject: 5,
-      remainingRealise: 2,
-      expiresAt: 1_800_000_000
-    }));
+  it("sends no student-supplied identity or teacher capability controls", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ enabled: false, reason: "disabled" }));
     const client = new ImageLabClient({ fetch: fetchMock });
 
-    await expect(client.unlock({ sessionId: "s-1", teamId: "t-2", code: "class-code" })).resolves.toEqual({
-      unlocked: true,
-      remaining: { object: 5, realise: 2 },
-      expiresAt: 1_800_000_000
-    });
-    expect(fetchMock).toHaveBeenCalledWith("/api/image-lab/unlock", {
-      method: "POST",
-      credentials: "same-origin",
-      redirect: "error",
-      headers: { accept: "application/json", "content-type": "application/json" },
-      body: JSON.stringify({ sessionId: "s-1", teamId: "t-2", code: "class-code" }),
-      signal: expect.any(AbortSignal)
-    });
-  });
-
-  it("closes the current pair capability without sending a teacher secret", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ unlocked: false }));
-    const client = new ImageLabClient({ fetch: fetchMock });
-
-    await expect(client.lock()).resolves.toEqual({ unlocked: false });
-    expect(fetchMock).toHaveBeenCalledWith("/api/image-lab/lock", expect.objectContaining({
-      method: "POST",
-      credentials: "same-origin",
-      redirect: "error"
-    }));
-    expect((fetchMock.mock.calls[0]?.[1] as RequestInit).body).toBeUndefined();
-  });
-
-  it("rejects extra unlock properties without fetching", async () => {
-    const fetchMock = vi.fn();
-    const client = new ImageLabClient({ fetch: fetchMock });
-    const request = { sessionId: "s", teamId: "t", code: "code", model: "forbidden" };
-
-    await expectClientError(client.unlock(request as never), "INVALID_REQUEST");
-    expect(fetchMock).not.toHaveBeenCalled();
+    await client.status();
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/image-lab/session");
+    expect(url).not.toContain("sessionId");
+    expect(url).not.toContain("teamId");
+    expect(new Headers(init.headers).has("x-image-lab-code")).toBe(false);
+    expect(new Headers(init.headers).has("x-image-lab-user-id")).toBe(false);
   });
 });
 
@@ -140,8 +102,6 @@ describe("ImageLabClient jobs", () => {
   it("posts the closed Make It Real policy shape", async () => {
     const request: ImageLabJobRequest = {
       stage: "realise",
-      sessionId: "session-1",
-      teamId: "team-4",
       idempotencyKey: "realise-try-1",
       designDataUrl: "data:image/png;base64,iVBORw0KGgo=",
       productKind: "soft drink can",
@@ -169,6 +129,18 @@ describe("ImageLabClient jobs", () => {
       model: "fal-ai/anything",
       steps: 99,
       width: 4096
+    } as never), "INVALID_REQUEST");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects student-supplied session and team identity without fetching", async () => {
+    const fetchMock = vi.fn();
+    const client = new ImageLabClient({ fetch: fetchMock });
+
+    await expectClientError(client.createJob({
+      ...objectRequest(),
+      sessionId: "student-supplied-session",
+      teamId: "student-supplied-team"
     } as never), "INVALID_REQUEST");
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -201,6 +173,21 @@ describe("ImageLabClient jobs", () => {
         headers: { accept: "application/json" }
       })
     );
+  });
+
+  it("posts only the opaque token when reconciling an uncertain request", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ status: "unknown" }));
+    const client = new ImageLabClient({ fetch: fetchMock });
+
+    await expect(client.reconcile("signed token/+?")).resolves.toEqual({ status: "unknown" });
+    expect(fetchMock).toHaveBeenCalledWith("/api/image-lab/jobs/reconcile", {
+      method: "POST",
+      credentials: "same-origin",
+      redirect: "error",
+      headers: { accept: "application/json", "content-type": "application/json" },
+      body: JSON.stringify({ jobToken: "signed token/+?" }),
+      signal: expect.any(AbortSignal)
+    });
   });
 
   it("rejects status records containing undeclared fields", async () => {
@@ -279,7 +266,7 @@ describe("ImageLabClient bounded transport", () => {
     }));
     const client = new ImageLabClient({ fetch: fetchMock });
 
-    await expectClientError(client.getConfig(), "RESPONSE_TOO_LARGE");
+    await expectClientError(client.status(), "RESPONSE_TOO_LARGE");
     expect(getReader).not.toHaveBeenCalled();
   });
 
@@ -299,7 +286,7 @@ describe("ImageLabClient bounded transport", () => {
     }));
     const client = new ImageLabClient({ fetch: fetchMock });
 
-    await expectClientError(client.getConfig(), "RESPONSE_TOO_LARGE");
+    await expectClientError(client.status(), "RESPONSE_TOO_LARGE");
     expect(cancelled).toBe(true);
   });
 
@@ -320,14 +307,14 @@ describe("ImageLabClient bounded transport", () => {
     expect(error.status).toBe(429);
   });
 
-  it.each(["IMAGE_LAB_LOCKED", "SESSION_EXPIRED"])(
-    "maps the relock server error %s to a stable typed client error",
+  it.each(["AUTHENTICATION_REQUIRED", "IMAGE_LAB_UNAVAILABLE", "JOB_OUTCOME_UNCERTAIN"])(
+    "maps the account-bound server error %s to a stable typed client error",
     async (code) => {
-      const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ error: code }, 401));
+      const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ error: code }, 409));
       const client = new ImageLabClient({ fetch: fetchMock });
 
       const error = await expectClientError(client.createJob(objectRequest()), code);
-      expect(error.status).toBe(401);
+      expect(error.status).toBe(409);
     }
   );
 
@@ -336,7 +323,7 @@ describe("ImageLabClient bounded transport", () => {
     Object.defineProperty(response, "redirected", { value: true });
     const client = new ImageLabClient({ fetch: vi.fn().mockResolvedValue(response) });
 
-    await expectClientError(client.getConfig(), "REDIRECT_BLOCKED");
+    await expectClientError(client.status(), "REDIRECT_BLOCKED");
   });
 
   it("maps AbortError to cancellation and composes the caller signal with its deadline", async () => {
@@ -344,7 +331,7 @@ describe("ImageLabClient bounded transport", () => {
     const fetchMock = vi.fn().mockRejectedValue(new DOMException("cancelled", "AbortError"));
     const client = new ImageLabClient({ fetch: fetchMock });
 
-    await expectClientError(client.getConfig({ signal: controller.signal }), "CANCELLED");
+    await expectClientError(client.status({ signal: controller.signal }), "CANCELLED");
     const requestSignal = (fetchMock.mock.calls[0]?.[1] as RequestInit).signal;
     expect(requestSignal).toBeInstanceOf(AbortSignal);
     expect(requestSignal).not.toBe(controller.signal);
@@ -363,7 +350,7 @@ describe("ImageLabClient bounded transport", () => {
         assetTimeoutMs: 60_000
       });
 
-      const pending = expectClientError(client.getConfig(), "TIMEOUT");
+      const pending = expectClientError(client.status(), "TIMEOUT");
       await vi.advanceTimersByTimeAsync(15_000);
 
       await pending;
@@ -419,6 +406,16 @@ describe("ImageLabClient polling", () => {
     const client = new ImageLabClient({ fetch: fetchMock, sleep });
 
     await expect(client.pollJob("token")).resolves.toEqual({ status: "failed" });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
+  it("returns an unknown terminal status so the student can choose Check request", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ status: "unknown" }));
+    const sleep = vi.fn();
+    const client = new ImageLabClient({ fetch: fetchMock, sleep });
+
+    await expect(client.pollJob("token")).resolves.toEqual({ status: "unknown" });
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(sleep).not.toHaveBeenCalled();
   });

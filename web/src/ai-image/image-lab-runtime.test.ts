@@ -8,24 +8,18 @@ import {
 
 function client(overrides: Partial<ImageLabRuntimeClient> = {}): ImageLabRuntimeClient {
   return {
-    getConfig: vi.fn().mockResolvedValue({
+    status: vi.fn().mockResolvedValue({
       enabled: true,
-      unlocked: false,
-      accountCapUsd: 3,
-      remaining: { object: 6, realise: 2 }
+      object: { remaining: 6, reserved: 0 },
+      realise: { remaining: 2, reserved: 0 }
     }),
-    unlock: vi.fn().mockResolvedValue({
-      unlocked: true,
-      remaining: { object: 6, realise: 2 },
-      expiresAt: 2_000_000_000
-    }),
-    lock: vi.fn().mockResolvedValue({ unlocked: false }),
     createJob: vi.fn().mockResolvedValue({
       jobToken: "opaque-job-token",
       stage: "object",
       remaining: { object: 5, realise: 2 }
     }),
     pollJob: vi.fn().mockResolvedValue({ status: "completed" }),
+    reconcile: vi.fn().mockResolvedValue({ status: "completed" }),
     getAsset: vi.fn().mockResolvedValue(new Blob([Uint8Array.of(0x89, 0x50, 0x4e, 0x47)], {
       type: "image/png"
     })),
@@ -51,17 +45,16 @@ const preparedObject = () => ({
 });
 
 describe("ImageLabRuntime", () => {
-  it("caches only a completed config lookup and restarts an aborted first lookup", async () => {
+  it("loads fresh account status and restarts an aborted first lookup", async () => {
     const calls: AbortSignal[] = [];
-    const getConfig = vi.fn().mockImplementation(({ signal }: { signal?: AbortSignal }) => {
+    const status = vi.fn().mockImplementation(({ signal }: { signal?: AbortSignal }) => {
       if (!signal) throw new Error("Expected a config signal");
       calls.push(signal);
       if (calls.length > 1) {
         return Promise.resolve({
           enabled: true,
-          unlocked: false,
-          accountCapUsd: 3,
-          remaining: { object: 6, realise: 2 }
+          object: { remaining: 6, reserved: 1 },
+          realise: { remaining: 2, reserved: 0 }
         });
       }
       return new Promise((_resolve, reject) => {
@@ -71,56 +64,36 @@ describe("ImageLabRuntime", () => {
       });
     });
     const runtime = new ImageLabRuntime({
-      client: client({ getConfig }),
+      client: client({ status }),
       exportDesign: vi.fn(),
       place: vi.fn(),
       prepare: vi.fn(),
       isCurrentPair: () => true
     });
     const first = new AbortController();
-    const initial = runtime.getConfig(first.signal);
+    const initial = runtime.status(first.signal);
     first.abort();
     await expect(initial).rejects.toThrow("cancelled");
 
-    await expect(runtime.getConfig(new AbortController().signal)).resolves.toMatchObject({
+    await expect(runtime.status(new AbortController().signal)).resolves.toMatchObject({
       enabled: true,
-      objectAllowance: 6
+      object: { remaining: 6, reserved: 1 }
     });
-    await expect(runtime.getConfig(new AbortController().signal)).resolves.toMatchObject({
+    await expect(runtime.status(new AbortController().signal)).resolves.toMatchObject({
       enabled: true,
-      objectAllowance: 6
+      object: { remaining: 6, reserved: 1 }
     });
-    expect(getConfig).toHaveBeenCalledTimes(2);
-  });
-
-  it("maps server configuration and keeps the unlock expiry", async () => {
-    const api = client();
-    const runtime = new ImageLabRuntime({
-      client: api,
-      exportDesign: vi.fn(),
-      place: vi.fn(),
-      prepare: vi.fn(),
-      isCurrentPair: () => true
-    });
-
-    expect(await runtime.getConfig(new AbortController().signal)).toEqual({
-      enabled: true,
-      accountCapUsd: 3,
-      objectAllowance: 6,
-      realiseAllowance: 2
-    });
-    expect(await runtime.unlock({ sessionId: "session-a", teamId: "team-a", code: "wake" },
-      new AbortController().signal)).toEqual({
-      remainingObject: 6,
-      remainingRealise: 2,
-      expiresAt: 2_000_000_000
-    });
-    await expect(runtime.lock(new AbortController().signal)).resolves.toBeUndefined();
-    expect(api.lock).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
+    expect(status).toHaveBeenCalledTimes(3);
   });
 
   it("forges, removes white, and places owned pixels without browser model controls", async () => {
-    const api = client();
+    const api = client({
+      status: vi.fn().mockResolvedValue({
+        enabled: true,
+        object: { remaining: 5, reserved: 0 },
+        realise: { remaining: 2, reserved: 0 }
+      })
+    });
     const prepared = new Blob([Uint8Array.of(1, 2, 3)], { type: "image/png" });
     const prepare = vi.fn().mockResolvedValue({
       blob: prepared,
@@ -137,8 +110,6 @@ describe("ImageLabRuntime", () => {
       createId: () => "generation-object-1",
       isCurrentPair: () => true
     });
-    await runtime.unlock({ sessionId: "session-a", teamId: "team-a", code: "wake" },
-      new AbortController().signal);
 
     const result = await runtime.forgeObject({
       sessionId: "session-a",
@@ -152,8 +123,6 @@ describe("ImageLabRuntime", () => {
 
     expect(api.createJob).toHaveBeenCalledWith({
       stage: "object",
-      sessionId: "session-a",
-      teamId: "team-a",
       idempotencyKey: "generation-object-1",
       objectName: "curved drink bottle",
       category: "drink packaging",
@@ -176,10 +145,11 @@ describe("ImageLabRuntime", () => {
       requestId: "generation-object-1"
     })]);
     expect(result).toEqual({
-      remainingObject: 5,
-      remainingRealise: 2,
-      expiresAt: 2_000_000_000
+      enabled: true,
+      object: { remaining: 5, reserved: 0 },
+      realise: { remaining: 2, reserved: 0 }
     });
+    expect(api.status).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
   });
 
   it("sends an exact canvas reference through Make It Real and places the showcase separately", async () => {
@@ -208,8 +178,6 @@ describe("ImageLabRuntime", () => {
       createId: () => "generation-real-1",
       isCurrentPair: () => true
     });
-    await runtime.unlock({ sessionId: "session-a", teamId: "team-a", code: "wake" },
-      new AbortController().signal);
 
     await runtime.makeReal({
       sessionId: "session-a",
@@ -229,6 +197,10 @@ describe("ImageLabRuntime", () => {
       productKind: "Fizz Finch bottle",
       scene: "bright shop shelf"
     }), { signal: expect.any(AbortSignal) });
+    expect(api.createJob).toHaveBeenCalledWith(expect.not.objectContaining({
+      sessionId: expect.anything(),
+      teamId: expect.anything()
+    }), expect.anything());
     expect(place).toHaveBeenCalledWith(
       { sessionId: "session-a", teamId: "team-a" },
       expect.objectContaining({
@@ -435,7 +407,7 @@ describe("ImageLabRuntime", () => {
     const firstRuntime = new ImageLabRuntime(dependencies);
 
     await expect(firstRuntime.forgeObject(objectChoice, new AbortController().signal))
-      .rejects.toThrow("connection lost after submit");
+      .rejects.toMatchObject({ code: "JOB_OUTCOME_UNCERTAIN" });
     const reloadedRuntime = new ImageLabRuntime(dependencies);
     await reloadedRuntime.forgeObject(objectChoice, new AbortController().signal);
 
@@ -448,6 +420,44 @@ describe("ImageLabRuntime", () => {
     const fingerprint = vi.mocked(persistence.store).mock.calls[0]?.[0];
     expect(fingerprint).toMatch(/^[0-9a-f]{64}$/);
     expect(fingerprint).not.toContain(objectChoice.objectName);
+    expect(pending.size).toBe(0);
+    expect(dependencies.client.reconcile).toHaveBeenCalledWith("resumed-job", {
+      signal: expect.any(AbortSignal)
+    });
+    expect(dependencies.client.pollJob).not.toHaveBeenCalled();
+  });
+
+  it("keeps an unknown job pending and reconciles it without a second provider submission", async () => {
+    const pending = new Map<string, string>();
+    const persistence: ImageLabSubmissionPersistence = {
+      load: async (fingerprint) => pending.get(fingerprint) ?? null,
+      store: async (fingerprint, idempotencyKey) => { pending.set(fingerprint, idempotencyKey); },
+      remove: async (fingerprint) => { pending.delete(fingerprint); }
+    };
+    const createJob = vi.fn().mockResolvedValue({
+      jobToken: "uncertain-job",
+      stage: "object" as const,
+      remaining: { object: 5, realise: 2 }
+    });
+    const pollJob = vi.fn().mockResolvedValue({ status: "unknown" });
+    const reconcile = vi.fn().mockResolvedValue({ status: "completed" });
+    const runtime = new ImageLabRuntime({
+      client: client({ createJob, pollJob, reconcile }),
+      exportDesign: vi.fn(),
+      place: vi.fn().mockResolvedValue(undefined),
+      prepare: vi.fn().mockResolvedValue(preparedObject()),
+      createId: () => "00000000-0000-4000-8000-000000000001",
+      isCurrentPair: () => true,
+      submissionPersistence: persistence
+    });
+
+    await expect(runtime.forgeObject(objectChoice, new AbortController().signal))
+      .rejects.toMatchObject({ code: "JOB_OUTCOME_UNCERTAIN" });
+    await runtime.forgeObject(objectChoice, new AbortController().signal);
+
+    expect(createJob).toHaveBeenCalledTimes(2);
+    expect(pollJob).toHaveBeenCalledOnce();
+    expect(reconcile).toHaveBeenCalledOnce();
     expect(pending.size).toBe(0);
   });
 

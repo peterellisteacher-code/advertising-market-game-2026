@@ -15,8 +15,6 @@ import {
 } from "./fal-image-policy";
 
 const identity = {
-  sessionId: "session-2026-07-15",
-  teamId: "team-orbit",
   idempotencyKey: "f54eed74-bb86-48ad-99c4-acde8f08eabe"
 };
 
@@ -260,8 +258,8 @@ describe("fal image policy", () => {
     }), "INVALID_FIELD", field);
   });
 
-  it("keeps session and team identifiers flexible but requires a UUID idempotency key", () => {
-    expect(parseObjectForgeRequest({
+  it("rejects student-supplied identity and requires a UUID idempotency key", () => {
+    expectPolicyError(() => parseObjectForgeRequest({
       stage: "object",
       sessionId: "session-2026.07:15",
       teamId: "team_orbit-3",
@@ -270,11 +268,7 @@ describe("fal image policy", () => {
       category: "other",
       style: "clean 3D cutout",
       colour: "electric blue"
-    })).toMatchObject({
-      sessionId: "session-2026.07:15",
-      teamId: "team_orbit-3",
-      idempotencyKey: identity.idempotencyKey
-    });
+    }), "UNEXPECTED_FIELD", "sessionId");
 
     for (const idempotencyKey of [
       "submission-1",

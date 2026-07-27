@@ -4,20 +4,18 @@ export interface ImageLabPair {
   productName: string;
 }
 
-export type ImageLabConfig =
+export interface ImageLabStageStatus {
+  remaining: number;
+  reserved: number;
+}
+
+export type ImageLabStatus =
   | { enabled: false; reason: string }
   | {
       enabled: true;
-      accountCapUsd: number;
-      objectAllowance: number;
-      realiseAllowance: number;
+      object: ImageLabStageStatus;
+      realise: ImageLabStageStatus;
     };
-
-export interface ImageLabAllowance {
-  remainingObject: number;
-  remainingRealise: number;
-  expiresAt: number;
-}
 
 export interface ObjectForgeChoice {
   sessionId: string;
@@ -37,18 +35,19 @@ export interface MakeItRealChoice {
 }
 
 export interface ImageLabActions {
-  getConfig(signal: AbortSignal): Promise<ImageLabConfig>;
-  unlock(
-    input: { sessionId: string; teamId: string; code: string },
-    signal: AbortSignal
-  ): Promise<ImageLabAllowance>;
-  lock(signal: AbortSignal): Promise<void>;
-  forgeObject(input: ObjectForgeChoice, signal: AbortSignal): Promise<ImageLabAllowance>;
-  makeReal(input: MakeItRealChoice, signal: AbortSignal): Promise<ImageLabAllowance>;
+  status(signal: AbortSignal): Promise<ImageLabStatus>;
+  forgeObject(input: ObjectForgeChoice, signal: AbortSignal): Promise<ImageLabStatus>;
+  makeReal(input: MakeItRealChoice, signal: AbortSignal): Promise<ImageLabStatus>;
 }
 
-type PanelState = "checking" | "disabled" | "locked" | "unlocked";
-type Operation = "unlock" | "lock" | "object" | "realise";
+type PanelState = "checking" | "disabled" | "ready";
+type Operation = "object" | "realise";
+type PendingCheck = {
+  operation: Operation;
+  busyMessage: string;
+  doneMessage: string;
+  work: (signal: AbortSignal) => Promise<ImageLabStatus>;
+};
 
 const CATEGORY_CHOICES = [
   "drink packaging",
@@ -124,20 +123,19 @@ function fieldValue(root: ParentNode, name: string): string {
   return root.querySelector<HTMLInputElement | HTMLSelectElement>(`[name="${name}"]`)?.value.trim() ?? "";
 }
 
-function requiresTeacherUnlock(error: unknown): boolean {
+function isUncertainRequest(error: unknown): boolean {
   if (typeof error !== "object" || error === null || !("code" in error)) return false;
-  const code = (error as { code?: unknown }).code;
-  return code === "IMAGE_LAB_LOCKED" || code === "SESSION_EXPIRED";
+  return (error as { code?: unknown }).code === "JOB_OUTCOME_UNCERTAIN";
 }
 
 export class ImageLabPanel {
   #pair: ImageLabPair | null = null;
   #state: PanelState = "checking";
-  #config: ImageLabConfig | null = null;
-  #allowance: ImageLabAllowance | null = null;
+  #status: ImageLabStatus | null = null;
   #busy: Operation | null = null;
   #message = "Checking the image tools…";
   #error = "";
+  #pendingChecks: Partial<Record<Operation, PendingCheck>> = {};
   #operation: AbortController | null = null;
   #disposed = false;
 
@@ -157,11 +155,11 @@ export class ImageLabPanel {
   setPair(pair: ImageLabPair): void {
     this.cancel();
     this.#pair = { ...pair };
-    if (this.#state === "unlocked") {
-      this.#state = "locked";
-      this.#allowance = null;
-      this.#message = "Ask your teacher to wake the Image Lab.";
-    }
+    this.#state = "checking";
+    this.#status = null;
+    this.#pendingChecks = {};
+    this.#message = "Checking the image tools…";
+    this.#error = "";
     this.#draw();
   }
 
@@ -172,18 +170,17 @@ export class ImageLabPanel {
     this.#message = "Checking the image tools…";
     this.#draw();
     try {
-      const config = await this.actions.getConfig(controller.signal);
+      const status = await this.actions.status(controller.signal);
       if (!this.#current(controller)) return;
-      this.#config = config;
-      this.#state = config.enabled ? "locked" : "disabled";
-      this.#message = config.enabled
-        ? "Ask your teacher to wake the Image Lab."
-      : "Image Lab is asleep. Built-in tools still work.";
+      this.#applyStatus(status);
+      this.#message = status.enabled
+        ? "Image Lab is ready."
+        : "Image Lab is not available for this account. Built-in tools still work.";
     } catch (error) {
       if (!this.#current(controller) || controller.signal.aborted) return;
-      this.#config = { enabled: false, reason: "unavailable" };
+      this.#status = { enabled: false, reason: "unavailable" };
       this.#state = "disabled";
-    this.#message = "Image Lab is asleep. Built-in tools still work.";
+      this.#message = "Image Lab is unavailable. Built-in tools still work.";
     } finally {
       if (this.#current(controller)) this.#operation = null;
       this.#draw();
@@ -217,33 +214,16 @@ export class ImageLabPanel {
       this.host.replaceChildren(status);
       return;
     }
-    if (this.#state === "locked") {
-      this.#drawLocked();
-      return;
-    }
-    this.#drawUnlocked();
+    this.#drawReady();
   }
 
-  #drawLocked(): void {
-    const root = document.createElement("div");
-    root.className = "image-lab image-lab--locked";
-    const status = document.createElement("p");
-    status.setAttribute("role", "status");
-    status.textContent = this.#message;
-    const label = labelledInput("Teacher code", "teacher-code");
-    const code = label.querySelector("input")!;
-    code.type = "password";
-    code.autocomplete = "off";
-    code.disabled = this.#pair === null || this.#busy !== null;
-    const unlock = button(this.#busy === "unlock" ? "Waking…" : "Wake Image Lab");
-    unlock.disabled = code.disabled;
-    unlock.addEventListener("click", () => void this.#unlock(code.value));
-    root.append(status, label, unlock);
-    this.host.replaceChildren(root);
+  #applyStatus(status: ImageLabStatus): void {
+    this.#status = status;
+    this.#state = status.enabled ? "ready" : "disabled";
   }
 
-  #drawUnlocked(): void {
-    const allowance = this.#allowance;
+  #drawReady(): void {
+    const current = this.#status?.enabled === true ? this.#status : null;
     const root = document.createElement("div");
     root.className = "image-lab";
     const status = document.createElement("p");
@@ -251,8 +231,8 @@ export class ImageLabPanel {
     status.textContent = this.#message;
     const sparks = document.createElement("p");
     sparks.className = "image-lab__sparks";
-    sparks.textContent = `${allowance?.remainingObject ?? 0} Object Forge uses remaining · ` +
-      `${allowance?.remainingRealise ?? 0} Make It Real uses remaining`;
+    sparks.textContent = `Object Forge: ${this.#useCopy(current?.object.remaining ?? 0)} · ` +
+      `Make It Real: ${this.#useCopy(current?.realise.remaining ?? 0)}`;
     root.append(status, sparks);
     if (this.#error) {
       const alert = document.createElement("p");
@@ -261,12 +241,15 @@ export class ImageLabPanel {
       root.append(alert);
     }
     root.append(this.#objectForge(), this.#makeItReal());
-    const close = button(this.#busy === "lock" ? "Closing…" : "Close Image Lab");
-    close.className = "image-lab__close";
-    close.disabled = this.#busy !== null;
-    close.addEventListener("click", () => void this.#lock());
-    root.append(close);
     this.host.replaceChildren(root);
+  }
+
+  #useCopy(remaining: number): string {
+    return `${remaining} ${remaining === 1 ? "use" : "uses"} available`;
+  }
+
+  #reservedCopy(reserved: number): string {
+    return `${reserved} ${reserved === 1 ? "request is" : "requests are"} being checked`;
   }
 
   #objectForge(): HTMLElement {
@@ -275,8 +258,35 @@ export class ImageLabPanel {
     section.setAttribute("aria-label", "Object Forge");
     const heading = document.createElement("h3");
     heading.textContent = "Object Forge";
+    const allowance = this.#status?.enabled === true
+      ? this.#status.object
+      : { remaining: 0, reserved: 0 };
     const guidance = document.createElement("p");
     guidance.textContent = "Invent one new object. Decorate it on the canvas.";
+    section.append(heading, guidance);
+    if (allowance.reserved > 0) {
+      const reserved = document.createElement("p");
+      reserved.className = "image-lab__reserved";
+      reserved.textContent = this.#reservedCopy(allowance.reserved);
+      section.append(reserved);
+    }
+    const pending = this.#pendingChecks.object ?? null;
+    if (pending) {
+      const check = button(this.#busy === "object" ? "Checking…" : "Check request");
+      check.disabled = this.#busy !== null;
+      check.addEventListener("click", () => void this.#run(pending));
+      section.append(check);
+      return section;
+    }
+    if (allowance.remaining < 1) {
+      const unmet = document.createElement("p");
+      unmet.className = "image-lab__unmet";
+      unmet.textContent = "No Object Forge uses are available.";
+      const forge = button("Forge object");
+      forge.disabled = true;
+      section.append(unmet, forge);
+      return section;
+    }
     const name = labelledInput("Object idea", "object-name");
     const category = labelledSelect("Object type", "object-category", CATEGORY_CHOICES);
     const style = labelledSelect("Object look", "object-style", STYLE_CHOICES);
@@ -288,9 +298,9 @@ export class ImageLabPanel {
     remove.checked = true;
     background.append(remove, " Cut the object from the white background");
     const forge = button(this.#busy === "object" ? "Forging…" : "Forge object");
-    forge.disabled = this.#busy !== null || !this.#pair || (this.#allowance?.remainingObject ?? 0) < 1;
+    forge.disabled = this.#busy !== null || !this.#pair;
     forge.addEventListener("click", () => void this.#forge(section));
-    section.append(heading, guidance, name, category, style, colour, background, forge);
+    section.append(name, category, style, colour, background, forge);
     return section;
   }
 
@@ -300,71 +310,43 @@ export class ImageLabPanel {
     section.setAttribute("aria-label", "Make It Real");
     const heading = document.createElement("h3");
     heading.textContent = "Make It Real";
+    const allowance = this.#status?.enabled === true
+      ? this.#status.realise
+      : { remaining: 0, reserved: 0 };
     const guidance = document.createElement("p");
     guidance.textContent = "Use this after the product design is ready, before you build the ad. " +
       "Existing words and marks will be fitted to the product surface.";
+    section.append(heading, guidance);
+    if (allowance.reserved > 0) {
+      const reserved = document.createElement("p");
+      reserved.className = "image-lab__reserved";
+      reserved.textContent = this.#reservedCopy(allowance.reserved);
+      section.append(reserved);
+    }
+    const pending = this.#pendingChecks.realise ?? null;
+    if (pending) {
+      const check = button(this.#busy === "realise" ? "Checking…" : "Check request");
+      check.disabled = this.#busy !== null;
+      check.addEventListener("click", () => void this.#run(pending));
+      section.append(check);
+      return section;
+    }
+    if (allowance.remaining < 1) {
+      const unmet = document.createElement("p");
+      unmet.className = "image-lab__unmet";
+      unmet.textContent = "No Make It Real uses are available.";
+      const realise = button("Make it real");
+      realise.disabled = true;
+      section.append(unmet, realise);
+      return section;
+    }
     const product = labelledInput("Product kind", "product-kind", this.#pair?.productName ?? "");
     const scene = labelledSelect("Product scene", "product-scene", SCENE_CHOICES);
     const realise = button(this.#busy === "realise" ? "Building showcase…" : "Make it real");
-    realise.disabled = this.#busy !== null || !this.#pair || (this.#allowance?.remainingRealise ?? 0) < 1;
+    realise.disabled = this.#busy !== null || !this.#pair;
     realise.addEventListener("click", () => void this.#realise(section));
-    section.append(heading, guidance, product, scene, realise);
+    section.append(product, scene, realise);
     return section;
-  }
-
-  async #unlock(code: string): Promise<void> {
-    if (!this.#pair || !code.trim() || this.#busy !== null) return;
-    const controller = this.#begin();
-    this.#busy = "unlock";
-    this.#error = "";
-    this.#message = "Waking the Image Lab…";
-    this.#draw();
-    try {
-      const allowance = await this.actions.unlock({
-        sessionId: this.#pair.sessionId,
-        teamId: this.#pair.teamId,
-        code: code.trim()
-      }, controller.signal);
-      if (!this.#current(controller)) return;
-      this.#allowance = allowance;
-      this.#state = "unlocked";
-      this.#message = "Image Lab is awake.";
-    } catch {
-      if (!this.#current(controller) || controller.signal.aborted) return;
-      this.#message = "That code did not wake the Image Lab.";
-    } finally {
-      if (this.#current(controller)) {
-        this.#busy = null;
-        this.#operation = null;
-        this.#draw();
-      }
-    }
-  }
-
-  async #lock(): Promise<void> {
-    if (this.#busy !== null) return;
-    const controller = this.#begin();
-    this.#busy = "lock";
-    this.#error = "";
-    this.#message = "Closing the Image Lab…";
-    this.#draw();
-    try {
-      await this.actions.lock(controller.signal);
-      if (!this.#current(controller)) return;
-      this.#state = "locked";
-      this.#allowance = null;
-      this.#message = "Image Lab is closed for this pair. Ask your teacher to wake it.";
-    } catch {
-      if (!this.#current(controller) || controller.signal.aborted) return;
-      this.#error = "Image Lab could not close. Try again.";
-      this.#message = "Image Lab is ready.";
-    } finally {
-      if (this.#current(controller)) {
-        this.#busy = null;
-        this.#operation = null;
-        this.#draw();
-      }
-    }
   }
 
   async #forge(root: HTMLElement): Promise<void> {
@@ -385,8 +367,12 @@ export class ImageLabPanel {
       colour,
       removeWhiteBackground: root.querySelector<HTMLInputElement>('[name="remove-background"]')?.checked === true
     };
-    await this.#run("object", "Creating your object…", "Your new object is on the canvas.",
-      (signal) => this.actions.forgeObject(input, signal));
+    await this.#run({
+      operation: "object",
+      busyMessage: "Creating your object…",
+      doneMessage: "Your new object is on the canvas.",
+      work: (signal) => this.actions.forgeObject(input, signal)
+    });
   }
 
   async #realise(root: HTMLElement): Promise<void> {
@@ -403,36 +389,44 @@ export class ImageLabPanel {
       productKind,
       scene: fieldValue(root, "product-scene")
     };
-    await this.#run("realise", "Creating your product image…", "Your product image is on the canvas.",
-      (signal) => this.actions.makeReal(input, signal));
+    await this.#run({
+      operation: "realise",
+      busyMessage: "Creating your product image…",
+      doneMessage: "Your product image is on the canvas.",
+      work: (signal) => this.actions.makeReal(input, signal)
+    });
   }
 
-  async #run(
-    operation: Exclude<Operation, "unlock">,
-    busyMessage: string,
-    doneMessage: string,
-    work: (signal: AbortSignal) => Promise<ImageLabAllowance>
-  ): Promise<void> {
+  async #run(pending: PendingCheck): Promise<void> {
+    if (this.#busy !== null) return;
     const controller = this.#begin();
-    this.#busy = operation;
+    this.#busy = pending.operation;
     this.#error = "";
-    this.#message = busyMessage;
+    this.#message = pending.busyMessage;
     this.#draw();
     try {
-      const allowance = await work(controller.signal);
+      const status = await pending.work(controller.signal);
       if (!this.#current(controller)) return;
-      this.#allowance = allowance;
-      this.#message = doneMessage;
+      delete this.#pendingChecks[pending.operation];
+      this.#applyStatus(status);
+      this.#message = pending.doneMessage;
     } catch (error) {
       if (!this.#current(controller) || controller.signal.aborted) return;
-      if (requiresTeacherUnlock(error)) {
-        this.#state = "locked";
-        this.#allowance = null;
+      if (isUncertainRequest(error)) {
+        this.#pendingChecks[pending.operation] = pending;
         this.#error = "";
-        this.#message = "Ask your teacher to wake the Image Lab.";
+        this.#message = "The request is still being checked.";
       } else {
-        this.#error = "The image could not finish. Try again or keep creating with the built-in tools.";
+        delete this.#pendingChecks[pending.operation];
+        this.#error = "The image could not finish. You can run the action again or keep creating with the built-in tools.";
         this.#message = "Image Lab is ready.";
+        try {
+          const status = await this.actions.status(controller.signal);
+          if (!this.#current(controller)) return;
+          this.#applyStatus(status);
+        } catch {
+          if (!this.#current(controller) || controller.signal.aborted) return;
+        }
       }
     } finally {
       if (this.#current(controller)) {

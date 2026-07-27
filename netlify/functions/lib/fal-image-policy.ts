@@ -151,8 +151,6 @@ export function assertGptImage2ConcreteSize(
 }
 
 export interface FalImageIdentity {
-  readonly sessionId: string;
-  readonly teamId: string;
   readonly idempotencyKey: string;
 }
 
@@ -185,8 +183,6 @@ type UnknownRecord = Record<string, unknown>;
 
 const OBJECT_FIELDS = new Set([
   "stage",
-  "sessionId",
-  "teamId",
   "idempotencyKey",
   "objectName",
   "category",
@@ -196,8 +192,6 @@ const OBJECT_FIELDS = new Set([
 
 const REALISE_FIELDS = new Set([
   "stage",
-  "sessionId",
-  "teamId",
   "idempotencyKey",
   "designDataUrl",
   "productKind",
@@ -257,15 +251,7 @@ const requireExactFields = (value: UnknownRecord, fields: ReadonlySet<string>): 
   }
 };
 
-const IDENTITY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
-
-const requireIdentityField = (value: unknown, field: string): string => {
-  if (typeof value !== "string" || !IDENTITY_PATTERN.test(value)) {
-    throw new FalImagePolicyError("INVALID_FIELD", field);
-  }
-  return value;
-};
 
 const requireUuidField = (value: unknown, field: string): string => {
   if (typeof value !== "string" || !UUID_PATTERN.test(value)) {
@@ -299,8 +285,6 @@ const requireChoice = (
 };
 
 const parseIdentity = (value: UnknownRecord): FalImageIdentity => ({
-  sessionId: requireIdentityField(value.sessionId, "sessionId"),
-  teamId: requireIdentityField(value.teamId, "teamId"),
   idempotencyKey: requireUuidField(value.idempotencyKey, "idempotencyKey")
 });
 

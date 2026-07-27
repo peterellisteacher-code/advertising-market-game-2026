@@ -2879,7 +2879,7 @@ describe("window.AdMarketCreator", () => {
       } else if (pngFixture) {
         body = Uint8Array.from(readFileSync(join(packRoot, pngFixture))).buffer;
         mimeType = "image/png";
-      } else if (url.pathname === "/api/image-lab/config") {
+      } else if (url.pathname === "/api/image-lab/session") {
         body = JSON.stringify({ enabled: false, reason: "disabled" });
         mimeType = "application/json";
       } else {
@@ -3207,25 +3207,15 @@ describe("window.AdMarketCreator", () => {
     );
   }, 20_000);
 
-  it("unlocks Object Forge, places owned pixels, and keeps all fal controls server-side", async () => {
+  it("loads account Object Forge allowance, places owned pixels, and keeps fal controls server-side", async () => {
     const imageBytes = Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a);
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
       const url = String(input);
-      if (url === "/api/image-lab/config") {
+      if (url === "/api/image-lab/session") {
         return Promise.resolve(Response.json({
           enabled: true,
-          unlocked: false,
-          accountCapUsd: 3,
-          objectAllowance: 6,
-          realiseAllowance: 2
-        }));
-      }
-      if (url === "/api/image-lab/unlock") {
-        return Promise.resolve(Response.json({
-          unlocked: true,
-          remainingObject: 6,
-          remainingRealise: 2,
-          expiresAt: 2_000_000_000
+          object: { remaining: 6, reserved: 0 },
+          realise: { remaining: 2, reserved: 0 }
         }));
       }
       if (url === "/api/image-lab/jobs" && init?.method === "POST") {
@@ -3254,9 +3244,6 @@ describe("window.AdMarketCreator", () => {
     await parsed(api, "open-image-lab", "open", blankDocument);
     activateStudioTool("image");
     const imageLab = document.querySelector<HTMLElement>('[data-image-lab-panel]')!;
-    const code = await waitFor(() => getByLabelText<HTMLInputElement>(imageLab, "Teacher code"));
-    code.value = "teacher-wake-code";
-    fireEvent.click(getByRole(imageLab, "button", { name: "Wake Image Lab" }));
     await waitFor(() => expect(getByRole(imageLab, "button", { name: "Forge object" })).toBeTruthy());
 
     const objectName = getByRole<HTMLInputElement>(imageLab, "textbox", { name: "Object idea" });
@@ -3286,10 +3273,10 @@ describe("window.AdMarketCreator", () => {
     const jobBody = JSON.parse(String(jobCall?.[1]?.body)) as Record<string, unknown>;
     expect(jobBody).toMatchObject({
       stage: "object",
-      sessionId: blankDocument.sessionId,
-      teamId: blankDocument.documentId,
       objectName: "curved reusable bottle"
     });
+    expect(jobBody).not.toHaveProperty("sessionId");
+    expect(jobBody).not.toHaveProperty("teamId");
     expect(jobBody).not.toHaveProperty("model");
     expect(jobBody).not.toHaveProperty("slug");
     expect(jobBody).not.toHaveProperty("steps");
@@ -3303,21 +3290,11 @@ describe("window.AdMarketCreator", () => {
     let jobSignal: AbortSignal | null | undefined;
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
       const url = String(input);
-      if (url === "/api/image-lab/config") {
+      if (url === "/api/image-lab/session") {
         return Promise.resolve(Response.json({
           enabled: true,
-          unlocked: false,
-          accountCapUsd: 3,
-          objectAllowance: 6,
-          realiseAllowance: 2
-        }));
-      }
-      if (url === "/api/image-lab/unlock") {
-        return Promise.resolve(Response.json({
-          unlocked: true,
-          remainingObject: 6,
-          remainingRealise: 2,
-          expiresAt: 2_000_000_000
+          object: { remaining: 6, reserved: 0 },
+          realise: { remaining: 2, reserved: 0 }
         }));
       }
       if (url === "/api/image-lab/jobs" && init?.method === "POST") {
@@ -3331,9 +3308,6 @@ describe("window.AdMarketCreator", () => {
     await parsed(api, "open-image-close", "open", blankDocument);
     activateStudioTool("image");
     const imageLab = document.querySelector<HTMLElement>('[data-image-lab-panel]')!;
-    const code = await waitFor(() => getByLabelText<HTMLInputElement>(imageLab, "Teacher code"));
-    code.value = "teacher-wake-code";
-    fireEvent.click(getByRole(imageLab, "button", { name: "Wake Image Lab" }));
     await waitFor(() => expect(getByRole(imageLab, "button", { name: "Forge object" })).toBeTruthy());
     getByRole<HTMLInputElement>(imageLab, "textbox", { name: "Object idea" }).value = "lamp";
     fireEvent.click(getByRole(imageLab, "button", { name: "Forge object" }));
@@ -3355,26 +3329,16 @@ describe("window.AdMarketCreator", () => {
     expect(runtime.canvasConstructed).toHaveBeenCalledOnce();
   });
 
-  it("aborts Image Lab at the start of pair switch and reuses completed configuration", async () => {
+  it("aborts Image Lab at pair switch and loads the next account status", async () => {
     let resolveJob!: (response: Response) => void;
     let jobSignal: AbortSignal | null | undefined;
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
       const url = String(input);
-      if (url === "/api/image-lab/config") {
+      if (url === "/api/image-lab/session") {
         return Promise.resolve(Response.json({
           enabled: true,
-          unlocked: false,
-          accountCapUsd: 3,
-          objectAllowance: 6,
-          realiseAllowance: 2
-        }));
-      }
-      if (url === "/api/image-lab/unlock") {
-        return Promise.resolve(Response.json({
-          unlocked: true,
-          remainingObject: 6,
-          remainingRealise: 2,
-          expiresAt: 2_000_000_000
+          object: { remaining: 6, reserved: 0 },
+          realise: { remaining: 2, reserved: 0 }
         }));
       }
       if (url === "/api/image-lab/jobs" && init?.method === "POST") {
@@ -3388,9 +3352,6 @@ describe("window.AdMarketCreator", () => {
     await parsed(api, "open-image-pair-a", "open", blankDocument);
     activateStudioTool("image");
     const imageLab = document.querySelector<HTMLElement>('[data-image-lab-panel]')!;
-    const code = await waitFor(() => getByLabelText<HTMLInputElement>(imageLab, "Teacher code"));
-    code.value = "teacher-wake-code";
-    fireEvent.click(getByRole(imageLab, "button", { name: "Wake Image Lab" }));
     await waitFor(() => expect(getByRole(imageLab, "button", { name: "Forge object" })).toBeTruthy());
     getByRole<HTMLInputElement>(imageLab, "textbox", { name: "Object idea" }).value = "lamp";
     fireEvent.click(getByRole(imageLab, "button", { name: "Forge object" }));
@@ -3405,9 +3366,9 @@ describe("window.AdMarketCreator", () => {
 
     expect(jobSignal?.aborted).toBe(true);
     await expect(opening).resolves.toMatchObject({ ok: true });
-    await waitFor(() => expect(getByLabelText(imageLab, "Teacher code")).toBeTruthy());
-    expect(fetchSpy.mock.calls.filter(([request]) => String(request) === "/api/image-lab/config"))
-      .toHaveLength(1);
+    await waitFor(() => expect(getByRole(imageLab, "button", { name: "Forge object" })).toBeTruthy());
+    expect(fetchSpy.mock.calls.filter(([request]) => String(request) === "/api/image-lab/session"))
+      .toHaveLength(2);
     resolveJob(Response.json({
       jobToken: "late-pair-a-job",
       stage: "object",

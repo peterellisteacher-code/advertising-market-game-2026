@@ -18,41 +18,21 @@ export interface ImageLabRemaining {
   realise: number;
 }
 
-export type ImageLabDisabledReason =
-  | "disabled"
-  | "school-approval-required"
-  | "account-cap-required"
-  | "server-configuration-required";
+export interface ImageLabStageAllowance {
+  remaining: number;
+  reserved: number;
+}
 
-export type ImageLabConfig =
-  | { enabled: false; reason: ImageLabDisabledReason }
+export type StudentImageLabStatus =
+  | { enabled: false; reason: "disabled" }
   | {
       enabled: true;
-      unlocked: boolean;
-      accountCapUsd: number;
-      remaining: ImageLabRemaining;
+      object: ImageLabStageAllowance;
+      realise: ImageLabStageAllowance;
     };
-
-export interface ImageLabUnlockRequest {
-  sessionId: string;
-  teamId: string;
-  code: string;
-}
-
-export interface ImageLabUnlockResult {
-  unlocked: true;
-  remaining: ImageLabRemaining;
-  expiresAt: number;
-}
-
-export interface ImageLabLockResult {
-  unlocked: false;
-}
 
 export interface ObjectForgeJobRequest {
   stage: "object";
-  sessionId: string;
-  teamId: string;
   idempotencyKey: string;
   objectName: string;
   category: string;
@@ -62,8 +42,6 @@ export interface ObjectForgeJobRequest {
 
 export interface RealiseJobRequest {
   stage: "realise";
-  sessionId: string;
-  teamId: string;
   idempotencyKey: string;
   designDataUrl: string;
   productKind: string;
@@ -79,7 +57,7 @@ export interface ImageLabJobCreated {
   remaining: ImageLabRemaining;
 }
 
-export type ImageLabJobState = "queued" | "working" | "completed" | "failed";
+export type ImageLabJobState = "queued" | "working" | "completed" | "failed" | "unknown";
 export type ImageLabJobStatus =
   | { status: ImageLabJobState }
   | { status: ImageLabJobState; position: number };
@@ -95,10 +73,10 @@ export type ImageLabClientErrorCode =
   | "INVALID_RESPONSE"
   | "POLL_LIMIT"
   | "IMAGE_LAB_DISABLED"
-  | "IMAGE_LAB_LOCKED"
-  | "UNLOCK_DENIED"
   | "ALLOWANCE_EXHAUSTED"
-  | "SESSION_EXPIRED"
+  | "AUTHENTICATION_REQUIRED"
+  | "IMAGE_LAB_UNAVAILABLE"
+  | "JOB_OUTCOME_UNCERTAIN"
   | "JOB_NOT_FOUND"
   | "RATE_LIMITED"
   | "TIMEOUT";
@@ -321,10 +299,10 @@ const decodeJson = async (
 const SERVER_ERROR_CODES = new Set<ImageLabClientErrorCode>([
   "INVALID_REQUEST",
   "IMAGE_LAB_DISABLED",
-  "IMAGE_LAB_LOCKED",
-  "UNLOCK_DENIED",
   "ALLOWANCE_EXHAUSTED",
-  "SESSION_EXPIRED",
+  "AUTHENTICATION_REQUIRED",
+  "IMAGE_LAB_UNAVAILABLE",
+  "JOB_OUTCOME_UNCERTAIN",
   "JOB_NOT_FOUND",
   "RATE_LIMITED"
 ]);
@@ -347,50 +325,31 @@ const parseRemaining = (value: unknown): ImageLabRemaining | null => {
   return { object: record.object, realise: record.realise };
 };
 
-const parseConfig = (value: unknown): ImageLabConfig => {
+const parseStageAllowance = (value: unknown): ImageLabStageAllowance | null => {
   const record = ownRecord(value);
-  if (!record) fail("INVALID_RESPONSE", "Image Lab configuration was invalid.");
+  if (!record || !hasExactKeys(record, ["remaining", "reserved"]) ||
+    !boundedInteger(record.remaining, 100) || !boundedInteger(record.reserved, 100)) return null;
+  return { remaining: record.remaining, reserved: record.reserved };
+};
+
+const parseStatus = (value: unknown): StudentImageLabStatus => {
+  const record = ownRecord(value);
+  if (!record) fail("INVALID_RESPONSE", "Image Lab account status was invalid.");
   if (record.enabled === false && hasExactKeys(record, ["enabled", "reason"]) &&
-    (record.reason === "disabled" || record.reason === "school-approval-required" ||
-      record.reason === "account-cap-required" || record.reason === "server-configuration-required")) {
-    return { enabled: false, reason: record.reason };
+    record.reason === "disabled") {
+    return { enabled: false, reason: "disabled" };
   }
-  if (record.enabled === true &&
-    hasExactKeys(record, ["enabled", "unlocked", "accountCapUsd", "objectAllowance", "realiseAllowance"]) &&
-    typeof record.unlocked === "boolean" && typeof record.accountCapUsd === "number" &&
-    Number.isFinite(record.accountCapUsd) && record.accountCapUsd > 0 && record.accountCapUsd <= 100 &&
-    boundedInteger(record.objectAllowance, 100) && boundedInteger(record.realiseAllowance, 100)) {
+  const object = parseStageAllowance(record.object);
+  const realise = parseStageAllowance(record.realise);
+  if (record.enabled === true && hasExactKeys(record, ["enabled", "object", "realise"]) &&
+    object && realise) {
     return {
       enabled: true,
-      unlocked: record.unlocked,
-      accountCapUsd: record.accountCapUsd,
-      remaining: { object: record.objectAllowance, realise: record.realiseAllowance }
+      object,
+      realise
     };
   }
-  fail("INVALID_RESPONSE", "Image Lab configuration was invalid.");
-};
-
-const parseUnlock = (value: unknown): ImageLabUnlockResult => {
-  const record = ownRecord(value);
-  if (!record || !hasExactKeys(record, ["unlocked", "remainingObject", "remainingRealise", "expiresAt"]) ||
-    record.unlocked !== true || !boundedInteger(record.remainingObject, 100) ||
-    !boundedInteger(record.remainingRealise, 100) || !Number.isSafeInteger(record.expiresAt) ||
-    (record.expiresAt as number) <= 0) {
-    fail("INVALID_RESPONSE", "The Image Lab unlock response was invalid.");
-  }
-  return {
-    unlocked: true,
-    remaining: { object: record.remainingObject, realise: record.remainingRealise },
-    expiresAt: record.expiresAt as number
-  };
-};
-
-const parseLock = (value: unknown): ImageLabLockResult => {
-  const record = ownRecord(value);
-  if (!record || !hasExactKeys(record, ["unlocked"]) || record.unlocked !== false) {
-    fail("INVALID_RESPONSE", "The Image Lab close response was invalid.");
-  }
-  return { unlocked: false };
+  fail("INVALID_RESPONSE", "Image Lab account status was invalid.");
 };
 
 const parseJobCreated = (value: unknown): ImageLabJobCreated => {
@@ -407,7 +366,7 @@ const parseJobCreated = (value: unknown): ImageLabJobCreated => {
 const parseJobStatus = (value: unknown): ImageLabJobStatus => {
   const record = ownRecord(value);
   const validState = record?.status === "queued" || record?.status === "working" ||
-    record?.status === "completed" || record?.status === "failed";
+    record?.status === "completed" || record?.status === "failed" || record?.status === "unknown";
   if (!record || !validState ||
     (!hasExactKeys(record, ["status"]) && !hasExactKeys(record, ["status", "position"])) ||
     ("position" in record && !boundedInteger(record.position, 10_000))) {
@@ -418,18 +377,7 @@ const parseJobStatus = (value: unknown): ImageLabJobStatus => {
     : { status: record.status as ImageLabJobState };
 };
 
-const validateUnlockRequest = (value: unknown): ImageLabUnlockRequest => {
-  const record = ownRecord(value);
-  if (!record || !hasExactKeys(record, ["sessionId", "teamId", "code"]) ||
-    !boundedString(record.sessionId, 128) || !boundedString(record.teamId, 128) ||
-    typeof record.code !== "string" || record.code.length < 1 || record.code.length > 128) {
-    fail("INVALID_REQUEST", "The Image Lab unlock request was invalid.");
-  }
-  return { sessionId: record.sessionId, teamId: record.teamId, code: record.code };
-};
-
 const commonJobFieldsAreValid = (record: Record<string, unknown>): boolean =>
-  boundedString(record.sessionId, 128) && boundedString(record.teamId, 128) &&
   boundedString(record.idempotencyKey, 128);
 
 const validateJobRequest = (value: unknown): ImageLabJobRequest => {
@@ -438,13 +386,11 @@ const validateJobRequest = (value: unknown): ImageLabJobRequest => {
     fail("INVALID_REQUEST", "The Image Lab job request was invalid.");
   }
   if (record.stage === "object" && hasExactKeys(record, [
-    "stage", "sessionId", "teamId", "idempotencyKey", "objectName", "category", "style", "colour"
+    "stage", "idempotencyKey", "objectName", "category", "style", "colour"
   ]) && boundedString(record.objectName, 128) && boundedString(record.category, 64) &&
     boundedString(record.style, 64) && boundedString(record.colour, 64)) {
     return {
       stage: "object",
-      sessionId: record.sessionId as string,
-      teamId: record.teamId as string,
       idempotencyKey: record.idempotencyKey as string,
       objectName: record.objectName,
       category: record.category,
@@ -453,14 +399,12 @@ const validateJobRequest = (value: unknown): ImageLabJobRequest => {
     };
   }
   if (record.stage === "realise" && hasExactKeys(record, [
-    "stage", "sessionId", "teamId", "idempotencyKey", "designDataUrl", "productKind", "scene"
+    "stage", "idempotencyKey", "designDataUrl", "productKind", "scene"
   ]) && boundedString(record.designDataUrl, DESIGN_DATA_URL_LIMIT) &&
     /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(record.designDataUrl) &&
     boundedString(record.productKind, 128) && boundedString(record.scene, 256)) {
     return {
       stage: "realise",
-      sessionId: record.sessionId as string,
-      teamId: record.teamId as string,
       idempotencyKey: record.idempotencyKey as string,
       designDataUrl: record.designDataUrl,
       productKind: record.productKind,
@@ -545,39 +489,14 @@ export class ImageLabClient {
     }
   }
 
-  getConfig(options: ImageLabRequestOptions = {}): Promise<ImageLabConfig> {
-    return this.json("/api/image-lab/config", {
+  status(options: ImageLabRequestOptions = {}): Promise<StudentImageLabStatus> {
+    return this.json("/api/image-lab/session", {
       method: "GET",
       credentials: "same-origin",
       redirect: "error",
       headers: JSON_HEADERS,
       signal: options.signal ?? null
-    }, parseConfig, options.signal);
-  }
-
-  async unlock(
-    request: ImageLabUnlockRequest,
-    options: ImageLabRequestOptions = {}
-  ): Promise<ImageLabUnlockResult> {
-    const body = validateUnlockRequest(request);
-    return this.json("/api/image-lab/unlock", {
-      method: "POST",
-      credentials: "same-origin",
-      redirect: "error",
-      headers: JSON_POST_HEADERS,
-      body: JSON.stringify(body),
-      signal: options.signal ?? null
-    }, parseUnlock, options.signal);
-  }
-
-  lock(options: ImageLabRequestOptions = {}): Promise<ImageLabLockResult> {
-    return this.json("/api/image-lab/lock", {
-      method: "POST",
-      credentials: "same-origin",
-      redirect: "error",
-      headers: JSON_HEADERS,
-      signal: options.signal ?? null
-    }, parseLock, options.signal);
+    }, parseStatus, options.signal);
   }
 
   async createJob(
@@ -609,6 +528,21 @@ export class ImageLabClient {
       credentials: "same-origin",
       redirect: "error",
       headers: JSON_HEADERS,
+      signal: options.signal ?? null
+    }, parseJobStatus, options.signal);
+  }
+
+  async reconcile(
+    jobToken: string,
+    options: ImageLabRequestOptions = {}
+  ): Promise<ImageLabJobStatus> {
+    const body = { jobToken: validateJobToken(jobToken) };
+    return this.json("/api/image-lab/jobs/reconcile", {
+      method: "POST",
+      credentials: "same-origin",
+      redirect: "error",
+      headers: JSON_POST_HEADERS,
+      body: JSON.stringify(body),
       signal: options.signal ?? null
     }, parseJobStatus, options.signal);
   }
@@ -664,7 +598,8 @@ export class ImageLabClient {
         jobToken,
         options.signal ? { signal: options.signal } : {}
       );
-      if (status.status === "completed" || status.status === "failed") return status;
+      if (status.status === "completed" || status.status === "failed" ||
+        status.status === "unknown") return status;
       if (attempt === maxAttempts) break;
       throwIfCancelled(options.signal);
       try {

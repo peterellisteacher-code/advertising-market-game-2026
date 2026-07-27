@@ -131,16 +131,126 @@ export function extractTscnText(source, pathName = "source.tscn") {
   return uniqueOccurrences(entries);
 }
 
+function decodeJsonPointerSegment(value) {
+  return value.replaceAll("~1", "/").replaceAll("~0", "~");
+}
+
+function encodeJsonPointerSegment(value) {
+  return String(value).replaceAll("~", "~0").replaceAll("/", "~1");
+}
+
+export function extractJsonCopy(source, pathName, selectors) {
+  const entries = [];
+  const seen = new Set();
+  for (const selector of selectors) {
+    if (typeof selector !== "string" || !selector.startsWith("/")) {
+      throw new Error(`Invalid student-copy JSON selector for ${pathName}`);
+    }
+    const segments = selector.slice(1).split("/").map(decodeJsonPointerSegment);
+    const visit = (value, index, pointerSegments) => {
+      if (index === segments.length) {
+        if (typeof value !== "string") {
+          throw new Error(
+            `Student-copy JSON selector ${selector} in ${pathName} did not resolve to text`
+          );
+        }
+        const text = value.replace(/\s+/g, " ").trim();
+        if (text.length === 0) {
+          throw new Error(
+            `Student-copy JSON selector ${selector} in ${pathName} resolved to blank text`
+          );
+        }
+        const pointer = `/${pointerSegments.map(encodeJsonPointerSegment).join("/")}`;
+        if (!seen.has(pointer)) {
+          seen.add(pointer);
+          entries.push({ path: pathName, pointer, text });
+        }
+        return;
+      }
+      const segment = segments[index];
+      if (segment === "*") {
+        if (Array.isArray(value)) {
+          value.forEach((child, childIndex) =>
+            visit(child, index + 1, [...pointerSegments, String(childIndex)]));
+          return;
+        }
+        if (value && typeof value === "object") {
+          for (const key of Object.keys(value).sort()) {
+            visit(value[key], index + 1, [...pointerSegments, key]);
+          }
+          return;
+        }
+        throw new Error(
+          `Student-copy JSON selector ${selector} in ${pathName} expected a collection`
+        );
+      }
+      if (!value || typeof value !== "object" || !(segment in value)) {
+        throw new Error(
+          `Student-copy JSON selector ${selector} in ${pathName} is missing ${segment}`
+        );
+      }
+      visit(value[segment], index + 1, [...pointerSegments, segment]);
+    };
+    visit(source, 0, []);
+  }
+  return entries;
+}
+
 export function stableCopyId(pathName, line, occurrence) {
   const pathPart = pathName.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "").toUpperCase();
   return `${pathPart}__L${String(line).padStart(4, "0")}__N${String(occurrence).padStart(2, "0")}`;
+}
+
+export function stableJsonCopyId(pathName, pointer) {
+  return `${pathName}#${pointer}`;
 }
 
 async function sourceFiles(root) {
   return STUDENT_COPY_SOURCE_PATHS.map((relative) => path.join(root, ...relative.split("/")));
 }
 
+export const STUDENT_COPY_JSON_SOURCES = Object.freeze([
+  {
+    path: "catalog/generated/offline-core-v1/catalog.json",
+    selectors: ["/*/title"]
+  },
+  {
+    path: "catalog/generated/offline-core-v1/product-kit-v1.json",
+    selectors: ["/kits/*/title", "/components/*/title"]
+  },
+  {
+    path: "catalog/generated/offline-core-v1/product-kit-pricing-v1.json",
+    selectors: [
+      "/blueprints/*/title",
+      "/groups/*/label",
+      "/choices/*/label"
+    ]
+  },
+  {
+    path: "catalog/generated/product-builder-pilot-v1/catalogue.json",
+    selectors: [
+      "/bodies/*/title",
+      "/families/*/title",
+      "/materials/*/title",
+      "/palettes/*/title",
+      "/parts/*/title"
+    ]
+  },
+  {
+    path: "catalog/generated/product-shells-v1-reviewed/catalog.json",
+    selectors: ["/families/*/title", "/shells/*/title"]
+  },
+  {
+    path: "catalog/generated/offline-core-v1/student-starters-v1.json",
+    selectors: ["/starters/*/title", "/starters/*/category"]
+  }
+].map((source) => Object.freeze({
+  ...source,
+  selectors: Object.freeze(source.selectors)
+})));
+
 export const STUDENT_COPY_SOURCE_PATHS = Object.freeze([
+  ...STUDENT_COPY_JSON_SOURCES.map(({ path: sourcePath }) => sourcePath),
   "godot/src/main/Main.gd",
   "godot/src/main/Main.tscn",
   "godot/src/market/ui/MarketScreen.gd",
@@ -200,6 +310,13 @@ export async function buildStudentCopyCorpus(root) {
   }
   const lineCounts = new Map();
   return entries.map((entry) => {
+    if (entry.pointer) {
+      return {
+        id: stableJsonCopyId(entry.path, entry.pointer),
+        audience: COPY_SOURCE_AUDIENCE[entry.path] ?? "student",
+        ...entry
+      };
+    }
     const key = `${entry.path}\u0000${entry.line}`;
     const occurrence = (lineCounts.get(key) ?? 0) + 1;
     lineCounts.set(key, occurrence);
@@ -217,6 +334,14 @@ export async function extractStudentCopyFile(root, relative) {
   if (relative.endsWith(".ts")) return extractTypeScriptLiterals(source, relative);
   if (relative.endsWith(".gd")) return extractGodotSourceLiterals(source, relative);
   if (relative.endsWith(".html")) return extractHtmlCopy(source, relative);
+  if (relative.endsWith(".json")) {
+    const configured = STUDENT_COPY_JSON_SOURCES.find(({ path: sourcePath }) =>
+      sourcePath === relative);
+    if (!configured) {
+      throw new Error(`Student-copy JSON source has no field classification: ${relative}`);
+    }
+    return extractJsonCopy(JSON.parse(source), relative, configured.selectors);
+  }
   return extractTscnText(source, relative);
 }
 

@@ -46,7 +46,7 @@ function iconTokens(id) {
   return id.split("-").filter(Boolean);
 }
 
-function titleFromId(id) {
+export function titleFromId(id) {
   return id.split("-").map((word) => word.length <= 2
     ? word.toUpperCase()
     : `${word[0].toUpperCase()}${word.slice(1)}`).join(" ");

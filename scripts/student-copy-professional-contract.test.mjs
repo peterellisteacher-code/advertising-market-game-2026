@@ -15,6 +15,15 @@ test("student copy uses direct factual wording without obsolete promotional phra
     /First you will invent a product, then you will create an advertisement for it\./
   );
   for (const obsolete of [
+    "Invent it. Advertise it. Judge the market.",
+    "Wake Image Lab",
+    "Teacher code",
+    "Follow the highlighted tool step",
+    "Both roles made a change",
+    "HANDLER_ERROR",
+    "Cloud save restored at revision",
+    "final wrapping",
+    "wraps perfectly",
     "Preparing a safe place for your pitch.",
     "select Practice explicitly.",
     "Refine the pitch until the market engages.",

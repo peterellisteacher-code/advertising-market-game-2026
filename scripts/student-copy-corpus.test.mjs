@@ -6,9 +6,11 @@ import {
   buildStudentCopyCorpus,
   extractGodotSourceLiterals,
   extractHtmlCopy,
+  extractJsonCopy,
   extractTscnText,
   extractTypeScriptLiterals,
-  stableCopyId
+  stableCopyId,
+  stableJsonCopyId
 } from "./student-copy-corpus.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
@@ -85,6 +87,44 @@ test("stableCopyId is deterministic for a source occurrence", () => {
   assert.equal(
     stableCopyId("web/src/game/student-copy.ts", 42, 3),
     "WEB_SRC_GAME_STUDENT_COPY_TS__L0042__N03"
+  );
+});
+
+test("JSON copy uses selected authored fields and stable JSON-pointer IDs", () => {
+  const source = {
+    kits: [
+      {
+        id: "pk1-tumbler-kit",
+        title: "Reusable tumbler",
+        component: { title: "Not selected" }
+      }
+    ],
+    choices: [
+      { id: "pk1-price-flat-lid", label: "Flat lid", costCents: 200 }
+    ]
+  };
+  assert.deepEqual(
+    extractJsonCopy(
+      source,
+      "catalog/generated/example.json",
+      ["/kits/*/title", "/choices/*/label"]
+    ),
+    [
+      {
+        path: "catalog/generated/example.json",
+        pointer: "/kits/0/title",
+        text: "Reusable tumbler"
+      },
+      {
+        path: "catalog/generated/example.json",
+        pointer: "/choices/0/label",
+        text: "Flat lid"
+      }
+    ]
+  );
+  assert.equal(
+    stableJsonCopyId("catalog/generated/example.json", "/kits/0/title"),
+    "catalog/generated/example.json#/kits/0/title"
   );
 });
 

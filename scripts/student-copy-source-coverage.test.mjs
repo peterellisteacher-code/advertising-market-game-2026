@@ -5,6 +5,8 @@ import test from "node:test";
 
 import {
   COPY_SOURCE_AUDIENCE,
+  extractStudentCopyFile,
+  STUDENT_COPY_JSON_SOURCES,
   STUDENT_COPY_SOURCE_PATHS
 } from "./student-copy-corpus.mjs";
 
@@ -91,4 +93,116 @@ test("student Image Lab sources contain no teacher capability route or shared co
     COPY_SOURCE_AUDIENCE["web/src/teacher/teacher-dashboard.ts"],
     "teacher"
   );
+});
+
+test("every approved runtime JSON label has an explicit corpus selector", async () => {
+  const expected = {
+    "catalog/generated/offline-core-v1/catalog.json": [
+      "/*/title"
+    ],
+    "catalog/generated/offline-core-v1/product-kit-v1.json": [
+      "/kits/*/title",
+      "/components/*/title"
+    ],
+    "catalog/generated/offline-core-v1/product-kit-pricing-v1.json": [
+      "/blueprints/*/title",
+      "/groups/*/label",
+      "/choices/*/label"
+    ],
+    "catalog/generated/product-builder-pilot-v1/catalogue.json": [
+      "/bodies/*/title",
+      "/families/*/title",
+      "/materials/*/title",
+      "/palettes/*/title",
+      "/parts/*/title"
+    ],
+    "catalog/generated/product-shells-v1-reviewed/catalog.json": [
+      "/families/*/title",
+      "/shells/*/title"
+    ],
+    "catalog/generated/offline-core-v1/student-starters-v1.json": [
+      "/starters/*/title",
+      "/starters/*/category"
+    ]
+  };
+  assert.deepEqual(
+    Object.fromEntries(STUDENT_COPY_JSON_SOURCES.map(({ path: sourcePath, selectors }) => [
+      sourcePath,
+      selectors
+    ])),
+    expected
+  );
+  for (const sourcePath of Object.keys(expected)) {
+    assert.ok(STUDENT_COPY_SOURCE_PATHS.includes(sourcePath));
+    const entries = await extractStudentCopyFile(ROOT, sourcePath);
+    assert.ok(entries.length > 0, `${sourcePath} must contribute visible copy`);
+    assert.ok(entries.every(({ pointer, text }) =>
+      typeof pointer === "string" && pointer.startsWith("/") &&
+      typeof text === "string" && text.length > 0));
+  }
+});
+
+test("runtime-rendered generated fields are classified before they reach students", async () => {
+  const selectors = new Map(STUDENT_COPY_JSON_SOURCES.map((source) => [
+    source.path,
+    new Set(source.selectors)
+  ]));
+  const cases = [
+    {
+      runtime: "web/src/catalogue/catalogue-runtime.ts",
+      token: "asset.title",
+      source: "catalog/generated/offline-core-v1/catalog.json",
+      selector: "/*/title"
+    },
+    {
+      runtime: "web/src/catalogue/catalogue-runtime.ts",
+      token: "kit.title",
+      source: "catalog/generated/offline-core-v1/product-kit-v1.json",
+      selector: "/kits/*/title"
+    },
+    {
+      runtime: "web/src/product-kit/product-kit-panel.ts",
+      token: "certifiedChoice.item.title",
+      source: "catalog/generated/offline-core-v1/product-kit-v1.json",
+      selector: "/components/*/title"
+    },
+    {
+      runtime: "web/src/product-kit/product-kit-panel.ts",
+      token: "groupLabel",
+      source: "catalog/generated/offline-core-v1/product-kit-pricing-v1.json",
+      selector: "/groups/*/label"
+    },
+    {
+      runtime: "web/src/product-builder/product-builder-panel.ts",
+      token: "record.title",
+      source: "catalog/generated/product-builder-pilot-v1/catalogue.json",
+      selector: "/bodies/*/title"
+    },
+    {
+      runtime: "web/src/product-shells/product-shell-picker.ts",
+      token: "family.title",
+      source: "catalog/generated/product-shells-v1-reviewed/catalog.json",
+      selector: "/families/*/title"
+    },
+    {
+      runtime: "web/src/product-shells/product-shell-picker.ts",
+      token: "shell.title",
+      source: "catalog/generated/product-shells-v1-reviewed/catalog.json",
+      selector: "/shells/*/title"
+    },
+    {
+      runtime: "web/src/product-kit/product-kit-panel.ts",
+      token: "starter.record.category",
+      source: "catalog/generated/offline-core-v1/student-starters-v1.json",
+      selector: "/starters/*/category"
+    }
+  ];
+  for (const item of cases) {
+    const runtime = await readFile(path.join(ROOT, ...item.runtime.split("/")), "utf8");
+    assert.ok(runtime.includes(item.token), `${item.runtime} must still render ${item.token}`);
+    assert.ok(
+      selectors.get(item.source)?.has(item.selector),
+      `${item.source} ${item.selector} must be classified`
+    );
+  }
 });

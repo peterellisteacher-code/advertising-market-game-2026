@@ -9,7 +9,8 @@ import { mkdtemp } from "node:fs/promises";
 import {
   buildLogoIconCatalogue,
   compileLogoIconCatalogue,
-  safeIconBody
+  safeIconBody,
+  titleFromId
 } from "./build-logo-icons.mjs";
 
 const svgSafetyFixtures = JSON.parse(readFileSync(
@@ -66,6 +67,24 @@ test("logo icon compilation is deterministic and preserves a colourable SVG body
   assert.match(first.icons[0].body, /currentColor/);
   assert.equal(first.icons[0].width, 24);
   assert.equal(first.icons[0].height, 24);
+});
+
+test("logo icon titles come only from deterministic title-case IDs", () => {
+  const sourceWithUntrustedTitles = {
+    ...fixture,
+    icons: Object.fromEntries(Object.entries(fixture.icons).map(([id, icon]) => [
+      id,
+      { ...icon, title: `Authored bypass for ${id}` }
+    ]))
+  };
+  const catalogue = compileLogoIconCatalogue(sourceWithUntrustedTitles, {
+    packageVersion: "1.2.35",
+    sourceVersion: "3.44.0"
+  });
+  for (const icon of catalogue.icons) {
+    assert.equal(icon.title, titleFromId(icon.id));
+    assert.equal(icon.title.includes("Authored bypass"), false);
+  }
 });
 
 test("SVG bodies fail closed on active content and unsupported elements", () => {

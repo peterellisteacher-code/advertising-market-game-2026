@@ -35,6 +35,8 @@ export type LogoLabAnnouncer = (
 
 type FocusTarget =
   | { readonly kind: "chooser" }
+  | { readonly kind: "required-words" }
+  | { readonly kind: "required-symbol" }
   | { readonly kind: "search" }
   | { readonly kind: "category" }
   | { readonly kind: "recipe"; readonly id: LogoRecipeId }
@@ -43,6 +45,22 @@ type FocusTarget =
   | { readonly kind: "remix"; readonly id: RemixMove };
 
 type RemixMove = "symbol" | "type" | "colours" | "surprise";
+
+type LogoDraftRequirement = "words" | "symbol";
+
+interface LogoDraftInput {
+  readonly words: string;
+  readonly symbol: LogoIconRecord | null;
+}
+
+function missingLogoRequirements(
+  draft: LogoDraftInput
+): readonly LogoDraftRequirement[] {
+  const missing: LogoDraftRequirement[] = [];
+  if (!draft.words.trim()) missing.push("words");
+  if (!draft.symbol) missing.push("symbol");
+  return Object.freeze(missing);
+}
 
 const CATEGORY_OPTIONS = Object.freeze([
   ["all", "All symbols"],
@@ -341,7 +359,11 @@ export class LogoLabPanel {
     primaryAction.dataset.logoPrimaryAction = "";
     primaryAction.addEventListener("click", () => { void this.#performPrimary(); });
 
-    root.append(chooserLabel, controls, status, primaryAction);
+    const requirements = document.createElement("div");
+    requirements.className = "logo-lab__requirements";
+    requirements.dataset.logoRequirements = "";
+
+    root.append(chooserLabel, controls, requirements, status, primaryAction);
     this.host.replaceChildren(root);
     this.#syncStatusAndActions(root);
     this.#restoreFocus(root, focus);
@@ -380,15 +402,25 @@ export class LogoLabPanel {
     if (this.#selectedMarkId && this.#iconId && !this.#icon()) {
       return "This saved symbol is not in this pack";
     }
-    return this.#draft() ? "Ready for the canvas" : "Choose words and a symbol";
+    const missing = this.#missingRequirements();
+    if (missing.length === 2) return "Add words and choose a symbol";
+    if (missing[0] === "words") return "Add words";
+    if (missing[0] === "symbol") return "Choose a symbol";
+    return "Ready for the canvas";
   }
 
   #syncStatusAndActions(root: HTMLElement): void {
     const ready = this.#draft() !== null && this.#available && !this.#busy;
+    const unresolvedSavedSymbol = Boolean(
+      this.#selectedMarkId && this.#iconId && !this.#icon()
+    );
     const primary = root.querySelector<HTMLButtonElement>("[data-logo-primary-action]");
-    if (primary) primary.disabled = !ready;
+    if (primary) {
+      primary.disabled = !this.#available || this.#busy || unresolvedSavedSymbol;
+    }
     root.querySelectorAll<HTMLButtonElement>("[data-logo-remix-action]")
       .forEach((control) => { control.disabled = !ready; });
+    this.#syncRequirements(root);
     const status = root.querySelector<HTMLElement>("[data-logo-lab-status]");
     if (status) {
       status.textContent = this.#message;
@@ -399,6 +431,20 @@ export class LogoLabPanel {
 
   async #performPrimary(): Promise<void> {
     if (this.#busy) return;
+    const missing = this.#missingRequirements();
+    if (missing.length > 0) {
+      this.#message = missing.length === 2
+        ? "Add words and choose a symbol before adding the logo."
+        : missing[0] === "words"
+          ? "Add words before adding the logo."
+          : "Choose a symbol before adding the logo.";
+      this.#messagePriority = "assertive";
+      this.announce(this.#message, "assertive");
+      this.#draw({
+        kind: missing[0] === "words" ? "required-words" : "required-symbol"
+      });
+      return;
+    }
     const icon = this.#icon();
     const design = this.#draft(this.#selectedMarkId ? this.#revision + 1 : this.#revision);
     if (!icon || !design) return;
@@ -501,10 +547,39 @@ export class LogoLabPanel {
     this.#revision = 0;
   }
 
+  #missingRequirements(): readonly LogoDraftRequirement[] {
+    return missingLogoRequirements({
+      words: this.#text,
+      symbol: this.#icon()
+    });
+  }
+
+  #syncRequirements(root: HTMLElement): void {
+    const requirements = root.querySelector<HTMLElement>("[data-logo-requirements]");
+    if (!requirements) return;
+    requirements.replaceChildren();
+    if (!this.#available || this.#busy) return;
+    for (const requirement of this.#missingRequirements()) {
+      const control = button(requirement === "words" ? "Add words" : "Choose a symbol");
+      control.dataset.logoRequirement = requirement;
+      control.addEventListener("click", () => {
+        this.#restoreFocus(root, {
+          kind: requirement === "words" ? "required-words" : "required-symbol"
+        });
+      });
+      requirements.append(control);
+    }
+  }
+
   #restoreFocus(root: HTMLElement, focus?: FocusTarget): void {
     if (!focus) return;
     const target = focus.kind === "chooser"
       ? root.querySelector<HTMLElement>("[data-logo-mark-chooser]")
+      : focus.kind === "required-words"
+        ? root.querySelector<HTMLElement>('.logo-lab__wide-field input[type="text"]')
+        : focus.kind === "required-symbol"
+          ? root.querySelector<HTMLElement>("[data-logo-icon-id]") ??
+            root.querySelector<HTMLElement>('input[type="search"]')
       : focus.kind === "search"
         ? root.querySelector<HTMLElement>('input[type="search"]')
         : focus.kind === "category"
@@ -517,5 +592,8 @@ export class LogoLabPanel {
                 ? root.querySelector<HTMLElement>("[data-logo-primary-action]")
                 : root.querySelector<HTMLElement>(`[data-logo-remix-action="${focus.id}"]`);
     target?.focus();
+    if (focus.kind === "required-words" || focus.kind === "required-symbol") {
+      target?.scrollIntoView?.({ block: "nearest" });
+    }
   }
 }

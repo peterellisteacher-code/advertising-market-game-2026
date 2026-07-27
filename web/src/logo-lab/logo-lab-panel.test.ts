@@ -104,14 +104,80 @@ describe("LogoLabPanel", () => {
     expect(host.querySelectorAll("button[data-logo-icon-id]")).toHaveLength(40);
     expect([...host.querySelectorAll("button[data-logo-icon-id]")]
       .every((button) => button.getAttribute("aria-pressed") === "false")).toBe(true);
-    expect(getByRole<HTMLButtonElement>(host, "button", { name: "Add logo" }).disabled).toBe(true);
+    expect(getByRole<HTMLButtonElement>(host, "button", { name: "Add logo" }).disabled).toBe(false);
+    expect(getByRole(host, "button", { name: "Add words" })).toBeTruthy();
+    expect(getByRole(host, "button", { name: "Choose a symbol" })).toBeTruthy();
 
     chooseReadyDraft(host);
 
     expect(getByRole<HTMLButtonElement>(host, "button", { name: "Add logo" }).disabled).toBe(false);
+    expect(host.querySelector("[data-logo-requirements]")?.childElementCount).toBe(0);
     expect(getByRole(host, "button", { name: "Symbol 000" }).getAttribute("aria-pressed"))
       .toBe("true");
     expect(host.textContent).not.toMatch(/\b(?:assignment|unit|task)\b/i);
+  });
+
+  it("explains both missing requirements and focuses the words field first", () => {
+    const { host, onAdd, announce } = setup();
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView
+    });
+
+    fireEvent.click(getByRole(host, "button", { name: "Add logo" }));
+
+    expect(onAdd).not.toHaveBeenCalled();
+    expect(getByRole(host, "alert").textContent)
+      .toBe("Add words and choose a symbol before adding the logo.");
+    expect(announce).toHaveBeenCalledWith(
+      "Add words and choose a symbol before adding the logo.",
+      "assertive"
+    );
+    expect(document.activeElement).toBe(getByLabelText(host, "Logo words"));
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
+  });
+
+  it("explains and focuses the words field when only words are missing", () => {
+    const { host, onAdd } = setup();
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView
+    });
+    fireEvent.click(getByRole(host, "button", { name: "Symbol 000" }));
+
+    expect(getByRole(host, "button", { name: "Add words" })).toBeTruthy();
+    expect(host.querySelector('[data-logo-requirement="symbol"]')).toBeNull();
+    fireEvent.click(getByRole(host, "button", { name: "Add logo" }));
+
+    expect(onAdd).not.toHaveBeenCalled();
+    expect(getByRole(host, "alert").textContent)
+      .toBe("Add words before adding the logo.");
+    expect(document.activeElement).toBe(getByLabelText(host, "Logo words"));
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
+  });
+
+  it("explains and focuses the symbol chooser when only a symbol is missing", () => {
+    const { host, onAdd } = setup();
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView
+    });
+    const words = getByLabelText<HTMLInputElement>(host, "Logo words");
+    words.value = "Nova Pet";
+    fireEvent.input(words);
+
+    expect(getByRole(host, "button", { name: "Choose a symbol" })).toBeTruthy();
+    expect(host.querySelector('[data-logo-requirement="words"]')).toBeNull();
+    fireEvent.click(getByRole(host, "button", { name: "Add logo" }));
+
+    expect(onAdd).not.toHaveBeenCalled();
+    expect(getByRole(host, "alert").textContent)
+      .toBe("Choose a symbol before adding the logo.");
+    expect(document.activeElement).toBe(getByRole(host, "button", { name: "Symbol 000" }));
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
   });
 
   it("keeps search focus while filtering and honours category filters", () => {
@@ -136,7 +202,9 @@ describe("LogoLabPanel", () => {
   });
 
   it("adds and updates one mark only after successful async callbacks", async () => {
-    const onAdd = vi.fn(async (_design: LogoMarkDesign, _icon: LogoIconRecord) => "logo-1");
+    let resolveAdd!: (id: string) => void;
+    const onAdd = vi.fn((_design: LogoMarkDesign, _icon: LogoIconRecord) =>
+      new Promise<string>((resolve) => { resolveAdd = resolve; }));
     const onReplace = vi.fn(async (
       _id: string,
       _design: LogoMarkDesign,
@@ -146,8 +214,14 @@ describe("LogoLabPanel", () => {
     const { host, panel } = setup({ onAdd, onReplace, announce });
     chooseReadyDraft(host);
 
-    fireEvent.click(getByRole(host, "button", { name: "Add logo" }));
+    const add = getByRole(host, "button", { name: "Add logo" });
+    fireEvent.click(add);
+    fireEvent.click(add);
     await waitFor(() => expect(onAdd).toHaveBeenCalledOnce());
+    expect(getByRole<HTMLButtonElement>(host, "button", { name: "Making logo…" }).disabled)
+      .toBe(true);
+    resolveAdd("logo-1");
+    await waitFor(() => expect(getByRole(host, "button", { name: "Update logo" })).toBeTruthy());
     const addedDesign = onAdd.mock.calls[0]![0];
     panel.setMarks([Object.freeze({ id: "logo-1", design: addedDesign })]);
     expect(getByLabelText<HTMLSelectElement>(host, "Logo on canvas").value).toBe("logo-1");

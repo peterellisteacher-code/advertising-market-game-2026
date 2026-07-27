@@ -74,8 +74,7 @@ const runtime = vi.hoisted(() => ({
   adapterDisposeFailure: null as Error | null,
   canvasDisposeFailure: null as Error | null,
   canvasDisposePromise: null as Promise<void> | null,
-  selectedObjectId: null as string | null
-  ,
+  selectedObjectId: null as string | null,
   sectionFillPreview: null as RasterSectionFillRecipe | null,
   sectionFillApplications: [] as RasterSectionFillRecipe[]
 }));
@@ -3458,6 +3457,40 @@ describe("window.AdMarketCreator", () => {
     activateStudioTool("logo");
     await findByRole(document.body, "button", { name: "Rocket" });
 
+    const incompleteAction = getByRole<HTMLButtonElement>(
+      document.body,
+      "button",
+      { name: "Add logo" }
+    );
+    expect(incompleteAction.disabled).toBe(false);
+    fireEvent.click(incompleteAction);
+    expect(getByRole(document.body, "alert").textContent)
+      .toBe("Add words and choose a symbol before adding the logo.");
+    expect(document.activeElement).toBe(getByRole(document.body, "textbox", {
+      name: "Logo words"
+    }));
+    expect(currentObjects().filter(({ elementKind }) => elementKind === "logo-mark"))
+      .toHaveLength(0);
+
+    fireEvent.input(getByRole<HTMLInputElement>(document.body, "textbox", {
+      name: "Logo words"
+    }), { target: { value: "Draft logo" } });
+    fireEvent.click(getByRole(document.body, "button", { name: "Add logo" }));
+    expect(getByRole(document.body, "alert").textContent)
+      .toBe("Choose a symbol before adding the logo.");
+    expect((document.activeElement as HTMLElement | null)?.dataset.logoIconId).toBeTruthy();
+
+    fireEvent.click(getByRole(document.body, "button", { name: "Rocket" }));
+    fireEvent.input(getByRole<HTMLInputElement>(document.body, "textbox", {
+      name: "Logo words"
+    }), { target: { value: "" } });
+    fireEvent.click(getByRole(document.body, "button", { name: "Add logo" }));
+    expect(getByRole(document.body, "alert").textContent)
+      .toBe("Add words before adding the logo.");
+    expect(document.activeElement).toBe(getByRole(document.body, "textbox", {
+      name: "Logo words"
+    }));
+
     const recipes = [
       ["Icon + Wordmark", "Orbit Rocket", "Rocket"],
       ["Badge / Seal", "Paw Parade", "Paw"],
@@ -3483,7 +3516,25 @@ describe("window.AdMarketCreator", () => {
       await waitFor(() => expect(getByRole(document.body, "button", {
         name: "Update logo"
       })).toBeTruthy());
+      expect(runtime.selectedObjectId).toBe(currentObjects()
+        .filter(({ elementKind }) => elementKind === "logo-mark")
+        .at(-1)?.objectId);
     }
+
+    const finalLogo = currentObjects()
+      .filter(({ elementKind }) => elementKind === "logo-mark")
+      .at(-1)!;
+    const finalLogoLeft = Number(finalLogo.left);
+    const canvasRegion = getByRole(document.body, "region", { name: "Campaign canvas" });
+    fireEvent.keyDown(canvasRegion, { key: "ArrowRight" });
+    await waitFor(() => expect(currentObjects()
+      .find(({ objectId }) => objectId === finalLogo.objectId)?.left).toBe(finalLogoLeft + 5));
+    fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));
+    await waitFor(() => expect(currentObjects()
+      .find(({ objectId }) => objectId === finalLogo.objectId)?.left).toBe(finalLogoLeft));
+    fireEvent.click(getByRole(document.body, "button", { name: "Redo" }));
+    await waitFor(() => expect(currentObjects()
+      .find(({ objectId }) => objectId === finalLogo.objectId)?.left).toBe(finalLogoLeft + 5));
 
     const details = document.querySelector<HTMLDetailsElement>(".logo-lab details")!;
     details.open = true;

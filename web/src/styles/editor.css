@@ -295,7 +295,7 @@
 .creator__logo-lab { min-height: 15rem; max-height: min(34vh, 22rem); padding: .6rem; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: .4rem; overflow: hidden; border: 1px solid #9abfc9; border-radius: .6rem; background: linear-gradient(145deg, #f8fdff, #fffaf2); box-shadow: 0 3px 10px rgb(23 32 51 / .08); }
 .creator__logo-lab h2 { margin: 0; color: var(--ink); font-size: 1.05rem; letter-spacing: -.015em; }
 [data-logo-lab-panel] { min-height: 0; overflow: hidden; }
-.logo-lab { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: .45rem; }
+.logo-lab { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto auto; gap: .45rem; }
 .logo-lab label { min-width: 0; display: grid; gap: .2rem; color: #334155; font-size: .875rem; font-weight: 800; }
 .logo-lab input, .logo-lab select { min-width: 0; width: 100%; padding: 0 .5rem; border: 1px solid #8faeb8; border-radius: .42rem; background: #fff; color: var(--ink); font: inherit; }
 .logo-lab__chooser { grid-template-columns: minmax(6.5rem, .42fr) minmax(0, 1fr); align-items: center; }
@@ -321,6 +321,9 @@
 .logo-lab details > label { margin-top: .35rem; grid-template-columns: minmax(5rem, .4fr) minmax(0, 1fr); align-items: center; }
 .logo-lab__moves { margin-top: .4rem; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem; }
 .logo-lab__moves button { padding: .25rem .35rem; border: 1px solid #8faeb8; border-radius: .4rem; background: #edf7fa; color: var(--ink); font: inherit; font-size: .875rem; font-weight: 800; }
+.logo-lab__requirements { display: flex; flex-wrap: wrap; gap: .35rem; }
+.logo-lab__requirements:empty { display: none; }
+.logo-lab__requirements button { min-height: 36px; padding: .35rem .65rem; border: 1px solid #8faeb8; border-radius: 999px; background: #edf7fa; color: var(--blue); font: inherit; font-size: .875rem; font-weight: 900; }
 .logo-lab__status { min-height: 1.25em; margin: 0; color: #475569; font-size: .875rem; line-height: 1.25; }
 .logo-lab__primary { width: 100%; border: 0; border-radius: .45rem; background: var(--blue); color: #fff; font: inherit; font-weight: 900; }
 .logo-lab__primary:disabled, .logo-lab__moves button:disabled { background: #94a3b8; color: #f8fafc; opacity: .72; }

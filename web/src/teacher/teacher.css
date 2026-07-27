@@ -11,7 +11,8 @@
   --teacher-shadow: 0 14px 34px rgb(20 32 51 / 10%);
 }
 
-body:has([data-admarket-route="teacher-dashboard"]) {
+body:has([data-admarket-route="teacher-dashboard"]),
+body:has([data-admarket-route="teacher-playtest"]) {
   margin: 0;
   min-width: 320px;
   background:

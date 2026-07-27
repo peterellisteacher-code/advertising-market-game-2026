@@ -5,6 +5,8 @@ import {
   queryByRole,
   waitFor
 } from "@testing-library/dom";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TeacherPlaytestController } from "./teacher-playtest-controller";
 
@@ -21,6 +23,17 @@ function createRoot(): HTMLElement {
 describe("TeacherPlaytestController", () => {
   beforeEach(() => {
     document.body.replaceChildren();
+  });
+
+  it("shares the teacher page typography and background with the dashboard", () => {
+    const stylesheet = readFileSync(
+      join(process.cwd(), "web", "src", "teacher", "teacher.css"),
+      "utf8"
+    );
+
+    expect(stylesheet).toContain(
+      'body:has([data-admarket-route="teacher-playtest"])'
+    );
   });
 
   it("checks the independent teacher session before starting the complete game", async () => {

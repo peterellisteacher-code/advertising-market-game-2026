@@ -3500,7 +3500,8 @@ describe("window.AdMarketCreator", () => {
     expect(await parsed(api, "open-product-kit", "open", blankDocument))
       .toMatchObject({ ok: true });
     activateStudioTool("product");
-    await findByRole(document.body, "radio", { name: /Reusable tumbler/ });
+    const starter = await findByRole(document.body, "radio", { name: /Reusable tumbler/ });
+    fireEvent.click(starter);
 
     const lid = getByRole<HTMLInputElement>(document.body, "radio", { name: /Flat lid/ });
     lid.focus();

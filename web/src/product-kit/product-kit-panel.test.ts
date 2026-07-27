@@ -268,6 +268,23 @@ function restoredDocument(bundle: LoadedProductKitBundle): CampaignDocumentV1 {
 }
 
 describe("ProductKitPanel", () => {
+  it("shows all twelve starters without choosing one for a fresh campaign", async () => {
+    const host = document.createElement("div");
+    document.body.replaceChildren(host);
+    const panel = new ProductKitPanel(host, vi.fn(), vi.fn());
+
+    panel.render(await admittedBundle());
+
+    const starters = getAllByRole<HTMLInputElement>(host, "radio")
+      .filter(({ name }) => name === "student-starter");
+    expect(starters).toHaveLength(12);
+    expect(starters.every(({ checked }) => !checked)).toBe(true);
+    expect(host.textContent).toContain("Choose a starter product");
+    expect(getByRole<HTMLButtonElement>(host, "button", {
+      name: "Place product on ad"
+    }).disabled).toBe(true);
+  });
+
   it("shows twelve starters in one list and places a reviewed raster only on activation", async () => {
     const host = document.createElement("div");
     document.body.replaceChildren(host);
@@ -342,6 +359,7 @@ describe("ProductKitPanel", () => {
     };
 
     panel.render(bundle);
+    await panel.selectStarter(bundle.starterManifest.starters[0]!);
 
     expect(panel.hydrate(stale)).toBe(false);
     expect(panel.hydrate(mismatched)).toBe(false);
@@ -374,6 +392,7 @@ describe("ProductKitPanel", () => {
     const panel = new ProductKitPanel(host, onPlace);
 
     panel.render(await admittedBundle());
+    fireEvent.click(getByRole(host, "radio", { name: /Reusable tumbler/ }));
 
     expect(host.textContent).toContain("Reusable tumbler");
     expect(host.textContent).toContain("Flat lid");

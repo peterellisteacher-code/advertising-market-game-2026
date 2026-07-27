@@ -299,16 +299,19 @@ export class ProductKitPanel implements StudentStarterActions {
         return;
       }
       this.#bundle = bundle;
-      if (!starters.some(({ record }) => record.id === this.#selectedStarterId)) {
-        this.#selectedStarterId = starters[0]!.record.id;
-        this.#selectedKitId = starters[0]!.kind === "kit"
-          ? starters[0]!.kit.item.id
-          : null;
+      if (
+        this.#selectedStarterId !== null &&
+        !starters.some(({ record }) => record.id === this.#selectedStarterId)
+      ) {
+        this.#selectedStarterId = null;
+        this.#selectedKitId = null;
         this.#selectedByFrame.clear();
         this.#placedRequestKey = null;
       }
-      const selected = starters.find(({ record }) => record.id === this.#selectedStarterId)!;
-      if (selected.kind === "kit") {
+      const selected = this.#selectedStarterId === null
+        ? null
+        : starters.find(({ record }) => record.id === this.#selectedStarterId) ?? null;
+      if (selected?.kind === "kit") {
         this.#selectedKitId = selected.kit.item.id;
         for (const [frameId, componentId] of this.#selectedByFrame) {
           const frame = selected.kit.frames.find(({ frame }) => frame.id === frameId);
@@ -316,7 +319,7 @@ export class ProductKitPanel implements StudentStarterActions {
             this.#selectedByFrame.delete(frameId);
           }
         }
-      } else {
+      } else if (selected !== null) {
         this.#selectedKitId = null;
         this.#selectedByFrame.clear();
       }
@@ -432,7 +435,7 @@ export class ProductKitPanel implements StudentStarterActions {
 
   #draw(
     starters: readonly CertifiedStudentStarter[],
-    selected: CertifiedStudentStarter,
+    selected: CertifiedStudentStarter | null,
     focusKey: string | null
   ): void {
     const bundle = this.#bundle;
@@ -440,7 +443,9 @@ export class ProductKitPanel implements StudentStarterActions {
       this.unavailable();
       return;
     }
-    const preview = selected.kind === "kit"
+    const preview = selected === null
+      ? this.#emptyPreview()
+      : selected.kind === "kit"
       ? (() => {
           const request = this.#request(selected.kit, false);
           const plan = request ? bundle.runtime.planComposition(request) : null;
@@ -463,7 +468,7 @@ export class ProductKitPanel implements StudentStarterActions {
       input.type = "radio";
       input.name = "student-starter";
       input.value = starter.record.id;
-      input.checked = starter.record.id === selected.record.id;
+      input.checked = starter.record.id === selected?.record.id;
       input.dataset.focusKey = `starter:${starter.record.id}`;
       const copy = node("span", "product-kit__choice-copy");
       const category = node(
@@ -482,7 +487,7 @@ export class ProductKitPanel implements StudentStarterActions {
     }
     controls.append(baseGroup);
 
-    if (selected.kind === "kit") {
+    if (selected?.kind === "kit") {
       for (const certifiedFrame of selected.kit.frames) {
         const group = node("fieldset", "product-kit__group");
         const groupName = certifiedFrame.choices[0]!.price.groupLabel;
@@ -512,12 +517,12 @@ export class ProductKitPanel implements StudentStarterActions {
       }
     }
 
-    const completeRequest = selected.kind === "kit"
+    const completeRequest = selected?.kind === "kit"
       ? this.#request(selected.kit, true)
       : null;
     const alreadyPlaced = completeRequest !== null &&
       JSON.stringify(completeRequest) === this.#placedRequestKey;
-    const missingGroup = selected.kind === "kit"
+    const missingGroup = selected?.kind === "kit"
       ? selected.kit.frames.find(({ frame }) =>
           !this.#selectedByFrame.has(frame.id)
         )?.choices[0]?.price.groupLabel.toLowerCase()
@@ -525,7 +530,9 @@ export class ProductKitPanel implements StudentStarterActions {
     const status = node(
       "p",
       "product-kit__status",
-      alreadyPlaced
+      selected === null
+        ? "Choose a starter product"
+        : alreadyPlaced
         ? "On your ad. Change a choice to replace it."
         : selected.kind === "raster" || completeRequest
           ? "Ready to place on your ad"
@@ -539,7 +546,7 @@ export class ProductKitPanel implements StudentStarterActions {
       alreadyPlaced ? "Place another product on ad" : "Place product on ad"
     );
     action.type = "button";
-    action.disabled = selected.kind === "kit" && completeRequest === null;
+    action.disabled = selected === null || (selected.kind === "kit" && completeRequest === null);
     action.dataset.focusKey = "place";
     action.addEventListener("click", () => {
       void this.placeSelectedStarter();
@@ -551,6 +558,19 @@ export class ProductKitPanel implements StudentStarterActions {
     panel.append(layout);
     this.host.replaceChildren(panel);
     this.#restoreFocus(focusKey);
+  }
+
+  #emptyPreview(): HTMLElement {
+    const figure = node(
+      "figure",
+      "product-kit__preview-frame product-kit__preview-frame--empty"
+    );
+    figure.append(node(
+      "p",
+      "product-kit__preview-prompt",
+      "Choose a starter to preview it here."
+    ));
+    return figure;
   }
 
   #rasterPreview(asset: CatalogAssetV1): HTMLElement | null {

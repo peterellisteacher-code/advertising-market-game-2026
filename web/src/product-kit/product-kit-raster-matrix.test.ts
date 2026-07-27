@@ -163,6 +163,53 @@ describe("Product Kit raster matrices", () => {
       .toBeCloseTo(163.1, 12);
   });
 
+  it("maps the compact carry-case handle onto the repaired socket", () => {
+    const baseFrame: ProductKitRasterFrame = {
+      originalWidth: 400,
+      originalHeight: 500,
+      trimX: 105,
+      trimY: 190,
+      trimWidth: 189,
+      trimHeight: 159
+    };
+    const handleFrame: ProductKitRasterFrame = {
+      originalWidth: 400,
+      originalHeight: 500,
+      trimX: 69,
+      trimY: 100,
+      trimWidth: 262,
+      trimHeight: 135
+    };
+    const result = productKitRasterMatrix(
+      baseFrame,
+      affineEntry(
+        handleFrame,
+        { a: 0.55, b: 0, c: 0, d: 0.55, e: 0.225, f: 0.2165 },
+        0.55
+      )
+    );
+
+    expect(result).not.toBeNull();
+    expect(result![0]).toBeCloseTo(0.55, 12);
+    expect(result![1]).toBe(0);
+    expect(result![2]).toBe(0);
+    expect(result![3]).toBeCloseTo(0.55, 12);
+    expect(result![4]).toBeCloseTo(0, 12);
+    expect(result![5]).toBeCloseTo(-49.625, 12);
+    const connectorFromTrimCentre = {
+      x: 0.5 * handleFrame.originalWidth -
+        (handleFrame.trimX + handleFrame.trimWidth / 2),
+      y: 0.37 * handleFrame.originalHeight -
+        (handleFrame.trimY + handleFrame.trimHeight / 2)
+    };
+    expect(mapLocalPoint(
+      result!,
+      baseFrame,
+      connectorFromTrimCentre.x,
+      connectorFromTrimCentre.y
+    )).toEqual({ x: 200, y: 210 });
+  });
+
   it("converts rotation correctly when source and base aspect ratios differ", () => {
     const sourceFrame: ProductKitRasterFrame = {
       originalWidth: 200,

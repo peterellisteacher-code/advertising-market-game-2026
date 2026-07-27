@@ -14,6 +14,7 @@ from pipeline.product_kit.schema import (
     canonical_json_bytes,
     validate_product_kit_catalogue,
 )
+from pipeline.product_kit.socket_contact import verify_product_kit_catalogue_contacts
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -394,3 +395,38 @@ def test_revalidates_mutated_model_instances_before_any_write(tmp_path: Path) ->
         )
 
     assert list(tmp_path.iterdir()) == []
+
+
+def test_generated_product_kit_has_rendered_contact_for_every_socket() -> None:
+    catalogue = json.loads(
+        (
+            REPO_ROOT
+            / "catalog"
+            / "generated"
+            / "offline-core-v1"
+            / "catalog.json"
+        ).read_text(encoding="utf-8")
+    )
+    product_kit = json.loads(
+        (
+            REPO_ROOT
+            / "catalog"
+            / "generated"
+            / "offline-core-v1"
+            / "product-kit-v1.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    results = verify_product_kit_catalogue_contacts(
+        catalogue,
+        product_kit,
+        REPO_ROOT,
+    )
+
+    assert [result.certification_id for result in results] == [
+        certification["id"]
+        for certification in product_kit["certifications"]
+    ]
+    assert len(results) == 5
+    assert max(result.gap_pixels for result in results) <= 2
+    assert all(result.detached_components == 0 for result in results)

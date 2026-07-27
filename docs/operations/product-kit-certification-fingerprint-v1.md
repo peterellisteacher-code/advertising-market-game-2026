@@ -165,3 +165,33 @@ Every generator implementation must additionally cover:
 
 The source golden tests live in
 web/src/product-kit/certification-fingerprint.test.ts.
+
+## Rendered socket contact gate
+
+Fingerprint validity proves that the browser and pack agree on connector
+metadata. It does not prove that the transformed PNGs appear to touch. Run the
+independent alpha-contact gate against the exact catalogue masters:
+
+    python scripts/verify_product_kit_sockets.py --catalog catalog/generated/offline-core-v1/catalog.json --kit catalog/generated/offline-core-v1/product-kit-v1.json
+
+The verifier renders every front or rear fragment with the browser's normalized
+socket transform on the base asset's original canvas. It measures each
+attachment region within the socket band, permits no more than two transparent
+output pixels between component and base, and rejects seating overlap deeper
+than the 40-pixel attachment band. Connector-point arithmetic alone is not
+accepted as contact evidence.
+
+The certified pack SHA-256 is
+`aec4825b70e074979955f445ac5506a6d0947f8561545359f05abc1eb0881794`.
+
+| Certification | Gap pixels | Overlap pixels | Detached regions |
+|---|---:|---:|---:|
+| `pk1-cert-tumbler-flat-lid` | 0 | 2541 | 0 |
+| `pk1-cert-tv-angled-feet` | 0 | 1310 | 0 |
+| `pk1-cert-tv-centre-pedestal` | 0 | 1938 | 0 |
+| `pk1-cert-utility-case-arched-handle` | 0 | 236 | 0 |
+| `pk1-cert-utility-case-compact-handle` | 0 | 371 | 0 |
+
+The compact handle component point is `y = 0.37`. Its certification fingerprint
+is `e5bdcd7f9284daeb7767017f8711840e1249bad4b125aa7d3c2bcf27704a7fab`.
+No source PNG, asset ID, catalogue hash or price changed.

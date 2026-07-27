@@ -36,6 +36,41 @@ describe("socket connector transforms", () => {
     expectPointClose(applyTransform(result!.matrix, { x: 2, y: 3 }), { x: 10, y: 20 });
   });
 
+  it("seats the compact carry-case handle at its rendered contact point", () => {
+    const result = resolveSocketTransform(
+      {
+        point: { x: 0.5, y: 0.37 },
+        normal: { x: 0, y: 1 },
+        referenceScale: 1
+      },
+      {
+        point: { x: 0.5, y: 0.42 },
+        normal: { x: 0, y: 1 },
+        referenceScale: 0.55
+      },
+      constraints({
+        minScale: 0.55,
+        maxScale: 0.55,
+        minRotationDegrees: 0,
+        maxRotationDegrees: 0,
+        maxNormalErrorDegrees: 0
+      })
+    );
+
+    expect(result).toMatchObject({
+      scale: 0.55,
+      rotationDegrees: 0,
+      mirrored: false,
+      matrix: { a: 0.55, b: 0, c: 0, d: 0.55 }
+    });
+    expect(result!.matrix.e).toBeCloseTo(0.225, 12);
+    expect(result!.matrix.f).toBeCloseTo(0.2165, 12);
+    expectPointClose(
+      applyTransform(result!.matrix, { x: 0.5, y: 0.37 }),
+      { x: 0.5, y: 0.42 }
+    );
+  });
+
   it.each([
     ["non-finite point", { point: { x: Number.NaN, y: 0 }, normal: { x: 1, y: 0 }, referenceScale: 1 }],
     ["infinite point", { point: { x: Number.POSITIVE_INFINITY, y: 0 }, normal: { x: 1, y: 0 }, referenceScale: 1 }],

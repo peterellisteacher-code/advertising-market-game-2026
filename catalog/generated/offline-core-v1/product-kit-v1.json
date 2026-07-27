@@ -355,7 +355,7 @@
         "mountType": "socket",
         "point": {
           "x": 0.5,
-          "y": 0.4
+          "y": 0.37
         },
         "normal": {
           "x": 0,
@@ -417,7 +417,7 @@
       "kitId": "pk1-utility-case-kit",
       "mountFrameId": "pk1-utility-case-handle-frame",
       "componentId": "pk1-utility-case-compact-handle",
-      "fingerprint": "a8ab1f3774bbfca72d1df8c383660877d368700f47ed1a01c991515d6be65aa4"
+      "fingerprint": "e5bdcd7f9284daeb7767017f8711840e1249bad4b125aa7d3c2bcf27704a7fab"
     }
   ]
 }

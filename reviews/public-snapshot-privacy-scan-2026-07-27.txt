@@ -1,0 +1,40 @@
+# Sanitized public snapshot privacy, workflow and licence scan
+snapshot_root	C:\tmp\admarket-public-source-726cfad8
+validated_workcopy	C:\tmp\admarket-public-snapshot-726cfad8
+snapshot_tree_sha256	7978e3f0d7d943ae1ec0e25351f31de4900eb6b7b3c28ae6c33afc486dd00397
+scanned_text_files	797
+forbidden_filename_hits	0
+detector:private-key-header	0
+detector:credential-token-shape	1
+detector-path:credential-token-shape	web/src/persistence/draft-store.test.ts
+detector:jwt-shape	0
+detector:literal-bearer-token	0
+detector:live-supabase-url	9
+detector-path:live-supabase-url	netlify/functions/account-assets.test.ts
+detector-path:live-supabase-url	netlify/functions/account-progress.test.ts
+detector-path:live-supabase-url	netlify/functions/account-reset.test.ts
+detector-path:live-supabase-url	netlify/functions/account-session.test.ts
+detector-path:live-supabase-url	netlify/functions/lib/account-assets.test.ts
+detector-path:live-supabase-url	netlify/functions/lib/account-backend.test.ts
+detector-path:live-supabase-url	netlify/functions/lib/advertising-game-edge-handler.test.ts
+detector-path:live-supabase-url	netlify/functions/teacher-accounts.test.ts
+detector-path:live-supabase-url	netlify/functions/teacher-playtest.test.ts
+detector:known-private-project-ref	0
+detector:known-production-site-id	0
+detector:known-qa-site-id	0
+detector:personal-local-path	0
+detector:private-plan-reference	0
+detector:private-review-reference	0
+workflow_permissions_contents_read	True
+workflow_secret_references	0
+workflow_write_permissions	0
+workflow_deploy_commands	0
+workflow_uses_count	11
+workflow_unpinned_uses	0
+project_license_present	True
+credits_present	True
+tabler_vendor_license_present	True
+credential-token-shape_classification	false positive: the detector matched the letters "sk-" inside a deterministic IndexedDB test database name; no credential token is present.
+live-supabase-url_classification	test fixture only: ten occurrences use one deterministic alphabetic placeholder project reference in nine test files; no live project reference is present.
+asset_decision	Retain 2,503 original offline catalogue records, editable product assets, project writing and the vendored Tabler corpus under the terms stated in LICENSE, CREDITS.md and the retained vendor licence; no stock-media file is included.
+privacy_workflow_licence_verdict	PASS

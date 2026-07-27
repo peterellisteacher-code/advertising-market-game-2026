@@ -1,13 +1,17 @@
 import assert from "node:assert/strict";
+import path from "node:path";
 import test from "node:test";
 
 import {
+  buildStudentCopyCorpus,
   extractGodotSourceLiterals,
   extractHtmlCopy,
   extractTscnText,
   extractTypeScriptLiterals,
   stableCopyId
 } from "./student-copy-corpus.mjs";
+
+const ROOT = path.resolve(import.meta.dirname, "..");
 
 test("extractTypeScriptLiterals keeps visible prose and skips technical identifiers and invariants", () => {
   const source = `
@@ -82,4 +86,13 @@ test("stableCopyId is deterministic for a source occurrence", () => {
     stableCopyId("web/src/game/student-copy.ts", 42, 3),
     "WEB_SRC_GAME_STUDENT_COPY_TS__L0042__N03"
   );
+});
+
+test("teacher dashboard copy is covered and classified separately from student copy", async () => {
+  const corpus = await buildStudentCopyCorpus(ROOT);
+  const teacherEntries = corpus.filter(({ path: sourcePath }) =>
+    sourcePath === "web/src/teacher/teacher-dashboard.ts");
+  assert.ok(teacherEntries.length > 0);
+  assert.ok(teacherEntries.every(({ audience }) => audience === "teacher"));
+  assert.ok(corpus.some(({ audience }) => audience === "student"));
 });

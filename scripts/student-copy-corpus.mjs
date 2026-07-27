@@ -177,10 +177,15 @@ export const STUDENT_COPY_SOURCE_PATHS = Object.freeze([
   "web/src/studio-coach/studio-coach-client.ts",
   "web/src/studio-coach/studio-coach-runtime.ts",
   "web/src/studio-coach/studio-coach-panel.ts",
+  "web/src/teacher/teacher-dashboard.ts",
   "web/src/ui/editor-shell.ts",
   "web/src/ui/canvas-accessibility-controller.ts",
   "web/src/ui/studio-tool-drawer.ts"
 ]);
+
+export const COPY_SOURCE_AUDIENCE = Object.freeze({
+  "web/src/teacher/teacher-dashboard.ts": "teacher"
+});
 
 export async function buildStudentCopyCorpus(root) {
   const entries = [];
@@ -193,7 +198,11 @@ export async function buildStudentCopyCorpus(root) {
     const key = `${entry.path}\u0000${entry.line}`;
     const occurrence = (lineCounts.get(key) ?? 0) + 1;
     lineCounts.set(key, occurrence);
-    return { id: stableCopyId(entry.path, entry.line, occurrence), ...entry };
+    return {
+      id: stableCopyId(entry.path, entry.line, occurrence),
+      audience: COPY_SOURCE_AUDIENCE[entry.path] ?? "student",
+      ...entry
+    };
   });
 }
 

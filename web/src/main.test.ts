@@ -1150,17 +1150,40 @@ describe("window.AdMarketCreator", () => {
       <div id="creator-root"></div>`;
   });
 
-  it.each([
-    ["/teacher", "teacher-dashboard"],
-    ["/teacher/playtest", "teacher-playtest"]
-  ])("boots %s without constructing the pair account surface", async (pathname, routeKind) => {
-    window.history.replaceState(null, "", pathname);
+  it("boots the teacher dashboard without constructing the pair account surface", async () => {
+    window.history.replaceState(null, "", "/teacher");
+    document.body.innerHTML = "";
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      if (input === "/api/teacher/session") {
+        return Promise.resolve(Response.json({ authenticated: true }));
+      }
+      if (input === "/api/teacher/accounts") {
+        return Promise.resolve(Response.json({ accounts: [] }));
+      }
+      return Promise.reject(new Error(`Unexpected teacher URL ${String(input)}`));
+    });
+
+    await import("./main");
+
+    await waitFor(() => expect(
+      getByRole(document.body, "heading", { name: "Classroom accounts" })
+    ).toBeTruthy());
+    expect(document.querySelector('[data-admarket-route="teacher-dashboard"]')).toBeTruthy();
+    expect(document.querySelector("#account-gate-root")).toBeNull();
+    expect(document.querySelector("#account-session-root")).toBeNull();
+    expect(Reflect.has(window, "AdMarketAccount")).toBe(false);
+    expect(Reflect.has(window, "AdMarketCreator")).toBe(false);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("boots the teacher playtest boundary without constructing the pair account surface", async () => {
+    window.history.replaceState(null, "", "/teacher/playtest");
     document.body.innerHTML = "";
     const fetchSpy = vi.spyOn(globalThis, "fetch");
 
     await import("./main");
 
-    expect(document.querySelector(`[data-admarket-route="${routeKind}"]`)).toBeTruthy();
+    expect(document.querySelector('[data-admarket-route="teacher-playtest"]')).toBeTruthy();
     expect(document.querySelector("#account-gate-root")).toBeNull();
     expect(document.querySelector("#account-session-root")).toBeNull();
     expect(Reflect.has(window, "AdMarketAccount")).toBe(false);

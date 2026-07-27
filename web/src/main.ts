@@ -1,6 +1,9 @@
 import "./styles/editor.css";
 import "./account/account.css";
+import "./teacher/teacher.css";
 import { runAdvertisingGameRoute } from "./app/app-route";
+import { HttpTeacherClient } from "./teacher/teacher-client";
+import { TeacherDashboard } from "./teacher/teacher-dashboard";
 import {
   cloudStatusMessage,
   createAccountBootstrap,
@@ -1676,11 +1679,11 @@ function renderRouteBoundary(
 }
 
 export function bootTeacherDashboard(): void {
-  renderRouteBoundary(
-    "teacher-dashboard",
-    "Teacher access",
-    "Sign in to open the teacher dashboard."
-  );
+  const root = document.createElement("div");
+  root.id = "teacher-dashboard-root";
+  document.body.replaceChildren(root);
+  const dashboard = new TeacherDashboard(root, new HttpTeacherClient());
+  void dashboard.mount();
 }
 
 export function bootTeacherPlaytest(): void {

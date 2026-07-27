@@ -36,6 +36,51 @@ describe("TeacherPlaytestController", () => {
     );
   });
 
+  it("keeps the persistent teacher controls above the fixed studio surface", async () => {
+    const style = document.createElement("style");
+    style.textContent = [
+      readFileSync(
+        join(process.cwd(), "web", "src", "styles", "editor.css"),
+        "utf8"
+      ),
+      readFileSync(
+        join(process.cwd(), "web", "src", "teacher", "teacher.css"),
+        "utf8"
+      )
+    ].join("\n");
+    document.head.append(style);
+    try {
+      const creatorRoot = document.createElement("div");
+      creatorRoot.id = "creator-root";
+      document.body.append(creatorRoot);
+      const root = createRoot();
+      const controller = new TeacherPlaytestController({
+        root,
+        sessionClient: {
+          session: async () => ({ authenticated: true })
+        },
+        playtestClient: { reset: vi.fn() },
+        startGame: async () => undefined,
+        resetLocalState: vi.fn(),
+        openFirstScreen: vi.fn()
+      });
+
+      await controller.mount();
+
+      const strip = getByRole(root, "banner", { name: "Teacher playtest" });
+      const stripStyle = getComputedStyle(strip);
+      const creatorStyle = getComputedStyle(creatorRoot);
+      expect(stripStyle.position).toBe("relative");
+      expect(Number.parseInt(stripStyle.zIndex, 10)).toBeGreaterThan(
+        Number.parseInt(creatorStyle.zIndex, 10)
+      );
+      expect(creatorStyle.top).toBe("66px");
+      expect(creatorStyle.bottom).toBe("0px");
+    } finally {
+      style.remove();
+    }
+  });
+
   it("checks the independent teacher session before starting the complete game", async () => {
     const order: string[] = [];
     const root = createRoot();

@@ -24,6 +24,35 @@ body:has([data-admarket-route="teacher-playtest"]) {
     sans-serif;
 }
 
+.teacher-playtest-strip {
+  position: relative;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 66px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--teacher-line);
+  padding: 10px 16px;
+  background: var(--teacher-paper);
+  box-shadow: 0 4px 16px rgb(20 32 51 / 12%);
+}
+
+.teacher-playtest-strip > span {
+  color: var(--teacher-muted);
+}
+
+.teacher-playtest-strip__actions {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+body:has([data-admarket-route="teacher-playtest"]) #creator-root {
+  top: 66px;
+  bottom: 0;
+}
+
 .teacher-page {
   width: min(1120px, calc(100% - 40px));
   margin: 0 auto;

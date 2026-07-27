@@ -105,7 +105,10 @@ import {
 } from "./logo-lab/logo-icon-catalogue";
 import { LogoLabPanel } from "./logo-lab/logo-lab-panel";
 import type { LogoMarkDesign } from "./logo-lab/logo-mark-model";
-import type { LogoMarkSnapshot } from "./fabric/canvas-port";
+import type {
+  CanvasSelectionSnapshot,
+  LogoMarkSnapshot
+} from "./fabric/canvas-port";
 import { ImageLabClient } from "./ai-image/image-lab-client";
 import { ImageLabPanel } from "./ai-image/image-lab-panel";
 import { ImageLabRuntime, type ImageLabPairIdentity } from "./ai-image/image-lab-runtime";
@@ -121,7 +124,10 @@ import {
 } from "./market/market-public-api";
 import type { GeneratedRasterPlacement } from "./catalogue/catalogue-runtime";
 import type { FabricCanvasAdapter } from "./fabric/fabric-canvas-adapter";
-import { ObjectCommandService } from "./fabric/object-command-service";
+import {
+  canvasRemovalState,
+  ObjectCommandService
+} from "./fabric/object-command-service";
 import {
   CanvasAccessibilityController,
   type CanvasAccessibilityAction
@@ -175,6 +181,15 @@ interface CanvasRuntime {
   refreshDisplay(): void;
   dispose(): Promise<void>;
 }
+
+interface CanvasRemovalHistoryTransition {
+  readonly beforeState: string;
+  readonly afterState: string;
+  readonly selection: CanvasSelectionSnapshot;
+}
+
+const canvasStateKey = (state: Record<string, unknown>): string =>
+  JSON.stringify(state);
 
 function hasLocalBlobReferences(document: CampaignDocumentV1): boolean {
   return document.assetReferences.some((reference) => reference.kind === "local-blob");
@@ -236,6 +251,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #runtimePromise: Promise<CanvasRuntime> | null = null;
   #releaseOwnedRasterUrls: (() => void) | null = null;
   #history: FabricHistoryBindings<CampaignDocumentV1> | null = null;
+  #removalHistory: CanvasRemovalHistoryTransition[] = [];
   #canvasAccessibility: CanvasAccessibilityController | null = null;
   #unsubscribeCanvasSelectionStatus: (() => void) | null = null;
   #pairGame: PairGameController | null = null;
@@ -814,6 +830,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#editorOpen = false;
     this.#practiceSaveMatched = false;
     this.shell.saveStatus.textContent = "";
+    this.#removalHistory = [];
     await this.#placements.flush();
     const requested = parseCampaignDocument(structuredClone(value));
     let document = requested;
@@ -1060,11 +1077,22 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   async undo(): Promise<boolean> {
     await this.#placements.flush();
     if (this.#history === null) throw new Error("Campaign creator is not open");
+    const runtime = this.#runtime;
+    const beforeState = runtime === null ? null : canvasStateKey(runtime.adapter.serialize());
     const changed = await this.#history.undo();
     if (changed) {
+      if (runtime !== null && beforeState !== null) {
+        const afterState = canvasStateKey(runtime.adapter.serialize());
+        const removal = [...this.#removalHistory].reverse().find((candidate) =>
+          candidate.afterState === beforeState &&
+          candidate.beforeState === afterState
+        );
+        if (removal !== undefined) runtime.adapter.restoreSelection(removal.selection);
+      }
       this.#refreshLogoMarks();
       this.#refreshMoneyCheck();
       this.#refreshMarketRoute();
+      if (this.#document !== null) this.#restoreProductShellRegions(this.#snapshot());
     }
     return changed;
   }
@@ -1072,11 +1100,22 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   async redo(): Promise<boolean> {
     await this.#placements.flush();
     if (this.#history === null) throw new Error("Campaign creator is not open");
+    const runtime = this.#runtime;
+    const beforeState = runtime === null ? null : canvasStateKey(runtime.adapter.serialize());
     const changed = await this.#history.redo();
     if (changed) {
+      if (runtime !== null && beforeState !== null) {
+        const afterState = canvasStateKey(runtime.adapter.serialize());
+        const removal = [...this.#removalHistory].reverse().find((candidate) =>
+          candidate.beforeState === beforeState &&
+          candidate.afterState === afterState
+        );
+        if (removal !== undefined) runtime.adapter.setSelected(null);
+      }
       this.#refreshLogoMarks();
       this.#refreshMoneyCheck();
       this.#refreshMarketRoute();
+      if (this.#document !== null) this.#restoreProductShellRegions(this.#snapshot());
     }
     return changed;
   }
@@ -1103,6 +1142,10 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     }
     const summary = runtime.adapter.listObjectSummaries().find(({ id }) => id === action.id);
     if (!summary) throw new Error("That canvas layer is no longer available");
+    if (action.type === "remove") {
+      await this.#removeCanvasObject(action.id, runtime);
+      return;
+    }
     const commands = new ObjectCommandService(runtime.adapter);
     await this.#history.transaction(async () => {
       switch (action.type) {
@@ -1130,14 +1173,27 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
         case "set-locked":
           commands.setLocked(action.id, action.locked);
           break;
-        case "remove":
-          commands.remove(action.id);
-          break;
       }
     });
     this.#refreshCanvasEmptyState(runtime.adapter.serialize());
     this.#refreshStudioCoachCampaign();
     this.schedulePracticeAutosave();
+  }
+
+  async deleteSelected(): Promise<void> {
+    await this.#placements.flush();
+    const runtime = this.#runtime;
+    if (!this.#editorOpen || runtime === null || this.#history === null) {
+      throw new Error("Campaign creator is not open");
+    }
+    const removal = canvasRemovalState(
+      runtime.adapter.getSelectedObjectId(),
+      runtime.adapter.listObjectSummaries()
+    );
+    if (!removal.removable || removal.selectedId === null) {
+      throw new Error(removal.reason);
+    }
+    await this.#removeCanvasObject(removal.selectedId, runtime);
   }
 
   async fillSelectedImage(): Promise<void> {
@@ -1203,6 +1259,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#studioCoach?.clearCampaign();
     await this.flushPracticeAutosave();
     this.#editorOpen = false;
+    this.#removalHistory = [];
     let cleanupError: Error | null = null;
     try {
       await this.#placements.flush();
@@ -1397,6 +1454,27 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#refreshMarketRoute();
     this.#refreshAidaPlaybook();
     this.#refreshProductKitPanel();
+    this.schedulePracticeAutosave();
+  }
+
+  async #removeCanvasObject(id: string, runtime: CanvasRuntime): Promise<void> {
+    if (this.#history === null) throw new Error("Campaign creator is not open");
+    const removal = canvasRemovalState(id, runtime.adapter.listObjectSummaries());
+    if (!removal.removable) throw new Error(removal.reason);
+    const beforeState = canvasStateKey(runtime.adapter.serialize());
+    const selection = runtime.adapter.captureSelection();
+    await this.#history.transaction(async () => {
+      new ObjectCommandService(runtime.adapter).remove(id);
+    });
+    this.#removalHistory.push({
+      beforeState,
+      afterState: canvasStateKey(runtime.adapter.serialize()),
+      selection
+    });
+    this.#refreshCanvasEmptyState(runtime.adapter.serialize());
+    this.#refreshLogoMarks();
+    if (this.#document !== null) this.#restoreProductShellRegions(this.#snapshot());
+    this.#refreshStudioCoachCampaign();
     this.schedulePracticeAutosave();
   }
 
@@ -1621,8 +1699,11 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       canvasRegion: this.shell.canvasRegion,
       host: this.shell.layers,
       toggle: this.shell.layersToggle,
+      deleteButton: this.shell.deleteSelected,
+      deleteStatus: this.shell.deleteStatus,
       port: runtime.adapter,
       runAction: (action) => this.applyCanvasAccessibilityAction(action),
+      deleteSelected: () => this.deleteSelected(),
       announce: (message, priority) => {
         (priority === "assertive" ? this.shell.assertive : this.shell.polite).textContent = message;
       }

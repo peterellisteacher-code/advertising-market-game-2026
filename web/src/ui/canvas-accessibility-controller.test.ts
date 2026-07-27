@@ -62,23 +62,48 @@ function mount() {
   const input = document.createElement("input");
   canvasRegion.append(input);
   const toggle = document.createElement("button");
+  const deleteButton = document.createElement("button");
+  deleteButton.textContent = "Delete selected item";
+  const deleteStatus = document.createElement("span");
   const host = document.createElement("aside");
-  document.body.append(toggle, canvasRegion, host);
+  document.body.append(toggle, deleteButton, deleteStatus, canvasRegion, host);
   const port = new AccessibilityPort();
   const actions: CanvasAccessibilityAction[] = [];
   const runAction = vi.fn(async (action: CanvasAccessibilityAction) => {
     actions.push(action);
+    if (action.type === "remove") {
+      port.summaries = port.summaries.filter(({ id }) => id !== action.id);
+      if (port.selectedId === action.id) port.setSelected(null);
+      port.mutations.forEach((listener) => listener({
+        type: "removed",
+        objectId: action.id
+      }));
+    }
   });
   const announce = vi.fn();
   const controller = new CanvasAccessibilityController({
     canvasRegion,
     host,
     toggle,
+    deleteButton,
+    deleteStatus,
     port,
     runAction,
     announce
   });
-  return { canvasRegion, input, toggle, host, port, actions, runAction, announce, controller };
+  return {
+    canvasRegion,
+    input,
+    toggle,
+    deleteButton,
+    deleteStatus,
+    host,
+    port,
+    actions,
+    runAction,
+    announce,
+    controller
+  };
 }
 
 afterEach(() => {
@@ -134,6 +159,71 @@ describe("CanvasAccessibilityController", () => {
     harness.controller.destroy();
   });
 
+  it("keeps the visible delete action disabled until a removable item is selected", () => {
+    const harness = mount();
+
+    expect(harness.deleteButton.disabled).toBe(false);
+    expect(harness.deleteButton.getAttribute("aria-description"))
+      .toBe("Delete Sale heading from the ad.");
+    expect(harness.deleteStatus.textContent).toBe("Delete Sale heading from the ad.");
+
+    harness.port.setSelected(null);
+
+    expect(harness.deleteButton.disabled).toBe(true);
+    expect(harness.deleteStatus.textContent).toBe("Select an item to delete");
+    harness.controller.destroy();
+  });
+
+  it.each(["Enter", " "])(
+    "deletes the selected item through the visible action with %j and refreshes layers",
+    async (key) => {
+      const harness = mount();
+      fireEvent.click(harness.toggle);
+
+      fireEvent.keyDown(harness.deleteButton, { key });
+      await vi.waitFor(() => expect(harness.runAction).toHaveBeenCalledOnce());
+
+      expect(harness.actions).toEqual([{ type: "remove", id: "text-front" }]);
+      expect(harness.host.textContent).not.toContain("Sale heading");
+      expect(harness.deleteButton.disabled).toBe(true);
+      expect(harness.deleteStatus.textContent).toBe("Select an item to delete");
+      expect(harness.announce).toHaveBeenCalledWith("Sale heading deleted.", "polite");
+      harness.controller.destroy();
+    }
+  );
+
+  it("explains why a structural product shell cannot be deleted", () => {
+    const harness = mount();
+    harness.port.summaries = [{
+      ...harness.port.summaries[0]!,
+      id: "required-product",
+      accessibleName: "Campaign product",
+      elementKind: "product-shell"
+    }];
+    harness.port.setSelected("required-product");
+    fireEvent.click(harness.toggle);
+
+    expect(harness.deleteButton.disabled).toBe(true);
+    expect(harness.deleteStatus.textContent)
+      .toBe("This product shell is required and cannot be deleted.");
+    const layerDelete = getByRole<HTMLButtonElement>(
+      harness.host,
+      "button",
+      { name: "Delete Campaign product" }
+    );
+    expect(layerDelete.disabled).toBe(true);
+    expect(layerDelete.title)
+      .toBe("This product shell is required and cannot be deleted.");
+
+    fireEvent.keyDown(harness.canvasRegion, { key: "Delete" });
+    expect(harness.runAction).not.toHaveBeenCalled();
+    expect(harness.announce).toHaveBeenCalledWith(
+      "This product shell is required and cannot be deleted.",
+      "polite"
+    );
+    harness.controller.destroy();
+  });
+
   it("offers keyboard-operable show, unlock, reorder and delete controls", async () => {
     const harness = mount();
     harness.port.summaries[0] = {
@@ -158,6 +248,7 @@ describe("CanvasAccessibilityController", () => {
       { type: "move", id: "shape-back", direction: "forward" },
       { type: "remove", id: "shape-back" }
     ]);
+    expect(harness.host.textContent).not.toContain("Blue background");
     harness.controller.destroy();
   });
 });

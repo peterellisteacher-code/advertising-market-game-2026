@@ -5,6 +5,7 @@ import type {
   CanvasPoint,
   CanvasSize,
   CanvasMutationListener,
+  CanvasObjectSummary,
   CanvasPort,
   CanvasSelectionListener,
   CropState,
@@ -23,7 +24,10 @@ import type {
   ShapeKind,
   StackDirection
 } from "./canvas-port";
-import { ObjectCommandService } from "./object-command-service";
+import {
+  canvasRemovalState,
+  ObjectCommandService
+} from "./object-command-service";
 
 type ArtworkCall =
   | { type: "text:add"; target: ArtworkSurfaceAddress; id: string; value: string }
@@ -124,7 +128,25 @@ class MemoryCanvasPort implements CanvasPort {
   setVisible(id: string, visible: boolean): void { this.#get(id).visible = visible; }
   setSelected(id: string | null): void { this.selectedId = id; }
   getSelectedObjectId(): string | null { return this.selectedId; }
-  listObjectSummaries(): readonly [] { return []; }
+  listObjectSummaries(): readonly CanvasObjectSummary[] {
+    return this.objects.map((object, stackIndex) => ({
+      id: object.id,
+      accessibleName: typeof object.accessibleName === "string"
+        ? object.accessibleName
+        : `${object.kind} object`,
+      elementKind: object.kind === "rect" || object.kind === "ellipse" ||
+        object.kind === "triangle" || object.kind === "line"
+        ? "shape"
+        : object.kind as CanvasObjectSummary["elementKind"],
+      x: object.x,
+      y: object.y,
+      scaleX: object.scaleX,
+      scaleY: object.scaleY,
+      visible: object.visible,
+      locked: object.locked,
+      stackIndex
+    }));
+  }
   captureSelection(): { readonly objectIds: readonly string[] } {
     return { objectIds: this.selectedId === null ? [] : [this.selectedId] };
   }
@@ -298,6 +320,54 @@ describe("ObjectCommandService", () => {
 
     commands.remove(copyId);
     expect(port.has(copyId)).toBe(false);
+  });
+
+  it("derives one deletion policy from canvas summaries", async () => {
+    const port = new MemoryCanvasPort();
+    const commands = new ObjectCommandService(port, idFactory("text-1", "product-1"));
+    const textId = await commands.addText("Sale", "Sale heading");
+    const productId = await commands.addProductShell({
+      shellId: "bottle",
+      svg: "<svg></svg>",
+      accessibleName: "Campaign product"
+    });
+    const summaries = port.listObjectSummaries();
+
+    expect(canvasRemovalState(null, summaries)).toEqual({
+      selectedId: null,
+      removable: false,
+      reason: "Select an item to delete"
+    });
+    expect(canvasRemovalState("missing", summaries)).toEqual({
+      selectedId: "missing",
+      removable: false,
+      reason: "The selected item is no longer available."
+    });
+    expect(canvasRemovalState(textId, summaries)).toEqual({
+      selectedId: textId,
+      removable: true,
+      reason: "Delete Sale heading from the ad."
+    });
+    expect(canvasRemovalState(productId, summaries)).toEqual({
+      selectedId: productId,
+      removable: false,
+      reason: "This product shell is required and cannot be deleted."
+    });
+  });
+
+  it("fails closed before removing a protected product shell", async () => {
+    const port = new MemoryCanvasPort();
+    const commands = new ObjectCommandService(port, idFactory("product-1"));
+    const productId = await commands.addProductShell({
+      shellId: "bottle",
+      svg: "<svg></svg>",
+      accessibleName: "Campaign product"
+    });
+
+    expect(() => commands.remove(productId))
+      .toThrow("This product shell is required and cannot be deleted.");
+    expect(port.has(productId)).toBe(true);
+    expect(port.selectedId).toBe(productId);
   });
 
   it("round-trips serialized state through the port", async () => {

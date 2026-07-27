@@ -30,6 +30,8 @@ export interface EditorShell extends PairGameView {
   zoomIn: HTMLButtonElement;
   zoomStatus: HTMLElement;
   layersToggle: HTMLButtonElement;
+  deleteSelected: HTMLButtonElement;
+  deleteStatus: HTMLElement;
   inspector: HTMLElement;
   layers: HTMLElement;
 }
@@ -194,6 +196,8 @@ export function createEditorShell(root: HTMLElement): EditorShell {
             <button type="button" data-canvas-zoom="in" aria-label="Make selected product or image larger" title="Make selected product or image larger">+</button>
             <button type="button" data-canvas-layers aria-label="Open canvas layers">Layers</button>
             <span role="status" data-canvas-zoom-status>Select a product or image</span>
+            <button type="button" data-canvas-delete aria-describedby="canvas-delete-status" disabled>Delete selected item</button>
+            <span id="canvas-delete-status" data-canvas-delete-status>Select an item to delete</span>
           </div>
           <div class="creator__canvas-empty" role="status" aria-label="Empty canvas" data-canvas-empty-state>
             <div class="creator__canvas-empty-card">
@@ -318,6 +322,8 @@ export function createEditorShell(root: HTMLElement): EditorShell {
     zoomIn: root.querySelector('[data-canvas-zoom="in"]')!,
     zoomStatus: root.querySelector('[data-canvas-zoom-status]')!,
     layersToggle: root.querySelector('[data-canvas-layers]')!,
+    deleteSelected: root.querySelector('[data-canvas-delete]')!,
+    deleteStatus: root.querySelector('[data-canvas-delete-status]')!,
     inspector: root.querySelector(".creator__inspector")!,
     layers: root.querySelector(".creator__layers")!,
     polite: root.querySelector('[data-live="polite"]')!,

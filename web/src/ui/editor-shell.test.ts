@@ -109,6 +109,17 @@ describe("createEditorShell", () => {
       .toBeTruthy();
     expect(getByRole(sizeControls, "button", { name: "Make selected product or image larger" }))
       .toBeTruthy();
+    const deleteSelected = getByRole<HTMLButtonElement>(
+      sizeControls,
+      "button",
+      { name: "Delete selected item" }
+    );
+    expect(deleteSelected.disabled).toBe(true);
+    expect(deleteSelected.getAttribute("aria-describedby")).toBe("canvas-delete-status");
+    expect(root.querySelector<HTMLElement>("#canvas-delete-status")?.textContent)
+      .toBe("Select an item to delete");
+    expect(shell.deleteSelected).toBe(deleteSelected);
+    expect(shell.deleteStatus.id).toBe("canvas-delete-status");
     expect(getByRole(sizeControls, "status").textContent).toBe("Select a product or image");
     expect(getByRole(root, "status", { name: "Empty canvas" }).textContent)
       .toContain("Canvas empty");

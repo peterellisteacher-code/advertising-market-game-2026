@@ -132,6 +132,8 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
       if (runtime.loadFailure) throw runtime.loadFailure;
       if (runtime.loadPromise !== null) await runtime.loadPromise;
       runtime.state = structuredClone(value);
+      runtime.selectedObjectId = null;
+      runtime.selectionListeners.forEach((listener) => listener({ objectIds: [] }));
     }
 
     serialize(): Record<string, unknown> {
@@ -1940,6 +1942,81 @@ describe("window.AdMarketCreator", () => {
 
     fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));
     await waitFor(() => expect(currentObjects()[0]).toMatchObject({ left: 100, top: 200 }));
+  });
+
+  it("deletes one selected item and restores its full state, order and selection through history", async () => {
+    const originalHeading = {
+      type: "textbox",
+      objectId: "sale-heading",
+      elementKind: "text",
+      accessibleName: "Sale heading",
+      text: "Try something new",
+      left: 310,
+      top: 185,
+      scaleX: 1.4,
+      scaleY: 0.8,
+      angle: 12,
+      flipX: true,
+      flipY: false,
+      visible: true,
+      selectable: true,
+      evented: true
+    };
+    const documentWithText = CampaignDocumentSchema.parse({
+      ...structuredClone(blankDocument),
+      fabricState: {
+        version: "7.4.0",
+        objects: [{
+          type: "rect",
+          objectId: "background",
+          elementKind: "shape",
+          accessibleName: "Blue background",
+          left: 0,
+          top: 0,
+          scaleX: 1,
+          scaleY: 1
+        }, originalHeading]
+      }
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-delete", "open", documentWithText))
+      .toMatchObject({ ok: true });
+    runtime.selectedObjectId = "sale-heading";
+    runtime.selectionListeners.forEach((listener) => listener({
+      objectIds: ["sale-heading"]
+    }));
+
+    const deleteButton = getByRole<HTMLButtonElement>(
+      document.body,
+      "button",
+      { name: "Delete selected item" }
+    );
+    expect(deleteButton.disabled).toBe(false);
+    expect(deleteButton.getAttribute("aria-description"))
+      .toBe("Delete Sale heading from the ad.");
+    fireEvent.click(deleteButton);
+
+    await waitFor(() => {
+      expect(currentObjects().map(({ objectId }) => objectId)).toEqual(["background"]);
+      expect(runtime.selectedObjectId).toBeNull();
+      expect(document.querySelector('[data-live="polite"]')?.textContent)
+        .toBe("Sale heading deleted.");
+    });
+
+    fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));
+    await waitFor(() => {
+      expect(currentObjects().map(({ objectId }) => objectId))
+        .toEqual(["background", "sale-heading"]);
+      expect(currentObjects()[1]).toEqual(originalHeading);
+      expect(runtime.selectedObjectId).toBe("sale-heading");
+    });
+
+    fireEvent.click(getByRole(document.body, "button", { name: "Redo" }));
+    await waitFor(() => {
+      expect(currentObjects().map(({ objectId }) => objectId)).toEqual(["background"]);
+      expect(runtime.selectedObjectId).toBeNull();
+    });
   });
 
   it("keeps the active practice revision when undoing after autosaves", async () => {

@@ -92,13 +92,16 @@
 .creator__tool-panel > h2 { margin: 0 5.5rem 12px 0; font-size: 1.18rem; line-height: 1.2; }
 .creator__canvas { grid-column: 4; grid-row: 1; position: relative; min-width: 0; min-height: 0; padding: 16px; overflow: hidden; display: grid; place-items: center; background: radial-gradient(circle at 20% 15%, #f7fcfd 0, transparent 38%), repeating-linear-gradient(45deg, rgb(9 107 143 / .018) 0 12px, transparent 12px 24px), #e8f4f6; }
 .creator__canvas-label { position: absolute; top: 9px; left: 14px; margin: 0; color: #3e6877; font-size: .875rem; font-weight: 950; letter-spacing: .1em; }
-.creator__canvas-size { position: absolute; right: 24px; bottom: 24px; z-index: 11; display: grid; grid-template-columns: 38px auto 38px auto; grid-template-areas: "out fill in layers" "status status status status"; gap: 4px; padding: 6px; border: 1px solid #9db4bd; border-radius: 10px; background: rgb(255 250 242 / .96); box-shadow: 0 6px 18px rgb(23 32 51 / .2); }
+.creator__canvas-size { position: absolute; right: 24px; bottom: 24px; z-index: 11; display: grid; grid-template-columns: 38px auto 38px auto; grid-template-areas: "out fill in layers" "status status delete delete" "delete-status delete-status delete-status delete-status"; gap: 4px; padding: 6px; border: 1px solid #9db4bd; border-radius: 10px; background: rgb(255 250 242 / .96); box-shadow: 0 6px 18px rgb(23 32 51 / .2); }
 .creator__canvas-size button { min-height: 36px; padding: 0 .65rem; border: 1px solid #7295a1; border-radius: 7px; background: #fff; color: var(--ink); font: inherit; font-weight: 900; }
 .creator__canvas-size [data-canvas-zoom="out"] { grid-area: out; }
 .creator__canvas-size [data-canvas-zoom="fill"] { grid-area: fill; }
 .creator__canvas-size [data-canvas-zoom="in"] { grid-area: in; }
 .creator__canvas-size [data-canvas-layers] { grid-area: layers; }
 .creator__canvas-size [data-canvas-zoom-status] { grid-area: status; max-width: 13rem; color: #42566a; font-size: .875rem; font-weight: 800; line-height: 1.2; text-align: center; }
+.creator__canvas-size [data-canvas-delete] { grid-area: delete; }
+.creator__canvas-size [data-canvas-delete]:not(:disabled) { border-color: #9f1239; color: #9f1239; }
+.creator__canvas-size [data-canvas-delete-status] { grid-area: delete-status; max-width: 18rem; color: #42566a; font-size: .78rem; font-weight: 750; line-height: 1.2; text-align: center; }
 .creator__canvas .canvas-container { width: min(100%, var(--studio-canvas-display-width, calc((100vh - 140px) * 16 / 9))) !important; max-width: 1280px; height: auto !important; aspect-ratio: 16 / 9; }
 .creator__canvas canvas { width: 100% !important; max-width: 100%; height: auto !important; }
 .creator__canvas canvas.lower-canvas { background: white; box-shadow: 0 8px 30px rgb(0 0 0 / .18); }

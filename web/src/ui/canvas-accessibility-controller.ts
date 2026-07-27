@@ -5,6 +5,7 @@ import type {
   CanvasSelectionListener,
   StackDirection
 } from "../fabric/canvas-port";
+import { canvasRemovalState } from "../fabric/object-command-service";
 
 export type CanvasAccessibilityAction =
   | { readonly type: "nudge"; readonly id: string; readonly dx: number; readonly dy: number }
@@ -27,8 +28,11 @@ export interface CanvasAccessibilityControllerOptions {
   readonly canvasRegion: HTMLElement;
   readonly host: HTMLElement;
   readonly toggle: HTMLButtonElement;
+  readonly deleteButton: HTMLButtonElement;
+  readonly deleteStatus: HTMLElement;
   readonly port: CanvasAccessibilityPort;
   readonly runAction: (action: CanvasAccessibilityAction) => Promise<void>;
+  readonly deleteSelected?: () => Promise<void>;
   readonly announce?: (message: string, priority: "polite" | "assertive") => void;
 }
 
@@ -45,8 +49,11 @@ export class CanvasAccessibilityController {
   readonly #canvasRegion: HTMLElement;
   readonly #host: HTMLElement;
   readonly #toggle: HTMLButtonElement;
+  readonly #deleteButton: HTMLButtonElement;
+  readonly #deleteStatus: HTMLElement;
   readonly #port: CanvasAccessibilityPort;
   readonly #runAction: CanvasAccessibilityControllerOptions["runAction"];
+  readonly #runDeleteSelected: () => Promise<void>;
   readonly #announce: NonNullable<CanvasAccessibilityControllerOptions["announce"]>;
   readonly #unsubscribeMutation: () => void;
   readonly #unsubscribeSelection: () => void;
@@ -84,7 +91,16 @@ export class CanvasAccessibilityController {
       action = { type: "move", id, direction: event.shiftKey ? "back" : "backward" };
     } else if (key === "h") action = { type: "set-hidden", id, hidden: true };
     else if (key === "l") action = { type: "set-locked", id, locked: true };
-    else if (key === "delete" || key === "backspace") action = { type: "remove", id };
+    else if (key === "delete" || key === "backspace") {
+      event.preventDefault();
+      const removal = canvasRemovalState(id, this.#port.listObjectSummaries());
+      if (!removal.removable) {
+        this.#announce(removal.reason, "polite");
+        return;
+      }
+      void this.#perform({ type: "remove", id });
+      return;
+    }
     else if (key === "escape") {
       event.preventDefault();
       this.#port.setSelected(null);
@@ -96,17 +112,36 @@ export class CanvasAccessibilityController {
     void this.#perform(action);
   };
 
+  readonly #onDeleteClick = (): void => {
+    void this.#deleteSelected();
+  };
+
+  readonly #onDeleteKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    void this.#deleteSelected();
+  };
+
   constructor(options: CanvasAccessibilityControllerOptions) {
     this.#canvasRegion = options.canvasRegion;
     this.#host = options.host;
     this.#toggle = options.toggle;
+    this.#deleteButton = options.deleteButton;
+    this.#deleteStatus = options.deleteStatus;
     this.#port = options.port;
     this.#runAction = options.runAction;
+    this.#runDeleteSelected = options.deleteSelected ?? (() => {
+      const id = this.#port.getSelectedObjectId();
+      if (id === null) return Promise.reject(new Error("Select an item to delete"));
+      return this.#runAction({ type: "remove", id });
+    });
     this.#announce = options.announce ?? (() => undefined);
     if (!this.#host.id) this.#host.id = "canvas-layers-panel";
     this.#toggle.setAttribute("aria-controls", this.#host.id);
     this.#toggle.setAttribute("aria-expanded", "false");
     this.#toggle.addEventListener("click", this.#onToggle);
+    this.#deleteButton.addEventListener("click", this.#onDeleteClick);
+    this.#deleteButton.addEventListener("keydown", this.#onDeleteKeyDown);
     this.#canvasRegion.addEventListener("keydown", this.#onKeyDown);
     const rerender: CanvasMutationListener = () => this.#render();
     const selectionChanged: CanvasSelectionListener = () => this.#render();
@@ -118,6 +153,8 @@ export class CanvasAccessibilityController {
 
   destroy(): void {
     this.#toggle.removeEventListener("click", this.#onToggle);
+    this.#deleteButton.removeEventListener("click", this.#onDeleteClick);
+    this.#deleteButton.removeEventListener("keydown", this.#onDeleteKeyDown);
     this.#canvasRegion.removeEventListener("keydown", this.#onKeyDown);
     this.#unsubscribeMutation();
     this.#unsubscribeSelection();
@@ -146,6 +183,7 @@ export class CanvasAccessibilityController {
     const summaries = [...this.#port.listObjectSummaries()]
       .sort((left, right) => right.stackIndex - left.stackIndex);
     const selectedId = this.#port.getSelectedObjectId();
+    this.#renderDeleteState(selectedId, summaries);
     const heading = document.createElement("h2");
     heading.textContent = "Canvas layers";
     const help = document.createElement("p");
@@ -187,6 +225,16 @@ export class CanvasAccessibilityController {
       ].join(" · ");
       const actions = document.createElement("div");
       actions.className = "creator__layer-actions";
+      const removal = canvasRemovalState(summary.id, summaries);
+      const deleteButton = this.#button(
+        `Delete ${summary.accessibleName}`,
+        summary.id,
+        "remove",
+        () => this.#perform({ type: "remove", id: summary.id })
+      );
+      deleteButton.disabled = !removal.removable;
+      deleteButton.title = removal.reason;
+      deleteButton.setAttribute("aria-description", removal.reason);
       actions.append(
         this.#button(
           summary.visible ? `Hide ${summary.accessibleName}` : `Show ${summary.accessibleName}`,
@@ -220,12 +268,7 @@ export class CanvasAccessibilityController {
           "backward",
           () => this.#perform({ type: "move", id: summary.id, direction: "backward" })
         ),
-        this.#button(
-          `Delete ${summary.accessibleName}`,
-          summary.id,
-          "remove",
-          () => this.#perform({ type: "remove", id: summary.id })
-        )
+        deleteButton
       );
       item.append(select, name, status, actions);
       list.append(item);
@@ -254,6 +297,32 @@ export class CanvasAccessibilityController {
     }
   }
 
+  #renderDeleteState(
+    selectedId: string | null,
+    summaries: readonly CanvasObjectSummary[]
+  ): void {
+    const state = canvasRemovalState(selectedId, summaries);
+    this.#deleteButton.disabled = !state.removable || this.#busy;
+    this.#deleteButton.title = state.reason;
+    this.#deleteButton.setAttribute("aria-description", state.reason);
+    this.#deleteStatus.textContent = state.reason;
+  }
+
+  async #deleteSelected(): Promise<void> {
+    const state = canvasRemovalState(
+      this.#port.getSelectedObjectId(),
+      this.#port.listObjectSummaries()
+    );
+    if (!state.removable || state.selectedId === null) {
+      this.#announce(state.reason, "polite");
+      return;
+    }
+    await this.#perform(
+      { type: "remove", id: state.selectedId },
+      this.#runDeleteSelected
+    );
+  }
+
   #button(
     label: string,
     objectId: string,
@@ -269,14 +338,20 @@ export class CanvasAccessibilityController {
     return button;
   }
 
-  async #perform(action: CanvasAccessibilityAction): Promise<void> {
+  async #perform(
+    action: CanvasAccessibilityAction,
+    operation: () => Promise<void> = () => this.#runAction(action)
+  ): Promise<void> {
     if (this.#busy) return;
     this.#busy = true;
+    const summary = this.#port.listObjectSummaries().find(({ id }) => id === action.id);
+    const name = summary?.accessibleName ?? "Layer";
     try {
-      await this.#runAction(action);
-      const summary = this.#port.listObjectSummaries().find(({ id }) => id === action.id);
-      const name = summary?.accessibleName ?? "Layer";
-      this.#announce(`${name} updated.`, "polite");
+      await operation();
+      this.#announce(
+        action.type === "remove" ? `${name} deleted.` : `${name} updated.`,
+        "polite"
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : "The layer could not be changed.";
       this.#announce(message, "assertive");

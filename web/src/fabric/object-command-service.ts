@@ -1,5 +1,6 @@
 import type {
   ArtworkSurfaceAddress,
+  CanvasObjectSummary,
   CanvasPort,
   LogoMarkSource,
   NewProductKitInput,
@@ -30,6 +31,45 @@ export type AddLogoMarkCommand = LogoMarkSource;
 type IdFactory = () => string;
 
 const defaultIdFactory: IdFactory = () => globalThis.crypto.randomUUID();
+
+export interface CanvasRemovalState {
+  readonly selectedId: string | null;
+  readonly removable: boolean;
+  readonly reason: string;
+}
+
+export function canvasRemovalState(
+  selectedId: string | null,
+  summaries: readonly CanvasObjectSummary[]
+): CanvasRemovalState {
+  if (selectedId === null) {
+    return {
+      selectedId,
+      removable: false,
+      reason: "Select an item to delete"
+    };
+  }
+  const summary = summaries.find(({ id }) => id === selectedId);
+  if (summary === undefined) {
+    return {
+      selectedId,
+      removable: false,
+      reason: "The selected item is no longer available."
+    };
+  }
+  if (summary.elementKind === "product-shell") {
+    return {
+      selectedId,
+      removable: false,
+      reason: "This product shell is required and cannot be deleted."
+    };
+  }
+  return {
+    selectedId,
+    removable: true,
+    reason: `Delete ${summary.accessibleName} from the ad.`
+  };
+}
 
 export class ObjectCommandService {
   constructor(
@@ -221,7 +261,12 @@ export class ObjectCommandService {
     return newId;
   }
 
-  remove(id: string): void { this.port.remove(this.#required(id, "object id")); }
+  remove(id: string): void {
+    const objectId = this.#required(id, "object id");
+    const state = canvasRemovalState(objectId, this.port.listObjectSummaries());
+    if (!state.removable) throw new Error(state.reason);
+    this.port.remove(objectId);
+  }
   moveToFront(id: string): void { this.#move(id, "front"); }
   moveForward(id: string): void { this.#move(id, "forward"); }
   moveBackward(id: string): void { this.#move(id, "backward"); }

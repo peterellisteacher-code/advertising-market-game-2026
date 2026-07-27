@@ -1934,7 +1934,7 @@ describe("window.AdMarketCreator", () => {
       unitCostCents: 3500
     };
     source.gameplay.pair.handoffCount = 1;
-    source.gameplay.pair.artDirectorActions = 1;
+    source.gameplay.pair.artDirectorActions = 2;
     source.gameplay.pair.strategistActions = 1;
     source.fabricState.objects = [{
       type: "group",
@@ -1949,11 +1949,11 @@ describe("window.AdMarketCreator", () => {
     expect(await parsed(api, "open-guided", "open", source)).toMatchObject({ ok: true });
 
     const guide = getByRole(document.body, "region", { name: "Current instruction" });
-    expect(guide.textContent).toContain("Step 5 of 11");
+    expect(guide.textContent).toContain("Step 8 of 19");
     expect(guide.textContent).toContain("Attention");
     expect(document.querySelector<HTMLButtonElement>("[data-slot=interest]")!.disabled)
       .toBe(true);
-    fireEvent.click(getByRole(guide, "button", { name: "Open Attention" }));
+    fireEvent.click(getByRole(guide, "button", { name: "Open AIDA" }));
     expect(document.querySelector<HTMLButtonElement>('[data-studio-tool="aida"]')
       ?.getAttribute("aria-selected")).toBe("true");
 
@@ -1964,7 +1964,7 @@ describe("window.AdMarketCreator", () => {
     fireEvent.input(idea, { target: { value: "Use a close product image as the focal point." } });
     fireEvent.click(getByRole(document.body, "button", { name: "Lock in Attention" }));
 
-    await waitFor(() => expect(guide.textContent).toContain("Step 6 of 11"));
+    await waitFor(() => expect(guide.textContent).toContain("Step 9 of 19"));
     expect(guide.textContent).toContain("Interest");
     expect(document.querySelector<HTMLButtonElement>("[data-slot=attention]")!.disabled)
       .toBe(false);
@@ -1975,6 +1975,49 @@ describe("window.AdMarketCreator", () => {
 
     expect(await parsed(api, "close-guided", "close", null)).toMatchObject({ ok: true });
     expect(document.querySelector<HTMLElement>("[data-guide]")!.hidden).toBe(true);
+  });
+
+  it("focuses the exact Product name control from its current instruction", async () => {
+    const source = documentAtStage("invent");
+    source.brief.targetAudienceId = AUDIENCE_BRIEFS[0].id;
+    source.product.build = {
+      schema: "product-build@1",
+      primaryObjectId: "placed-product",
+      packId: "pack-1",
+      pricingVersion: 1,
+      blueprintId: "tumbler",
+      selections: [{ groupId: "body", choiceIds: ["steel"] }],
+      costLines: [{
+        groupId: "body",
+        groupLabel: "Material",
+        kind: "material",
+        choiceId: "steel",
+        label: "Insulated steel",
+        costCents: 3500
+      }],
+      unitCostCents: 3500
+    };
+    source.gameplay.pair.artDirectorActions = 2;
+    source.fabricState.objects = [{
+      type: "group",
+      objectId: "placed-product",
+      elementKind: "product-kit",
+      accessibleName: "Unnamed product",
+      objects: []
+    }];
+    await import("./main");
+    const api = window.AdMarketCreator;
+
+    expect(await parsed(api, "open-product-name-guide", "open", source))
+      .toMatchObject({ ok: true });
+    const guide = getByRole(document.body, "region", { name: "Current instruction" });
+    const productName = getByRole<HTMLInputElement>(document.body, "textbox", {
+      name: "Product name"
+    });
+
+    fireEvent.click(getByRole(guide, "button", { name: "Focus Product name" }));
+
+    expect(document.activeElement).toBe(productName);
   });
 
   it("requires the role guide once and persists acknowledgement before work begins", async () => {

@@ -89,6 +89,16 @@ describe("createEditorShell", () => {
     expect(["Now", "Why", "Done", "Next"].every((label) =>
       currentInstruction.textContent?.includes(label)
     )).toBe(true);
+    const guideRows = currentInstruction.querySelectorAll("dl > div");
+    expect(guideRows).toHaveLength(4);
+    expect([...guideRows].every((row) =>
+      row.querySelector("dt") !== null && row.querySelector("dd") !== null
+    )).toBe(true);
+    const availableMethods = currentInstruction
+      .querySelector<HTMLDetailsElement>("[data-guide-methods]")!;
+    expect(availableMethods.hidden).toBe(true);
+    expect(availableMethods.querySelector("summary")?.textContent).toBe("Available methods");
+    expect(availableMethods.querySelector("[data-guide-method-list]")).toBeTruthy();
     expect(getAllByRole(root, "button", { name: "How to use this site" })).toHaveLength(2);
     const instructions = root.querySelector<HTMLElement>('[data-guide-dialog]')!;
     expect(instructions.hidden).toBe(true);

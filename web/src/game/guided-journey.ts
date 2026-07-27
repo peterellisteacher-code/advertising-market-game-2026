@@ -6,22 +6,35 @@ import { hasPlacedProduct } from "../product-builder/product-price-subject";
 import type { AidaStage } from "./aida-playbook";
 import type { InstructionClaimId } from "./instruction-argument";
 
+export const GUIDED_JOURNEY_ORDER = Object.freeze([
+  "sign-in",
+  "audience",
+  "roles",
+  "starter-product",
+  "product-edit",
+  "product-name",
+  "pair-contribution",
+  "attention",
+  "interest",
+  "desire",
+  "action",
+  "price-position",
+  "visible-price",
+  "market-route",
+  "proof-point",
+  "final-review",
+  "market-entry",
+  "scoring",
+  "sign-out"
+] as const);
+
+export type GuidedJourneyRouteStepId = typeof GUIDED_JOURNEY_ORDER[number];
+
 export type GuidedJourneyStepId =
-  | "audience"
-  | "product"
-  | "product-name"
-  | "pair-contribution"
+  | GuidedJourneyRouteStepId
   | "finish-level-1"
-  | "attention"
-  | "interest"
-  | "desire"
-  | "action"
   | "finish-level-2"
-  | "price-position"
-  | "price-evidence"
-  | "market-route"
-  | "finish-level-3"
-  | "final-review";
+  | "finish-level-3";
 
 export interface GuidedJourneyStep {
   readonly id: GuidedJourneyStepId;
@@ -33,6 +46,7 @@ export interface GuidedJourneyStep {
   readonly next: string;
   readonly tool: string;
   readonly claimIds: readonly InstructionClaimId[];
+  readonly optionalMethods?: readonly string[];
   readonly aidaStage?: AidaStage;
   readonly actionLabel?: string;
   readonly complete: boolean;
@@ -79,64 +93,116 @@ function aidaStep(
     id,
     stage: "sell",
     title,
-    now: `Choose one ${title} technique, apply it visibly, and record the evidence.`,
+    now: `Complete ${title} by applying one visible technique and recording its explanation.`,
     why,
     done: `The ${title} explanation and its visible canvas evidence are recorded.`,
     next,
     tool: "aida",
     claimIds: Object.freeze([...claimIds]),
     aidaStage: id,
+    actionLabel: "Open AIDA",
     isComplete: (document: CampaignDocumentV1) => hasAida(document, id)
   });
 }
 
 const DEFINITIONS: readonly GuidedJourneyDefinition[] = Object.freeze([
   Object.freeze({
+    id: "sign-in",
+    stage: "invent",
+    title: "Sign in",
+    now: "Sign in with the pair username and password supplied by the teacher.",
+    why: "Signing in opens the saved campaign before the Audience brief.",
+    done: "The pair name appears in the account status.",
+    next: "Read the Audience brief.",
+    tool: "account",
+    claimIds: claimIds("P1"),
+    actionLabel: "Sign in",
+    isComplete: () => true
+  }),
+  Object.freeze({
     id: "audience",
     stage: "invent",
-    title: "Audience evidence",
-    now: "Read the audience brief and identify its need and values.",
-    why: "This evidence will guide the product, message, price and market route.",
-    done: "An audience brief has been selected.",
-    next: "Build the Product.",
+    title: "Audience brief",
+    now: "Read the audience situation, need and values.",
+    why: "The Audience brief establishes the evidence needed to confirm the Partner roles and later product choices.",
+    done: "An audience brief is selected and its need and values are visible.",
+    next: "Confirm the Partner roles.",
     tool: "audience",
-    claimIds: claimIds("P1", "P2"),
+    claimIds: claimIds("P2"),
+    actionLabel: "Open audience brief",
     isComplete: (document: CampaignDocumentV1) => hasText(document.brief.targetAudienceId)
   }),
   Object.freeze({
-    id: "product",
+    id: "roles",
     stage: "invent",
-    title: "Product",
-    now: "Build one product that responds to the audience need and values.",
-    why: "A suitable product gives the advertisement a relevant subject.",
-    done: "The product has been built and placed on the canvas.",
-    next: "Give the product a Product name.",
+    title: "Partner roles",
+    now: "Open the Role guide and confirm the Art Director and Strategist responsibilities.",
+    why: "The Partner roles assign responsibility before the Starter product is chosen.",
+    done: "The role guide has been acknowledged and the starting role is visible.",
+    next: "Choose a Starter product.",
+    tool: "roles",
+    claimIds: claimIds("P3", "ICA"),
+    actionLabel: "Open Role guide",
+    isComplete: (document: CampaignDocumentV1) =>
+      document.gameplay.pair.roleGuideAcknowledged
+  }),
+  Object.freeze({
+    id: "starter-product",
+    stage: "invent",
+    title: "Starter product",
+    now: "Place one starter product on the canvas.",
+    why: "The Starter product supplies a workable object for the Product edit.",
+    done: "One product appears on the canvas.",
+    next: "Complete the Product edit.",
     tool: "product",
-    claimIds: claimIds("ICA", "P5", "P6", "P7"),
+    claimIds: claimIds("P5", "P6"),
+    actionLabel: "Open Build",
     isComplete: hasPlacedProduct
+  }),
+  Object.freeze({
+    id: "product-edit",
+    stage: "invent",
+    title: "Product edit",
+    now: "Change the placed product by moving, resizing, filling or replacing one part.",
+    why: "The Product edit adapts the object for the audience before the Product name is added.",
+    done: "The placed product shows a deliberate change after its initial placement.",
+    next: "Add the Product name.",
+    tool: "product",
+    claimIds: claimIds("P7"),
+    optionalMethods: Object.freeze([
+      "Use Fill to change an eligible product section.",
+      "Use Delete selected item to remove an unwanted part.",
+      "Use Logo Lab to add a saved logo when the advertisement needs one.",
+      "Image Lab is optional; its panel displays the pair's remaining uses."
+    ]),
+    actionLabel: "Open Build",
+    isComplete: (document: CampaignDocumentV1) =>
+      hasPlacedProduct(document) && document.gameplay.pair.artDirectorActions > 1
   }),
   Object.freeze({
     id: "product-name",
     stage: "invent",
     title: "Product name",
-    now: "Give the product a clear name.",
-    why: "A clear product name gives the advertisement a precise subject.",
-    done: "A product name has been recorded.",
+    now: "Enter a clear name in the Product name field.",
+    why: "The Product name gives the advertisement a subject before the Pair contribution is completed.",
+    done: "The Product name field contains saved text.",
     next: "Complete the Pair contribution.",
-    tool: "product",
-    claimIds: claimIds("P8"),
+    tool: "product-name",
+    claimIds: claimIds("P8", "ICB"),
+    actionLabel: "Focus Product name",
     isComplete: (document: CampaignDocumentV1) => hasText(document.product.name)
   }),
   Object.freeze({
     id: "pair-contribution",
     stage: "invent",
     title: "Pair contribution",
-    now: "Each partner must make one recorded change, and the pair must exchange roles once.",
-    why: "Combining visual and message decisions helps the pair check whether the advertisement's product and claim support the same audience need.",
-    done: "Both partners have made a recorded change and exchanged roles.",
+    now: "Record one Art Director visual change, one Strategist message or strategy change, and one role swap.",
+    why: "The Pair contribution combines deliberate visual and message decisions in the advertisement before Attention.",
+    done: "Both partners have a recorded contribution and the roles have been swapped.",
     next: "Complete Attention.",
     tool: "pair",
-    claimIds: claimIds("P3", "P11", "P12"),
+    claimIds: claimIds("P10", "P11", "P12"),
+    actionLabel: "Open pair controls",
     isComplete: (document: CampaignDocumentV1) =>
       document.gameplay.pair.handoffCount > 0 &&
       document.gameplay.pair.artDirectorActions > 0 &&
@@ -144,50 +210,52 @@ const DEFINITIONS: readonly GuidedJourneyDefinition[] = Object.freeze([
   }),
   aidaStep(
     "attention",
-    "Attention gives the audience a reason to notice the advertisement before developing Interest.",
+    "Attention gives the audience a reason to notice the advertisement before Interest.",
     "Complete Interest.",
-    ["P10", "P13"]
+    ["P13"]
   ),
   aidaStep(
     "interest",
-    "Interest gives the audience evidence that prepares it to consider the product's value.",
+    "Interest supplies evidence that prepares the audience to consider the product's value before Desire.",
     "Complete Desire.",
     ["P13"]
   ),
   aidaStep(
     "desire",
-    "Desire links a product benefit to an audience need and supports the final Action.",
+    "Desire links a product benefit to an audience need before Action.",
     "Complete Action.",
     ["P13"]
   ),
   aidaStep(
     "action",
-    "Action states what the audience should do and completes the message before the offer is priced.",
+    "Action states what the audience should do and completes the message before the offer receives a Price position.",
     "Choose the Price position.",
-    ["P13"]
+    ["P13", "ICC"]
   ),
   Object.freeze({
     id: "price-position",
     stage: "irresistible",
     title: "Price position",
-    now: "Choose the price position that best matches the audience evidence.",
-    why: "The price position explains how the product's value will be presented in the offer.",
-    done: "A price position has been selected.",
-    next: "Complete the Price evidence.",
+    now: "Choose one audience price position.",
+    why: "The Price position explains the offer before the Visible price is added.",
+    done: "One price position is selected.",
+    next: "Complete the Visible price.",
     tool: "price",
     claimIds: claimIds("P15", "P16"),
+    actionLabel: "Open Price",
     isComplete: (document: CampaignDocumentV1) => document.product.pricePosition !== null
   }),
   Object.freeze({
-    id: "price-evidence",
+    id: "visible-price",
     stage: "irresistible",
-    title: "Price evidence",
-    now: "Set the product price and make that price visible on the canvas.",
-    why: "A visible price makes the offer clear before the Market route is chosen.",
-    done: "The product price and visible price evidence are recorded.",
-    next: "Complete the Market route.",
+    title: "Visible price",
+    now: "Complete the visible price by setting the amount and choosing Add price to design.",
+    why: "The Visible price makes the offer clear before the Market route is chosen.",
+    done: "The saved amount and one price label are present.",
+    next: "Choose the Market route.",
     tool: "price",
     claimIds: claimIds("P16"),
+    actionLabel: "Open Price",
     isComplete: (document: CampaignDocumentV1) =>
       document.product.priceCents !== null && hasEvidence(document, "price")
   }),
@@ -195,14 +263,84 @@ const DEFINITIONS: readonly GuidedJourneyDefinition[] = Object.freeze([
     id: "market-route",
     stage: "irresistible",
     title: "Market route",
-    now: "Choose where the audience will encounter the advertisement and state one proof point that supports its main claim.",
-    why: "The route and proof point prepare the campaign for its Final review by showing where the audience will see the advertisement and why its claim is credible.",
-    done: "The market route and its proof point are recorded.",
+    now: "Choose one market zone and one or more advertising media.",
+    why: "The Market route identifies where the audience will encounter the advertisement before the Proof point.",
+    done: "A market zone and at least one advertising medium are recorded.",
+    next: "Add the Proof point.",
+    tool: "route",
+    claimIds: claimIds("P17"),
+    actionLabel: "Open Market Route",
+    isComplete: (document: CampaignDocumentV1) =>
+      document.strategy.marketRoute?.committed === true &&
+      hasText(document.strategy.marketRoute.zoneId) &&
+      document.strategy.marketRoute.mediaIds.length > 0
+  }),
+  Object.freeze({
+    id: "proof-point",
+    stage: "irresistible",
+    title: "Proof point",
+    now: "Submit the market route with one accurate proof point.",
+    why: "The Proof point supports the main claim before the Final review.",
+    done: "The submitted route contains a saved proof point.",
     next: "Complete the Final review.",
     tool: "route",
-    claimIds: claimIds("P17", "P18"),
-    isComplete: (document: CampaignDocumentV1) => document.strategy.marketRoute?.committed === true
-      && document.strategy.marketRoute.proofPoint.trim().length > 0
+    claimIds: claimIds("P18", "ICD"),
+    actionLabel: "Open Market Route",
+    isComplete: (document: CampaignDocumentV1) =>
+      document.strategy.marketRoute?.committed === true &&
+      hasText(document.strategy.marketRoute.proofPoint)
+  }),
+  Object.freeze({
+    id: "final-review",
+    stage: "publish-check",
+    title: "Final review",
+    now: "Check all five final-review statements and build the market card.",
+    why: "The Final review tests the saved evidence before Market entry.",
+    done: "All five statements are confirmed and the market card is built.",
+    next: "Complete Market entry.",
+    tool: "game",
+    claimIds: claimIds("P20", "P21", "P22"),
+    actionLabel: "Return to game",
+    isComplete: () => false
+  }),
+  Object.freeze({
+    id: "market-entry",
+    stage: "publish-check",
+    title: "Market entry",
+    now: "Select Enter market.",
+    why: "Market entry makes the completed campaign available before Scoring.",
+    done: "The campaign appears in the market.",
+    next: "Begin Scoring.",
+    tool: "game",
+    claimIds: claimIds("P23"),
+    actionLabel: "Enter market",
+    isComplete: () => false
+  }),
+  Object.freeze({
+    id: "scoring",
+    stage: "publish-check",
+    title: "Scoring",
+    now: "Score every other advertisement using the five review criteria.",
+    why: "Scoring applies the same criteria to every advertisement before Sign out.",
+    done: "Every other advertisement has five scores and a medal decision.",
+    next: "Complete Sign out.",
+    tool: "game",
+    claimIds: claimIds("P24", "C"),
+    actionLabel: "Open scoring",
+    isComplete: () => false
+  }),
+  Object.freeze({
+    id: "sign-out",
+    stage: "publish-check",
+    title: "Sign out",
+    now: "Select Sign out when the pair has finished.",
+    why: "Sign out closes the pair's work so the next pair can use the device.",
+    done: "The pair sign-in form is visible and the previous pair's work is closed.",
+    next: "The guided route is complete.",
+    tool: "account",
+    claimIds: claimIds("C"),
+    actionLabel: "Sign out",
+    isComplete: () => false
   })
 ]);
 
@@ -259,7 +397,7 @@ const LEVEL_TRANSITIONS: Readonly<Record<
     })
   }),
   "publish-check": Object.freeze({
-    progressLabel: "All 11 studio steps complete",
+    progressLabel: "Studio work complete",
     step: Object.freeze({
       id: "final-review",
       stage: "publish-check",

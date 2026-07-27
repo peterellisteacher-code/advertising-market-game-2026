@@ -22,6 +22,8 @@ export class GuidedJourneyController {
   readonly #why: HTMLElement;
   readonly #done: HTMLElement;
   readonly #next: HTMLElement;
+  readonly #methods: HTMLDetailsElement;
+  readonly #methodList: HTMLUListElement;
   readonly #openTool: HTMLButtonElement;
   readonly #reviewButtons: readonly HTMLButtonElement[];
   readonly #dialog: HTMLElement;
@@ -41,6 +43,8 @@ export class GuidedJourneyController {
     this.#why = required(root, "[data-guide-why]");
     this.#done = required(root, "[data-guide-done]");
     this.#next = required(root, "[data-guide-next]");
+    this.#methods = required(root, "[data-guide-methods]");
+    this.#methodList = required(root, "[data-guide-method-list]");
     this.#openTool = required(root, "[data-guide-open-tool]");
     this.#reviewButtons = Object.freeze([
       required<HTMLButtonElement>(root, "[data-guide-review]"),
@@ -76,6 +80,14 @@ export class GuidedJourneyController {
     this.#why.textContent = state.current.why;
     this.#done.textContent = state.current.done;
     this.#next.textContent = state.current.next;
+    const methods = state.current.optionalMethods ?? [];
+    this.#methodList.replaceChildren(...methods.map((method) => {
+      const item = this.#methodList.ownerDocument.createElement("li");
+      item.textContent = method;
+      return item;
+    }));
+    this.#methods.hidden = methods.length === 0;
+    if (this.#methods.hidden) this.#methods.open = false;
     this.#openTool.textContent = state.current.actionLabel ??
       `${state.current.complete ? "Review" : "Open"} ${state.current.title}`;
 
@@ -118,7 +130,7 @@ export class GuidedJourneyController {
 
     const routeTool = required<HTMLButtonElement>(this.root, '[data-studio-tool="route"]');
     const routeAllowed = creatorStageAllows(document.gameplay.stage, "route") &&
-      completed.get("price-evidence") === true;
+      completed.get("visible-price") === true;
     routeTool.disabled = !routeAllowed;
     routeTool.title = routeAllowed
       ? ""

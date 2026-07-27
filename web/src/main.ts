@@ -2203,6 +2203,14 @@ const guidedJourney = new GuidedJourneyController(shell.overlay, (step) => {
     shell.overlay.querySelector<HTMLButtonElement>('[data-command="return"]')?.click();
     return;
   }
+  if (step.id === "roles") {
+    shell.overlay.querySelector<HTMLButtonElement>("[data-role-guide-open]")?.click();
+    return;
+  }
+  if (step.id === "product-name") {
+    shell.overlay.querySelector<HTMLInputElement>('input[aria-label="Product name"]')?.focus();
+    return;
+  }
   if (step.aidaStage !== undefined) {
     handler.selectAidaStage(step.aidaStage);
     studioTools.select("aida");

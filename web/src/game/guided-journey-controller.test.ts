@@ -15,6 +15,7 @@ function campaign(stage: CampaignDocumentV1["gameplay"]["stage"] = "invent"): Ca
   });
   document.brief.targetAudienceId = "after-school-wanderers";
   document.gameplay.stage = stage;
+  document.gameplay.pair.roleGuideAcknowledged = true;
   return document;
 }
 
@@ -38,7 +39,7 @@ function completeInvent(document: CampaignDocumentV1): void {
   };
   document.product.name = "Study Flask";
   document.gameplay.pair.handoffCount = 1;
-  document.gameplay.pair.artDirectorActions = 1;
+  document.gameplay.pair.artDirectorActions = 2;
   document.gameplay.pair.strategistActions = 1;
 }
 
@@ -66,14 +67,53 @@ describe("GuidedJourneyController", () => {
     controller.setCampaign(campaign());
 
     const guide = getByRole(root, "region", { name: "Current instruction" });
-    expect(guide.textContent).toContain("Step 2 of 11");
-    expect(guide.textContent).toContain("Build one product");
-    expect(guide.textContent).toContain("A suitable product");
-    expect(guide.textContent).toContain("built and placed");
-    expect(guide.textContent).toContain("Product name");
-    fireEvent.click(getByRole(guide, "button", { name: "Open Product" }));
+    expect(guide.textContent).toContain("Step 4 of 19");
+    expect(guide.textContent).toContain("Place one starter product");
+    expect(guide.textContent?.toLowerCase()).toContain("product edit");
+    expect(guide.textContent).toContain("appears on the canvas");
+    fireEvent.click(getByRole(guide, "button", { name: "Open Build" }));
     expect(openStep).toHaveBeenCalledOnce();
-    expect(openStep.mock.calls[0]![0]).toMatchObject({ id: "product", tool: "product" });
+    expect(openStep.mock.calls[0]![0]).toMatchObject({
+      id: "starter-product",
+      tool: "product"
+    });
+  });
+
+  it("shows optional product and image methods without making them completion gates", () => {
+    const { root, controller } = setup();
+    const document = campaign();
+    document.product.build = {
+      schema: "product-build@1",
+      primaryObjectId: "product-1",
+      packId: "pack-1",
+      pricingVersion: 1,
+      blueprintId: "tumbler",
+      selections: [{ groupId: "body", choiceIds: ["steel"] }],
+      costLines: [{
+        groupId: "body",
+        groupLabel: "Material",
+        kind: "material",
+        choiceId: "steel",
+        label: "Insulated steel",
+        costCents: 3500
+      }],
+      unitCostCents: 3500
+    };
+    document.gameplay.pair.artDirectorActions = 1;
+
+    controller.setCampaign(document);
+
+    const guide = getByRole(root, "region", { name: "Current instruction" });
+    const methods = guide.querySelector<HTMLDetailsElement>("[data-guide-methods]")!;
+    expect(methods.hidden).toBe(false);
+    expect(methods.getAttribute("role")).toBe("group");
+    expect(methods.getAttribute("aria-label")).toBe("Available methods");
+    expect(methods.textContent).toContain("Fill");
+    expect(methods.textContent).toContain("Delete");
+    expect(methods.textContent).toContain("Logo");
+    expect(methods.textContent).toContain("Image Lab");
+    expect(methods.textContent).toContain("remaining uses");
+    expect(methods.textContent).not.toMatch(/\bcode\b/i);
   });
 
   it("keeps the complete instruction argument available from both review buttons", () => {

@@ -114,6 +114,11 @@ export function createEditorShell(root: HTMLElement): EditorShell {
               <div><dt>Done</dt><dd data-guide-done></dd></div>
               <div><dt>Next</dt><dd data-guide-next></dd></div>
             </dl>
+            <details class="creator__guide-methods" role="group"
+              aria-label="Available methods" data-guide-methods hidden>
+              <summary>Available methods</summary>
+              <ul data-guide-method-list></ul>
+            </details>
             <div class="creator__guide-actions">
               <button type="button" data-guide-open-tool>Open Audience evidence</button>
               <button type="button" data-guide-review>How to use this site</button>

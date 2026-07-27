@@ -1089,6 +1089,7 @@ describe("window.AdMarketCreator", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    window.history.replaceState(null, "", "/student");
     Object.defineProperty(navigator, "locks", {
       configurable: true,
       value: {
@@ -1147,6 +1148,31 @@ describe("window.AdMarketCreator", () => {
         <canvas id="canvas" tabindex="0"></canvas>
       </main>
       <div id="creator-root"></div>`;
+  });
+
+  it.each([
+    ["/teacher", "teacher-dashboard"],
+    ["/teacher/playtest", "teacher-playtest"]
+  ])("boots %s without constructing the pair account surface", async (pathname, routeKind) => {
+    window.history.replaceState(null, "", pathname);
+    document.body.innerHTML = "";
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+    await import("./main");
+
+    expect(document.querySelector(`[data-admarket-route="${routeKind}"]`)).toBeTruthy();
+    expect(document.querySelector("#account-gate-root")).toBeNull();
+    expect(document.querySelector("#account-session-root")).toBeNull();
+    expect(Reflect.has(window, "AdMarketAccount")).toBe(false);
+    expect(Reflect.has(window, "AdMarketCreator")).toBe(false);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("boots the pair route without constructing a teacher surface", async () => {
+    await import("./main");
+
+    expect(document.querySelector("[data-admarket-route^=\"teacher-\"]")).toBeNull();
+    expect(Reflect.has(window, "AdMarketAccount")).toBe(true);
   });
 
   it("installs a synchronous mandatory account seam without checking the session until bootstrap asks", async () => {

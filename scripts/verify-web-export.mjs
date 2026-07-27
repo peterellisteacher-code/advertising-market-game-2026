@@ -34,6 +34,14 @@ const LOGO_ICON_COUNT = 4205;
 const MAX_LOGO_CATALOGUE_BYTES = 3 * 1024 * 1024;
 const PORTABLE_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SHA256 = /^[a-f0-9]{64}$/;
+export const APPLICATION_REDIRECTS = [
+  "/                 /student             302",
+  "/student          /index.html          200",
+  "/student/*        /index.html          200",
+  "/teacher          /index.html          200",
+  "/teacher/*        /index.html          200",
+  ""
+].join("\n");
 const LOGO_ICON_CATEGORIES = new Set([
   "beauty-care",
   "drinks-snacks",
@@ -70,6 +78,40 @@ export function computeReleaseId({ staticFiles, functionFiles }) {
     staticFiles: orderedRecords(staticFiles),
     functionFiles: orderedRecords(functionFiles)
   })).digest("hex").slice(0, 32);
+}
+
+export function verifyApplicationRouteContract(files) {
+  const errors = [];
+  const redirects = asText(files.get("_redirects"));
+  if (/^\/api(?:\/|\s)[^\r\n]*\s+\/index\.html\s+200\s*$/imu.test(redirects)) {
+    errors.push("an API route must not rewrite to the application shell");
+  }
+  if (redirects !== APPLICATION_REDIRECTS) {
+    errors.push("the student and teacher rewrites do not match the release contract");
+  }
+
+  const manifestText = asText(files.get("manifest.webmanifest"));
+  try {
+    const manifest = JSON.parse(manifestText);
+    if (manifest?.start_url !== "/student" || manifest?.scope !== "/") {
+      errors.push("the web manifest must start at /student within the root scope");
+    }
+  } catch {
+    errors.push("manifest.webmanifest is not valid JSON");
+  }
+
+  const worker = asText(files.get("service-worker.js"));
+  if (!/url\.pathname\.startsWith\(["']\/api\/["']\)/u.test(worker)) {
+    errors.push("the service worker must bypass every API request");
+  }
+  if (!/request\.mode\s*===\s*["']navigate["']/u.test(worker) ||
+    !/cache\.match\(["']\/index\.html["']\)/u.test(worker)) {
+    errors.push("the service worker must retain the shared static navigation shell");
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`Application route verification failed:\n- ${errors.join("\n- ")}`);
+  }
 }
 
 function assertReleaseRecords(records, label) {
@@ -194,6 +236,7 @@ export async function verifyReleaseArtifact(exportDir) {
   verifyBoundFiles(staticFiles, manifest.static.files, "static");
   verifyBoundFiles(functionFiles, manifest.functions.files, "function");
   verifyBoundFunctionManifest(functionFiles, manifest.functions.files);
+  verifyApplicationRouteContract(staticFiles);
   return {
     manifest,
     releaseId: manifest.releaseId,

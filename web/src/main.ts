@@ -1,5 +1,6 @@
 import "./styles/editor.css";
 import "./account/account.css";
+import { runAdvertisingGameRoute } from "./app/app-route";
 import {
   cloudStatusMessage,
   createAccountBootstrap,
@@ -1637,6 +1638,68 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 }
 
+declare global {
+  interface Window {
+    AdMarketCreator: CreatorPublicApi;
+    AdMarketPractice: PracticePublicApi;
+    AdMarketRoom: MarketPublicApi;
+    AdMarketAccount: AccountBootstrapPublicApi;
+  }
+}
+
+function renderRouteBoundary(
+  kind: "teacher-dashboard" | "teacher-playtest" | "not-found",
+  heading: string,
+  description: string
+): void {
+  const main = document.createElement("main");
+  main.dataset.admarketRoute = kind;
+  main.tabIndex = -1;
+
+  const title = document.createElement("h1");
+  title.textContent = heading;
+  main.append(title);
+
+  const summary = document.createElement("p");
+  summary.textContent = description;
+  main.append(summary);
+
+  if (kind === "not-found") {
+    const studentLink = document.createElement("a");
+    studentLink.href = "/student";
+    studentLink.textContent = "Open student sign-in";
+    main.append(studentLink);
+  }
+
+  document.body.replaceChildren(main);
+  main.focus();
+}
+
+export function bootTeacherDashboard(): void {
+  renderRouteBoundary(
+    "teacher-dashboard",
+    "Teacher access",
+    "Sign in to open the teacher dashboard."
+  );
+}
+
+export function bootTeacherPlaytest(): void {
+  renderRouteBoundary(
+    "teacher-playtest",
+    "Teacher playtest",
+    "Sign in to open the teacher playtest."
+  );
+}
+
+export function renderNotFoundApplication(): void {
+  renderRouteBoundary(
+    "not-found",
+    "Page not found",
+    "This address does not match a student or teacher page."
+  );
+}
+
+export function bootStudentApplication(): void {
 const root = document.querySelector<HTMLElement>("#creator-root");
 if (!root) throw new Error("Missing #creator-root");
 
@@ -2044,14 +2107,14 @@ root.querySelector<HTMLButtonElement>('[data-command="return"]')
     }));
   });
 
-declare global {
-  interface Window {
-    AdMarketCreator: CreatorPublicApi;
-    AdMarketPractice: PracticePublicApi;
-    AdMarketRoom: MarketPublicApi;
-    AdMarketAccount: AccountBootstrapPublicApi;
-  }
-}
-
 window.AdMarketCreator = publicApi;
 window.AdMarketRoom = marketPublicApi;
+}
+
+runAdvertisingGameRoute(window.location.pathname, {
+  replace: (location) => window.location.replace(location),
+  bootStudent: bootStudentApplication,
+  bootTeacherDashboard,
+  bootTeacherPlaytest,
+  renderNotFound: renderNotFoundApplication
+});

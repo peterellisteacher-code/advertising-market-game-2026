@@ -354,6 +354,21 @@ test("release assembly binds static assets, private functions and one atomic ser
   const html = await readFile(path.join(web, "index.html"), "utf8");
   assert.equal(html.match(/rel="manifest"/g)?.length, 1);
   assert.match(html, /href="\.\/manifest\.webmanifest"/);
+  assert.equal(
+    await readFile(path.join(web, "_redirects"), "utf8"),
+    [
+      "/                 /student             302",
+      "/student          /index.html          200",
+      "/student/*        /index.html          200",
+      "/teacher          /index.html          200",
+      "/teacher/*        /index.html          200",
+      ""
+    ].join("\n")
+  );
+  const webManifest = JSON.parse(
+    await readFile(path.join(web, "manifest.webmanifest"), "utf8")
+  );
+  assert.equal(webManifest.start_url, "/student");
   const assetManifest = JSON.parse(await readFile(path.join(web, "asset-manifest.json"), "utf8"));
   assert.equal(assetManifest.schema, "ad-market-asset-manifest@1");
   assert.match(assetManifest.cacheVersion, /^[a-f0-9]{24}$/);
@@ -384,6 +399,7 @@ test("release assembly binds static assets, private functions and one atomic ser
   assert.equal(release.schema, "ad-market-release@1");
   assert.match(release.releaseId, /^[a-f0-9]{32}$/);
   assert.ok(release.static.files.some(({ path: relative }) => relative === "service-worker.js"));
+  assert.ok(release.static.files.some(({ path: relative }) => relative === "_redirects"));
   assert.deepEqual(release.functions.files.map(({ path: relative }) => relative), [
     "deploy-functions/example.mts",
     "function-bundles/example.mjs",
@@ -401,6 +417,44 @@ test("release assembly binds static assets, private functions and one atomic ser
   const after = JSON.parse(await readFile(path.join(web, "asset-manifest.json"), "utf8"))
     .cacheVersion;
   assert.notEqual(after, before);
+});
+
+test("application route verification rejects teacher API shell rewrites", () => {
+  const valid = new Map([
+    ["_redirects", [
+      "/                 /student             302",
+      "/student          /index.html          200",
+      "/student/*        /index.html          200",
+      "/teacher          /index.html          200",
+      "/teacher/*        /index.html          200",
+      ""
+    ].join("\n")],
+    ["manifest.webmanifest", JSON.stringify({
+      name: "Advertising Market Game",
+      start_url: "/student",
+      scope: "/"
+    })],
+    ["service-worker.js", `
+      if (request.method !== "GET" ||
+        url.origin !== self.location.origin ||
+        url.pathname.startsWith("/api/")) return;
+      if (request.mode === "navigate") {
+        return await cache.match("/index.html") ?? fetch(request);
+      }
+    `]
+  ]);
+
+  assert.doesNotThrow(() => verifyWebExport.verifyApplicationRouteContract(valid));
+
+  const unsafe = new Map(valid);
+  unsafe.set(
+    "_redirects",
+    `${valid.get("_redirects")}/api/teacher/* /index.html 200\n`
+  );
+  assert.throws(
+    () => verifyWebExport.verifyApplicationRouteContract(unsafe),
+    /teacher API|API route/i
+  );
 });
 
 test("assembly rejects zero or multiple executable inline bootstrap scripts", async () => {

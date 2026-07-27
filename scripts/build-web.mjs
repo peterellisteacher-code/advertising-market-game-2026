@@ -11,6 +11,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
+  APPLICATION_REDIRECTS,
   computeReleaseId,
   verifyLogoIconDirectory,
   verifyOfflineCoreDirectory,
@@ -296,10 +297,11 @@ async function bindFunctions(root, webDir) {
 }
 
 async function emitBoundRelease(root, webDir) {
+  await writeFile(path.join(webDir, "_redirects"), APPLICATION_REDIRECTS, "utf8");
   await writeFile(path.join(webDir, "manifest.webmanifest"), `${JSON.stringify({
     name: "Advertising Market Game",
     short_name: "Ad Market",
-    start_url: "/",
+    start_url: "/student",
     scope: "/",
     display: "standalone",
     background_color: "#f8f4e8",

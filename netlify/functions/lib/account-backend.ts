@@ -13,6 +13,7 @@ const UPSTREAM_JSON_LIMIT = 64 * 1_024;
 const ACCOUNT_ADMIN_UPSTREAM_JSON_LIMIT = 512 * 1_024;
 const PROGRESS_UPSTREAM_JSON_LIMIT = PROGRESS_JSON_LIMIT + 16 * 1_024;
 const PROGRESS_LIST_UPSTREAM_JSON_LIMIT = 4 * 1_024;
+const IMAGE_LAB_UPSTREAM_JSON_LIMIT = 280 * 1_024;
 const ACCOUNT_TOKEN_PATTERN = /^[A-Za-z0-9._~-]{1,4096}$/u;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 const SESSION_EPOCH_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
@@ -326,6 +327,29 @@ export interface ProgressRpcInput {
   readonly version: number;
   readonly expectedRevision?: number;
   readonly document?: Readonly<Record<string, unknown>>;
+}
+
+export type ImageLabLedgerOperation =
+  | "status"
+  | "global_status"
+  | "set_global"
+  | "set"
+  | "add"
+  | "revoke"
+  | "reserve"
+  | "complete"
+  | "refund"
+  | "mark_uncertain"
+  | "list";
+
+export interface ImageLabLedgerRpcInput {
+  readonly userId?: string;
+  readonly ledgerOperation: ImageLabLedgerOperation;
+  readonly stage?: "object" | "realise";
+  readonly amount?: number;
+  readonly operationId: string;
+  readonly jobKey?: string;
+  readonly requestHash: string;
 }
 
 const parseJsonResponse = async (
@@ -682,6 +706,19 @@ export class SupabaseAccountClient {
       return { status: "reset" };
     }
     return result;
+  }
+
+  async imageLabRpc(input: ImageLabLedgerRpcInput): Promise<unknown> {
+    const response = await this.request(EDGE_BACKEND_PATH, {
+      method: "POST",
+      headers: this.edgeHeaders(),
+      body: JSON.stringify({
+        operation: "image_lab",
+        input
+      })
+    });
+    if (!response.ok) throw new SupabaseAccountError("upstream");
+    return parseJsonResponse(response, IMAGE_LAB_UPSTREAM_JSON_LIMIT);
   }
 }
 

@@ -2,6 +2,7 @@ const REQUEST_LIMIT = 280 * 1_024;
 const RESPONSE_LIMIT = 280 * 1_024;
 const AUTHORIZATION_RPC = "/rest/v1/rpc/advertising_game_backend_authorized";
 const PROGRESS_RPC = "/rest/v1/rpc/advertising_game_progress_rpc";
+const IMAGE_LAB_RPC = "/rest/v1/rpc/advertising_game_image_lab_rpc";
 const ADMIN_USERS = "/auth/v1/admin/users";
 
 const PROJECT_URL_PATTERN = /^https:\/\/[a-z0-9]{20}\.supabase\.co$/u;
@@ -11,6 +12,8 @@ const USERNAME_PATTERN = /^[a-z0-9][a-z0-9_-]{2,23}$/u;
 const SYNTHETIC_EMAIL_PATTERN = /^[a-f0-9]{64}@accounts\.admarket\.invalid$/u;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 const DOCUMENT_ID_PATTERN = /^[a-z0-9][a-z0-9._-]{0,63}$/u;
+const SAFE_OPERATION_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
+const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 const SESSION_EPOCH_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 const TEACHER_PLAYTEST_USERNAME = "teacher-playtest";
@@ -505,6 +508,216 @@ const parseProgress = (record: Record<string, unknown>): ProgressInput => {
   return input as unknown as ProgressInput;
 };
 
+type ImageLabLedgerOperation =
+  | "status"
+  | "global_status"
+  | "set_global"
+  | "set"
+  | "add"
+  | "revoke"
+  | "reserve"
+  | "complete"
+  | "refund"
+  | "mark_uncertain"
+  | "list";
+
+interface ImageLabLedgerInput {
+  readonly userId?: string;
+  readonly ledgerOperation: ImageLabLedgerOperation;
+  readonly stage?: "object" | "realise";
+  readonly amount?: number;
+  readonly operationId: string;
+  readonly jobKey?: string;
+  readonly requestHash: string;
+}
+
+interface ImageLabCounts {
+  readonly granted: number;
+  readonly consumed: number;
+  readonly reserved: number;
+  readonly remaining: number;
+}
+
+interface ImageLabSnapshot {
+  readonly status: "available" | "disabled" | "reserved" | "completed" | "refunded" | "uncertain";
+  readonly enabled: boolean;
+  readonly object: ImageLabCounts;
+  readonly realise: ImageLabCounts;
+}
+
+interface ImageLabPrivateAccount {
+  readonly userId: string;
+  readonly object: ImageLabCounts;
+  readonly realise: ImageLabCounts;
+}
+
+const imageLabBaseKeys = ["ledgerOperation", "operationId", "requestHash"] as const;
+
+const parseImageLab = (record: Record<string, unknown>): ImageLabLedgerInput => {
+  if (!hasExactKeys(record, ["operation", "input"]) ||
+    record.operation !== "image_lab" || !isRecord(record.input)) {
+    throw new InvalidRequestError();
+  }
+  const input = record.input;
+  const ledgerOperation = input.ledgerOperation;
+  if (
+    ledgerOperation !== "status" &&
+    ledgerOperation !== "global_status" &&
+    ledgerOperation !== "set_global" &&
+    ledgerOperation !== "set" &&
+    ledgerOperation !== "add" &&
+    ledgerOperation !== "revoke" &&
+    ledgerOperation !== "reserve" &&
+    ledgerOperation !== "complete" &&
+    ledgerOperation !== "refund" &&
+    ledgerOperation !== "mark_uncertain" &&
+    ledgerOperation !== "list"
+  ) throw new InvalidRequestError();
+  if (
+    typeof input.operationId !== "string" ||
+    !SAFE_OPERATION_ID_PATTERN.test(input.operationId) ||
+    typeof input.requestHash !== "string" ||
+    !SHA256_PATTERN.test(input.requestHash)
+  ) throw new InvalidRequestError();
+
+  const accountMutation = ledgerOperation === "set" ||
+    ledgerOperation === "add" ||
+    ledgerOperation === "revoke";
+  const reservationMutation = ledgerOperation === "reserve" ||
+    ledgerOperation === "complete" ||
+    ledgerOperation === "refund" ||
+    ledgerOperation === "mark_uncertain";
+  const expectedKeys = ledgerOperation === "status"
+    ? [...imageLabBaseKeys, "userId"]
+    : ledgerOperation === "global_status" || ledgerOperation === "list"
+      ? [...imageLabBaseKeys]
+      : ledgerOperation === "set_global"
+        ? input.stage === undefined
+          ? [...imageLabBaseKeys, "amount"]
+          : [...imageLabBaseKeys, "stage", "amount"]
+        : accountMutation
+          ? [...imageLabBaseKeys, "userId", "stage", "amount"]
+          : [...imageLabBaseKeys, "userId", "stage", "amount", "jobKey"];
+  if (!hasExactKeys(input, expectedKeys)) throw new InvalidRequestError();
+
+  if (
+    (ledgerOperation === "status" || accountMutation || reservationMutation) &&
+    (typeof input.userId !== "string" || !UUID_PATTERN.test(input.userId))
+  ) throw new InvalidRequestError();
+  if (
+    (accountMutation || reservationMutation ||
+      (ledgerOperation === "set_global" && input.stage !== undefined)) &&
+    input.stage !== "object" &&
+    input.stage !== "realise"
+  ) throw new InvalidRequestError();
+  if (
+    ledgerOperation === "set_global" &&
+    input.stage === undefined &&
+    input.amount !== 0 &&
+    input.amount !== 1
+  ) throw new InvalidRequestError();
+  if (
+    (ledgerOperation === "set_global" || accountMutation) &&
+    (
+      typeof input.amount !== "number" ||
+      !Number.isInteger(input.amount) ||
+      input.amount < (ledgerOperation === "add" || ledgerOperation === "revoke" ? 1 : 0) ||
+      input.amount > 100
+    )
+  ) throw new InvalidRequestError();
+  if (
+    reservationMutation &&
+    (
+      input.amount !== 1 ||
+      typeof input.jobKey !== "string" ||
+      !SAFE_OPERATION_ID_PATTERN.test(input.jobKey)
+    )
+  ) throw new InvalidRequestError();
+  return input as unknown as ImageLabLedgerInput;
+};
+
+const parseImageLabCounts = (value: unknown): ImageLabCounts => {
+  if (!isRecord(value) ||
+    !hasExactKeys(value, ["granted", "consumed", "reserved", "remaining"])) {
+    throw new UpstreamError();
+  }
+  const { granted, consumed, reserved, remaining } = value;
+  if (
+    ![granted, consumed, reserved, remaining].every((count) =>
+      typeof count === "number" &&
+      Number.isInteger(count) &&
+      count >= 0 &&
+      count <= 100
+    ) ||
+    (consumed as number) + (reserved as number) > (granted as number) ||
+    remaining !== (granted as number) - (consumed as number) - (reserved as number)
+  ) throw new UpstreamError();
+  return {
+    granted: granted as number,
+    consumed: consumed as number,
+    reserved: reserved as number,
+    remaining: remaining as number
+  };
+};
+
+const parseImageLabSnapshotFields = (
+  value: Record<string, unknown>
+): ImageLabSnapshot => {
+  if (
+    value.status !== "available" &&
+    value.status !== "disabled" &&
+    value.status !== "reserved" &&
+    value.status !== "completed" &&
+    value.status !== "refunded" &&
+    value.status !== "uncertain"
+  ) throw new UpstreamError();
+  if (typeof value.enabled !== "boolean" ||
+    (value.status === "disabled" && value.enabled)) throw new UpstreamError();
+  return {
+    status: value.status,
+    enabled: value.enabled,
+    object: parseImageLabCounts(value.object),
+    realise: parseImageLabCounts(value.realise)
+  };
+};
+
+const parseImageLabSnapshot = (value: unknown): ImageLabSnapshot => {
+  if (!isRecord(value) ||
+    !hasExactKeys(value, ["status", "enabled", "object", "realise"])) {
+    throw new UpstreamError();
+  }
+  return parseImageLabSnapshotFields(value);
+};
+
+const parseImageLabList = (
+  value: unknown
+): { readonly snapshot: ImageLabSnapshot; readonly accounts: readonly ImageLabPrivateAccount[] } => {
+  if (!isRecord(value) ||
+    !hasExactKeys(value, ["status", "enabled", "object", "realise", "accounts"]) ||
+    !Array.isArray(value.accounts) ||
+    value.accounts.length > ADMIN_USERS_LIMIT) {
+    throw new UpstreamError();
+  }
+  const accounts = value.accounts.map((candidate): ImageLabPrivateAccount => {
+    if (!isRecord(candidate) ||
+      !hasExactKeys(candidate, ["userId", "object", "realise"]) ||
+      typeof candidate.userId !== "string" ||
+      !UUID_PATTERN.test(candidate.userId)) throw new UpstreamError();
+    return {
+      userId: candidate.userId,
+      object: parseImageLabCounts(candidate.object),
+      realise: parseImageLabCounts(candidate.realise)
+    };
+  });
+  if (new Set(accounts.map(({ userId }) => userId)).size !== accounts.length) {
+    throw new UpstreamError();
+  }
+  return {
+    snapshot: parseImageLabSnapshotFields(value),
+    accounts
+  };
+};
+
 const createUser = async (
   input: CreateUserInput,
   environment: EdgeEnvironment,
@@ -561,6 +774,58 @@ const progress = async (
   return jsonResponse(result, 200);
 };
 
+const imageLab = async (
+  input: ImageLabLedgerInput,
+  environment: EdgeEnvironment,
+  fetcher: typeof fetch
+): Promise<Response> => {
+  const response = await safeFetch(fetcher, `${environment.supabaseUrl}${IMAGE_LAB_RPC}`, {
+    method: "POST",
+    headers: serviceHeaders(environment.serviceKey),
+    body: JSON.stringify({
+      p_user_id: input.userId ?? null,
+      p_operation: input.ledgerOperation,
+      p_stage: input.stage ?? null,
+      p_amount: input.amount ?? null,
+      p_operation_id: input.operationId,
+      p_job_key: input.jobKey ?? null,
+      p_request_hash: input.requestHash
+    })
+  });
+  const result = await upstreamJson(response);
+  if (input.ledgerOperation !== "list") {
+    return jsonResponse(parseImageLabSnapshot(result), 200);
+  }
+
+  const ledger = parseImageLabList(result);
+  const pairUsers = (await listAdminUsers(environment, fetcher))
+    .filter(({ record }) => record.username !== TEACHER_PLAYTEST_USERNAME);
+  const pairById = new Map(pairUsers.map((user) => [user.record.userId, user] as const));
+  if (ledger.accounts.some(({ userId }) => !pairById.has(userId))) {
+    throw new UpstreamError();
+  }
+  const allowanceById = new Map(ledger.accounts.map((account) => [account.userId, account] as const));
+  const zero: ImageLabCounts = {
+    granted: 0,
+    consumed: 0,
+    reserved: 0,
+    remaining: 0
+  };
+  return jsonResponse({
+    ...ledger.snapshot,
+    accounts: pairUsers
+      .map(({ record }) => {
+        const allowance = allowanceById.get(record.userId);
+        return {
+          alias: record.username,
+          object: allowance?.object ?? zero,
+          realise: allowance?.realise ?? zero
+        };
+      })
+      .sort((left, right) => left.alias.localeCompare(right.alias))
+  }, 200);
+};
+
 export function createAdvertisingGameBackendHandler(
   dependencies: AdvertisingGameBackendDependencies = {}
 ): (request: Request) => Promise<Response> {
@@ -594,6 +859,9 @@ export function createAdvertisingGameBackendHandler(
       }
       if (body.operation === "progress") {
         return await progress(parseProgress(body), environment, fetcher);
+      }
+      if (body.operation === "image_lab") {
+        return await imageLab(parseImageLab(body), environment, fetcher);
       }
       if (
         body.operation === "list_users" ||

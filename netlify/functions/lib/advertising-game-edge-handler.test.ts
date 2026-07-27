@@ -173,6 +173,162 @@ describe("Advertising-game Supabase Edge broker", () => {
     });
   });
 
+  it("validates and translates an exact Image Lab ledger envelope to the service-only RPC", async () => {
+    const upstream = {
+      status: "reserved",
+      enabled: true,
+      object: { granted: 3, consumed: 0, reserved: 1, remaining: 2 },
+      realise: { granted: 1, consumed: 0, reserved: 0, remaining: 1 }
+    };
+    const input = {
+      userId,
+      ledgerOperation: "reserve",
+      stage: "object",
+      amount: 1,
+      operationId: "image-job:request-123",
+      jobKey: "request-123",
+      requestHash: "a".repeat(64)
+    };
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(json(true))
+      .mockResolvedValueOnce(json(upstream));
+
+    const response = await handlerWith(fetcher)(request({
+      operation: "image_lab",
+      input
+    }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(upstream);
+    expect(fetcher.mock.calls[1]?.[0]).toBe(
+      `${projectUrl}/rest/v1/rpc/advertising_game_image_lab_rpc`
+    );
+    expect(JSON.parse(String(fetcher.mock.calls[1]?.[1]?.body))).toEqual({
+      p_user_id: userId,
+      p_operation: "reserve",
+      p_stage: "object",
+      p_amount: 1,
+      p_operation_id: "image-job:request-123",
+      p_job_key: "request-123",
+      p_request_hash: "a".repeat(64)
+    });
+    expect(fetcher.mock.calls[1]?.[1]?.headers).toEqual(expect.objectContaining({
+      apikey: serviceKey
+    }));
+  });
+
+  it("maps private Image Lab user IDs to bounded account aliases only inside the broker", async () => {
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(json(true))
+      .mockResolvedValueOnce(json({
+        status: "available",
+        enabled: true,
+        object: { granted: 2, consumed: 0, reserved: 0, remaining: 2 },
+        realise: { granted: 1, consumed: 0, reserved: 0, remaining: 1 },
+        accounts: [{
+          userId,
+          object: { granted: 4, consumed: 1, reserved: 1, remaining: 2 },
+          realise: { granted: 1, consumed: 0, reserved: 0, remaining: 1 }
+        }]
+      }))
+      .mockResolvedValueOnce(json({
+        users: [
+          {
+            id: userId,
+            email: syntheticEmail,
+            created_at: "2026-07-20T00:00:00.000Z",
+            last_sign_in_at: null,
+            app_metadata: { advertising_game_username: "team-one" }
+          },
+          {
+            id: secondUserId,
+            email: secondSyntheticEmail,
+            created_at: "2026-07-20T00:01:00.000Z",
+            last_sign_in_at: null,
+            app_metadata: { advertising_game_username: "team-two" }
+          }
+        ],
+        next_page: null
+      }));
+
+    const response = await handlerWith(fetcher)(request({
+      operation: "image_lab",
+      input: {
+        ledgerOperation: "list",
+        operationId: "teacher-list:request-123",
+        requestHash: "b".repeat(64)
+      }
+    }));
+
+    expect(response.status).toBe(200);
+    const responseBody = await response.json();
+    expect(responseBody).toEqual({
+      status: "available",
+      enabled: true,
+      object: { granted: 2, consumed: 0, reserved: 0, remaining: 2 },
+      realise: { granted: 1, consumed: 0, reserved: 0, remaining: 1 },
+      accounts: [
+        {
+          alias: "team-one",
+          object: { granted: 4, consumed: 1, reserved: 1, remaining: 2 },
+          realise: { granted: 1, consumed: 0, reserved: 0, remaining: 1 }
+        },
+        {
+          alias: "team-two",
+          object: { granted: 0, consumed: 0, reserved: 0, remaining: 0 },
+          realise: { granted: 0, consumed: 0, reserved: 0, remaining: 0 }
+        }
+      ]
+    });
+    expect(JSON.stringify(responseBody)).not.toContain(userId);
+    expect(JSON.parse(String(fetcher.mock.calls[1]?.[1]?.body))).toEqual({
+      p_user_id: null,
+      p_operation: "list",
+      p_stage: null,
+      p_amount: null,
+      p_operation_id: "teacher-list:request-123",
+      p_job_key: null,
+      p_request_hash: "b".repeat(64)
+    });
+  });
+
+  it("rejects malformed Image Lab fields and sanitises ledger failures", async () => {
+    const valid = {
+      operation: "image_lab",
+      input: {
+        userId,
+        ledgerOperation: "reserve",
+        stage: "object",
+        amount: 1,
+        operationId: "image-job:request-123",
+        jobKey: "request-123",
+        requestHash: "a".repeat(64)
+      }
+    };
+    for (const invalid of [
+      { ...valid, extra: true },
+      { ...valid, input: { ...valid.input, userId: "not-a-uuid" } },
+      { ...valid, input: { ...valid.input, stage: "both" } },
+      { ...valid, input: { ...valid.input, amount: 101 } },
+      { ...valid, input: { ...valid.input, operationId: "../unsafe" } },
+      { ...valid, input: { ...valid.input, requestHash: "not-a-hash" } },
+      { ...valid, input: { ...valid.input, surprise: true } }
+    ]) {
+      const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(json(true));
+      const response = await handlerWith(fetcher)(request(invalid));
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({ error: "INVALID_REQUEST" });
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    }
+
+    const failedFetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(json(true))
+      .mockResolvedValueOnce(json({ detail: gatewaySecret }, 500));
+    const failed = await handlerWith(failedFetcher)(request(valid));
+    expect(failed.status).toBe(503);
+    expect(await failed.text()).toBe('{"error":"BACKEND_UNAVAILABLE"}');
+  });
+
   it("fails closed for extra fields, invalid identities, malformed JSON, and upstream details", async () => {
     const authorised = () => vi.fn<typeof fetch>()
       .mockResolvedValueOnce(json(true));

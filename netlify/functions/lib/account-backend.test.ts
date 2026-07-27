@@ -496,6 +496,41 @@ describe("Supabase account transport", () => {
     });
   });
 
+  it("sends an exact bounded Image Lab ledger envelope to the scoped Edge broker", async () => {
+    const snapshot = {
+      status: "reserved",
+      enabled: true,
+      object: { granted: 3, consumed: 0, reserved: 1, remaining: 2 },
+      realise: { granted: 1, consumed: 0, reserved: 0, remaining: 1 }
+    };
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(responseJson(snapshot));
+    const client = new SupabaseAccountClient(parseAccountEnvironment(modernEnvironment), fetcher);
+    const input = {
+      userId: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
+      ledgerOperation: "reserve" as const,
+      stage: "object" as const,
+      amount: 1,
+      operationId: "image-job:request-123",
+      jobKey: "request-123",
+      requestHash: "a".repeat(64)
+    };
+
+    await expect(client.imageLabRpc(input)).resolves.toEqual(snapshot);
+    expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toEqual({
+      operation: "image_lab",
+      input
+    });
+
+    const oversized = vi.fn<typeof fetch>().mockResolvedValue(responseJson({
+      ...snapshot,
+      padding: "x".repeat(300 * 1_024)
+    }));
+    await expect(new SupabaseAccountClient(
+      parseAccountEnvironment(modernEnvironment),
+      oversized
+    ).imageLabRpc(input)).rejects.toMatchObject({ kind: "upstream" });
+  });
+
   it("accepts a valid progress RPC response larger than the generic upstream limit", async () => {
     const document = validCampaignDocument();
     document.drawingLayers = [{ notes: "x".repeat(PROGRESS_JSON_LIMIT - 64) }];

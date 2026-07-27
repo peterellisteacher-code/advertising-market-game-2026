@@ -1513,7 +1513,7 @@ describe("window.AdMarketCreator", () => {
     await window.AdMarketAccount.requireAccess();
     expect(runtime.activateAccountDrafts).toHaveBeenLastCalledWith("team-a");
     expect(document.querySelector("[data-account-cloud-status]")?.textContent)
-      .toBe("Cloud save restored to this device · revision 1");
+      .toBe("Cloud save restored to this device.");
     expect(runtime.importCloudPractice).toHaveBeenCalledOnce();
 
     fireEvent.click(getByRole(document.body, "button", { name: "Sign out" }));
@@ -1616,7 +1616,7 @@ describe("window.AdMarketCreator", () => {
       levelLocked: false
     });
     expect(document.querySelector<HTMLElement>("[data-account-cloud-status]")?.textContent)
-      .toBe("Cloud save restored to this device · revision 6");
+      .toBe("Cloud save restored to this device.");
     expect(document.querySelector<HTMLElement>('main[aria-label="Advertising Market Game"]')?.hidden)
       .toBe(false);
   });
@@ -2510,6 +2510,79 @@ describe("window.AdMarketCreator", () => {
     expect(state.evidence.attention).toEqual(["placed-product"]);
   });
 
+  it("uses the latest Fabric selection for status, Layers and AIDA, then clears it everywhere", async () => {
+    const source = documentAtStage("sell");
+    source.fabricState.objects = [{
+      type: "textbox",
+      objectId: "first-proof",
+      elementKind: "text",
+      accessibleName: "First proof",
+      text: "First"
+    }, {
+      type: "textbox",
+      objectId: "latest-proof",
+      elementKind: "text",
+      accessibleName: "Latest proof",
+      text: "Latest"
+    }];
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-selection-parity", "open", source))
+      .toMatchObject({ ok: true });
+
+    runtime.selectedObjectId = "first-proof";
+    runtime.selectionListeners.forEach((listener) => listener({
+      objectIds: ["first-proof"]
+    }));
+    runtime.selectedObjectId = "latest-proof";
+    runtime.selectionListeners.forEach((listener) => listener({
+      objectIds: ["latest-proof"]
+    }));
+    expect(document.querySelector('[data-canvas-zoom-status]')?.textContent)
+      .toBe("Selected: Latest proof");
+
+    fireEvent.click(getByRole(document.body, "button", { name: "Open canvas layers" }));
+    expect(document.querySelector<HTMLElement>(
+      'li[data-object-id="latest-proof"]'
+    )?.hasAttribute("data-selected")).toBe(true);
+    expect(document.querySelector<HTMLElement>(
+      'li[data-object-id="first-proof"]'
+    )?.hasAttribute("data-selected")).toBe(false);
+
+    activateStudioTool("aida");
+    const idea = getByRole<HTMLTextAreaElement>(document.body, "textbox", {
+      name: "Your Attention move"
+    });
+    fireEvent.input(idea, {
+      target: { value: "Use the latest proof as the opening focal point." }
+    });
+    fireEvent.click(getByRole(document.body, "button", { name: "Lock in Attention" }));
+    await waitFor(async () => {
+      const response = await parsed(api, "latest-selection-state", "getState", null);
+      if (!response.ok) throw new Error(JSON.stringify(response.error));
+      expect(CampaignDocumentSchema.parse(response.payload).evidence.attention)
+        .toEqual(["latest-proof"]);
+    });
+
+    runtime.selectedObjectId = null;
+    runtime.selectionListeners.forEach((listener) => listener({ objectIds: [] }));
+    expect(document.querySelector('[data-canvas-zoom-status]')?.textContent)
+      .toBe("Select a product or image");
+    expect(document.querySelector("li[data-selected]")).toBeNull();
+
+    fireEvent.input(idea, {
+      target: { value: "This second lock must not use stale selection." }
+    });
+    fireEvent.click(getByRole(document.body, "button", { name: "Lock in Attention" }));
+    await waitFor(() => expect(document.querySelector<HTMLElement>(
+      "[data-aida-playbook-panel] [role=status]"
+    )?.textContent).toContain("Select the canvas piece"));
+    const afterDeselect = await parsed(api, "deselected-state", "getState", null);
+    if (!afterDeselect.ok) throw new Error(JSON.stringify(afterDeselect.error));
+    expect(CampaignDocumentSchema.parse(afterDeselect.payload).evidence.attention)
+      .toEqual(["latest-proof"]);
+  });
+
   it("keeps an AIDA move unlocked until the pair selects canvas proof", async () => {
     await import("./main");
     const api = window.AdMarketCreator;
@@ -2603,8 +2676,21 @@ describe("window.AdMarketCreator", () => {
         left: 1240,
         top: 670
       });
+    expect(getByRole<HTMLButtonElement>(document.body, "button", {
+      name: "Price added to design"
+    }).disabled).toBe(true);
 
-    fireEvent.input(price, { target: { value: "20" } });
+    expect(await parsed(api, "reopen-price-integrity", "open", firstState))
+      .toMatchObject({ ok: true });
+    activateStudioTool("price");
+    expect(getByRole<HTMLButtonElement>(document.body, "button", {
+      name: "Price added to design"
+    }).disabled).toBe(true);
+    const reopenedPrice = getByRole<HTMLInputElement>(document.body, "spinbutton", {
+      name: "Selling price in dollars"
+    });
+
+    fireEvent.input(reopenedPrice, { target: { value: "20" } });
     await waitFor(async () => {
       const response = await parsed(api, "price-twenty", "getState", null);
       if (!response.ok) throw new Error(JSON.stringify(response.error));
@@ -2613,13 +2699,36 @@ describe("window.AdMarketCreator", () => {
       expect(state.evidence.price).toEqual([priceObjectId]);
       expect(state.fabricState.objects.find(({ objectId }) => objectId === priceObjectId))
         .toMatchObject({
+          text: "$10.00",
+          accessibleName: "Market price $10.00",
+          editable: false
+        });
+    });
+    const updatePrice = getByRole<HTMLButtonElement>(document.body, "button", {
+      name: "Update price on design"
+    });
+    expect(updatePrice.disabled).toBe(false);
+    expect(document.querySelector(".money-check__decision")?.textContent)
+      .toContain("Update the price on the design to $20.00");
+
+    fireEvent.click(updatePrice);
+    await waitFor(async () => {
+      const response = await parsed(api, "price-updated-label", "getState", null);
+      if (!response.ok) throw new Error(JSON.stringify(response.error));
+      const state = CampaignDocumentSchema.parse(response.payload);
+      expect(state.evidence.price).toEqual([priceObjectId]);
+      expect(state.fabricState.objects.find(({ objectId }) => objectId === priceObjectId))
+        .toMatchObject({
           text: "$20.00",
           accessibleName: "Market price $20.00",
           editable: false
         });
     });
+    expect(getByRole<HTMLButtonElement>(document.body, "button", {
+      name: "Price added to design"
+    }).disabled).toBe(true);
 
-    fireEvent.input(price, { target: { value: "" } });
+    fireEvent.input(reopenedPrice, { target: { value: "" } });
     await waitFor(async () => {
       const response = await parsed(api, "price-cleared", "getState", null);
       if (!response.ok) throw new Error(JSON.stringify(response.error));

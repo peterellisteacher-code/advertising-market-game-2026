@@ -83,7 +83,19 @@ function failure(requestId: string, code: string, message: string): string {
 
 function publicationFailure(error: unknown): { code: string; message: string } {
   const message = error instanceof Error ? error.message : "";
-  if (/\bprice\b/i.test(message)) {
+  if (/campaign price (?:is required|must be positive)/i.test(message)) {
+    return {
+      code: "PUBLICATION_REQUIREMENT",
+      message: "Set a selling price above $0.00 before publishing."
+    };
+  }
+  if (/visible price must exactly match/i.test(message)) {
+    return {
+      code: "PUBLICATION_REQUIREMENT",
+      message: "Update the visible market price so it matches your selected price."
+    };
+  }
+  if (/exactly one visible price/i.test(message)) {
     return {
       code: "PUBLICATION_REQUIREMENT",
       message: "Add one visible market price that matches your selected price."
@@ -95,10 +107,13 @@ function publicationFailure(error: unknown): { code: string; message: string } {
       message: "Both partners must make a recorded contribution before publishing."
     };
   }
-  if (/(?:attention|interest|desire|action) evidence/i.test(message)) {
+  const aidaEvidence = message.match(/\b(attention|interest|desire|action) evidence\b/i);
+  if (aidaEvidence?.[1]) {
+    const stage = aidaEvidence[1][0]!.toUpperCase() +
+      aidaEvidence[1].slice(1).toLowerCase();
     return {
       code: "PUBLICATION_REQUIREMENT",
-      message: "Complete all four AIDA parts before publishing."
+      message: `Select and lock canvas evidence for ${stage} before publishing.`
     };
   }
   return {

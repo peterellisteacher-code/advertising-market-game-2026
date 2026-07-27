@@ -127,6 +127,27 @@ describe("CanvasAccessibilityController", () => {
     harness.controller.destroy();
   });
 
+  it("marks exactly the current Fabric selection and clears the mark on deselection", () => {
+    const harness = mount();
+    fireEvent.click(harness.toggle);
+
+    const selectedIds = () => [...harness.host.querySelectorAll<HTMLElement>(
+      "li[data-selected]"
+    )].map((node) => node.dataset.objectId);
+
+    expect(selectedIds()).toEqual(["text-front"]);
+    harness.port.setSelected("shape-back");
+    expect(selectedIds()).toEqual(["shape-back"]);
+    expect(getByRole(harness.host, "button", {
+      name: "Select Blue background"
+    }).getAttribute("aria-pressed")).toBe("true");
+
+    harness.port.setSelected(null);
+    expect(selectedIds()).toEqual([]);
+    expect(harness.host.textContent).toContain("No layer selected");
+    harness.controller.destroy();
+  });
+
   it.each([
     ["ArrowLeft", false, { type: "nudge", id: "text-front", dx: -5, dy: 0 }],
     ["ArrowDown", true, { type: "nudge", id: "text-front", dx: 0, dy: 25 }],

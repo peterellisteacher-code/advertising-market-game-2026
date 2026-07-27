@@ -329,9 +329,12 @@ describe("CloudProgressRecovery", () => {
     expect(values.map(cloudRecoveryStatusMessage)).toEqual([
       "Continue from this device · cloud autosave ready",
       "Progress saves on this device first.",
-      "Cloud save restored to this device · revision 4",
+      "Cloud save restored to this device.",
       "Cloud save restored here · cloud autosave will reconnect",
       "Saved on this device · cloud copy paused"
     ]);
+    const messages = values.map(cloudRecoveryStatusMessage);
+    expect(new Set(messages).size).toBe(messages.length);
+    expect(messages.join(" ")).not.toMatch(/\brevision\s+\d+/i);
   });
 });

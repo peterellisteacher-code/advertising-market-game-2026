@@ -317,8 +317,16 @@ describe("AdMarketCreator public API", () => {
   it("maps known publication requirements to bounded student messages", async () => {
     const examples = [
       {
+        raw: "Campaign price is required for publication",
+        expected: "Set a selling price above $0.00 before publishing."
+      },
+      {
         raw: "Campaign must have exactly one visible price",
         expected: "Add one visible market price that matches your selected price."
+      },
+      {
+        raw: "Visible price must exactly match the charged price and remain protected",
+        expected: "Update the visible market price so it matches your selected price."
       },
       {
         raw: "Before the market opens, swap control once. Both players each make one visible change.",
@@ -326,7 +334,7 @@ describe("AdMarketCreator public API", () => {
       },
       {
         raw: "interest evidence is required for publication",
-        expected: "Complete all four AIDA parts before publishing."
+        expected: "Select and lock canvas evidence for Interest before publishing."
       }
     ];
 
@@ -347,6 +355,28 @@ describe("AdMarketCreator public API", () => {
       });
       expect(JSON.stringify(parsed)).not.toContain(example.raw);
     }
+  });
+
+  it("never exposes HANDLER_ERROR tokens through the public response", async () => {
+    const handler = new HandlerHarness();
+    handler.publish = async () => {
+      throw new Error("HANDLER_ERROR: internal publication adapter failed");
+    };
+    const api = createCreatorPublicApi(handler);
+
+    const { raw, parsed } = await parseResponse(
+      api,
+      request("handler-error", "publish", null)
+    );
+
+    expect(parsed).toMatchObject({
+      ok: false,
+      error: {
+        code: "CREATOR_OPERATION_FAILED",
+        message: "The market card image could not be prepared. Your advertisement is still saved. Try again. If the same message appears, ask your teacher."
+      }
+    });
+    expect(raw).not.toContain("HANDLER_ERROR");
   });
 
   it("rejects non-JSON handler values instead of silently leaking them across the boundary", async () => {

@@ -80,6 +80,7 @@ import {
   formatMarketBucks,
   ProductMoneyPanel
 } from "./product-builder/product-money-panel";
+import { evaluatePricePlacementState } from "./game/creator-stage";
 import { ProductPriceGuideClient } from "./product-builder/product-price-guide-client";
 import {
   createProductPriceSubject,
@@ -701,11 +702,6 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       const priceObjectIds = this.#priceLabelObjectIds(current);
       if (priceCents === null) {
         priceObjectIds.forEach((objectId) => commands.remove(objectId));
-      } else {
-        const label = formatMarketBucks(priceCents);
-        priceObjectIds.forEach((objectId) => {
-          runtime.adapter.setText(objectId, label, `Market price ${label}`, false);
-        });
       }
       this.#document = parseCampaignDocument({
         ...structuredClone(current),
@@ -717,7 +713,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
         fabricState: commands.serialize(),
         evidence: {
           ...structuredClone(current.evidence),
-          price: priceCents === null ? [] : priceObjectIds
+          price: priceCents === null ? [] : [...current.evidence.price]
         }
       });
     };
@@ -833,6 +829,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
         objectId = existing[0]!;
         runtime.adapter.setText(objectId, label, `Market price ${label}`, false);
         existing.slice(1).forEach((duplicateId) => commands.remove(duplicateId));
+        commands.setHidden(objectId, false);
         commands.select(objectId);
       }
       this.#document = parseCampaignDocument({
@@ -846,6 +843,9 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     };
     if (this.#history === null) await commit();
     else await this.#history.transaction(commit);
+    this.#refreshMoneyCheck();
+    this.#refreshMarketRoute();
+    this.#refreshStudioCoachCampaign();
     this.shell.polite.textContent = `${label} added to the design. Return to the game to see the next step.`;
     this.schedulePracticeAutosave();
   }
@@ -1351,7 +1351,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       priceCents: null,
       pricePosition: null,
       priceGuide: null,
-      priceOnDesign: false,
+      pricePlacement: { status: "pending" },
       audienceNeed: "",
       audienceValues: []
     });
@@ -1562,7 +1562,9 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       priceCents: document?.product.priceCents ?? null,
       pricePosition: document?.product.pricePosition ?? null,
       priceGuide: document?.product.priceGuide ?? null,
-      priceOnDesign: document !== null && this.#priceLabelObjectIds(document).length === 1,
+      pricePlacement: document === null
+        ? { status: "pending" }
+        : evaluatePricePlacementState(document),
       audienceNeed: document?.brief.audienceNeeds.join(" ") ?? "",
       audienceValues: document?.brief.audienceValues ?? []
     });

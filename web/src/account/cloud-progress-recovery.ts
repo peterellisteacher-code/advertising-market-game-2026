@@ -139,7 +139,7 @@ export function cloudRecoveryStatusMessage(result: CloudProgressRecoveryResult):
     case "no-cloud-save":
       return "Progress saves on this device first.";
     case "restored":
-      return `Cloud save restored to this device · revision ${result.revision}`;
+      return "Cloud save restored to this device.";
     case "restored-local-only":
       return "Cloud save restored here · cloud autosave will reconnect";
     case "unavailable":

@@ -1,4 +1,5 @@
 import type { CampaignDocumentV1 } from "../domain/campaign-document";
+import { campaignSemanticObjectMap } from "../domain/campaign-semantic-objects";
 import type { CreatorPhase, PairRoleProgress, PairSession } from "./pair-session";
 import {
   CREATOR_COMMANDS,
@@ -113,8 +114,63 @@ export interface PublicationReadiness {
   readonly missing: readonly PublicationMissingCode[];
 }
 
+export type PricePlacementState =
+  | { readonly status: "ready"; readonly action: "add" | "update" }
+  | { readonly status: "pending" }
+  | { readonly status: "complete"; readonly visiblePrice: string }
+  | { readonly status: "needs-attention"; readonly reason: string };
+
+const marketBucks = new Intl.NumberFormat("en-AU", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+
+export function formatMarketBucks(cents: number): string {
+  return `$${marketBucks.format(cents / 100)}`;
+}
+
 function hasEvidenceId(ids: readonly string[]): boolean {
   return ids.some((id) => id.trim().length > 0);
+}
+
+export function evaluatePricePlacementState(
+  campaign: CampaignDocumentV1
+): PricePlacementState {
+  const priceCents = campaign.product.priceCents;
+  if (priceCents === null || campaign.product.pricePosition === null) {
+    return Object.freeze({ status: "pending" });
+  }
+  if (!Number.isSafeInteger(priceCents) || priceCents <= 0) {
+    return Object.freeze({
+      status: "needs-attention",
+      reason: "Enter a selling price above $0.00."
+    });
+  }
+
+  let objects: ReturnType<typeof campaignSemanticObjectMap>;
+  try {
+    objects = campaignSemanticObjectMap(campaign.fabricState);
+  } catch {
+    return Object.freeze({
+      status: "needs-attention",
+      reason: "The saved price label needs repair before publishing."
+    });
+  }
+  const expected = formatMarketBucks(priceCents);
+  if (campaign.evidence.price.length === 1) {
+    const object = objects.get(campaign.evidence.price[0]!);
+    if (object?.elementKind === "text" &&
+      object.accessibleName === `Market price ${expected}` &&
+      object.object.text === expected &&
+      object.object.editable === false &&
+      object.object.visible !== false) {
+      return Object.freeze({ status: "complete", visiblePrice: expected });
+    }
+  }
+  return Object.freeze({
+    status: "ready",
+    action: hasEvidenceId(campaign.evidence.price) ? "update" : "add"
+  });
 }
 
 export function evaluatePublicationReadiness(
@@ -126,8 +182,7 @@ export function evaluatePublicationReadiness(
 
   if (session.audienceBriefId.trim().length === 0) missing.push("audience-brief");
   if (campaign.product.name.trim().length === 0) missing.push("product-name");
-  if (campaign.product.pricePosition === null || campaign.product.priceCents === null ||
-    !hasEvidenceId(campaign.evidence.price)) {
+  if (evaluatePricePlacementState(campaign).status !== "complete") {
     missing.push("price");
   }
   if (!hasEvidenceId(campaign.evidence.attention)) missing.push("attention");

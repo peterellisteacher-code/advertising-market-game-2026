@@ -2,6 +2,12 @@ import type {
   ProductPriceGuide,
   ProductPricePosition
 } from "../../../shared/product-price-guide-contract";
+import {
+  formatMarketBucks,
+  type PricePlacementState
+} from "../game/creator-stage";
+
+export { formatMarketBucks } from "../game/creator-stage";
 
 export interface ProductMoneyState {
   readonly hasProduct: boolean;
@@ -9,7 +15,7 @@ export interface ProductMoneyState {
   readonly priceCents: number | null;
   readonly pricePosition: ProductPricePosition | null;
   readonly priceGuide: ProductPriceGuide | null;
-  readonly priceOnDesign: boolean;
+  readonly pricePlacement: PricePlacementState;
   readonly audienceNeed: string;
   readonly audienceValues: readonly string[];
 }
@@ -20,15 +26,6 @@ export type ProductPricePositionHandler = (
 ) => void | Promise<void>;
 export type ProductPriceGuideHandler = () => ProductPriceGuide | Promise<ProductPriceGuide>;
 export type AddPriceToDesignHandler = () => void | Promise<void>;
-
-const marketBucks = new Intl.NumberFormat("en-AU", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2
-});
-
-export function formatMarketBucks(cents: number): string {
-  return `$${marketBucks.format(cents / 100)}`;
-}
 
 function inputValue(cents: number): string {
   return cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2);
@@ -57,7 +54,7 @@ export class ProductMoneyPanel {
     priceCents: null,
     pricePosition: null,
     priceGuide: null,
-    priceOnDesign: false,
+    pricePlacement: { status: "pending" },
     audienceNeed: "",
     audienceValues: []
   };
@@ -192,12 +189,25 @@ export class ProductMoneyPanel {
     price.addEventListener("input", () => {
       const priceCents = parseMarketBucks(price.value);
       if (priceCents === null) {
-        this.#state = { ...this.#state, priceCents: null };
+        this.#state = {
+          ...this.#state,
+          priceCents: null,
+          pricePlacement: { status: "pending" }
+        };
         this.#commitPrice(null);
         this.#renderDecision();
         return;
       }
-      this.#state = { ...this.#state, priceCents };
+      const action = this.#state.pricePlacement.status === "complete" ||
+        (this.#state.pricePlacement.status === "ready" &&
+          this.#state.pricePlacement.action === "update")
+        ? "update"
+        : "add";
+      this.#state = {
+        ...this.#state,
+        priceCents,
+        pricePlacement: { status: "ready", action }
+      };
       this.#commitPrice(priceCents);
       this.#renderDecision();
     });
@@ -211,7 +221,8 @@ export class ProductMoneyPanel {
     this.#addPrice.type = "button";
     this.#addPrice.textContent = "Add price to design";
     this.#addPrice.addEventListener("click", () => {
-      if (this.#state.priceCents === null || this.#state.priceOnDesign) return;
+      if (this.#state.priceCents === null ||
+        this.#state.pricePlacement.status !== "ready") return;
       void this.onAddPrice();
     });
 
@@ -252,9 +263,11 @@ export class ProductMoneyPanel {
   #renderDecision(): void {
     const priceCents = this.#state.priceCents;
     const position = this.#state.pricePosition;
+    const placement = this.#state.pricePlacement;
     if (!this.#status || !this.#addPrice) return;
     this.#addPrice.textContent = "Add price to design";
-    this.#addPrice.disabled = priceCents === null || priceCents <= 0 || position === null;
+    this.#addPrice.disabled = placement.status !== "ready" ||
+      priceCents === null || priceCents <= 0 || position === null;
     if (position === null) {
       this.#status.textContent = "Choose budget, everyday or premium for this audience.";
       this.#status.dataset.tone = "waiting";
@@ -265,12 +278,29 @@ export class ProductMoneyPanel {
       this.#status.dataset.tone = "waiting";
       return;
     }
-    if (this.#state.priceOnDesign) {
+    if (placement.status === "needs-attention") {
+      this.#status.textContent = placement.reason;
+      this.#status.dataset.tone = "warning";
+      return;
+    }
+    if (placement.status === "complete") {
       this.#addPrice.disabled = true;
       this.#addPrice.textContent = "Price added to design";
       this.#status.textContent =
-        `Price decision complete: ${formatMarketBucks(priceCents)} is the selected ${position} price.`;
+        `Price decision complete: ${placement.visiblePrice} is the selected ${position} price.`;
       this.#status.dataset.tone = "complete";
+      return;
+    }
+    if (placement.status === "pending") {
+      this.#status.textContent = "Saving the price decision…";
+      this.#status.dataset.tone = "waiting";
+      return;
+    }
+    if (placement.action === "update") {
+      this.#addPrice.textContent = "Update price on design";
+      this.#status.textContent =
+        `Update the price on the design to ${formatMarketBucks(priceCents)} before publishing.`;
+      this.#status.dataset.tone = "check";
       return;
     }
     const guide = this.#state.priceGuide;

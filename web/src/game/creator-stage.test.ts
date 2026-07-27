@@ -5,6 +5,7 @@ import {
   CREATOR_STAGES,
   PUBLICATION_MISSING_CODES,
   advanceCreatorPhase,
+  evaluatePricePlacementState,
   evaluatePublicationReadiness,
   getAvailableCommands,
   getCreatorStage
@@ -46,8 +47,16 @@ function readyCampaign(): CampaignDocumentV1 {
   const campaign = campaignFixture();
   campaign.product.name = "Pocket Telescope";
   campaign.product.pricePosition = "everyday";
-  campaign.product.priceCents = 0;
+  campaign.product.priceCents = 1_299;
   campaign.evidence.price = ["object-price"];
+  campaign.fabricState.objects = [{
+    type: "textbox",
+    objectId: "object-price",
+    elementKind: "text",
+    accessibleName: "Market price $12.99",
+    text: "$12.99",
+    editable: false
+  }];
   campaign.evidence.attention = ["object-attention"];
   campaign.evidence.interest = ["object-interest"];
   campaign.evidence.desire = ["object-desire"];
@@ -210,7 +219,7 @@ describe("publication readiness", () => {
       ["audience-brief", { ...readySession(), audienceBriefId: " " }, readyProgress(), readyCampaign()],
       ["product-name", readySession(), readyProgress(), {
         ...readyCampaign(),
-        product: { ...readyCampaign().product, name: " ", priceCents: 0 }
+        product: { ...readyCampaign().product, name: " " }
       }],
       ["price", readySession(), readyProgress(), {
         ...readyCampaign(),
@@ -270,6 +279,51 @@ describe("publication readiness", () => {
       readyProgress(),
       campaign
     )).toEqual({ ready: false, missing: ["price"] });
+  });
+
+  it("derives price placement and publication readiness from the same protected canvas evidence", () => {
+    const campaign = readyCampaign();
+    expect(evaluatePricePlacementState(campaign)).toEqual({
+      status: "complete",
+      visiblePrice: "$12.99"
+    });
+    expect(evaluatePublicationReadiness(
+      readySession(),
+      readyProgress(),
+      campaign
+    )).toEqual({ ready: true, missing: [] });
+
+    campaign.product.priceCents = 2_499;
+
+    expect(evaluatePricePlacementState(campaign)).toEqual({
+      status: "ready",
+      action: "update"
+    });
+    expect(evaluatePublicationReadiness(
+      readySession(),
+      readyProgress(),
+      campaign
+    )).toEqual({ ready: false, missing: ["price"] });
+  });
+
+  it("distinguishes add, pending and invalid persisted price states", () => {
+    const missingLabel = readyCampaign();
+    missingLabel.evidence.price = [];
+    expect(evaluatePricePlacementState(missingLabel)).toEqual({
+      status: "ready",
+      action: "add"
+    });
+
+    const pending = readyCampaign();
+    pending.product.pricePosition = null;
+    expect(evaluatePricePlacementState(pending)).toEqual({ status: "pending" });
+
+    const invalid = readyCampaign();
+    invalid.product.priceCents = 0;
+    expect(evaluatePricePlacementState(invalid)).toEqual({
+      status: "needs-attention",
+      reason: "Enter a selling price above $0.00."
+    });
   });
 
   it("does not treat a written AIDA plan as canvas evidence", () => {

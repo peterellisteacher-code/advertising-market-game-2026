@@ -30,7 +30,7 @@ const state = (overrides: Partial<ProductMoneyState> = {}): ProductMoneyState =>
   priceCents: null,
   pricePosition: null,
   priceGuide: null,
-  priceOnDesign: false,
+  pricePlacement: { status: "pending" },
   audienceNeed: "A reusable drink container for the trip home.",
   audienceValues: ["practicality", "accessibility"],
   ...overrides
@@ -103,7 +103,11 @@ describe("ProductMoneyPanel", () => {
   it("still works manually when the online comparison is unavailable", () => {
     const host = document.createElement("div");
     const panel = new ProductMoneyPanel(host, vi.fn(), vi.fn(), vi.fn(), vi.fn());
-    panel.setState(state({ pricePosition: "budget", priceCents: 2_500 }));
+    panel.setState(state({
+      pricePosition: "budget",
+      priceCents: 2_500,
+      pricePlacement: { status: "ready", action: "add" }
+    }));
 
     expect(host.textContent).toContain("Compare similar products before finalising it");
     expect(getByRole<HTMLButtonElement>(host, "button", { name: "Add price to design" }).disabled)
@@ -118,7 +122,7 @@ describe("ProductMoneyPanel", () => {
     panel.setState(state({
       pricePosition: "everyday",
       priceCents: 1_200,
-      priceOnDesign: true
+      pricePlacement: { status: "complete", visiblePrice: "$12.00" }
     }));
 
     const button = getByRole<HTMLButtonElement>(host, "button", {
@@ -132,6 +136,48 @@ describe("ProductMoneyPanel", () => {
     expect(status.dataset.tone).toBe("complete");
     fireEvent.click(button);
     expect(onAdd).not.toHaveBeenCalled();
+  });
+
+  it("names the single repair action when a later price no longer matches the design", () => {
+    const host = document.createElement("div");
+    const onAdd = vi.fn();
+    const panel = new ProductMoneyPanel(host, vi.fn(), vi.fn(), vi.fn(), onAdd);
+
+    panel.setState(state({
+      pricePosition: "premium",
+      priceCents: 2_000,
+      pricePlacement: { status: "ready", action: "update" }
+    }));
+
+    const button = getByRole<HTMLButtonElement>(host, "button", {
+      name: "Update price on design"
+    });
+    expect(button.disabled).toBe(false);
+    expect(getByRole(host, "status").textContent)
+      .toContain("Update the price on the design to $20.00");
+    fireEvent.click(button);
+    expect(onAdd).toHaveBeenCalledOnce();
+  });
+
+  it("reports an invalid persisted price state without presenting completion", () => {
+    const host = document.createElement("div");
+    const panel = new ProductMoneyPanel(host, vi.fn(), vi.fn(), vi.fn(), vi.fn());
+
+    panel.setState(state({
+      pricePosition: "budget",
+      priceCents: 0,
+      pricePlacement: {
+        status: "needs-attention",
+        reason: "Enter a selling price above $0.00."
+      }
+    }));
+
+    expect(getByRole(host, "status").textContent)
+      .toBe("Enter a selling price above $0.00.");
+    expect(getByRole<HTMLButtonElement>(host, "button", {
+      name: "Add price to design"
+    }).disabled).toBe(true);
+    expect(host.textContent).not.toContain("Price decision complete");
   });
 
   it("keeps pricing hidden until Level 3 and explains missing prerequisites", () => {

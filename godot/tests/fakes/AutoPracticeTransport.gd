@@ -101,22 +101,26 @@ func _recovery(
     sequence: int,
     operation_id: String
 ) -> Dictionary:
+    var recovered_document := document.duplicate(true)
+    var pair: Dictionary = recovered_document["gameplay"]["pair"]
+    if not pair.has("roleGuideAcknowledged"):
+        pair["roleGuideAcknowledged"] = false
     var checkpoint := {
         "contract": CHECKPOINT_CONTRACT,
         "runId": run_id,
-        "documentId": String(document.get("documentId")),
-        "sessionId": String(document.get("sessionId")),
-        "teamId": String(document.get("teamId")),
+        "documentId": String(recovered_document.get("documentId")),
+        "sessionId": String(recovered_document.get("sessionId")),
+        "teamId": String(recovered_document.get("teamId")),
         "teamAlias": alias,
-        "documentRevision": int(document.get("revision")),
+        "documentRevision": int(recovered_document.get("revision")),
         "documentHash": "a".repeat(64),
-        "stage": String(document.get("gameplay").get("stage")),
+        "stage": String(recovered_document.get("gameplay").get("stage")),
         "levelLocked": locked,
         "sequence": sequence,
         "operationId": operation_id,
         "savedAt": "2026-07-17T05:00:00.000Z"
     }
-    return {"checkpoint": checkpoint, "document": document.duplicate(true)}
+    return {"checkpoint": checkpoint, "document": recovered_document}
 
 func _resolve(resolve: Callable, request_id: String, payload: Variant) -> void:
     resolve.call(JSON.stringify({

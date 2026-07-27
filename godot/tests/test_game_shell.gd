@@ -1140,6 +1140,9 @@ func _practice_recovery(
     document["mode"] = "offline"
     document["revision"] = revision
     document["gameplay"]["stage"] = stage
+    var pair: Dictionary = document["gameplay"]["pair"]
+    if not pair.has("roleGuideAcknowledged"):
+        pair["roleGuideAcknowledged"] = false
     return {
         "checkpoint": {
             "contract": "local-practice-checkpoint@1",

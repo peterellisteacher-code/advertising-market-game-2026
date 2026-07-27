@@ -863,7 +863,8 @@ func _request_remove_confirmation(team_id: String, alias: String) -> void:
         return
     _remove_team_id = team_id
     _remove_team_alias = alias
-    _remove_dialog_focus = get_viewport().gui_get_focus_owner()
+    var viewport := get_viewport()
+    _remove_dialog_focus = viewport.gui_get_focus_owner() if viewport != null else null
     remove_team_dialog.dialog_text = (
         "Remove %s from this room? This will end the current room session."
         % alias

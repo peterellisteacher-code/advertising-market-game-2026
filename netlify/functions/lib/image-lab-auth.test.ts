@@ -1,6 +1,7 @@
 // @vitest-environment node
 
 import { describe, expect, it } from "vitest";
+import { createCipheriv, createHash } from "node:crypto";
 import {
   IMAGE_LAB_COOKIE,
   ImageLabAuthError,
@@ -133,36 +134,38 @@ describe("image-lab capability cookie lifecycle", () => {
 });
 
 describe("image-lab job tokens", () => {
-  it("keeps the server-side job identity confidential in the browser token", () => {
+  it("keeps the account-bound job identity confidential in the browser token", () => {
     const jobId = "123e4567-e89b-42d3-a456-426614174000";
+    const userId = "223e4567-e89b-42d3-a456-426614174000";
     const token = createJobToken({
       jobId,
       stage: "object-forge",
       profileId: "object-forge-v1",
-      sessionId: "session-a",
-      teamId: "pair-3",
+      userId,
       expiresAt: 2_000
     }, secret);
 
-    expect(token).toMatch(/^j1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
+    expect(token).toMatch(/^j2\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
     expect(token).not.toContain(jobId);
     expect(token.split(".").slice(1).map((part) =>
       Buffer.from(part!, "base64url").toString("utf8")).join("\n"))
       .not.toContain(jobId);
+    expect(token.split(".").slice(1).map((part) =>
+      Buffer.from(part!, "base64url").toString("utf8")).join("\n"))
+      .not.toContain(userId);
   });
 
-  it("binds a fal request to its stage, profile and pair", () => {
+  it("binds a fal request to its stage, profile and authenticated account", () => {
+    const userId = "223e4567-e89b-42d3-a456-426614174000";
     const token = createJobToken({
       jobId: "123e4567-e89b-42d3-a456-426614174000",
       stage: "object-forge",
       profileId: "flux-schnell",
-      sessionId: "session-a",
-      teamId: "pair-3",
+      userId,
       expiresAt: 2_000
     }, secret);
     expect(readJobToken(token, secret, {
-      sessionId: "session-a",
-      teamId: "pair-3",
+      userId,
       nowSeconds: 1_999
     })).toMatchObject({
       jobId: "123e4567-e89b-42d3-a456-426614174000",
@@ -170,14 +173,40 @@ describe("image-lab job tokens", () => {
       profileId: "flux-schnell"
     });
     expect(() => readJobToken(token, secret, {
-      sessionId: "session-a",
-      teamId: "pair-4",
+      userId: "323e4567-e89b-42d3-a456-426614174000",
       nowSeconds: 1_999
-    })).toThrow("pair");
+    })).toThrow("account");
     const tampered = `${token.slice(0, -1)}${token.endsWith("A") ? "B" : "A"}`;
     expect(() => readJobToken(tampered, secret, {
+      userId,
+      nowSeconds: 1_999
+    })).toThrow(ImageLabAuthError);
+  });
+
+  it("rejects a structurally valid retired pair-bound j1 token", () => {
+    const iv = Buffer.alloc(12, 7);
+    const key = createHash("sha256").update(secret, "utf8").digest();
+    const cipher = createCipheriv("aes-256-gcm", key, iv);
+    cipher.setAAD(Buffer.from("admarket:image-lab-job:v1", "utf8"));
+    const plaintext = Buffer.from(JSON.stringify({
+      version: 1,
+      jobId: "123e4567-e89b-42d3-a456-426614174000",
+      stage: "object-forge",
+      profileId: "object-forge-v1",
       sessionId: "session-a",
       teamId: "pair-3",
+      expiresAt: 2_000
+    }), "utf8");
+    const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+    const token = [
+      "j1",
+      iv.toString("base64url"),
+      ciphertext.toString("base64url"),
+      cipher.getAuthTag().toString("base64url")
+    ].join(".");
+
+    expect(() => readJobToken(token, secret, {
+      userId: "223e4567-e89b-42d3-a456-426614174000",
       nowSeconds: 1_999
     })).toThrow(ImageLabAuthError);
   });

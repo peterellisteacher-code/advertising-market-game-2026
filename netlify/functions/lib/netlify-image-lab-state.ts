@@ -1,7 +1,7 @@
 import { getStore } from "@netlify/blobs";
 import {
   ImageLabStateService,
-  type ImageLabPairState,
+  type ImageLabAccountState,
   type ImageLabStateRepository
 } from "./image-lab-state";
 
@@ -18,7 +18,7 @@ interface BlobStore {
   ): Promise<{ data: unknown; etag?: string } | null>;
   setJSON(
     key: string,
-    value: ImageLabPairState,
+    value: ImageLabAccountState,
     options: { onlyIfNew: true } | { onlyIfMatch: string }
   ): Promise<BlobStoreResult>;
 }

@@ -2,12 +2,14 @@
 
 import { describe, expect, it, vi } from "vitest";
 import {
-  IMAGE_LAB_COOKIE,
-  createCapability,
   createJobToken,
-  readCapability,
   readJobToken
 } from "./lib/image-lab-auth";
+import type { ResolvedAccountSession } from "./lib/account-backend";
+import type {
+  ImageLabAllowanceSnapshot,
+  ImageLabAllowanceStore
+} from "./lib/image-lab-allowance-store";
 import {
   MAKE_IT_REAL_PROFILE,
   OBJECT_FORGE_PROFILE,
@@ -33,6 +35,7 @@ import {
 const secret = "0123456789abcdef0123456789abcdef";
 const requestId = "123e4567-e89b-42d3-a456-426614174000";
 const jobId = "018f0e2d-3b4c-7a89-8def-0123456789ab";
+const userId = "223e4567-e89b-42d3-a456-426614174000";
 const environment = {
   IMAGE_LAB_ENABLED: "true",
   IMAGE_LAB_SCHOOL_APPROVED: "true",
@@ -103,34 +106,17 @@ const responseBody = (bytes: Uint8Array): ArrayBuffer =>
 
 const designDataUrl = `data:image/png;base64,${Buffer.from(pngBytes(1_024, 576)).toString("base64")}`;
 
-const cookieToken = (
-  overrides: Partial<{
-    sessionId: string;
-    teamId: string;
-    remainingObject: number;
-    remainingRealise: number;
-    expiresAt: number;
-  }> = {}
-): string => createCapability({
-  sessionId: "session-a",
-  teamId: "pair-3",
-  remainingObject: 2,
-  remainingRealise: 1,
-  expiresAt: 2_000,
-  ...overrides
-}, secret);
-
-const cookieHeader = (token = cookieToken()): string => `${IMAGE_LAB_COOKIE}=${token}`;
+const authenticatedSession: ResolvedAccountSession = {
+  authenticated: true,
+  identity: { userId, username: "team-three" }
+};
 
 const makeRequest = (path: string, init: RequestInit = {}): Request =>
   new Request(`https://game.example${path}`, init);
 
-const post = (body: unknown, token = cookieToken()): Request => makeRequest("/api/image-lab/jobs", {
+const post = (body: unknown): Request => makeRequest("/api/image-lab/jobs", {
   method: "POST",
-  headers: {
-    "content-type": "application/json",
-    cookie: cookieHeader(token)
-  },
+  headers: { "content-type": "application/json" },
   body: JSON.stringify(body)
 });
 
@@ -151,7 +137,7 @@ const storedObjectJob = (overrides: Partial<ImageLabStoredJob> = {}): ImageLabSt
 });
 
 const localObjectJob = (
-  state: "submitting" | "indeterminate"
+  state: "reserving" | "reserved" | "submitting" | "uncertain" | "refunded"
 ): ImageLabStoredJob => {
   const { requestId: _requestId, ...job } = storedObjectJob();
   return { ...job, state };
@@ -165,30 +151,33 @@ const stateFixture = (options: StateFixtureOptions = {}): ImageLabJobsState => {
       if (options.reserveError) throw options.reserveError;
       const existing = jobs.get(input.idempotencyKey);
       if (existing) {
-        return {
-          created: false,
-          job: existing,
-          object: input.stage === "object-forge" ? 1 : 2,
-          realise: input.stage === "make-it-real" ? 0 : 1,
-          expiresAt: 2_000
-        };
+        return { created: false, stored: existing };
       }
       const created: ImageLabStoredJob = {
         id: input.idempotencyKey,
         requestHash: input.requestHash,
         stage: input.stage,
         profileId: input.profileId,
-        state: "submitting",
+        state: "reserving",
         createdAt: input.nowSeconds
       };
       jobs.set(created.id, created);
-      return {
-        created: true,
-        job: created,
-        object: input.stage === "object-forge" ? 1 : 2,
-        realise: input.stage === "make-it-real" ? 0 : 1,
-        expiresAt: 2_000
-      };
+      return { created: true, stored: created };
+    }),
+    markReserved: vi.fn(async (_pair, id) => {
+      const current = jobs.get(id);
+      if (!current) throw new ImageLabStateError("JOB_NOT_FOUND");
+      const reserved = { ...current, state: "reserved" as const };
+      jobs.set(id, reserved);
+      return reserved;
+    }),
+    beginSubmission: vi.fn(async (_pair, id) => {
+      const current = jobs.get(id);
+      if (!current) throw new ImageLabStateError("JOB_NOT_FOUND");
+      if (current.state !== "reserved") return { began: false, stored: current };
+      const submitting = { ...current, state: "submitting" as const };
+      jobs.set(id, submitting);
+      return { began: true, stored: submitting };
     }),
     attachRequest: vi.fn(async (_pair, id, upstreamRequestId) => {
       const current = jobs.get(id);
@@ -197,64 +186,137 @@ const stateFixture = (options: StateFixtureOptions = {}): ImageLabJobsState => {
       jobs.set(id, submitted);
       return submitted;
     }),
-    markIndeterminate: vi.fn(async (_pair, id) => {
+    markUncertain: vi.fn(async (_pair, id, upstreamRequestId) => {
       const current = jobs.get(id);
       if (!current) throw new ImageLabStateError("JOB_NOT_FOUND");
-      const indeterminate = { ...current, state: "indeterminate" as const };
-      jobs.set(id, indeterminate);
-      return indeterminate;
+      const uncertain = {
+        ...current,
+        state: "uncertain" as const,
+        ...(upstreamRequestId ? { requestId: upstreamRequestId } : {})
+      };
+      jobs.set(id, uncertain);
+      return uncertain;
+    }),
+    markCompleted: vi.fn(async (_pair, id) => {
+      const current = jobs.get(id);
+      if (!current) throw new ImageLabStateError("JOB_NOT_FOUND");
+      const completed = { ...current, state: "completed" as const };
+      jobs.set(id, completed);
+      return completed;
+    }),
+    markRefunded: vi.fn(async (_pair, id) => {
+      const current = jobs.get(id);
+      if (!current) throw new ImageLabStateError("JOB_NOT_FOUND");
+      const refunded = { ...current, state: "refunded" as const };
+      jobs.set(id, refunded);
+      return refunded;
+    }),
+    markDenied: vi.fn(async (_pair, id) => {
+      const current = jobs.get(id);
+      if (!current) throw new ImageLabStateError("JOB_NOT_FOUND");
+      const denied = { ...current, state: "denied" as const };
+      jobs.set(id, denied);
+      return denied;
     }),
     getJob: vi.fn(async (_pair, id) => {
-      const current = jobs.get(id) ?? (id === jobId ? storedObjectJob() : undefined);
+      let current = jobs.get(id);
+      if (!current && id === jobId) {
+        current = storedObjectJob();
+        jobs.set(id, current);
+      }
       if (!current) throw new ImageLabStateError("JOB_NOT_FOUND");
       return current;
     })
   };
 };
 
+const allowanceSnapshot = (
+  status: ImageLabAllowanceSnapshot["status"] = "reserved",
+  objectRemaining = 1,
+  realiseRemaining = 1
+): ImageLabAllowanceSnapshot => ({
+  status,
+  enabled: status !== "disabled",
+  object: {
+    granted: 2,
+    consumed: status === "completed" ? 1 : 0,
+    reserved: status === "reserved" || status === "uncertain" ? 1 : 0,
+    remaining: objectRemaining
+  },
+  realise: {
+    granted: 1,
+    consumed: 0,
+    reserved: 0,
+    remaining: realiseRemaining
+  }
+});
+
+const allowanceFixture = (
+  reserveResult?: ImageLabAllowanceSnapshot
+): ImageLabAllowanceStore => ({
+  status: vi.fn(async () => allowanceSnapshot("available")),
+  globalStatus: vi.fn(),
+  list: vi.fn(),
+  setGlobal: vi.fn(),
+  set: vi.fn(),
+  add: vi.fn(),
+  revoke: vi.fn(),
+  reserve: vi.fn(async (input) => reserveResult ?? (
+    input.stage === "object"
+      ? allowanceSnapshot("reserved", 1, 1)
+      : allowanceSnapshot("reserved", 2, 0)
+  )),
+  complete: vi.fn(async () => allowanceSnapshot("completed")),
+  refund: vi.fn(async () => allowanceSnapshot("refunded", 2)),
+  markUncertain: vi.fn(async () => allowanceSnapshot("uncertain"))
+});
+
 const handlerWith = (
   fetcher: typeof fetch,
   nowSeconds = 1_000,
-  state: ImageLabJobsState = stateFixture()
+  state: ImageLabJobsState = stateFixture(),
+  allowances: ImageLabAllowanceStore = allowanceFixture(),
+  resolveSession: (request: Request) => Promise<ResolvedAccountSession> =
+    async () => authenticatedSession
 ) => createImageLabJobsHandler({
   environment,
   fetch: fetcher,
   nowSeconds: () => nowSeconds,
-  secureCookies: true,
   createDeadlineSignal: () => new AbortController().signal,
-  state
+  state,
+  allowances,
+  resolveSession
 });
 
 const handlerWithEnvironment = (
   selectedEnvironment: Readonly<Record<string, string | undefined>>,
   fetcher: typeof fetch,
-  state: ImageLabJobsState = stateFixture()
+  state: ImageLabJobsState = stateFixture(),
+  allowances: ImageLabAllowanceStore = allowanceFixture()
 ) => createImageLabJobsHandler({
   environment: selectedEnvironment,
   fetch: fetcher,
   nowSeconds: () => 1_000,
-  secureCookies: true,
   createDeadlineSignal: () => new AbortController().signal,
-  state
+  state,
+  allowances,
+  resolveSession: async () => authenticatedSession
 });
 
 const jobToken = (
   stage: "object-forge" | "make-it-real" = "object-forge",
   profileId = stage === "object-forge" ? OBJECT_FORGE_PROFILE_ID : MAKE_IT_REAL_PROFILE_ID,
-  overrides: Partial<{ sessionId: string; teamId: string }> = {}
+  overrides: Partial<{ userId: string }> = {}
 ): string => createJobToken({
   jobId,
   stage,
   profileId,
-  sessionId: "session-a",
-  teamId: "pair-3",
+  userId,
   expiresAt: 2_000,
   ...overrides
 }, secret);
 
-const authenticatedGet = (path: string, token = cookieToken()): Request => makeRequest(path, {
-  headers: { cookie: cookieHeader(token) }
-});
+const authenticatedGet = (path: string): Request => makeRequest(path);
 
 const completedQueueResponses = (
   media: Response,
@@ -265,9 +327,13 @@ const completedQueueResponses = (
   .mockResolvedValueOnce(media);
 
 describe("Image Lab jobs transport", () => {
-  it("declares only the two static same-origin routes", () => {
+  it("declares only the three static same-origin routes", () => {
     expect(config).toMatchObject({
-      path: ["/api/image-lab/jobs", "/api/image-lab/assets"],
+      path: [
+        "/api/image-lab/jobs",
+        "/api/image-lab/jobs/reconcile",
+        "/api/image-lab/assets"
+      ],
       rateLimit: { windowLimit: 1_200, windowSize: 60 }
     });
   });
@@ -288,38 +354,80 @@ describe("Image Lab jobs transport", () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 
-  it("requires a valid signed capability cookie", async () => {
+  it("requires an authenticated pair account", async () => {
     const fetcher = vi.fn<typeof fetch>();
-    const handler = handlerWith(fetcher);
-    const missing = await handler(makeRequest("/api/image-lab/jobs", {
+    const state = stateFixture();
+    const handler = handlerWith(
+      fetcher,
+      1_000,
+      state,
+      allowanceFixture(),
+      async () => ({ authenticated: false, clearCookies: false })
+    );
+    const response = await handler(makeRequest("/api/image-lab/jobs", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(objectRequest)
     }));
-    const invalid = await handler(post(objectRequest, "not-a-signed-token"));
-
-    expect(missing.status).toBe(401);
-    expect(invalid.status).toBe(401);
-    expect(await missing.json()).toEqual({ error: "IMAGE_LAB_LOCKED" });
-    expect(await invalid.json()).toEqual({ error: "IMAGE_LAB_LOCKED" });
-    expect(fetcher).not.toHaveBeenCalled();
-  });
-
-  it("reports an expired capability distinctly and never touches state or fal", async () => {
-    const fetcher = vi.fn<typeof fetch>();
-    const state = stateFixture();
-    const response = await handlerWith(fetcher, 2_000, state)(post(objectRequest));
 
     expect(response.status).toBe(401);
-    expect(await response.json()).toEqual({ error: "SESSION_EXPIRED" });
+    expect(await response.json()).toEqual({ error: "AUTHENTICATION_REQUIRED" });
     expect(state.reserve).not.toHaveBeenCalled();
     expect(fetcher).not.toHaveBeenCalled();
   });
 
-  it("submits the exact server-owned Object Forge profile and rotates allowance after acceptance", async () => {
+  it("clears an expired pair session and never touches state or fal", async () => {
+    const fetcher = vi.fn<typeof fetch>();
+    const state = stateFixture();
+    const response = await handlerWith(
+      fetcher,
+      2_000,
+      state,
+      allowanceFixture(),
+      async () => ({ authenticated: false, clearCookies: true })
+    )(post(objectRequest));
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: "AUTHENTICATION_REQUIRED" });
+    expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
+    expect(state.reserve).not.toHaveBeenCalled();
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("rotates refreshed account cookies even when a confirmed provider request fails", async () => {
+    const session: ResolvedAccountSession = {
+      ...authenticatedSession,
+      rotatedTokens: {
+        accessToken: "new-access-token",
+        refreshToken: "new-refresh-token",
+        expiresIn: 3_600
+      }
+    };
+    const response = await handlerWith(
+      vi.fn<typeof fetch>().mockResolvedValue(new Response("rejected", { status: 503 })),
+      1_000,
+      stateFixture(),
+      allowanceFixture(),
+      async () => session
+    )(post(objectRequest));
+
+    expect(response.status).toBe(502);
+    const cookies = response.headers.get("set-cookie") ?? "";
+    expect(cookies).toContain("admarket_account_access=new-access-token");
+    expect(cookies).toContain("admarket_account_refresh=new-refresh-token");
+    expect(cookies).toContain("Path=/api");
+  });
+
+  it("submits the exact server-owned Object Forge profile after the ledger reserves allowance", async () => {
     expect(OBJECT_FORGE_PROFILE_ID).toBe("object-forge-gpt-image-2-low-v1");
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ request_id: requestId }));
-    const response = await handlerWith(fetcher)(post(objectRequest));
+    const allowances = allowanceFixture();
+    const response = await handlerWith(
+      fetcher,
+      1_000,
+      stateFixture(),
+      allowances
+    )(post(objectRequest));
 
     expect(response.status).toBe(202);
     const body = await response.json() as Record<string, unknown>;
@@ -342,15 +450,11 @@ describe("Image Lab jobs transport", () => {
       num_images: 1,
       output_format: "png"
     });
-
-    const setCookie = response.headers.get("set-cookie")!;
-    expect(setCookie).toContain("HttpOnly");
-    expect(setCookie).toContain("Secure");
-    const rotated = setCookie.match(new RegExp(`${IMAGE_LAB_COOKIE}=([^;]+)`))?.[1];
-    expect(readCapability(rotated!, secret, 1_000)).toMatchObject({
-      remainingObject: 1,
-      remainingRealise: 1
-    });
+    expect(allowances.reserve).toHaveBeenCalledOnce();
+    expect(fetcher.mock.invocationCallOrder[0]).toBeGreaterThan(
+      vi.mocked(allowances.reserve).mock.invocationCallOrder[0]!
+    );
+    expect(response.headers.has("set-cookie")).toBe(false);
   });
 
   it("maps Make It Real to the documented GPT Image 2 edit input", async () => {
@@ -407,13 +511,12 @@ describe("Image Lab jobs transport", () => {
       loras: [{ path: loraUrl, scale: 1 }]
     });
     expect(state.reserve).toHaveBeenCalledWith(
-      { sessionId: "session-a", teamId: "pair-3" },
+      { userId },
       expect.objectContaining({ profileId: "z-image-lora-v1" })
     );
     const body = await response.json() as { jobToken: string };
     expect(readJobToken(body.jobToken, secret, {
-      sessionId: "session-a",
-      teamId: "pair-3",
+      userId,
       nowSeconds: 1_000
     }).profileId).toBe("z-image-lora-v1");
     expect(JSON.stringify(body)).not.toContain(loraUrl);
@@ -449,13 +552,12 @@ describe("Image Lab jobs transport", () => {
       prompt: composeMakeItRealPrompt(parseMakeItRealRequest(request))
     });
     expect(state.reserve).toHaveBeenCalledWith(
-      { sessionId: "session-a", teamId: "pair-3" },
+      { userId },
       expect.objectContaining({ profileId: "flux2-turbo-edit-v1" })
     );
     const body = await response.json() as { jobToken: string };
     expect(readJobToken(body.jobToken, secret, {
-      sessionId: "session-a",
-      teamId: "pair-3",
+      userId,
       nowSeconds: 1_000
     }).profileId).toBe("flux2-turbo-edit-v1");
   });
@@ -512,36 +614,107 @@ describe("Image Lab jobs transport", () => {
     expect(String(fetcher.mock.calls[0]![0])).toBe(`https://queue.fal.run/${OBJECT_FORGE_PROFILE.model}`);
   });
 
-  it("binds the request identity to the capability and rejects browser-owned settings", async () => {
+  it("rejects browser-supplied authority and provider settings", async () => {
     const fetcher = vi.fn<typeof fetch>();
     const handler = handlerWith(fetcher);
-    const wrongPair = await handler(post({ ...objectRequest, teamId: "pair-4" }));
+    const browserUserId = await handler(post({ ...objectRequest, userId }));
     const modelOverride = await handler(post({ ...objectRequest, model: "fal-ai/other" }));
 
-    expect(wrongPair.status).toBe(403);
-    expect(await wrongPair.json()).toEqual({ error: "IDENTITY_MISMATCH" });
+    expect(browserUserId.status).toBe(400);
+    expect(await browserUserId.json()).toEqual({ error: "INVALID_REQUEST" });
     expect(modelOverride.status).toBe(400);
     expect(await modelOverride.json()).toEqual({ error: "INVALID_REQUEST" });
     expect(fetcher).not.toHaveBeenCalled();
   });
 
-  it("uses authoritative server allowance and makes ambiguous submissions non-retryable", async () => {
+  it("uses authoritative ledger allowance and makes ambiguous submissions non-retryable", async () => {
     const exhaustedFetcher = vi.fn<typeof fetch>();
-    const exhaustedState = stateFixture({
-      reserveError: new ImageLabStateError("ALLOWANCE_EXHAUSTED")
-    });
-    const exhausted = await handlerWith(exhaustedFetcher, 1_000, exhaustedState)(post(objectRequest));
+    const exhaustedState = stateFixture();
+    const exhaustedAllowances = allowanceFixture(allowanceSnapshot("available", 0));
+    const exhausted = await handlerWith(
+      exhaustedFetcher,
+      1_000,
+      exhaustedState,
+      exhaustedAllowances
+    )(post(objectRequest));
     expect(exhausted.status).toBe(429);
     expect(await exhausted.json()).toEqual({ error: "ALLOWANCE_EXHAUSTED" });
+    expect(exhaustedState.markDenied).toHaveBeenCalledOnce();
     expect(exhaustedFetcher).not.toHaveBeenCalled();
 
     const failedState = stateFixture();
-    const failedFetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response("upstream", { status: 503 }));
-    const failed = await handlerWith(failedFetcher, 1_000, failedState)(post(objectRequest));
+    const failedAllowances = allowanceFixture();
+    const failedFetcher = vi.fn<typeof fetch>().mockRejectedValue(new TypeError("socket reset"));
+    const failed = await handlerWith(
+      failedFetcher,
+      1_000,
+      failedState,
+      failedAllowances
+    )(post(objectRequest));
     expect(failed.status).toBe(502);
     expect(await failed.json()).toEqual({ error: "IMAGE_SERVICE_UNAVAILABLE" });
     expect(failed.headers.has("set-cookie")).toBe(false);
-    expect(failedState.markIndeterminate).toHaveBeenCalledOnce();
+    expect(failedState.markUncertain).toHaveBeenCalledOnce();
+    expect(failedAllowances.markUncertain).toHaveBeenCalledOnce();
+    expect(failedAllowances.refund).not.toHaveBeenCalled();
+  });
+
+  it("refunds one confirmed provider submission rejection and never marks it uncertain", async () => {
+    const state = stateFixture();
+    const allowances = allowanceFixture();
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response("rejected", { status: 503 })
+    );
+
+    const response = await handlerWith(
+      fetcher,
+      1_000,
+      state,
+      allowances
+    )(post(objectRequest));
+
+    expect(response.status).toBe(502);
+    expect(allowances.refund).toHaveBeenCalledOnce();
+    expect(allowances.markUncertain).not.toHaveBeenCalled();
+    expect(state.markRefunded).toHaveBeenCalledOnce();
+  });
+
+  it("reserves the matching ledger stage for both image workflows", async () => {
+    const objectAllowances = allowanceFixture();
+    const realiseAllowances = allowanceFixture();
+    const objectFetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({ request_id: requestId })
+    );
+    const realiseFetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({ request_id: requestId })
+    );
+    const realiseRequest = {
+      stage: "realise",
+      ...identity,
+      designDataUrl,
+      productKind: "soft drink can",
+      scene: "bright shop shelf"
+    } as const;
+
+    await handlerWith(
+      objectFetcher,
+      1_000,
+      stateFixture(),
+      objectAllowances
+    )(post(objectRequest));
+    await handlerWith(
+      realiseFetcher,
+      1_000,
+      stateFixture(),
+      realiseAllowances
+    )(post(realiseRequest));
+
+    expect(objectAllowances.reserve).toHaveBeenCalledWith(
+      expect.objectContaining({ userId, stage: "object", jobKey: jobId })
+    );
+    expect(realiseAllowances.reserve).toHaveBeenCalledWith(
+      expect.objectContaining({ userId, stage: "realise", jobKey: jobId })
+    );
   });
 
   it("replays an accepted idempotency key without submitting a second fal job", async () => {
@@ -579,14 +752,13 @@ describe("Image Lab jobs transport", () => {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "content-length": "5000000",
-        cookie: cookieHeader()
+        "content-length": "5000000"
       },
       body: "{}"
     }));
     const wrongType = await handler(makeRequest("/api/image-lab/jobs", {
       method: "POST",
-      headers: { "content-type": "text/plain", cookie: cookieHeader() },
+      headers: { "content-type": "text/plain" },
       body: "{}"
     }));
 
@@ -596,7 +768,7 @@ describe("Image Lab jobs transport", () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 
-  it("returns only a canonical status for a job bound to the same pair", async () => {
+  it("returns only a canonical status for a job bound to the authenticated account", async () => {
     const token = jobToken();
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({
       status: "IN_QUEUE",
@@ -609,6 +781,62 @@ describe("Image Lab jobs transport", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ status: "queued", position: 3 });
     expect(response.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("refunds a confirmed failed provider job once and keeps terminal replays stable", async () => {
+    const token = jobToken();
+    const state = stateFixture({ initialJob: storedObjectJob() });
+    const allowances = allowanceFixture();
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({
+      status: "COMPLETED",
+      request_id: requestId,
+      error: "provider rejected the image"
+    }));
+    const handler = handlerWith(fetcher, 1_000, state, allowances);
+
+    const first = await handler(authenticatedGet(
+      `/api/image-lab/jobs?job=${encodeURIComponent(token)}`
+    ));
+    const replay = await handler(makeRequest("/api/image-lab/jobs/reconcile", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jobToken: token })
+    }));
+
+    expect(await first.json()).toEqual({ status: "failed" });
+    expect(await replay.json()).toEqual({ status: "failed" });
+    expect(fetcher).toHaveBeenCalledOnce();
+    expect(allowances.refund).toHaveBeenCalledOnce();
+    expect(state.markRefunded).toHaveBeenCalledOnce();
+  });
+
+  it("reconciles an uncertain existing request to failed without submitting again", async () => {
+    const token = jobToken();
+    const state = stateFixture({ initialJob: storedObjectJob() });
+    const allowances = allowanceFixture();
+    const fetcher = vi.fn<typeof fetch>()
+      .mockRejectedValueOnce(new TypeError("status timeout"))
+      .mockResolvedValueOnce(Response.json({
+        status: "COMPLETED",
+        request_id: requestId,
+        error: "provider rejected the image"
+      }));
+    const handler = handlerWith(fetcher, 1_000, state, allowances);
+
+    const unknown = await handler(authenticatedGet(
+      `/api/image-lab/jobs?job=${encodeURIComponent(token)}`
+    ));
+    const reconciled = await handler(makeRequest("/api/image-lab/jobs/reconcile", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jobToken: token })
+    }));
+
+    expect(await unknown.json()).toEqual({ status: "unknown" });
+    expect(await reconciled.json()).toEqual({ status: "failed" });
+    expect(fetcher.mock.calls.every(([, init]) => init?.method === "GET")).toBe(true);
+    expect(allowances.markUncertain).toHaveBeenCalledOnce();
+    expect(allowances.refund).toHaveBeenCalledOnce();
   });
 
   it("polls an existing Z-Image LoRA job by its stored profile after the selector returns to default", async () => {
@@ -718,47 +946,49 @@ describe("Image Lab jobs transport", () => {
     }
   );
 
-  it("resolves local submitting and indeterminate states without contacting fal", async () => {
+  it("resolves local submitting and uncertain states without contacting fal", async () => {
     const token = jobToken();
     const fetcher = vi.fn<typeof fetch>();
     const submittingState = stateFixture({
       initialJob: localObjectJob("submitting")
     });
-    const indeterminateState = stateFixture({
-      initialJob: localObjectJob("indeterminate")
+    const uncertainState = stateFixture({
+      initialJob: localObjectJob("uncertain")
     });
 
     const queued = await handlerWith(fetcher, 1_000, submittingState)(authenticatedGet(
       `/api/image-lab/jobs?job=${encodeURIComponent(token)}`
     ));
-    const failed = await handlerWith(fetcher, 1_000, indeterminateState)(authenticatedGet(
+    const unknown = await handlerWith(fetcher, 1_000, uncertainState)(authenticatedGet(
       `/api/image-lab/jobs?job=${encodeURIComponent(token)}`
     ));
-    const unavailableAsset = await handlerWith(fetcher, 1_000, indeterminateState)(authenticatedGet(
+    const unavailableAsset = await handlerWith(fetcher, 1_000, uncertainState)(authenticatedGet(
       `/api/image-lab/assets?job=${encodeURIComponent(token)}`
     ));
 
     expect(await queued.json()).toEqual({ status: "queued" });
-    expect(await failed.json()).toEqual({ status: "failed" });
-    expect(unavailableAsset.status).toBe(422);
-    expect(await unavailableAsset.json()).toEqual({ error: "JOB_FAILED" });
+    expect(await unknown.json()).toEqual({ status: "unknown" });
+    expect(unavailableAsset.status).toBe(409);
+    expect(await unavailableAsset.json()).toEqual({ error: "JOB_OUTCOME_UNCERTAIN" });
     expect(fetcher).not.toHaveBeenCalled();
   });
 
-  it("hides wrong-pair, malformed and profile-mismatched job tokens", async () => {
+  it("hides wrong-account, malformed and profile-mismatched job tokens", async () => {
     const fetcher = vi.fn<typeof fetch>();
     const handler = handlerWith(fetcher);
-    const wrongPair = await handler(authenticatedGet(
-      `/api/image-lab/jobs?job=${encodeURIComponent(jobToken("object-forge", OBJECT_FORGE_PROFILE_ID, { teamId: "pair-4" }))}`
+    const wrongAccount = await handler(authenticatedGet(
+      `/api/image-lab/jobs?job=${encodeURIComponent(jobToken("object-forge", OBJECT_FORGE_PROFILE_ID, {
+        userId: "323e4567-e89b-42d3-a456-426614174000"
+      }))}`
     ));
     const mismatchedProfile = await handler(authenticatedGet(
       `/api/image-lab/jobs?job=${encodeURIComponent(jobToken("object-forge", MAKE_IT_REAL_PROFILE_ID))}`
     ));
     const malformedQuery = await handler(authenticatedGet("/api/image-lab/jobs?job=a&job=b"));
 
-    expect(wrongPair.status).toBe(404);
+    expect(wrongAccount.status).toBe(404);
     expect(mismatchedProfile.status).toBe(404);
-    expect(await wrongPair.json()).toEqual({ error: "JOB_NOT_FOUND" });
+    expect(await wrongAccount.json()).toEqual({ error: "JOB_NOT_FOUND" });
     expect(await mismatchedProfile.json()).toEqual({ error: "JOB_NOT_FOUND" });
     expect(malformedQuery.status).toBe(400);
     expect(fetcher).not.toHaveBeenCalled();
@@ -790,6 +1020,58 @@ describe("Image Lab jobs transport", () => {
       headers: { accept: "image/png, image/jpeg, image/webp" }
     });
     expect(JSON.stringify(mediaCall[1])).not.toContain("fal-secret");
+  });
+
+  it("completes the ledger only after fully validating the image and does not complete twice", async () => {
+    const token = jobToken();
+    const state = stateFixture({ initialJob: storedObjectJob() });
+    const allowances = allowanceFixture();
+    const bytes = pngBytes();
+    const fetcher = vi.fn<typeof fetch>();
+    for (let replay = 0; replay < 2; replay += 1) {
+      fetcher
+        .mockResolvedValueOnce(Response.json({ status: "COMPLETED", request_id: requestId }))
+        .mockResolvedValueOnce(Response.json({
+          images: [{ url: "https://v3.fal.media/files/rabbit/result.png" }]
+        }))
+        .mockResolvedValueOnce(new Response(responseBody(bytes), {
+          headers: { "content-type": "image/png" }
+        }));
+    }
+    const handler = handlerWith(fetcher, 1_000, state, allowances);
+
+    const first = await handler(authenticatedGet(
+      `/api/image-lab/assets?job=${encodeURIComponent(token)}`
+    ));
+    const replay = await handler(authenticatedGet(
+      `/api/image-lab/assets?job=${encodeURIComponent(token)}`
+    ));
+
+    expect(first.status).toBe(200);
+    expect(replay.status).toBe(200);
+    expect(allowances.complete).toHaveBeenCalledOnce();
+    expect(state.markCompleted).toHaveBeenCalledOnce();
+  });
+
+  it("refunds one completed job whose result is conclusively empty", async () => {
+    const token = jobToken();
+    const state = stateFixture({ initialJob: storedObjectJob() });
+    const allowances = allowanceFixture();
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(Response.json({ status: "COMPLETED", request_id: requestId }))
+      .mockResolvedValueOnce(Response.json({ images: [] }));
+
+    const response = await handlerWith(
+      fetcher,
+      1_000,
+      state,
+      allowances
+    )(authenticatedGet(`/api/image-lab/assets?job=${encodeURIComponent(token)}`));
+
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({ error: "INVALID_IMAGE_RESULT" });
+    expect(allowances.refund).toHaveBeenCalledOnce();
+    expect(state.markRefunded).toHaveBeenCalledOnce();
   });
 
   it("refuses assets before completion and unsafe fal result URLs", async () => {
@@ -840,7 +1122,7 @@ describe("Image Lab jobs transport", () => {
     const unknown = await handler(makeRequest("/api/image-lab/other"));
     const postQuery = await handler(makeRequest("/api/image-lab/jobs?job=unexpected", {
       method: "POST",
-      headers: { "content-type": "application/json", cookie: cookieHeader() },
+      headers: { "content-type": "application/json" },
       body: JSON.stringify(objectRequest)
     }));
 

@@ -167,9 +167,9 @@ describe("account session API", () => {
     ));
     expect(adminBody.email).not.toContain("team-one");
     expect(setCookies(response)).toEqual([
-      `${ACCOUNT_ACCESS_COOKIE}=access-token; Path=/api/account; HttpOnly; SameSite=Strict; ` +
+      `${ACCOUNT_ACCESS_COOKIE}=access-token; Path=/api; HttpOnly; SameSite=Strict; ` +
         "Max-Age=3600; Secure",
-      `${ACCOUNT_REFRESH_COOKIE}=refresh-token; Path=/api/account; HttpOnly; SameSite=Strict; ` +
+      `${ACCOUNT_REFRESH_COOKIE}=refresh-token; Path=/api; HttpOnly; SameSite=Strict; ` +
         "Max-Age=2592000; Secure"
     ]);
   });
@@ -381,8 +381,8 @@ describe("account session API", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ authenticated: false });
     expect(setCookies(response)).toEqual([
-      `${ACCOUNT_ACCESS_COOKIE}=; Path=/api/account; HttpOnly; SameSite=Strict; Max-Age=0; Secure`,
-      `${ACCOUNT_REFRESH_COOKIE}=; Path=/api/account; HttpOnly; SameSite=Strict; Max-Age=0; Secure`
+      `${ACCOUNT_ACCESS_COOKIE}=; Path=/api; HttpOnly; SameSite=Strict; Max-Age=0; Secure`,
+      `${ACCOUNT_REFRESH_COOKIE}=; Path=/api; HttpOnly; SameSite=Strict; Max-Age=0; Secure`
     ]);
   });
 

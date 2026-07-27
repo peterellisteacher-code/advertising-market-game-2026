@@ -41,7 +41,7 @@ export function accountIdentityMatches(request: Request, username: string): bool
 function serialiseAccountCookie(
   name: string,
   token: string,
-  path: "/" | "/api/account",
+  path: "/" | "/api",
   maxAgeSeconds: number,
   secure: boolean
 ): string {
@@ -66,7 +66,7 @@ export function serialiseAccountAccessCookie(
   return serialiseAccountCookie(
     ACCOUNT_ACCESS_COOKIE,
     token,
-    "/api/account",
+    "/api",
     maxAgeSeconds,
     secure
   );
@@ -80,7 +80,7 @@ export function serialiseAccountRefreshCookie(
   return serialiseAccountCookie(
     ACCOUNT_REFRESH_COOKIE,
     token,
-    "/api/account",
+    "/api",
     maxAgeSeconds,
     secure
   );
@@ -88,7 +88,7 @@ export function serialiseAccountRefreshCookie(
 
 function clearAccountCookie(
   name: string,
-  path: "/" | "/api/account",
+  path: "/" | "/api",
   secure: boolean
 ): string {
   const parts = [
@@ -103,9 +103,9 @@ function clearAccountCookie(
 }
 
 export function clearAccountAccessCookie(secure: boolean): string {
-  return clearAccountCookie(ACCOUNT_ACCESS_COOKIE, "/api/account", secure);
+  return clearAccountCookie(ACCOUNT_ACCESS_COOKIE, "/api", secure);
 }
 
 export function clearAccountRefreshCookie(secure: boolean): string {
-  return clearAccountCookie(ACCOUNT_REFRESH_COOKIE, "/api/account", secure);
+  return clearAccountCookie(ACCOUNT_REFRESH_COOKIE, "/api", secure);
 }

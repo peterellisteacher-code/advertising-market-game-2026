@@ -2,10 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createNetlifyImageLabRepository } from "./netlify-image-lab-state";
 
 const value = {
-  version: 1 as const,
-  remainingObject: 2,
-  remainingRealise: 1,
-  expiresAt: 2_000,
+  version: 2 as const,
   jobs: {}
 };
 
@@ -17,11 +14,11 @@ describe("Netlify Image Lab state repository", () => {
     };
     const repository = createNetlifyImageLabRepository(store);
 
-    await expect(repository.read("pair/key")).resolves.toEqual({ value, etag: '"etag-1"' });
-    await expect(repository.write("pair/key", value, { onlyIfNew: true })).resolves.toBe(false);
-    await expect(repository.write("pair/key", value, { onlyIfMatch: '"etag-1"' })).resolves.toBe(true);
-    expect(store.setJSON).toHaveBeenNthCalledWith(1, "pair/key", value, { onlyIfNew: true });
-    expect(store.setJSON).toHaveBeenNthCalledWith(2, "pair/key", value, { onlyIfMatch: '"etag-1"' });
+    await expect(repository.read("account/key")).resolves.toEqual({ value, etag: '"etag-1"' });
+    await expect(repository.write("account/key", value, { onlyIfNew: true })).resolves.toBe(false);
+    await expect(repository.write("account/key", value, { onlyIfMatch: '"etag-1"' })).resolves.toBe(true);
+    expect(store.setJSON).toHaveBeenNthCalledWith(1, "account/key", value, { onlyIfNew: true });
+    expect(store.setJSON).toHaveBeenNthCalledWith(2, "account/key", value, { onlyIfMatch: '"etag-1"' });
   });
 
   it("fails closed if a state value arrives without an ETag", async () => {
@@ -29,6 +26,6 @@ describe("Netlify Image Lab state repository", () => {
       getWithMetadata: vi.fn().mockResolvedValue({ data: value }),
       setJSON: vi.fn()
     });
-    await expect(repository.read("pair/key")).rejects.toThrow("ETag");
+    await expect(repository.read("account/key")).rejects.toThrow("ETag");
   });
 });

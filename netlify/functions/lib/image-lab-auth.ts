@@ -45,12 +45,11 @@ export interface ImageLabCapability {
 }
 
 export interface ImageLabJobToken {
-  version: 1;
+  version: 2;
   jobId: string;
   stage: ImageLabStage;
   profileId: string;
-  sessionId: string;
-  teamId: string;
+  userId: string;
   expiresAt: number;
 }
 
@@ -216,11 +215,11 @@ export function createJobToken(
   const iv = randomBytes(12);
   const key = createHash("sha256").update(secret, "utf8").digest();
   const cipher = createCipheriv("aes-256-gcm", key, iv);
-  cipher.setAAD(Buffer.from("admarket:image-lab-job:v1", "utf8"));
-  const plaintext = Buffer.from(JSON.stringify({ version: 1, ...value }), "utf8");
+  cipher.setAAD(Buffer.from("admarket:image-lab-job:v2", "utf8"));
+  const plaintext = Buffer.from(JSON.stringify({ version: 2, ...value }), "utf8");
   const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
   const tag = cipher.getAuthTag();
-  return `j1.${iv.toString("base64url")}.${ciphertext.toString("base64url")}.${tag.toString("base64url")}`;
+  return `j2.${iv.toString("base64url")}.${ciphertext.toString("base64url")}.${tag.toString("base64url")}`;
 }
 
 function decodeJobPart(value: string): Buffer {
@@ -236,7 +235,7 @@ function decodeJobPart(value: string): Buffer {
 
 function readEncryptedJobRecord(token: string, secret: string): Record<string, unknown> {
   const parts = token.split(".");
-  if (parts.length !== 4 || parts[0] !== "j1") {
+  if (parts.length !== 4 || parts[0] !== "j2") {
     throw new ImageLabAuthError("INVALID_JOB", "Image Lab job is invalid");
   }
   try {
@@ -248,7 +247,7 @@ function readEncryptedJobRecord(token: string, secret: string): Record<string, u
     }
     const key = createHash("sha256").update(secret, "utf8").digest();
     const decipher = createDecipheriv("aes-256-gcm", key, iv);
-    decipher.setAAD(Buffer.from("admarket:image-lab-job:v1", "utf8"));
+    decipher.setAAD(Buffer.from("admarket:image-lab-job:v2", "utf8"));
     decipher.setAuthTag(tag);
     const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
     const record = ownRecord(JSON.parse(plaintext.toString("utf8")) as unknown);
@@ -263,12 +262,12 @@ function readEncryptedJobRecord(token: string, secret: string): Record<string, u
 export function readJobToken(
   token: string,
   secret: string,
-  expected: { sessionId: string; teamId: string; nowSeconds: number }
+  expected: { userId: string; nowSeconds: number }
 ): ImageLabJobToken {
   const record = readEncryptedJobRecord(token, secret);
   const stage = record.stage;
   const validStage = stage === "object-forge" || stage === "make-it-real";
-  if (record.version !== 1 || !validIdentity(record.sessionId) || !validIdentity(record.teamId) ||
+  if (record.version !== 2 || !validIdentity(record.userId) ||
     !validIdentity(record.profileId) || typeof record.jobId !== "string" ||
     !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(record.jobId) ||
     !validStage || !validExpiry(record.expiresAt)) {
@@ -277,16 +276,15 @@ export function readJobToken(
   if (record.expiresAt <= expected.nowSeconds) {
     throw new ImageLabAuthError("EXPIRED_JOB", "Image Lab job has expired");
   }
-  if (record.sessionId !== expected.sessionId || record.teamId !== expected.teamId) {
-    throw new ImageLabAuthError("WRONG_PAIR", "Image Lab job belongs to another pair");
+  if (record.userId !== expected.userId) {
+    throw new ImageLabAuthError("WRONG_ACCOUNT", "Image Lab job belongs to another account");
   }
   return {
-    version: 1,
+    version: 2,
     jobId: record.jobId,
     stage,
     profileId: record.profileId,
-    sessionId: record.sessionId,
-    teamId: record.teamId,
+    userId: record.userId,
     expiresAt: record.expiresAt
   };
 }

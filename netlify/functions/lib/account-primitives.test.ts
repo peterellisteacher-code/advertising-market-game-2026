@@ -92,23 +92,23 @@ describe("account request identity binding", () => {
 });
 
 describe("account authentication cookies", () => {
-  it("serialises an account-API-scoped secure access cookie", () => {
+  it("serialises an API-scoped secure access cookie for account-bound services", () => {
     expect(serialiseAccountAccessCookie("header.payload.signature", 900, true)).toBe(
-      `${ACCOUNT_ACCESS_COOKIE}=header.payload.signature; Path=/api/account; HttpOnly; ` +
+      `${ACCOUNT_ACCESS_COOKIE}=header.payload.signature; Path=/api; HttpOnly; ` +
       "SameSite=Strict; Max-Age=900; Secure"
     );
   });
 
-  it("serialises a refresh cookie scoped only to account endpoints", () => {
+  it("serialises a refresh cookie for account-bound API endpoints", () => {
     expect(serialiseAccountRefreshCookie("refresh-token_1", 604_800.9, true)).toBe(
-      `${ACCOUNT_REFRESH_COOKIE}=refresh-token_1; Path=/api/account; HttpOnly; ` +
+      `${ACCOUNT_REFRESH_COOKIE}=refresh-token_1; Path=/api; HttpOnly; ` +
       "SameSite=Strict; Max-Age=604800; Secure"
     );
   });
 
   it("retains defensive flags for local HTTP while omitting only Secure", () => {
     expect(serialiseAccountAccessCookie("token", -10, false)).toBe(
-      `${ACCOUNT_ACCESS_COOKIE}=token; Path=/api/account; HttpOnly; SameSite=Strict; Max-Age=0`
+      `${ACCOUNT_ACCESS_COOKIE}=token; Path=/api; HttpOnly; SameSite=Strict; Max-Age=0`
     );
   });
 
@@ -123,10 +123,10 @@ describe("account authentication cookies", () => {
 
   it("expires both account cookies with their original scopes and secure flags", () => {
     expect(clearAccountAccessCookie(true)).toBe(
-      `${ACCOUNT_ACCESS_COOKIE}=; Path=/api/account; HttpOnly; SameSite=Strict; Max-Age=0; Secure`
+      `${ACCOUNT_ACCESS_COOKIE}=; Path=/api; HttpOnly; SameSite=Strict; Max-Age=0; Secure`
     );
     expect(clearAccountRefreshCookie(true)).toBe(
-      `${ACCOUNT_REFRESH_COOKIE}=; Path=/api/account; HttpOnly; ` +
+      `${ACCOUNT_REFRESH_COOKIE}=; Path=/api; HttpOnly; ` +
       "SameSite=Strict; Max-Age=0; Secure"
     );
   });

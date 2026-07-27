@@ -209,7 +209,9 @@ func focus_initial_control() -> void:
     _refresh_keyboard_order()
     var controls := _keyboard_controls()
     if not controls.is_empty():
-        (controls[0] as Control).grab_focus()
+        var control := controls[0] as Control
+        if control.is_inside_tree():
+            control.grab_focus()
 
 func columns_for_width(width: float) -> int:
     if width >= 1700.0:

@@ -218,6 +218,9 @@ func _completed_market_resume_is_idempotent() -> bool:
     var completed := _team_snapshot("room-a", "team-a", "Signal Foxes", 9)
     completed["phase"] = "market"
     completed["marketMode"] = "medals"
+    var completed_own: Dictionary = completed.get("own")
+    completed_own.erase("wallet")
+    completed_own.erase("spent")
     completed["myAwards"] = []
     completed["campaigns"] = [{
         "id": "campaign-own",
@@ -234,6 +237,11 @@ func _completed_market_resume_is_idempotent() -> bool:
         "roomCode": "ABC-234",
         "snapshot": completed
     })
+    assert(creator_fake.request_count() == 1)
+    assert(
+        creator_fake.request_for(creator_fake.last_request_id()).get("method")
+        == "loadLatest"
+    )
     creator_fake.resolve_success(
         creator_fake.last_request_id(),
         _room_document(shell, "room-a", "team-a", 7)

@@ -466,9 +466,11 @@ func _instructions_remain_available_as_a_complete_reference() -> bool:
     ]:
         assert(instructions_text.text.contains(section))
     for required in [
-        "Art Director controls visual decisions",
-        "Strategist controls message decisions",
-        "Swapping roles exchanges these responsibilities"
+        "The same controls are available to both partners",
+        "The roles do not unlock different buttons",
+        "Art Director: leads visual decisions",
+        "Strategist: leads message and offer decisions",
+        "Swapping roles changes the active responsibility"
     ]:
         assert(role_text.text.contains(required))
     instructions_dialog.hide()

@@ -1235,6 +1235,7 @@ describe("window.AdMarketCreator", () => {
     Reflect.deleteProperty(window, "AdMarketPractice");
     Reflect.deleteProperty(window, "AdMarketRoom");
     Reflect.deleteProperty(window, "AdMarketAccount");
+    Reflect.deleteProperty(window, "AdMarketGameAccess");
     Object.defineProperty(globalThis, "ResizeObserver", {
       configurable: true,
       value: undefined
@@ -1277,6 +1278,9 @@ describe("window.AdMarketCreator", () => {
     expect(document.querySelector("#account-gate-root")).toBeNull();
     expect(document.querySelector("#account-session-root")).toBeNull();
     expect(Reflect.has(window, "AdMarketAccount")).toBe(false);
+    expect(Reflect.ownKeys((window as Window & {
+      AdMarketGameAccess: { requireAccess(): Promise<void> };
+    }).AdMarketGameAccess)).toEqual(["requireAccess"]);
     expect(Reflect.has(window, "AdMarketCreator")).toBe(false);
     expect(fetchSpy).toHaveBeenCalledTimes(3);
   });
@@ -1316,6 +1320,11 @@ describe("window.AdMarketCreator", () => {
     expect(document.querySelector("#account-gate-root")).toBeNull();
     expect(document.querySelector("#account-session-root")).toBeNull();
     expect(Reflect.has(window, "AdMarketAccount")).toBe(false);
+    const gameAccess = (window as Window & {
+      AdMarketGameAccess: { requireAccess(): Promise<void> };
+    }).AdMarketGameAccess;
+    expect(Object.isFrozen(gameAccess)).toBe(true);
+    await gameAccess.requireAccess();
     expect(runtime.activateAccountDrafts).toHaveBeenCalledWith("teacher-playtest");
     expect(document.querySelector<HTMLElement>(
       "main[aria-label=\"Advertising Market Game\"]"
@@ -1377,8 +1386,13 @@ describe("window.AdMarketCreator", () => {
 
     expect(Object.isFrozen(account)).toBe(true);
     expect(Reflect.ownKeys(account)).toEqual(["requireAccess"]);
+    const gameAccess = (window as Window & {
+      AdMarketGameAccess: { requireAccess(): Promise<void> };
+    }).AdMarketGameAccess;
+    expect(Object.isFrozen(gameAccess)).toBe(true);
+    expect(Reflect.ownKeys(gameAccess)).toEqual(["requireAccess"]);
     expect(fetchSpy).not.toHaveBeenCalled();
-    await account.requireAccess();
+    await gameAccess.requireAccess();
     expect(fetchSpy).toHaveBeenCalledTimes(2);
     expect(fetchSpy.mock.calls[1]).toEqual([
       "/api/account/progress",
@@ -1549,6 +1563,7 @@ describe("window.AdMarketCreator", () => {
     Reflect.deleteProperty(window, "AdMarketPractice");
     Reflect.deleteProperty(window, "AdMarketRoom");
     Reflect.deleteProperty(window, "AdMarketAccount");
+    Reflect.deleteProperty(window, "AdMarketGameAccess");
     document.body.innerHTML = `
       <main aria-label="Advertising Market Game">
         <canvas id="canvas" tabindex="0"></canvas>

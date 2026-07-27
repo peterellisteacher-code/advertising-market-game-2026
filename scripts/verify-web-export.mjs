@@ -1135,6 +1135,35 @@ export function inspectExportContents({
   if (startGameIndex >= 0 && godotScriptIndex > startGameIndex) {
     errors.push("Godot index.js must load before engine.startGame()");
   }
+  if (startGameIndex >= 0) {
+    const baseTags = htmlTags.filter((tag) => tag.name === "base" && tag.inertDepth === 0);
+    const canonicalBaseTags = baseTags.filter((tag) =>
+      tag.raw === '<base href="/">' &&
+      tag.attributes.length === 1 &&
+      tag.attributes[0]?.name === "href" &&
+      decodeHtmlAttributeValue(tag.attributes[0].value) === "/");
+    if (baseTags.length !== 1 || canonicalBaseTags.length !== 1) {
+      errors.push("index.html must contain exactly one canonical root route base");
+    }
+    try {
+      const inlineBodies = getExecutableInlineScriptBodies(html);
+      const routeAccessCount = inlineBodies.reduce((total, body) =>
+        total + count(body, /window\.AdMarketGameAccess\.requireAccess\(\)/gu), 0);
+      const studentAccessCount = inlineBodies.reduce((total, body) =>
+        total + count(body, /window\.AdMarketAccount\.requireAccess\(\)/gu), 0);
+      if (routeAccessCount !== 1 || studentAccessCount !== 0) {
+        errors.push(
+          "Godot bootstrap must use route-neutral game access exactly once and never the student account gate"
+        );
+      }
+    } catch (error) {
+      errors.push(
+        `Godot route-neutral game access cannot be inspected: ${
+          error instanceof Error ? error.message : error
+        }`
+      );
+    }
+  }
   if (/<iframe\b/i.test(html)) errors.push("iframes are forbidden");
   if (/<(?:script|link)\b[^>]*(?:src|href)=["'](?:https?:)?\/\//i.test(html)) {
     errors.push("remote runtime dependencies are forbidden");

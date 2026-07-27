@@ -12,7 +12,8 @@ import {
   copyVerifiedTree,
   injectOfflineCatalogueUrl,
   injectProductShellCatalogueUrl,
-  injectStudioAssets
+  injectStudioAssets,
+  normaliseRoutedGodotShell
 } from "./build-web.mjs";
 import * as buildWeb from "./build-web.mjs";
 import { inspectExportContents } from "./verify-web-export.mjs";
@@ -293,7 +294,35 @@ test("studio bridge precedes both Godot index-script spellings", () => {
   }
 });
 
-test("deployed Godot shell blocks game focus and awaits mandatory account access", async () => {
+test("routed Godot shell anchors nested-route assets and uses route-neutral access", () => {
+  const exported = `<!doctype html>
+<html><head>
+  <base href="/stale/">
+  <base href="https://invalid.example/">
+</head><body>
+  <main aria-label="Advertising Market Game" hidden inert aria-hidden="true">
+    <canvas id="canvas" tabindex="-1"></canvas>
+  </main>
+  <div id="account-gate-root"></div>
+  <section id="account-session-root"></section>
+  <script>
+    const engine = new Engine({});
+    window.AdMarketAccount.requireAccess().then(() => engine.startGame());
+  </script>
+</body></html>`;
+
+  const once = normaliseRoutedGodotShell(exported);
+  const twice = normaliseRoutedGodotShell(once);
+
+  assert.equal(twice, once);
+  assert.equal(once.match(/<base href="\/">/g)?.length, 1);
+  assert.doesNotMatch(once, /invalid\.example|href="\/stale\/"/);
+  assert.match(once, /window\.AdMarketGameAccess\.requireAccess\(\)/);
+  assert.doesNotMatch(once, /window\.AdMarketAccount\.requireAccess\(\)/);
+  assert.doesNotThrow(() => assertAccountGatedGodotShell(once));
+});
+
+test("deployed Godot shell blocks game focus and awaits mandatory routed access", async () => {
   const shell = await readFile(path.join(
     import.meta.dirname,
     "..",
@@ -303,11 +332,14 @@ test("deployed Godot shell blocks game focus and awaits mandatory account access
   ), "utf8");
 
   assert.doesNotThrow(() => assertAccountGatedGodotShell(shell));
+  assert.equal(shell.match(/<base href="\/">/g)?.length, 1);
+  assert.match(shell, /window\.AdMarketGameAccess\.requireAccess\(\)/);
+  assert.doesNotMatch(shell, /window\.AdMarketAccount\.requireAccess\(\)/);
   assert.throws(() => assertAccountGatedGodotShell(`
     <main aria-label="Advertising Market Game"><canvas id="canvas" tabindex="0"></canvas></main>
     <div id="creator-root"></div>
     <script>const engine = new Engine({}); engine.startGame();</script>
-  `), /mandatory account access/i);
+  `), /mandatory routed access/i);
   assert.doesNotMatch(shell, /continue (?:locally|without an account)|bypass/i);
 });
 
@@ -505,6 +537,45 @@ test("static verification requires a matching strict Netlify CSP header", () => 
     () => inspectExportContents({ files: unsafe, pckHash: "current" }),
     /unsafe inline script policy/i
   );
+});
+
+test("static verification rejects nested-route and student-gate regressions", () => {
+  const routedHtml = `<!doctype html><html><head>
+    <base href="/">
+    <link rel="stylesheet" href="./studio/studio.css">
+  </head><body>
+    <div id="account-gate-root"></div>
+    <section id="account-session-root"></section>
+    <main aria-label="Advertising Market Game" hidden inert aria-hidden="true">
+      <canvas id="canvas" tabindex="-1"></canvas>
+    </main>
+    <script src="./studio/studio.js"></script>
+    <script src="./index.js"></script>
+    <script>const engine = new Engine({}); window.AdMarketGameAccess.requireAccess().then(() => engine.startGame());</script>
+  </body></html>`;
+  const fixture = (html) => addCspHeaders(new Map([
+    ["index.html", html],
+    ["index.js", "const target = 'wasm32.nothreads'; const audio = new AudioWorklet();"],
+    ["index.wasm", Buffer.from([0])],
+    ["index.pck", Buffer.from([1])],
+    ["index.audio.worklet.js", "class GodotAudioWorklet {}"],
+    ["studio/studio.css", ".creator{}"],
+    ["studio/studio.js", VALID_STUDIO_BRIDGES],
+    ["godot/export_presets.cfg", "variant/thread_support=false"]
+  ]));
+
+  assert.doesNotThrow(() => inspectExportContents({
+    files: fixture(routedHtml),
+    pckHash: "current"
+  }));
+  assert.throws(() => inspectExportContents({
+    files: fixture(routedHtml.replace('<base href="/">', "")),
+    pckHash: "current"
+  }), /root route base/i);
+  assert.throws(() => inspectExportContents({
+    files: fixture(routedHtml.replace("AdMarketGameAccess", "AdMarketAccount")),
+    pckHash: "current"
+  }), /route-neutral game access/i);
 });
 
 test("static verification rejects a studio bridge loaded after Godot", () => {

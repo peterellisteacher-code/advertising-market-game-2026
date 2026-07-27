@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <base href="/">
     <title>$GODOT_PROJECT_NAME</title>
     $GODOT_HEAD_INCLUDE
     <link rel="stylesheet" href="./studio/studio.css">
@@ -41,7 +42,7 @@
         }
       });
       const engine = new Engine($GODOT_CONFIG);
-      window.AdMarketAccount.requireAccess().then(() => engine.startGame({
+      window.AdMarketGameAccess.requireAccess().then(() => engine.startGame({
         onProgress(current, total) {
           const status = document.querySelector("#status");
           if (status && total > 0) status.textContent = `Loading game… ${Math.round(current / total * 100)}%`;

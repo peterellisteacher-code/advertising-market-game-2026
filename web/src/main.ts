@@ -1843,8 +1843,17 @@ declare global {
     AdMarketPractice: PracticePublicApi;
     AdMarketRoom: MarketPublicApi;
     AdMarketAccount: AccountBootstrapPublicApi;
+    AdMarketGameAccess: {
+      requireAccess(): Promise<void>;
+    };
   }
 }
+
+const unavailableGameAccess = new Promise<void>(() => undefined);
+let requireGameAccess = (): Promise<void> => unavailableGameAccess;
+window.AdMarketGameAccess = Object.freeze({
+  requireAccess: () => requireGameAccess()
+});
 
 function renderRouteBoundary(
   kind: "teacher-dashboard" | "teacher-playtest" | "not-found",
@@ -1886,6 +1895,11 @@ export function bootTeacherPlaytest(): void {
   const root = document.createElement("div");
   root.id = "teacher-playtest-root";
   document.body.prepend(root);
+  let markGameReady: () => void = () => undefined;
+  const gameReady = new Promise<void>((resolve) => {
+    markGameReady = resolve;
+  });
+  requireGameAccess = () => gameReady;
   const playtestClient = new HttpTeacherPlaytestClient();
   let game: TeacherPlaytestGameHandle | null = null;
   const controller = new TeacherPlaytestController({
@@ -1897,6 +1911,7 @@ export function bootTeacherPlaytest(): void {
         kind: "teacher-playtest",
         client: playtestClient
       });
+      markGameReady();
     },
     resetLocalState: async () => {
       if (game === null) throw new Error("Teacher playtest is not ready");
@@ -1930,6 +1945,7 @@ const TEACHER_PLAYTEST_BROWSER_NAMESPACE = "teacher-playtest";
 
 export function bootStudentApplication(): void {
   bootGameApplication({ kind: "student" });
+  requireGameAccess = () => window.AdMarketAccount.requireAccess();
 }
 
 function bootGameApplication(

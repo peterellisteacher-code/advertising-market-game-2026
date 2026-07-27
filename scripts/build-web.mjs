@@ -30,6 +30,8 @@ const DEFAULT_ROOT = path.resolve(SCRIPT_DIR, "..");
 const REQUIRED_GODOT_FILES = ["index.html", "index.js", "index.wasm", "index.pck"];
 const STUDIO_STYLE = '<link rel="stylesheet" href="./studio/studio.css">';
 const STUDIO_SCRIPT = '<script src="./studio/studio.js"></script>';
+const ROUTE_BASE = '<base href="/">';
+const ROUTED_GAME_ACCESS = "window.AdMarketGameAccess.requireAccess()";
 const WEB_MANIFEST = '<link rel="manifest" href="./manifest.webmanifest">';
 const RELEASE_PRIVATE_ROOT = path.join(".release", "functions");
 const STUDENT_STARTER_RELATIVE = path.join(
@@ -423,6 +425,45 @@ export function injectStudioAssets(html) {
   return result;
 }
 
+/** Makes one Godot shell safe to serve at every application route. */
+export function normaliseRoutedGodotShell(html) {
+  const tags = scanHtmlStartTags(html);
+  const baseTags = tags.filter((tag) => tag.name === "base" && tag.inertDepth === 0);
+  let result = html;
+  for (const tag of baseTags.sort((left, right) => right.start - left.start)) {
+    result = `${result.slice(0, tag.start)}${result.slice(tag.end)}`;
+  }
+  const headClose = result.search(/<\/head\s*>/i);
+  if (headClose < 0) throw new Error("Godot export is missing </head>");
+  result = insertBefore(result, headClose, ROUTE_BASE);
+
+  const routedTags = scanHtmlStartTags(result);
+  const accessPattern =
+    /window\.AdMarket(?:Account|GameAccess)\.requireAccess\(\)/gu;
+  const matches = [];
+  for (const tag of routedTags.filter(isExecutableInlineScript)) {
+    const closingStart = result.lastIndexOf("</", (tag.elementEnd ?? tag.end) - 1);
+    if (closingStart < tag.end) continue;
+    const body = result.slice(tag.end, closingStart);
+    for (const match of body.matchAll(accessPattern)) {
+      matches.push({
+        start: tag.end + (match.index ?? 0),
+        end: tag.end + (match.index ?? 0) + match[0].length
+      });
+    }
+  }
+  if (/\bengine\s*\.\s*startGame\s*\(/u.test(result) && matches.length !== 1) {
+    throw new Error(
+      `Godot shell must contain one route-neutral game access gate (found ${matches.length})`
+    );
+  }
+  if (matches.length === 1) {
+    const [match] = matches;
+    result = `${result.slice(0, match.start)}${ROUTED_GAME_ACCESS}${result.slice(match.end)}`;
+  }
+  return result;
+}
+
 export function assertResolvedGodotShell(html) {
   const token = html.match(/\$GODOT_[A-Z0-9_]+/i)?.[0];
   if (token) throw new Error(`Refusing unresolved Godot shell token: ${token}`);
@@ -453,9 +494,9 @@ export function assertAccountGatedGodotShell(html) {
   const starts = scripts.flatMap((body) =>
     body.match(/\bengine\s*\.\s*startGame\s*\(/gu) ?? []);
   const gatedStart = scripts.some((body) =>
-    /window\s*\.\s*AdMarketAccount\s*\.\s*requireAccess\s*\(\s*\)\s*\.\s*then\s*\(\s*\(\s*\)\s*=>\s*engine\s*\.\s*startGame\s*\(/su.test(body));
+    /window\s*\.\s*AdMarketGameAccess\s*\.\s*requireAccess\s*\(\s*\)\s*\.\s*then\s*\(\s*\(\s*\)\s*=>\s*engine\s*\.\s*startGame\s*\(/su.test(body));
   if (!structurallyLocked || starts.length !== 1 || !gatedStart) {
-    throw new Error("Godot shell must enforce mandatory account access before starting the game");
+    throw new Error("Godot shell must enforce mandatory routed access before starting the game");
   }
 }
 
@@ -629,7 +670,7 @@ export async function assembleWebExport({
     injectProductBuilderCatalogueUrl(
       injectProductShellCatalogueUrl(
         injectOfflineCatalogueUrl(
-          injectStudioAssets(exportedHtml),
+          normaliseRoutedGodotShell(injectStudioAssets(exportedHtml)),
           hasOfflineCore ? `/${offlineRelative.replaceAll(path.sep, "/")}` : undefined
         ),
         hasProductShells ? `/${PRODUCT_SHELL_RELATIVE.replaceAll(path.sep, "/")}` : undefined

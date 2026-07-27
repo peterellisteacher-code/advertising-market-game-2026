@@ -1161,6 +1161,14 @@ describe("window.AdMarketCreator", () => {
       if (input === "/api/teacher/accounts") {
         return Promise.resolve(Response.json({ accounts: [] }));
       }
+      if (input === "/api/teacher/image-lab") {
+        return Promise.resolve(Response.json({
+          enabled: false,
+          defaultObjectForgeUses: 0,
+          defaultMakeItRealUses: 0,
+          accounts: []
+        }));
+      }
       return Promise.reject(new Error(`Unexpected teacher URL ${String(input)}`));
     });
 
@@ -1174,7 +1182,7 @@ describe("window.AdMarketCreator", () => {
     expect(document.querySelector("#account-session-root")).toBeNull();
     expect(Reflect.has(window, "AdMarketAccount")).toBe(false);
     expect(Reflect.has(window, "AdMarketCreator")).toBe(false);
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
   });
 
   it("boots the complete teacher playtest through its isolated storage and server adapters", async () => {
@@ -2853,6 +2861,10 @@ describe("window.AdMarketCreator", () => {
       [
         "/catalog/generated/offline-core-v1/product-kit-pricing-v1.json",
         "product-kit-pricing-v1.json"
+      ],
+      [
+        "/catalog/generated/offline-core-v1/student-starters-v1.json",
+        "student-starters-v1.json"
       ]
     ]);
     const pngByPath = new Map([

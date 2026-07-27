@@ -532,6 +532,108 @@ function verifyOfflineCatalogue(files, errors, minimumRecords = 0) {
   if (productRecords < minimumRecords) {
     errors.push(`offline pricing must contain at least ${minimumRecords} product records`);
   }
+  verifyStudentStarterManifest(files, records, errors);
+}
+
+export function verifyStudentStarterManifest(files, records, errors) {
+  const prefix = "catalog/generated/offline-core-v1";
+  const kitPath = `${prefix}/product-kit-v1.json`;
+  const starterPath = `${prefix}/student-starters-v1.json`;
+  if (!files.has(kitPath)) {
+    if (files.has(starterPath)) {
+      errors.push("student starter manifest requires the Product Kit sidecar");
+    }
+    return;
+  }
+  if (!files.has(starterPath)) {
+    errors.push("missing student starter manifest: student-starters-v1.json");
+    return;
+  }
+  let kits;
+  let manifest;
+  try {
+    kits = JSON.parse(asText(files.get(kitPath)));
+    manifest = JSON.parse(asText(files.get(starterPath)));
+  } catch {
+    errors.push("student starter or Product Kit JSON is malformed");
+    return;
+  }
+  const bounded = manifest?.fillProfiles?.["bounded-linework-v1"];
+  const opaque = manifest?.fillProfiles?.["opaque-body-v1"];
+  const exactProfiles = bounded?.lineDarknessThreshold === 220 &&
+    bounded?.minimumAlpha === 200 && bounded?.colourDistance === 48 &&
+    bounded?.minimumRegionPixels === 20 && bounded?.maximumRegionFraction === 0.95 &&
+    Object.keys(bounded ?? {}).length === 5 && opaque?.minimumAlpha === 200 &&
+    Object.keys(opaque ?? {}).length === 1;
+  if (!manifest || typeof manifest !== "object" || Array.isArray(manifest) ||
+    Object.keys(manifest).length !== 4 ||
+    manifest.schema !== "student-product-starters@1" || manifest.version !== 1 ||
+    !exactProfiles || !Array.isArray(manifest.starters) ||
+    manifest.starters.length !== 12 || !Array.isArray(kits?.kits) ||
+    !Array.isArray(kits?.components)) {
+    errors.push("student starter manifest has an invalid contract");
+    return;
+  }
+  const recordsById = new Map(records.map((record) => [record.id, record]));
+  const kitsById = new Map(kits.kits.map((kit) => [kit?.id, kit]));
+  const componentsById = new Map(kits.components.map((component) => [component?.id, component]));
+  const ids = new Set();
+  const titles = new Set();
+  const categories = new Map();
+  let kitCount = 0;
+  let rasterCount = 0;
+  let connectedCount = 0;
+  for (const [index, starter] of manifest.starters.entries()) {
+    if (!starter || typeof starter !== "object" || Array.isArray(starter) ||
+      typeof starter.id !== "string" || !PORTABLE_ID.test(starter.id) ||
+      typeof starter.title !== "string" || starter.title !== starter.title.trim() ||
+      starter.title.length === 0 || typeof starter.category !== "string" ||
+      !PORTABLE_ID.test(starter.category) || ids.has(starter.id) ||
+      titles.has(starter.title)) {
+      errors.push(`student starter ${index} has an invalid or duplicate identity`);
+      continue;
+    }
+    ids.add(starter.id);
+    titles.add(starter.title);
+    categories.set(starter.category, (categories.get(starter.category) ?? 0) + 1);
+    if (starter.kind === "kit") {
+      kitCount += 1;
+      const kit = kitsById.get(starter.kitId);
+      const component = componentsById.get(starter.defaultComponentId);
+      if (Object.keys(starter).length !== 6 || !kit || !component ||
+        !Array.isArray(kit.mountFrames) ||
+        !kit.mountFrames.some((frame) => frame?.slotId === component.slotId)) {
+        errors.push(`student kit starter ${starter.id} does not resolve`);
+      }
+      continue;
+    }
+    if (starter.kind !== "raster") {
+      errors.push(`student starter ${starter.id} has an invalid kind`);
+      continue;
+    }
+    rasterCount += 1;
+    const record = recordsById.get(starter.assetId);
+    const pair = `${starter.fillMode}:${starter.fillProfile}`;
+    if (pair === "connected-sections:bounded-linework-v1") connectedCount += 1;
+    if (Object.keys(starter).length !== 7 ||
+      !new Set([
+        "connected-sections:bounded-linework-v1",
+        "whole-object:opaque-body-v1",
+        "none:none"
+      ]).has(pair) || !record || record.delivery !== "offline" ||
+      record.kind !== "raster-master" || record.classroomReviewed !== true ||
+      record.brandFree !== true || record.attribution?.sourceUrl !== "local" ||
+      record.files?.master !==
+        `/catalog/generated/offline-core-v1/assets/${starter.assetId}/master.png` ||
+      record.files?.masks?.body !==
+        `/catalog/generated/offline-core-v1/assets/${starter.assetId}/masks/body.png`) {
+      errors.push(`student raster starter ${starter.id} does not resolve`);
+    }
+  }
+  if (kitCount !== 3 || rasterCount !== 9 || connectedCount < 4 ||
+    categories.size < 6 || [...categories.values()].some((count) => count > 2)) {
+    errors.push("student starter manifest does not meet the 3/9 category and fill invariants");
+  }
 }
 
 function verifyProductShellCatalogue(files, errors) {

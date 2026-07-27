@@ -1,9 +1,11 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import OFFLINE_CATALOGUE from "../../../catalog/generated/offline-core-v1/catalog.json";
 import PRODUCT_KIT_SIDECAR from "../../../catalog/generated/offline-core-v1/product-kit-v1.json";
 import PRODUCT_KIT_PRICING_SIDECAR from
   "../../../catalog/generated/offline-core-v1/product-kit-pricing-v1.json";
+import STUDENT_STARTERS from "../../../catalog/generated/offline-core-v1/student-starters-v1.json";
 import {
   createBlankCampaignDocument,
   parseCampaignDocument,
@@ -161,6 +163,14 @@ const PRODUCT_KIT_CASE_ARCHED_HANDLE_HASH =
 const PRODUCT_KIT_CASE_COMPACT_HANDLE_ID = "98-bag-carry-product-add-ons-r01c05";
 const PRODUCT_KIT_CASE_COMPACT_HANDLE_HASH =
   "10fc7b6c5a7b4a177cd1bb00c3a67b1fb5ee5644c438216085ce86098e109d7e";
+const PRODUCT_KIT_STARTER_RASTERS = STUDENT_STARTERS.starters.flatMap((starter) => {
+  if (starter.kind !== "raster") return [];
+  const parsed = parseCatalogAsset(
+    OFFLINE_CATALOGUE.find(({ id }) => id === starter.assetId)
+  );
+  if (!parsed) throw new Error(`Missing starter fixture ${starter.assetId}`);
+  return [parsed];
+});
 
 function pilotOfflineAsset(
   id: string,
@@ -215,7 +225,8 @@ const PRODUCT_KIT_OFFLINE: OfflineCatalogueWithHash = {
       "component",
       262,
       135
-    )
+    ),
+    ...PRODUCT_KIT_STARTER_RASTERS
   ],
   catalogSha256: PRODUCT_KIT_CATALOG_HASH
 };
@@ -240,6 +251,11 @@ async function pilotProductKitBundle(): Promise<LoadedProductKitBundle> {
     }
     if (url.endsWith("/product-kit-pricing-v1.json")) {
       return new Response(JSON.stringify(PRODUCT_KIT_PRICING_SIDECAR), {
+        headers: { "content-type": "application/json" }
+      });
+    }
+    if (url.endsWith("/student-starters-v1.json")) {
+      return new Response(JSON.stringify(STUDENT_STARTERS), {
         headers: { "content-type": "application/json" }
       });
     }
@@ -890,7 +906,12 @@ function mutableProductKitBundle(bundle: LoadedProductKitBundle): LoadedProductK
         key,
         { ...price }
       ]))
-    }
+    },
+    starterManifest: bundle.starterManifest,
+    starterRasters: new Map([...bundle.starterRasters].map(([key, record]) => [
+      key,
+      structuredClone(record)
+    ]))
   };
 }
 

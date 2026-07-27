@@ -6,10 +6,15 @@ import {
   getByRole
 } from "@testing-library/dom";
 import { describe, expect, it, vi } from "vitest";
+import OFFLINE_CATALOGUE from "../../../catalog/generated/offline-core-v1/catalog.json";
 import PRODUCT_KIT_SIDECAR from "../../../catalog/generated/offline-core-v1/product-kit-v1.json";
 import PRODUCT_KIT_PRICING_SIDECAR from "../../../catalog/generated/offline-core-v1/product-kit-pricing-v1.json";
+import STUDENT_STARTERS from "../../../catalog/generated/offline-core-v1/student-starters-v1.json";
 import type { CatalogAssetV1 } from "../catalogue/catalogue-types";
-import type { OfflineCatalogueWithHash } from "../catalogue/catalogue-store";
+import {
+  parseCatalogAsset,
+  type OfflineCatalogueWithHash
+} from "../catalogue/catalogue-store";
 import {
   createBlankCampaignDocument,
   parseCampaignDocument,
@@ -48,6 +53,14 @@ const CASE_COMPACT_HANDLE_ID = "98-bag-carry-product-add-ons-r01c05";
 const CASE_COMPACT_HANDLE_HASH =
   "10fc7b6c5a7b4a177cd1bb00c3a67b1fb5ee5644c438216085ce86098e109d7e";
 const CATALOGUE_URL = "/catalog/generated/offline-core-v1/catalog.json";
+const STARTER_RASTER_RECORDS = STUDENT_STARTERS.starters.flatMap((starter) => {
+  if (starter.kind !== "raster") return [];
+  const parsed = parseCatalogAsset(
+    OFFLINE_CATALOGUE.find(({ id }) => id === starter.assetId)
+  );
+  if (!parsed) throw new Error(`Missing starter fixture ${starter.assetId}`);
+  return [parsed];
+});
 
 function offlineAsset(
   id: string,
@@ -130,7 +143,8 @@ const OFFLINE: OfflineCatalogueWithHash = {
       "component",
       262,
       135
-    )
+    ),
+    ...STARTER_RASTER_RECORDS
   ],
   catalogSha256: CATALOG_HASH
 };
@@ -142,7 +156,9 @@ async function admittedBundle(): Promise<LoadedProductKitBundle> {
       ? PRODUCT_KIT_SIDECAR
       : url.endsWith("/product-kit-pricing-v1.json")
         ? PRODUCT_KIT_PRICING_SIDECAR
-        : null;
+        : url.endsWith("/student-starters-v1.json")
+          ? STUDENT_STARTERS
+          : null;
     if (value === null) throw new Error(`Unexpected request: ${url}`);
     return new Response(JSON.stringify(value), {
       status: 200,
@@ -252,6 +268,35 @@ function restoredDocument(bundle: LoadedProductKitBundle): CampaignDocumentV1 {
 }
 
 describe("ProductKitPanel", () => {
+  it("shows twelve starters in one list and places a reviewed raster only on activation", async () => {
+    const host = document.createElement("div");
+    document.body.replaceChildren(host);
+    const onPlaceKit = vi.fn();
+    const onPlaceRaster = vi.fn();
+    const panel = new ProductKitPanel(host, onPlaceKit, onPlaceRaster);
+
+    panel.render(await admittedBundle());
+
+    const starters = getAllByRole<HTMLInputElement>(host, "radio")
+      .filter(({ name }) => name === "student-starter");
+    expect(starters).toHaveLength(12);
+    expect(onPlaceKit).not.toHaveBeenCalled();
+    expect(onPlaceRaster).not.toHaveBeenCalled();
+    fireEvent.click(getByRole(host, "radio", { name: "Soccer ball" }));
+    expect(getByRole(host, "img", { name: "Soccer ball" })).toBeTruthy();
+    expect(onPlaceRaster).not.toHaveBeenCalled();
+
+    fireEvent.click(getByRole(host, "button", { name: "Place product on ad" }));
+
+    expect(onPlaceKit).not.toHaveBeenCalled();
+    expect(onPlaceRaster).toHaveBeenCalledOnce();
+    expect(onPlaceRaster.mock.calls[0]?.[0]).toMatchObject({
+      id: "43-sports-fitness-equipment-r01c01",
+      title: "Soccer ball",
+      delivery: "offline"
+    });
+  });
+
   it("hydrates a restored certified build without changing its document", async () => {
     const host = document.createElement("div");
     const bundle = await admittedBundle();

@@ -1422,6 +1422,32 @@ test("production build scripts require every classroom-critical local catalogue"
   assert.match(packageJson.scripts["test:build-web"], /export-godot-web\.test\.mjs/);
 });
 
+test("the bound repository starter manifest resolves twelve reviewed products", async () => {
+  const prefix = path.resolve("catalog", "generated", "offline-core-v1");
+  const [catalogueBytes, kitBytes, starterBytes] = await Promise.all([
+    readFile(path.join(prefix, "catalog.json")),
+    readFile(path.join(prefix, "product-kit-v1.json")),
+    readFile(path.join(prefix, "student-starters-v1.json"))
+  ]);
+  const files = new Map([
+    ["catalog/generated/offline-core-v1/product-kit-v1.json", kitBytes],
+    ["catalog/generated/offline-core-v1/student-starters-v1.json", starterBytes]
+  ]);
+  const errors = [];
+
+  verifyWebExport.verifyStudentStarterManifest(
+    files,
+    JSON.parse(catalogueBytes.toString("utf8")),
+    errors
+  );
+
+  assert.deepEqual(errors, []);
+  const manifest = JSON.parse(starterBytes.toString("utf8"));
+  assert.equal(manifest.starters.length, 12);
+  assert.equal(manifest.starters.filter(({ kind }) => kind === "kit").length, 3);
+  assert.equal(manifest.starters.filter(({ kind }) => kind === "raster").length, 9);
+});
+
 test("offline-core verification can enforce the production catalogue floor", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "admarket-offline-floor-"));
   const core = path.join(root, "catalog", "generated", "offline-core-v1");

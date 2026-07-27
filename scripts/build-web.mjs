@@ -32,6 +32,12 @@ const STUDIO_STYLE = '<link rel="stylesheet" href="./studio/studio.css">';
 const STUDIO_SCRIPT = '<script src="./studio/studio.js"></script>';
 const WEB_MANIFEST = '<link rel="manifest" href="./manifest.webmanifest">';
 const RELEASE_PRIVATE_ROOT = path.join(".release", "functions");
+const STUDENT_STARTER_RELATIVE = path.join(
+  "catalog",
+  "generated",
+  "offline-core-v1",
+  "student-starters-v1.json"
+);
 const PRODUCT_SHELL_RELATIVE = path.join(
   "catalog",
   "generated",
@@ -651,11 +657,18 @@ export async function assembleWebExport({
   if (hasOfflineCore) {
     const offlineSourceRoot = path.dirname(offlineSource);
     const offlineDestinationRoot = path.join(webDir, path.dirname(offlineRelative));
-    await verifyOfflineCoreDirectory(offlineSourceRoot, {
+    const verifiedOfflineFiles = await verifyOfflineCoreDirectory(offlineSourceRoot, {
       minimumRecords: minimumOfflineRecords
     });
+    const starterKey = STUDENT_STARTER_RELATIVE.replaceAll(path.sep, "/");
+    const starterBytes = verifiedOfflineFiles.get(starterKey);
     await copyVerifiedTree(offlineSourceRoot, offlineDestinationRoot);
     log(`OFFLINE_CORE_COPIED ${path.dirname(offlineRelative).replaceAll(path.sep, "/")}`);
+    if (starterBytes !== undefined) {
+      log(`STUDENT_STARTERS_BOUND sha256=${
+        createHash("sha256").update(starterBytes).digest("hex")
+      }`);
+    }
   } else {
     log(`OFFLINE_CORE_DEFERRED ${offlineRelative.replaceAll(path.sep, "/")}`);
   }

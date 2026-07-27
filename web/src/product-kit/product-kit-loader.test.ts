@@ -1,8 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
+import OFFLINE_CATALOGUE from "../../../catalog/generated/offline-core-v1/catalog.json";
 import PRODUCT_KIT_SIDECAR from "../../../catalog/generated/offline-core-v1/product-kit-v1.json";
 import PRODUCT_KIT_PRICING_SIDECAR from "../../../catalog/generated/offline-core-v1/product-kit-pricing-v1.json";
+import STUDENT_STARTERS from "../../../catalog/generated/offline-core-v1/student-starters-v1.json";
 import type { CatalogAssetV1 } from "../catalogue/catalogue-types";
-import type { OfflineCatalogueWithHash } from "../catalogue/catalogue-store";
+import {
+  parseCatalogAsset,
+  type OfflineCatalogueWithHash
+} from "../catalogue/catalogue-store";
 import { computeCertificationFingerprint } from "./certification-fingerprint";
 import { loadProductKitBundle } from "./product-kit-loader";
 
@@ -37,6 +42,14 @@ const CERTIFICATION_FINGERPRINT =
 const CATALOGUE_URL = "/catalog/generated/offline-core-v1/catalog.json";
 const MAX_SIDECAR_BYTES = 4 * 1024 * 1024;
 const SIDECAR_DEADLINE_MS = 5_000;
+const STARTER_RASTER_RECORDS = STUDENT_STARTERS.starters.flatMap((starter) => {
+  if (starter.kind !== "raster") return [];
+  const parsed = parseCatalogAsset(
+    OFFLINE_CATALOGUE.find(({ id }) => id === starter.assetId)
+  );
+  if (!parsed) throw new Error(`Missing starter fixture ${starter.assetId}`);
+  return [parsed];
+});
 
 function offlineAsset(
   id: string,
@@ -107,7 +120,8 @@ const OFFLINE: OfflineCatalogueWithHash = {
     offlineAsset(TV_FEET_ID, TV_FEET_HASH, "component", 237, 209),
     offlineAsset(CASE_ID, CASE_HASH, "raster-master", 189, 159),
     offlineAsset(CASE_ARCHED_HANDLE_ID, CASE_ARCHED_HANDLE_HASH, "component", 226, 211),
-    offlineAsset(CASE_COMPACT_HANDLE_ID, CASE_COMPACT_HANDLE_HASH, "component", 262, 135)
+    offlineAsset(CASE_COMPACT_HANDLE_ID, CASE_COMPACT_HANDLE_HASH, "component", 262, 135),
+    ...STARTER_RASTER_RECORDS
   ],
   catalogSha256: CATALOG_HASH
 };
@@ -116,8 +130,10 @@ interface Scenario {
   offline: OfflineCatalogueWithHash;
   productKit: unknown;
   pricing: unknown;
+  starters: unknown;
   productKitContentType: string;
   pricingContentType: string;
+  startersContentType: string;
 }
 
 function scenario(): Scenario {
@@ -125,8 +141,10 @@ function scenario(): Scenario {
     offline: structuredClone(OFFLINE),
     productKit: structuredClone(PRODUCT_KIT_SIDECAR),
     pricing: structuredClone(PRODUCT_KIT_PRICING_SIDECAR),
+    starters: structuredClone(STUDENT_STARTERS),
     productKitContentType: "application/json",
-    pricingContentType: "application/json; charset=utf-8"
+    pricingContentType: "application/json; charset=utf-8",
+    startersContentType: "application/json"
   };
 }
 
@@ -190,6 +208,12 @@ function fetchFor(candidate: Scenario): {
         headers: { "content-type": candidate.pricingContentType }
       });
     }
+    if (url.endsWith("/student-starters-v1.json")) {
+      return new Response(JSON.stringify(candidate.starters), {
+        status: 200,
+        headers: { "content-type": candidate.startersContentType }
+      });
+    }
     throw new Error(`Unexpected request: ${url}`);
   });
   return { fetchImpl: fetchMock as unknown as typeof fetch, fetchMock };
@@ -211,7 +235,7 @@ function malformedUtf8ProductKitBytes(): ArrayBuffer {
 }
 
 describe("loadProductKitBundle", () => {
-  it("loads the exact hash-bound Product Kit families from two same-origin sidecars", async () => {
+  it("loads the exact Product Kit families and twelve reviewed starters from three sidecars", async () => {
     const candidate = scenario();
     const { fetchImpl, fetchMock } = fetchFor(candidate);
 
@@ -285,6 +309,12 @@ describe("loadProductKitBundle", () => {
       .toBe("Compact carry case");
     expect(Object.isFrozen(bundle!.rasterSources)).toBe(true);
     expect(() => (bundle!.rasterSources as Map<string, unknown>).clear()).toThrow(TypeError);
+    expect(bundle?.starterManifest.starters).toHaveLength(12);
+    expect([...bundle!.starterRasters.keys()]).toEqual(
+      STUDENT_STARTERS.starters.flatMap((starter) =>
+        starter.kind === "raster" ? [starter.assetId] : []
+      )
+    );
 
     const kit = bundle!.catalogue.kits[0]!;
     const frame = kit.mountFrames[0]!;
@@ -298,9 +328,10 @@ describe("loadProductKitBundle", () => {
 
     expect(fetchMock.mock.calls.map(([input]) => String(input))).toEqual([
       `${window.location.origin}/catalog/generated/offline-core-v1/product-kit-v1.json`,
-      `${window.location.origin}/catalog/generated/offline-core-v1/product-kit-pricing-v1.json`
+      `${window.location.origin}/catalog/generated/offline-core-v1/product-kit-pricing-v1.json`,
+      `${window.location.origin}/catalog/generated/offline-core-v1/student-starters-v1.json`
     ]);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it("uses one entry snapshot when a catalogue proxy varies later record reads", async () => {
@@ -408,7 +439,7 @@ describe("loadProductKitBundle", () => {
       candidate.offline,
       { fetchImpl }
     )).resolves.toBeNull();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it.each([
@@ -509,7 +540,7 @@ describe("loadProductKitBundle", () => {
     await expect(loadProductKitBundle(CATALOGUE_URL, OFFLINE, {
       fetchImpl: fetchMock as unknown as typeof fetch
     })).resolves.toBeNull();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it("cancels an oversized chunked sidecar before aggregating its bytes", async () => {
@@ -608,7 +639,7 @@ describe("loadProductKitBundle", () => {
     await expect(loadProductKitBundle(CATALOGUE_URL, OFFLINE, {
       fetchImpl: rejectedFetch as unknown as typeof fetch
     })).resolves.toBeNull();
-    expect(rejectedFetch).toHaveBeenCalledTimes(2);
+    expect(rejectedFetch).toHaveBeenCalledTimes(3);
 
     const invalidJsonFetch = vi.fn(async (input: RequestInfo | URL) => new Response(
       String(input).endsWith("/product-kit-v1.json") ? "{" : JSON.stringify(
@@ -619,6 +650,6 @@ describe("loadProductKitBundle", () => {
     await expect(loadProductKitBundle(CATALOGUE_URL, OFFLINE, {
       fetchImpl: invalidJsonFetch as unknown as typeof fetch
     })).resolves.toBeNull();
-    expect(invalidJsonFetch).toHaveBeenCalledTimes(2);
+    expect(invalidJsonFetch).toHaveBeenCalledTimes(3);
   });
 });

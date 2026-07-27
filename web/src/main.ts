@@ -2121,7 +2121,8 @@ const catalogueRuntime = new CatalogueRuntime({
 });
 const productKitPanel = new ProductKitPanel(
   shell.productBuilderPanel,
-  (request) => handler.queueProductKitPlacement(request)
+  (request) => handler.queueProductKitPlacement(request),
+  (asset) => handler.queueCataloguePlacement(asset)
 );
 productKitPanel.unavailable();
 handler.attachProductKitPanel(productKitPanel);

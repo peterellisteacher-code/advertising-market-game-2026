@@ -1,4 +1,5 @@
 import type { OfflineCatalogueWithHash } from "../catalogue/catalogue-store";
+import type { CatalogAssetV1 } from "../catalogue/catalogue-types";
 import {
   parseProductKitCatalogue,
   type ProductKitAssetReference,
@@ -14,6 +15,10 @@ import {
   parseProductKitPricing,
   type ProductKitPricingIndex
 } from "./product-kit-pricing";
+import {
+  parseStudentStarterManifest,
+  type StudentStarterManifestV1
+} from "./student-starter-catalogue";
 
 export interface ProductKitRasterSource {
   readonly assetId: string;
@@ -26,11 +31,14 @@ export interface LoadedProductKitBundle {
   readonly runtime: ProductKitRuntime;
   readonly rasterSources: ReadonlyMap<string, ProductKitRasterSource>;
   readonly pricing: ProductKitPricingIndex;
+  readonly starterManifest: StudentStarterManifestV1;
+  readonly starterRasters: ReadonlyMap<string, CatalogAssetV1>;
 }
 
 interface ProductKitSidecarUrls {
   readonly catalogue: string;
   readonly pricing: string;
+  readonly starters: string;
 }
 
 interface ParsedJsonResponse {
@@ -135,11 +143,17 @@ function resolveSidecarUrls(value: string | undefined): ProductKitSidecarUrls | 
     );
     const catalogue = new URL("product-kit-v1.json", resolvedCatalogueUrl);
     const pricing = new URL("product-kit-pricing-v1.json", resolvedCatalogueUrl);
-    if ([catalogue, pricing].some((url) =>
+    const starters = new URL("student-starters-v1.json", resolvedCatalogueUrl);
+    if ([catalogue, pricing, starters].some((url) =>
       url.origin !== resolvedCatalogueUrl.origin || url.search || url.hash
     ) || catalogue.pathname !== `${parentPath}product-kit-v1.json` ||
-      pricing.pathname !== `${parentPath}product-kit-pricing-v1.json`) return null;
-    return { catalogue: catalogue.href, pricing: pricing.href };
+      pricing.pathname !== `${parentPath}product-kit-pricing-v1.json` ||
+      starters.pathname !== `${parentPath}student-starters-v1.json`) return null;
+    return {
+      catalogue: catalogue.href,
+      pricing: pricing.href,
+      starters: starters.href
+    };
   } catch {
     return null;
   }
@@ -278,6 +292,22 @@ function buildRasterSources(
   return frozenReadonlyMap(sources);
 }
 
+function buildStarterRasters(
+  manifest: StudentStarterManifestV1,
+  offline: OfflineCatalogueWithHash
+): ReadonlyMap<string, CatalogAssetV1> | null {
+  const records = new Map(offline.records.map((record) => [record.id, record]));
+  const selected = new Map<string, CatalogAssetV1>();
+  for (const starter of manifest.starters) {
+    if (starter.kind !== "raster") continue;
+    const record = records.get(starter.assetId);
+    if (!record || record.delivery !== "offline" || record.kind !== "raster-master" ||
+      !record.classroomReviewed || !record.brandFree) return null;
+    selected.set(starter.assetId, Object.freeze(structuredClone(record)));
+  }
+  return selected.size === 9 ? frozenReadonlyMap(selected) : null;
+}
+
 export async function loadProductKitBundle(
   offlineCatalogueUrl: string | undefined,
   offline: OfflineCatalogueWithHash,
@@ -296,11 +326,12 @@ export async function loadProductKitBundle(
   const fetchImpl = options.fetchImpl ?? ((input, init) => fetch(input, init));
 
   try {
-    const [catalogueResponse, pricingResponse] = await Promise.all([
+    const [catalogueResponse, pricingResponse, startersResponse] = await Promise.all([
       fetchJson(urls.catalogue, fetchImpl),
-      fetchJson(urls.pricing, fetchImpl)
+      fetchJson(urls.pricing, fetchImpl),
+      fetchJson(urls.starters, fetchImpl)
     ]);
-    if (!catalogueResponse || !pricingResponse) return null;
+    if (!catalogueResponse || !pricingResponse || !startersResponse) return null;
 
     const catalogue = parseProductKitCatalogue(
       catalogueResponse.value,
@@ -313,8 +344,22 @@ export async function loadProductKitBundle(
     if (!pricing) return null;
     const rasterSources = buildRasterSources(catalogue, offlineSnapshot);
     if (!rasterSources) return null;
+    const starterManifest = parseStudentStarterManifest(startersResponse.value, {
+      records: offlineSnapshot.records,
+      productKits: catalogue
+    });
+    if (!starterManifest) return null;
+    const starterRasters = buildStarterRasters(starterManifest, offlineSnapshot);
+    if (!starterRasters) return null;
 
-    return Object.freeze({ catalogue, runtime, rasterSources, pricing });
+    return Object.freeze({
+      catalogue,
+      runtime,
+      rasterSources,
+      pricing,
+      starterManifest,
+      starterRasters
+    });
   } catch {
     return null;
   }

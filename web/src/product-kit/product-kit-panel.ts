@@ -1,4 +1,5 @@
 import type { CampaignDocumentV1, ProductBuildSnapshotV1 } from "../domain/campaign-document";
+import type { CatalogAssetV1 } from "../catalogue/catalogue-types";
 import {
   createProductBuildSnapshot,
   type ProductBuildSnapshot
@@ -28,6 +29,7 @@ import type {
   ProductKitCompositionPlacementRequest,
   ProductKitCompositionRequest
 } from "./product-kit-runtime";
+import type { StudentStarterRecord } from "./student-starter-catalogue";
 
 const LOGICAL_WIDTH = 400;
 const LOGICAL_HEIGHT = 500;
@@ -122,6 +124,23 @@ interface CertifiedKit {
   readonly item: ProductKitKit;
   readonly price: ProductKitPrice;
   readonly frames: readonly CertifiedFrame[];
+}
+
+type CertifiedStudentStarter =
+  | {
+      readonly kind: "kit";
+      readonly record: Extract<StudentStarterRecord, { readonly kind: "kit" }>;
+      readonly kit: CertifiedKit;
+    }
+  | {
+      readonly kind: "raster";
+      readonly record: Extract<StudentStarterRecord, { readonly kind: "raster" }>;
+      readonly asset: CatalogAssetV1;
+    };
+
+export interface StudentStarterActions {
+  selectStarter(starter: StudentStarterRecord): Promise<void>;
+  placeSelectedStarter(): Promise<void>;
 }
 
 function sameBuild(
@@ -235,42 +254,103 @@ function certifiedKits(bundle: LoadedProductKitBundle): readonly CertifiedKit[] 
   return result;
 }
 
-export class ProductKitPanel {
+function certifiedStudentStarters(
+  bundle: LoadedProductKitBundle,
+  kits: readonly CertifiedKit[]
+): readonly CertifiedStudentStarter[] {
+  const kitById = new Map(kits.map((kit) => [kit.item.id, kit]));
+  const result: CertifiedStudentStarter[] = [];
+  for (const record of bundle.starterManifest.starters) {
+    if (record.kind === "kit") {
+      const kit = kitById.get(record.kitId);
+      if (!kit || !kit.frames.some(({ choices }) =>
+        choices.some(({ item }) => item.id === record.defaultComponentId)
+      )) return [];
+      result.push({ kind: "kit", record, kit });
+      continue;
+    }
+    const asset = bundle.starterRasters.get(record.assetId);
+    if (!asset || asset.title !== record.title) return [];
+    result.push({ kind: "raster", record, asset });
+  }
+  return result.length === 12 ? result : [];
+}
+
+export class ProductKitPanel implements StudentStarterActions {
   #bundle: LoadedProductKitBundle | null = null;
+  #selectedStarterId: string | null = null;
   #selectedKitId: string | null = null;
   #placedRequestKey: string | null = null;
   readonly #selectedByFrame = new Map<string, string>();
 
   constructor(
     private readonly host: HTMLElement,
-    private readonly onPlace: (request: ProductKitCompositionRequest) => void
+    private readonly onPlace: (request: ProductKitCompositionRequest) => void,
+    private readonly onPlaceRaster: (asset: CatalogAssetV1) => void = () => undefined
   ) {}
 
   render(bundle: LoadedProductKitBundle): void {
     const focusKey = this.#focusKey();
     try {
       const kits = certifiedKits(bundle);
-      if (kits.length === 0) {
+      const starters = certifiedStudentStarters(bundle, kits);
+      if (starters.length !== 12) {
         this.unavailable();
         return;
       }
       this.#bundle = bundle;
-      if (!kits.some(({ item }) => item.id === this.#selectedKitId)) {
-        this.#selectedKitId = kits[0]!.item.id;
+      if (!starters.some(({ record }) => record.id === this.#selectedStarterId)) {
+        this.#selectedStarterId = starters[0]!.record.id;
+        this.#selectedKitId = starters[0]!.kind === "kit"
+          ? starters[0]!.kit.item.id
+          : null;
         this.#selectedByFrame.clear();
         this.#placedRequestKey = null;
       }
-      const selected = kits.find(({ item }) => item.id === this.#selectedKitId)!;
-      for (const [frameId, componentId] of this.#selectedByFrame) {
-        const frame = selected.frames.find(({ frame }) => frame.id === frameId);
-        if (!frame?.choices.some(({ item }) => item.id === componentId)) {
-          this.#selectedByFrame.delete(frameId);
+      const selected = starters.find(({ record }) => record.id === this.#selectedStarterId)!;
+      if (selected.kind === "kit") {
+        this.#selectedKitId = selected.kit.item.id;
+        for (const [frameId, componentId] of this.#selectedByFrame) {
+          const frame = selected.kit.frames.find(({ frame }) => frame.id === frameId);
+          if (!frame?.choices.some(({ item }) => item.id === componentId)) {
+            this.#selectedByFrame.delete(frameId);
+          }
         }
+      } else {
+        this.#selectedKitId = null;
+        this.#selectedByFrame.clear();
       }
-      this.#draw(kits, selected, focusKey);
+      this.#draw(starters, selected, focusKey);
     } catch {
       this.unavailable();
     }
+  }
+
+  async selectStarter(starter: StudentStarterRecord): Promise<void> {
+    const bundle = this.#bundle;
+    if (!bundle || !bundle.starterManifest.starters.some(({ id }) => id === starter.id)) {
+      return;
+    }
+    this.#selectedStarterId = starter.id;
+    this.#selectedKitId = starter.kind === "kit" ? starter.kitId : null;
+    this.#selectedByFrame.clear();
+    this.#placedRequestKey = null;
+    this.render(bundle);
+  }
+
+  async placeSelectedStarter(): Promise<void> {
+    const bundle = this.#bundle;
+    if (!bundle || !this.#selectedStarterId) return;
+    const starter = certifiedStudentStarters(bundle, certifiedKits(bundle))
+      .find(({ record }) => record.id === this.#selectedStarterId);
+    if (!starter) return;
+    if (starter.kind === "raster") {
+      await this.onPlaceRaster(starter.asset);
+      return;
+    }
+    const request = this.#request(starter.kit, true);
+    if (!request || !bundle.runtime.planComposition(request)) return;
+    await this.onPlace(request);
   }
 
   /** Restores an exact, currently certified Product Kit composition into this panel. */
@@ -298,6 +378,10 @@ export class ProductKitPanel {
       const kits = certifiedKits(bundle);
       const selected = kits.find(({ item }) => item.id === reference.request.kitId);
       if (!selected || reference.request.placements.length !== selected.frames.length) return false;
+      const starter = bundle.starterManifest.starters.find((candidate) =>
+        candidate.kind === "kit" && candidate.kitId === selected.item.id
+      );
+      if (!starter) return false;
 
       const selectedByFrame = new Map<string, string>();
       for (const placement of reference.request.placements) {
@@ -314,6 +398,7 @@ export class ProductKitPanel {
       }
       if (selectedByFrame.size !== selected.frames.length) return false;
 
+      this.#selectedStarterId = starter.id;
       this.#selectedKitId = selected.item.id;
       this.#selectedByFrame.clear();
       for (const [frameId, componentId] of selectedByFrame) {
@@ -329,6 +414,7 @@ export class ProductKitPanel {
 
   unavailable(): void {
     this.#bundle = null;
+    this.#selectedStarterId = null;
     this.#selectedKitId = null;
     this.#placedRequestKey = null;
     this.#selectedByFrame.clear();
@@ -345,8 +431,8 @@ export class ProductKitPanel {
   }
 
   #draw(
-    kits: readonly CertifiedKit[],
-    selected: CertifiedKit,
+    starters: readonly CertifiedStudentStarter[],
+    selected: CertifiedStudentStarter,
     focusKey: string | null
   ): void {
     const bundle = this.#bundle;
@@ -354,11 +440,13 @@ export class ProductKitPanel {
       this.unavailable();
       return;
     }
-    const previewRequest = this.#request(selected, false);
-    const previewPlan = previewRequest
-      ? bundle.runtime.planComposition(previewRequest)
-      : null;
-    const preview = previewPlan ? this.#preview(bundle, selected, previewPlan) : null;
+    const preview = selected.kind === "kit"
+      ? (() => {
+          const request = this.#request(selected.kit, false);
+          const plan = request ? bundle.runtime.planComposition(request) : null;
+          return plan ? this.#preview(bundle, selected.kit, plan) : null;
+        })()
+      : this.#rasterPreview(selected.asset);
     if (!preview) {
       this.unavailable();
       return;
@@ -369,68 +457,77 @@ export class ProductKitPanel {
     const controls = node("div", "product-kit__controls");
     const baseGroup = node("fieldset", "product-kit__group");
     baseGroup.append(node("legend", undefined, "Start with"));
-    for (const kit of kits) {
+    for (const starter of starters) {
       const choice = node("label", "product-kit__choice");
       const input = node("input");
       input.type = "radio";
-      input.name = "product-kit-base";
-      input.value = kit.item.id;
-      input.checked = kit.item.id === selected.item.id;
-      input.dataset.focusKey = `base:${kit.item.id}`;
+      input.name = "student-starter";
+      input.value = starter.record.id;
+      input.checked = starter.record.id === selected.record.id;
+      input.dataset.focusKey = `starter:${starter.record.id}`;
       const copy = node("span", "product-kit__choice-copy");
-      copy.append(node("strong", undefined, kit.item.title));
+      const category = node(
+        "small",
+        "product-kit__choice-category",
+        starter.record.category.replaceAll("-", " ")
+      );
+      category.setAttribute("aria-hidden", "true");
+      copy.append(node("strong", undefined, starter.record.title), category);
       choice.append(input, copy);
       input.addEventListener("change", () => {
         if (!input.checked) return;
-        this.#selectedKitId = kit.item.id;
-        this.#selectedByFrame.clear();
-        this.#placedRequestKey = null;
-        this.render(bundle);
+        void this.selectStarter(starter.record);
       });
       baseGroup.append(choice);
     }
     controls.append(baseGroup);
 
-    for (const certifiedFrame of selected.frames) {
-      const group = node("fieldset", "product-kit__group");
-      const groupName = certifiedFrame.choices[0]!.price.groupLabel;
-      group.append(node("legend", undefined, `Choose a ${groupName.toLowerCase()}`));
-      for (const certifiedChoice of certifiedFrame.choices) {
-        const choice = node("label", "product-kit__choice");
-        const input = node("input");
-        input.type = "radio";
-        input.name = `product-kit-${certifiedFrame.frame.id}`;
-        input.value = certifiedChoice.item.id;
-        input.checked = this.#selectedByFrame.get(certifiedFrame.frame.id) ===
-          certifiedChoice.item.id;
-        input.dataset.focusKey =
-          `choice:${certifiedFrame.frame.id}:${certifiedChoice.item.id}`;
-        const copy = node("span", "product-kit__choice-copy");
-        copy.append(node("strong", undefined, certifiedChoice.item.title));
-        choice.append(input, copy);
-        input.addEventListener("change", () => {
-          if (!input.checked) return;
-          this.#selectedByFrame.set(certifiedFrame.frame.id, certifiedChoice.item.id);
-          this.#placedRequestKey = null;
-          this.render(bundle);
-        });
-        group.append(choice);
+    if (selected.kind === "kit") {
+      for (const certifiedFrame of selected.kit.frames) {
+        const group = node("fieldset", "product-kit__group");
+        const groupName = certifiedFrame.choices[0]!.price.groupLabel;
+        group.append(node("legend", undefined, `Choose a ${groupName.toLowerCase()}`));
+        for (const certifiedChoice of certifiedFrame.choices) {
+          const choice = node("label", "product-kit__choice");
+          const input = node("input");
+          input.type = "radio";
+          input.name = `product-kit-${certifiedFrame.frame.id}`;
+          input.value = certifiedChoice.item.id;
+          input.checked = this.#selectedByFrame.get(certifiedFrame.frame.id) ===
+            certifiedChoice.item.id;
+          input.dataset.focusKey =
+            `choice:${certifiedFrame.frame.id}:${certifiedChoice.item.id}`;
+          const copy = node("span", "product-kit__choice-copy");
+          copy.append(node("strong", undefined, certifiedChoice.item.title));
+          choice.append(input, copy);
+          input.addEventListener("change", () => {
+            if (!input.checked) return;
+            this.#selectedByFrame.set(certifiedFrame.frame.id, certifiedChoice.item.id);
+            this.#placedRequestKey = null;
+            this.render(bundle);
+          });
+          group.append(choice);
+        }
+        controls.append(group);
       }
-      controls.append(group);
     }
 
-    const completeRequest = this.#request(selected, true);
+    const completeRequest = selected.kind === "kit"
+      ? this.#request(selected.kit, true)
+      : null;
     const alreadyPlaced = completeRequest !== null &&
       JSON.stringify(completeRequest) === this.#placedRequestKey;
-    const missingGroup = selected.frames.find(({ frame }) =>
-      !this.#selectedByFrame.has(frame.id)
-    )?.choices[0]?.price.groupLabel.toLowerCase();
+    const missingGroup = selected.kind === "kit"
+      ? selected.kit.frames.find(({ frame }) =>
+          !this.#selectedByFrame.has(frame.id)
+        )?.choices[0]?.price.groupLabel.toLowerCase()
+      : undefined;
     const status = node(
       "p",
       "product-kit__status",
       alreadyPlaced
         ? "On your ad. Change a choice to replace it."
-        : completeRequest
+        : selected.kind === "raster" || completeRequest
           ? "Ready to place on your ad"
           : `Choose a ${missingGroup ?? "part"} to finish your product`
     );
@@ -442,12 +539,10 @@ export class ProductKitPanel {
       alreadyPlaced ? "Place another product on ad" : "Place product on ad"
     );
     action.type = "button";
-    action.disabled = completeRequest === null;
+    action.disabled = selected.kind === "kit" && completeRequest === null;
     action.dataset.focusKey = "place";
     action.addEventListener("click", () => {
-      const request = this.#request(selected, true);
-      if (!request || !bundle.runtime.planComposition(request)) return;
-      this.onPlace(request);
+      void this.placeSelectedStarter();
     });
     const summary = node("div", "product-kit__summary");
     summary.append(status, action);
@@ -456,6 +551,22 @@ export class ProductKitPanel {
     panel.append(layout);
     this.host.replaceChildren(panel);
     this.#restoreFocus(focusKey);
+  }
+
+  #rasterPreview(asset: CatalogAssetV1): HTMLElement | null {
+    const expected =
+      `/catalog/generated/offline-core-v1/assets/${asset.id}/preview-640.webp`;
+    if (asset.delivery !== "offline" || asset.files.preview !== expected) return null;
+    const figure = node("figure", "product-kit__preview-frame product-kit__preview-frame--raster");
+    figure.setAttribute("role", "img");
+    figure.setAttribute("aria-label", asset.title);
+    const image = node("img", "product-kit__starter-image");
+    image.alt = "";
+    image.decoding = "async";
+    image.draggable = false;
+    image.src = expected;
+    figure.append(image);
+    return figure;
   }
 
   #request(selected: CertifiedKit, complete: boolean): ProductKitCompositionRequest | null {

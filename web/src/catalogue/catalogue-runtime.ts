@@ -425,7 +425,14 @@ function snapshotProductKitPricing(value: unknown): ProductKitPricingIndex {
 }
 
 function snapshotProductKitBundle(value: LoadedProductKitBundle): ProductKitBundleSnapshot {
-  const fields = exactDataRecord(value, ["catalogue", "runtime", "rasterSources", "pricing"]);
+  const fields = exactDataRecord(value, [
+    "catalogue",
+    "runtime",
+    "rasterSources",
+    "pricing",
+    "starterManifest",
+    "starterRasters"
+  ]);
   const runtimeFields = fields && exactDataRecord(fields.runtime, ["resolvePair", "planComposition"]);
   if (!fields || !isParsedProductKitCatalogue(fields.catalogue) || !runtimeFields ||
     typeof runtimeFields.resolvePair !== "function" ||

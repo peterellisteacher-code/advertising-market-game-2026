@@ -4,7 +4,6 @@ import {
   canonicalProductPriceSubject,
   type ProductPriceGuideRequest
 } from "../../shared/product-price-guide-contract";
-import { createCapability, IMAGE_LAB_COOKIE } from "./lib/image-lab-auth";
 import {
   MemoryProductPriceGuideStateRepository,
   ProductPriceGuideStateService
@@ -15,14 +14,25 @@ import {
   createProductPriceGuideHandler
 } from "./product-price-guide.mjs";
 
-const secret = "s".repeat(48);
 const environment = {
   PRODUCT_PRICE_GUIDE_ENABLED: "true",
   PRODUCT_PRICE_GUIDE_SCHOOL_APPROVED: "true",
   PRODUCT_PRICE_GUIDE_ACCOUNT_CAP_USD: "5",
-  IMAGE_LAB_SIGNING_SECRET: secret,
   OPENROUTER_API_KEY: "openrouter-test-key"
 };
+const authenticatedSession = async () => ({
+  authenticated: true as const,
+  identity: {
+    userId: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
+    username: "team-one"
+  }
+});
+const createHandler = (
+  dependencies: Parameters<typeof createProductPriceGuideHandler>[0] = {}
+) => createProductPriceGuideHandler({
+  resolveSession: authenticatedSession,
+  ...dependencies
+});
 const product = {
   name: "Orbit Tumbler",
   features: ["Material: Insulated steel", "Feature: Reusable lid"]
@@ -42,22 +52,11 @@ function body(idempotencyKey = "price-check-1"): ProductPriceGuideRequest {
   };
 }
 
-function capability(sessionId = "session-pair-7", teamId = "team-pair-7"): string {
-  return createCapability({
-    sessionId,
-    teamId,
-    remainingObject: 6,
-    remainingRealise: 1,
-    expiresAt: 2_000
-  }, secret);
-}
-
-function incoming(value: unknown, options: { cookie?: string; contentLength?: string } = {}): Request {
+function incoming(value: unknown, options: { contentLength?: string } = {}): Request {
   return new Request("https://draft.example/api/product-price-guide", {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      cookie: `${IMAGE_LAB_COOKIE}=${options.cookie ?? capability()}`,
       ...(options.contentLength === undefined ? {} : { "content-length": options.contentLength })
     },
     body: JSON.stringify(value)
@@ -93,7 +92,7 @@ function state(): ProductPriceGuideStateService {
 describe("product price guide function", () => {
   it("sends one pinned web-search request and derives the range in application code", async () => {
     const fetcher = vi.fn().mockResolvedValue(provider(providerResult));
-    const handler = createProductPriceGuideHandler({
+    const handler = createHandler({
       environment,
       fetch: fetcher,
       state: state(),
@@ -142,7 +141,7 @@ describe("product price guide function", () => {
   it("replays a completed product fingerprint without another paid lookup", async () => {
     const fetcher = vi.fn().mockResolvedValue(provider(providerResult));
     const service = state();
-    const handler = createProductPriceGuideHandler({
+    const handler = createHandler({
       environment,
       fetch: fetcher,
       state: service,
@@ -160,7 +159,7 @@ describe("product price guide function", () => {
     const fetcher = vi.fn()
       .mockResolvedValueOnce(new Response("upstream", { status: 503 }))
       .mockResolvedValueOnce(provider(providerResult));
-    const handler = createProductPriceGuideHandler({
+    const handler = createHandler({
       environment,
       fetch: fetcher,
       state: state(),
@@ -176,7 +175,7 @@ describe("product price guide function", () => {
 
   it("returns insufficient evidence instead of accepting invented comparables", async () => {
     const fetcher = vi.fn().mockResolvedValue(provider({ found: false, comparables: [] }));
-    const handler = createProductPriceGuideHandler({
+    const handler = createHandler({
       environment,
       fetch: fetcher,
       state: state(),
@@ -189,18 +188,22 @@ describe("product price guide function", () => {
     await expect(response.json()).resolves.toEqual({ error: "INSUFFICIENT_EVIDENCE" });
   });
 
-  it("fails closed before billing for disabled, locked, mismatched and malformed requests", async () => {
+  it("fails closed before billing for disabled, unauthenticated and malformed requests", async () => {
     const fetcher = vi.fn();
     const base = { fetch: fetcher, state: state(), nowSeconds: () => 1_000 };
-    const disabled = createProductPriceGuideHandler({
+    const disabled = createHandler({
       ...base,
       environment: { ...environment, PRODUCT_PRICE_GUIDE_ENABLED: "false" }
     });
     expect((await disabled(incoming(body()))).status).toBe(503);
 
-    const handler = createProductPriceGuideHandler({ ...base, environment });
-    expect((await handler(incoming(body(), { cookie: "invalid" }))).status).toBe(401);
-    expect((await handler(incoming(body(), { cookie: capability("wrong-session") }))).status).toBe(401);
+    const locked = createHandler({
+      ...base,
+      environment,
+      resolveSession: async () => ({ authenticated: false as const, clearCookies: false })
+    });
+    expect((await locked(incoming(body()))).status).toBe(401);
+    const handler = createHandler({ ...base, environment });
     expect((await handler(incoming({ ...body(), extra: true }))).status).toBe(400);
     expect((await handler(incoming({ ...body(), productFingerprint: "f".repeat(64) }))).status).toBe(400);
     expect((await handler(incoming(body(), { contentLength: String(16 * 1024 + 1) }))).status).toBe(413);
@@ -220,7 +223,7 @@ describe("product price guide function", () => {
       provider(providerResult, "another/model")
     ]) {
       const fetcher = vi.fn().mockResolvedValue(upstream);
-      const handler = createProductPriceGuideHandler({
+      const handler = createHandler({
         environment,
         fetch: fetcher,
         state: state(),

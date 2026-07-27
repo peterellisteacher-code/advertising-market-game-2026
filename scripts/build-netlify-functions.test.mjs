@@ -49,4 +49,22 @@ test("function build emits one exact wrapper-and-bundle manifest", async () => {
       );
     }
   }
+
+  const imageLabJobs = manifest.functions.find(({ name }) => name === "image-lab-jobs");
+  const imageLabSession = manifest.functions.find(({ name }) => name === "image-lab-session");
+  const teacherAccounts = manifest.functions.find(({ name }) => name === "teacher-accounts");
+  assert.ok(imageLabJobs);
+  assert.ok(imageLabSession);
+  assert.ok(teacherAccounts);
+  const [jobsWrapper, jobsBundle, sessionWrapper, teacherWrapper] = await Promise.all([
+    readFile(path.join(ROOT, "netlify", ...imageLabJobs.wrapper.path.split("/")), "utf8"),
+    readFile(path.join(ROOT, "netlify", ...imageLabJobs.bundle.path.split("/")), "utf8"),
+    readFile(path.join(ROOT, "netlify", ...imageLabSession.wrapper.path.split("/")), "utf8"),
+    readFile(path.join(ROOT, "netlify", ...teacherAccounts.wrapper.path.split("/")), "utf8")
+  ]);
+  assert.match(jobsWrapper, /"\/api\/image-lab\/jobs\/reconcile"/);
+  assert.match(jobsBundle, /\/api\/image-lab\/jobs\/reconcile/);
+  assert.match(sessionWrapper, /path: \["\/api\/image-lab\/session"\]/);
+  assert.doesNotMatch(sessionWrapper, /unlock|lock/);
+  assert.match(teacherWrapper, /"\/api\/teacher\/image-lab\/batch"/);
 });

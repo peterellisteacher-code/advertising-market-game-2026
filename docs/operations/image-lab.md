@@ -1,18 +1,20 @@
-# Image Lab: supervised classroom activation
+# Image Lab: teacher-controlled account allowances
 
-Image Lab is built into the creator, but it is disabled by default. The normal product maker, Logo Lab, drawing tools and asset catalogue remain available when Image Lab is off.
+Image Lab is built into the creator, but it is disabled by default. The normal product maker, Logo Lab, drawing tools and asset catalogue remain available while it is off.
 
-Image Lab is also closed at the start of every pair's browser session. While physically supervising the class, the teacher enters the classroom code locally on that pair's MacBook to open a short-lived Image Lab capability. Students are not given the code. The capability expires after 75 minutes and can be revoked immediately with **Close Image Lab**. Closing or expiry does not remove images already saved into the campaign.
+Access has two independent server-side gates. `IMAGE_LAB_ENABLED` is the deployment kill switch. The teacher dashboard controls the global allowance-ledger setting and the separate Object Forge and Make It Real allowances for each pair account. A paid request requires an authenticated pair account, the global ledger setting to be on, and at least one available use for that request's stage.
 
-This makes Image Lab teacher-togglable per session rather than an always-on student service. The password-protected game, physical teacher supervision, pair-bound capability, expiry and close control form the classroom access and age-assurance layer. They do not override a provider's eligibility or minor-use terms.
+Student devices do not receive a teacher code, an unlock control, a raw account ID, a provider key or an unlimited session capability. The teacher makes every availability change from `/teacher`. New accounts receive zero uses unless the teacher changes the defaults for future accounts. Changing those defaults does not alter existing accounts.
 
-## Supervised access gate
+The password-protected game, physical teacher supervision, account-bound access and server-authoritative allowance ledger form part of the classroom access and age-assurance layer. They do not override a provider's eligibility or minor-use terms.
 
-Image Lab may operate only while the teacher is physically present and only after the teacher opens it for an individual pair. The retired `IMAGE_LAB_FAL_MINOR_USE_APPROVED` switch is no longer read by the application. Activation requires `IMAGE_LAB_SCHOOL_APPROVED=true`, the server-only classroom code, the pair-bound capability cookie, and the global `IMAGE_LAB_ENABLED` switch.
+## Teacher-controlled allowance gate
+
+Image Lab may operate only while the teacher is physically present. The retired `IMAGE_LAB_FAL_MINOR_USE_APPROVED` and classroom-code gates are not read by the student routes. Activation requires `IMAGE_LAB_SCHOOL_APPROVED=true`, the deployment kill switch, a valid account session and the teacher-controlled ledger setting.
 
 The current fal.ai Acceptable Use Policy says people under 18 may not use the service and makes account holders responsible for their users. Removing the technical letter gate records a supervised operating decision; it is not a claim that fal.ai has changed or waived its policy.
 
-A direct OpenAI API route has a different published framework: OpenAI's Under 18 API Guidance does not require an approval letter. It requires additional safeguards for minor-facing products, including age-appropriate disclosure, content filtering, reasonable monitoring and reporting/escalation, and age assurance where appropriate. Personal data of children under 13 or the applicable age of digital consent must not be processed without Zero Data Retention. The teacher-opened session gate satisfies only part of that framework; the remaining controls must be implemented before enabling a direct OpenAI route.
+A direct OpenAI API route has a different published framework: OpenAI's Under 18 API Guidance does not require an approval letter. It requires additional safeguards for minor-facing products, including age-appropriate disclosure, content filtering, reasonable monitoring and reporting/escalation, and age assurance where appropriate. Personal data of children under 13 or the applicable age of digital consent must not be processed without Zero Data Retention. The account allowance gate satisfies only part of that framework; the remaining controls must be implemented before enabling a direct OpenAI route.
 
 References:
 
@@ -57,7 +59,7 @@ IMAGE_LAB_REALISE_PROFILE_ID=flux2-turbo-edit-v1
 
 Only those profile IDs are accepted. An unknown selector, or a missing or unsafe LoRA URL while `z-image-lora-v1` is selected, fails closed before allowance is reserved or a fal request is submitted. The adapter URL is server-only and is never returned to the browser. Existing job tokens retain their original stable profile ID, so status and result requests continue using the submitted model after selectors change.
 
-The browser sends only the pair identity and constrained creative choices. Make It Real also sends a locally prepared 1024×576 reference image of the current canvas. The fal key, model identity, prompt wrapper, paid media URL and upstream request ID remain server-side.
+The browser sends constrained creative choices under its same-origin account session. Make It Real also sends a locally prepared 1024×576 reference image of the current canvas. It does not send a pair alias, account ID, teacher credential or allowance count. The fal key, model identity, prompt wrapper, paid media URL and upstream request ID remain server-side.
 
 ## Required Netlify environment
 
@@ -65,15 +67,39 @@ The browser sends only the pair identity and constrained creative choices. Make 
 IMAGE_LAB_ENABLED=true
 IMAGE_LAB_SCHOOL_APPROVED=true
 IMAGE_LAB_ACCOUNT_CAP_USD=5
-IMAGE_LAB_CLASSROOM_CODE=<at least 8 characters>
 IMAGE_LAB_SIGNING_SECRET=<at least 32 random characters>
-IMAGE_LAB_SESSION_MINUTES=75
-IMAGE_LAB_OBJECT_ALLOWANCE=6
-IMAGE_LAB_REALISE_ALLOWANCE=1
 FAL_KEY=<server-only fal key>
 ```
 
-`IMAGE_LAB_ACCOUNT_CAP_USD` is an activation acknowledgement, not a billing control. Configure a real hard spending limit on the fal account or dedicated key before enabling the feature. Never put `FAL_KEY` in Vite variables, HTML, client code or a public repository.
+The account-service variables documented in `advertising-game-account-progress.md` are also required because every status, submission, poll, result and reconciliation request resolves the signed-in pair from the account cookies.
+
+`IMAGE_LAB_ACCOUNT_CAP_USD` is an activation acknowledgement, not a billing control. Configure a real hard spending limit on the fal account or dedicated key before enabling the feature. The allowance ledger does not replace that provider-side cap. Never put `FAL_KEY` in Vite variables, HTML, client code or a public repository.
+
+## Allowance lifecycle
+
+Object Forge and Make It Real have independent counters for every pair:
+
+- `granted` is the total authorised use count;
+- `available` is `granted - consumed - reserved`;
+- `reserved` is held while a paid job may be in progress;
+- `consumed` records a confirmed completed deliverable;
+- `refunded` is a terminal operation that releases a reservation after a confirmed failure;
+- `uncertain` keeps the reservation in place until the existing job is checked.
+
+The teacher dashboard can set the exact available count, add uses or revoke only unconsumed and unreserved uses. It can also add uses to selected pairs, switch Image Lab on or off globally, and set separate defaults for accounts created later. All counts are whole numbers from 0 to 100. Every mutation has an idempotent operation identity; a replay with different data is rejected.
+
+Defaults apply only when a new account is created through the teacher dashboard. An existing account that first reaches Image Lab later starts at zero, even if the future-account default has changed.
+
+## Reconciliation
+
+Submission is never repeated automatically. If the browser cannot determine whether a paid request started, it retains the original job token and shows **Check request**. That action sends the existing token once to `POST /api/image-lab/jobs/reconcile` under the same pair account.
+
+- A confirmed completed job is consumed once.
+- A confirmed failed job is refunded once.
+- A queued or running job remains reserved.
+- An unknown provider outcome remains uncertain and reserved.
+
+Do not create a replacement request while the original reservation is uncertain. First use **Check request** from the same account and device. If the teacher dashboard reports an uncertain allowance mutation, retain the entered values and use **Refresh allowances**; do not repeat the mutation with a new operation ID.
 
 ## Expected classroom cost
 
@@ -88,25 +114,26 @@ Alternative-profile trials remain teacher-operated and must never create an unga
 ## Security properties and limits
 
 - Image jobs use authenticated encrypted browser tokens; the upstream fal request ID is not readable in the token.
-- The capability cookie is signed, pair-bound, short-lived, `HttpOnly`, `SameSite=Strict` and scoped to `/api/image-lab`.
+- Every public image-generation request resolves the signed-in account from `HttpOnly`, `SameSite=Strict` account cookies. The status and job routes reject browser-supplied aliases, user IDs, session IDs and team IDs.
+- The private allowance tables and RPC are reachable only through the service-role broker. Browser roles have no schema, table or function access.
 - Generated media is fetched by the server from an allowlisted `fal.media` HTTPS host, checked for type, signature, byte limit and the exact dimensions pinned to the submitted profile, then proxied same-origin with `no-store`.
 - Accepted images become owned local blobs in the campaign draft. Saved campaigns do not depend on expiring fal URLs.
 - Submission is not retried automatically.
-- The signed-cookie allowance prevents ordinary accidental overuse, but it is not a transactional global budget. Concurrent replay cannot be fully prevented without server-side state. The external fal account cap is mandatory.
+- Reservation, completion and refund use advisory locks and an operation journal, so concurrent replay is atomic and idempotent. The external fal account cap remains mandatory.
 - All automated verification uses injected fake responses. It performs no paid fal inference.
 
 ## Activation check
 
 1. Confirm school approval and the teacher's physical supervision for the complete session.
-2. Create a dedicated server-side fal key.
-3. Apply a hard fal account/key spending cap.
-4. Set a new classroom code and signing secret.
-5. Keep Object Forge and Make It Real allowances low for the first session.
-6. Test with the teacher account before students arrive.
-7. Keep the classroom code private; the teacher enters it on each pair's MacBook only while physically supervising that session.
-8. Confirm the capability reports closed before the lesson, opens only after teacher action, expires after 75 minutes, and closes immediately from **Close Image Lab**.
-9. Keep the default profiles unless sealed teacher-operated blind A/B evidence supports a change.
-10. Close each active pair session at the end of the lesson, then disable `IMAGE_LAB_ENABLED` immediately after the activity.
+2. Reserve the four named database objects, apply the allowance migration once, run the schema and grant checks below, and release the shared-project reservation.
+3. Create a dedicated server-side fal key and apply a hard account or key spending cap at the provider.
+4. Configure the account-service variables, `IMAGE_LAB_ENABLED=true`, `IMAGE_LAB_SCHOOL_APPROVED=true`, the activation acknowledgement, a new signing secret and the server-only fal key.
+5. Verify that the deployed function manifest exposes `/api/image-lab/session`, `/api/image-lab/jobs`, `/api/image-lab/jobs/reconcile` and `/api/image-lab/assets`, with no unlock or lock route.
+6. Sign in at `/teacher`. Keep the global ledger setting off and both future-account defaults at zero while preparing the class.
+7. Use a designated demonstration pair account to test one Object Forge use, one Make It Real use and **Check request** before students arrive. Confirm the resulting available and reserved counts in the teacher dashboard.
+8. Keep the default profiles unless sealed teacher-operated blind A/B evidence supports a change.
+9. Allocate only the required uses to the named pair aliases, then switch the global ledger setting on immediately before the supervised activity.
+10. After the activity, switch the global ledger setting off. Reconcile every reserved or uncertain job before revoking unused availability. Disable the deployment kill switch when Image Lab is no longer required.
 
 ## Atomic allowance ledger migration
 

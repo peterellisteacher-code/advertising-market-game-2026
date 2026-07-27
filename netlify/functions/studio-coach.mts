@@ -13,10 +13,20 @@ import {
   type StudioCoachTurnOneResponse
 } from "../../shared/studio-coach-contract";
 import {
-  IMAGE_LAB_COOKIE,
-  ImageLabAuthError,
-  readCapability
-} from "./lib/image-lab-auth";
+  AccountConfigurationError,
+  SupabaseAccountClient,
+  SupabaseAccountError,
+  parseAccountCookies,
+  parseAccountEnvironment,
+  resolveAccountSession,
+  type ResolvedAccountSession
+} from "./lib/account-backend";
+import {
+  clearAccountAccessCookie,
+  clearAccountRefreshCookie,
+  serialiseAccountAccessCookie,
+  serialiseAccountRefreshCookie
+} from "./lib/account-primitives";
 import { defaultStudioCoachStateService } from "./lib/netlify-studio-coach-state";
 import {
   StudioCoachStateError,
@@ -55,18 +65,22 @@ const REQUEST_MAX_BYTES = 3 * 1024 * 1024;
 const IMAGE_MAX_BYTES = 768 * 1024;
 const PROVIDER_RESPONSE_MAX_BYTES = 64 * 1024;
 const UPSTREAM_TIMEOUT_MS = 12_000;
+const REFRESH_COOKIE_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 const ENVIRONMENT_KEYS = [
+  "SUPABASE_URL",
+  "SUPABASE_PUBLISHABLE_KEY",
+  "ADVERTISING_GAME_EDGE_GATEWAY_SECRET",
+  "ADVERTISING_GAME_USERNAME_HMAC_SECRET",
+  "ADVERTISING_GAME_CLASSROOM_CODE",
   "STUDIO_COACH_ENABLED",
   "STUDIO_COACH_SCHOOL_APPROVED",
   "STUDIO_COACH_ACCOUNT_CAP_USD",
-  "IMAGE_LAB_SIGNING_SECRET",
   "OPENROUTER_API_KEY"
 ] as const;
 
 type StudioCoachEnvironmentRecord = Readonly<Record<string, string | undefined>>;
 
 interface ReadyStudioCoachEnvironment {
-  signingSecret: string;
   openRouterKey: string;
 }
 
@@ -76,6 +90,7 @@ export interface StudioCoachHandlerDependencies {
   nowSeconds?: () => number;
   createDeadlineSignal?: () => AbortSignal;
   state?: StudioCoachStateService;
+  resolveSession?: (request: Request) => Promise<ResolvedAccountSession>;
 }
 
 interface ResolvedDependencies {
@@ -84,6 +99,7 @@ interface ResolvedDependencies {
   nowSeconds: () => number;
   createDeadlineSignal: () => AbortSignal;
   state?: StudioCoachStateService;
+  resolveSession?: (request: Request) => Promise<ResolvedAccountSession>;
 }
 
 class StudioCoachRequestError extends Error {
@@ -125,11 +141,19 @@ const runtimeEnvironment = (): StudioCoachEnvironmentRecord => Object.fromEntrie
   ENVIRONMENT_KEYS.map((key) => [key, Netlify.env.get(key)])
 );
 
-const json = (body: unknown, status = 200, headers: HeadersInit = {}): Response =>
-  Response.json(body, {
-    status,
-    headers: { "cache-control": "no-store", ...Object.fromEntries(new Headers(headers)) }
+const json = (
+  body: unknown,
+  status = 200,
+  headers: HeadersInit = {},
+  cookies: readonly string[] = []
+): Response => {
+  const responseHeaders = new Headers({
+    "cache-control": "no-store",
+    ...Object.fromEntries(new Headers(headers))
   });
+  for (const cookie of cookies) responseHeaders.append("set-cookie", cookie);
+  return Response.json(body, { status, headers: responseHeaders });
+};
 
 function resolveDependencies(dependencies: StudioCoachHandlerDependencies): ResolvedDependencies {
   return {
@@ -137,7 +161,10 @@ function resolveDependencies(dependencies: StudioCoachHandlerDependencies): Reso
     fetch: dependencies.fetch ?? ((input, init) => fetch(input, init)),
     nowSeconds: dependencies.nowSeconds ?? (() => Math.floor(Date.now() / 1_000)),
     createDeadlineSignal: dependencies.createDeadlineSignal ?? (() => AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)),
-    ...(dependencies.state === undefined ? {} : { state: dependencies.state })
+    ...(dependencies.state === undefined ? {} : { state: dependencies.state }),
+    ...(dependencies.resolveSession === undefined
+      ? {}
+      : { resolveSession: dependencies.resolveSession })
   };
 }
 
@@ -147,14 +174,12 @@ function requireEnvironment(environment: StudioCoachEnvironmentRecord): ReadyStu
     throw new StudioCoachRequestError("STUDIO_COACH_DISABLED", 503);
   }
   const cap = Number(environment.STUDIO_COACH_ACCOUNT_CAP_USD);
-  const signingSecret = environment.IMAGE_LAB_SIGNING_SECRET;
   const openRouterKey = environment.OPENROUTER_API_KEY;
   if (!Number.isFinite(cap) || cap <= 0 || cap > 100 ||
-    typeof signingSecret !== "string" || signingSecret.trim() !== signingSecret || signingSecret.length < 32 ||
     typeof openRouterKey !== "string" || openRouterKey.trim() !== openRouterKey || openRouterKey.length < 1) {
     throw new StudioCoachRequestError("STUDIO_COACH_DISABLED", 503);
   }
-  return { signingSecret, openRouterKey };
+  return { openRouterKey };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -218,39 +243,32 @@ async function readRequestJson(request: Request): Promise<unknown> {
   }
 }
 
-function cookieValue(request: Request): string {
-  const header = request.headers.get("cookie");
-  if (!header) throw new StudioCoachRequestError("STUDIO_COACH_LOCKED", 401);
-  const values: string[] = [];
-  for (const part of header.split(";")) {
-    const separator = part.indexOf("=");
-    if (separator < 0) continue;
-    if (part.slice(0, separator).trim() === IMAGE_LAB_COOKIE) {
-      values.push(part.slice(separator + 1).trim());
-    }
-  }
-  if (values.length !== 1 || !values[0] || values[0].length > 4_096) {
-    throw new StudioCoachRequestError("STUDIO_COACH_LOCKED", 401);
-  }
-  return values[0];
-}
+type AuthenticatedAccountSession = Extract<
+  ResolvedAccountSession,
+  { authenticated: true }
+>;
 
-function requireIdentity(
-  request: Request,
-  environment: ReadyStudioCoachEnvironment,
-  nowSeconds: number
-): StudioCoachPairIdentity {
-  try {
-    const capability = readCapability(cookieValue(request), environment.signingSecret, nowSeconds);
-    return { sessionId: capability.sessionId, teamId: capability.teamId };
-  } catch (error) {
-    if (error instanceof StudioCoachRequestError) throw error;
-    if (error instanceof ImageLabAuthError && error.code === "EXPIRED_TOKEN") {
-      throw new StudioCoachRequestError("STUDIO_COACH_LOCKED", 401);
-    }
-    throw new StudioCoachRequestError("STUDIO_COACH_LOCKED", 401);
-  }
-}
+const rotatedAccountCookies = (
+  session: AuthenticatedAccountSession
+): readonly string[] => session.rotatedTokens === undefined
+  ? []
+  : [
+      serialiseAccountAccessCookie(
+        session.rotatedTokens.accessToken,
+        session.rotatedTokens.expiresIn,
+        true
+      ),
+      serialiseAccountRefreshCookie(
+        session.rotatedTokens.refreshToken,
+        REFRESH_COOKIE_MAX_AGE_SECONDS,
+        true
+      )
+    ];
+
+const expiredAccountCookies = (): readonly string[] => [
+  clearAccountAccessCookie(true),
+  clearAccountRefreshCookie(true)
+];
 
 function parseBounds(value: unknown): StudioCoachObjectEvidence["bounds"] | undefined {
   if (value === undefined) return undefined;
@@ -931,23 +949,51 @@ export function createStudioCoachHandler(
     let request: StudioCoachRequest;
     let identity: StudioCoachPairIdentity;
     let environment: ReadyStudioCoachEnvironment;
+    let responseCookies: readonly string[] = [];
     try {
-      environment = requireEnvironment(dependencies.environment ?? runtimeEnvironment());
-      identity = requireIdentity(incoming, environment, dependencies.nowSeconds());
-      request = parseRequest(await readRequestJson(incoming));
-      if (request.sessionId !== identity.sessionId || request.teamId !== identity.teamId) {
-        throw new StudioCoachRequestError("STUDIO_COACH_LOCKED", 401);
+      const environmentRecord = dependencies.environment ?? runtimeEnvironment();
+      environment = requireEnvironment(environmentRecord);
+      const accountSession = dependencies.resolveSession === undefined
+        ? await (() => {
+            const client = new SupabaseAccountClient(
+              parseAccountEnvironment(environmentRecord),
+              dependencies.fetch
+            );
+            return resolveAccountSession(client, parseAccountCookies(incoming));
+          })()
+        : await dependencies.resolveSession(incoming);
+      if (!accountSession.authenticated) {
+        return json(
+          { error: "STUDIO_COACH_LOCKED" },
+          401,
+          {},
+          accountSession.clearCookies ? expiredAccountCookies() : []
+        );
       }
+      responseCookies = rotatedAccountCookies(accountSession);
+      identity = {
+        sessionId: accountSession.identity.userId,
+        teamId: accountSession.identity.username
+      };
+      request = parseRequest(await readRequestJson(incoming));
     } catch (error) {
-      if (error instanceof StudioCoachRequestError) return json({ error: error.code }, error.status);
-      return json({ error: "INVALID_REQUEST" }, 400);
+      if (error instanceof StudioCoachRequestError) {
+        return json({ error: error.code }, error.status, {}, responseCookies);
+      }
+      if (
+        error instanceof AccountConfigurationError ||
+        error instanceof SupabaseAccountError
+      ) {
+        return json({ error: "STUDIO_COACH_UNAVAILABLE" }, 503, {}, responseCookies);
+      }
+      return json({ error: "INVALID_REQUEST" }, 400, {}, responseCookies);
     }
 
     let state: StudioCoachStateService;
     try {
       state = dependencies.state ?? await defaultStudioCoachStateService();
     } catch {
-      return json({ error: "STUDIO_COACH_UNAVAILABLE" }, 503);
+      return json({ error: "STUDIO_COACH_UNAVAILABLE" }, 503, {}, responseCookies);
     }
     let reservation;
     try {
@@ -964,31 +1010,33 @@ export function createStudioCoachHandler(
       const mapped = error instanceof StudioCoachStateError
         ? stateError(error)
         : new StudioCoachRequestError("STUDIO_COACH_UNAVAILABLE", 503);
-      return json({ error: mapped.code }, mapped.status);
+      return json({ error: mapped.code }, mapped.status, {}, responseCookies);
     }
 
     if (!reservation.created) {
       if (reservation.attempt.state === "complete" && reservation.attempt.response) {
-        return json(reservation.attempt.response);
+        return json(reservation.attempt.response, 200, {}, responseCookies);
       }
-      if (reservation.attempt.state === "failed") return json({ error: "UPSTREAM_FAILED" }, 502);
-      return json({ error: "CHECK_IN_PROGRESS" }, 409);
+      if (reservation.attempt.state === "failed") {
+        return json({ error: "UPSTREAM_FAILED" }, 502, {}, responseCookies);
+      }
+      return json({ error: "CHECK_IN_PROGRESS" }, 409, {}, responseCookies);
     }
 
     try {
       const response = await callProvider(request, environment, dependencies, reservation.firstResponse);
       await state.complete(identity, request.documentId, request.idempotencyKey, response);
-      return json(response);
+      return json(response, 200, {}, responseCookies);
     } catch (error) {
       try {
         await state.fail(identity, request.documentId, request.idempotencyKey, "UPSTREAM_FAILED");
       } catch {
-        return json({ error: "STUDIO_COACH_UNAVAILABLE" }, 503);
+        return json({ error: "STUDIO_COACH_UNAVAILABLE" }, 503, {}, responseCookies);
       }
       if (error instanceof StudioCoachUpstreamError && error.timeout) {
-        return json({ error: "UPSTREAM_TIMEOUT" }, 504);
+        return json({ error: "UPSTREAM_TIMEOUT" }, 504, {}, responseCookies);
       }
-      return json({ error: "UPSTREAM_FAILED" }, 502);
+      return json({ error: "UPSTREAM_FAILED" }, 502, {}, responseCookies);
     }
   };
 }

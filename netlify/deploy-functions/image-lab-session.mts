@@ -1,7 +1,7 @@
 export { default } from "../function-bundles/image-lab-session.mjs";
 
 export const config = {
-  path: ["/api/image-lab/config", "/api/image-lab/unlock", "/api/image-lab/lock"],
+  path: ["/api/image-lab/session"],
   rateLimit: {
     windowLimit: 300,
     windowSize: 60,

@@ -206,18 +206,8 @@ describe("Netlify deployment layout", () => {
     }]);
     expect(byName.get("image-lab-session")?.routes).toEqual([
       {
-        pattern: "/api/image-lab/config",
-        literal: "/api/image-lab/config",
-        methods: []
-      },
-      {
-        pattern: "/api/image-lab/unlock",
-        literal: "/api/image-lab/unlock",
-        methods: []
-      },
-      {
-        pattern: "/api/image-lab/lock",
-        literal: "/api/image-lab/lock",
+        pattern: "/api/image-lab/session",
+        literal: "/api/image-lab/session",
         methods: []
       }
     ]);
@@ -225,6 +215,11 @@ describe("Netlify deployment layout", () => {
       {
         pattern: "/api/image-lab/jobs",
         literal: "/api/image-lab/jobs",
+        methods: []
+      },
+      {
+        pattern: "/api/image-lab/jobs/reconcile",
+        literal: "/api/image-lab/jobs/reconcile",
         methods: []
       },
       {
@@ -269,6 +264,36 @@ describe("Netlify deployment layout", () => {
       {
         pattern: "/api/teacher/accounts/:username/reset",
         expression: "^\\/api\\/teacher\\/accounts(?:\\/([^\\/]+?))\\/reset\\/?$",
+        methods: []
+      },
+      {
+        pattern: "/api/teacher/image-lab",
+        literal: "/api/teacher/image-lab",
+        methods: []
+      },
+      {
+        pattern: "/api/teacher/image-lab/global",
+        literal: "/api/teacher/image-lab/global",
+        methods: []
+      },
+      {
+        pattern: "/api/teacher/image-lab/accounts/:username",
+        expression: "^\\/api\\/teacher\\/image-lab\\/accounts(?:\\/([^\\/]+?))\\/?$",
+        methods: []
+      },
+      {
+        pattern: "/api/teacher/image-lab/accounts/:username/add",
+        expression: "^\\/api\\/teacher\\/image-lab\\/accounts(?:\\/([^\\/]+?))\\/add\\/?$",
+        methods: []
+      },
+      {
+        pattern: "/api/teacher/image-lab/accounts/:username/revoke",
+        expression: "^\\/api\\/teacher\\/image-lab\\/accounts(?:\\/([^\\/]+?))\\/revoke\\/?$",
+        methods: []
+      },
+      {
+        pattern: "/api/teacher/image-lab/batch",
+        literal: "/api/teacher/image-lab/batch",
         methods: []
       }
     ]);
@@ -416,7 +441,11 @@ describe("Netlify deployment layout", () => {
         }
       },
       "image-lab-jobs": {
-        path: ["/api/image-lab/jobs", "/api/image-lab/assets"],
+        path: [
+          "/api/image-lab/jobs",
+          "/api/image-lab/jobs/reconcile",
+          "/api/image-lab/assets"
+        ],
         rateLimit: {
           aggregateBy: ["ip", "domain"],
           windowLimit: 1_200,
@@ -424,7 +453,7 @@ describe("Netlify deployment layout", () => {
         }
       },
       "image-lab-session": {
-        path: ["/api/image-lab/config", "/api/image-lab/unlock", "/api/image-lab/lock"],
+        path: ["/api/image-lab/session"],
         rateLimit: {
           aggregateBy: ["ip", "domain"],
           windowLimit: 300,
@@ -505,7 +534,13 @@ describe("Netlify deployment layout", () => {
         path: [
           "/api/teacher/accounts",
           "/api/teacher/accounts/:username/password",
-          "/api/teacher/accounts/:username/reset"
+          "/api/teacher/accounts/:username/reset",
+          "/api/teacher/image-lab",
+          "/api/teacher/image-lab/global",
+          "/api/teacher/image-lab/accounts/:username",
+          "/api/teacher/image-lab/accounts/:username/add",
+          "/api/teacher/image-lab/accounts/:username/revoke",
+          "/api/teacher/image-lab/batch"
         ],
         rateLimit: {
           aggregateBy: ["ip", "domain"],

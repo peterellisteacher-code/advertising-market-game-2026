@@ -178,13 +178,15 @@ export const STUDENT_COPY_SOURCE_PATHS = Object.freeze([
   "web/src/studio-coach/studio-coach-runtime.ts",
   "web/src/studio-coach/studio-coach-panel.ts",
   "web/src/teacher/teacher-dashboard.ts",
+  "web/src/teacher/teacher-playtest-controller.ts",
   "web/src/ui/editor-shell.ts",
   "web/src/ui/canvas-accessibility-controller.ts",
   "web/src/ui/studio-tool-drawer.ts"
 ]);
 
 export const COPY_SOURCE_AUDIENCE = Object.freeze({
-  "web/src/teacher/teacher-dashboard.ts": "teacher"
+  "web/src/teacher/teacher-dashboard.ts": "teacher",
+  "web/src/teacher/teacher-playtest-controller.ts": "teacher"
 });
 
 export async function buildStudentCopyCorpus(root) {

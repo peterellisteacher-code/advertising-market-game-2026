@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import type { StudioCoachRequest } from "../../shared/studio-coach-contract";
-import { createCapability, IMAGE_LAB_COOKIE } from "./lib/image-lab-auth";
 import {
   MemoryStudioCoachStateRepository,
   StudioCoachStateService
@@ -13,14 +12,25 @@ import {
   createStudioCoachHandler
 } from "./studio-coach.mjs";
 
-const secret = "s".repeat(48);
 const environment = {
   STUDIO_COACH_ENABLED: "true",
   STUDIO_COACH_SCHOOL_APPROVED: "true",
   STUDIO_COACH_ACCOUNT_CAP_USD: "5",
-  IMAGE_LAB_SIGNING_SECRET: secret,
   OPENROUTER_API_KEY: "openrouter-test-key"
 };
+const authenticatedSession = async () => ({
+  authenticated: true as const,
+  identity: {
+    userId: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
+    username: "team-one"
+  }
+});
+const createHandler = (
+  dependencies: Parameters<typeof createStudioCoachHandler>[0] = {}
+) => createStudioCoachHandler({
+  resolveSession: authenticatedSession,
+  ...dependencies
+});
 const firstProviderResponse = {
   turn: 1,
   mode: "technique",
@@ -104,22 +114,11 @@ function request(turn: 1 | 2 = 1): StudioCoachRequest {
   };
 }
 
-function capability(sessionId = "session-pair-7", teamId = "team-pair-7"): string {
-  return createCapability({
-    sessionId,
-    teamId,
-    remainingObject: 6,
-    remainingRealise: 1,
-    expiresAt: 2_000
-  }, secret);
-}
-
-function incoming(body: unknown, options: { cookie?: string; contentLength?: string } = {}): Request {
+function incoming(body: unknown, options: { contentLength?: string } = {}): Request {
   return new Request("https://draft.example/api/image-lab/coach", {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      cookie: `${IMAGE_LAB_COOKIE}=${options.cookie ?? capability()}`,
       ...(options.contentLength === undefined ? {} : { "content-length": options.contentLength })
     },
     body: JSON.stringify(body)
@@ -140,7 +139,7 @@ function state(): StudioCoachStateService {
 describe("Studio Coach function", () => {
   it("sends one pinned, no-fallback, structured multimodal request", async () => {
     const fetcher = vi.fn().mockResolvedValue(provider(firstProviderResponse));
-    const handler = createStudioCoachHandler({
+    const handler = createHandler({
       environment,
       fetch: fetcher,
       state: state(),
@@ -205,7 +204,7 @@ describe("Studio Coach function", () => {
     const fetcher = vi.fn()
       .mockResolvedValueOnce(provider(firstProviderResponse))
       .mockResolvedValueOnce(provider(finalProviderResponse));
-    const handler = createStudioCoachHandler({
+    const handler = createHandler({
       environment,
       fetch: fetcher,
       state: state(),
@@ -232,7 +231,7 @@ describe("Studio Coach function", () => {
 
   it("replays a completed idempotent check without another provider call", async () => {
     const fetcher = vi.fn().mockResolvedValue(provider(firstProviderResponse));
-    const handler = createStudioCoachHandler({
+    const handler = createHandler({
       environment,
       fetch: fetcher,
       state: state(),
@@ -250,7 +249,7 @@ describe("Studio Coach function", () => {
     const fetcher = vi.fn()
       .mockResolvedValueOnce(new Response("upstream", { status: 503 }))
       .mockResolvedValueOnce(provider(firstProviderResponse));
-    const handler = createStudioCoachHandler({
+    const handler = createHandler({
       environment,
       fetch: fetcher,
       state: state(),
@@ -265,15 +264,22 @@ describe("Studio Coach function", () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
-  it("fails closed before billing for disabled, locked, mismatched, malformed, and oversized requests", async () => {
+  it("fails closed before billing for disabled, unauthenticated, malformed, and oversized requests", async () => {
     const fetcher = vi.fn();
     const base = { fetch: fetcher, state: state(), nowSeconds: () => 1_000 };
-    const disabled = createStudioCoachHandler({ ...base, environment: { ...environment, STUDIO_COACH_ENABLED: "false" } });
+    const disabled = createHandler({
+      ...base,
+      environment: { ...environment, STUDIO_COACH_ENABLED: "false" }
+    });
     expect((await disabled(incoming(request()))).status).toBe(503);
 
-    const enabled = createStudioCoachHandler({ ...base, environment });
-    expect((await enabled(incoming(request(), { cookie: "invalid" }))).status).toBe(401);
-    expect((await enabled(incoming(request(), { cookie: capability("another-session") }))).status).toBe(401);
+    const locked = createHandler({
+      ...base,
+      environment,
+      resolveSession: async () => ({ authenticated: false as const, clearCookies: false })
+    });
+    expect((await locked(incoming(request()))).status).toBe(401);
+    const enabled = createHandler({ ...base, environment });
     expect((await enabled(incoming({ ...request(), extra: true }))).status).toBe(400);
     expect((await enabled(incoming(request(), { contentLength: String(3 * 1024 * 1024 + 1) }))).status).toBe(413);
     const wrongDigest = request();
@@ -288,7 +294,7 @@ describe("Studio Coach function", () => {
       provider(firstProviderResponse, "another/model")
     ]) {
       const fetcher = vi.fn().mockResolvedValue(upstream);
-      const handler = createStudioCoachHandler({
+      const handler = createHandler({
         environment,
         fetch: fetcher,
         state: state(),
@@ -306,7 +312,7 @@ describe("Studio Coach function", () => {
       { ...firstProviderResponse, targetId: "invented-object" }
     ]) {
       const fetcher = vi.fn().mockResolvedValue(provider(invalid));
-      const handler = createStudioCoachHandler({
+      const handler = createHandler({
         environment,
         fetch: fetcher,
         state: state(),
@@ -325,7 +331,7 @@ describe("Studio Coach function", () => {
   it("renders every enumerated visual action through application-owned copy", async () => {
     for (const action of STUDIO_COACH_ACTION_IDS) {
       const fetcher = vi.fn().mockResolvedValue(provider({ ...firstProviderResponse, action }));
-      const handler = createStudioCoachHandler({
+      const handler = createHandler({
         environment,
         fetch: fetcher,
         state: state(),
@@ -356,7 +362,7 @@ describe("Studio Coach function", () => {
       action: "increase-contrast",
       targetId: "headline"
     }));
-    const handler = createStudioCoachHandler({
+    const handler = createHandler({
       environment,
       fetch: fetcher,
       state: state(),
@@ -376,7 +382,7 @@ describe("Studio Coach function", () => {
     const fetcher = vi.fn()
       .mockResolvedValueOnce(provider(firstProviderResponse))
       .mockResolvedValueOnce(provider({ ...finalProviderResponse, why: "Move the price higher next." }));
-    const handler = createStudioCoachHandler({
+    const handler = createHandler({
       environment,
       fetch: fetcher,
       state: state(),
@@ -396,7 +402,7 @@ describe("Studio Coach function", () => {
     const fetcher = vi.fn()
       .mockResolvedValueOnce(provider(firstProviderResponse))
       .mockResolvedValueOnce(provider(finalProviderResponse));
-    const handler = createStudioCoachHandler({
+    const handler = createHandler({
       environment,
       fetch: fetcher,
       state: state(),
@@ -423,7 +429,7 @@ describe("Studio Coach function", () => {
       status: 200,
       headers: { "content-type": "application/json" }
     }));
-    const handler = createStudioCoachHandler({
+    const handler = createHandler({
       environment,
       fetch: fetcher,
       state: state(),
@@ -437,7 +443,7 @@ describe("Studio Coach function", () => {
 
   it("does not retry a timed-out provider call", async () => {
     const fetcher = vi.fn().mockRejectedValue(new DOMException("timed out", "TimeoutError"));
-    const handler = createStudioCoachHandler({
+    const handler = createHandler({
       environment,
       fetch: fetcher,
       state: state(),

@@ -9,10 +9,20 @@ import {
   type ProductPriceGuideRequest
 } from "../../shared/product-price-guide-contract";
 import {
-  IMAGE_LAB_COOKIE,
-  ImageLabAuthError,
-  readCapability
-} from "./lib/image-lab-auth";
+  AccountConfigurationError,
+  SupabaseAccountClient,
+  SupabaseAccountError,
+  parseAccountCookies,
+  parseAccountEnvironment,
+  resolveAccountSession,
+  type ResolvedAccountSession
+} from "./lib/account-backend";
+import {
+  clearAccountAccessCookie,
+  clearAccountRefreshCookie,
+  serialiseAccountAccessCookie,
+  serialiseAccountRefreshCookie
+} from "./lib/account-primitives";
 import { defaultProductPriceGuideStateService } from "./lib/netlify-product-price-guide-state";
 import {
   ProductPriceGuideStateError,
@@ -26,18 +36,22 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const REQUEST_MAX_BYTES = 16 * 1024;
 const PROVIDER_RESPONSE_MAX_BYTES = 64 * 1024;
 const UPSTREAM_TIMEOUT_MS = 18_000;
+const REFRESH_COOKIE_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 const ENVIRONMENT_KEYS = [
+  "SUPABASE_URL",
+  "SUPABASE_PUBLISHABLE_KEY",
+  "ADVERTISING_GAME_EDGE_GATEWAY_SECRET",
+  "ADVERTISING_GAME_USERNAME_HMAC_SECRET",
+  "ADVERTISING_GAME_CLASSROOM_CODE",
   "PRODUCT_PRICE_GUIDE_ENABLED",
   "PRODUCT_PRICE_GUIDE_SCHOOL_APPROVED",
   "PRODUCT_PRICE_GUIDE_ACCOUNT_CAP_USD",
-  "IMAGE_LAB_SIGNING_SECRET",
   "OPENROUTER_API_KEY"
 ] as const;
 
 type EnvironmentRecord = Readonly<Record<string, string | undefined>>;
 
 interface ReadyEnvironment {
-  signingSecret: string;
   openRouterKey: string;
 }
 
@@ -48,6 +62,7 @@ export interface ProductPriceGuideHandlerDependencies {
   nowIso?: () => string;
   createDeadlineSignal?: () => AbortSignal;
   state?: ProductPriceGuideStateService;
+  resolveSession?: (request: Request) => Promise<ResolvedAccountSession>;
 }
 
 interface ResolvedDependencies {
@@ -57,6 +72,7 @@ interface ResolvedDependencies {
   nowIso: () => string;
   createDeadlineSignal: () => AbortSignal;
   state?: ProductPriceGuideStateService;
+  resolveSession?: (request: Request) => Promise<ResolvedAccountSession>;
 }
 
 class RequestError extends Error {
@@ -91,11 +107,19 @@ const runtimeEnvironment = (): EnvironmentRecord => Object.fromEntries(
   ENVIRONMENT_KEYS.map((key) => [key, Netlify.env.get(key)])
 );
 
-const json = (body: unknown, status = 200, headers: HeadersInit = {}): Response =>
-  Response.json(body, {
-    status,
-    headers: { "cache-control": "no-store", ...Object.fromEntries(new Headers(headers)) }
+const json = (
+  body: unknown,
+  status = 200,
+  headers: HeadersInit = {},
+  cookies: readonly string[] = []
+): Response => {
+  const responseHeaders = new Headers({
+    "cache-control": "no-store",
+    ...Object.fromEntries(new Headers(headers))
   });
+  for (const cookie of cookies) responseHeaders.append("set-cookie", cookie);
+  return Response.json(body, { status, headers: responseHeaders });
+};
 
 function resolveDependencies(input: ProductPriceGuideHandlerDependencies): ResolvedDependencies {
   return {
@@ -104,7 +128,8 @@ function resolveDependencies(input: ProductPriceGuideHandlerDependencies): Resol
     nowSeconds: input.nowSeconds ?? (() => Math.floor(Date.now() / 1_000)),
     nowIso: input.nowIso ?? (() => new Date().toISOString()),
     createDeadlineSignal: input.createDeadlineSignal ?? (() => AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)),
-    ...(input.state === undefined ? {} : { state: input.state })
+    ...(input.state === undefined ? {} : { state: input.state }),
+    ...(input.resolveSession === undefined ? {} : { resolveSession: input.resolveSession })
   };
 }
 
@@ -114,14 +139,12 @@ function requireEnvironment(environment: EnvironmentRecord): ReadyEnvironment {
     throw new RequestError("PRODUCT_PRICE_GUIDE_DISABLED", 503);
   }
   const cap = Number(environment.PRODUCT_PRICE_GUIDE_ACCOUNT_CAP_USD);
-  const signingSecret = environment.IMAGE_LAB_SIGNING_SECRET;
   const openRouterKey = environment.OPENROUTER_API_KEY;
   if (!Number.isFinite(cap) || cap <= 0 || cap > 100 ||
-    typeof signingSecret !== "string" || signingSecret.trim() !== signingSecret || signingSecret.length < 32 ||
     typeof openRouterKey !== "string" || openRouterKey.trim() !== openRouterKey || !openRouterKey) {
     throw new RequestError("PRODUCT_PRICE_GUIDE_DISABLED", 503);
   }
-  return { signingSecret, openRouterKey };
+  return { openRouterKey };
 }
 
 async function readRequestJson(request: Request): Promise<unknown> {
@@ -166,39 +189,32 @@ async function readRequestJson(request: Request): Promise<unknown> {
   }
 }
 
-function cookieValue(request: Request): string {
-  const header = request.headers.get("cookie");
-  if (!header) throw new RequestError("PRODUCT_PRICE_GUIDE_LOCKED", 401);
-  const values: string[] = [];
-  for (const part of header.split(";")) {
-    const separator = part.indexOf("=");
-    if (separator < 0) continue;
-    if (part.slice(0, separator).trim() === IMAGE_LAB_COOKIE) {
-      values.push(part.slice(separator + 1).trim());
-    }
-  }
-  if (values.length !== 1 || !values[0] || values[0].length > 4_096) {
-    throw new RequestError("PRODUCT_PRICE_GUIDE_LOCKED", 401);
-  }
-  return values[0];
-}
+type AuthenticatedAccountSession = Extract<
+  ResolvedAccountSession,
+  { authenticated: true }
+>;
 
-function requireIdentity(
-  request: Request,
-  environment: ReadyEnvironment,
-  nowSeconds: number
-): ProductPriceGuideIdentity {
-  try {
-    const capability = readCapability(cookieValue(request), environment.signingSecret, nowSeconds);
-    return { sessionId: capability.sessionId, teamId: capability.teamId };
-  } catch (error) {
-    if (error instanceof RequestError) throw error;
-    if (error instanceof ImageLabAuthError) {
-      throw new RequestError("PRODUCT_PRICE_GUIDE_LOCKED", 401);
-    }
-    throw new RequestError("PRODUCT_PRICE_GUIDE_LOCKED", 401);
-  }
-}
+const rotatedAccountCookies = (
+  session: AuthenticatedAccountSession
+): readonly string[] => session.rotatedTokens === undefined
+  ? []
+  : [
+      serialiseAccountAccessCookie(
+        session.rotatedTokens.accessToken,
+        session.rotatedTokens.expiresIn,
+        true
+      ),
+      serialiseAccountRefreshCookie(
+        session.rotatedTokens.refreshToken,
+        REFRESH_COOKIE_MAX_AGE_SECONDS,
+        true
+      )
+    ];
+
+const expiredAccountCookies = (): readonly string[] => [
+  clearAccountAccessCookie(true),
+  clearAccountRefreshCookie(true)
+];
 
 function parseRequest(value: unknown): ProductPriceGuideRequest {
   let request: ProductPriceGuideRequest;
@@ -398,23 +414,61 @@ export function createProductPriceGuideHandler(
     let environment: ReadyEnvironment;
     let identity: ProductPriceGuideIdentity;
     let request: ProductPriceGuideRequest;
+    let responseCookies: readonly string[] = [];
     try {
-      environment = requireEnvironment(dependencies.environment ?? runtimeEnvironment());
-      identity = requireIdentity(incoming, environment, dependencies.nowSeconds());
-      request = parseRequest(await readRequestJson(incoming));
-      if (request.sessionId !== identity.sessionId || request.teamId !== identity.teamId) {
-        throw new RequestError("PRODUCT_PRICE_GUIDE_LOCKED", 401);
+      const environmentRecord = dependencies.environment ?? runtimeEnvironment();
+      environment = requireEnvironment(environmentRecord);
+      const accountSession = dependencies.resolveSession === undefined
+        ? await (() => {
+            const client = new SupabaseAccountClient(
+              parseAccountEnvironment(environmentRecord),
+              dependencies.fetch
+            );
+            return resolveAccountSession(client, parseAccountCookies(incoming));
+          })()
+        : await dependencies.resolveSession(incoming);
+      if (!accountSession.authenticated) {
+        return json(
+          { error: "PRODUCT_PRICE_GUIDE_LOCKED" },
+          401,
+          {},
+          accountSession.clearCookies ? expiredAccountCookies() : []
+        );
       }
+      responseCookies = rotatedAccountCookies(accountSession);
+      identity = {
+        sessionId: accountSession.identity.userId,
+        teamId: accountSession.identity.username
+      };
+      request = parseRequest(await readRequestJson(incoming));
     } catch (error) {
-      if (error instanceof RequestError) return json({ error: error.code }, error.status);
-      return json({ error: "INVALID_REQUEST" }, 400);
+      if (error instanceof RequestError) {
+        return json({ error: error.code }, error.status, {}, responseCookies);
+      }
+      if (
+        error instanceof AccountConfigurationError ||
+        error instanceof SupabaseAccountError
+      ) {
+        return json(
+          { error: "PRODUCT_PRICE_GUIDE_UNAVAILABLE" },
+          503,
+          {},
+          responseCookies
+        );
+      }
+      return json({ error: "INVALID_REQUEST" }, 400, {}, responseCookies);
     }
 
     let state: ProductPriceGuideStateService;
     try {
       state = dependencies.state ?? await defaultProductPriceGuideStateService();
     } catch {
-      return json({ error: "PRODUCT_PRICE_GUIDE_UNAVAILABLE" }, 503);
+      return json(
+        { error: "PRODUCT_PRICE_GUIDE_UNAVAILABLE" },
+        503,
+        {},
+        responseCookies
+      );
     }
     let reservation;
     try {
@@ -428,30 +482,39 @@ export function createProductPriceGuideHandler(
       const mapped = error instanceof ProductPriceGuideStateError
         ? stateError(error)
         : new RequestError("PRODUCT_PRICE_GUIDE_UNAVAILABLE", 503);
-      return json({ error: mapped.code }, mapped.status);
+      return json({ error: mapped.code }, mapped.status, {}, responseCookies);
     }
     if (!reservation.created) {
       if (reservation.attempt.state === "complete" && reservation.attempt.response) {
-        return json(reservation.attempt.response);
+        return json(reservation.attempt.response, 200, {}, responseCookies);
       }
-      return json({ error: "LOOKUP_IN_PROGRESS" }, 409);
+      return json({ error: "LOOKUP_IN_PROGRESS" }, 409, {}, responseCookies);
     }
 
     try {
       const guide = await callProvider(request, environment, dependencies);
       await state.complete(identity, request.productFingerprint, request.idempotencyKey, guide);
-      return json(guide);
+      return json(guide, 200, {}, responseCookies);
     } catch (error) {
       try {
         await state.fail(identity, request.productFingerprint, request.idempotencyKey);
       } catch {
-        return json({ error: "PRODUCT_PRICE_GUIDE_UNAVAILABLE" }, 503);
+        return json(
+          { error: "PRODUCT_PRICE_GUIDE_UNAVAILABLE" },
+          503,
+          {},
+          responseCookies
+        );
       }
       if (error instanceof UpstreamError) {
-        if (error.code === "UPSTREAM_TIMEOUT") return json({ error: error.code }, 504);
-        if (error.code === "INSUFFICIENT_EVIDENCE") return json({ error: error.code }, 422);
+        if (error.code === "UPSTREAM_TIMEOUT") {
+          return json({ error: error.code }, 504, {}, responseCookies);
+        }
+        if (error.code === "INSUFFICIENT_EVIDENCE") {
+          return json({ error: error.code }, 422, {}, responseCookies);
+        }
       }
-      return json({ error: "UPSTREAM_FAILED" }, 502);
+      return json({ error: "UPSTREAM_FAILED" }, 502, {}, responseCookies);
     }
   };
 }

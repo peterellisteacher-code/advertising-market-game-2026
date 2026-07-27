@@ -3,7 +3,10 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { STUDENT_COPY_SOURCE_PATHS } from "./student-copy-corpus.mjs";
+import {
+  COPY_SOURCE_AUDIENCE,
+  STUDENT_COPY_SOURCE_PATHS
+} from "./student-copy-corpus.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 
@@ -57,4 +60,35 @@ test("every authored file capable of emitting student-facing text is in the corp
   }
 
   assert.deepEqual(candidates, []);
+});
+
+test("student Image Lab sources contain no teacher capability route or shared code control", async () => {
+  const studentImageLabPaths = [
+    "web/src/ai-image/image-lab-client.ts",
+    "web/src/ai-image/image-lab-panel.ts",
+    "web/src/ai-image/image-lab-runtime.ts",
+    "web/src/main.ts"
+  ];
+  const forbidden = [
+    "/api/image-lab/unlock",
+    "/api/image-lab/lock",
+    "IMAGE_LAB_CLASSROOM_CODE",
+    "Teacher code",
+    "Open Image Lab",
+    "Close Image Lab"
+  ];
+  for (const relativePath of studentImageLabPaths) {
+    const source = await readFile(path.join(ROOT, ...relativePath.split("/")), "utf8");
+    for (const phrase of forbidden) {
+      assert.equal(
+        source.includes(phrase),
+        false,
+        `${relativePath} must not contain ${phrase}`
+      );
+    }
+  }
+  assert.equal(
+    COPY_SOURCE_AUDIENCE["web/src/teacher/teacher-dashboard.ts"],
+    "teacher"
+  );
 });

@@ -54,7 +54,10 @@ func _startup_arbitrates_live_before_practice() -> bool:
     assert(untouched_practice.request_count() == 0)
     assert((transient_shell.get_node("%LobbyPanel") as Control).visible)
     assert(not (transient_shell.get_node("%RunPanel") as Control).visible)
-    assert((transient_shell.get_node("%Status") as Label).text.contains("live"))
+    assert(
+        (transient_shell.get_node("%Status") as Label).text
+        == "The market could not be reached. Check the network and try again."
+    )
     assert(retained_progress.stored == retained_before)
     assert(retained_progress.saves.is_empty())
     transient_shell.free()

@@ -211,6 +211,36 @@ describe("FabricObjectFactory", () => {
     );
   });
 
+  it("tags only an explicitly admitted raster with immutable section-fill provenance", async () => {
+    const element = document.createElement("img");
+    Object.defineProperties(element, {
+      naturalWidth: { value: 640 },
+      naturalHeight: { value: 480 }
+    });
+    vi.spyOn(FabricImage, "fromURL").mockResolvedValue(new FabricImage(element));
+    const object = await new FabricObjectFactory().createRaster({
+      id: "starter-1",
+      assetId: "shoe-starter",
+      sameOriginUrl:
+        `${window.location.origin}/catalog/generated/offline-core-v1/assets/shoe-starter/master.png`,
+      accessibleName: "Harbour shoe",
+      sectionFill: {
+        sourceSha256: "a".repeat(64),
+        mode: "connected-sections",
+        profile: "bounded-linework-v1"
+      }
+    });
+
+    expect(object).toMatchObject({
+      sourceHash: "a".repeat(64),
+      rasterSectionFillSourceUrl:
+        `${window.location.origin}/catalog/generated/offline-core-v1/assets/shoe-starter/master.png`,
+      rasterSectionFillMode: "connected-sections",
+      rasterSectionFillProfile: "bounded-linework-v1",
+      rasterSectionFillRecipes: []
+    });
+  });
+
   it("round-trips only bounded PNG data URLs used by generated curved labels", () => {
     const portablePng = "data:image/png;base64,iVBORw0KGgo=";
 

@@ -9,7 +9,10 @@ import {
   type OfflineCatalogueWithHash
 } from "../catalogue/catalogue-store";
 import { computeCertificationFingerprint } from "./certification-fingerprint";
-import { loadProductKitBundle } from "./product-kit-loader";
+import {
+  loadProductKitBundle,
+  sectionFillForStudentStarter
+} from "./product-kit-loader";
 
 const CATALOG_HASH =
   "6199fd1adae59a2b517b265ca67a325f32faba04d375852821e841b51a354073";
@@ -315,6 +318,22 @@ describe("loadProductKitBundle", () => {
         starter.kind === "raster" ? [starter.assetId] : []
       )
     );
+    const connected = bundle!.starterManifest.starters.find((starter) =>
+      starter.kind === "raster" && starter.fillMode === "connected-sections"
+    );
+    if (!connected || connected.kind !== "raster") {
+      throw new Error("Missing connected starter fixture");
+    }
+    const admitted = bundle!.starterRasters.get(connected.assetId)!;
+    expect(sectionFillForStudentStarter(bundle!, admitted)).toEqual({
+      sourceSha256: admitted.delivery === "offline" ? admitted.masterSha256 : "",
+      mode: "connected-sections",
+      profile: "bounded-linework-v1"
+    });
+    expect(sectionFillForStudentStarter(bundle!, {
+      ...admitted,
+      title: `${admitted.title} changed`
+    })).toBeUndefined();
 
     const kit = bundle!.catalogue.kits[0]!;
     const frame = kit.mountFrames[0]!;

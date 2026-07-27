@@ -6,6 +6,7 @@ import {
   FixedLayout,
   Group,
   LayoutManager,
+  Point,
   Rect,
   Textbox,
   util
@@ -19,6 +20,10 @@ import { FabricCanvasAdapter } from "./fabric-canvas-adapter";
 import { FabricProductShellFactory, productArtworkSurface } from "./product-shell-factory";
 import { FabricObjectFactory } from "./object-factory";
 import type { FabricProductKitCompositor } from "../product-kit/fabric-product-kit-compositor";
+import type {
+  LoadedRasterSectionFillSource,
+  RasterSectionFillEngine
+} from "../tools/raster-section-fill-renderer";
 
 class FakeCanvas {
   objects: FabricObject[] = [];
@@ -84,6 +89,20 @@ class FakeCanvas {
     return current !== index;
   }
   requestRenderAll(): void {}
+  getScenePoint(event: { clientX: number; clientY: number }): Point {
+    const canvas = this as unknown as {
+      width?: number;
+      height?: number;
+      upperCanvasEl?: { getBoundingClientRect(): DOMRect };
+    };
+    const bounds = canvas.upperCanvasEl?.getBoundingClientRect();
+    const width = canvas.width ?? bounds?.width ?? 1;
+    const height = canvas.height ?? bounds?.height ?? 1;
+    return new Point(
+      (event.clientX - (bounds?.left ?? 0)) * width / (bounds?.width || width),
+      (event.clientY - (bounds?.top ?? 0)) * height / (bounds?.height || height)
+    );
+  }
   toDataURL(options: { format: string; multiplier: number }): string {
     expect(options).toEqual({ format: "png", multiplier: 1 });
     this.renderSnapshots.push({
@@ -1425,5 +1444,223 @@ describe("FabricCanvasAdapter editable logo marks", () => {
     expect(canvas.objects).toEqual([original]);
     expect(canvas.activeObject).toBe(original);
     expect(mutations).toEqual([]);
+  });
+});
+
+function eligibleRaster(id = "starter-1"): FabricImage {
+  const source = document.createElement("canvas");
+  source.width = 64;
+  source.height = 48;
+  vi.spyOn(source, "toDataURL").mockReturnValue(TINY_PNG);
+  const image = new FabricImage(source);
+  image.set({
+    objectId: id,
+    elementKind: "image",
+    assetId: "shoe-starter",
+    accessibleName: "Harbour shoe",
+    sourceHash: "a".repeat(64),
+    rasterSectionFillSourceUrl:
+      `${window.location.origin}/catalog/generated/offline-core-v1/assets/shoe-starter/master.png`,
+    rasterSectionFillMode: "connected-sections",
+    rasterSectionFillProfile: "bounded-linework-v1",
+    rasterSectionFillRecipes: []
+  });
+  return image;
+}
+
+function sectionFillRecipe() {
+  return {
+    schema: "raster-section-fill" as const,
+    version: 1 as const,
+    fillProfile: "bounded-linework-v1" as const,
+    sourceAssetId: "shoe-starter",
+    sourceSha256: "a".repeat(64),
+    seedX: 20,
+    seedY: 22,
+    colour: "#E4572E",
+    colourDistance: 48
+  };
+}
+
+function sectionFillEngine() {
+  const source: LoadedRasterSectionFillSource = {
+    url: `${window.location.origin}/catalog/generated/offline-core-v1/assets/shoe-starter/master.png`,
+    sha256: "a".repeat(64),
+    pixels: {
+      width: 64,
+      height: 48,
+      data: new Uint8ClampedArray(64 * 48 * 4)
+    }
+  };
+  const rendered = document.createElement("canvas");
+  rendered.width = 64;
+  rendered.height = 48;
+  vi.spyOn(rendered, "toDataURL").mockReturnValue(TINY_PNG);
+  const engine: RasterSectionFillEngine = {
+    load: vi.fn(async () => source),
+    render: vi.fn(() => rendered)
+  };
+  return { source, rendered, engine };
+}
+
+describe("FabricCanvasAdapter raster section fill", () => {
+  it("previews and cancels byte-exactly without serialising or emitting a mutation", async () => {
+    const canvas = new FakeCanvas();
+    const image = eligibleRaster();
+    canvas.objects.push(image);
+    const originalElement = image.getElement();
+    const { rendered, engine } = sectionFillEngine();
+    const adapter = new FabricCanvasAdapter(
+      canvas as unknown as Canvas,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      engine
+    );
+    const mutations: CanvasMutation[] = [];
+    adapter.subscribe((mutation) => mutations.push(mutation));
+    const before = adapter.serialize();
+
+    expect(await adapter.getFillableRaster("starter-1")).toEqual({
+      id: "starter-1",
+      assetId: "shoe-starter",
+      sourceSha256: "a".repeat(64),
+      width: 64,
+      height: 48,
+      sectionMode: "connected"
+    });
+    await adapter.previewRasterSectionFill("starter-1", sectionFillRecipe());
+
+    expect(image.getElement()).toBe(rendered);
+    expect(image.rasterSectionFillRecipes).toEqual([]);
+    expect(adapter.serialize()).toEqual(before);
+    expect(mutations).toEqual([]);
+
+    adapter.cancelRasterSectionFillPreview("starter-1");
+
+    expect(image.getElement()).toBe(originalElement);
+    expect(adapter.serialize()).toEqual(before);
+    expect(mutations).toEqual([]);
+  });
+
+  it("applies one ordered recipe and emits one durable mutation", async () => {
+    const canvas = new FakeCanvas();
+    const image = eligibleRaster();
+    canvas.objects.push(image);
+    const { rendered, engine } = sectionFillEngine();
+    const adapter = new FabricCanvasAdapter(
+      canvas as unknown as Canvas,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      engine
+    );
+    const mutations: CanvasMutation[] = [];
+    adapter.subscribe((mutation) => mutations.push(mutation));
+
+    await adapter.applyRasterSectionFill("starter-1", sectionFillRecipe());
+
+    expect(image.getElement()).toBe(rendered);
+    expect(image.rasterSectionFillRecipes).toEqual([sectionFillRecipe()]);
+    expect(Object.isFrozen(image.rasterSectionFillRecipes)).toBe(true);
+    expect(mutations).toEqual([{ type: "modified", objectId: "starter-1" }]);
+    expect(adapter.serialize()).toMatchObject({
+      objects: [{
+        objectId: "starter-1",
+        src: "/catalog/generated/offline-core-v1/assets/shoe-starter/master.png",
+        rasterSectionFillRecipes: [sectionFillRecipe()]
+      }]
+    });
+  });
+
+  it("fails closed on a source-hash mismatch and leaves the original unchanged", async () => {
+    const canvas = new FakeCanvas();
+    const image = eligibleRaster();
+    canvas.objects.push(image);
+    const originalElement = image.getElement();
+    const { source, engine } = sectionFillEngine();
+    (engine.load as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ...source,
+      sha256: "b".repeat(64)
+    });
+    const adapter = new FabricCanvasAdapter(
+      canvas as unknown as Canvas,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      engine
+    );
+    const mutations: CanvasMutation[] = [];
+    adapter.subscribe((mutation) => mutations.push(mutation));
+
+    await expect(adapter.previewRasterSectionFill("starter-1", sectionFillRecipe()))
+      .rejects.toThrow(/source.*changed/i);
+
+    expect(image.getElement()).toBe(originalElement);
+    expect(image.rasterSectionFillRecipes).toEqual([]);
+    expect(mutations).toEqual([]);
+  });
+
+  it("replays recipes from the immutable source while loading saved state", async () => {
+    const canvas = new FakeCanvas();
+    const restored = eligibleRaster();
+    restored.rasterSectionFillRecipes = [sectionFillRecipe()];
+    canvas.loadFromJSON.mockImplementationOnce(async () => {
+      canvas.objects = [restored];
+      return canvas;
+    });
+    const { rendered, engine } = sectionFillEngine();
+    const adapter = new FabricCanvasAdapter(
+      canvas as unknown as Canvas,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      engine
+    );
+
+    await adapter.load({
+      version: "7.4.0",
+      objects: [restored.toObject()]
+    });
+
+    expect(engine.load).toHaveBeenCalledWith(
+      `${window.location.origin}/catalog/generated/offline-core-v1/assets/shoe-starter/master.png`
+    );
+    expect(engine.render).toHaveBeenCalledWith(
+      expect.objectContaining({ sha256: "a".repeat(64) }),
+      [sectionFillRecipe()]
+    );
+    expect(restored.getElement()).toBe(rendered);
+  });
+
+  it("inverse-maps a browser point through the viewport and object transform", () => {
+    const canvas = new FakeCanvas();
+    const image = eligibleRaster();
+    image.set({ left: 100, top: 80, scaleX: 2, scaleY: 2 });
+    image.setCoords();
+    canvas.objects.push(image);
+    Object.assign(canvas, {
+      width: 1600,
+      height: 900,
+      viewportTransform: [1, 0, 0, 1, 0, 0],
+      upperCanvasEl: {
+        getBoundingClientRect: () => ({
+          left: 10,
+          top: 20,
+          width: 800,
+          height: 450
+        })
+      }
+    });
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+
+    expect(adapter.rasterSourcePoint("starter-1", { x: 60, y: 60 })).toEqual({
+      x: 32,
+      y: 24
+    });
   });
 });

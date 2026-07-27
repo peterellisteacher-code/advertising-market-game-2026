@@ -17,7 +17,11 @@ import {
   createBlankCampaignDocument,
   type CampaignDocumentV1
 } from "./domain/campaign-document";
-import type { NewProductKitInput } from "./fabric/canvas-port";
+import type {
+  NewRasterInput,
+  NewProductKitInput,
+  RasterSectionFillRecipe
+} from "./fabric/canvas-port";
 import { AUDIENCE_BRIEFS } from "./game/audience-briefs";
 import { parseLogoIconCatalogue } from "./logo-lab/logo-icon-catalogue";
 import {
@@ -71,6 +75,9 @@ const runtime = vi.hoisted(() => ({
   canvasDisposeFailure: null as Error | null,
   canvasDisposePromise: null as Promise<void> | null,
   selectedObjectId: null as string | null
+  ,
+  sectionFillPreview: null as RasterSectionFillRecipe | null,
+  sectionFillApplications: [] as RasterSectionFillRecipe[]
 }));
 
 vi.mock("fabric", () => ({
@@ -237,12 +244,7 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
       }));
     }
 
-    async addRaster(input: {
-      id: string;
-      assetId: string;
-      sameOriginUrl: string;
-      accessibleName: string;
-    }): Promise<void> {
+    async addRaster(input: NewRasterInput): Promise<void> {
       const objects = runtime.state.objects;
       if (!Array.isArray(objects)) throw new Error("Test canvas state has no objects");
       objects.push({
@@ -257,7 +259,17 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
         left: 800,
         top: 450,
         scaleX: 0.625,
-        scaleY: 0.625
+        scaleY: 0.625,
+        ...(input.sectionFill === undefined ? {} : {
+          sourceHash: input.sectionFill.sourceSha256,
+          rasterSectionFillSourceUrl: new URL(
+            input.sameOriginUrl,
+            window.location.href
+          ).href,
+          rasterSectionFillMode: input.sectionFill.mode,
+          rasterSectionFillProfile: input.sectionFill.profile,
+          rasterSectionFillRecipes: []
+        })
       });
       runtime.listeners.forEach((listener) => listener({
         type: "added",
@@ -583,6 +595,63 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
           stackIndex
         }];
       });
+    }
+
+    async getFillableRaster(id: string): Promise<{
+      id: string;
+      assetId: string;
+      sourceSha256: string;
+      width: number;
+      height: number;
+      sectionMode: "connected" | "whole-object";
+    } | null> {
+      const object = (runtime.state.objects as Array<Record<string, unknown>>)
+        .find((candidate) => candidate.objectId === id);
+      if (!object ||
+        typeof object.assetId !== "string" ||
+        typeof object.sourceHash !== "string" ||
+        (object.rasterSectionFillMode !== "connected-sections" &&
+          object.rasterSectionFillMode !== "whole-object")) return null;
+      return {
+        id,
+        assetId: object.assetId,
+        sourceSha256: object.sourceHash,
+        width: typeof object.width === "number" ? object.width : 640,
+        height: typeof object.height === "number" ? object.height : 480,
+        sectionMode: object.rasterSectionFillMode === "connected-sections"
+          ? "connected"
+          : "whole-object"
+      };
+    }
+
+    rasterSourcePoint(): { x: number; y: number } {
+      return { x: 24, y: 32 };
+    }
+
+    async previewRasterSectionFill(
+      _id: string,
+      recipe: RasterSectionFillRecipe
+    ): Promise<void> {
+      runtime.sectionFillPreview = structuredClone(recipe);
+    }
+
+    cancelRasterSectionFillPreview(): void {
+      runtime.sectionFillPreview = null;
+    }
+
+    async applyRasterSectionFill(
+      id: string,
+      recipe: RasterSectionFillRecipe
+    ): Promise<void> {
+      const object = (runtime.state.objects as Array<Record<string, unknown>>)
+        .find((candidate) => candidate.objectId === id);
+      if (!object) throw new Error(`Missing object ${id}`);
+      const recipes = Array.isArray(object.rasterSectionFillRecipes)
+        ? object.rasterSectionFillRecipes
+        : [];
+      object.rasterSectionFillRecipes = [...recipes, structuredClone(recipe)];
+      runtime.sectionFillApplications.push(structuredClone(recipe));
+      runtime.listeners.forEach((listener) => listener({ type: "modified", objectId: id }));
     }
 
     captureSelection(): { readonly objectIds: readonly string[] } {
@@ -1131,6 +1200,8 @@ describe("window.AdMarketCreator", () => {
     runtime.canvasDisposeFailure = null;
     runtime.canvasDisposePromise = null;
     runtime.selectedObjectId = null;
+    runtime.sectionFillPreview = null;
+    runtime.sectionFillApplications = [];
     runtime.createdUrls = [];
     runtime.revokedUrls = [];
     runtime.nextUrl = 0;
@@ -2017,6 +2088,97 @@ describe("window.AdMarketCreator", () => {
       expect(currentObjects().map(({ objectId }) => objectId)).toEqual(["background"]);
       expect(runtime.selectedObjectId).toBeNull();
     });
+  });
+
+  it("previews, cancels and applies one eligible raster section fill through history", async () => {
+    const hash = "a".repeat(64);
+    const documentWithStarter = CampaignDocumentSchema.parse({
+      ...structuredClone(blankDocument),
+      fabricState: {
+        version: "7.4.0",
+        objects: [{
+          type: "image",
+          objectId: "starter-1",
+          elementKind: "image",
+          assetId: "shoe-starter",
+          accessibleName: "Harbour shoe",
+          src: "/catalog/generated/offline-core-v1/assets/shoe-starter/master.png",
+          width: 640,
+          height: 480,
+          left: 800,
+          top: 450,
+          scaleX: 1,
+          scaleY: 1,
+          sourceHash: hash,
+          rasterSectionFillSourceUrl:
+            "/catalog/generated/offline-core-v1/assets/shoe-starter/master.png",
+          rasterSectionFillMode: "connected-sections",
+          rasterSectionFillProfile: "bounded-linework-v1",
+          rasterSectionFillRecipes: []
+        }]
+      }
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-fill", "open", documentWithStarter))
+      .toMatchObject({ ok: true });
+    runtime.selectedObjectId = "starter-1";
+    runtime.selectionListeners.forEach((listener) => listener({
+      objectIds: ["starter-1"]
+    }));
+    const fillPanel = document.querySelector<HTMLElement>("[data-section-fill-panel]")!;
+    await waitFor(() => {
+      expect(fillPanel.hidden).toBe(false);
+      expect(getByRole(fillPanel, "button", { name: "Fill section" })).toBeTruthy()
+    });
+
+    fireEvent.click(getByRole(fillPanel, "button", { name: "Fill section" }));
+    fireEvent.click(getByRole(document.body, "region", { name: "Campaign canvas" }), {
+      clientX: 300,
+      clientY: 240
+    });
+    await waitFor(() => expect(runtime.sectionFillPreview).toMatchObject({
+      sourceAssetId: "shoe-starter",
+      seedX: 24,
+      seedY: 32,
+      colour: "#E4572E"
+    }));
+    expect(getByRole<HTMLButtonElement>(document.body, "button", { name: "Undo" }).disabled)
+      .toBe(true);
+    expect(getByRole<HTMLButtonElement>(
+      document.body,
+      "button",
+      { name: "Delete selected item" }
+    ).disabled).toBe(true);
+
+    fireEvent.click(getByRole(fillPanel, "button", { name: "Cancel fill" }));
+    await waitFor(() => expect(runtime.sectionFillPreview).toBeNull());
+    expect(currentObjects()[0]!.rasterSectionFillRecipes).toEqual([]);
+
+    fireEvent.click(getByRole(fillPanel, "button", { name: "Fill section" }));
+    fireEvent.click(getByRole(document.body, "region", { name: "Campaign canvas" }), {
+      clientX: 300,
+      clientY: 240
+    });
+    await waitFor(() =>
+      expect(getByRole(fillPanel, "button", { name: "Apply fill" })).toBeTruthy()
+    );
+    fireEvent.click(getByRole(fillPanel, "button", { name: "Apply fill" }));
+    await waitFor(() => {
+      expect(currentObjects()[0]!.rasterSectionFillRecipes).toHaveLength(1);
+      expect(getByRole<HTMLButtonElement>(
+        document.body,
+        "button",
+        { name: "Undo" }
+      ).disabled).toBe(false);
+    });
+
+    fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));
+    await waitFor(() => expect(currentObjects()[0]!.rasterSectionFillRecipes).toEqual([]));
+    fireEvent.click(getByRole(document.body, "button", { name: "Redo" }));
+    await waitFor(() =>
+      expect(currentObjects()[0]!.rasterSectionFillRecipes).toHaveLength(1)
+    );
   });
 
   it("keeps the active practice revision when undoing after autosaves", async () => {

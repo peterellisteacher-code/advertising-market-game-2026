@@ -10,6 +10,7 @@ import type {
   CanvasSelectionListener,
   CropState,
   DrawingToolSettings,
+  FillableRasterSnapshot,
   NewProductVariantInput,
   NewProductKitInput,
   NewProductShellInput,
@@ -22,7 +23,8 @@ import type {
   ObjectTransform,
   ArtworkSurfaceAddress,
   ShapeKind,
-  StackDirection
+  StackDirection,
+  RasterSectionFillRecipe
 } from "./canvas-port";
 import {
   canvasRemovalState,
@@ -161,6 +163,19 @@ class MemoryCanvasPort implements CanvasPort {
     };
   }
   setCrop(id: string, crop: CropState): void { Object.assign(this.#get(id), crop); }
+  async getFillableRaster(_id: string): Promise<FillableRasterSnapshot | null> {
+    return null;
+  }
+  rasterSourcePoint(_id: string, point: CanvasPoint): CanvasPoint { return point; }
+  async previewRasterSectionFill(
+    _id: string,
+    _recipe: RasterSectionFillRecipe
+  ): Promise<void> {}
+  cancelRasterSectionFillPreview(_id: string): void {}
+  async applyRasterSectionFill(
+    _id: string,
+    _recipe: RasterSectionFillRecipe
+  ): Promise<void> {}
   setDrawingTool(settings: DrawingToolSettings): void { this.drawingTool = structuredClone(settings); }
   eraseTopmostDrawing(point: CanvasPoint, radius: number): boolean {
     for (let index = this.objects.length - 1; index >= 0; index -= 1) {

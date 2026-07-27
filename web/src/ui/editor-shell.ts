@@ -33,6 +33,7 @@ export interface EditorShell extends PairGameView {
   deleteSelected: HTMLButtonElement;
   deleteStatus: HTMLElement;
   inspector: HTMLElement;
+  sectionFillPanel: HTMLElement;
   layers: HTMLElement;
 }
 
@@ -209,6 +210,8 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           <canvas width="1600" height="900"></canvas>
         </main>
         <aside class="creator__inspector" role="region" aria-label="Selected element" hidden></aside>
+        <aside class="creator__section-fill" role="region" aria-label="Selected item fill"
+          data-section-fill-panel hidden></aside>
         <aside class="creator__layers" id="canvas-layers-panel" role="region" aria-label="Canvas layers" hidden></aside>
       </div>
       <div class="creator__instruction-dialog" role="dialog" aria-modal="true"
@@ -325,6 +328,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
     deleteSelected: root.querySelector('[data-canvas-delete]')!,
     deleteStatus: root.querySelector('[data-canvas-delete-status]')!,
     inspector: root.querySelector(".creator__inspector")!,
+    sectionFillPanel: root.querySelector("[data-section-fill-panel]")!,
     layers: root.querySelector(".creator__layers")!,
     polite: root.querySelector('[data-live="polite"]')!,
     assertive: root.querySelector('[data-live="assertive"]')!

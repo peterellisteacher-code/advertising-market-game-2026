@@ -2,6 +2,7 @@ import { FabricObject } from "fabric";
 import type { ElementKind } from "../domain/editor-object";
 import type { LogoRecipeId, LogoTypeface } from "../logo-lab/logo-mark-model";
 import type { ProductKitCompositionRequest } from "../product-kit/product-kit-runtime";
+import type { RasterSectionFillRecipe } from "./canvas-port";
 import type {
   CurvedLabelFontFamily,
   CurvedTextProfileId
@@ -48,6 +49,10 @@ declare module "fabric" {
     curvedTextProfile?: CurvedTextProfileId;
     curvedTextColour?: string;
     curvedTextFontFamily?: CurvedLabelFontFamily;
+    rasterSectionFillSourceUrl?: string;
+    rasterSectionFillMode?: "connected-sections" | "whole-object";
+    rasterSectionFillProfile?: "bounded-linework-v1" | "opaque-body-v1";
+    rasterSectionFillRecipes?: readonly RasterSectionFillRecipe[];
   }
 
   interface SerializedObjectProps {
@@ -88,6 +93,10 @@ declare module "fabric" {
     curvedTextProfile?: CurvedTextProfileId;
     curvedTextColour?: string;
     curvedTextFontFamily?: CurvedLabelFontFamily;
+    rasterSectionFillSourceUrl?: string;
+    rasterSectionFillMode?: "connected-sections" | "whole-object";
+    rasterSectionFillProfile?: "bounded-linework-v1" | "opaque-body-v1";
+    rasterSectionFillRecipes?: readonly RasterSectionFillRecipe[];
   }
 }
 
@@ -129,5 +138,9 @@ FabricObject.customProperties = [
   "curvedTextSource",
   "curvedTextProfile",
   "curvedTextColour",
-  "curvedTextFontFamily"
+  "curvedTextFontFamily",
+  "rasterSectionFillSourceUrl",
+  "rasterSectionFillMode",
+  "rasterSectionFillProfile",
+  "rasterSectionFillRecipes"
 ];

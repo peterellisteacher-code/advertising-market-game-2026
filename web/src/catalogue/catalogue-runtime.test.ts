@@ -14,8 +14,10 @@ import {
 import type {
   ArtworkSurfaceAddress,
   CanvasMutationListener,
+  CanvasPoint,
   CanvasPort,
   CanvasSelectionListener,
+  FillableRasterSnapshot,
   LogoMarkSnapshot,
   LogoMarkSource,
   NewLogoMarkInput,
@@ -24,7 +26,8 @@ import type {
   NewRasterInput,
   NewShapeInput,
   NewTextInput,
-  ObjectTransform
+  ObjectTransform,
+  RasterSectionFillRecipe
 } from "../fabric/canvas-port";
 import { campaignSemanticObjectMap } from "../domain/campaign-semantic-objects";
 import { parseProductBuilderCatalogue } from "../product-builder/product-builder-catalogue";
@@ -595,6 +598,7 @@ describe("CatalogueRuntime", () => {
 class PlacementCanvas implements CanvasPort {
   readonly objects: Array<Record<string, unknown>>;
   readonly removed: string[] = [];
+  readonly rasterAdds: NewRasterInput[] = [];
   readonly productKitAdds: NewProductKitInput[] = [];
   readonly artworkAdds: Array<{
     address: ArtworkSurfaceAddress;
@@ -623,7 +627,8 @@ class PlacementCanvas implements CanvasPort {
     this.objects = structuredClone(objects);
   }
 
-  async addRaster(input: { id: string; assetId: string; sameOriginUrl: string; accessibleName: string }): Promise<void> {
+  async addRaster(input: NewRasterInput): Promise<void> {
+    this.rasterAdds.push(structuredClone(input));
     this.objects.push({
       type: "image",
       objectId: input.id,
@@ -749,6 +754,23 @@ class PlacementCanvas implements CanvasPort {
       throw new Error("An ordered multi-selection has no single object ID");
     }
     return this.selectedId;
+  }
+  async getFillableRaster(_id: string): Promise<FillableRasterSnapshot | null> { return null; }
+  rasterSourcePoint(_id: string, _point: CanvasPoint): CanvasPoint {
+    throw new Error("not used");
+  }
+  async previewRasterSectionFill(
+    _id: string,
+    _recipe: RasterSectionFillRecipe
+  ): Promise<void> {
+    throw new Error("not used");
+  }
+  cancelRasterSectionFillPreview(_id: string): void {}
+  async applyRasterSectionFill(
+    _id: string,
+    _recipe: RasterSectionFillRecipe
+  ): Promise<void> {
+    throw new Error("not used");
   }
   listObjectSummaries(): readonly [] { return []; }
   captureSelection(): { readonly objectIds: readonly string[] } {
@@ -1042,6 +1064,65 @@ const artworkReconciliationCases: Array<[
 ];
 
 describe("CataloguePlacementQueue", () => {
+  it("attaches section-fill provenance only when the host admits the exact starter raster", async () => {
+    const manifestRecord = STUDENT_STARTERS.starters.find((starter) =>
+      starter.kind === "raster" && starter.fillMode === "connected-sections"
+    );
+    if (!manifestRecord || manifestRecord.kind !== "raster") {
+      throw new Error("Missing connected starter fixture");
+    }
+    const starter = PRODUCT_KIT_STARTER_RASTERS.find(({ id }) =>
+      id === manifestRecord.assetId
+    );
+    if (!starter || starter.delivery !== "offline") throw new Error("Missing starter asset");
+    const canvas = new PlacementCanvas();
+    let document = placementDocument([]);
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit: (next) => { document = next; },
+      createObjectId: () => "starter-object-1",
+      sectionFillForAsset: (candidate) => candidate.id === starter.id
+        ? {
+            sourceSha256: starter.masterSha256,
+            mode: "connected-sections",
+            profile: "bounded-linework-v1"
+          }
+        : undefined
+    });
+
+    queue.enqueue(starter);
+    await queue.flush();
+
+    expect(canvas.rasterAdds).toHaveLength(1);
+    expect(canvas.rasterAdds[0]).toMatchObject({
+      id: "starter-object-1",
+      assetId: starter.id,
+      sameOriginUrl: starter.files.master,
+      sectionFill: {
+        sourceSha256: starter.masterSha256,
+        mode: "connected-sections",
+        profile: "bounded-linework-v1"
+      }
+    });
+  });
+
+  it("does not attach fill provenance to ordinary catalogue rasters", async () => {
+    const canvas = new PlacementCanvas();
+    let document = placementDocument([]);
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit: (next) => { document = next; },
+      createObjectId: () => "ordinary-object-1"
+    });
+
+    queue.enqueue(asset("ordinary-raster", "raster-master"));
+    await queue.flush();
+
+    expect(canvas.rasterAdds[0]).not.toHaveProperty("sectionFill");
+  });
+
   it("refuses Product Kit placement without the host transaction before any mutation", async () => {
     const bundle = await pilotProductKitBundle();
     const canvas = new PlacementCanvas([semanticImage("existing-object")]);

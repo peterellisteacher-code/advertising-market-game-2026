@@ -95,6 +95,7 @@ import {
 } from "./product-builder/virtual-product-variant";
 import {
   loadProductKitBundle,
+  sectionFillForStudentStarter,
   type LoadedProductKitBundle
 } from "./product-kit/product-kit-loader";
 import { ProductKitPanel } from "./product-kit/product-kit-panel";
@@ -173,6 +174,7 @@ import {
   creatorStageAllows
 } from "./game/creator-level-access";
 import { GuidedJourneyController } from "./game/guided-journey-controller";
+import { SectionFillController } from "./tools/section-fill-controller";
 
 const RETURN_TO_GAME_EVENT = "ad-market-creator:return-to-game";
 
@@ -253,6 +255,8 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #history: FabricHistoryBindings<CampaignDocumentV1> | null = null;
   #removalHistory: CanvasRemovalHistoryTransition[] = [];
   #canvasAccessibility: CanvasAccessibilityController | null = null;
+  #sectionFill: SectionFillController | null = null;
+  #sectionFillPreviewActive = false;
   #unsubscribeCanvasSelectionStatus: (() => void) | null = null;
   #pairGame: PairGameController | null = null;
   #logoLab: LogoLabPanel | null = null;
@@ -325,6 +329,9 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       onProductVariantPlaced: (_objectId, product) => {
         this.#showProductVariantSummary(`${product.paletteTitle} ${product.bodyTitle}`);
       },
+      sectionFillForAsset: (asset) => this.#productKitBundle === null
+        ? undefined
+        : sectionFillForStudentStarter(this.#productKitBundle, asset),
       onError: (error) => { this.shell.assertive.textContent = error.message; }
     });
     if (practice !== null) {
@@ -365,6 +372,11 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 
   queueCataloguePlacement(asset: CatalogAssetV1, bodyColour?: string): void {
+    if (this.#sectionFillPreviewActive) {
+      this.shell.assertive.textContent =
+        "Apply or cancel the fill preview before changing the canvas.";
+      return;
+    }
     if (asset.delivery === "offline" && !this.#rasterPricing?.byAssetId.has(asset.id)) {
       this.shell.assertive.textContent = "That product piece is missing its Market Buck clue.";
       return;
@@ -413,6 +425,11 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 
   queueProductKitPlacement(request: ProductKitCompositionRequest): void {
+    if (this.#sectionFillPreviewActive) {
+      this.shell.assertive.textContent =
+        "Apply or cancel the fill preview before changing the canvas.";
+      return;
+    }
     if (this.#productKitBundle === null) {
       this.shell.assertive.textContent = "Product maker unavailable";
       return;
@@ -1024,6 +1041,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 
   async addText(value: string): Promise<void> {
+    this.#assertCanvasMutationAvailable();
     await this.#placements.flush();
     const runtime = this.#runtime;
     if (runtime === null) throw new Error("Campaign creator is not open");
@@ -1033,6 +1051,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   async addProductText(
     value: string
   ): Promise<"added" | "updated" | "product-required"> {
+    this.#assertCanvasMutationAvailable();
     await this.#placements.flush();
     const runtime = this.#runtime;
     if (runtime === null || this.#history === null) {
@@ -1057,6 +1076,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 
   async addLogoMark(design: LogoMarkDesign, icon: LogoIconRecord): Promise<string> {
+    this.#assertCanvasMutationAvailable();
     await this.#placements.flush();
     const runtime = this.#runtime;
     if (runtime === null) throw new Error("Campaign creator is not open");
@@ -1068,6 +1088,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     design: LogoMarkDesign,
     icon: LogoIconRecord
   ): Promise<void> {
+    this.#assertCanvasMutationAvailable();
     await this.#placements.flush();
     const runtime = this.#runtime;
     if (runtime === null) throw new Error("Campaign creator is not open");
@@ -1075,6 +1096,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 
   async undo(): Promise<boolean> {
+    this.#assertCanvasMutationAvailable();
     await this.#placements.flush();
     if (this.#history === null) throw new Error("Campaign creator is not open");
     const runtime = this.#runtime;
@@ -1098,6 +1120,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 
   async redo(): Promise<boolean> {
+    this.#assertCanvasMutationAvailable();
     await this.#placements.flush();
     if (this.#history === null) throw new Error("Campaign creator is not open");
     const runtime = this.#runtime;
@@ -1121,6 +1144,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 
   async resizeSelectedObject(factor: number): Promise<void> {
+    this.#assertCanvasMutationAvailable();
     await this.#placements.flush();
     const runtime = this.#runtime;
     if (!this.#editorOpen || runtime === null || this.#history === null) {
@@ -1135,6 +1159,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 
   async applyCanvasAccessibilityAction(action: CanvasAccessibilityAction): Promise<void> {
+    this.#assertCanvasMutationAvailable();
     await this.#placements.flush();
     const runtime = this.#runtime;
     if (!this.#editorOpen || runtime === null || this.#history === null) {
@@ -1181,6 +1206,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 
   async deleteSelected(): Promise<void> {
+    this.#assertCanvasMutationAvailable();
     await this.#placements.flush();
     const runtime = this.#runtime;
     if (!this.#editorOpen || runtime === null || this.#history === null) {
@@ -1197,6 +1223,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 
   async fillSelectedImage(): Promise<void> {
+    this.#assertCanvasMutationAvailable();
     await this.#placements.flush();
     const runtime = this.#runtime;
     if (!this.#editorOpen || runtime === null || this.#history === null) {
@@ -1708,7 +1735,33 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
         (priority === "assertive" ? this.shell.assertive : this.shell.polite).textContent = message;
       }
     });
+    this.#sectionFill = new SectionFillController({
+      host: this.shell.sectionFillPanel,
+      canvas: this.shell.canvasRegion,
+      port: runtime.adapter,
+      transaction: async (operation) => {
+        if (this.#history === null) throw new Error("Campaign creator is not open");
+        await this.#history.transaction(operation);
+        this.schedulePracticeAutosave();
+      },
+      announce: (message, priority) => {
+        (priority === "assertive" ? this.shell.assertive : this.shell.polite).textContent = message;
+      },
+      mutationControls: [...this.root.querySelectorAll<HTMLButtonElement>("button")]
+        .filter((control) => !this.shell.sectionFillPanel.contains(control)),
+      onPreviewStateChange: (active) => {
+        this.#sectionFillPreviewActive = active;
+        if (active) this.root.dataset.sectionFillPreview = "true";
+        else delete this.root.dataset.sectionFillPreview;
+      }
+    });
     this.#unsubscribeCanvasSelectionStatus = runtime.adapter.subscribeSelection(({ objectIds }) => {
+      void this.#sectionFill?.setSelection(objectIds.length === 1 ? objectIds[0]! : null)
+        .catch((error: unknown) => {
+          this.shell.assertive.textContent = error instanceof Error
+            ? error.message
+            : "Selected-item fill controls could not be updated.";
+        });
       if (objectIds.length === 0) {
         this.shell.zoomStatus.textContent = "Select a product or image";
         return;
@@ -1725,14 +1778,30 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       this.shell.zoomStatus.textContent =
         `Selected: ${accessibleName || "Canvas layer"}`;
     });
+    void this.#sectionFill.setSelection(runtime.adapter.getSelectedObjectId())
+      .catch((error: unknown) => {
+        this.shell.assertive.textContent = error instanceof Error
+          ? error.message
+          : "Selected-item fill controls could not be updated.";
+      });
   }
 
   #destroyCanvasAccessibility(): void {
     this.#unsubscribeCanvasSelectionStatus?.();
     this.#unsubscribeCanvasSelectionStatus = null;
     this.shell.zoomStatus.textContent = "Select a product or image";
+    this.#sectionFill?.destroy();
+    this.#sectionFill = null;
+    this.#sectionFillPreviewActive = false;
+    delete this.root.dataset.sectionFillPreview;
     this.#canvasAccessibility?.destroy();
     this.#canvasAccessibility = null;
+  }
+
+  #assertCanvasMutationAvailable(): void {
+    if (this.#sectionFillPreviewActive) {
+      throw new Error("Apply or cancel the fill preview before changing the canvas.");
+    }
   }
 }
 

@@ -342,6 +342,15 @@
 .creator__library-results [data-colourable] { color: #8a3216; }
 .creator__inspector { position: absolute; right: 16px; top: 16px; z-index: 8; width: min(20rem, calc(100% - 32px)); max-height: calc(100% - 32px); padding: 14px; overflow: auto; border: 2px solid var(--ink); border-radius: 12px; background: var(--panel); box-shadow: 0 12px 36px rgb(23 32 51 / .24); }
 .creator__inspector h2, .creator__inspector p { margin: 0 0 .65rem; }
+.creator__section-fill { position: absolute; left: calc(var(--studio-rail-width) + 18px); bottom: 24px; z-index: 12; width: min(20rem, calc(100% - var(--studio-rail-width) - 48px)); padding: 14px; border: 2px solid var(--ink); border-radius: 12px; background: var(--panel); box-shadow: 0 12px 36px rgb(23 32 51 / .24); }
+.creator__section-fill h3, .creator__section-fill p { margin: 0 0 .65rem; }
+.creator__section-fill-status { color: #334155; font-size: .9rem; line-height: 1.35; }
+.creator__section-fill-colour { display: grid; grid-template-columns: 1fr 56px; align-items: center; gap: .5rem; font-weight: 850; }
+.creator__section-fill-colour input { width: 56px; min-height: 40px; padding: 3px; }
+.creator__section-fill-actions { margin-top: .65rem; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+.creator__section-fill-actions button { min-width: 0; border: 2px solid var(--ink); border-radius: 8px; background: var(--blue); color: #fff; font: inherit; font-weight: 900; }
+.creator__section-fill-actions button:last-child:not(:only-child) { background: #fff; color: var(--ink); }
+[data-section-fill-preview="true"] .creator__canvas { cursor: crosshair; }
 .creator__region-controls { display: grid; gap: .6rem; }
 .creator__region-controls label { display: grid; grid-template-columns: 1fr 56px; align-items: center; gap: .5rem; font-weight: 700; }
 .creator__region-controls input[type="color"] { width: 56px; padding: 3px; }
@@ -470,4 +479,5 @@ button, input, select { min-height: 44px; }
   .creator__inspector { top: 8px; right: 8px; width: calc(100% - 16px); max-height: 8.5rem; padding: 10px; }
   .creator__inspector h2, .creator__inspector p { margin-bottom: .35rem; }
   .creator__inspector ul { display: none; }
+  .creator__section-fill { left: 8px; bottom: 88px; width: calc(100% - 16px); padding: 10px; }
 }

@@ -3,6 +3,7 @@ import type {
   CanvasObjectSummary,
   CanvasPort,
   LogoMarkSource,
+  NewRasterInput,
   NewProductKitInput,
   NewProductVariantInput,
   NewProductShellInput,
@@ -17,11 +18,7 @@ export interface AddShapeCommand {
   accessibleName?: string;
 }
 
-export interface AddRasterCommand {
-  assetId: string;
-  sameOriginUrl: string;
-  accessibleName: string;
-}
+export type AddRasterCommand = Omit<NewRasterInput, "id">;
 
 export type AddProductShellCommand = Omit<NewProductShellInput, "id">;
 export type AddProductVariantCommand = Omit<NewProductVariantInput, "id">;
@@ -111,7 +108,10 @@ export class ObjectCommandService {
       id,
       assetId: this.#required(input.assetId, "asset id"),
       sameOriginUrl: this.#required(input.sameOriginUrl, "raster URL"),
-      accessibleName: this.#required(input.accessibleName, "accessible name")
+      accessibleName: this.#required(input.accessibleName, "accessible name"),
+      ...(input.sectionFill === undefined
+        ? {}
+        : { sectionFill: structuredClone(input.sectionFill) })
     });
     this.port.setSelected(id);
     return id;

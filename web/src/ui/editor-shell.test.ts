@@ -158,6 +158,11 @@ describe("createEditorShell", () => {
     expect(getByRole(root, "button", { name: "Open canvas layers", hidden: true })).toBeTruthy();
     expect(root.querySelector('.creator__inspector[aria-label="Selected element"]')).toBeTruthy();
     expect(shell.inspector.hidden).toBe(true);
+    const sectionFill = root.querySelector<HTMLElement>(
+      '[data-section-fill-panel][role="region"][aria-label="Selected item fill"]'
+    )!;
+    expect(sectionFill).toBe(shell.sectionFillPanel);
+    expect(shell.sectionFillPanel.hidden).toBe(true);
     expect(getByRole(root, "group", { name: "AIDA steps", hidden: true })).toBeTruthy();
     expect(getAllByRole(root, "button", { hidden: true })
       .filter((button) => button.hasAttribute("data-slot"))

@@ -230,12 +230,29 @@ export class FabricObjectFactory {
     const width = Math.max(1, image.width || MAX_RASTER_WIDTH);
     const height = Math.max(1, image.height || MAX_RASTER_HEIGHT);
     image.scale(Math.min(1, MAX_RASTER_WIDTH / width, MAX_RASTER_HEIGHT / height));
-    return this.#configure(image, {
+    const configured = this.#configure(image, {
       objectId: input.id,
       elementKind: "image",
       assetId: input.assetId,
       accessibleName: input.accessibleName
     });
+    if (input.sectionFill !== undefined) {
+      const { sourceSha256, mode, profile } = input.sectionFill;
+      const validPair =
+        (mode === "connected-sections" && profile === "bounded-linework-v1") ||
+        (mode === "whole-object" && profile === "opaque-body-v1");
+      if (!/^[0-9a-f]{64}$/.test(sourceSha256) || !validPair) {
+        throw new Error("Raster section-fill provenance is invalid");
+      }
+      configured.set({
+        sourceHash: sourceSha256,
+        rasterSectionFillSourceUrl: url,
+        rasterSectionFillMode: mode,
+        rasterSectionFillProfile: profile,
+        rasterSectionFillRecipes: Object.freeze([])
+      });
+    }
+    return configured;
   }
 
   #configure<T extends FabricObject>(object: T, meta: EditorObjectMeta): T {

@@ -38,6 +38,32 @@ export interface NewRasterInput {
   assetId: string;
   sameOriginUrl: string;
   accessibleName: string;
+  sectionFill?: {
+    sourceSha256: string;
+    mode: "connected-sections" | "whole-object";
+    profile: "bounded-linework-v1" | "opaque-body-v1";
+  };
+}
+
+export interface RasterSectionFillRecipe {
+  readonly schema: "raster-section-fill";
+  readonly version: 1;
+  readonly fillProfile: "bounded-linework-v1" | "opaque-body-v1";
+  readonly sourceAssetId: string;
+  readonly sourceSha256: string;
+  readonly seedX: number;
+  readonly seedY: number;
+  readonly colour: string;
+  readonly colourDistance: number;
+}
+
+export interface FillableRasterSnapshot {
+  readonly id: string;
+  readonly assetId: string;
+  readonly sourceSha256: string;
+  readonly width: number;
+  readonly height: number;
+  readonly sectionMode: "connected" | "whole-object";
 }
 
 export interface LogoMarkSource {
@@ -160,6 +186,11 @@ export interface CanvasPort {
   restoreSelection(snapshot: CanvasSelectionSnapshot): void;
   getCropSourceSize(id: string): CanvasSize;
   setCrop(id: string, crop: CropState): void;
+  getFillableRaster(id: string): Promise<FillableRasterSnapshot | null>;
+  rasterSourcePoint(id: string, clientPoint: CanvasPoint): CanvasPoint;
+  previewRasterSectionFill(id: string, recipe: RasterSectionFillRecipe): Promise<void>;
+  cancelRasterSectionFillPreview(id: string): void;
+  applyRasterSectionFill(id: string, recipe: RasterSectionFillRecipe): Promise<void>;
   setDrawingTool(settings: DrawingToolSettings): void;
   eraseTopmostDrawing(point: CanvasPoint, radius: number): boolean;
   serialize(): Record<string, unknown>;

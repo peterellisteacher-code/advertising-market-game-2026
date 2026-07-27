@@ -6,7 +6,8 @@ import { campaignSemanticObjectMap } from "../domain/campaign-semantic-objects";
 import type {
   ArtworkSurfaceAddress,
   CanvasPort,
-  CanvasSelectionSnapshot
+  CanvasSelectionSnapshot,
+  NewRasterInput
 } from "../fabric/canvas-port";
 import { ObjectCommandService } from "../fabric/object-command-service";
 import { fillCanvasWithRaster } from "../tools/canvas-object-zoom";
@@ -270,6 +271,9 @@ interface CataloguePlacementHost {
   tintRaster?: (asset: CatalogAssetV1, bodyColour: string) => Promise<Blob>;
   onProductShellPlaced?: (objectId: string, shell: ProductShellRecord) => void;
   onProductVariantPlaced?: (objectId: string, product: ResolvedProductVariant) => void;
+  sectionFillForAsset?: (
+    asset: CatalogAssetV1
+  ) => NewRasterInput["sectionFill"] | undefined;
 }
 
 export interface LocalCatalogueBlob {
@@ -765,7 +769,7 @@ export class CataloguePlacementQueue {
     } catch (error) {
       if (attemptedAdd) {
         try {
-          commands.remove(objectId);
+          canvas.remove(objectId);
         } catch {
           // Preserve the Product Kit placement failure; the host transaction restores state.
         }
@@ -841,7 +845,7 @@ export class CataloguePlacementQueue {
     } catch (error) {
       if (attemptedAdd) {
         try {
-          commands.remove(objectId);
+          canvas.remove(objectId);
         } catch {
           // Preserve the generated-image placement failure.
         }
@@ -904,10 +908,14 @@ export class CataloguePlacementQueue {
         placementUrl = objectUrl;
       }
       attemptedAdd = true;
+      const sectionFill = localBlob === undefined && bodyColour === null
+        ? this.host.sectionFillForAsset?.(asset)
+        : undefined;
       await commands.addRaster({
         assetId: asset.id,
         sameOriginUrl: placementUrl,
-        accessibleName: asset.title
+        accessibleName: asset.title,
+        ...(sectionFill === undefined ? {} : { sectionFill })
       });
       const fabricState = commands.serialize();
       const objects = Array.isArray(fabricState.objects)
@@ -942,7 +950,7 @@ export class CataloguePlacementQueue {
     } catch (error) {
       if (attemptedAdd) {
         try {
-          commands.remove(objectId);
+          canvas.remove(objectId);
         } catch {
           // Preserve the reconciliation failure; the adapter may already have rolled back.
         }
@@ -1141,7 +1149,7 @@ export class CataloguePlacementQueue {
     } catch (error) {
       if (attemptedAdd) {
         try {
-          commands.remove(objectId);
+          canvas.remove(objectId);
         } catch {
           // Preserve the product-shell placement failure.
         }
@@ -1249,7 +1257,7 @@ export class CataloguePlacementQueue {
     } catch (error) {
       if (attemptedAdd) {
         try {
-          commands.remove(objectId);
+          canvas.remove(objectId);
         } catch {
           // Preserve the composition or reconciliation failure.
         }

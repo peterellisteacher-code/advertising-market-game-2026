@@ -1,5 +1,6 @@
 import type { OfflineCatalogueWithHash } from "../catalogue/catalogue-store";
 import type { CatalogAssetV1 } from "../catalogue/catalogue-types";
+import type { NewRasterInput } from "../fabric/canvas-port";
 import {
   parseProductKitCatalogue,
   type ProductKitAssetReference,
@@ -33,6 +34,39 @@ export interface LoadedProductKitBundle {
   readonly pricing: ProductKitPricingIndex;
   readonly starterManifest: StudentStarterManifestV1;
   readonly starterRasters: ReadonlyMap<string, CatalogAssetV1>;
+}
+
+export function sectionFillForStudentStarter(
+  bundle: LoadedProductKitBundle,
+  asset: CatalogAssetV1
+): NewRasterInput["sectionFill"] | undefined {
+  if (asset.delivery !== "offline" || asset.kind !== "raster-master" ||
+    !asset.classroomReviewed || !asset.brandFree) return undefined;
+  const admitted = bundle.starterRasters.get(asset.id);
+  const starter = bundle.starterManifest.starters.find((candidate) =>
+    candidate.kind === "raster" && candidate.assetId === asset.id
+  );
+  if (!admitted || !starter || starter.kind !== "raster" ||
+    starter.fillMode === "none" || starter.fillProfile === "none" ||
+    admitted.delivery !== "offline" ||
+    admitted.id !== asset.id ||
+    admitted.version !== asset.version ||
+    admitted.kind !== asset.kind ||
+    admitted.title !== asset.title ||
+    admitted.files.master !== asset.files.master ||
+    admitted.files.masks?.body !== asset.files.masks?.body ||
+    admitted.masterSha256 !== asset.masterSha256) return undefined;
+  const validPair =
+    (starter.fillMode === "connected-sections" &&
+      starter.fillProfile === "bounded-linework-v1") ||
+    (starter.fillMode === "whole-object" &&
+      starter.fillProfile === "opaque-body-v1");
+  if (!validPair) return undefined;
+  return Object.freeze({
+    sourceSha256: asset.masterSha256,
+    mode: starter.fillMode,
+    profile: starter.fillProfile
+  });
 }
 
 interface ProductKitSidecarUrls {

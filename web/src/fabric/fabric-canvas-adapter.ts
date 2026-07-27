@@ -23,6 +23,7 @@ import type {
   CanvasSize,
   CropState,
   DrawingToolSettings,
+  FillableRasterSnapshot,
   LogoMarkSnapshot,
   LogoMarkSource,
   NewLogoMarkInput,
@@ -33,6 +34,7 @@ import type {
   NewShapeInput,
   NewTextInput,
   ObjectTransform,
+  RasterSectionFillRecipe,
   StackDirection
 } from "./canvas-port";
 import { createLogoMarkDesign, type LogoMarkDesign } from "../logo-lab/logo-mark-model";
@@ -55,6 +57,11 @@ import {
   CURVED_TEXT_PROFILE,
   renderCurvedLabel
 } from "../product-kit/curved-label-renderer";
+import {
+  BrowserRasterSectionFillEngine,
+  type LoadedRasterSectionFillSource,
+  type RasterSectionFillEngine
+} from "../tools/raster-section-fill-renderer";
 import "./fabric-custom-properties";
 
 const SERIALIZED_INTERACTION_PROPERTIES = [
@@ -88,6 +95,14 @@ const OMITTED_JSON_PROPERTY = Symbol("omitted-json-property");
 type IdFactory = () => string;
 const defaultIdFactory: IdFactory = () => globalThis.crypto.randomUUID();
 
+interface RasterSectionFillMetadata {
+  readonly assetId: string;
+  readonly sourceSha256: string;
+  readonly sourceUrl: string;
+  readonly mode: "connected-sections" | "whole-object";
+  readonly profile: "bounded-linework-v1" | "opaque-body-v1";
+}
+
 function transformSerializedImageSources(
   value: unknown,
   transform: (source: string) => string,
@@ -100,8 +115,13 @@ function transformSerializedImageSources(
     value.forEach((item) => transformSerializedImageSources(item, transform, seen));
     return;
   }
+  const source = Reflect.get(value, "rasterSectionFillSourceUrl");
+  if (typeof source === "string" && typeof Reflect.get(value, "src") === "string") {
+    Reflect.set(value, "src", source);
+  }
   Object.entries(value).forEach(([key, child]) => {
-    if (key === "src" && typeof child === "string") {
+    if ((key === "src" || key === "rasterSectionFillSourceUrl") &&
+      typeof child === "string") {
       Reflect.set(value, key, transform(child));
     } else {
       transformSerializedImageSources(child, transform, seen);
@@ -168,6 +188,12 @@ export class FabricCanvasAdapter implements CanvasPort {
   readonly #pencilBrush: PencilBrush;
   readonly #logoFactory = new FabricLogoMarkFactory();
   readonly #textAtEditingStart = new WeakMap<FabricObject, string>();
+  readonly #sectionFillPreviews = new Map<string, {
+    readonly image: FabricImage;
+    readonly element: ReturnType<FabricImage["getElement"]>;
+    readonly width: number;
+    readonly height: number;
+  }>();
   #suppressEvents = false;
   #drawingTool: DrawingToolSettings = { mode: "select" };
   #lastSelectionKey = "";
@@ -177,7 +203,9 @@ export class FabricCanvasAdapter implements CanvasPort {
     private readonly factory = new FabricObjectFactory(),
     private readonly shellFactory = new FabricProductShellFactory(),
     private readonly createId: IdFactory = defaultIdFactory,
-    private readonly productKitCompositor = new FabricProductKitCompositor()
+    private readonly productKitCompositor = new FabricProductKitCompositor(),
+    private readonly sectionFillEngine: RasterSectionFillEngine =
+      new BrowserRasterSectionFillEngine()
   ) {
     this.#pencilBrush = new PencilBrush(this.canvas);
     this.canvas.freeDrawingBrush = this.#pencilBrush;
@@ -449,6 +477,7 @@ export class FabricCanvasAdapter implements CanvasPort {
   }
 
   remove(id: string): void {
+    this.#sectionFillPreviews.delete(id);
     this.canvas.remove(this.#get(id));
     this.canvas.requestRenderAll();
     this.#emitSelection();
@@ -616,6 +645,109 @@ export class FabricCanvasAdapter implements CanvasPort {
     this.#emit("modified", image);
   }
 
+  async getFillableRaster(id: string): Promise<FillableRasterSnapshot | null> {
+    const image = this.#getRaster(id);
+    const metadata = this.#sectionFillMetadata(image);
+    if (metadata === null) return null;
+    const { width, height } = image.getOriginalSize();
+    if (!Number.isInteger(width) || !Number.isInteger(height) ||
+      width < 1 || height < 1) {
+      throw new Error("Section-fill source dimensions are invalid");
+    }
+    return Object.freeze({
+      id,
+      assetId: metadata.assetId,
+      sourceSha256: metadata.sourceSha256,
+      width,
+      height,
+      sectionMode: metadata.mode === "connected-sections"
+        ? "connected"
+        : "whole-object"
+    });
+  }
+
+  rasterSourcePoint(id: string, clientPoint: CanvasPoint): CanvasPoint {
+    if (!Number.isFinite(clientPoint.x) || !Number.isFinite(clientPoint.y)) {
+      throw new Error("Canvas point must be finite");
+    }
+    const image = this.#getRaster(id);
+    if (this.#sectionFillMetadata(image) === null) {
+      throw new Error("Section fill is unavailable for this image");
+    }
+    const event = {
+      clientX: clientPoint.x,
+      clientY: clientPoint.y
+    } as PointerEvent;
+    const scenePoint = this.canvas.getScenePoint(event);
+    const local = util.transformPoint(
+      scenePoint,
+      util.invertTransform(image.calcTransformMatrix())
+    );
+    const visibleX = local.x + image.width / 2;
+    const visibleY = local.y + image.height / 2;
+    if (visibleX < 0 || visibleY < 0 ||
+      visibleX > image.width || visibleY > image.height) {
+      throw new Error("Choose a point inside the selected image");
+    }
+    const source = image.getOriginalSize();
+    return {
+      x: Math.min(source.width - 1, Math.max(0, Math.floor(visibleX + image.cropX))),
+      y: Math.min(source.height - 1, Math.max(0, Math.floor(visibleY + image.cropY)))
+    };
+  }
+
+  async previewRasterSectionFill(
+    id: string,
+    recipe: RasterSectionFillRecipe
+  ): Promise<void> {
+    this.cancelRasterSectionFillPreview(id);
+    const image = this.#getRaster(id);
+    const metadata = this.#requiredSectionFillMetadata(image);
+    const recipes = this.#sectionFillRecipes(image, metadata);
+    const candidate = this.#sectionFillRecipe(recipe, metadata);
+    const source = await this.#sectionFillSource(metadata);
+    const rendered = this.sectionFillEngine.render(source, [...recipes, candidate]);
+    this.#sectionFillPreviews.set(id, {
+      image,
+      element: image.getElement(),
+      width: image.width,
+      height: image.height
+    });
+    this.#setRasterElement(image, rendered);
+  }
+
+  cancelRasterSectionFillPreview(id: string): void {
+    const preview = this.#sectionFillPreviews.get(id);
+    if (!preview) return;
+    this.#sectionFillPreviews.delete(id);
+    if (this.canvas.getObjects().includes(preview.image)) {
+      preview.image.setElement(preview.element, {
+        width: preview.width,
+        height: preview.height
+      });
+      preview.image.dirty = true;
+      preview.image.setCoords();
+      this.canvas.requestRenderAll();
+    }
+  }
+
+  async applyRasterSectionFill(
+    id: string,
+    recipe: RasterSectionFillRecipe
+  ): Promise<void> {
+    this.cancelRasterSectionFillPreview(id);
+    const image = this.#getRaster(id);
+    const metadata = this.#requiredSectionFillMetadata(image);
+    const existing = this.#sectionFillRecipes(image, metadata);
+    const candidate = this.#sectionFillRecipe(recipe, metadata);
+    const recipes = Object.freeze([...existing, candidate]);
+    const source = await this.#sectionFillSource(metadata);
+    const rendered = this.sectionFillEngine.render(source, recipes);
+    this.#setRasterElement(image, rendered);
+    image.set({ rasterSectionFillRecipes: recipes });
+    this.#emit("modified", image);
+  }
+
   setDrawingTool(settings: DrawingToolSettings): void {
     if (settings.mode === "select") {
       this.#drawingTool = settings;
@@ -712,6 +844,7 @@ export class FabricCanvasAdapter implements CanvasPort {
   }
 
   async load(value: Record<string, unknown>): Promise<void> {
+    this.#sectionFillPreviews.clear();
     const state = durableCanvasState(value);
     transformSerializedImageSources(state, portableRasterUrlForLoad);
     this.#suppressEvents = true;
@@ -721,6 +854,17 @@ export class FabricCanvasAdapter implements CanvasPort {
         object.set(FABRIC_SELECTION_STYLE);
         object.setCoords();
       });
+      for (const object of this.canvas.getObjects()) {
+        if (!(object instanceof FabricImage) || object.elementKind !== "image") continue;
+        const metadata = this.#sectionFillMetadata(object);
+        if (metadata === null) continue;
+        const recipes = this.#sectionFillRecipes(object, metadata);
+        object.set({ rasterSectionFillRecipes: recipes });
+        if (recipes.length === 0) continue;
+        const source = await this.#sectionFillSource(metadata);
+        const rendered = this.sectionFillEngine.render(source, recipes);
+        this.#setRasterElement(object, rendered);
+      }
       this.canvas.discardActiveObject();
       this.canvas.requestRenderAll();
     } finally {
@@ -743,6 +887,7 @@ export class FabricCanvasAdapter implements CanvasPort {
     this.#disposeEvents.forEach((dispose) => dispose());
     this.#listeners.clear();
     this.#selectionListeners.clear();
+    this.#sectionFillPreviews.clear();
   }
 
   #add(object: FabricObject): void {
@@ -846,6 +991,110 @@ export class FabricCanvasAdapter implements CanvasPort {
       product,
       surface
     };
+  }
+
+  #sectionFillMetadata(image: FabricImage): RasterSectionFillMetadata | null {
+    const assetId = image.assetId?.trim();
+    const sourceSha256 = image.sourceHash;
+    const sourceUrl = image.rasterSectionFillSourceUrl;
+    const mode = image.rasterSectionFillMode;
+    const profile = image.rasterSectionFillProfile;
+    const validPair =
+      (mode === "connected-sections" && profile === "bounded-linework-v1") ||
+      (mode === "whole-object" && profile === "opaque-body-v1");
+    if (!assetId || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(assetId) ||
+      typeof sourceSha256 !== "string" || !/^[0-9a-f]{64}$/.test(sourceSha256) ||
+      typeof sourceUrl !== "string" || !sourceUrl.trim() || !validPair) {
+      return null;
+    }
+    return {
+      assetId,
+      sourceSha256,
+      sourceUrl,
+      mode,
+      profile
+    };
+  }
+
+  #requiredSectionFillMetadata(
+    image: FabricImage
+  ): RasterSectionFillMetadata {
+    const metadata = this.#sectionFillMetadata(image);
+    if (metadata === null) throw new Error("Section fill is unavailable for this image");
+    return metadata;
+  }
+
+  #sectionFillRecipe(
+    value: RasterSectionFillRecipe,
+    metadata: RasterSectionFillMetadata
+  ): RasterSectionFillRecipe {
+    const keys = [
+      "schema",
+      "version",
+      "fillProfile",
+      "sourceAssetId",
+      "sourceSha256",
+      "seedX",
+      "seedY",
+      "colour",
+      "colourDistance"
+    ];
+    const expectedProfile = metadata.profile;
+    const expectedDistance = expectedProfile === "bounded-linework-v1" ? 48 : 0;
+    if (value === null || typeof value !== "object" ||
+      Reflect.ownKeys(value).length !== keys.length ||
+      !keys.every((key) => Object.hasOwn(value, key)) ||
+      value.schema !== "raster-section-fill" || value.version !== 1 ||
+      value.fillProfile !== expectedProfile ||
+      value.sourceAssetId !== metadata.assetId ||
+      value.sourceSha256 !== metadata.sourceSha256 ||
+      !Number.isInteger(value.seedX) || !Number.isInteger(value.seedY) ||
+      value.seedX < 0 || value.seedY < 0 ||
+      !/^#[0-9a-f]{6}$/i.test(value.colour) ||
+      value.colourDistance !== expectedDistance) {
+      throw new Error("Section-fill recipe does not match the admitted source");
+    }
+    return Object.freeze({
+      schema: "raster-section-fill",
+      version: 1,
+      fillProfile: value.fillProfile,
+      sourceAssetId: value.sourceAssetId,
+      sourceSha256: value.sourceSha256,
+      seedX: value.seedX,
+      seedY: value.seedY,
+      colour: value.colour.toUpperCase(),
+      colourDistance: value.colourDistance
+    });
+  }
+
+  #sectionFillRecipes(
+    image: FabricImage,
+    metadata: RasterSectionFillMetadata
+  ): readonly RasterSectionFillRecipe[] {
+    const values = image.rasterSectionFillRecipes ?? [];
+    if (!Array.isArray(values) || values.length > 128) {
+      throw new Error("Saved section-fill recipes are invalid");
+    }
+    return Object.freeze(values.map((value) => this.#sectionFillRecipe(value, metadata)));
+  }
+
+  async #sectionFillSource(
+    metadata: RasterSectionFillMetadata
+  ): Promise<LoadedRasterSectionFillSource> {
+    const source = await this.sectionFillEngine.load(
+      portableRasterUrlForLoad(metadata.sourceUrl)
+    );
+    if (source.sha256 !== metadata.sourceSha256) {
+      throw new Error("The reviewed section-fill source has changed; the original image was kept");
+    }
+    return source;
+  }
+
+  #setRasterElement(image: FabricImage, element: HTMLCanvasElement): void {
+    image.setElement(element, { width: image.width, height: image.height });
+    image.dirty = true;
+    image.setCoords();
+    this.canvas.requestRenderAll();
   }
 
   #addArtwork(address: ArtworkSurfaceAddress, object: FabricObject): void {

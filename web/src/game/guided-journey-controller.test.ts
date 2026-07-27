@@ -170,9 +170,21 @@ describe("GuidedJourneyController", () => {
     expect(document.activeElement).toBe(
       getByRole(dialog, "button", { name: "Close guide" })
     );
+    expect(root.querySelector<HTMLElement>(".creator__topbar")!.inert).toBe(true);
+    expect(root.querySelector<HTMLElement>(".creator__workspace")!.inert).toBe(true);
+    expect(dialog.inert).not.toBe(true);
+
+    const close = getByRole<HTMLButtonElement>(dialog, "button", { name: "Close guide" });
+    fireEvent.keyDown(close, { key: "Tab" });
+    expect(document.activeElement).toBe(close);
+    fireEvent.keyDown(close, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(close);
 
     fireEvent.keyDown(dialog, { key: "Escape" });
     expect(dialog.hidden).toBe(true);
+    expect(root.querySelector<HTMLElement>(".creator__topbar")!.inert).toBe(false);
+    expect(root.querySelector<HTMLElement>(".creator__workspace")!.inert).toBe(false);
+    expect(document.activeElement).toBe(reviewButtons[0]);
 
     fireEvent.click(reviewButtons[1]!);
     expect(dialog.hidden).toBe(false);
@@ -226,10 +238,51 @@ describe("GuidedJourneyController", () => {
 
     controller.setCampaign(document);
     expect(route.disabled).toBe(true);
+    const lockStatus = root.querySelector<HTMLElement>("[data-locked-actions-status]")!;
+    expect(lockStatus.hidden).toBe(false);
+    expect(lockStatus.textContent)
+      .toContain("Route: Set the product price and make it visible on the canvas first.");
+    expect(route.getAttribute("aria-describedby")).toBe(lockStatus.id);
+    expect(route.getAttribute("title")).toBeNull();
 
     document.evidence.price = ["price-label"];
     controller.setCampaign(document);
     expect(route.disabled).toBe(false);
+    expect(route.hasAttribute("aria-describedby")).toBe(false);
+  });
+
+  it("shows and describes every visible disabled AIDA or Price action", () => {
+    const { root, controller } = setup();
+    const document = campaign("sell");
+    completeInvent(document);
+
+    controller.setCampaign(document);
+
+    const attention = root.querySelector<HTMLButtonElement>("[data-slot=attention]")!;
+    const interest = root.querySelector<HTMLButtonElement>("[data-slot=interest]")!;
+    const desire = root.querySelector<HTMLButtonElement>("[data-slot=desire]")!;
+    const price = root.querySelector<HTMLButtonElement>("[data-slot=price]")!;
+    const lockStatus = root.querySelector<HTMLElement>("[data-locked-actions-status]")!;
+    expect(attention.disabled).toBe(false);
+    expect(interest.disabled).toBe(true);
+    expect(desire.disabled).toBe(true);
+    expect(price.disabled).toBe(true);
+    expect(lockStatus.hidden).toBe(false);
+    expect(lockStatus.textContent).toContain("Interest: Complete attention first.");
+    expect(lockStatus.textContent).toContain(
+      "Price: Complete Attention, Interest, Desire and Action first."
+    );
+    expect(interest.getAttribute("aria-describedby")).toBe(lockStatus.id);
+    expect(price.getAttribute("aria-describedby")).toBe(lockStatus.id);
+    expect(interest.getAttribute("title")).toBeNull();
+    expect(price.getAttribute("title")).toBeNull();
+
+    completeAida(document, "attention");
+    controller.setCampaign(document);
+    expect(interest.disabled).toBe(false);
+    expect(interest.hasAttribute("aria-describedby")).toBe(false);
+    expect(lockStatus.textContent).not.toContain("Interest:");
+    expect(lockStatus.textContent).toContain("Desire: Complete interest first.");
   });
 
   it("presents a return-to-game transition before the next level's tools", () => {

@@ -75,6 +75,11 @@ describe("createEditorShell", () => {
     expect(separator.getAttribute("aria-orientation")).toBe("vertical");
     expect(separator.getAttribute("tabindex")).toBe("0");
     expect(shell.workspace.querySelector("[data-studio-separator]")).toBe(separator);
+    const splitHint = shell.workspace.querySelector<HTMLElement>("[data-studio-split-hint]")!;
+    expect(splitHint.id).toBe("studio-split-hint");
+    expect(separator.getAttribute("aria-describedby")).toBe(splitHint.id);
+    expect(splitHint.textContent)
+      .toMatch(/Left Arrow.*Right Arrow.*Shift.*Home.*End.*Press R.*double-click/s);
     const areaTabs = root.querySelector<HTMLElement>("[data-studio-pane-tabs]")!;
     expect(areaTabs.getAttribute("aria-label")).toBe("Studio areas");
     expect(areaTabs.hidden).toBe(true);
@@ -105,6 +110,9 @@ describe("createEditorShell", () => {
     expect(instructions.getAttribute("aria-label")).toBe("How to use this site");
     expect(instructions.querySelector("[data-guide-reference]")).toBeTruthy();
     expect(instructions.querySelector("[data-guide-reference]")?.childElementCount).toBe(0);
+    const lockedActions = root.querySelector<HTMLElement>("[data-locked-actions-status]")!;
+    expect(lockedActions.id).toBe("studio-locked-actions-status");
+    expect(lockedActions.hidden).toBe(true);
     expect(getByRole(root, "region", { name: "Campaign canvas" }).getAttribute("tabindex")).toBe("0");
     const sizeControls = getByRole(root, "group", { name: "Selected product or image size" });
     expect(getByRole(sizeControls, "button", { name: "Make selected product or image smaller" }))

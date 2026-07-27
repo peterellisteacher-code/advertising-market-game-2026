@@ -12,7 +12,10 @@ import {
   parseDeployArgs,
   prepareArtifactDeployContext,
 } from "./deploy-netlify-artifact.mjs";
-import { computeReleaseId } from "./verify-web-export.mjs";
+import {
+  APPLICATION_REDIRECTS,
+  computeReleaseId
+} from "./verify-web-export.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const TEST_SITE_ID = "00000000-1111-4222-8333-444444444444";
@@ -39,7 +42,25 @@ async function writeBoundArtifact(root) {
   const publicFiles = new Map([
     ["index.html", "<!doctype html><title>Ad Market</title>"],
     ["_headers", "/*\n  X-AdMarket-Artifact-Probe: artifact-exact\n"],
-    ["service-worker.js", "self.addEventListener('fetch', () => {});\n"]
+    ["_redirects", APPLICATION_REDIRECTS],
+    ["manifest.webmanifest", JSON.stringify({
+      name: "Advertising Market Game",
+      scope: "/",
+      start_url: "/student"
+    })],
+    [
+      "service-worker.js",
+      [
+        "self.addEventListener('fetch', (event) => {",
+        "  const url = new URL(event.request.url);",
+        "  if (url.pathname.startsWith('/api/')) return;",
+        "  if (event.request.mode === 'navigate') {",
+        "    event.respondWith(caches.open('test').then((cache) => cache.match('/index.html')));",
+        "  }",
+        "});",
+        ""
+      ].join("\n")
+    ]
   ]);
   for (const [relative, value] of publicFiles) {
     await writeFile(path.join(artifactDir, relative), value);

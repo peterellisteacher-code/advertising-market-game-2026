@@ -1297,7 +1297,10 @@ describe("window.AdMarketCreator", () => {
 
     await import("./main");
 
-    await waitFor(() => expect(Reflect.has(window, "AdMarketCreator")).toBe(true));
+    await waitFor(() => expect(document.querySelector<HTMLElement>(
+      "main[aria-label=\"Advertising Market Game\"]"
+    )?.hidden).toBe(false));
+    expect(Reflect.has(window, "AdMarketCreator")).toBe(true);
     expect(
       getByRole(document.body, "banner", { name: "Teacher playtest" })
     ).toBeTruthy();
@@ -1307,8 +1310,7 @@ describe("window.AdMarketCreator", () => {
     expect(runtime.activateAccountDrafts).toHaveBeenCalledWith("teacher-playtest");
     expect(document.querySelector<HTMLElement>(
       "main[aria-label=\"Advertising Market Game\"]"
-    )?.hidden)
-      .toBe(false);
+    )?.hidden).toBe(false);
     expect(document.querySelector<HTMLElement>("#creator-root")?.hidden).toBe(false);
     expect(fetchSpy.mock.calls.map(([input]) => input)).toEqual([
       "/api/teacher/session",
@@ -1746,6 +1748,7 @@ describe("window.AdMarketCreator", () => {
         }]
       }
     });
+    localStorage.setItem("admarket:studio-split:student:v1", "63");
     await import("./main");
     const api = window.AdMarketCreator;
     expect(await parsed(api, "open-split-pane", "open", documentWithCanvasObject))
@@ -1755,10 +1758,15 @@ describe("window.AdMarketCreator", () => {
       name: "Resize the library and design areas"
     });
     const workspace = document.querySelector<HTMLElement>(".creator__workspace")!;
+    expect(workspace.style.getPropertyValue("--studio-browse-percent")).toBe("63%");
 
     fireEvent.keyDown(separator, { key: "End" });
 
     expect(workspace.style.getPropertyValue("--studio-browse-percent")).toBe("75%");
+    expect(localStorage.getItem("admarket:studio-split:student:v1")).toBe("75");
+    fireEvent.keyDown(separator, { key: "r" });
+    expect(workspace.style.getPropertyValue("--studio-browse-percent")).toBe("40%");
+    expect(localStorage.getItem("admarket:studio-split:student:v1")).toBeNull();
     const after = await parsed(api, "state-after-split", "getState", null);
     expect(after).toMatchObject({ ok: true });
     if (!before.ok || !after.ok) throw new Error("Split-pane state request failed");
@@ -2032,7 +2040,8 @@ describe("window.AdMarketCreator", () => {
     expect(await parsed(api, "open-first-role-guide", "open", firstEntry))
       .toMatchObject({ ok: true });
     const dialog = getByRole(document.body, "dialog", { name: "Partner role guide" });
-    expect(dialog.textContent).toContain("The Art Director begins with control.");
+    expect(dialog.textContent).toContain("The roles do not unlock different buttons.");
+    expect(dialog.textContent).toContain("The Art Director is the active role first.");
     fireEvent.keyDown(dialog, { key: "Escape" });
     expect(dialog.closest<HTMLElement>("[data-role-guide-layer]")?.hidden).toBe(false);
 
@@ -2823,7 +2832,7 @@ describe("window.AdMarketCreator", () => {
       contract: MARKET_BRIDGE_CONTRACT,
       requestId: "market-invalid",
       ok: false,
-      error: { code: "INVALID_REQUEST" }
+      error: { code: "CONNECTION_UNAVAILABLE" }
     });
     expect(fetchSpy).not.toHaveBeenCalled();
 

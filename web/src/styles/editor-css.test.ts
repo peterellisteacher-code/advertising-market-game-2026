@@ -56,6 +56,12 @@ describe("Fabric canvas layer styling", () => {
     expect(css).toMatch(
       /\.creator__workspace-separator:focus-visible\s*\{[^}]*outline:[^}]*\}/i
     );
+    expect(css).toMatch(
+      /\.creator__workspace-separator-hint\s*\{[^}]*opacity:\s*0[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator__workspace-separator:focus-visible\s*\+\s*\.creator__workspace-separator-hint\s*\{[^}]*opacity:\s*1[^}]*\}/i
+    );
   });
 
   it("turns pre-placement whitespace into a bounded purposeful empty state", () => {

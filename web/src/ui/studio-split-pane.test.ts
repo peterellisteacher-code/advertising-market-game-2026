@@ -1,6 +1,10 @@
 import { fireEvent } from "@testing-library/dom";
 import { describe, expect, it, vi } from "vitest";
-import { StudioSplitPane } from "./studio-split-pane";
+import {
+  STUDENT_STUDIO_SPLIT_STORAGE_KEY,
+  StudioSplitPane,
+  TEACHER_PLAYTEST_STUDIO_SPLIT_STORAGE_KEY
+} from "./studio-split-pane";
 
 class TestMediaQueryList extends EventTarget implements MediaQueryList {
   matches = false;
@@ -54,6 +58,10 @@ function fixture(narrow = new TestMediaQueryList()) {
       </nav>
       <aside id="studio-browse-pane"></aside>
       <div data-studio-separator></div>
+      <p id="studio-split-hint" data-studio-split-hint>
+        Use Left Arrow or Right Arrow to resize. Hold Shift for a larger change.
+        Home and End set the limits. Press R or double-click to reset.
+      </p>
       <main id="studio-edit-pane"></main>
     </section>`;
   const root = document.querySelector<HTMLElement>("[data-workspace]")!;
@@ -109,6 +117,15 @@ function fixture(narrow = new TestMediaQueryList()) {
 }
 
 describe("StudioSplitPane", () => {
+  it("reserves separate device preference keys for students and teacher playtest", () => {
+    expect(STUDENT_STUDIO_SPLIT_STORAGE_KEY)
+      .toBe("admarket:studio-split:student:v1");
+    expect(TEACHER_PLAYTEST_STUDIO_SPLIT_STORAGE_KEY)
+      .toBe("admarket:studio-split:teacher-playtest:v1");
+    expect(STUDENT_STUDIO_SPLIT_STORAGE_KEY)
+      .not.toBe(TEACHER_PLAYTEST_STUDIO_SPLIT_STORAGE_KEY);
+  });
+
   it("defaults to 40 percent and clamps programmatic changes to 25 through 75", () => {
     const elements = fixture();
     const pane = new StudioSplitPane({ ...elements, narrowQuery: elements.narrow });
@@ -182,6 +199,59 @@ describe("StudioSplitPane", () => {
     expect(pane.getPercent()).toBe(25);
   });
 
+  it("restores and persists a device preference and resets it to the default", () => {
+    const elements = fixture();
+    const values = new Map([["admarket:studio-split:test:v1", "63"]]);
+    const storage = {
+      getItem: vi.fn((key: string) => values.get(key) ?? null),
+      setItem: vi.fn((key: string, value: string) => { values.set(key, value); }),
+      removeItem: vi.fn((key: string) => { values.delete(key); })
+    };
+    const pane = new StudioSplitPane({
+      ...elements,
+      narrowQuery: elements.narrow,
+      storage,
+      storageKey: "admarket:studio-split:test:v1"
+    });
+
+    expect(pane.getPercent()).toBe(63);
+    pane.setPercent(68);
+    expect(storage.setItem).toHaveBeenLastCalledWith(
+      "admarket:studio-split:test:v1",
+      "68"
+    );
+    fireEvent.keyDown(elements.separator, { key: "r" });
+    expect(pane.getPercent()).toBe(40);
+    expect(storage.removeItem).toHaveBeenCalledWith("admarket:studio-split:test:v1");
+    expect(values.has("admarket:studio-split:test:v1")).toBe(false);
+
+    pane.setPercent(54);
+    fireEvent.dblClick(elements.separator);
+    expect(pane.getPercent()).toBe(40);
+    expect(values.has("admarket:studio-split:test:v1")).toBe(false);
+  });
+
+  it("ignores invalid or inaccessible stored preferences", () => {
+    const elements = fixture();
+    const storage = {
+      getItem: vi.fn(() => { throw new Error("storage unavailable"); }),
+      setItem: vi.fn(() => { throw new Error("storage unavailable"); }),
+      removeItem: vi.fn(() => { throw new Error("storage unavailable"); })
+    };
+    const pane = new StudioSplitPane({
+      ...elements,
+      narrowQuery: elements.narrow,
+      storage,
+      storageKey: "admarket:studio-split:test:v1"
+    });
+
+    expect(pane.getPercent()).toBe(40);
+    expect(() => pane.setPercent(57)).not.toThrow();
+    expect(pane.getPercent()).toBe(57);
+    expect(() => pane.reset()).not.toThrow();
+    expect(pane.getPercent()).toBe(40);
+  });
+
   it("sets the complete accessible separator contract", () => {
     const elements = fixture();
     const pane = new StudioSplitPane({ ...elements, narrowQuery: elements.narrow });
@@ -193,9 +263,16 @@ describe("StudioSplitPane", () => {
     expect(elements.separator.getAttribute("aria-valuemin")).toBe("25");
     expect(elements.separator.getAttribute("aria-valuemax")).toBe("75");
     expect(elements.separator.getAttribute("aria-valuenow")).toBe("40");
+    expect(elements.separator.getAttribute("aria-valuetext"))
+      .toBe("40 percent library, 60 percent design");
+    expect(elements.separator.getAttribute("aria-describedby")).toBe("studio-split-hint");
+    expect(document.querySelector("[data-studio-split-hint]")?.textContent)
+      .toMatch(/Left Arrow.*Right Arrow.*Shift.*Home.*End.*Press R.*double-click/s);
     expect(elements.separator.tabIndex).toBe(0);
     pane.setPercent(61);
     expect(elements.separator.getAttribute("aria-valuenow")).toBe("61");
+    expect(elements.separator.getAttribute("aria-valuetext"))
+      .toBe("61 percent library, 39 percent design");
   });
 
   it("uses Browse and Edit tabs in narrow mode and removes the separator from tab order", () => {
@@ -235,6 +312,7 @@ describe("StudioSplitPane", () => {
     const pane = new StudioSplitPane({ ...elements, narrowQuery: elements.narrow });
     const edit = elements.root.querySelector<HTMLButtonElement>('[data-studio-pane-tab="edit"]')!;
 
+    pane.setPercent(54);
     pane.destroy();
     fireEvent.keyDown(elements.separator, { key: "End" });
     elements.separator.dispatchEvent(pointerEvent("pointerdown", {
@@ -244,10 +322,12 @@ describe("StudioSplitPane", () => {
     elements.narrow.setMatches(true);
     edit.click();
 
-    expect(pane.getPercent()).toBe(40);
+    expect(pane.getPercent()).toBe(54);
     expect(elements.setPointerCapture).not.toHaveBeenCalled();
     expect(elements.root.dataset.studioNarrow).toBeUndefined();
     expect(elements.browsePane.hidden).toBe(false);
     expect(elements.designPane.hidden).toBe(false);
+    fireEvent.dblClick(elements.separator);
+    expect(pane.getPercent()).toBe(54);
   });
 });

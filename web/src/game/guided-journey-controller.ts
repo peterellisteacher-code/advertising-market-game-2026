@@ -31,6 +31,8 @@ export class GuidedJourneyController {
   readonly #dialog: HTMLElement;
   readonly #close: HTMLButtonElement;
   readonly #reference: HTMLElement;
+  readonly #lockStatus: HTMLElement;
+  readonly #protectedSurfaces: readonly HTMLElement[];
   #current: GuidedJourneyStep | null = null;
   #returnFocus: HTMLElement | null = null;
 
@@ -55,6 +57,15 @@ export class GuidedJourneyController {
     this.#dialog = required(root, "[data-guide-dialog]");
     this.#close = required(root, "[data-guide-close]");
     this.#reference = required(root, "[data-guide-reference]");
+    this.#lockStatus = required(root, "[data-locked-actions-status]");
+    const dialogParent = this.#dialog.parentElement;
+    if (dialogParent === null) throw new Error("Guided journey dialog has no parent");
+    this.#protectedSurfaces = Object.freeze(
+      [...dialogParent.children].filter(
+        (element): element is HTMLElement =>
+          element instanceof HTMLElement && element !== this.#dialog
+      )
+    );
     this.#renderReference();
 
     this.#openTool.addEventListener("click", this.#onOpenTool);
@@ -111,6 +122,30 @@ export class GuidedJourneyController {
     document: CampaignDocumentV1,
     completed: ReadonlyMap<string, boolean>
   ): void {
+    const unavailable: Array<{
+      readonly button: HTMLButtonElement;
+      readonly label: string;
+      readonly reason: string;
+    }> = [];
+    const setAvailability = (
+      button: HTMLButtonElement,
+      disabled: boolean,
+      reason: string
+    ): void => {
+      button.disabled = disabled;
+      button.removeAttribute("title");
+      if (button.getAttribute("aria-describedby") === this.#lockStatus.id) {
+        button.removeAttribute("aria-describedby");
+      }
+      if (disabled && !button.hidden) {
+        unavailable.push({
+          button,
+          label: button.textContent?.trim() || button.getAttribute("aria-label") || "Action",
+          reason
+        });
+      }
+    };
+
     const aidaAllowed = creatorStageAllows(document.gameplay.stage, "aida") &&
       completed.get("pair-contribution") === true;
     const aidaOrder = ["attention", "interest", "desire", "action"] as const;
@@ -118,25 +153,39 @@ export class GuidedJourneyController {
       const priorComplete = index === 0 || completed.get(aidaOrder[index - 1]!) === true;
       const stageComplete = completed.get(stage) === true;
       const button = required<HTMLButtonElement>(this.root, `[data-slot="${stage}"]`);
-      button.disabled = !stageComplete && (!aidaAllowed || !priorComplete);
-      button.title = button.disabled
-        ? `Complete ${index === 0 ? "the pair contribution" : aidaOrder[index - 1]} first.`
-        : "";
+      const disabled = !stageComplete && (!aidaAllowed || !priorComplete);
+      setAvailability(
+        button,
+        disabled,
+        `Complete ${index === 0 ? "the pair contribution" : aidaOrder[index - 1]} first.`
+      );
     }
 
     const allAidaComplete = aidaOrder.every((stage) => completed.get(stage) === true);
     const priceAllowed = creatorStageAllows(document.gameplay.stage, "price") && allAidaComplete;
     const priceChecklist = required<HTMLButtonElement>(this.root, '[data-slot="price"]');
-    priceChecklist.disabled = !priceAllowed;
-    priceChecklist.title = priceAllowed ? "" : "Complete Attention, Interest, Desire and Action first.";
+    setAvailability(
+      priceChecklist,
+      !priceAllowed,
+      "Complete Attention, Interest, Desire and Action first."
+    );
 
     const routeTool = required<HTMLButtonElement>(this.root, '[data-studio-tool="route"]');
     const routeAllowed = creatorStageAllows(document.gameplay.stage, "route") &&
       completed.get("visible-price") === true;
-    routeTool.disabled = !routeAllowed;
-    routeTool.title = routeAllowed
-      ? ""
-      : "Set the product price and make it visible on the canvas first.";
+    setAvailability(
+      routeTool,
+      !routeAllowed,
+      "Set the product price and make it visible on the canvas first."
+    );
+
+    this.#lockStatus.textContent = unavailable
+      .map(({ label, reason }) => `${label}: ${reason}`)
+      .join(" ");
+    this.#lockStatus.hidden = unavailable.length === 0;
+    for (const { button } of unavailable) {
+      button.setAttribute("aria-describedby", this.#lockStatus.id);
+    }
   }
 
   #renderReference(): void {
@@ -223,6 +272,7 @@ export class GuidedJourneyController {
     this.#returnFocus = event.currentTarget instanceof HTMLElement
       ? event.currentTarget
       : null;
+    for (const surface of this.#protectedSurfaces) surface.inert = true;
     this.#dialog.hidden = false;
     this.#dialog.setAttribute("open", "");
     this.#close.focus();
@@ -233,9 +283,15 @@ export class GuidedJourneyController {
   };
 
   readonly #onDialogKeydown = (event: KeyboardEvent): void => {
-    if (event.key !== "Escape") return;
-    event.preventDefault();
-    this.#closeDialog(true);
+    if (event.key === "Escape") {
+      event.preventDefault();
+      this.#closeDialog(true);
+      return;
+    }
+    if (event.key === "Tab") {
+      event.preventDefault();
+      this.#close.focus();
+    }
   };
 
   #closeDialog(restoreFocus = false): void {
@@ -243,6 +299,7 @@ export class GuidedJourneyController {
       this.#dialog.hidden = true;
       this.#dialog.removeAttribute("open");
     }
+    for (const surface of this.#protectedSurfaces) surface.inert = false;
     if (restoreFocus) this.#returnFocus?.focus();
     this.#returnFocus = null;
   }

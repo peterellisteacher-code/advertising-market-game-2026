@@ -38,7 +38,7 @@ export interface EditorShell extends PairGameView {
   layers: HTMLElement;
 }
 
-const AIDA = ["Price", "Attention", "Interest", "Desire", "Action"];
+const CHECKLIST_STEPS = ["Price", "Attention", "Interest", "Desire", "Action"];
 
 export function createEditorShell(root: HTMLElement): EditorShell {
   root.innerHTML = `
@@ -63,7 +63,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           <button type="button" class="creator__brief-toggle" aria-expanded="false" aria-controls="studio-full-brief" data-brief-toggle>Open full brief</button>
         </div>
         <nav class="creator__checklist" role="group" aria-label="AIDA steps" data-creator-checklist>
-          ${AIDA.map((label, index) => `<button type="button" aria-pressed="${index === 0}" data-slot="${label.toLowerCase()}">${label}</button>`).join("")}
+          ${CHECKLIST_STEPS.map((label, index) => `<button type="button" aria-pressed="${index === 0}" data-slot="${label.toLowerCase()}">${label}</button>`).join("")}
         </nav>
         <div class="creator__role-card">
           <div class="creator__role-turn creator__role-turn--active">
@@ -148,6 +148,8 @@ export function createEditorShell(root: HTMLElement): EditorShell {
               <button type="button" data-guide-open-tool>Open Audience evidence</button>
               <button type="button" data-guide-review>How to use this site</button>
             </div>
+            <p class="creator__guide-locks" id="studio-locked-actions-status"
+              data-locked-actions-status hidden></p>
           </section>
           <section class="creator__tool-panel creator__product-builder" id="studio-panel-product" role="region" aria-label="Product builder" data-studio-panel="product" data-creator-feature="product">
             <h2>Build your product</h2>
@@ -220,8 +222,14 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           role="separator"
           aria-label="Resize the library and design areas"
           aria-orientation="vertical"
+          aria-describedby="studio-split-hint"
           tabindex="0"
           data-studio-separator></div>
+        <p class="creator__workspace-separator-hint" id="studio-split-hint"
+          data-studio-split-hint>
+          Use Left Arrow or Right Arrow to resize. Hold Shift for a larger change.
+          Home and End set the limits. Press R or double-click to reset.
+        </p>
         <main class="creator__canvas" id="studio-edit-pane" role="region" aria-label="Campaign canvas" tabindex="0">
           <p class="creator__canvas-label" aria-hidden="true">LIVE AD</p>
           <div class="creator__canvas-size" role="group" aria-label="Selected product or image size">

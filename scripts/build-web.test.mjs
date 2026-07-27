@@ -538,6 +538,21 @@ test("static verification requires one synchronous practice bridge", () => {
   addInlineBootstrapAndCspHeaders(valid);
   assert.doesNotThrow(() => inspectExportContents({ files: valid, pckHash: "current" }));
 
+  const routed = new Map(valid);
+  routed.set(
+    "studio/studio.js",
+    `function bootStudent(pathname) {
+      if (pathname !== "/student") return;
+      window.AdMarketCreator = Object.freeze({ handle() {} });
+      window.AdMarketPractice = Object.freeze({ handle() {} });
+    }
+    bootStudent(window.location.pathname);`
+  );
+  assert.doesNotThrow(
+    () => inspectExportContents({ files: routed, pckHash: "current" }),
+    "the routed student bundle must install both bridges during its synchronous route dispatch"
+  );
+
   const missing = new Map(valid);
   missing.set("studio/studio.js", "window.AdMarketCreator = publicApi;");
   assert.throws(
@@ -576,7 +591,7 @@ test("static verification requires one synchronous practice bridge", () => {
     );
     assert.throws(
       () => inspectExportContents({ files: delayedAssignment, pckHash: "current" }),
-      /AdMarketPractice must be assigned synchronously/i
+      /install usable production bridge globals synchronously/i
     );
   }
 

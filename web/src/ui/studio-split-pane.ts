@@ -1,3 +1,9 @@
+export interface StudioSplitPaneStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
+
 export interface StudioSplitPaneOptions {
   readonly root: HTMLElement;
   readonly browsePane: HTMLElement;
@@ -7,11 +13,16 @@ export interface StudioSplitPaneOptions {
   readonly initialPercent?: number;
   readonly minimumPercent?: number;
   readonly maximumPercent?: number;
+  readonly storage?: StudioSplitPaneStorage | null;
+  readonly storageKey?: string;
 }
 
 type NarrowPane = "browse" | "edit";
 
 const DEFAULT_NARROW_QUERY = "(max-width: 900px)";
+export const STUDENT_STUDIO_SPLIT_STORAGE_KEY = "admarket:studio-split:student:v1";
+export const TEACHER_PLAYTEST_STUDIO_SPLIT_STORAGE_KEY =
+  "admarket:studio-split:teacher-playtest:v1";
 
 function finitePercent(value: number | undefined, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
@@ -33,6 +44,9 @@ export class StudioSplitPane {
   readonly #editTab: HTMLButtonElement | null;
   readonly #minimumPercent: number;
   readonly #maximumPercent: number;
+  readonly #defaultPercent: number;
+  readonly #storage: StudioSplitPaneStorage | null;
+  readonly #storageKey: string | null;
   #percent: number;
   #narrowPane: NarrowPane = "browse";
   #activePointerId: number | null = null;
@@ -52,7 +66,12 @@ export class StudioSplitPane {
     ) {
       throw new Error("Studio split-pane percentage limits are invalid.");
     }
-    this.#percent = this.#clamp(finitePercent(options.initialPercent, 40));
+    this.#defaultPercent = this.#clamp(finitePercent(options.initialPercent, 40));
+    this.#storage = options.storage ?? null;
+    this.#storageKey = typeof options.storageKey === "string" && options.storageKey.length > 0
+      ? options.storageKey
+      : null;
+    this.#percent = this.#readStoredPercent() ?? this.#defaultPercent;
     this.#narrowQuery = options.narrowQuery ??
       (typeof globalThis.matchMedia === "function"
         ? globalThis.matchMedia(DEFAULT_NARROW_QUERY)
@@ -73,8 +92,11 @@ export class StudioSplitPane {
     this.#separator.setAttribute("aria-orientation", "vertical");
     this.#separator.setAttribute("aria-valuemin", String(this.#minimumPercent));
     this.#separator.setAttribute("aria-valuemax", String(this.#maximumPercent));
+    const hint = this.#root.querySelector<HTMLElement>("[data-studio-split-hint]");
+    if (hint?.id) this.#separator.setAttribute("aria-describedby", hint.id);
     this.#separator.addEventListener("pointerdown", this.#onPointerDown);
     this.#separator.addEventListener("keydown", this.#onKeyDown);
+    this.#separator.addEventListener("dblclick", this.#onDoubleClick);
     this.#browseTab?.addEventListener("click", this.#onBrowseClick);
     this.#editTab?.addEventListener("click", this.#onEditClick);
     this.#narrowQuery?.addEventListener("change", this.#onNarrowChange);
@@ -86,10 +108,23 @@ export class StudioSplitPane {
     if (this.#destroyed || !Number.isFinite(percent)) return;
     this.#percent = this.#clamp(percent);
     this.#renderPercent();
+    this.#persistPercent();
   }
 
   getPercent(): number {
     return this.#percent;
+  }
+
+  reset(): void {
+    if (this.#destroyed) return;
+    this.#percent = this.#defaultPercent;
+    this.#renderPercent();
+    if (this.#storage === null || this.#storageKey === null) return;
+    try {
+      this.#storage.removeItem(this.#storageKey);
+    } catch {
+      // The layout remains usable when browser preference storage is unavailable.
+    }
   }
 
   selectNarrowPane(pane: NarrowPane): void {
@@ -104,6 +139,7 @@ export class StudioSplitPane {
     this.#finishPointer();
     this.#separator.removeEventListener("pointerdown", this.#onPointerDown);
     this.#separator.removeEventListener("keydown", this.#onKeyDown);
+    this.#separator.removeEventListener("dblclick", this.#onDoubleClick);
     this.#browseTab?.removeEventListener("click", this.#onBrowseClick);
     this.#editTab?.removeEventListener("click", this.#onEditClick);
     this.#narrowQuery?.removeEventListener("change", this.#onNarrowChange);
@@ -118,10 +154,39 @@ export class StudioSplitPane {
     return Math.min(this.#maximumPercent, Math.max(this.#minimumPercent, percent));
   }
 
+  #readStoredPercent(): number | null {
+    if (this.#storage === null || this.#storageKey === null) return null;
+    try {
+      const stored = this.#storage.getItem(this.#storageKey);
+      if (stored === null || !/^\d+(?:\.\d+)?$/.test(stored)) return null;
+      const percent = Number(stored);
+      return Number.isFinite(percent) ? this.#clamp(percent) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  #persistPercent(): void {
+    if (this.#storage === null || this.#storageKey === null) return;
+    try {
+      this.#storage.setItem(
+        this.#storageKey,
+        String(Number(this.#percent.toFixed(4)))
+      );
+    } catch {
+      // The resize succeeds even when browser preference storage is unavailable.
+    }
+  }
+
   #renderPercent(): void {
     this.#root.style.setProperty("--studio-browse-percent", `${this.#percent}%`);
     this.#root.style.setProperty("--studio-browse-width", browseFraction(this.#percent));
     this.#separator.setAttribute("aria-valuenow", String(this.#percent));
+    this.#separator.setAttribute(
+      "aria-valuetext",
+      `${Number(this.#percent.toFixed(2))} percent library, ` +
+      `${Number((100 - this.#percent).toFixed(2))} percent design`
+    );
   }
 
   #renderMode(): void {
@@ -208,6 +273,11 @@ export class StudioSplitPane {
   };
 
   readonly #onKeyDown = (event: KeyboardEvent): void => {
+    if (event.key.toLowerCase() === "r") {
+      event.preventDefault();
+      this.reset();
+      return;
+    }
     let percent: number | null = null;
     const step = event.shiftKey ? 10 : 2;
     if (event.key === "ArrowLeft") percent = this.#percent - step;
@@ -217,6 +287,10 @@ export class StudioSplitPane {
     if (percent === null) return;
     event.preventDefault();
     this.setPercent(percent);
+  };
+
+  readonly #onDoubleClick = (): void => {
+    this.reset();
   };
 
   readonly #onBrowseClick = (): void => {

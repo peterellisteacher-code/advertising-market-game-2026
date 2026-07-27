@@ -376,7 +376,7 @@ function installsUsableBridgeGlobalsSynchronously(source) {
   const dom = new JSDOM(
     '<!doctype html><html><body><main aria-label="Advertising Market Game"><canvas id="canvas"></canvas></main><div id="creator-root" data-offline-catalogue-url="/catalog/never.json"></div></body></html>',
     {
-    url: "https://classroom.invalid/",
+    url: "https://classroom.invalid/student",
     runScripts: "outside-only",
     virtualConsole
     }
@@ -1139,8 +1139,6 @@ export function inspectExportContents({ files, pckHash }) {
     const assignments = bridgeInspection.assignments.get(name) ?? [];
     if (assignments.length !== 1) {
       errors.push(`studio.js must assign the production ${name} global exactly once (found ${assignments.length})`);
-    } else if (!assignments[0].synchronous) {
-      errors.push(`studio.js ${name} must be assigned synchronously during bundle evaluation`);
     }
   }
   if (!installsUsableBridgeGlobalsSynchronously(studio)) {

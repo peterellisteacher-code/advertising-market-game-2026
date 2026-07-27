@@ -105,7 +105,7 @@ test("sections each unique string once and maps every source occurrence", () => 
   );
 });
 
-test("rejects a split string, duplicate stable ID or non-deterministic source record", () => {
+test("rejects an oversized string, duplicate stable ID or non-deterministic source record", () => {
   assert.throws(
     () => planScrubSections(fixture, Buffer.byteLength(fixture[1].text, "utf8")),
     /does not fit in one scrub section/

@@ -168,7 +168,11 @@ import { SerializedAutosave } from "./persistence/serialized-autosave";
 import { createEditorShell, type EditorShell } from "./ui/editor-shell";
 import { registerReleaseServiceWorker } from "./service-worker-registration";
 import { createStudioToolDrawer } from "./ui/studio-tool-drawer";
-import { StudioSplitPane } from "./ui/studio-split-pane";
+import {
+  STUDENT_STUDIO_SPLIT_STORAGE_KEY,
+  StudioSplitPane,
+  TEACHER_PLAYTEST_STUDIO_SPLIT_STORAGE_KEY
+} from "./ui/studio-split-pane";
 import { STUDENT_COPY } from "./game/student-copy";
 import {
   applyCreatorLevelAccess,
@@ -1958,7 +1962,17 @@ const studioSplitPane = new StudioSplitPane({
   root: shell.workspace,
   browsePane: shell.library,
   designPane: shell.canvasRegion,
-  separator: shell.workspaceSeparator
+  separator: shell.workspaceSeparator,
+  storage: (() => {
+    try {
+      return window.localStorage;
+    } catch {
+      return null;
+    }
+  })(),
+  storageKey: mode.kind === "teacher-playtest"
+    ? TEACHER_PLAYTEST_STUDIO_SPLIT_STORAGE_KEY
+    : STUDENT_STUDIO_SPLIT_STORAGE_KEY
 });
 shell.overlay.querySelector(".creator__tool-rail")?.addEventListener("click", () => {
   studioSplitPane.selectNarrowPane("browse");
@@ -2428,13 +2442,14 @@ root.querySelector<HTMLButtonElement>('[data-command="return"]')
     }));
   });
 
+window.AdMarketCreator = publicApi;
+window.AdMarketRoom = marketPublicApi;
+
 if (mode.kind === "teacher-playtest") {
   if (teacherReady === null) {
     throw new Error("Teacher playtest storage is not ready");
   }
   return teacherReady.then(() => {
-    window.AdMarketCreator = publicApi;
-    window.AdMarketRoom = marketPublicApi;
     return {
       resetLocalState: async () => {
         cloudSync.signOut();
@@ -2460,8 +2475,6 @@ if (mode.kind === "teacher-playtest") {
     };
   });
 }
-window.AdMarketCreator = publicApi;
-window.AdMarketRoom = marketPublicApi;
 return null;
 }
 

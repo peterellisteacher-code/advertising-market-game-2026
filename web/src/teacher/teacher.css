@@ -36,7 +36,7 @@ body:has([data-admarket-route="teacher-dashboard"]) {
 .teacher-eyebrow {
   margin: 0 0 8px;
   color: var(--teacher-accent);
-  font-size: 0.78rem;
+  font-size: 0.875rem;
   font-weight: 800;
   letter-spacing: 0.12em;
 }

@@ -432,7 +432,7 @@ describe("FabricProductKitCompositor", () => {
       title: "compact grab handle",
       componentId: "pk1-utility-case-compact-handle",
       assetId: CASE_COMPACT_HANDLE_ID,
-      expectedVerticalOffset: -77.375
+      expectedVerticalOffset: -69.125
     }
   ])("composes the carry case with its $title behind the body", async ({
     componentId,

@@ -9,7 +9,6 @@ import {
   parseAccountCookies,
   readAccountJson,
   resolveAccountSession,
-  type AccountAuthTokens,
   type AccountEnvironmentRecord
 } from "./lib/account-backend";
 import {
@@ -20,10 +19,8 @@ import {
 import { defaultAccountAssetService } from "./lib/netlify-account-assets";
 import {
   accountIdentityMatches,
-  clearAccountAccessCookie,
-  clearAccountRefreshCookie,
-  serialiseAccountAccessCookie,
-  serialiseAccountRefreshCookie
+  clearAccountSessionCookies,
+  serialiseAccountSessionCookies
 } from "./lib/account-primitives";
 
 export const ADVERTISING_GAME_RESET_SCHEMA = "advertising-game-account-reset";
@@ -107,16 +104,6 @@ const parseResetBody = (value: unknown): AccountResetBody => {
   return { operationId: value.operationId, confirmation: "RESET" };
 };
 
-const sessionCookies = (tokens: AccountAuthTokens): readonly string[] => [
-  serialiseAccountAccessCookie(tokens.accessToken, tokens.expiresIn, true),
-  serialiseAccountRefreshCookie(tokens.refreshToken, REFRESH_COOKIE_MAX_AGE_SECONDS, true)
-];
-
-const expiredCookies = (): readonly string[] => [
-  clearAccountAccessCookie(true),
-  clearAccountRefreshCookie(true)
-];
-
 export function createAccountResetHandler(
   dependencies: AccountResetDependencies = {}
 ): (request: Request, context?: Context) => Promise<Response> {
@@ -144,12 +131,17 @@ export function createAccountResetHandler(
         return accountJson(
           { error: "AUTHENTICATION_REQUIRED" },
           401,
-          session.clearCookies ? expiredCookies() : []
+          session.clearCookies ? clearAccountSessionCookies(true) : []
         );
       }
       responseCookies = session.rotatedTokens === undefined
         ? []
-        : sessionCookies(session.rotatedTokens);
+        : serialiseAccountSessionCookies(
+          session.rotatedTokens,
+          session.identity.resetGeneration,
+          REFRESH_COOKIE_MAX_AGE_SECONDS,
+          true
+        );
       if (!accountIdentityMatches(request, session.identity.username)) {
         return accountJson({ error: "ACCOUNT_IDENTITY_CHANGED" }, 409, responseCookies);
       }

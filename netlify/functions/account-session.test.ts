@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   ACCOUNT_ACCESS_COOKIE,
   ACCOUNT_REFRESH_COOKIE,
+  ACCOUNT_RESET_GENERATION_COOKIE,
   deriveSyntheticAccountEmail
 } from "./lib/account-primitives";
 import {
@@ -94,9 +95,11 @@ describe("account session API", () => {
     const cookies = setCookies(response);
     expect(cookies).toEqual([
       expect.stringContaining(`${ACCOUNT_ACCESS_COOKIE}=current-b-access;`),
-      expect.stringContaining(`${ACCOUNT_REFRESH_COOKIE}=current-b-refresh;`)
+      expect.stringContaining(`${ACCOUNT_REFRESH_COOKIE}=current-b-refresh;`),
+      expect.stringContaining(`${ACCOUNT_RESET_GENERATION_COOKIE}=;`)
     ]);
-    expect(cookies.every((cookie) => !cookie.includes("Max-Age=0"))).toBe(true);
+    expect(cookies.slice(0, 2).every((cookie) => !cookie.includes("Max-Age=0"))).toBe(true);
+    expect(cookies[2]).toContain("Max-Age=0");
   });
 
   it("rejects query parameters and non-contract URL shapes on every account route", async () => {
@@ -147,7 +150,11 @@ describe("account session API", () => {
 
     expect(response.status).toBe(201);
     const payload = await response.json();
-    expect(payload).toEqual({ authenticated: true, username: "team-one" });
+    expect(payload).toEqual({
+      authenticated: true,
+      username: "team-one",
+      resetGeneration: null
+    });
     const responseText = JSON.stringify({
       payload,
       headers: [...response.headers.entries()].filter(([name]) => name !== "set-cookie")
@@ -170,12 +177,15 @@ describe("account session API", () => {
       `${ACCOUNT_ACCESS_COOKIE}=access-token; Path=/api; HttpOnly; SameSite=Strict; ` +
         "Max-Age=3600; Secure",
       `${ACCOUNT_REFRESH_COOKIE}=refresh-token; Path=/api; HttpOnly; SameSite=Strict; ` +
-        "Max-Age=2592000; Secure"
+        "Max-Age=2592000; Secure",
+      `${ACCOUNT_RESET_GENERATION_COOKIE}=; Path=/api; HttpOnly; SameSite=Strict; ` +
+        "Max-Age=0; Secure"
     ]);
   });
 
   it("verifies a fresh password login against the current server epoch before issuing cookies", async () => {
     const sessionEpoch = "2d90c112-4de8-4e7b-92d2-0d655738987f";
+    const resetGeneration = "7440e792-3ddc-4484-ae32-a53088d0d679";
     const jwt = accessJwt(sessionEpoch);
     const fetcher = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(json({
@@ -187,7 +197,9 @@ describe("account session API", () => {
         id: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
         app_metadata: {
           advertising_game_username: "team-one",
-          advertising_game_session_epoch: sessionEpoch
+          advertising_game_session_epoch: sessionEpoch,
+          advertising_game_reset_generation: resetGeneration,
+          advertising_game_reset_pending: false
         }
       }));
     const response = await createAccountSessionHandler({ environment, fetcher })(
@@ -200,11 +212,16 @@ describe("account session API", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       authenticated: true,
-      username: "team-one"
+      username: "team-one",
+      resetGeneration
     });
     expect(fetcher).toHaveBeenCalledTimes(2);
     expect(String(fetcher.mock.calls[1]?.[0])).toContain("/auth/v1/user");
-    expect(setCookies(response)).toHaveLength(2);
+    expect(setCookies(response)).toEqual([
+      expect.stringContaining(`${ACCOUNT_ACCESS_COOKIE}=${jwt};`),
+      expect.stringContaining(`${ACCOUNT_REFRESH_COOKIE}=refresh-token;`),
+      expect.stringContaining(`${ACCOUNT_RESET_GENERATION_COOKIE}=${resetGeneration};`)
+    ]);
   });
 
   it("fails closed without issuing cookies when a fresh login carries a stale epoch", async () => {
@@ -361,10 +378,15 @@ describe("account session API", () => {
       })
     );
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ authenticated: true, username: "team-one" });
+    await expect(response.json()).resolves.toEqual({
+      authenticated: true,
+      username: "team-one",
+      resetGeneration: null
+    });
     expect(setCookies(response)).toEqual([
       expect.stringContaining(`${ACCOUNT_ACCESS_COOKIE}=rotated-access;`),
-      expect.stringContaining(`${ACCOUNT_REFRESH_COOKIE}=rotated-refresh;`)
+      expect.stringContaining(`${ACCOUNT_REFRESH_COOKIE}=rotated-refresh;`),
+      expect.stringContaining(`${ACCOUNT_RESET_GENERATION_COOKIE}=;`)
     ]);
   });
 
@@ -382,7 +404,9 @@ describe("account session API", () => {
     await expect(response.json()).resolves.toEqual({ authenticated: false });
     expect(setCookies(response)).toEqual([
       `${ACCOUNT_ACCESS_COOKIE}=; Path=/api; HttpOnly; SameSite=Strict; Max-Age=0; Secure`,
-      `${ACCOUNT_REFRESH_COOKIE}=; Path=/api; HttpOnly; SameSite=Strict; Max-Age=0; Secure`
+      `${ACCOUNT_REFRESH_COOKIE}=; Path=/api; HttpOnly; SameSite=Strict; Max-Age=0; Secure`,
+      `${ACCOUNT_RESET_GENERATION_COOKIE}=; Path=/api; HttpOnly; ` +
+        "SameSite=Strict; Max-Age=0; Secure"
     ]);
   });
 
@@ -405,7 +429,7 @@ describe("account session API", () => {
       `${environment.SUPABASE_URL}/auth/v1/logout?scope=global`,
       expect.objectContaining({ method: "POST" })
     );
-    expect(setCookies(response)).toHaveLength(2);
+    expect(setCookies(response)).toHaveLength(3);
     expect(setCookies(response).every((cookie) => cookie.includes("Max-Age=0"))).toBe(true);
   });
 
@@ -434,7 +458,7 @@ describe("account session API", () => {
     expect(fetcher.mock.calls[2]?.[1]?.headers).toEqual(expect.objectContaining({
       authorization: "Bearer rotated-access"
     }));
-    expect(setCookies(response)).toHaveLength(2);
+    expect(setCookies(response)).toHaveLength(3);
   });
 
   it("refreshes and revokes after an expired access token instead of treating 401 as success", async () => {

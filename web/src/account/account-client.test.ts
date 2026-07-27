@@ -115,7 +115,11 @@ describe("HttpAccountClient", () => {
     });
     const loginFetch = vi.fn<typeof fetch>(async () => {
       order.push("login");
-      return Response.json({ authenticated: true, username: "team-b" });
+      return Response.json({
+        authenticated: true,
+        username: "team-b",
+        resetGeneration: null
+      });
     });
     const serialiser = queuedSerialiser();
     const a = new HttpAccountClient(
@@ -140,13 +144,15 @@ describe("HttpAccountClient", () => {
     const fetcher = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(Response.json({
         authenticated: true,
-        username: "team-a"
+        username: "team-a",
+        resetGeneration: null
       }))
       .mockResolvedValueOnce(new Response(null, { status: 204 }))
       .mockResolvedValueOnce(Response.json({ authenticated: false }))
       .mockResolvedValueOnce(Response.json({
         authenticated: true,
-        username: "team-b"
+        username: "team-b",
+        resetGeneration: null
       }));
     const binding = new BrowserAccountIdentityBinding();
     const publisher = quietPublisher();
@@ -154,7 +160,8 @@ describe("HttpAccountClient", () => {
 
     await expect(client.session()).resolves.toEqual({
       authenticated: true,
-      username: "team-a"
+      username: "team-a",
+      resetGeneration: null
     });
     await expect(client.logout()).resolves.toBeUndefined();
     expect(binding.current()).toBeNull();
@@ -164,7 +171,8 @@ describe("HttpAccountClient", () => {
       password: "different-password"
     })).resolves.toEqual({
       authenticated: true,
-      username: "team-b"
+      username: "team-b",
+      resetGeneration: null
     });
 
     expect(binding.current()).toBe("team-b");
@@ -209,10 +217,12 @@ describe("HttpAccountClient", () => {
     await expect(client.session()).rejects.toMatchObject({ code: "ACCOUNT_UNAVAILABLE" });
   });
 
-  it("loads only the exact username-only cookie session contract", async () => {
+  it("loads only the exact username and reset-generation cookie session contract", async () => {
+    const resetGeneration = "7440e792-3ddc-4484-ae32-a53088d0d679";
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({
       authenticated: true,
-      username: "team-one"
+      username: "team-one",
+      resetGeneration
     }));
     const binding = new BrowserAccountIdentityBinding();
     const publisher = quietPublisher();
@@ -220,7 +230,8 @@ describe("HttpAccountClient", () => {
 
     await expect(client.session()).resolves.toEqual({
       authenticated: true,
-      username: "team-one"
+      username: "team-one",
+      resetGeneration
     });
     expect(binding.current()).toBe("team-one");
     expect(publisher.publish).not.toHaveBeenCalled();
@@ -235,6 +246,7 @@ describe("HttpAccountClient", () => {
     fetcher.mockResolvedValueOnce(Response.json({
       authenticated: true,
       username: "team-one",
+      resetGeneration,
       userId: "must-not-enter-browser-contract"
     }));
     await expect(client.session()).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
@@ -242,10 +254,18 @@ describe("HttpAccountClient", () => {
 
   it("sends exact signup/login JSON with same-origin cookie auth and returns no tokens", async () => {
     const fetcher = vi.fn<typeof fetch>()
-      .mockResolvedValueOnce(Response.json({ authenticated: true, username: "team-one" }, {
+      .mockResolvedValueOnce(Response.json({
+        authenticated: true,
+        username: "team-one",
+        resetGeneration: null
+      }, {
         status: 201
       }))
-      .mockResolvedValueOnce(Response.json({ authenticated: true, username: "team-one" }));
+      .mockResolvedValueOnce(Response.json({
+        authenticated: true,
+        username: "team-one",
+        resetGeneration: "7440e792-3ddc-4484-ae32-a53088d0d679"
+      }));
     const binding = new BrowserAccountIdentityBinding();
     const publisher = quietPublisher();
     const client = new HttpAccountClient(binding, publisher, fetcher);
@@ -254,11 +274,19 @@ describe("HttpAccountClient", () => {
       username: "team-one",
       password: "student-password",
       classroomCode: "classroom-access"
-    })).resolves.toEqual({ authenticated: true, username: "team-one" });
+    })).resolves.toEqual({
+      authenticated: true,
+      username: "team-one",
+      resetGeneration: null
+    });
     await expect(client.login({
       username: "team-one",
       password: "student-password"
-    })).resolves.toEqual({ authenticated: true, username: "team-one" });
+    })).resolves.toEqual({
+      authenticated: true,
+      username: "team-one",
+      resetGeneration: "7440e792-3ddc-4484-ae32-a53088d0d679"
+    });
     expect(binding.current()).toBe("team-one");
     expect(publisher.publish).toHaveBeenCalledTimes(2);
 
@@ -580,7 +608,11 @@ describe("HttpCloudProgressClient", () => {
     });
     const loginFetch = vi.fn<typeof fetch>(async () => {
       order.push("login");
-      return Response.json({ authenticated: true, username: "team-b" });
+      return Response.json({
+        authenticated: true,
+        username: "team-b",
+        resetGeneration: null
+      });
     });
     const serialiser = queuedSerialiser();
     const progressClient = new HttpCloudProgressClient(

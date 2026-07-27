@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import type {
   ImageLabLedgerRpcInput,
+  ImageLabTeacherLedgerOperation,
+  ImageLabTeacherRpcInput,
   SupabaseAccountClient
 } from "./account-backend";
 
@@ -74,6 +76,25 @@ export interface ReserveImageLabAllowanceInput extends MutationIdentity {
 export type TerminalImageLabReservationInput = ReserveImageLabAllowanceInput;
 export type ImageLabReservation = ImageLabAllowanceSnapshot;
 
+export interface TeacherImageLabPrivateAccount {
+  readonly userId: string;
+  readonly object: ImageLabAllowanceCounts;
+  readonly realise: ImageLabAllowanceCounts;
+}
+
+export interface TeacherImageLabAtomicMutationInput extends MutationIdentity {
+  readonly ledgerOperation: ImageLabTeacherLedgerOperation;
+  readonly userIds: readonly string[];
+  readonly enabled?: boolean;
+  readonly object: number;
+  readonly realise: number;
+}
+
+export interface TeacherImageLabAtomicMutationResult {
+  readonly snapshot: ImageLabAllowanceSnapshot;
+  readonly accounts: readonly TeacherImageLabPrivateAccount[];
+}
+
 export interface ImageLabAllowanceStore {
   status(userId: string): Promise<ImageLabAllowanceSnapshot>;
   globalStatus(): Promise<ImageLabAllowanceSnapshot>;
@@ -86,6 +107,9 @@ export interface ImageLabAllowanceStore {
   complete(input: TerminalImageLabReservationInput): Promise<ImageLabReservation>;
   refund(input: TerminalImageLabReservationInput): Promise<ImageLabReservation>;
   markUncertain(input: TerminalImageLabReservationInput): Promise<ImageLabReservation>;
+  teacherMutate(
+    input: TeacherImageLabAtomicMutationInput
+  ): Promise<TeacherImageLabAtomicMutationResult>;
 }
 
 export class ImageLabAllowanceStoreError extends Error {
@@ -244,9 +268,47 @@ const parseList = (value: unknown): readonly TeacherImageLabAccount[] => {
   return accounts;
 };
 
+const parseTeacherMutationResult = (
+  value: unknown,
+  expectedUserIds: readonly string[]
+): TeacherImageLabAtomicMutationResult => {
+  const candidate = record(value);
+  if (
+    candidate === null ||
+    !hasExactKeys(candidate, ["status", "enabled", "object", "realise", "accounts"]) ||
+    !Array.isArray(candidate.accounts) ||
+    candidate.accounts.length !== expectedUserIds.length
+  ) unavailable();
+  const snapshot = parseSnapshot({
+    status: candidate.status,
+    enabled: candidate.enabled,
+    object: candidate.object,
+    realise: candidate.realise
+  });
+  const accounts = candidate.accounts.map((value, index): TeacherImageLabPrivateAccount => {
+    const account = record(value);
+    if (
+      account === null ||
+      !hasExactKeys(account, ["userId", "object", "realise"]) ||
+      account.userId !== expectedUserIds[index] ||
+      typeof account.userId !== "string" ||
+      !UUID.test(account.userId)
+    ) unavailable();
+    return {
+      userId: account.userId,
+      object: parseCounts(account.object),
+      realise: parseCounts(account.realise)
+    };
+  });
+  return { snapshot, accounts };
+};
+
 export class SupabaseImageLabAllowanceStore implements ImageLabAllowanceStore {
   constructor(
-    private readonly client: Pick<SupabaseAccountClient, "imageLabRpc">
+    private readonly client: Pick<
+      SupabaseAccountClient,
+      "imageLabRpc" | "imageLabTeacherRpc"
+    >
   ) {}
 
   async status(userId: string): Promise<ImageLabAllowanceSnapshot> {
@@ -331,6 +393,84 @@ export class SupabaseImageLabAllowanceStore implements ImageLabAllowanceStore {
 
   async markUncertain(input: TerminalImageLabReservationInput): Promise<ImageLabReservation> {
     return this.reservationMutation("mark_uncertain", input);
+  }
+
+  async teacherMutate(
+    input: TeacherImageLabAtomicMutationInput
+  ): Promise<TeacherImageLabAtomicMutationResult> {
+    const candidate = record(input);
+    const global = input.ledgerOperation === "set_global";
+    if (
+      candidate === null ||
+      !hasExactKeys(
+        candidate,
+        global
+          ? [
+              "ledgerOperation",
+              "userIds",
+              "enabled",
+              "object",
+              "realise",
+              "operationId",
+              "requestHash"
+            ]
+          : [
+              "ledgerOperation",
+              "userIds",
+              "object",
+              "realise",
+              "operationId",
+              "requestHash"
+            ]
+      ) ||
+      ![
+        "initialize",
+        "set_global",
+        "set",
+        "add",
+        "revoke",
+        "batch_add"
+      ].includes(input.ledgerOperation) ||
+      !Array.isArray(input.userIds)
+    ) invalid();
+    assertMutationIdentity(input);
+    assertAmount(input.object, 0);
+    assertAmount(input.realise, 0);
+    if (
+      global
+        ? (
+            input.userIds.length !== 0 ||
+            typeof input.enabled !== "boolean"
+          )
+        : (
+            input.enabled !== undefined ||
+            input.userIds.length < 1 ||
+            input.userIds.length > 100 ||
+            (input.ledgerOperation !== "batch_add" && input.userIds.length !== 1)
+          )
+    ) invalid();
+    for (const userId of input.userIds) assertUserId(userId);
+    if (new Set(input.userIds).size !== input.userIds.length) invalid();
+    if (
+      (input.ledgerOperation === "add" ||
+        input.ledgerOperation === "revoke" ||
+        input.ledgerOperation === "batch_add") &&
+      input.object === 0 &&
+      input.realise === 0
+    ) invalid();
+    const transport: ImageLabTeacherRpcInput = {
+      ledgerOperation: input.ledgerOperation,
+      userIds: [...input.userIds],
+      ...(global ? { enabled: input.enabled as boolean } : {}),
+      object: input.object,
+      realise: input.realise,
+      operationId: input.operationId,
+      requestHash: input.requestHash
+    };
+    return parseTeacherMutationResult(
+      await this.client.imageLabTeacherRpc(transport),
+      input.userIds
+    );
   }
 
   private async accountMutation(

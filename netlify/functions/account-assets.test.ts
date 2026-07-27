@@ -7,7 +7,11 @@ import {
   ACCOUNT_ASSET_VERSION,
   AccountAssetError
 } from "./lib/account-assets";
-import { ACCOUNT_ACCESS_COOKIE, ACCOUNT_REFRESH_COOKIE } from "./lib/account-primitives";
+import {
+  ACCOUNT_ACCESS_COOKIE,
+  ACCOUNT_REFRESH_COOKIE,
+  ACCOUNT_RESET_GENERATION_COOKIE
+} from "./lib/account-primitives";
 import {
   classifyAccountAssetStorageFailure,
   createAccountAssetsHandler
@@ -138,7 +142,7 @@ describe("account asset API", () => {
     const cookies = response.headers.get("set-cookie") ?? "";
     expect(cookies).toContain(`${ACCOUNT_ACCESS_COOKIE}=current-b-access`);
     expect(cookies).toContain(`${ACCOUNT_REFRESH_COOKIE}=current-b-refresh`);
-    expect(cookies).not.toContain("Max-Age=0");
+    expect(cookies).toContain(`${ACCOUNT_RESET_GENERATION_COOKIE}=;`);
   });
 
   it("accepts an authenticated same-origin immutable PUT and returns only manifest metadata", async () => {

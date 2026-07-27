@@ -115,7 +115,7 @@ Alternative-profile trials remain teacher-operated and must never create an unga
 
 - Image jobs use authenticated encrypted browser tokens; the upstream fal request ID is not readable in the token.
 - Every public image-generation request resolves the signed-in account from `HttpOnly`, `SameSite=Strict` account cookies. The status and job routes reject browser-supplied aliases, user IDs, session IDs and team IDs.
-- The private allowance tables and RPC are reachable only through the service-role broker. Browser roles have no schema, table or function access.
+- The private allowance tables and RPCs are reachable only through the service-role broker. Browser roles have no schema, table or function access.
 - Generated media is fetched by the server from an allowlisted `fal.media` HTTPS host, checked for type, signature, byte limit and the exact dimensions pinned to the submitted profile, then proxied same-origin with `no-store`.
 - Accepted images become owned local blobs in the campaign draft. Saved campaigns do not depend on expiring fal URLs.
 - Submission is not retried automatically.
@@ -125,7 +125,7 @@ Alternative-profile trials remain teacher-operated and must never create an unga
 ## Activation check
 
 1. Confirm school approval and the teacher's physical supervision for the complete session.
-2. Reserve the four named database objects, apply the allowance migration once, run the schema and grant checks below, and release the shared-project reservation.
+2. Reserve all six named database objects, apply the base allowance migration and then the atomic teacher upgrade as separate approved calls, run both sets of schema and grant checks below, and release the shared-project reservation.
 3. Create a dedicated server-side fal key and apply a hard account or key spending cap at the provider.
 4. Configure the account-service variables, `IMAGE_LAB_ENABLED=true`, `IMAGE_LAB_SCHOOL_APPROVED=true`, the activation acknowledgement, a new signing secret and the server-only fal key.
 5. Verify that the deployed function manifest exposes `/api/image-lab/session`, `/api/image-lab/jobs`, `/api/image-lab/jobs/reconcile` and `/api/image-lab/assets`, with no unlock or lock route.
@@ -283,3 +283,126 @@ Before rollback, confirm that no paid job remains reserved or uncertain.
 After verification or rollback, release the shared-project reservation
 immediately. Never include any neighbouring schema, table, function, account,
 asset bucket, or migration-ledger row in this rollback.
+
+## Atomic teacher allowance upgrade
+
+The teacher dashboard changes the global switch and both defaults together,
+changes both allowance stages for one pair together, and can add both stages to
+several selected pairs together. Those actions use one PostgreSQL transaction
+each. This prevents a request from succeeding for one stage or pair while
+silently failing for another.
+
+The deterministic upgrade source is
+`docs/operations/advertising-game-image-lab-teacher-atomic.sql`. It is a
+separate, apply-once migration body and requires the four base allowance
+objects above. It creates only these two additional objects:
+
+```text
+advertising_game.image_lab_teacher_operation
+public.advertising_game_image_lab_teacher_rpc
+```
+
+This upgrade was authored and tested locally. It was deliberately **not**
+applied to the shared Supabase project during local implementation or QA.
+Before any future application, reserve both additional names and the four base
+objects in the shared-project coordination channel.
+
+Run this read-only preflight. The first four values must be non-null, and the
+two collision queries must return no rows:
+
+```sql
+select
+  pg_catalog.to_regclass('advertising_game.image_lab_settings')
+    as settings_table,
+  pg_catalog.to_regclass('advertising_game.image_lab_allowance')
+    as allowance_table,
+  pg_catalog.to_regclass('advertising_game.image_lab_operation')
+    as operation_table,
+  pg_catalog.to_regprocedure(
+    'public.advertising_game_image_lab_rpc(uuid,text,text,integer,text,text,text)'
+  ) as allowance_rpc;
+
+select n.nspname as schema_name, c.relname, c.relkind
+from pg_catalog.pg_class c
+join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+where n.nspname = 'advertising_game'
+  and c.relname = 'image_lab_teacher_operation';
+
+select n.nspname as schema_name,
+       p.proname,
+       pg_catalog.pg_get_function_identity_arguments(p.oid) as arguments
+from pg_catalog.pg_proc p
+join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.proname = 'advertising_game_image_lab_teacher_rpc';
+```
+
+After one approved application, verify the private boundary:
+
+```sql
+select c.relname, c.relrowsecurity
+from pg_catalog.pg_class c
+join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+where n.nspname = 'advertising_game'
+  and c.relname = 'image_lab_teacher_operation';
+
+select p.oid::pg_catalog.regprocedure::text as signature,
+       p.prosecdef as security_definer,
+       p.proowner::pg_catalog.regrole::text as owner,
+       p.proconfig
+from pg_catalog.pg_proc p
+join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.proname = 'advertising_game_image_lab_teacher_rpc';
+
+select
+  pg_catalog.has_table_privilege(
+    'anon',
+    'advertising_game.image_lab_teacher_operation',
+    'SELECT,INSERT,UPDATE,DELETE'
+  ) as anon_table_access,
+  pg_catalog.has_table_privilege(
+    'authenticated',
+    'advertising_game.image_lab_teacher_operation',
+    'SELECT,INSERT,UPDATE,DELETE'
+  ) as authenticated_table_access,
+  pg_catalog.has_function_privilege(
+    'anon',
+    'public.advertising_game_image_lab_teacher_rpc(text,uuid[],boolean,integer,integer,text,text)',
+    'EXECUTE'
+  ) as anon_rpc_execute,
+  pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.advertising_game_image_lab_teacher_rpc(text,uuid[],boolean,integer,integer,text,text)',
+    'EXECUTE'
+  ) as authenticated_rpc_execute,
+  pg_catalog.has_function_privilege(
+    'service_role',
+    'public.advertising_game_image_lab_teacher_rpc(text,uuid[],boolean,integer,integer,text,text)',
+    'EXECUTE'
+  ) as service_rpc_execute;
+```
+
+`relrowsecurity` must be true. Every browser-role privilege must be false,
+`service_rpc_execute` must be true, and the function must be owned by
+`postgres`, be security-definer, and use a closed search path. In a disposable
+test database, also prove that a deliberately invalid member of a multi-pair
+batch leaves every allowance unchanged, and that replaying an operation ID
+with different inputs fails.
+
+If verification fails before release, rollback is limited to these two new
+objects, requires the same shared-project reservation, and must not use
+`CASCADE`:
+
+```sql
+drop function public.advertising_game_image_lab_teacher_rpc(
+  text,
+  uuid[],
+  boolean,
+  integer,
+  integer,
+  text,
+  text
+);
+drop table advertising_game.image_lab_teacher_operation;
+```

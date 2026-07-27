@@ -28,6 +28,7 @@ import {
   BrowserAccountMutationBus
 } from "./account/account-identity-binding";
 import { BrowserAccountCookieRequestSerialiser } from "./account/account-cookie-request-serialiser";
+import { BrowserAccountResetGenerationGuard } from "./account/account-reset-generation";
 import {
   CloudProgressAssetAdapter,
   CloudProgressAssetRestore
@@ -2027,6 +2028,13 @@ const cloudMetadata = new BrowserCloudSyncMetadataStore();
 const cloudOutbox = typeof globalThis.indexedDB === "undefined"
   ? undefined
   : new BrowserCloudProgressOutbox();
+const accountResetGeneration = new BrowserAccountResetGenerationGuard([
+  drafts,
+  cloudMetadata,
+  ...(cloudOutbox === undefined ? [] : [cloudOutbox]),
+  imageLabSubmissionPersistence,
+  studioCoachRuntime
+]);
 const accountAssets = mode.kind === "teacher-playtest"
   ? mode.client
   : new HttpAccountAssetClient(
@@ -2107,8 +2115,9 @@ if (mode.kind === "student") {
     gameSurface,
     gameCanvas,
     creatorRoot: root,
-    onSession: async (username) => {
+    onSession: async (username, resetGeneration) => {
       try {
+        await accountResetGeneration.reconcile(username, resetGeneration);
         await drafts.activateAccount(username);
         await imageLabSubmissionPersistence.activateAccount(username);
         await studioCoachRuntime.activateAccount(username);

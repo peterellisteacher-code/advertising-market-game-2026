@@ -18,7 +18,7 @@ const authenticated = (
   rotatedTokens?: Extract<ResolvedAccountSession, { authenticated: true }>["rotatedTokens"]
 ): ResolvedAccountSession => ({
   authenticated: true,
-  identity: { userId, username: "team-one" },
+  identity: { userId, username: "team-one", resetGeneration: null },
   ...(rotatedTokens === undefined ? {} : { rotatedTokens })
 });
 

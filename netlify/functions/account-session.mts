@@ -15,16 +15,15 @@ import {
   secureAccountCodeMatches,
   type AccountAuthTokens,
   type AccountEnvironment,
-  type AccountEnvironmentRecord
+  type AccountEnvironmentRecord,
+  type AccountIdentity
 } from "./lib/account-backend";
 import {
   accountIdentityMatches,
-  clearAccountAccessCookie,
-  clearAccountRefreshCookie,
+  clearAccountSessionCookies,
   deriveSyntheticAccountEmail,
   normaliseAccountUsername,
-  serialiseAccountAccessCookie,
-  serialiseAccountRefreshCookie
+  serialiseAccountSessionCookies
 } from "./lib/account-primitives";
 
 const ACCOUNT_ROUTES = [
@@ -108,24 +107,27 @@ const parseCredentials = (
   }
 };
 
-const sessionCookies = (tokens: AccountAuthTokens): readonly string[] => [
-  serialiseAccountAccessCookie(tokens.accessToken, tokens.expiresIn, true),
-  serialiseAccountRefreshCookie(tokens.refreshToken, REFRESH_COOKIE_MAX_AGE_SECONDS, true)
-];
+const sessionCookies = (
+  tokens: AccountAuthTokens,
+  resetGeneration: string | null
+): readonly string[] => serialiseAccountSessionCookies(
+  tokens,
+  resetGeneration,
+  REFRESH_COOKIE_MAX_AGE_SECONDS,
+  true
+);
 
-const expiredCookies = (): readonly string[] => [
-  clearAccountAccessCookie(true),
-  clearAccountRefreshCookie(true)
-];
+const expiredCookies = (): readonly string[] => clearAccountSessionCookies(true);
 
 const verifyFreshTokens = async (
   client: SupabaseAccountClient,
   tokens: AccountAuthTokens,
   expectedUsername: string
-): Promise<void> => {
+): Promise<AccountIdentity> => {
   try {
     const identity = await client.getUser(tokens.accessToken);
     if (identity.username !== expectedUsername) throw new SupabaseAccountError("upstream");
+    return identity;
   } catch (error) {
     if (error instanceof SupabaseAccountError && error.kind === "expired_session") {
       throw new SupabaseAccountError("upstream");
@@ -193,11 +195,15 @@ export function createAccountSessionHandler(
           }
           throw error;
         }
-        await verifyFreshTokens(client, tokens, body.username);
+        const identity = await verifyFreshTokens(client, tokens, body.username);
         return accountJson(
-          { authenticated: true, username: body.username },
+          {
+            authenticated: true,
+            username: body.username,
+            resetGeneration: identity.resetGeneration
+          },
           201,
-          sessionCookies(tokens)
+          sessionCookies(tokens, identity.resetGeneration)
         );
       }
 
@@ -208,11 +214,15 @@ export function createAccountSessionHandler(
           environment.usernameHmacSecret
         );
         const tokens = await client.signInWithPassword(syntheticEmail, body.password);
-        await verifyFreshTokens(client, tokens, body.username);
+        const identity = await verifyFreshTokens(client, tokens, body.username);
         return accountJson(
-          { authenticated: true, username: body.username },
+          {
+            authenticated: true,
+            username: body.username,
+            resetGeneration: identity.resetGeneration
+          },
           200,
-          sessionCookies(tokens)
+          sessionCookies(tokens, identity.resetGeneration)
         );
       }
 
@@ -224,7 +234,7 @@ export function createAccountSessionHandler(
         }
         const responseCookies = session.rotatedTokens === undefined
           ? []
-          : sessionCookies(session.rotatedTokens);
+          : sessionCookies(session.rotatedTokens, session.identity.resetGeneration);
         if (!accountIdentityMatches(request, session.identity.username)) {
           return accountJson({ error: "ACCOUNT_IDENTITY_CHANGED" }, 409, responseCookies);
         }
@@ -243,9 +253,15 @@ export function createAccountSessionHandler(
         );
       }
       return accountJson(
-        { authenticated: true, username: session.identity.username },
+        {
+          authenticated: true,
+          username: session.identity.username,
+          resetGeneration: session.identity.resetGeneration
+        },
         200,
-        session.rotatedTokens === undefined ? [] : sessionCookies(session.rotatedTokens)
+        session.rotatedTokens === undefined
+          ? []
+          : sessionCookies(session.rotatedTokens, session.identity.resetGeneration)
       );
     } catch (error) {
       return routeError(error);

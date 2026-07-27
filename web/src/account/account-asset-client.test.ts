@@ -103,7 +103,11 @@ describe("HttpAccountAssetClient", () => {
     });
     const loginFetch = vi.fn<typeof fetch>(async () => {
       order.push("login");
-      return Response.json({ authenticated: true, username: "team-b" });
+      return Response.json({
+        authenticated: true,
+        username: "team-b",
+        resetGeneration: null
+      });
     });
     const serialiser = queuedSerialiser();
     const assetClient = new HttpAccountAssetClient(activeBinding(), assetFetch, serialiser);

@@ -217,6 +217,128 @@ describe("Advertising-game Supabase Edge broker", () => {
     }));
   });
 
+  it("translates one atomic teacher allowance action to the dedicated service-only RPC", async () => {
+    const upstream = {
+      status: "available",
+      enabled: true,
+      object: { granted: 2, consumed: 0, reserved: 0, remaining: 2 },
+      realise: { granted: 1, consumed: 0, reserved: 0, remaining: 1 },
+      accounts: [
+        {
+          userId,
+          object: { granted: 3, consumed: 0, reserved: 0, remaining: 3 },
+          realise: { granted: 1, consumed: 0, reserved: 0, remaining: 1 }
+        },
+        {
+          userId: secondUserId,
+          object: { granted: 3, consumed: 0, reserved: 0, remaining: 3 },
+          realise: { granted: 1, consumed: 0, reserved: 0, remaining: 1 }
+        }
+      ]
+    };
+    const input = {
+      ledgerOperation: "batch_add",
+      userIds: [userId, secondUserId],
+      object: 3,
+      realise: 1,
+      operationId: "teacher-batch:request-123",
+      requestHash: "c".repeat(64)
+    };
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(json(true))
+      .mockResolvedValueOnce(json(upstream));
+
+    const response = await handlerWith(fetcher)(request({
+      operation: "image_lab_teacher",
+      input
+    }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(upstream);
+    expect(fetcher.mock.calls[1]?.[0]).toBe(
+      `${projectUrl}/rest/v1/rpc/advertising_game_image_lab_teacher_rpc`
+    );
+    expect(JSON.parse(String(fetcher.mock.calls[1]?.[1]?.body))).toEqual({
+      p_operation: "batch_add",
+      p_user_ids: [userId, secondUserId],
+      p_enabled: null,
+      p_object_amount: 3,
+      p_realise_amount: 1,
+      p_operation_id: "teacher-batch:request-123",
+      p_request_hash: "c".repeat(64)
+    });
+  });
+
+  it("rejects malformed atomic teacher allowance actions before the ledger RPC", async () => {
+    const valid = {
+      operation: "image_lab_teacher",
+      input: {
+        ledgerOperation: "set_global",
+        userIds: [],
+        enabled: true,
+        object: 2,
+        realise: 1,
+        operationId: "teacher-global:request-123",
+        requestHash: "d".repeat(64)
+      }
+    };
+    for (const invalid of [
+      { ...valid, input: { ...valid.input, userIds: [userId] } },
+      { ...valid, input: { ...valid.input, enabled: "yes" } },
+      { ...valid, input: { ...valid.input, object: 101 } },
+      {
+        ...valid,
+        input: {
+          ledgerOperation: "batch_add",
+          userIds: [userId, userId],
+          object: 1,
+          realise: 0,
+          operationId: "teacher-batch:request-123",
+          requestHash: "d".repeat(64)
+        }
+      }
+    ]) {
+      const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(json(true));
+      const response = await handlerWith(fetcher)(request(invalid));
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({ error: "INVALID_REQUEST" });
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it("rejects an atomic allowance response whose private accounts do not match the request", async () => {
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(json(true))
+      .mockResolvedValueOnce(json({
+        status: "available",
+        enabled: true,
+        object: { granted: 2, consumed: 0, reserved: 0, remaining: 2 },
+        realise: { granted: 1, consumed: 0, reserved: 0, remaining: 1 },
+        accounts: [
+          {
+            userId: secondUserId,
+            object: { granted: 1, consumed: 0, reserved: 0, remaining: 1 },
+            realise: { granted: 0, consumed: 0, reserved: 0, remaining: 0 }
+          }
+        ]
+      }));
+
+    const response = await handlerWith(fetcher)(request({
+      operation: "image_lab_teacher",
+      input: {
+        ledgerOperation: "add",
+        userIds: [userId],
+        object: 1,
+        realise: 0,
+        operationId: "teacher-add:request-123",
+        requestHash: "e".repeat(64)
+      }
+    }));
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({ error: "BACKEND_UNAVAILABLE" });
+  });
+
   it("maps private Image Lab user IDs to bounded account aliases only inside the broker", async () => {
     const fetcher = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(json(true))
@@ -490,6 +612,76 @@ describe("Advertising-game Supabase Edge broker", () => {
         advertising_game_session_epoch: epoch
       }
     });
+  });
+
+  it("rotates an account reset boundary before cleanup and clears only its pending marker afterward", async () => {
+    const operationId = "2d90c112-4de8-4e7b-92d2-0d655738987f";
+    const epoch = "7440e792-3ddc-4484-ae32-a53088d0d679";
+    const resetGeneration = "3a88888c-ec32-451c-a3bc-c9f658e1c5f1";
+    const initialUser = {
+      id: userId,
+      email: syntheticEmail,
+      created_at: "2026-07-20T00:00:00.000Z",
+      last_sign_in_at: null,
+      app_metadata: { advertising_game_username: "team-one" }
+    };
+    const pendingMetadata = {
+      advertising_game_username: "team-one",
+      advertising_game_session_epoch: epoch,
+      advertising_game_reset_generation: resetGeneration,
+      advertising_game_reset_operation: operationId,
+      advertising_game_reset_pending: true
+    };
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(json(true))
+      .mockResolvedValueOnce(json({ users: [initialUser], next_page: null }))
+      .mockResolvedValueOnce(json({ id: userId, app_metadata: pendingMetadata }))
+      .mockResolvedValueOnce(json(true))
+      .mockResolvedValueOnce(json({
+        users: [{ ...initialUser, app_metadata: pendingMetadata }],
+        next_page: null
+      }))
+      .mockResolvedValueOnce(json({
+        id: userId,
+        app_metadata: {
+          ...pendingMetadata,
+          advertising_game_reset_pending: false
+        }
+      }));
+    const randomUUID = vi.fn()
+      .mockReturnValueOnce(epoch)
+      .mockReturnValueOnce(resetGeneration);
+    const handler = createAdvertisingGameBackendHandler({
+      environment,
+      fetcher,
+      randomUUID
+    });
+
+    const begin = await handler(request({
+      operation: "begin_reset",
+      email: syntheticEmail,
+      username: "team-one",
+      operationId
+    }));
+    const complete = await handler(request({
+      operation: "complete_reset",
+      email: syntheticEmail,
+      username: "team-one",
+      operationId
+    }));
+
+    expect(begin.status).toBe(204);
+    expect(complete.status).toBe(204);
+    expect(JSON.parse(String(fetcher.mock.calls[2]?.[1]?.body))).toEqual({
+      app_metadata: pendingMetadata
+    });
+    expect(JSON.parse(String(fetcher.mock.calls[5]?.[1]?.body))).toEqual({
+      app_metadata: {
+        ...pendingMetadata,
+        advertising_game_reset_pending: false
+      }
+    });
+    expect(randomUUID).toHaveBeenCalledTimes(2);
   });
 
   it("rejects conflicting identities and reserves ensure-user for the teacher playtest", async () => {

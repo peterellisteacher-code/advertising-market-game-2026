@@ -9,10 +9,8 @@ import {
   type ResolvedAccountSession
 } from "./lib/account-backend";
 import {
-  clearAccountAccessCookie,
-  clearAccountRefreshCookie,
-  serialiseAccountAccessCookie,
-  serialiseAccountRefreshCookie
+  clearAccountSessionCookies,
+  serialiseAccountSessionCookies
 } from "./lib/account-primitives";
 import { parseImageLabEnvironment } from "./lib/image-lab-auth";
 import {
@@ -70,23 +68,12 @@ const rotatedCookies = (
   session: Extract<ResolvedAccountSession, { authenticated: true }>
 ): readonly string[] => session.rotatedTokens === undefined
   ? []
-  : [
-      serialiseAccountAccessCookie(
-        session.rotatedTokens.accessToken,
-        session.rotatedTokens.expiresIn,
-        true
-      ),
-      serialiseAccountRefreshCookie(
-        session.rotatedTokens.refreshToken,
-        REFRESH_COOKIE_MAX_AGE_SECONDS,
-        true
-      )
-    ];
-
-const expiredCookies = (): readonly string[] => [
-  clearAccountAccessCookie(true),
-  clearAccountRefreshCookie(true)
-];
+  : serialiseAccountSessionCookies(
+    session.rotatedTokens,
+    session.identity.resetGeneration,
+    REFRESH_COOKIE_MAX_AGE_SECONDS,
+    true
+  );
 
 const hasUntrustedIdentityInput = (request: Request, url: URL): boolean =>
   url.search !== "" ||
@@ -128,7 +115,7 @@ export function createImageLabSessionHandler(
         return json(
           { error: "AUTHENTICATION_REQUIRED" },
           401,
-          accountSession.clearCookies ? expiredCookies() : []
+          accountSession.clearCookies ? clearAccountSessionCookies(true) : []
         );
       }
       const cookies = rotatedCookies(accountSession);

@@ -1672,7 +1672,7 @@ test("recursive copy rejects source-ancestor and destination-file indirection", 
   assert.equal(await readFile(outside, "utf8"), "outside");
 });
 
-test("verification accepts the no-thread local production export and reports the stale spike PCK", () => {
+test("verification rejects the known stale spike PCK", () => {
   const files = addInlineBootstrapAndCspHeaders(new Map([
       ["index.html", `<!doctype html><html><head>
         <link rel="stylesheet" href="./studio/studio.css">
@@ -1688,12 +1688,13 @@ test("verification accepts the no-thread local production export and reports the
       ["studio/studio.js", VALID_STUDIO_BRIDGES],
       ["godot/export_presets.cfg", "variant/thread_support=false"]
     ]));
-  const result = inspectExportContents({
-    files,
-    pckHash: STALE_PCK_HASH
-  });
-
-  assert.deepEqual(result.warnings, ["PCK_STALE_SPIKE_EXPORT"]);
+  assert.throws(
+    () => inspectExportContents({
+      files,
+      pckHash: STALE_PCK_HASH
+    }),
+    /known stale PCK/i
+  );
 });
 
 test("verification fails closed on legacy, remote, threaded, or duplicate bridge output", () => {
@@ -1753,6 +1754,14 @@ test("verification checks every optional offline-core file reference and master 
   addInlineBootstrapAndCspHeaders(files);
 
   assert.doesNotThrow(() => inspectExportContents({ files, pckHash: "current" }));
+  assert.throws(
+    () => inspectExportContents({
+      files,
+      pckHash: "current",
+      minimumOfflineRecords: 2
+    }),
+    /offline catalogue must contain at least 2 records/i
+  );
 
   const missingPricing = new Map(files);
   missingPricing.delete("catalog/generated/offline-core-v1/pricing.json");

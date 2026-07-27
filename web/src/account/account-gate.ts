@@ -12,7 +12,10 @@ export interface AccountAccessControllerOptions {
   readonly gameSurface: HTMLElement;
   readonly gameCanvas: HTMLCanvasElement;
   readonly creatorRoot: HTMLElement;
-  readonly onSession?: (username: string) => void | Promise<void>;
+  readonly onSession?: (
+    username: string,
+    resetGeneration: string | null
+  ) => void | Promise<void>;
   readonly onSignedOut?: (explicit: boolean) => void | Promise<void>;
   readonly reload?: () => void;
 }
@@ -52,7 +55,10 @@ export class AccountAccessController {
   readonly #gameSurface: HTMLElement;
   readonly #gameCanvas: HTMLCanvasElement;
   readonly #creatorRoot: HTMLElement;
-  readonly #onSession: ((username: string) => void | Promise<void>) | undefined;
+  readonly #onSession: ((
+    username: string,
+    resetGeneration: string | null
+  ) => void | Promise<void>) | undefined;
   readonly #onSignedOut: ((explicit: boolean) => void | Promise<void>) | undefined;
   readonly #reload: () => void;
   #accessPromise: Promise<void> | null = null;
@@ -82,7 +88,9 @@ export class AccountAccessController {
     this.#renderChecking();
     void this.#client.session()
       .then((session) => {
-        if (session.authenticated) void this.#admit(session.username);
+        if (session.authenticated) {
+          void this.#admit(session.username, session.resetGeneration);
+        }
         else this.#renderLogin();
       })
       .catch((error: unknown) => this.#renderLogin(copyForError(error)));
@@ -187,7 +195,9 @@ export class AccountAccessController {
       error.textContent = "";
       void this.#client.login(input)
         .then(async (session) => {
-          if (!await this.#admit(session.username)) this.#setBusy(form, false);
+          if (!await this.#admit(session.username, session.resetGeneration)) {
+            this.#setBusy(form, false);
+          }
         })
         .catch((failure: unknown) => {
           this.#setBusy(form, false);
@@ -200,10 +210,10 @@ export class AccountAccessController {
     queueMicrotask(() => username.focus());
   }
 
-  async #admit(username: string): Promise<boolean> {
+  async #admit(username: string, resetGeneration: string | null): Promise<boolean> {
     const generation = this.#lifecycleGeneration;
     try {
-      await this.#onSession?.(username);
+      await this.#onSession?.(username, resetGeneration);
     } catch (error) {
       if (generation === this.#lifecycleGeneration && !this.#leavingAccount) {
         if (error instanceof AccountClientError && error.code === "AUTHENTICATION_REQUIRED") {

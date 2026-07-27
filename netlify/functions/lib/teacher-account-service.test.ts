@@ -83,6 +83,12 @@ const dependencies = () => {
     replaceAdvertisingGamePassword: vi.fn().mockImplementation(async () => {
       events.push("password");
     }),
+    beginAdvertisingGameReset: vi.fn().mockImplementation(async () => {
+      events.push("begin-reset");
+    }),
+    completeAdvertisingGameReset: vi.fn().mockImplementation(async () => {
+      events.push("complete-reset");
+    }),
     progressRpc: vi.fn().mockImplementation(async () => {
       events.push("progress");
       return { status: "reset" };
@@ -109,6 +115,16 @@ const dependencies = () => {
     set: vi.fn().mockResolvedValue(allowanceSnapshot),
     add: vi.fn().mockResolvedValue(allowanceSnapshot),
     revoke: vi.fn().mockResolvedValue(allowanceSnapshot),
+    teacherMutate: vi.fn().mockImplementation(async (input: {
+      userIds: readonly string[];
+    }) => ({
+      snapshot: allowanceSnapshot,
+      accounts: input.userIds.map((accountUserId) => ({
+        userId: accountUserId,
+        object: allowanceSnapshot.object,
+        realise: allowanceSnapshot.realise
+      }))
+    })),
     reserve: vi.fn(),
     complete: vi.fn(),
     refund: vi.fn(),
@@ -194,16 +210,12 @@ describe("teacher account service", () => {
     expect(email).not.toContain("team-one");
     expect([password, username]).toEqual(["chosen-password", "team-one"]);
     expect(setup.allowances.globalStatus).toHaveBeenCalledOnce();
-    expect(setup.allowances.set).toHaveBeenCalledTimes(2);
-    expect(setup.allowances.set).toHaveBeenCalledWith(expect.objectContaining({
-      userId,
-      stage: "object",
-      amount: 2
-    }));
-    expect(setup.allowances.set).toHaveBeenCalledWith(expect.objectContaining({
-      userId,
-      stage: "realise",
-      amount: 1
+    expect(setup.allowances.teacherMutate).toHaveBeenCalledOnce();
+    expect(setup.allowances.teacherMutate).toHaveBeenCalledWith(expect.objectContaining({
+      ledgerOperation: "initialize",
+      userIds: [userId],
+      object: 2,
+      realise: 1
     }));
   });
 
@@ -252,7 +264,22 @@ describe("teacher account service", () => {
       username: "team-one"
     });
     expect(replay).toEqual(first);
-    expect(setup.events).toEqual(["find", "plan", "progress", "assets"]);
+    expect(setup.events).toEqual([
+      "find",
+      "begin-reset",
+      "plan",
+      "progress",
+      "assets",
+      "complete-reset"
+    ]);
+    expect(setup.client.beginAdvertisingGameReset).toHaveBeenCalledWith(
+      "team-one",
+      operationId
+    );
+    expect(setup.client.completeAdvertisingGameReset).toHaveBeenCalledWith(
+      "team-one",
+      operationId
+    );
     expect(setup.assets.planReset).toHaveBeenCalledWith(userId);
     expect(setup.client.progressRpc).toHaveBeenCalledWith({
       userId,
@@ -264,7 +291,25 @@ describe("teacher account service", () => {
     expect(setup.client.createConfirmedUser).not.toHaveBeenCalled();
   });
 
-  it("marks an uncertain reset incomplete and never automatically repeats it", async () => {
+  it("does not complete the reset generation boundary when remote cleanup is uncertain", async () => {
+    const setup = dependencies();
+    setup.assets.executeReset.mockRejectedValueOnce(new Error("uncertain"));
+    const service = new TeacherAccountService({
+      ...setup,
+      usernameHmacSecret: "h".repeat(32),
+      operationSecret: "o".repeat(32)
+    });
+
+    await expect(service.resetAccount({
+      operationId: secondOperationId,
+      username: "team-one"
+    })).rejects.toMatchObject({ code: "RESET_INCOMPLETE" });
+
+    expect(setup.client.beginAdvertisingGameReset).toHaveBeenCalledOnce();
+    expect(setup.client.completeAdvertisingGameReset).not.toHaveBeenCalled();
+  });
+
+  it("resumes an explicitly retried reset with the same operation ID and then replays completion", async () => {
     const setup = dependencies();
     setup.assets.executeReset.mockRejectedValueOnce(new Error("uncertain"));
     const service = new TeacherAccountService({
@@ -279,13 +324,17 @@ describe("teacher account service", () => {
       status: 409,
       retryable: false
     });
-    await expect(service.resetAccount(input)).rejects.toMatchObject({
-      code: "RESET_INCOMPLETE",
-      status: 409,
-      retryable: false
+    const resumed = await service.resetAccount(input);
+    const replay = await service.resetAccount(input);
+
+    expect(resumed).toEqual({
+      status: "reset",
+      operationId: secondOperationId,
+      username: "team-one"
     });
-    expect(setup.client.progressRpc).toHaveBeenCalledTimes(1);
-    expect(setup.assets.executeReset).toHaveBeenCalledTimes(1);
+    expect(replay).toEqual(resumed);
+    expect(setup.client.progressRpc).toHaveBeenCalledTimes(2);
+    expect(setup.assets.executeReset).toHaveBeenCalledTimes(2);
   });
 
   it("rejects a reused operation with different input instead of applying another mutation", async () => {
@@ -361,15 +410,18 @@ describe("teacher account service", () => {
     let enabled = true;
     let objectDefault = 2;
     let realiseDefault = 1;
-    setup.allowances.setGlobal.mockImplementation(async (input) => {
-      if (input.target === "enabled") enabled = input.enabled;
-      else if (input.stage === "object") objectDefault = input.amount;
-      else realiseDefault = input.amount;
+    setup.allowances.teacherMutate.mockImplementation(async (input) => {
+      enabled = input.enabled ?? enabled;
+      objectDefault = input.object;
+      realiseDefault = input.realise;
       return {
-        status: enabled ? "available" as const : "disabled" as const,
-        enabled,
-        object: counts(objectDefault),
-        realise: counts(realiseDefault)
+        snapshot: {
+          status: enabled ? "available" as const : "disabled" as const,
+          enabled,
+          object: counts(objectDefault),
+          realise: counts(realiseDefault)
+        },
+        accounts: []
       };
     });
     const service = new TeacherAccountService({
@@ -385,7 +437,7 @@ describe("teacher account service", () => {
     };
 
     const first = await service.setImageLabGlobal(input);
-    const firstCalls = structuredClone(setup.allowances.setGlobal.mock.calls);
+    const firstCalls = structuredClone(setup.allowances.teacherMutate.mock.calls);
     const replay = await service.setImageLabGlobal(input);
 
     expect(first).toMatchObject({
@@ -396,13 +448,15 @@ describe("teacher account service", () => {
       defaults: { object: 4, realise: 2 }
     });
     expect(replay).toEqual(first);
-    expect(firstCalls).toHaveLength(3);
-    expect(firstCalls.map(([call]) => call)).toEqual(expect.arrayContaining([
-      expect.objectContaining({ target: "enabled", enabled: false }),
-      expect.objectContaining({ target: "default", stage: "object", amount: 4 }),
-      expect.objectContaining({ target: "default", stage: "realise", amount: 2 })
-    ]));
-    expect(setup.allowances.setGlobal.mock.calls.slice(3)).toEqual(firstCalls);
+    expect(firstCalls).toHaveLength(1);
+    expect(firstCalls[0]?.[0]).toEqual(expect.objectContaining({
+      ledgerOperation: "set_global",
+      userIds: [],
+      enabled: false,
+      object: 4,
+      realise: 2
+    }));
+    expect(setup.allowances.teacherMutate.mock.calls.slice(1)).toEqual(firstCalls);
   });
 
   it.each(["set", "add", "revoke"] as const)(
@@ -423,10 +477,12 @@ describe("teacher account service", () => {
       });
 
       expect(setup.client.findAdvertisingGameUser).toHaveBeenCalledWith("team-one");
-      expect(setup.allowances[operation]).toHaveBeenCalledWith(expect.objectContaining({
-        userId,
-        stage: "realise",
-        amount: 1,
+      expect(setup.allowances.teacherMutate).toHaveBeenCalledOnce();
+      expect(setup.allowances.teacherMutate).toHaveBeenCalledWith(expect.objectContaining({
+        ledgerOperation: operation,
+        userIds: [userId],
+        object: operation === "set" ? 0 : 2,
+        realise: 1,
         operationId: expect.not.stringContaining(userId),
         requestHash: expect.stringMatching(/^[a-f0-9]{64}$/u)
       }));
@@ -462,7 +518,13 @@ describe("teacher account service", () => {
       realise: 0
     });
 
-    expect(setup.allowances.add).toHaveBeenCalledTimes(2);
+    expect(setup.allowances.teacherMutate).toHaveBeenCalledOnce();
+    expect(setup.allowances.teacherMutate).toHaveBeenCalledWith(expect.objectContaining({
+      ledgerOperation: "batch_add",
+      userIds: [userId, secondUser.userId],
+      object: 1,
+      realise: 0
+    }));
     expect(result).toMatchObject({
       status: "updated",
       operationId,
@@ -475,7 +537,9 @@ describe("teacher account service", () => {
 
   it("reports an unknown allowance outcome as refresh-required and does not retry it", async () => {
     const setup = dependencies();
-    setup.allowances.add.mockRejectedValueOnce(new SupabaseAccountError("upstream"));
+    setup.allowances.teacherMutate.mockRejectedValueOnce(
+      new SupabaseAccountError("upstream")
+    );
     const service = new TeacherAccountService({
       ...setup,
       usernameHmacSecret: "h".repeat(32),
@@ -492,6 +556,6 @@ describe("teacher account service", () => {
       status: 409,
       retryable: false
     });
-    expect(setup.allowances.add).toHaveBeenCalledOnce();
+    expect(setup.allowances.teacherMutate).toHaveBeenCalledOnce();
   });
 });

@@ -3,7 +3,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { createBlankCampaignDocument } from "../../web/src/domain/campaign-document";
-import { ACCOUNT_ACCESS_COOKIE, ACCOUNT_REFRESH_COOKIE } from "./lib/account-primitives";
+import {
+  ACCOUNT_ACCESS_COOKIE,
+  ACCOUNT_REFRESH_COOKIE,
+  ACCOUNT_RESET_GENERATION_COOKIE
+} from "./lib/account-primitives";
 import { createAccountProgressHandler } from "./account-progress.mjs";
 
 const environment = {
@@ -96,7 +100,7 @@ describe("account progress API", () => {
     const cookies = response.headers.get("set-cookie") ?? "";
     expect(cookies).toContain(`${ACCOUNT_ACCESS_COOKIE}=current-b-access`);
     expect(cookies).toContain(`${ACCOUNT_REFRESH_COOKIE}=current-b-refresh`);
-    expect(cookies).not.toContain("Max-Age=0");
+    expect(cookies).toContain(`${ACCOUNT_RESET_GENERATION_COOKIE}=;`);
   });
 
   it("lists only bounded metadata for each independently authenticated account", async () => {

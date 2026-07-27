@@ -82,12 +82,15 @@ const client = (authenticated = true): TeacherClient => ({
   })
 });
 
-const mount = async (fake = client()) => {
+const mount = async (
+  fake = client(),
+  createOperationId: () => string = () => operationId
+) => {
   const root = document.createElement("div");
   document.body.append(root);
   const clipboard = { writeText: vi.fn().mockResolvedValue(undefined) };
   const dashboard = new TeacherDashboard(root, fake, {
-    createOperationId: () => operationId,
+    createOperationId,
     clipboard
   });
   await dashboard.mount();
@@ -244,6 +247,86 @@ describe("TeacherDashboard", () => {
       username: "team-one",
       confirmation: "team-one"
     }));
+  });
+
+  it("opens a native modal dialog and closes it through the dialog API", async () => {
+    const showModal = vi.fn(function (this: HTMLDialogElement) {
+      this.setAttribute("open", "");
+    });
+    const close = vi.fn(function (this: HTMLDialogElement) {
+      this.removeAttribute("open");
+    });
+    const originalShowModal = Object.getOwnPropertyDescriptor(
+      HTMLDialogElement.prototype,
+      "showModal"
+    );
+    const originalClose = Object.getOwnPropertyDescriptor(
+      HTMLDialogElement.prototype,
+      "close"
+    );
+    Object.defineProperty(HTMLDialogElement.prototype, "showModal", {
+      configurable: true,
+      value: showModal
+    });
+    Object.defineProperty(HTMLDialogElement.prototype, "close", {
+      configurable: true,
+      value: close
+    });
+    try {
+      const { root } = await mount();
+      fireEvent.click(getByRole(root, "button", { name: "Create account" }));
+      const dialog = getByRole(root, "dialog");
+
+      expect(showModal).toHaveBeenCalledOnce();
+      fireEvent.click(getByRole(dialog, "button", { name: "Cancel" }));
+      expect(close).toHaveBeenCalledOnce();
+    } finally {
+      if (originalShowModal === undefined) {
+        delete (HTMLDialogElement.prototype as Partial<HTMLDialogElement>).showModal;
+      } else {
+        Object.defineProperty(HTMLDialogElement.prototype, "showModal", originalShowModal);
+      }
+      if (originalClose === undefined) {
+        delete (HTMLDialogElement.prototype as Partial<HTMLDialogElement>).close;
+      } else {
+        Object.defineProperty(HTMLDialogElement.prototype, "close", originalClose);
+      }
+    }
+  });
+
+  it("reuses one account reset operation ID after an interrupted request", async () => {
+    const firstOperationId = "123e4567-e89b-42d3-a456-426614174000";
+    const secondOperationId = "223e4567-e89b-42d3-a456-426614174000";
+    const createOperationId = vi.fn()
+      .mockReturnValueOnce(firstOperationId)
+      .mockReturnValueOnce(secondOperationId);
+    const fake = client();
+    vi.mocked(fake.resetAccount)
+      .mockRejectedValueOnce(new Error("interrupted"))
+      .mockResolvedValueOnce(undefined);
+    const { root } = await mount(fake, createOperationId);
+    fireEvent.click(getByRole(root, "button", {
+      name: "Reset progress for team-one"
+    }));
+    const dialog = getByRole(root, "dialog");
+    fireEvent.input(getByLabelText(dialog, "Type team-one to confirm"), {
+      target: { value: "team-one" }
+    });
+    const reset = getByRole(
+      dialog,
+      "button",
+      { name: "Reset progress" }
+    ) as HTMLButtonElement;
+
+    fireEvent.click(reset);
+    await waitFor(() => expect(fake.resetAccount).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(reset.disabled).toBe(false));
+    fireEvent.click(reset);
+    await waitFor(() => expect(fake.resetAccount).toHaveBeenCalledTimes(2));
+
+    expect(vi.mocked(fake.resetAccount).mock.calls.map(([input]) => input.operationId))
+      .toEqual([firstOperationId, firstOperationId]);
+    expect(createOperationId).toHaveBeenCalledOnce();
   });
 
   it("provides optional generated, visible and directly copied credentials", async () => {

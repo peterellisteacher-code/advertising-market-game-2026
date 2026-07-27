@@ -128,6 +128,62 @@ describe("TeacherPlaytestController", () => {
     expect(openFirstScreen).not.toHaveBeenCalled();
   });
 
+  it("opens a native modal reset dialog and closes it through the dialog API", async () => {
+    const showModal = vi.fn(function (this: HTMLDialogElement) {
+      this.setAttribute("open", "");
+    });
+    const close = vi.fn(function (this: HTMLDialogElement) {
+      this.removeAttribute("open");
+    });
+    const originalShowModal = Object.getOwnPropertyDescriptor(
+      HTMLDialogElement.prototype,
+      "showModal"
+    );
+    const originalClose = Object.getOwnPropertyDescriptor(
+      HTMLDialogElement.prototype,
+      "close"
+    );
+    Object.defineProperty(HTMLDialogElement.prototype, "showModal", {
+      configurable: true,
+      value: showModal
+    });
+    Object.defineProperty(HTMLDialogElement.prototype, "close", {
+      configurable: true,
+      value: close
+    });
+    try {
+      const root = createRoot();
+      const controller = new TeacherPlaytestController({
+        root,
+        sessionClient: {
+          session: async () => ({ authenticated: true })
+        },
+        playtestClient: { reset: vi.fn() },
+        startGame: vi.fn(),
+        resetLocalState: vi.fn(),
+        openFirstScreen: vi.fn()
+      });
+      await controller.mount();
+
+      fireEvent.click(getByRole(root, "button", { name: "Factory reset playtest" }));
+      const dialog = getByRole(root, "dialog");
+      expect(showModal).toHaveBeenCalledOnce();
+      fireEvent.click(getByRole(dialog, "button", { name: "Cancel" }));
+      expect(close).toHaveBeenCalledOnce();
+    } finally {
+      if (originalShowModal === undefined) {
+        delete (HTMLDialogElement.prototype as Partial<HTMLDialogElement>).showModal;
+      } else {
+        Object.defineProperty(HTMLDialogElement.prototype, "showModal", originalShowModal);
+      }
+      if (originalClose === undefined) {
+        delete (HTMLDialogElement.prototype as Partial<HTMLDialogElement>).close;
+      } else {
+        Object.defineProperty(HTMLDialogElement.prototype, "close", originalClose);
+      }
+    }
+  });
+
   it("requires exact RESET then resets server before isolated local state and the first screen", async () => {
     const root = createRoot();
     const order: string[] = [];

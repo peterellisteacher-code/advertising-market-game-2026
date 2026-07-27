@@ -44,7 +44,9 @@ const runtime = vi.hoisted(() => ({
   save: vi.fn(),
   importCloudPractice: vi.fn(),
   activateAccountDrafts: vi.fn(async (_username: string) => undefined),
+  resetAccountDrafts: vi.fn(async (_username: string) => undefined),
   deactivateAccountDrafts: vi.fn(),
+  accountStorageOrder: [] as string[],
   createObjectURL: vi.fn(),
   revokeObjectURL: vi.fn(),
   state: { version: "7.4.0", objects: [] } as Record<string, unknown>,
@@ -953,7 +955,12 @@ vi.mock("./persistence/account-scoped-draft-store", async () => {
   return {
     AccountScopedDraftStore: class extends IndexedDbDraftStore {
       async activateAccount(username: string): Promise<void> {
+        runtime.accountStorageOrder.push(`activate:${username}`);
         await runtime.activateAccountDrafts(username);
+      }
+      async resetAccount(username: string): Promise<void> {
+        runtime.accountStorageOrder.push(`reset:${username}`);
+        await runtime.resetAccountDrafts(username);
       }
       deactivateAccount(): void {
         runtime.deactivateAccountDrafts();
@@ -1193,7 +1200,9 @@ describe("window.AdMarketCreator", () => {
     runtime.saveFailure = null;
     runtime.importCloudPractice.mockReset();
     runtime.activateAccountDrafts.mockReset().mockResolvedValue(undefined);
+    runtime.resetAccountDrafts.mockReset().mockResolvedValue(undefined);
     runtime.deactivateAccountDrafts.mockReset();
+    runtime.accountStorageOrder = [];
     runtime.publishFailure = null;
     runtime.canvasFailure = null;
     runtime.adapterDisposeFailure = null;
@@ -1325,7 +1334,7 @@ describe("window.AdMarketCreator", () => {
     expect(Reflect.has(window, "AdMarketAccount")).toBe(true);
   });
 
-  it("installs a synchronous mandatory account seam without checking the session until bootstrap asks", async () => {
+  it("reconciles a teacher reset before activating the pair's private storage", async () => {
     document.body.innerHTML = `
       <div id="account-gate-root"></div>
       <section id="account-session-root" hidden></section>
@@ -1342,7 +1351,11 @@ describe("window.AdMarketCreator", () => {
           headers: { accept: "application/json" },
           signal: expect.any(AbortSignal)
         });
-        return Promise.resolve(Response.json({ authenticated: true, username: "team-one" }));
+        return Promise.resolve(Response.json({
+          authenticated: true,
+          username: "team-one",
+          resetGeneration: "7440e792-3ddc-4484-ae32-a53088d0d679"
+        }));
       }
       expect(input).toBe("/api/account/progress");
       expect(init).toEqual({
@@ -1377,6 +1390,11 @@ describe("window.AdMarketCreator", () => {
       }
     ]);
     expect(runtime.activateAccountDrafts).toHaveBeenCalledWith("team-one");
+    expect(runtime.resetAccountDrafts).toHaveBeenCalledWith("team-one");
+    expect(runtime.accountStorageOrder).toEqual([
+      "reset:team-one",
+      "activate:team-one"
+    ]);
     expect(document.querySelector<HTMLElement>('main[aria-label="Advertising Market Game"]')?.hidden)
       .toBe(false);
     expect(document.querySelector<HTMLCanvasElement>("#canvas")?.tabIndex).toBe(0);
@@ -1444,7 +1462,7 @@ describe("window.AdMarketCreator", () => {
       if (input === "/api/account/session") {
         return Promise.resolve(Response.json(serverAccount === null
           ? { authenticated: false }
-          : { authenticated: true, username: serverAccount }));
+          : { authenticated: true, username: serverAccount, resetGeneration: null }));
       }
       if (input === "/api/account/logout") {
         expect(new Headers(init?.headers).get("x-admarket-account")).toBe("team-a");
@@ -1459,7 +1477,8 @@ describe("window.AdMarketCreator", () => {
         serverAccount = "team-b";
         return Promise.resolve(Response.json({
           authenticated: true,
-          username: "team-b"
+          username: "team-b",
+          resetGeneration: null
         }));
       }
       if (input === "/api/account/progress") {
@@ -1580,7 +1599,11 @@ describe("window.AdMarketCreator", () => {
     cloudDocument.updatedAt = "2026-07-17T05:00:00.000Z";
     vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
       if (input === "/api/account/session") {
-        return Promise.resolve(Response.json({ authenticated: true, username: "team-one" }));
+        return Promise.resolve(Response.json({
+          authenticated: true,
+          username: "team-one",
+          resetGeneration: null
+        }));
       }
       if (input === "/api/account/progress") {
         return Promise.resolve(Response.json({
@@ -1633,7 +1656,11 @@ describe("window.AdMarketCreator", () => {
       <div id="creator-root" hidden></div>`;
     vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
       if (input === "/api/account/session") {
-        return Promise.resolve(Response.json({ authenticated: true, username: "team-one" }));
+        return Promise.resolve(Response.json({
+          authenticated: true,
+          username: "team-one",
+          resetGeneration: null
+        }));
       }
       if (input === "/api/account/progress") {
         return Promise.resolve(Response.json(

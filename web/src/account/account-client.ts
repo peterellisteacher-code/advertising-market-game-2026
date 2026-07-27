@@ -21,6 +21,8 @@ import {
 const ACCOUNT_USERNAME = /^[a-z0-9][a-z0-9_-]{2,23}$/u;
 const RESET_OPERATION_ID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
+const RESET_GENERATION =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 const PROGRESS_SCHEMA = "advertising-game-progress";
 const PROGRESS_VERSION = 1;
 const ACCOUNT_RESET_SCHEMA = "advertising-game-account-reset";
@@ -46,7 +48,11 @@ export interface AccountRequestPolicyOptions {
 
 export type AccountSession =
   | { readonly authenticated: false }
-  | { readonly authenticated: true; readonly username: string };
+  | {
+    readonly authenticated: true;
+    readonly username: string;
+    readonly resetGeneration: string | null;
+  };
 
 export interface AccountSignupInput {
   readonly username: string;
@@ -149,9 +155,21 @@ function parsedSession(value: unknown): AccountSession | null {
   if (!value.authenticated) {
     return exactKeys(value, ["authenticated"]) ? { authenticated: false } : null;
   }
-  return exactKeys(value, ["authenticated", "username"]) &&
-    typeof value.username === "string" && ACCOUNT_USERNAME.test(value.username)
-    ? { authenticated: true, username: value.username }
+  return exactKeys(value, ["authenticated", "username", "resetGeneration"]) &&
+    typeof value.username === "string" &&
+    ACCOUNT_USERNAME.test(value.username) &&
+    (
+      value.resetGeneration === null ||
+      (
+        typeof value.resetGeneration === "string" &&
+        RESET_GENERATION.test(value.resetGeneration)
+      )
+    )
+    ? {
+      authenticated: true,
+      username: value.username,
+      resetGeneration: value.resetGeneration as string | null
+    }
     : null;
 }
 

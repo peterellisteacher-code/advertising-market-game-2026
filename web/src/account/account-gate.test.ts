@@ -18,8 +18,18 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
+const resetGeneration = "7440e792-3ddc-4484-ae32-a53088d0d679";
+const authenticatedSession = (
+  username = "team-one",
+  generation: string | null = null
+) => ({
+  authenticated: true as const,
+  username,
+  resetGeneration: generation
+});
+
 function mount(client: AccountSessionClient, callbacks: {
-  onSession?: (username: string) => void | Promise<void>;
+  onSession?: (username: string, generation: string | null) => void | Promise<void>;
   onSignedOut?: (explicit: boolean) => void | Promise<void>;
   reload?: () => void;
 } = {}) {
@@ -57,7 +67,7 @@ describe("AccountAccessController", () => {
   it("waits for asynchronous account activation before the first game unlock", async () => {
     const activation = deferred<void>();
     const client: AccountSessionClient = {
-      session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
+      session: vi.fn().mockResolvedValue(authenticatedSession("team-one", resetGeneration)),
       login: vi.fn(),
       logout: vi.fn()
     };
@@ -66,7 +76,10 @@ describe("AccountAccessController", () => {
     let resolved = false;
 
     const access = harness.controller.requireAccess().then(() => { resolved = true; });
-    await waitFor(() => expect(onSession).toHaveBeenCalledWith("team-one"));
+    await waitFor(() => expect(onSession).toHaveBeenCalledWith(
+      "team-one",
+      resetGeneration
+    ));
 
     expect(resolved).toBe(false);
     expect(harness.gameSurface.hidden).toBe(true);
@@ -82,7 +95,7 @@ describe("AccountAccessController", () => {
 
   it("fails closed with safe copy when account storage activation fails", async () => {
     const client: AccountSessionClient = {
-      session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
+      session: vi.fn().mockResolvedValue(authenticatedSession()),
       login: vi.fn(),
       logout: vi.fn()
     };
@@ -103,7 +116,7 @@ describe("AccountAccessController", () => {
 
   it("returns to login without unlocking when authentication expires during activation", async () => {
     const client: AccountSessionClient = {
-      session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
+      session: vi.fn().mockResolvedValue(authenticatedSession()),
       login: vi.fn(),
       logout: vi.fn()
     };
@@ -126,7 +139,7 @@ describe("AccountAccessController", () => {
     const session = deferred<{ authenticated: false }>();
     const client: AccountSessionClient = {
       session: vi.fn(() => session.promise),
-      login: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
+      login: vi.fn().mockResolvedValue(authenticatedSession()),
       logout: vi.fn()
     };
     const onSession = vi.fn();
@@ -177,7 +190,7 @@ describe("AccountAccessController", () => {
     expect(getByRole(harness.statusRoot, "button", { name: "Sign out" })).toBeTruthy();
     expect(harness.statusRoot.textContent)
       .toContain("Sign out before another pair uses this device.");
-    expect(onSession).toHaveBeenCalledWith("team-one");
+    expect(onSession).toHaveBeenCalledWith("team-one", null);
   });
 
   it("announces a calm login error and moves focus back to the password", async () => {
@@ -207,7 +220,7 @@ describe("AccountAccessController", () => {
   it("locks both account surfaces immediately and reloads only after logout isolation", async () => {
     const isolated = deferred<void>();
     const client: AccountSessionClient = {
-      session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
+      session: vi.fn().mockResolvedValue(authenticatedSession()),
       login: vi.fn(),
       logout: vi.fn().mockResolvedValue(undefined)
     };
@@ -236,7 +249,7 @@ describe("AccountAccessController", () => {
 
   it("does not expose self-reset to an authenticated pair", async () => {
     const client: AccountSessionClient = {
-      session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
+      session: vi.fn().mockResolvedValue(authenticatedSession()),
       login: vi.fn(),
       logout: vi.fn()
     };
@@ -250,7 +263,7 @@ describe("AccountAccessController", () => {
 
   it("locks another tab during reset and reloads it on completion", async () => {
     const client: AccountSessionClient = {
-      session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
+      session: vi.fn().mockResolvedValue(authenticatedSession()),
       login: vi.fn(),
       logout: vi.fn()
     };
@@ -273,7 +286,7 @@ describe("AccountAccessController", () => {
 
   it("offers explicit cloud-conflict choices without replacing the local copy automatically", async () => {
     const client: AccountSessionClient = {
-      session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
+      session: vi.fn().mockResolvedValue(authenticatedSession()),
       login: vi.fn(),
       logout: vi.fn()
     };
@@ -301,7 +314,7 @@ describe("AccountAccessController", () => {
 
   it("restores focus and keeps both copies untouched when a conflict action fails", async () => {
     const client: AccountSessionClient = {
-      session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
+      session: vi.fn().mockResolvedValue(authenticatedSession()),
       login: vi.fn(),
       logout: vi.fn()
     };
@@ -328,7 +341,7 @@ describe("AccountAccessController", () => {
 
   it("stays locked without reloading when the server logout cannot be confirmed", async () => {
     const client: AccountSessionClient = {
-      session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
+      session: vi.fn().mockResolvedValue(authenticatedSession()),
       login: vi.fn(),
       logout: vi.fn().mockRejectedValue(new TypeError("network unavailable"))
     };
@@ -353,7 +366,7 @@ describe("AccountAccessController", () => {
   it("locks both account surfaces and isolates before reloading on auth expiry", async () => {
     const isolated = deferred<void>();
     const client: AccountSessionClient = {
-      session: vi.fn().mockResolvedValue({ authenticated: true, username: "team-one" }),
+      session: vi.fn().mockResolvedValue(authenticatedSession()),
       login: vi.fn(),
       logout: vi.fn()
     };

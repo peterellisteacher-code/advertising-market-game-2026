@@ -24,7 +24,8 @@ const authenticatedSession = async () => ({
   authenticated: true as const,
   identity: {
     userId: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
-    username: "team-one"
+    username: "team-one",
+    resetGeneration: null
   }
 });
 const createHandler = (

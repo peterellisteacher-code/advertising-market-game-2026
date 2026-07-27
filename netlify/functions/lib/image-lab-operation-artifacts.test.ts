@@ -10,9 +10,13 @@ const sqlPath = resolve(
   repoRoot,
   "docs/operations/advertising-game-image-lab-allowances.sql"
 );
+const teacherAtomicSqlPath = resolve(
+  repoRoot,
+  "docs/operations/advertising-game-image-lab-teacher-atomic.sql"
+);
 
-const executableSql = (): string =>
-  readFileSync(sqlPath, "utf8").replace(/^\s*--.*$/gmu, "");
+const executableSql = (path = sqlPath): string =>
+  readFileSync(path, "utf8").replace(/^\s*--.*$/gmu, "");
 
 describe("Image Lab allowance operation artifacts", () => {
   it("creates each private object and the public broker exactly once", () => {
@@ -156,5 +160,114 @@ describe("Image Lab allowance operation artifacts", () => {
     expect(sql).not.toContain("'alias'");
     expect(sql).not.toMatch(/\bfrom\s+auth\.(users|identities)\b/iu);
     expect(sql.replace(/^\s*--.*$/gmu, "")).not.toContain("signal_lost");
+  });
+});
+
+describe("atomic teacher Image Lab allowance upgrade", () => {
+  it("creates one private journal and one service-only RPC without hidden migration control", () => {
+    const sql = executableSql(teacherAtomicSqlPath);
+    expect(sql.match(
+      /\bcreate\s+table\s+advertising_game\.image_lab_teacher_operation\b/giu
+    )).toHaveLength(1);
+    expect(sql.match(
+      /\bcreate\s+function\s+public\.advertising_game_image_lab_teacher_rpc\b/giu
+    )).toHaveLength(1);
+    expect(sql).not.toMatch(
+      /\bif\s+not\s+exists\b|\bcreate\s+or\s+replace\b|\bbegin\s+transaction\b|\bcommit\b/iu
+    );
+    expect(sql).not.toContain("signal_lost");
+  });
+
+  it("keeps the teacher journal private and grants only the exact RPC to service_role", () => {
+    const sql = executableSql(teacherAtomicSqlPath);
+    expect(sql).toContain(
+      "alter table advertising_game.image_lab_teacher_operation enable row level security"
+    );
+    expect(sql).toMatch(
+      /revoke all\s+on table advertising_game\.image_lab_teacher_operation\s+from public, anon, authenticated, service_role/iu
+    );
+    expect(sql).toMatch(
+      /create function public\.advertising_game_image_lab_teacher_rpc[\s\S]+security definer[\s\S]+set search_path = ''/iu
+    );
+    expect(sql).toMatch(
+      /alter function public\.advertising_game_image_lab_teacher_rpc[\s\S]+owner to postgres/iu
+    );
+    expect(sql).toMatch(
+      /revoke all\s+on function public\.advertising_game_image_lab_teacher_rpc[\s\S]+from public, anon, authenticated/iu
+    );
+    expect(sql).toMatch(
+      /grant execute\s+on function public\.advertising_game_image_lab_teacher_rpc[\s\S]+to service_role/iu
+    );
+    expect(sql).not.toMatch(/\bgrant\b[\s\S]{0,120}\bto\s+(public|anon|authenticated)\b/iu);
+  });
+
+  it("validates the six exact operations and journals immutable replay identity", () => {
+    const sql = executableSql(teacherAtomicSqlPath);
+    for (const operation of [
+      "initialize",
+      "set_global",
+      "set",
+      "add",
+      "revoke",
+      "batch_add"
+    ]) {
+      expect(sql).toContain(`'${operation}'`);
+    }
+    for (const field of [
+      "ledger_operation",
+      "user_ids",
+      "enabled",
+      "object_amount",
+      "realise_amount",
+      "request_hash"
+    ]) {
+      expect(sql).toMatch(new RegExp(
+        `image_lab_teacher_operation\\.${field}\\s+is distinct from p_${field.replace(
+          "ledger_operation",
+          "operation"
+        )}`,
+        "iu"
+      ));
+    }
+    expect(sql).toMatch(
+      /where image_lab_teacher_operation\.operation_id = p_operation_id[\s\S]+return v_existing_operation\.result/iu
+    );
+  });
+
+  it("takes the shared global lock and sorted per-account locks before mutation", () => {
+    const sql = executableSql(teacherAtomicSqlPath);
+    expect(sql).toContain("pg_catalog.hashtextextended('image-lab-global', 741927)");
+    expect(sql).toMatch(
+      /select requested_user_id[\s\S]+from pg_catalog\.unnest\(p_user_ids\)[\s\S]+order by requested_user_id[\s\S]+pg_advisory_xact_lock/iu
+    );
+    expect(sql).toMatch(
+      /cardinality\(p_user_ids\)[\s\S]+count\(\*\)[\s\S]+from auth\.users/iu
+    );
+  });
+
+  it("updates both stages atomically and rejects any partial batch", () => {
+    const sql = executableSql(teacherAtomicSqlPath);
+    expect(sql).toMatch(
+      /p_operation = 'set_global'[\s\S]+set enabled = p_enabled,[\s\S]+object_default = p_object_amount,[\s\S]+realise_default = p_realise_amount/iu
+    );
+    expect(sql).toMatch(
+      /p_operation in \('initialize', 'set'\)[\s\S]+set object_granted = object_consumed \+ object_reserved \+ p_object_amount,[\s\S]+realise_granted = realise_consumed \+ realise_reserved \+ p_realise_amount/iu
+    );
+    expect(sql).toMatch(
+      /p_operation in \('add', 'batch_add'\)[\s\S]+object_granted \+ p_object_amount > 100[\s\S]+realise_granted \+ p_realise_amount > 100[\s\S]+set object_granted = object_granted \+ p_object_amount,[\s\S]+realise_granted = realise_granted \+ p_realise_amount/iu
+    );
+    expect(sql).toMatch(
+      /p_operation = 'revoke'[\s\S]+object_granted - object_consumed - object_reserved < p_object_amount[\s\S]+realise_granted - realise_consumed - realise_reserved < p_realise_amount[\s\S]+set object_granted = object_granted - p_object_amount,[\s\S]+realise_granted = realise_granted - p_realise_amount/iu
+    );
+  });
+
+  it("returns private accounts in the exact requested order", () => {
+    const sql = executableSql(teacherAtomicSqlPath);
+    expect(sql).toContain("'accounts'");
+    expect(sql).toContain("'userId'");
+    expect(sql).toMatch(
+      /with ordinality[\s\S]+order by requested\.ordinality/iu
+    );
+    expect(sql).not.toContain("'alias'");
   });
 });

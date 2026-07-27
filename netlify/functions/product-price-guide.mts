@@ -18,10 +18,8 @@ import {
   type ResolvedAccountSession
 } from "./lib/account-backend";
 import {
-  clearAccountAccessCookie,
-  clearAccountRefreshCookie,
-  serialiseAccountAccessCookie,
-  serialiseAccountRefreshCookie
+  clearAccountSessionCookies,
+  serialiseAccountSessionCookies
 } from "./lib/account-primitives";
 import { defaultProductPriceGuideStateService } from "./lib/netlify-product-price-guide-state";
 import {
@@ -198,23 +196,15 @@ const rotatedAccountCookies = (
   session: AuthenticatedAccountSession
 ): readonly string[] => session.rotatedTokens === undefined
   ? []
-  : [
-      serialiseAccountAccessCookie(
-        session.rotatedTokens.accessToken,
-        session.rotatedTokens.expiresIn,
-        true
-      ),
-      serialiseAccountRefreshCookie(
-        session.rotatedTokens.refreshToken,
-        REFRESH_COOKIE_MAX_AGE_SECONDS,
-        true
-      )
-    ];
+  : serialiseAccountSessionCookies(
+    session.rotatedTokens,
+    session.identity.resetGeneration,
+    REFRESH_COOKIE_MAX_AGE_SECONDS,
+    true
+  );
 
-const expiredAccountCookies = (): readonly string[] => [
-  clearAccountAccessCookie(true),
-  clearAccountRefreshCookie(true)
-];
+const expiredAccountCookies = (): readonly string[] =>
+  clearAccountSessionCookies(true);
 
 function parseRequest(value: unknown): ProductPriceGuideRequest {
   let request: ProductPriceGuideRequest;

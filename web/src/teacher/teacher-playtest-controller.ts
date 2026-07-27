@@ -3,6 +3,7 @@ import {
   createTeacherPlaytestOperationId,
   type TeacherPlaytestClient
 } from "./teacher-playtest-client";
+import { openManagedModalDialog } from "./managed-modal-dialog";
 
 export interface TeacherPlaytestControllerOptions {
   readonly root: HTMLElement;
@@ -123,7 +124,6 @@ export class TeacherPlaytestController {
     dialog.className = "teacher-dialog";
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
-    dialog.setAttribute("open", "");
     const title = document.createElement("h2");
     title.id = `teacher-playtest-reset-${operationId}`;
     title.textContent = "Factory reset teacher playtest";
@@ -156,20 +156,9 @@ export class TeacherPlaytestController {
     actions.append(cancel, confirm);
     form.append(label, error, actions);
     dialog.append(title, explanation, form);
-    this.#root.append(dialog);
-
+    const surface = openManagedModalDialog(this.#root, trigger, dialog);
     let pending = false;
-    const close = (): void => {
-      if (pending) return;
-      dialog.remove();
-      trigger.focus();
-    };
-    cancel.addEventListener("click", close);
-    dialog.addEventListener("keydown", (event) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      close();
-    });
+    cancel.addEventListener("click", surface.close);
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       if (pending) return;
@@ -180,6 +169,7 @@ export class TeacherPlaytestController {
         return;
       }
       pending = true;
+      surface.setPending(true);
       confirmation.disabled = true;
       cancel.disabled = true;
       confirm.disabled = true;
@@ -192,6 +182,7 @@ export class TeacherPlaytestController {
         this.#openFirstScreen();
       }).catch(() => {
         pending = false;
+        surface.setPending(false);
         confirmation.disabled = false;
         cancel.disabled = false;
         confirm.disabled = false;

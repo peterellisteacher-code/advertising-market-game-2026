@@ -3,6 +3,7 @@ const RESPONSE_LIMIT = 280 * 1_024;
 const AUTHORIZATION_RPC = "/rest/v1/rpc/advertising_game_backend_authorized";
 const PROGRESS_RPC = "/rest/v1/rpc/advertising_game_progress_rpc";
 const IMAGE_LAB_RPC = "/rest/v1/rpc/advertising_game_image_lab_rpc";
+const IMAGE_LAB_TEACHER_RPC = "/rest/v1/rpc/advertising_game_image_lab_teacher_rpc";
 const ADMIN_USERS = "/auth/v1/admin/users";
 
 const PROJECT_URL_PATTERN = /^https:\/\/[a-z0-9]{20}\.supabase\.co$/u;
@@ -233,6 +234,18 @@ type AccountAdminOperation =
       readonly email: string;
       readonly username: typeof TEACHER_PLAYTEST_USERNAME;
       readonly password: string;
+    }
+  | {
+      readonly operation: "begin_reset";
+      readonly email: string;
+      readonly username: string;
+      readonly operationId: string;
+    }
+  | {
+      readonly operation: "complete_reset";
+      readonly email: string;
+      readonly username: string;
+      readonly operationId: string;
     };
 
 interface AccountAdminRecord {
@@ -245,6 +258,7 @@ interface AccountAdminRecord {
 interface ParsedAdminUser {
   readonly record: AccountAdminRecord;
   readonly email: string;
+  readonly appMetadata: Readonly<Record<string, unknown>>;
 }
 
 const validPassword = (value: unknown): value is string =>
@@ -263,21 +277,30 @@ const parseAccountAdminOperation = (
   if (
     record.operation !== "find_user" &&
     record.operation !== "replace_password" &&
-    record.operation !== "ensure_user"
+    record.operation !== "ensure_user" &&
+    record.operation !== "begin_reset" &&
+    record.operation !== "complete_reset"
   ) {
     throw new InvalidRequestError();
   }
-  const includesPassword = record.operation !== "find_user";
+  const includesPassword =
+    record.operation === "replace_password" || record.operation === "ensure_user";
+  const includesOperationId =
+    record.operation === "begin_reset" || record.operation === "complete_reset";
   const keys = includesPassword
     ? ["operation", "email", "username", "password"]
-    : ["operation", "email", "username"];
+    : includesOperationId
+      ? ["operation", "email", "username", "operationId"]
+      : ["operation", "email", "username"];
   if (
     !hasExactKeys(record, keys) ||
     typeof record.email !== "string" ||
     !SYNTHETIC_EMAIL_PATTERN.test(record.email) ||
     typeof record.username !== "string" ||
     !USERNAME_PATTERN.test(record.username) ||
-    (includesPassword && !validPassword(record.password))
+    (includesPassword && !validPassword(record.password)) ||
+    (includesOperationId &&
+      (typeof record.operationId !== "string" || !UUID_PATTERN.test(record.operationId)))
   ) {
     throw new InvalidRequestError();
   }
@@ -291,6 +314,9 @@ const parseAccountAdminOperation = (
     record.operation === "replace_password" &&
     record.username === TEACHER_PLAYTEST_USERNAME
   ) {
+    throw new InvalidRequestError();
+  }
+  if (includesOperationId && record.username === TEACHER_PLAYTEST_USERNAME) {
     throw new InvalidRequestError();
   }
   return record as AccountAdminOperation;
@@ -320,6 +346,7 @@ const parseAdminUser = (value: unknown): ParsedAdminUser | null => {
   }
   return {
     email: value.email,
+    appMetadata: metadata ?? {},
     record: {
       userId: value.id,
       username,
@@ -445,6 +472,103 @@ const accountAdmin = async (
   if (current === null) {
     return jsonResponse({ error: "ACCOUNT_NOT_FOUND" }, 404);
   }
+  if (input.operation === "begin_reset" || input.operation === "complete_reset") {
+    const existingEpoch = current.appMetadata.advertising_game_session_epoch;
+    const existingGeneration =
+      current.appMetadata.advertising_game_reset_generation;
+    const existingOperation = current.appMetadata.advertising_game_reset_operation;
+    const existingPending = current.appMetadata.advertising_game_reset_pending;
+    const hasResetBoundary = [
+      existingEpoch,
+      existingGeneration,
+      existingOperation,
+      existingPending
+    ].some((value) => value !== undefined);
+    if (
+      hasResetBoundary &&
+      (
+        typeof existingEpoch !== "string" ||
+        !SESSION_EPOCH_PATTERN.test(existingEpoch) ||
+        typeof existingGeneration !== "string" ||
+        !SESSION_EPOCH_PATTERN.test(existingGeneration) ||
+        typeof existingOperation !== "string" ||
+        !UUID_PATTERN.test(existingOperation) ||
+        typeof existingPending !== "boolean"
+      )
+    ) {
+      throw new UpstreamError();
+    }
+    if (input.operation === "complete_reset") {
+      if (!hasResetBoundary || existingOperation !== input.operationId) {
+        throw new UpstreamError();
+      }
+      if (existingPending === false) return noContent();
+      const response = await safeFetch(
+        fetcher,
+        `${environment.supabaseUrl}${ADMIN_USERS}/${current.record.userId}`,
+        {
+          method: "PUT",
+          headers: serviceHeaders(environment.serviceKey),
+          body: JSON.stringify({
+            app_metadata: {
+              ...current.appMetadata,
+              advertising_game_reset_pending: false
+            }
+          })
+        }
+      );
+      if (!response.ok) throw new UpstreamError();
+      return noContent();
+    }
+    if (
+      hasResetBoundary &&
+      existingPending === true &&
+      existingOperation !== input.operationId
+    ) {
+      throw new UpstreamError();
+    }
+    let epoch: string;
+    let resetGeneration: string;
+    if (!hasResetBoundary || existingOperation !== input.operationId) {
+      epoch = randomUUID();
+      resetGeneration = randomUUID();
+      if (
+        !SESSION_EPOCH_PATTERN.test(epoch) ||
+        !SESSION_EPOCH_PATTERN.test(resetGeneration)
+      ) {
+        throw new UpstreamError();
+      }
+    } else {
+      if (
+        typeof existingEpoch !== "string" ||
+        typeof existingGeneration !== "string"
+      ) {
+        throw new UpstreamError();
+      }
+      epoch = existingEpoch;
+      resetGeneration = existingGeneration;
+    }
+    const response = await safeFetch(
+      fetcher,
+      `${environment.supabaseUrl}${ADMIN_USERS}/${current.record.userId}`,
+      {
+        method: "PUT",
+        headers: serviceHeaders(environment.serviceKey),
+        body: JSON.stringify({
+          app_metadata: {
+            ...current.appMetadata,
+            advertising_game_username: input.username,
+            advertising_game_session_epoch: epoch,
+            advertising_game_reset_generation: resetGeneration,
+            advertising_game_reset_operation: input.operationId,
+            advertising_game_reset_pending: true
+          }
+        })
+      }
+    );
+    if (!response.ok) throw new UpstreamError();
+    return noContent();
+  }
   const epoch = randomUUID();
   if (!SESSION_EPOCH_PATTERN.test(epoch)) throw new UpstreamError();
   const response = await safeFetch(
@@ -456,6 +580,7 @@ const accountAdmin = async (
       body: JSON.stringify({
         password: input.password,
         app_metadata: {
+          ...current.appMetadata,
           advertising_game_username: input.username,
           advertising_game_session_epoch: epoch
         }
@@ -551,6 +676,24 @@ interface ImageLabPrivateAccount {
   readonly realise: ImageLabCounts;
 }
 
+type ImageLabTeacherLedgerOperation =
+  | "initialize"
+  | "set_global"
+  | "set"
+  | "add"
+  | "revoke"
+  | "batch_add";
+
+interface ImageLabTeacherInput {
+  readonly ledgerOperation: ImageLabTeacherLedgerOperation;
+  readonly userIds: readonly string[];
+  readonly enabled?: boolean;
+  readonly object: number;
+  readonly realise: number;
+  readonly operationId: string;
+  readonly requestHash: string;
+}
+
 const imageLabBaseKeys = ["ledgerOperation", "operationId", "requestHash"] as const;
 
 const parseImageLab = (record: Record<string, unknown>): ImageLabLedgerInput => {
@@ -634,6 +777,80 @@ const parseImageLab = (record: Record<string, unknown>): ImageLabLedgerInput => 
     )
   ) throw new InvalidRequestError();
   return input as unknown as ImageLabLedgerInput;
+};
+
+const parseImageLabTeacher = (record: Record<string, unknown>): ImageLabTeacherInput => {
+  if (!hasExactKeys(record, ["operation", "input"]) ||
+    record.operation !== "image_lab_teacher" || !isRecord(record.input)) {
+    throw new InvalidRequestError();
+  }
+  const input = record.input;
+  const ledgerOperation = input.ledgerOperation;
+  if (
+    ledgerOperation !== "initialize" &&
+    ledgerOperation !== "set_global" &&
+    ledgerOperation !== "set" &&
+    ledgerOperation !== "add" &&
+    ledgerOperation !== "revoke" &&
+    ledgerOperation !== "batch_add"
+  ) throw new InvalidRequestError();
+  const global = ledgerOperation === "set_global";
+  if (!hasExactKeys(
+    input,
+    global
+      ? [
+          "ledgerOperation",
+          "userIds",
+          "enabled",
+          "object",
+          "realise",
+          "operationId",
+          "requestHash"
+        ]
+      : [
+          "ledgerOperation",
+          "userIds",
+          "object",
+          "realise",
+          "operationId",
+          "requestHash"
+        ]
+  )) throw new InvalidRequestError();
+  if (
+    !Array.isArray(input.userIds) ||
+    input.userIds.some((userId) => typeof userId !== "string" || !UUID_PATTERN.test(userId)) ||
+    new Set(input.userIds).size !== input.userIds.length ||
+    typeof input.object !== "number" ||
+    !Number.isInteger(input.object) ||
+    input.object < 0 ||
+    input.object > 100 ||
+    typeof input.realise !== "number" ||
+    !Number.isInteger(input.realise) ||
+    input.realise < 0 ||
+    input.realise > 100 ||
+    typeof input.operationId !== "string" ||
+    !SAFE_OPERATION_ID_PATTERN.test(input.operationId) ||
+    typeof input.requestHash !== "string" ||
+    !SHA256_PATTERN.test(input.requestHash)
+  ) throw new InvalidRequestError();
+  if (
+    global
+      ? input.userIds.length !== 0 || typeof input.enabled !== "boolean"
+      : (
+          input.enabled !== undefined ||
+          input.userIds.length < 1 ||
+          input.userIds.length > 100 ||
+          (ledgerOperation !== "batch_add" && input.userIds.length !== 1)
+        )
+  ) throw new InvalidRequestError();
+  if (
+    (ledgerOperation === "add" ||
+      ledgerOperation === "revoke" ||
+      ledgerOperation === "batch_add") &&
+    input.object === 0 &&
+    input.realise === 0
+  ) throw new InvalidRequestError();
+  return input as unknown as ImageLabTeacherInput;
 };
 
 const parseImageLabCounts = (value: unknown): ImageLabCounts => {
@@ -826,6 +1043,35 @@ const imageLab = async (
   }, 200);
 };
 
+const imageLabTeacher = async (
+  input: ImageLabTeacherInput,
+  environment: EdgeEnvironment,
+  fetcher: typeof fetch
+): Promise<Response> => {
+  const response = await safeFetch(fetcher, `${environment.supabaseUrl}${IMAGE_LAB_TEACHER_RPC}`, {
+    method: "POST",
+    headers: serviceHeaders(environment.serviceKey),
+    body: JSON.stringify({
+      p_operation: input.ledgerOperation,
+      p_user_ids: input.userIds,
+      p_enabled: input.enabled ?? null,
+      p_object_amount: input.object,
+      p_realise_amount: input.realise,
+      p_operation_id: input.operationId,
+      p_request_hash: input.requestHash
+    })
+  });
+  const result = parseImageLabList(await upstreamJson(response));
+  if (
+    result.accounts.length !== input.userIds.length ||
+    result.accounts.some(({ userId }, index) => userId !== input.userIds[index])
+  ) throw new UpstreamError();
+  return jsonResponse({
+    ...result.snapshot,
+    accounts: result.accounts
+  }, 200);
+};
+
 export function createAdvertisingGameBackendHandler(
   dependencies: AdvertisingGameBackendDependencies = {}
 ): (request: Request) => Promise<Response> {
@@ -863,11 +1109,16 @@ export function createAdvertisingGameBackendHandler(
       if (body.operation === "image_lab") {
         return await imageLab(parseImageLab(body), environment, fetcher);
       }
+      if (body.operation === "image_lab_teacher") {
+        return await imageLabTeacher(parseImageLabTeacher(body), environment, fetcher);
+      }
       if (
         body.operation === "list_users" ||
         body.operation === "find_user" ||
         body.operation === "replace_password" ||
-        body.operation === "ensure_user"
+        body.operation === "ensure_user" ||
+        body.operation === "begin_reset" ||
+        body.operation === "complete_reset"
       ) {
         return await accountAdmin(
           parseAccountAdminOperation(body),

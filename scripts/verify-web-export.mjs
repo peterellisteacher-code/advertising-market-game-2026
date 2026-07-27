@@ -1072,7 +1072,18 @@ export async function verifyLogoIconDirectory(directory) {
 }
 
 /** Pure verification core. It verifies static export evidence, not an end-to-end browser bridge. */
-export function inspectExportContents({ files, pckHash }) {
+export function inspectExportContents({
+  files,
+  pckHash,
+  minimumOfflineRecords = 0
+}) {
+  if (
+    !Number.isSafeInteger(minimumOfflineRecords) ||
+    minimumOfflineRecords < 0 ||
+    minimumOfflineRecords > 20_000
+  ) {
+    throw new Error("Offline catalogue minimum must be an integer from 0 to 20000");
+  }
   const errors = [];
   const warnings = [];
   for (const name of REQUIRED_FILES) {
@@ -1159,7 +1170,7 @@ export function inspectExportContents({ files, pckHash }) {
     errors.push("no-thread AudioWorklet evidence is missing");
   }
 
-  verifyOfflineCatalogue(files, errors);
+  verifyOfflineCatalogue(files, errors, minimumOfflineRecords);
   verifyProductShellCatalogue(files, errors);
   verifyProductShellMetadata(html, files, errors);
   if (files.has(`${PRODUCT_BUILDER_PREFIX}/catalogue.json`)) {
@@ -1170,7 +1181,9 @@ export function inspectExportContents({ files, pckHash }) {
   verifyLogoIconCatalogue(files, errors);
   verifyLogoIconMetadata(html, files, errors);
 
-  if (pckHash === STALE_SPIKE_PCK_HASH) warnings.push("PCK_STALE_SPIKE_EXPORT");
+  if (pckHash === STALE_SPIKE_PCK_HASH) {
+    errors.push("known stale PCK export is forbidden");
+  }
   if (errors.length > 0) {
     throw new Error(`Web export verification failed:\n- ${errors.join("\n- ")}`);
   }
@@ -1251,7 +1264,11 @@ export async function verifyWebExport(exportDir, projectRoot = DEFAULT_ROOT) {
     ? createHash("sha256").update(pck).digest("hex")
     : "";
   return {
-    ...inspectExportContents({ files, pckHash }),
+    ...inspectExportContents({
+      files,
+      pckHash,
+      minimumOfflineRecords: 2_000
+    }),
     releaseId: release.releaseId
   };
 }

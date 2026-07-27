@@ -2,7 +2,10 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { createBlankCampaignDocument } from "../../../web/src/domain/campaign-document";
-import { deriveSyntheticAccountEmail } from "./account-primitives";
+import {
+  ACCOUNT_RESET_GENERATION_COOKIE,
+  deriveSyntheticAccountEmail
+} from "./account-primitives";
 import {
   ACCOUNT_JSON_LIMIT,
   PROGRESS_JSON_LIMIT,
@@ -152,15 +155,17 @@ describe("account HTTP boundaries", () => {
     }))).toThrow(AccountRequestError);
   });
 
-  it("parses only the two bounded account cookie values", () => {
+  it("parses only the three bounded account cookie values", () => {
     const request = new Request("https://game.example/api/account/session", {
       headers: {
-        cookie: "other=x; admarket_account_access=access.jwt; admarket_account_refresh=refresh_1"
+        cookie: "other=x; admarket_account_access=access.jwt; admarket_account_refresh=refresh_1; " +
+          `${ACCOUNT_RESET_GENERATION_COOKIE}=7440e792-3ddc-4484-ae32-a53088d0d679`
       }
     });
     expect(parseAccountCookies(request)).toEqual({
       accessToken: "access.jwt",
-      refreshToken: "refresh_1"
+      refreshToken: "refresh_1",
+      resetGeneration: "7440e792-3ddc-4484-ae32-a53088d0d679"
     });
     expect(parseAccountCookies(new Request("https://game.example", {
       headers: { cookie: "admarket_account_access=bad%0d%0aheader" }
@@ -404,7 +409,8 @@ describe("Supabase account transport", () => {
       authenticated: true,
       identity: {
         userId: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
-        username: "team-one"
+        username: "team-one",
+        resetGeneration: null
       },
       rotatedTokens: {
         accessToken: "rotated-access",
@@ -427,6 +433,34 @@ describe("Supabase account transport", () => {
     await expect(resolveAccountSession(client, {
       accessToken: "expired-access",
       refreshToken: "expired-refresh"
+    })).resolves.toEqual({ authenticated: false, clearCookies: true });
+  });
+
+  it("does not let an old refresh cookie reopen a session across a teacher reset", async () => {
+    const currentEpoch = "2d90c112-4de8-4e7b-92d2-0d655738987f";
+    const currentGeneration = "7440e792-3ddc-4484-ae32-a53088d0d679";
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(responseJson({ message: "expired" }, 401))
+      .mockResolvedValueOnce(responseJson({
+        access_token: accessJwt(currentEpoch),
+        refresh_token: "rotated-refresh",
+        expires_in: 1800
+      }))
+      .mockResolvedValueOnce(responseJson({
+        id: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
+        app_metadata: {
+          advertising_game_username: "team-one",
+          advertising_game_session_epoch: currentEpoch,
+          advertising_game_reset_generation: currentGeneration,
+          advertising_game_reset_pending: false
+        }
+      }));
+    const client = new SupabaseAccountClient(parseAccountEnvironment(modernEnvironment), fetcher);
+
+    await expect(resolveAccountSession(client, {
+      accessToken: "expired-access",
+      refreshToken: "old-refresh",
+      resetGeneration: "7f977c9a-c73c-47c7-93ee-5a40ce302415"
     })).resolves.toEqual({ authenticated: false, clearCookies: true });
   });
 
@@ -472,6 +506,41 @@ describe("Supabase account transport", () => {
       }
     });
     expect(JSON.stringify(body)).not.toContain("callerUserId");
+  });
+
+  it("uses one exact server-only envelope for an atomic teacher allowance mutation", async () => {
+    const result = {
+      status: "available",
+      enabled: true,
+      object: { granted: 4, consumed: 0, reserved: 0, remaining: 4 },
+      realise: { granted: 2, consumed: 0, reserved: 0, remaining: 2 },
+      accounts: [{
+        userId: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
+        object: { granted: 4, consumed: 0, reserved: 0, remaining: 4 },
+        realise: { granted: 2, consumed: 0, reserved: 0, remaining: 2 }
+      }]
+    };
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(responseJson(result));
+    const client = new SupabaseAccountClient(parseAccountEnvironment(modernEnvironment), fetcher);
+    const input = {
+      ledgerOperation: "set" as const,
+      userIds: ["b9b32e20-0ba8-4896-b89f-44efdfc52942"],
+      object: 4,
+      realise: 2,
+      operationId: "teacher-atomic:1",
+      requestHash: "a".repeat(64)
+    };
+
+    await expect(client.imageLabTeacherRpc(input)).resolves.toEqual(result);
+    expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toEqual({
+      operation: "image_lab_teacher",
+      input
+    });
+    expect(fetcher.mock.calls[0]?.[1]?.headers).toEqual(expect.objectContaining({
+      "x-advertising-game-gateway-secret":
+        modernEnvironment.ADVERTISING_GAME_EDGE_GATEWAY_SECRET
+    }));
+    expect(fetcher.mock.calls[0]?.[1]?.headers).not.toHaveProperty("authorization");
   });
 
   it("sends an exact account-wide reset operation to the scoped Edge broker", async () => {
@@ -594,14 +663,25 @@ describe("Supabase account transport", () => {
       .mockResolvedValueOnce(responseJson({ users: [pairRecord] }))
       .mockResolvedValueOnce(responseJson({ user: pairRecord }))
       .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
       .mockResolvedValueOnce(responseJson({ user: playtestRecord }));
     const client = new SupabaseAccountClient(parseAccountEnvironment(modernEnvironment), fetcher);
+    const resetOperationId = "7440e792-3ddc-4484-ae32-a53088d0d679";
 
     await expect(client.listAdvertisingGameUsers()).resolves.toEqual([pairRecord]);
     await expect(client.findAdvertisingGameUser("team-one")).resolves.toEqual(pairRecord);
     await expect(client.replaceAdvertisingGamePassword(
       "team-one",
       "replacement-password"
+    )).resolves.toBeUndefined();
+    await expect(client.beginAdvertisingGameReset(
+      "team-one",
+      resetOperationId
+    )).resolves.toBeUndefined();
+    await expect(client.completeAdvertisingGameReset(
+      "team-one",
+      resetOperationId
     )).resolves.toBeUndefined();
     await expect(client.ensureAdvertisingGameUser(
       "teacher-playtest",
@@ -624,6 +704,18 @@ describe("Supabase account transport", () => {
         email: syntheticPairEmail,
         username: "team-one",
         password: "replacement-password"
+      },
+      {
+        operation: "begin_reset",
+        email: syntheticPairEmail,
+        username: "team-one",
+        operationId: resetOperationId
+      },
+      {
+        operation: "complete_reset",
+        email: syntheticPairEmail,
+        username: "team-one",
+        operationId: resetOperationId
       },
       {
         operation: "ensure_user",
@@ -689,12 +781,46 @@ describe("Supabase account transport", () => {
 
     await expect(client.getUser(jwt)).resolves.toEqual({
       userId: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
-      username: "team-one"
+      username: "team-one",
+      resetGeneration: null
     });
     await expect(client.getUser("legacy-opaque-access")).resolves.toEqual({
       userId: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
-      username: "team-one"
+      username: "team-one",
+      resetGeneration: null
     });
+  });
+
+  it("exposes a validated reset generation and locks the account during reset cleanup", async () => {
+    const sessionEpoch = "2d90c112-4de8-4e7b-92d2-0d655738987f";
+    const resetGeneration = "7440e792-3ddc-4484-ae32-a53088d0d679";
+    const jwt = accessJwt(sessionEpoch);
+    const identity = {
+      id: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
+      app_metadata: {
+        advertising_game_username: "team-one",
+        advertising_game_session_epoch: sessionEpoch,
+        advertising_game_reset_generation: resetGeneration,
+        advertising_game_reset_pending: false
+      }
+    };
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(responseJson(identity))
+      .mockResolvedValueOnce(responseJson({
+        ...identity,
+        app_metadata: {
+          ...identity.app_metadata,
+          advertising_game_reset_pending: true
+        }
+      }));
+    const client = new SupabaseAccountClient(parseAccountEnvironment(modernEnvironment), fetcher);
+
+    await expect(client.getUser(jwt)).resolves.toEqual({
+      userId: identity.id,
+      username: "team-one",
+      resetGeneration
+    });
+    await expect(client.getUser(jwt)).rejects.toMatchObject({ kind: "expired_session" });
   });
 
   it("rejects an otherwise valid old access token after the server epoch changes", async () => {

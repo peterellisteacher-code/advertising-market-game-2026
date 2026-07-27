@@ -7,7 +7,6 @@ import {
   assertSameOriginMutation,
   parseAccountCookies,
   resolveAccountSession,
-  type AccountAuthTokens,
   type AccountEnvironmentRecord
 } from "./lib/account-backend";
 import {
@@ -21,10 +20,8 @@ import {
 import { defaultAccountAssetService } from "./lib/netlify-account-assets";
 import {
   accountIdentityMatches,
-  clearAccountAccessCookie,
-  clearAccountRefreshCookie,
-  serialiseAccountAccessCookie,
-  serialiseAccountRefreshCookie
+  clearAccountSessionCookies,
+  serialiseAccountSessionCookies
 } from "./lib/account-primitives";
 
 const ASSET_PATH_PREFIX = "/api/account/assets/";
@@ -126,16 +123,6 @@ const configuredEnvironment = (
     dependency === undefined ? runtimeEnvironment() : dependency as AccountEnvironmentRecord
   );
 };
-
-const sessionCookies = (tokens: AccountAuthTokens): readonly string[] => [
-  serialiseAccountAccessCookie(tokens.accessToken, tokens.expiresIn, true),
-  serialiseAccountRefreshCookie(tokens.refreshToken, REFRESH_COOKIE_MAX_AGE_SECONDS, true)
-];
-
-const expiredCookies = (): readonly string[] => [
-  clearAccountAccessCookie(true),
-  clearAccountRefreshCookie(true)
-];
 
 const readBoundedAsset = async (request: Request): Promise<Uint8Array> => {
   if (request.body === null) throw new AccountAssetError("UNSUPPORTED_ASSET");
@@ -255,12 +242,17 @@ export function createAccountAssetsHandler(
         return accountJson(
           { error: "AUTHENTICATION_REQUIRED" },
           401,
-          session.clearCookies ? expiredCookies() : []
+          session.clearCookies ? clearAccountSessionCookies(true) : []
         );
       }
       responseCookies = session.rotatedTokens === undefined
         ? []
-        : sessionCookies(session.rotatedTokens);
+        : serialiseAccountSessionCookies(
+          session.rotatedTokens,
+          session.identity.resetGeneration,
+          REFRESH_COOKIE_MAX_AGE_SECONDS,
+          true
+        );
       if (!accountIdentityMatches(request, session.identity.username)) {
         return accountJson({ error: "ACCOUNT_IDENTITY_CHANGED" }, 409, responseCookies);
       }

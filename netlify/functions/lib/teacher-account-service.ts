@@ -7,11 +7,10 @@ import {
 } from "./account-backend";
 import type { AccountAssetResetPlan } from "./account-assets";
 import {
-  type ImageLabAllowanceCounts,
   type ImageLabAllowanceSnapshot,
   type ImageLabAllowanceStore,
-  type ImageLabAllowanceStage,
-  type TeacherImageLabAccount
+  type TeacherImageLabAccount,
+  type TeacherImageLabPrivateAccount
 } from "./image-lab-allowance-store";
 import {
   deriveSyntheticAccountEmail,
@@ -113,6 +112,8 @@ export interface TeacherAccountClient {
   findAdvertisingGameUser(username: string): Promise<AccountAdminRecord | null>;
   createConfirmedUser(email: string, password: string, username: string): Promise<void>;
   replaceAdvertisingGamePassword(username: string, password: string): Promise<void>;
+  beginAdvertisingGameReset(username: string, operationId: string): Promise<void>;
+  completeAdvertisingGameReset(username: string, operationId: string): Promise<void>;
   progressRpc(input: ProgressRpcInput): Promise<unknown>;
 }
 
@@ -202,11 +203,11 @@ const validAllowanceAmount = (value: unknown, minimum = 0): value is number =>
 
 const imageLabAccount = (
   alias: string,
-  snapshot: ImageLabAllowanceSnapshot
+  account: Pick<TeacherImageLabPrivateAccount, "object" | "realise">
 ): TeacherImageLabAccount => ({
   alias,
-  object: snapshot.object,
-  realise: snapshot.realise
+  object: account.object,
+  realise: account.realise
 });
 
 const imageLabDefaults = (
@@ -288,22 +289,22 @@ export class TeacherAccountService {
         throw new TeacherAccountServiceError("OPERATION_INCOMPLETE", 409);
       }
       const defaults = await this.dependencies.allowances.globalStatus();
-      await this.applyImageLabStage(
-        "set",
-        created,
-        "object",
-        defaults.object.granted,
-        parsed.operationId,
-        "teacher-create-object"
-      );
-      await this.applyImageLabStage(
-        "set",
-        created,
-        "realise",
-        defaults.realise.granted,
-        parsed.operationId,
-        "teacher-create-realise"
-      );
+      await this.dependencies.allowances.teacherMutate({
+        ledgerOperation: "initialize",
+        userIds: [created.userId],
+        object: defaults.object.granted,
+        realise: defaults.realise.granted,
+        ...this.imageLabIdentity(
+          parsed.operationId,
+          "teacher-create-allowances",
+          {
+            alias: created.username,
+            userId: created.userId,
+            object: defaults.object.granted,
+            realise: defaults.realise.granted
+          }
+        )
+      });
       const result: TeacherAccountMutationResult = {
         status: "created",
         operationId: parsed.operationId,
@@ -352,6 +353,10 @@ export class TeacherAccountService {
     try {
       const user = await this.dependencies.client.findAdvertisingGameUser(parsed.username);
       if (user === null) throw new TeacherAccountServiceError("ACCOUNT_NOT_FOUND", 404);
+      await this.dependencies.client.beginAdvertisingGameReset(
+        parsed.username,
+        parsed.operationId
+      );
       const plan = await this.dependencies.assets.planReset(user.userId);
       await this.dependencies.client.progressRpc({
         userId: user.userId,
@@ -360,6 +365,10 @@ export class TeacherAccountService {
         version: 1
       });
       await this.dependencies.assets.executeReset(plan);
+      await this.dependencies.client.completeAdvertisingGameReset(
+        parsed.username,
+        parsed.operationId
+      );
       const result: TeacherAccountMutationResult = {
         status: "reset",
         operationId: parsed.operationId,
@@ -407,37 +416,24 @@ export class TeacherAccountService {
       throw new TeacherAccountServiceError("TEACHER_UNAVAILABLE", 503);
     }
     try {
-      await this.dependencies.allowances.setGlobal({
-        target: "enabled",
+      const result = await this.dependencies.allowances.teacherMutate({
+        ledgerOperation: "set_global",
+        userIds: [],
         enabled: input.enabled,
-        ...this.imageLabIdentity(input.operationId, "teacher-global-enabled", {
-          enabled: input.enabled
-        })
-      });
-      await this.dependencies.allowances.setGlobal({
-        target: "default",
-        stage: "object",
-        amount: input.objectDefault,
-        ...this.imageLabIdentity(input.operationId, "teacher-global-object", {
-          stage: "object",
-          amount: input.objectDefault
-        })
-      });
-      const snapshot = await this.dependencies.allowances.setGlobal({
-        target: "default",
-        stage: "realise",
-        amount: input.realiseDefault,
-        ...this.imageLabIdentity(input.operationId, "teacher-global-realise", {
-          stage: "realise",
-          amount: input.realiseDefault
+        object: input.objectDefault,
+        realise: input.realiseDefault,
+        ...this.imageLabIdentity(input.operationId, "teacher-global-atomic", {
+          enabled: input.enabled,
+          object: input.objectDefault,
+          realise: input.realiseDefault
         })
       });
       return {
         status: "updated",
         operationId: input.operationId,
         operation: "global",
-        enabled: snapshot.enabled,
-        defaults: imageLabDefaults(snapshot)
+        enabled: result.snapshot.enabled,
+        defaults: imageLabDefaults(result.snapshot)
       };
     } catch {
       throw new TeacherAccountServiceError(
@@ -476,36 +472,26 @@ export class TeacherAccountService {
     }
 
     try {
-      let snapshot: ImageLabAllowanceSnapshot | null = null;
-      if (operation === "set" || input.object > 0) {
-        snapshot = await this.applyImageLabStage(
-          operation,
-          user,
-          "object",
-          input.object,
-          input.operationId,
-          `teacher-${operation}-object`
-        );
-      }
-      if (operation === "set" || input.realise > 0) {
-        snapshot = await this.applyImageLabStage(
-          operation,
-          user,
-          "realise",
-          input.realise,
-          input.operationId,
-          `teacher-${operation}-realise`
-        );
-      }
-      if (snapshot === null) {
-        throw new Error("No Image Lab mutation was selected.");
-      }
+      const result = await this.dependencies.allowances.teacherMutate({
+        ledgerOperation: operation,
+        userIds: [user.userId],
+        object: input.object,
+        realise: input.realise,
+        ...this.imageLabIdentity(input.operationId, `teacher-${operation}-atomic`, {
+          alias,
+          userId: user.userId,
+          object: input.object,
+          realise: input.realise
+        })
+      });
+      const account = result.accounts[0];
+      if (account === undefined || account.userId !== user.userId) throw new Error();
       return {
         status: "updated",
         operationId: input.operationId,
         operation,
         alias,
-        account: imageLabAccount(alias, snapshot)
+        account: imageLabAccount(alias, account)
       };
     } catch {
       throw new TeacherAccountServiceError(
@@ -550,36 +536,25 @@ export class TeacherAccountService {
     }
 
     try {
-      const accounts: TeacherImageLabAccount[] = [];
-      for (let index = 0; index < users.length; index += 1) {
+      const userIds = users.map(({ userId }) => userId);
+      const result = await this.dependencies.allowances.teacherMutate({
+        ledgerOperation: "batch_add",
+        userIds,
+        object: input.object,
+        realise: input.realise,
+        ...this.imageLabIdentity(input.operationId, "teacher-batch-atomic", {
+          aliases,
+          userIds,
+          object: input.object,
+          realise: input.realise
+        })
+      });
+      if (result.accounts.length !== users.length) throw new Error();
+      const accounts = result.accounts.map((account, index) => {
         const user = users[index]!;
-        const alias = aliases[index]!;
-        let snapshot: ImageLabAllowanceSnapshot | null = null;
-        if (input.object > 0) {
-          snapshot = await this.applyImageLabStage(
-            "add",
-            user,
-            "object",
-            input.object,
-            input.operationId,
-            `teacher-batch-${index}-object`
-          );
-        }
-        if (input.realise > 0) {
-          snapshot = await this.applyImageLabStage(
-            "add",
-            user,
-            "realise",
-            input.realise,
-            input.operationId,
-            `teacher-batch-${index}-realise`
-          );
-        }
-        if (snapshot === null) {
-          throw new Error("No Image Lab batch mutation was selected.");
-        }
-        accounts.push(imageLabAccount(alias, snapshot));
-      }
+        if (account.userId !== user.userId) throw new Error();
+        return imageLabAccount(aliases[index]!, account);
+      });
       return {
         status: "updated",
         operationId: input.operationId,
@@ -653,29 +628,6 @@ export class TeacherAccountService {
     };
   }
 
-  private async applyImageLabStage(
-    operation: TeacherImageLabAccountOperation,
-    user: AccountAdminRecord,
-    stage: ImageLabAllowanceStage,
-    amount: number,
-    rootOperationId: string,
-    action: string
-  ): Promise<ImageLabAllowanceSnapshot> {
-    const identity = this.imageLabIdentity(rootOperationId, action, {
-      alias: user.username,
-      userId: user.userId,
-      stage,
-      amount,
-      operation
-    });
-    return this.dependencies.allowances[operation]({
-      userId: user.userId,
-      stage,
-      amount,
-      ...identity
-    });
-  }
-
   private operationDigest(
     action: TeacherAccountOperationAction,
     input: Required<MutationInput>
@@ -719,13 +671,10 @@ export class TeacherAccountService {
       requestDigest,
       state: "started"
     };
-    let createdByThisCall = false;
     for (let attempt = 0; attempt < 4; attempt += 1) {
       const existing = await this.dependencies.operations.read(key);
       if (existing === null) {
-        if (await this.dependencies.operations.create(key, started)) {
-          createdByThisCall = true;
-        }
+        await this.dependencies.operations.create(key, started);
         continue;
       }
       if (
@@ -746,10 +695,7 @@ export class TeacherAccountService {
       if (record.state === "completed" && record.result !== undefined) {
         return { replay: record.result };
       }
-      if (createdByThisCall) {
-        return { key, etag: existing.etag, record };
-      }
-      return Promise.reject(operationFailure(action));
+      return { key, etag: existing.etag, record };
     }
     throw new TeacherAccountServiceError("TEACHER_UNAVAILABLE", 503, true);
   }

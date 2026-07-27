@@ -81,13 +81,21 @@ describe("account progress operation artifacts", () => {
       "list_users",
       "find_user",
       "replace_password",
-      "ensure_user"
+      "ensure_user",
+      "begin_reset",
+      "complete_reset"
     ]) {
       expect(edgeHandler).toContain(`"${operation}"`);
       expect(netlifyBackend).toContain(`"${operation}"`);
     }
-    expect(edgeHandler).toContain("advertising_game_session_epoch");
-    expect(netlifyBackend).toContain("advertising_game_session_epoch");
+    for (const resetBoundaryField of [
+      "advertising_game_session_epoch",
+      "advertising_game_reset_generation",
+      "advertising_game_reset_pending"
+    ]) {
+      expect(edgeHandler).toContain(resetBoundaryField);
+      expect(netlifyBackend).toContain(resetBoundaryField);
+    }
     expect(edgeHandler).toContain("/auth/v1/admin/users");
     expect(netlifyBackend).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(netlifyBackend).not.toContain("/auth/v1/admin/users");

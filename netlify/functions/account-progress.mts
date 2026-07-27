@@ -10,7 +10,6 @@ import {
   parseAccountEnvironment,
   readAccountJson,
   resolveAccountSession,
-  type AccountAuthTokens,
   type AccountEnvironment,
   type AccountEnvironmentRecord
 } from "./lib/account-backend";
@@ -18,10 +17,8 @@ import { parseCloudProgressDocument } from "./lib/account-progress-document";
 import { isCloudProgressDocumentId } from "../../web/src/domain/practice-identity";
 import {
   accountIdentityMatches,
-  clearAccountAccessCookie,
-  clearAccountRefreshCookie,
-  serialiseAccountAccessCookie,
-  serialiseAccountRefreshCookie
+  clearAccountSessionCookies,
+  serialiseAccountSessionCookies
 } from "./lib/account-primitives";
 
 export const ADVERTISING_GAME_PROGRESS_SCHEMA = "advertising-game-progress";
@@ -128,16 +125,6 @@ const parseSaveBody = (value: unknown): SaveProgressBody => {
   }
 };
 
-const sessionCookies = (tokens: AccountAuthTokens): readonly string[] => [
-  serialiseAccountAccessCookie(tokens.accessToken, tokens.expiresIn, true),
-  serialiseAccountRefreshCookie(tokens.refreshToken, REFRESH_COOKIE_MAX_AGE_SECONDS, true)
-];
-
-const expiredCookies = (): readonly string[] => [
-  clearAccountAccessCookie(true),
-  clearAccountRefreshCookie(true)
-];
-
 const validRevision = (value: unknown, allowZero = false): value is number =>
   typeof value === "number" && Number.isSafeInteger(value) && value >= (allowZero ? 0 : 1);
 
@@ -219,12 +206,17 @@ export function createAccountProgressHandler(
         return accountJson(
           { error: "AUTHENTICATION_REQUIRED" },
           401,
-          session.clearCookies ? expiredCookies() : []
+          session.clearCookies ? clearAccountSessionCookies(true) : []
         );
       }
       responseCookies = session.rotatedTokens === undefined
         ? []
-        : sessionCookies(session.rotatedTokens);
+        : serialiseAccountSessionCookies(
+          session.rotatedTokens,
+          session.identity.resetGeneration,
+          REFRESH_COOKIE_MAX_AGE_SECONDS,
+          true
+        );
       if (!accountIdentityMatches(request, session.identity.username)) {
         return accountJson({ error: "ACCOUNT_IDENTITY_CHANGED" }, 409, responseCookies);
       }

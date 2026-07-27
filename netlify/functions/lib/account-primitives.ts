@@ -3,9 +3,12 @@ import { createHmac } from "node:crypto";
 export const ACCOUNT_ACCESS_COOKIE = "admarket_account_access";
 export const ACCOUNT_IDENTITY_HEADER = "x-admarket-account";
 export const ACCOUNT_REFRESH_COOKIE = "admarket_account_refresh";
+export const ACCOUNT_RESET_GENERATION_COOKIE = "admarket_account_reset";
 
 const ACCOUNT_USERNAME_PATTERN = /^[a-z0-9][a-z0-9_-]{2,23}$/u;
 const COOKIE_TOKEN_PATTERN = /^[\x21\x23-\x2B\x2D-\x3A\x3C-\x5B\x5D-\x7E]{1,4096}$/u;
+const RESET_GENERATION_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 const SYNTHETIC_EMAIL_CONTEXT = "admarket-account-v1\\0";
 const SYNTHETIC_EMAIL_DOMAIN = "accounts.admarket.invalid";
 
@@ -86,6 +89,48 @@ export function serialiseAccountRefreshCookie(
   );
 }
 
+export function serialiseAccountResetGenerationCookie(
+  generation: string,
+  maxAgeSeconds: number,
+  secure: boolean
+): string {
+  if (!RESET_GENERATION_PATTERN.test(generation)) {
+    throw new Error("Account reset generation is invalid");
+  }
+  return serialiseAccountCookie(
+    ACCOUNT_RESET_GENERATION_COOKIE,
+    generation,
+    "/api",
+    maxAgeSeconds,
+    secure
+  );
+}
+
+export interface AccountSessionCookieTokens {
+  readonly accessToken: string;
+  readonly refreshToken: string;
+  readonly expiresIn: number;
+}
+
+export function serialiseAccountSessionCookies(
+  tokens: AccountSessionCookieTokens,
+  resetGeneration: string | null,
+  refreshMaxAgeSeconds: number,
+  secure: boolean
+): readonly string[] {
+  return [
+    serialiseAccountAccessCookie(tokens.accessToken, tokens.expiresIn, secure),
+    serialiseAccountRefreshCookie(tokens.refreshToken, refreshMaxAgeSeconds, secure),
+    resetGeneration === null
+      ? clearAccountResetGenerationCookie(secure)
+      : serialiseAccountResetGenerationCookie(
+        resetGeneration,
+        refreshMaxAgeSeconds,
+        secure
+      )
+  ];
+}
+
 function clearAccountCookie(
   name: string,
   path: "/" | "/api",
@@ -108,4 +153,16 @@ export function clearAccountAccessCookie(secure: boolean): string {
 
 export function clearAccountRefreshCookie(secure: boolean): string {
   return clearAccountCookie(ACCOUNT_REFRESH_COOKIE, "/api", secure);
+}
+
+export function clearAccountResetGenerationCookie(secure: boolean): string {
+  return clearAccountCookie(ACCOUNT_RESET_GENERATION_COOKIE, "/api", secure);
+}
+
+export function clearAccountSessionCookies(secure: boolean): readonly string[] {
+  return [
+    clearAccountAccessCookie(secure),
+    clearAccountRefreshCookie(secure),
+    clearAccountResetGenerationCookie(secure)
+  ];
 }

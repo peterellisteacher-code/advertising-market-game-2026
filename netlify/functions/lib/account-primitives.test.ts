@@ -5,14 +5,19 @@ import {
   ACCOUNT_ACCESS_COOKIE,
   ACCOUNT_IDENTITY_HEADER,
   ACCOUNT_REFRESH_COOKIE,
+  ACCOUNT_RESET_GENERATION_COOKIE,
   accountIdentityMatches,
+  clearAccountSessionCookies,
   clearAccountAccessCookie,
   clearAccountRefreshCookie,
+  clearAccountResetGenerationCookie,
   deriveSyntheticAccountEmail,
   invalidCredentialsResponse,
   normaliseAccountUsername,
   serialiseAccountAccessCookie,
-  serialiseAccountRefreshCookie
+  serialiseAccountRefreshCookie,
+  serialiseAccountResetGenerationCookie,
+  serialiseAccountSessionCookies
 } from "./account-primitives";
 
 const secret = "0123456789abcdef0123456789abcdef";
@@ -106,6 +111,35 @@ describe("account authentication cookies", () => {
     );
   });
 
+  it("serialises an opaque reset generation alongside the account session", () => {
+    expect(serialiseAccountResetGenerationCookie(
+      "7440e792-3ddc-4484-ae32-a53088d0d679",
+      604_800.9,
+      true
+    )).toBe(
+      `${ACCOUNT_RESET_GENERATION_COOKIE}=7440e792-3ddc-4484-ae32-a53088d0d679; ` +
+      "Path=/api; HttpOnly; SameSite=Strict; Max-Age=604800; Secure"
+    );
+    expect(() => serialiseAccountResetGenerationCookie("not-a-generation", 10, true))
+      .toThrow("Account reset generation is invalid");
+  });
+
+  it("serialises and clears the complete three-cookie session boundary", () => {
+    expect(serialiseAccountSessionCookies({
+      accessToken: "access-token",
+      refreshToken: "refresh-token",
+      expiresIn: 900
+    }, "7440e792-3ddc-4484-ae32-a53088d0d679", 604_800, true)).toHaveLength(3);
+    expect(serialiseAccountSessionCookies({
+      accessToken: "access-token",
+      refreshToken: "refresh-token",
+      expiresIn: 900
+    }, null, 604_800, true)[2]).toContain(
+      `${ACCOUNT_RESET_GENERATION_COOKIE}=;`
+    );
+    expect(clearAccountSessionCookies(true)).toHaveLength(3);
+  });
+
   it("retains defensive flags for local HTTP while omitting only Secure", () => {
     expect(serialiseAccountAccessCookie("token", -10, false)).toBe(
       `${ACCOUNT_ACCESS_COOKIE}=token; Path=/api; HttpOnly; SameSite=Strict; Max-Age=0`
@@ -121,12 +155,16 @@ describe("account authentication cookies", () => {
       .toThrow("Account cookie lifetime is invalid");
   });
 
-  it("expires both account cookies with their original scopes and secure flags", () => {
+  it("expires all account cookies with their original scopes and secure flags", () => {
     expect(clearAccountAccessCookie(true)).toBe(
       `${ACCOUNT_ACCESS_COOKIE}=; Path=/api; HttpOnly; SameSite=Strict; Max-Age=0; Secure`
     );
     expect(clearAccountRefreshCookie(true)).toBe(
       `${ACCOUNT_REFRESH_COOKIE}=; Path=/api; HttpOnly; ` +
+      "SameSite=Strict; Max-Age=0; Secure"
+    );
+    expect(clearAccountResetGenerationCookie(true)).toBe(
+      `${ACCOUNT_RESET_GENERATION_COOKIE}=; Path=/api; HttpOnly; ` +
       "SameSite=Strict; Max-Age=0; Secure"
     );
   });

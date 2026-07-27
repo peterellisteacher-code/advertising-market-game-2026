@@ -6,6 +6,10 @@ import {
   type TeacherImageLabOverview,
   type TeacherPairSummary
 } from "./teacher-client";
+import {
+  openManagedModalDialog,
+  type ManagedModalDialog
+} from "./managed-modal-dialog";
 
 interface TeacherDashboardOptions {
   readonly createOperationId?: () => string;
@@ -13,11 +17,7 @@ interface TeacherDashboardOptions {
   readonly navigate?: (path: string) => void;
 }
 
-interface DialogSurface {
-  readonly dialog: HTMLDialogElement;
-  readonly close: () => void;
-  readonly setPending: (pending: boolean) => void;
-}
+type DialogSurface = ManagedModalDialog;
 
 const passwordBytes = (value: string): number =>
   new TextEncoder().encode(value).byteLength;
@@ -666,30 +666,11 @@ export class TeacherDashboard {
     dialog.setAttribute("role", "dialog");
     dialog.setAttribute("aria-modal", "true");
     const title = document.createElement("h2");
-    title.id = `teacher-dialog-${this.#createOperationId()}`;
+    title.id = `teacher-dialog-${crypto.randomUUID()}`;
     title.textContent = titleText;
     dialog.setAttribute("aria-labelledby", title.id);
     dialog.append(title);
-    this.#root.append(dialog);
-    let pending = false;
-    const close = () => {
-      if (pending) return;
-      dialog.remove();
-      trigger.focus();
-    };
-    dialog.addEventListener("keydown", (event) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      close();
-    });
-    dialog.setAttribute("open", "");
-    return {
-      dialog,
-      close,
-      setPending(value) {
-        pending = value;
-      }
-    };
+    return openManagedModalDialog(this.#root, trigger, dialog);
   }
 
   #passwordControls(
@@ -751,6 +732,7 @@ export class TeacherDashboard {
 
   #openCreateDialog(trigger: HTMLButtonElement): void {
     const surface = this.#openDialog(trigger, "Create pair account");
+    const operationId = this.#createOperationId();
     const form = document.createElement("form");
     const introduction = document.createElement("p");
     introduction.textContent =
@@ -821,7 +803,7 @@ export class TeacherDashboard {
       formError.hidden = true;
       const plaintextPassword = passwords.password.value;
       void this.#client.createAccount({
-        operationId: this.#createOperationId(),
+        operationId,
         username: normalisedUsername,
         password: plaintextPassword
       }).then((created) => {
@@ -829,7 +811,7 @@ export class TeacherDashboard {
           .sort((left, right) => left.username.localeCompare(right.username));
         surface.dialog.replaceChildren();
         const title = document.createElement("h2");
-        title.id = `teacher-dialog-success-${this.#createOperationId()}`;
+        title.id = `teacher-dialog-success-${crypto.randomUUID()}`;
         title.textContent = "Account created";
         surface.dialog.setAttribute("aria-labelledby", title.id);
         const explanation = document.createElement("p");
@@ -902,6 +884,7 @@ export class TeacherDashboard {
 
   #openPasswordDialog(trigger: HTMLButtonElement, username: string): void {
     const surface = this.#openDialog(trigger, `Replace password for ${username}`);
+    const operationId = this.#createOperationId();
     const warning = document.createElement("p");
     warning.className = "teacher-warning";
     warning.textContent =
@@ -939,7 +922,7 @@ export class TeacherDashboard {
       ) return;
       surface.setPending(true);
       void this.#client.replacePassword({
-        operationId: this.#createOperationId(),
+        operationId,
         username,
         password: passwords.password.value
       }).then(() => {
@@ -958,6 +941,7 @@ export class TeacherDashboard {
 
   #openResetDialog(trigger: HTMLButtonElement, username: string): void {
     const surface = this.#openDialog(trigger, `Reset progress for ${username}`);
+    const operationId = this.#createOperationId();
     const scope = document.createElement("p");
     scope.textContent =
       "This deletes this account's game progress, drafts, advertisement designs, uploaded images and cloud saves. The username and password remain.";
@@ -989,7 +973,7 @@ export class TeacherDashboard {
       cancel.disabled = true;
       confirm.disabled = true;
       void this.#client.resetAccount({
-        operationId: this.#createOperationId(),
+        operationId,
         username,
         confirmation: username
       }).then(() => {

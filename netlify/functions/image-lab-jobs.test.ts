@@ -106,7 +106,7 @@ const designDataUrl = `data:image/png;base64,${Buffer.from(pngBytes(1_024, 576))
 
 const authenticatedSession: ResolvedAccountSession = {
   authenticated: true,
-  identity: { userId, username: "team-three" }
+  identity: { userId, username: "team-three", resetGeneration: null }
 };
 
 const makeRequest = (path: string, init: RequestInit = {}): Request =>
@@ -259,6 +259,7 @@ const allowanceFixture = (
   set: vi.fn(),
   add: vi.fn(),
   revoke: vi.fn(),
+  teacherMutate: vi.fn(),
   reserve: vi.fn(async (input) => reserveResult ?? (
     input.stage === "object"
       ? allowanceSnapshot("reserved", 1, 1)

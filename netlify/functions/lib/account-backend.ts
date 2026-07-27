@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import {
   ACCOUNT_ACCESS_COOKIE,
   ACCOUNT_REFRESH_COOKIE,
+  ACCOUNT_RESET_GENERATION_COOKIE,
   deriveSyntheticAccountEmail,
   normaliseAccountUsername
 } from "./account-primitives";
@@ -283,10 +284,15 @@ export async function readAccountJson(request: Request, maximumBytes: number): P
 export interface AccountCookies {
   readonly accessToken?: string;
   readonly refreshToken?: string;
+  readonly resetGeneration?: string;
 }
 
 export function parseAccountCookies(request: Request): AccountCookies {
-  const found: { accessToken?: string; refreshToken?: string } = {};
+  const found: {
+    accessToken?: string;
+    refreshToken?: string;
+    resetGeneration?: string;
+  } = {};
   const cookieHeader = request.headers.get("cookie");
   if (!cookieHeader) return found;
   for (const part of cookieHeader.split(";")) {
@@ -294,9 +300,14 @@ export function parseAccountCookies(request: Request): AccountCookies {
     if (separator < 1) continue;
     const name = part.slice(0, separator).trim();
     const value = part.slice(separator + 1).trim();
-    if (!ACCOUNT_TOKEN_PATTERN.test(value)) continue;
-    if (name === ACCOUNT_ACCESS_COOKIE) found.accessToken = value;
-    if (name === ACCOUNT_REFRESH_COOKIE) found.refreshToken = value;
+    if (name === ACCOUNT_RESET_GENERATION_COOKIE) {
+      if (SESSION_EPOCH_PATTERN.test(value)) found.resetGeneration = value;
+      continue;
+    }
+    if (ACCOUNT_TOKEN_PATTERN.test(value)) {
+      if (name === ACCOUNT_ACCESS_COOKIE) found.accessToken = value;
+      if (name === ACCOUNT_REFRESH_COOKIE) found.refreshToken = value;
+    }
   }
   return found;
 }
@@ -310,6 +321,7 @@ export interface AccountAuthTokens {
 export interface AccountIdentity {
   readonly userId: string;
   readonly username: string;
+  readonly resetGeneration: string | null;
 }
 
 export interface AccountAdminRecord {
@@ -349,6 +361,24 @@ export interface ImageLabLedgerRpcInput {
   readonly amount?: number;
   readonly operationId: string;
   readonly jobKey?: string;
+  readonly requestHash: string;
+}
+
+export type ImageLabTeacherLedgerOperation =
+  | "initialize"
+  | "set_global"
+  | "set"
+  | "add"
+  | "revoke"
+  | "batch_add";
+
+export interface ImageLabTeacherRpcInput {
+  readonly ledgerOperation: ImageLabTeacherLedgerOperation;
+  readonly userIds: readonly string[];
+  readonly enabled?: boolean;
+  readonly object: number;
+  readonly realise: number;
+  readonly operationId: string;
   readonly requestHash: string;
 }
 
@@ -583,6 +613,34 @@ export class SupabaseAccountClient {
     }, false);
   }
 
+  private async updateAdvertisingGameResetBoundary(
+    operation: "begin_reset" | "complete_reset",
+    username: string,
+    operationId: string
+  ): Promise<void> {
+    const normalised = normaliseAccountUsername(username);
+    if (
+      normalised === TEACHER_PLAYTEST_USERNAME ||
+      !SESSION_EPOCH_PATTERN.test(operationId)
+    ) {
+      throw new SupabaseAccountError("upstream");
+    }
+    await this.accountAdminRequest({
+      operation,
+      email: deriveSyntheticAccountEmail(normalised, this.environment.usernameHmacSecret),
+      username: normalised,
+      operationId
+    }, false);
+  }
+
+  async beginAdvertisingGameReset(username: string, operationId: string): Promise<void> {
+    await this.updateAdvertisingGameResetBoundary("begin_reset", username, operationId);
+  }
+
+  async completeAdvertisingGameReset(username: string, operationId: string): Promise<void> {
+    await this.updateAdvertisingGameResetBoundary("complete_reset", username, operationId);
+  }
+
   async ensureAdvertisingGameUser(
     username: string,
     password: string
@@ -663,8 +721,32 @@ export class SupabaseAccountClient {
         throw new SupabaseAccountError("expired_session");
       }
     }
+    const rawResetGeneration = appMetadata?.advertising_game_reset_generation;
+    const rawResetPending = appMetadata?.advertising_game_reset_pending;
+    const hasResetGeneration = rawResetGeneration !== undefined;
+    const hasResetPending = rawResetPending !== undefined;
+    if (
+      hasResetGeneration !== hasResetPending ||
+      (
+        hasResetGeneration &&
+        (
+          typeof rawResetGeneration !== "string" ||
+          !SESSION_EPOCH_PATTERN.test(rawResetGeneration) ||
+          typeof rawResetPending !== "boolean"
+        )
+      )
+    ) {
+      throw new SupabaseAccountError("upstream");
+    }
+    if (rawResetPending === true) {
+      throw new SupabaseAccountError("expired_session");
+    }
     try {
-      return { userId: id, username: normaliseAccountUsername(rawUsername) };
+      return {
+        userId: id,
+        username: normaliseAccountUsername(rawUsername),
+        resetGeneration: hasResetGeneration ? rawResetGeneration as string : null
+      };
     } catch {
       throw new SupabaseAccountError("upstream");
     }
@@ -720,6 +802,19 @@ export class SupabaseAccountClient {
     if (!response.ok) throw new SupabaseAccountError("upstream");
     return parseJsonResponse(response, IMAGE_LAB_UPSTREAM_JSON_LIMIT);
   }
+
+  async imageLabTeacherRpc(input: ImageLabTeacherRpcInput): Promise<unknown> {
+    const response = await this.request(EDGE_BACKEND_PATH, {
+      method: "POST",
+      headers: this.edgeHeaders(),
+      body: JSON.stringify({
+        operation: "image_lab_teacher",
+        input
+      })
+    });
+    if (!response.ok) throw new SupabaseAccountError("upstream");
+    return parseJsonResponse(response, IMAGE_LAB_UPSTREAM_JSON_LIMIT);
+  }
 }
 
 export type ResolvedAccountSession =
@@ -739,7 +834,11 @@ export async function resolveAccountSession(
 ): Promise<ResolvedAccountSession> {
   if (cookies.accessToken !== undefined) {
     try {
-      return { authenticated: true, identity: await client.getUser(cookies.accessToken) };
+      const identity = await client.getUser(cookies.accessToken);
+      if (identity.resetGeneration !== (cookies.resetGeneration ?? null)) {
+        return { authenticated: false, clearCookies: true };
+      }
+      return { authenticated: true, identity };
     } catch (error) {
       if (!(error instanceof SupabaseAccountError) || error.kind !== "expired_session") throw error;
     }
@@ -750,6 +849,9 @@ export async function resolveAccountSession(
   try {
     const rotatedTokens = await client.refreshSession(cookies.refreshToken);
     const identity = await client.getUser(rotatedTokens.accessToken);
+    if (identity.resetGeneration !== (cookies.resetGeneration ?? null)) {
+      return { authenticated: false, clearCookies: true };
+    }
     return { authenticated: true, identity, rotatedTokens };
   } catch (error) {
     if (error instanceof SupabaseAccountError && error.kind === "expired_session") {

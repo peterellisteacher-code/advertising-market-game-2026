@@ -200,7 +200,9 @@ describe("PairGameController", () => {
     await waitFor(() => {
       expect(port.addedText).toEqual(["Make room for adventure"]);
       expect(root.textContent).toContain("Art Director: visible canvas change recorded.");
-      expect(view.activeRoleAction.textContent).toBe("Pass control to the Strategist.");
+      expect(view.activeRoleAction.textContent).toBe(
+        "Complete the current visual choice. Then choose Swap roles. The Strategist leads the next message decision."
+      );
     });
 
     fireEvent.click(getByRole(root, "button", { name: "Swap roles" }));

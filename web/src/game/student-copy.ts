@@ -136,8 +136,10 @@ export const STUDENT_COPY = deepFreeze({
   },
   handoff: {
     buttonLabel: "Swap roles",
-    promptToArtDirector: "Pass control to the Art Director.",
-    promptToStrategist: "Pass control to the Strategist.",
+    promptToArtDirector:
+      "Complete the current message choice. Then choose Swap roles. The Art Director leads the next visual decision.",
+    promptToStrategist:
+      "Complete the current visual choice. Then choose Swap roles. The Strategist leads the next message decision.",
     toArtDirector:
       "Roles swapped. The responsibilities have exchanged: the Art Director controls visual decisions and the Strategist controls message decisions. The recorded authorship history remains.",
     toStrategist:

@@ -9,4 +9,3 @@ const environment: Readonly<Record<string, string | undefined>> = {
 };
 
 Deno.serve(createAdvertisingGameBackendHandler({ environment }));
-

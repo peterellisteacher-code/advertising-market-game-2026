@@ -49,4 +49,3 @@ func request_for(request_id: String) -> Dictionary:
 
 func request_count() -> int:
     return _requests.size()
-

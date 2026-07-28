@@ -75,4 +75,3 @@ func _unavailable_response(request_id: String) -> String:
             "message": "Practice recovery is unavailable in this runtime."
         }
     })
-

@@ -46,4 +46,3 @@ def test_builds_fifty_item_vector_sheets_with_bare_recoloured_outlines(tmp_path:
     assert "#24313D" in first_text
     assert "#2E6AE6" in first_text
     assert first.get("viewBox") == "0 0 5000 2700"
-

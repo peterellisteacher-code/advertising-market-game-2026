@@ -345,11 +345,11 @@ func _validate_command_result(
     if _contains_sensitive_key(value):
         return _invalid_market_result("Durable command result contains a sensitive field")
     var result: Dictionary = value.duplicate(true)
-    var expected_keys: Array[String] = (
-        ["replayed", "campaignId", "submissionVersion", "postcondition", "snapshot"]
-        if method == "publishCampaign"
-        else ["replayed", "postcondition", "snapshot"]
-    )
+    var expected_keys: Array[String] = ["replayed", "postcondition", "snapshot"]
+    if method == "publishCampaign":
+        expected_keys.assign([
+            "replayed", "campaignId", "submissionVersion", "postcondition", "snapshot"
+        ])
     if not _has_exact_dictionary_keys(result, expected_keys):
         return _invalid_market_result("Durable command result contains unexpected or missing fields")
     if typeof(result.get("replayed")) != TYPE_BOOL:

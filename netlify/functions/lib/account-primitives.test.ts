@@ -20,7 +20,7 @@ import {
   serialiseAccountSessionCookies
 } from "./account-primitives";
 
-const secret = "0123456789abcdef0123456789abcdef";
+const secret = "test-only-test-only-test-only-test-only";
 
 describe("account username primitives", () => {
   it("normalises NFKC, surrounding whitespace and case before validation", () => {
@@ -49,7 +49,7 @@ describe("account username primitives", () => {
     const email = deriveSyntheticAccountEmail("Team-Kilo", secret);
 
     expect(email).toBe(
-      "7fd149972ed6b98498613c8614aba88c1d01e09d57011c69acd2701b56e6812c" +
+      "53ae2a8f244e5759e98eaa46e5b6bb56edbd136fea045ba3db41eefafb7ca9e8" +
       "@accounts.admarket.invalid"
     );
     expect(email).not.toContain("team-kilo");

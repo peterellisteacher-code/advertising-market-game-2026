@@ -15,7 +15,7 @@ import {
 } from "./fal-image-policy";
 
 const identity = {
-  idempotencyKey: "f54eed74-bb86-48ad-99c4-acde8f08eabe"
+  idempotencyKey: "00000000-0000-4000-8000-000000000001"
 };
 
 const categoryChoices = [

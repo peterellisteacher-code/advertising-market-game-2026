@@ -16,7 +16,7 @@ import {
   serialiseExpiredCapabilityCookie
 } from "./image-lab-auth";
 
-const secret = "0123456789abcdef0123456789abcdef";
+const secret = "test-only-test-only-test-only-test-only";
 
 const readyEnvironment = {
   IMAGE_LAB_ENABLED: "true",

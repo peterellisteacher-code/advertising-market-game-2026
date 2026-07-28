@@ -32,7 +32,7 @@ import {
   type ImageLabStoredJob
 } from "./lib/image-lab-state";
 
-const secret = "0123456789abcdef0123456789abcdef";
+const secret = "test-only-test-only-test-only-test-only";
 const requestId = "123e4567-e89b-42d3-a456-426614174000";
 const jobId = "018f0e2d-3b4c-7a89-8def-0123456789ab";
 const userId = "223e4567-e89b-42d3-a456-426614174000";

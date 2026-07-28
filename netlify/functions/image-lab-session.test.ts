@@ -10,7 +10,7 @@ const environment = {
   IMAGE_LAB_ENABLED: "true",
   IMAGE_LAB_SCHOOL_APPROVED: "true",
   IMAGE_LAB_ACCOUNT_CAP_USD: "2.00",
-  IMAGE_LAB_SIGNING_SECRET: "0123456789abcdef0123456789abcdef",
+  IMAGE_LAB_SIGNING_SECRET: "test-only-test-only-test-only-test-only",
   FAL_KEY: "fal-key"
 };
 

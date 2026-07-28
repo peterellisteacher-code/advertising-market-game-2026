@@ -612,7 +612,7 @@ export class HttpTeacherClient implements TeacherClient {
   async #requestNoContent(path: string, method: "POST"): Promise<void> {
     const response = await this.#request(path, method, undefined, false);
     if (!response.ok) throw await responseError(response);
-    if (response.status !== 204 || response.body !== null) {
+    if (response.status !== 204) {
       throw new TeacherClientError("INVALID_RESPONSE", 503, true);
     }
   }

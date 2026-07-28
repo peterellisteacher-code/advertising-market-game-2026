@@ -68,6 +68,25 @@ describe("HttpTeacherClient", () => {
     });
   });
 
+  it("accepts a hosted 204 whose browser exposes an empty response stream", async () => {
+    const hostedNoContent = {
+      body: new ReadableStream({
+        start(controller) {
+          controller.close();
+        }
+      }),
+      headers: new Headers(),
+      ok: true,
+      redirected: false,
+      status: 204
+    } as unknown as Response;
+    const client = new HttpTeacherClient({
+      fetcher: vi.fn<typeof fetch>().mockResolvedValue(hostedNoContent)
+    });
+
+    await expect(client.logout()).resolves.toBeUndefined();
+  });
+
   it("sends exact schemas for login, chosen credentials, password replacement, reset and logout", async () => {
     const fetcher = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(Response.json({ authenticated: true }))

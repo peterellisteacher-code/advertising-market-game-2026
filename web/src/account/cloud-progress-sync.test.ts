@@ -273,6 +273,22 @@ describe("CloudProgressSync", () => {
     expect(metadata.getRevision("campaign-main")).toBe(7);
   });
 
+  it("keeps account-scoped revision metadata in memory when localStorage is unavailable", async () => {
+    const metadata = new BrowserCloudSyncMetadataStore(null);
+
+    await metadata.activateAccount("team-one");
+    metadata.setRevision("campaign-main", 4);
+    await metadata.activateAccount("team-two");
+    expect(metadata.getRevision("campaign-main")).toBe(0);
+    metadata.setRevision("campaign-main", 7);
+
+    await metadata.activateAccount("team-one");
+    expect(metadata.getRevision("campaign-main")).toBe(4);
+    await metadata.resetAccount("team-one");
+    await metadata.activateAccount("team-one");
+    expect(metadata.getRevision("campaign-main")).toBe(0);
+  });
+
   it("resumes a returning account with its preserved CAS revision instead of revision zero", async () => {
     const storage = new MemoryStorage();
     const firstMetadata = new BrowserCloudSyncMetadataStore(storage);

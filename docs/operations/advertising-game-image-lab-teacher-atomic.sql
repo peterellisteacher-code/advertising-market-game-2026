@@ -291,7 +291,7 @@ begin
     end if;
   end if;
 
-  select pg_catalog.coalesce(
+  select coalesce(
     pg_catalog.jsonb_agg(
       pg_catalog.jsonb_build_object(
         'userId', allowance.user_id,

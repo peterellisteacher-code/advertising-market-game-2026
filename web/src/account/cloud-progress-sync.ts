@@ -38,11 +38,52 @@ export interface CloudSyncRevisionScope {
   setRevision(documentId: string, revision: number): void;
 }
 
+class VolatileCloudSyncStorage implements CloudSyncStorage {
+  readonly #values = new Map<string, string>();
+
+  get length(): number {
+    return this.#values.size;
+  }
+
+  clear(): void {
+    this.#values.clear();
+  }
+
+  getItem(key: string): string | null {
+    return this.#values.get(key) ?? null;
+  }
+
+  key(index: number): string | null {
+    return [...this.#values.keys()][index] ?? null;
+  }
+
+  removeItem(key: string): void {
+    this.#values.delete(key);
+  }
+
+  setItem(key: string, value: string): void {
+    this.#values.set(key, value);
+  }
+}
+
+function browserCloudSyncStorage(): CloudSyncStorage | null {
+  try {
+    return typeof globalThis.localStorage === "object"
+      ? globalThis.localStorage
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export class BrowserCloudSyncMetadataStore implements CloudSyncMetadataStore {
   #activationGeneration = 0;
   #namespace: string | null = null;
+  readonly #storage: CloudSyncStorage;
 
-  constructor(private readonly storage: CloudSyncStorage = globalThis.localStorage) {}
+  constructor(storage: CloudSyncStorage | null = browserCloudSyncStorage()) {
+    this.#storage = storage ?? new VolatileCloudSyncStorage();
+  }
 
   async activateAccount(username: string): Promise<void> {
     const generation = ++this.#activationGeneration;
@@ -64,11 +105,11 @@ export class BrowserCloudSyncMetadataStore implements CloudSyncMetadataStore {
     if (this.#namespace === namespace) this.deactivateAccount();
     const prefix = `${REVISION_PREFIX}${namespace}:`;
     const keys: string[] = [];
-    for (let index = 0; index < this.storage.length; index += 1) {
-      const key = this.storage.key(index);
+    for (let index = 0; index < this.#storage.length; index += 1) {
+      const key = this.#storage.key(index);
       if (key?.startsWith(prefix)) keys.push(key);
     }
-    keys.forEach((key) => this.storage.removeItem(key));
+    keys.forEach((key) => this.#storage.removeItem(key));
   }
 
   captureScope(): CloudSyncRevisionScope | null {
@@ -93,7 +134,7 @@ export class BrowserCloudSyncMetadataStore implements CloudSyncMetadataStore {
   #getRevision(namespace: string, documentId: string): number {
     const key = this.#revisionKey(namespace, documentId);
     if (key === null) return 0;
-    const raw = this.storage.getItem(key);
+    const raw = this.#storage.getItem(key);
     if (raw === null || !/^\d+$/u.test(raw)) return 0;
     const revision = Number(raw);
     return Number.isSafeInteger(revision) && revision > 0 ? revision : 0;
@@ -103,7 +144,7 @@ export class BrowserCloudSyncMetadataStore implements CloudSyncMetadataStore {
     const key = this.#revisionKey(namespace, documentId);
     if (key === null || !Number.isSafeInteger(revision) || revision < 1) return;
     if (revision <= this.#getRevision(namespace, documentId)) return;
-    this.storage.setItem(key, String(revision));
+    this.#storage.setItem(key, String(revision));
   }
 
   #revisionKey(namespace: string, documentId: string): string | null {

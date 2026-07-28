@@ -46,6 +46,7 @@ describe("BrowserImageLabSubmissionPersistence", () => {
     const persistence = new BrowserImageLabSubmissionPersistence(null);
 
     await expect(persistence.load("a".repeat(64))).rejects.toThrow("retry storage is unavailable");
+    await expect(persistence.resetAccount("team-one")).resolves.toBeUndefined();
   });
 
   it("uses account-scoped v2 keys and resets only the selected account", async () => {

@@ -449,6 +449,399 @@ export function rehydrateLocalAssetBlobs(
   };
 }
 
+interface VolatileDraftRevision {
+  readonly document: CampaignDocumentV1;
+  readonly blobs: Map<string, Blob>;
+}
+
+function cloneVolatileBlobs(blobs: ReadonlyMap<string, Blob>): Map<string, Blob> {
+  return new Map([...blobs].map(([key, blob]) => [
+    key,
+    blob.slice(0, blob.size, blob.type)
+  ]));
+}
+
+/**
+ * A deliberately session-only draft store for browsers that deny IndexedDB.
+ * Its owner must create a fresh instance for each account activation.
+ */
+export class VolatileDraftStore implements LocalPracticeDraftStore {
+  readonly #documents = new Map<string, Map<number, VolatileDraftRevision>>();
+  readonly #operations = new Map<string, LocalPracticeOperationRecord>();
+  readonly #runs = new Map<string, LocalPracticeRunRecord>();
+  #activeCheckpoint: LocalPracticeCheckpointV1 | null = null;
+
+  async importCloudPractice(
+    input: ImportCloudPracticeInput
+  ): Promise<LocalPracticeCheckpointV1> {
+    const source = normaliseDurableSources(
+      CampaignDocumentSchema.parse(structuredClone(input.document))
+    );
+    if (source.mode !== "offline" || source.roomId !== undefined) {
+      throw new Error("Cloud practice import requires an offline campaign document without a room");
+    }
+    if (!source.teamId) {
+      throw new Error("Cloud practice import requires a team identity in the campaign document");
+    }
+    this.#validateStartIdentities(input.runId, source);
+    if (!hasCloudProgressPracticeDocumentIdentities(source)) {
+      throw new Error("Cloud-practice document identity is not cloud-addressable");
+    }
+    const blobSnapshot = selectReferencedLocalAssetBlobs(source, input.blobs);
+    const checkpoint = LocalPracticeCheckpointSchema.parse({
+      contract: LOCAL_PRACTICE_CHECKPOINT_CONTRACT,
+      runId: input.runId,
+      documentId: source.documentId,
+      sessionId: source.sessionId,
+      teamId: source.teamId,
+      teamAlias: input.teamAlias,
+      documentRevision: source.revision,
+      documentHash: await canonicalDurableDocumentHash(source),
+      stage: source.gameplay.stage,
+      levelLocked: input.levelLocked,
+      sequence: source.revision,
+      operationId: input.operationId,
+      savedAt: input.savedAt
+    });
+    const fingerprint = await recoveryOperationFingerprint(
+      checkpoint,
+      source,
+      blobSnapshot
+    );
+    if (this.#activeCheckpoint !== null) {
+      throw new Error("An active local-practice checkpoint already exists");
+    }
+    if (this.#operations.has(input.operationId)) {
+      throw new Error(`Cloud-practice operation identity ${input.operationId} was already used`);
+    }
+    this.#assertUnusedRun(checkpoint);
+    if (this.#documents.has(source.documentId)) {
+      throw new Error(`Cloud-practice document identity ${source.documentId} is already in use`);
+    }
+    this.#putRevision(source, blobSnapshot);
+    this.#activeCheckpoint = structuredClone(checkpoint);
+    this.#operations.set(input.operationId, {
+      operationId: input.operationId,
+      fingerprint,
+      checkpoint: structuredClone(checkpoint)
+    });
+    this.#runs.set(input.runId, {
+      runId: input.runId,
+      documentId: source.documentId,
+      sessionId: source.sessionId,
+      teamId: source.teamId,
+      teamAlias: input.teamAlias
+    });
+    return LocalPracticeCheckpointSchema.parse(structuredClone(checkpoint));
+  }
+
+  async beginLocalPractice(
+    input: BeginLocalPracticeInput
+  ): Promise<LocalPracticeCheckpointV1> {
+    const source = normaliseDurableSources(
+      CampaignDocumentSchema.parse(structuredClone(input.document))
+    );
+    if (source.mode !== "offline" || source.roomId !== undefined) {
+      throw new Error("Local practice requires an offline campaign document");
+    }
+    if (source.revision !== 0) {
+      throw new Error("A local-practice run must begin at campaign revision 0");
+    }
+    if (!source.teamId) {
+      throw new Error("Local practice requires a team identity in the campaign document");
+    }
+    this.#validateStartIdentities(input.runId, source);
+    const blobSnapshot = selectReferencedLocalAssetBlobs(source, input.blobs);
+    const checkpoint = LocalPracticeCheckpointSchema.parse({
+      contract: LOCAL_PRACTICE_CHECKPOINT_CONTRACT,
+      runId: input.runId,
+      documentId: source.documentId,
+      sessionId: source.sessionId,
+      teamId: source.teamId,
+      teamAlias: input.teamAlias,
+      documentRevision: source.revision,
+      documentHash: await canonicalDurableDocumentHash(source),
+      stage: source.gameplay.stage,
+      levelLocked: input.levelLocked,
+      sequence: 0,
+      operationId: input.operationId,
+      savedAt: input.savedAt
+    });
+    const fingerprint = await localPracticeOperationFingerprint({
+      kind: "begin",
+      checkpoint: semanticCheckpointInput(checkpoint),
+      documentInputHash: await semanticDurableDocumentInputHash(source)
+    }, blobSnapshot);
+    const prior = this.#operations.get(input.operationId);
+    if (prior) {
+      if (prior.fingerprint !== fingerprint) {
+        throw new Error("Local-practice operation ID was already used with different input");
+      }
+      const priorCheckpoint = LocalPracticeCheckpointSchema.parse(prior.checkpoint);
+      if (this.#activeCheckpoint === null ||
+        !checkpointsMatch(this.#activeCheckpoint, priorCheckpoint)) {
+        throw new Error("Local-practice operation retry is stale");
+      }
+      return LocalPracticeCheckpointSchema.parse(structuredClone(priorCheckpoint));
+    }
+    this.#assertUnusedRun(checkpoint);
+    if (this.#documents.has(source.documentId)) {
+      throw new Error(`Local-practice document identity ${source.documentId} is already in use`);
+    }
+    this.#putRevision(source, blobSnapshot);
+    this.#activeCheckpoint = structuredClone(checkpoint);
+    this.#operations.set(input.operationId, {
+      operationId: input.operationId,
+      fingerprint,
+      checkpoint: structuredClone(checkpoint)
+    });
+    this.#runs.set(input.runId, {
+      runId: input.runId,
+      documentId: source.documentId,
+      sessionId: source.sessionId,
+      teamId: source.teamId,
+      teamAlias: input.teamAlias
+    });
+    return LocalPracticeCheckpointSchema.parse(structuredClone(checkpoint));
+  }
+
+  async resumeLocalPractice(): Promise<LocalPracticeRecoveryV1 | null> {
+    if (this.#activeCheckpoint === null) return null;
+    const checkpoint = LocalPracticeCheckpointSchema.parse(
+      structuredClone(this.#activeCheckpoint)
+    );
+    const run = this.#runs.get(checkpoint.runId);
+    if (!run || run.documentId !== checkpoint.documentId ||
+      run.sessionId !== checkpoint.sessionId || run.teamId !== checkpoint.teamId ||
+      run.teamAlias !== checkpoint.teamAlias) {
+      throw new Error("Active local-practice checkpoint run identity is invalid");
+    }
+    const operation = this.#operations.get(checkpoint.operationId);
+    if (!operation || !/^[0-9a-f]{64}$/u.test(operation.fingerprint)) {
+      throw new Error("Active local-practice checkpoint operation result is invalid");
+    }
+    const operationCheckpoint = LocalPracticeCheckpointSchema.parse(operation.checkpoint);
+    if (!checkpointsMatch(operationCheckpoint, checkpoint)) {
+      throw new Error("Active local-practice checkpoint diverges from its operation result");
+    }
+    const stored = await this.loadRevision(
+      checkpoint.documentId,
+      checkpoint.documentRevision
+    );
+    if (!stored) throw new Error("Active local-practice campaign revision is missing");
+    const { document } = stored;
+    if (document.mode !== "offline" || document.roomId !== undefined ||
+      document.documentId !== checkpoint.documentId ||
+      document.sessionId !== checkpoint.sessionId ||
+      document.teamId !== checkpoint.teamId ||
+      document.revision !== checkpoint.documentRevision) {
+      throw new Error("Active local-practice checkpoint identity does not match its campaign");
+    }
+    if (document.gameplay.stage !== checkpoint.stage) {
+      throw new Error("Active local-practice checkpoint stage does not match its campaign");
+    }
+    if (await canonicalDurableDocumentHash(document) !== checkpoint.documentHash) {
+      throw new Error("Active local-practice checkpoint hash does not match its campaign");
+    }
+    const referencedBlobs = selectReferencedLocalAssetBlobs(document, stored.blobs);
+    if (await recoveryOperationFingerprint(
+      checkpoint,
+      document,
+      referencedBlobs
+    ) !== operation.fingerprint) {
+      throw new Error("Active local-practice recovery integrity fingerprint does not match its operation");
+    }
+    return {
+      checkpoint: LocalPracticeCheckpointSchema.parse(structuredClone(checkpoint)),
+      document,
+      blobs: referencedBlobs
+    };
+  }
+
+  async commitLocalPractice(
+    input: CommitLocalPracticeInput
+  ): Promise<LocalPracticeCheckpointV1> {
+    if (!Number.isSafeInteger(input.expectedDocumentRevision) ||
+      input.expectedDocumentRevision < 0 ||
+      !Number.isSafeInteger(input.expectedSequence) ||
+      input.expectedSequence < 0) {
+      throw new Error("Expected local-practice revision and sequence must be non-negative safe integers");
+    }
+    const source = normaliseDurableSources(
+      CampaignDocumentSchema.parse(structuredClone(input.document))
+    );
+    if (source.mode !== "offline" || source.roomId !== undefined) {
+      throw new Error("Local practice requires an offline campaign document");
+    }
+    if (source.revision !== input.expectedDocumentRevision + 1) {
+      throw new Error("A local-practice commit must advance the campaign revision by exactly one");
+    }
+    const blobSnapshot = selectReferencedLocalAssetBlobs(source, input.blobs);
+    const fingerprint = await localPracticeOperationFingerprint({
+      kind: "commit",
+      expectedDocumentRevision: input.expectedDocumentRevision,
+      expectedSequence: input.expectedSequence,
+      levelLocked: input.levelLocked,
+      documentInputHash: await semanticDurableDocumentInputHash(source)
+    }, blobSnapshot);
+    const active = await this.resumeLocalPractice();
+    if (!active) throw new Error("There is no active local-practice run");
+    const checkpoint = LocalPracticeCheckpointSchema.parse({
+      ...active.checkpoint,
+      documentRevision: source.revision,
+      documentHash: await canonicalDurableDocumentHash(source),
+      stage: source.gameplay.stage,
+      levelLocked: input.levelLocked,
+      sequence: input.expectedSequence + 1,
+      operationId: input.operationId,
+      savedAt: input.savedAt
+    });
+    const prior = this.#operations.get(input.operationId);
+    if (prior) {
+      if (prior.fingerprint !== fingerprint) {
+        throw new Error("Local-practice operation ID was already used with different input");
+      }
+      const priorCheckpoint = LocalPracticeCheckpointSchema.parse(prior.checkpoint);
+      if (this.#activeCheckpoint === null ||
+        !checkpointsMatch(this.#activeCheckpoint, priorCheckpoint)) {
+        throw new Error("Local-practice operation retry is stale");
+      }
+      return LocalPracticeCheckpointSchema.parse(structuredClone(priorCheckpoint));
+    }
+    const current = this.#activeCheckpoint;
+    if (current === null) throw new Error("There is no active local-practice run");
+    if (current.documentRevision !== input.expectedDocumentRevision ||
+      current.sequence !== input.expectedSequence) {
+      throw new Error("Local-practice commit base is stale");
+    }
+    if (source.documentId !== current.documentId ||
+      source.sessionId !== current.sessionId ||
+      source.teamId !== current.teamId) {
+      throw new Error("Local-practice campaign identity cannot change during a run");
+    }
+    if (this.#latestRevision(source.documentId) !== input.expectedDocumentRevision) {
+      throw new Error("Local-practice campaign revision base is stale");
+    }
+    this.#putRevision(source, blobSnapshot);
+    this.#activeCheckpoint = structuredClone(checkpoint);
+    this.#operations.set(input.operationId, {
+      operationId: input.operationId,
+      fingerprint,
+      checkpoint: structuredClone(checkpoint)
+    });
+    this.#prune(source.documentId);
+    return LocalPracticeCheckpointSchema.parse(structuredClone(checkpoint));
+  }
+
+  async save(
+    document: CampaignDocumentV1,
+    blobs: ReadonlyMap<string, Blob>
+  ): Promise<void> {
+    const source = normaliseDurableSources(
+      CampaignDocumentSchema.parse(structuredClone(document))
+    );
+    const blobSnapshot = selectReferencedLocalAssetBlobs(source, blobs);
+    const latest = this.#latestRevision(source.documentId);
+    if (latest === null && source.revision !== 0) {
+      throw new Error("The first campaign revision must be 0");
+    }
+    if (latest !== null && source.revision <= latest) {
+      throw new Error(
+        `Campaign revision ${source.revision} must be newer than revision ${latest}`
+      );
+    }
+    this.#putRevision(source, blobSnapshot);
+    this.#prune(source.documentId);
+  }
+
+  async load(documentId: string): Promise<{
+    document: CampaignDocumentV1;
+    blobs: Map<string, Blob>;
+  } | null> {
+    if (!documentId) throw new Error("Document ID must not be empty");
+    const latest = this.#latestRevision(documentId);
+    return latest === null ? null : this.loadRevision(documentId, latest);
+  }
+
+  async loadRevision(documentId: string, revision: number): Promise<{
+    document: CampaignDocumentV1;
+    blobs: Map<string, Blob>;
+  } | null> {
+    if (!documentId) throw new Error("Document ID must not be empty");
+    if (!Number.isSafeInteger(revision) || revision < 0) {
+      throw new Error("Campaign revision must be a non-negative safe integer");
+    }
+    const stored = this.#documents.get(documentId)?.get(revision);
+    if (!stored) return null;
+    const document = migrateCampaignDocument(structuredClone(stored.document));
+    if (document.documentId !== documentId || document.revision !== revision) {
+      throw new Error("Stored campaign revision key does not match its document");
+    }
+    return {
+      document,
+      blobs: cloneVolatileBlobs(stored.blobs)
+    };
+  }
+
+  #validateStartIdentities(runId: string, source: CampaignDocumentV1): void {
+    const identities = [
+      ["run", runId],
+      ["document", source.documentId],
+      ["session", source.sessionId],
+      ["team", source.teamId]
+    ] as const;
+    if (new Set(identities.map(([, identity]) => identity)).size !== identities.length) {
+      throw new Error("Local-practice run, document, session and team identities must be distinct");
+    }
+    for (const [label, identity] of identities) {
+      if (identity === "classroom-campaign") {
+        throw new Error(`Local-practice ${label} identity must not reuse classroom-campaign`);
+      }
+    }
+  }
+
+  #assertUnusedRun(checkpoint: LocalPracticeCheckpointV1): void {
+    for (const run of this.#runs.values()) {
+      if (run.runId === checkpoint.runId ||
+        run.documentId === checkpoint.documentId ||
+        run.sessionId === checkpoint.sessionId ||
+        run.teamId === checkpoint.teamId) {
+        throw new Error("Local-practice run identity is already in use");
+      }
+    }
+  }
+
+  #putRevision(
+    document: CampaignDocumentV1,
+    blobs: ReadonlyMap<string, Blob>
+  ): void {
+    let revisions = this.#documents.get(document.documentId);
+    if (!revisions) {
+      revisions = new Map();
+      this.#documents.set(document.documentId, revisions);
+    }
+    revisions.set(document.revision, {
+      document: structuredClone(document),
+      blobs: cloneVolatileBlobs(blobs)
+    });
+  }
+
+  #latestRevision(documentId: string): number | null {
+    const revisions = this.#documents.get(documentId);
+    if (!revisions || revisions.size === 0) return null;
+    return Math.max(...revisions.keys());
+  }
+
+  #prune(documentId: string): void {
+    const revisions = this.#documents.get(documentId);
+    if (!revisions || revisions.size <= DEFAULT_RETAINED_REVISIONS) return;
+    const ordered = [...revisions.keys()].sort((left, right) => left - right);
+    for (const revision of ordered.slice(0, -DEFAULT_RETAINED_REVISIONS)) {
+      revisions.delete(revision);
+    }
+  }
+}
+
 export class IndexedDbDraftStore implements LocalPracticeDraftStore {
   readonly databaseName: string;
   readonly #factory: IDBFactory;

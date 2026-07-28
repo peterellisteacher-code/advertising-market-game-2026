@@ -19,6 +19,14 @@ const executableSql = (path = sqlPath): string =>
   readFileSync(path, "utf8").replace(/^\s*--.*$/gmu, "");
 
 describe("Image Lab allowance operation artifacts", () => {
+  it("does not schema-qualify SQL special forms as nonexistent functions", () => {
+    for (const path of [sqlPath, teacherAtomicSqlPath]) {
+      const sql = executableSql(path);
+      expect(sql).not.toMatch(/\bpg_catalog\.coalesce\s*\(/iu);
+      expect(sql).toMatch(/\bcoalesce\s*\(/iu);
+    }
+  });
+
   it("creates each private object and the public broker exactly once", () => {
     const sql = executableSql();
     expect(sql.match(/\bcreate\s+table\s+advertising_game\.image_lab_settings\b/giu))

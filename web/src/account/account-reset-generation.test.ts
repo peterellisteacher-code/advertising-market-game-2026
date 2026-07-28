@@ -66,4 +66,17 @@ describe("BrowserAccountResetGenerationGuard", () => {
       .rejects.toThrow("reset generation");
     expect(resetAccount).not.toHaveBeenCalled();
   });
+
+  it("uses a volatile marker when localStorage is unavailable", async () => {
+    const resetAccount = vi.fn(async () => undefined);
+    const guard = new BrowserAccountResetGenerationGuard(
+      [{ resetAccount }],
+      null
+    );
+    const generation = "7440e792-3ddc-4484-ae32-a53088d0d679";
+
+    await expect(guard.reconcile("team-one", generation)).resolves.toBe(true);
+    await expect(guard.reconcile("team-one", generation)).resolves.toBe(false);
+    expect(resetAccount).toHaveBeenCalledOnce();
+  });
 });

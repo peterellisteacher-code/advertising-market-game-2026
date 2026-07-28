@@ -182,14 +182,29 @@ describe("AccountScopedDraftStore", () => {
     expect((await store.load(document.documentId))?.document).toEqual(document);
   });
 
-  it("keeps the proxy locked when the scoped IndexedDB database cannot be opened", async () => {
+  it("uses an isolated volatile practice store when scoped IndexedDB cannot be opened", async () => {
     const unavailableFactory = {
       open: () => { throw new Error("synthetic indexeddb denial"); }
     } as unknown as IDBFactory;
     const store = new AccountScopedDraftStore({ factory: unavailableFactory });
+    const practice = new LocalPracticeService(store, {
+      now: () => new Date("2026-07-28T03:30:00.000Z")
+    });
 
-    await expect(store.activateAccount("team-one")).rejects.toThrow("synthetic indexeddb denial");
-    await expect(store.load("private-draft")).rejects.toThrow(/account storage is locked/i);
+    await expect(store.activateAccount("team-one")).resolves.toBeUndefined();
+    const started = await practice.begin("Meidi Pair", "volatile-begin");
+    const locked = await practice.setLock({
+      checkpoint: started.checkpoint,
+      levelLocked: true,
+      operationId: "volatile-lock"
+    });
+    expect(locked.checkpoint.sequence).toBe(1);
+    expect((await practice.resume())?.checkpoint).toEqual(locked.checkpoint);
+
+    await store.activateAccount("team-two");
+    expect(await practice.resume()).toBeNull();
+    await store.activateAccount("team-one");
+    expect(await practice.resume()).toBeNull();
   });
 
   it("resets only the exact account database", async () => {

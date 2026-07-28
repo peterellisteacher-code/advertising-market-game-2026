@@ -498,7 +498,6 @@ describe("Advertising-game Supabase Edge broker", () => {
             id: userId,
             email: syntheticEmail,
             created_at: "2026-07-20T00:00:00.000Z",
-            last_sign_in_at: null,
             app_metadata: { advertising_game_username: "team-zed" }
           },
           {

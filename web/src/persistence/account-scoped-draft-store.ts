@@ -2,6 +2,7 @@ import type { CampaignDocumentV1 } from "../domain/campaign-document";
 import { accountStorageNamespace } from "../account/account-storage-namespace";
 import {
   IndexedDbDraftStore,
+  VolatileDraftStore,
   type BeginLocalPracticeInput,
   type CommitLocalPracticeInput,
   type ImportCloudPracticeInput,
@@ -13,7 +14,7 @@ import {
 const ACCOUNT_DATABASE_PREFIX = "advertising-market-campaign-drafts-account-";
 
 export interface AccountScopedDraftStoreOptions {
-  readonly factory?: IDBFactory;
+  readonly factory?: IDBFactory | null;
 }
 
 export async function accountDraftDatabaseName(username: string): Promise<string> {
@@ -21,13 +22,23 @@ export async function accountDraftDatabaseName(username: string): Promise<string
 }
 
 export class AccountScopedDraftStore implements LocalPracticeDraftStore {
-  readonly #factory: IDBFactory | undefined;
+  readonly #factory: IDBFactory | null;
   #activationGeneration = 0;
   #active: LocalPracticeDraftStore | null = null;
   #activeDatabaseName: string | null = null;
 
   constructor(options: AccountScopedDraftStoreOptions = {}) {
-    this.#factory = options.factory;
+    if (options.factory !== undefined) {
+      this.#factory = options.factory;
+      return;
+    }
+    try {
+      this.#factory = typeof globalThis.indexedDB === "object"
+        ? globalThis.indexedDB
+        : null;
+    } catch {
+      this.#factory = null;
+    }
   }
 
   async activateAccount(username: string): Promise<void> {
@@ -38,10 +49,21 @@ export class AccountScopedDraftStore implements LocalPracticeDraftStore {
     if (generation !== this.#activationGeneration) {
       throw new DOMException("Account storage activation was superseded", "AbortError");
     }
-    const candidate = this.#factory === undefined
-      ? new IndexedDbDraftStore({ databaseName })
-      : new IndexedDbDraftStore({ databaseName, factory: this.#factory });
-    await candidate.resumeLocalPractice();
+    let candidate: LocalPracticeDraftStore;
+    if (this.#factory === null) {
+      candidate = new VolatileDraftStore();
+    } else {
+      const durable = new IndexedDbDraftStore({
+        databaseName,
+        factory: this.#factory
+      });
+      try {
+        await durable.resumeLocalPractice();
+        candidate = durable;
+      } catch {
+        candidate = new VolatileDraftStore();
+      }
+    }
     if (generation !== this.#activationGeneration) {
       throw new DOMException("Account storage activation was superseded", "AbortError");
     }
@@ -58,7 +80,8 @@ export class AccountScopedDraftStore implements LocalPracticeDraftStore {
   async resetAccount(username: string): Promise<void> {
     const databaseName = await accountDraftDatabaseName(username);
     if (this.#activeDatabaseName === databaseName) this.deactivateAccount();
-    const factory = this.#factory ?? globalThis.indexedDB;
+    const factory = this.#factory;
+    if (factory === null) return;
     await new Promise<void>((resolve, reject) => {
       const request = factory.deleteDatabase(databaseName);
       request.addEventListener("success", () => resolve(), { once: true });

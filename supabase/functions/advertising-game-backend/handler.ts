@@ -331,7 +331,8 @@ const parseAdminUser = (value: unknown): ParsedAdminUser | null => {
   if (!isRecord(value)) return null;
   const metadata = isRecord(value.app_metadata) ? value.app_metadata : null;
   const username = metadata?.advertising_game_username;
-  const lastSignInAt = value.last_sign_in_at;
+  const lastSignInAt =
+    value.last_sign_in_at === undefined ? null : value.last_sign_in_at;
   if (
     typeof value.id !== "string" ||
     !UUID_PATTERN.test(value.id) ||

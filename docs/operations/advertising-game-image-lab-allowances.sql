@@ -468,7 +468,7 @@ begin
   end if;
 
   if p_operation = 'list' then
-    select pg_catalog.coalesce(
+    select coalesce(
       pg_catalog.jsonb_agg(
         pg_catalog.jsonb_build_object(
           'userId', listed.user_id,

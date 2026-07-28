@@ -57,7 +57,7 @@ export class BrowserImageLabSubmissionPersistence implements ImageLabSubmissionP
   }
 
   async resetAccount(username: string): Promise<void> {
-    if (this.#storage === null) throw new Error("Image Lab retry storage is unavailable");
+    if (this.#storage === null) return;
     const prefix = `${this.#accountPrefix}${await accountStorageNamespace(username)}:`;
     const keys: string[] = [];
     for (let index = 0; index < this.#storage.length; index += 1) {

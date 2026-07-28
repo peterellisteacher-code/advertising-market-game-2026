@@ -10,7 +10,27 @@ interface ResetGenerationStorage {
   setItem(key: string, value: string): void;
 }
 
-const browserStorage = (): ResetGenerationStorage => globalThis.localStorage;
+class VolatileResetGenerationStorage implements ResetGenerationStorage {
+  readonly #values = new Map<string, string>();
+
+  getItem(key: string): string | null {
+    return this.#values.get(key) ?? null;
+  }
+
+  setItem(key: string, value: string): void {
+    this.#values.set(key, value);
+  }
+}
+
+const browserStorage = (): ResetGenerationStorage | null => {
+  try {
+    return typeof globalThis.localStorage === "object"
+      ? globalThis.localStorage
+      : null;
+  } catch {
+    return null;
+  }
+};
 
 export class BrowserAccountResetGenerationGuard {
   readonly #stores: readonly AccountResettableStore[];
@@ -18,10 +38,10 @@ export class BrowserAccountResetGenerationGuard {
 
   constructor(
     stores: readonly AccountResettableStore[],
-    storage: ResetGenerationStorage = browserStorage()
+    storage: ResetGenerationStorage | null = browserStorage()
   ) {
     this.#stores = [...stores];
-    this.#storage = storage;
+    this.#storage = storage ?? new VolatileResetGenerationStorage();
   }
 
   async reconcile(username: string, generation: string | null): Promise<boolean> {

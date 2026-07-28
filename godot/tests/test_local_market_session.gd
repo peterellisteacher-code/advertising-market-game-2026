@@ -1,7 +1,8 @@
 extends RefCounted
+class_name AdMarketTestLocalMarketSession
 
-const GameRun = preload("res://src/game/GameRun.gd")
-const LocalMarketSession = preload("res://src/market/LocalMarketSession.gd")
+const GameRun = preload("res://src/game/game_run.gd")
+const LocalMarketSession = preload("res://src/market/local_market_session.gd")
 
 func run() -> bool:
     assert(_practice_market_awards_three_medals_and_reveals())

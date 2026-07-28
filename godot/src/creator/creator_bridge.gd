@@ -1,11 +1,12 @@
 extends Node
+class_name AdMarketCreatorBridge
 
 signal request_succeeded(request_id: String, method: String, payload: Variant)
 signal request_failed(request_id: String, code: String, message: String)
 signal close_requested
 signal diagnostic(message: String)
 
-const CampaignDocument = preload("res://src/creator/CampaignDocument.gd")
+const CampaignDocument = preload("res://src/creator/campaign_document.gd")
 const CONTRACT := "creator-bridge@1"
 const PUBLISHED_CONTRACT := "published-campaign@1"
 const PNG_SIGNATURE := [137, 80, 78, 71, 13, 10, 26, 10]
@@ -16,12 +17,12 @@ const MAX_PENDING := 32
 const MAX_COMPLETED := 64
 
 var transport: RefCounted
-var _next_request_number := 1
+var _next_request_number: int = 1
 var _pending: Dictionary = {}
 var _completed: Dictionary = {}
 var _completed_order: Array[String] = []
-var _active_document_id := ""
-var _active_revision := 0
+var _active_document_id: String = ""
+var _active_revision: int = 0
 
 func set_transport(value: RefCounted) -> void:
     transport = value

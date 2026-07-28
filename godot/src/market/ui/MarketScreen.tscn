@@ -1,6 +1,6 @@
 [gd_scene load_steps=10 format=3]
 
-[ext_resource type="Script" path="res://src/market/ui/MarketScreen.gd" id="1_screen"]
+[ext_resource type="Script" path="res://src/market/ui/market_screen.gd" id="1_screen"]
 
 [sub_resource type="StyleBoxFlat" id="Style_frame"]
 bg_color = Color(1, 0.980392, 0.941176, 1)

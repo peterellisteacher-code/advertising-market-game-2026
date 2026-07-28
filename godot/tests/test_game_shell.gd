@@ -1,12 +1,13 @@
 extends RefCounted
+class_name AdMarketTestGameShell
 
 const MainScene = preload("res://src/main/Main.tscn")
-const FakeCreatorTransport = preload("res://tests/fakes/FakeCreatorTransport.gd")
-const FakeMarketTransport = preload("res://tests/fakes/FakeMarketTransport.gd")
-const FakePracticeTransport = preload("res://tests/fakes/FakePracticeTransport.gd")
-const AutoPracticeTransport = preload("res://tests/fakes/AutoPracticeTransport.gd")
+const FakeCreatorTransport = preload("res://tests/fakes/fake_creator_transport.gd")
+const FakeMarketTransport = preload("res://tests/fakes/fake_market_transport.gd")
+const FakePracticeTransport = preload("res://tests/fakes/fake_practice_transport.gd")
+const AutoPracticeTransport = preload("res://tests/fakes/auto_practice_transport.gd")
 
-var _market_png_cache := ""
+var _market_png_cache: String = ""
 
 func run() -> bool:
     assert(_authored_shell_is_fun_first_and_accessible())
@@ -350,7 +351,7 @@ func _late_create_cannot_overwrite_acknowledged_practice() -> bool:
     return true
 
 func _authored_shell_is_fun_first_and_accessible() -> bool:
-    var shell := MainScene.instantiate()
+    var shell: Control = MainScene.instantiate() as Control
     var lobby := shell.get_node("%LobbyPanel") as Control
     var run_panel := shell.get_node("%RunPanel") as Control
     var heading := shell.get_node("%LevelHeading") as Label
@@ -416,7 +417,7 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
     return true
 
 func _live_room_routes_are_primary_and_accessible() -> bool:
-    var shell := MainScene.instantiate()
+    var shell: Control = MainScene.instantiate() as Control
     var alias := shell.get_node("%TeamAlias") as LineEdit
     var room_code := shell.get_node("%RoomCode") as LineEdit
     var join_live := shell.get_node("%JoinLiveMarket") as Button
@@ -957,12 +958,12 @@ func _mount_shell(
     market_fake: RefCounted = null,
     practice_fake: RefCounted = null
 ) -> Control:
-    var shell := MainScene.instantiate()
+    var shell: Control = MainScene.instantiate() as Control
     shell.creator_transport_override = fake
     var selected_market: RefCounted = market_fake if market_fake != null else FakeMarketTransport.new()
     selected_market.set("auto_resume_none", true)
     shell.market_transport_override = selected_market
-    var selected_practice := practice_fake
+    var selected_practice: RefCounted = practice_fake
     if selected_practice == null:
         selected_practice = AutoPracticeTransport.new()
         selected_practice.document_provider = func() -> Dictionary:
@@ -971,7 +972,7 @@ func _mount_shell(
                 return pending.duplicate(true)
             return Dictionary(shell.get("_campaign_document")).duplicate(true)
     shell.practice_transport_override = selected_practice
-    var tree := Engine.get_main_loop() as SceneTree
+    var tree: SceneTree = Engine.get_main_loop() as SceneTree
     tree.root.add_child(shell)
     if not shell.is_node_ready():
         shell.call("_ready")

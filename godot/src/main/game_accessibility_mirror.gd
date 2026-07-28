@@ -1,6 +1,7 @@
 extends RefCounted
+class_name AdMarketGameAccessibilityMirror
 
-var _last_payload := ""
+var _last_payload: String = ""
 
 func update(
     eyebrow: String,
@@ -10,7 +11,7 @@ func update(
     focused_control: String,
     keyboard_hint: String
 ) -> void:
-    var status_parts := PackedStringArray()
+    var status_parts: PackedStringArray = PackedStringArray()
     for part in [
         completion_status,
         ("Selected control: %s." % focused_control)
@@ -18,11 +19,11 @@ func update(
         else "",
         keyboard_hint
     ]:
-        var cleaned := String(part).strip_edges()
+        var cleaned: String = String(part).strip_edges()
         if not cleaned.is_empty():
             status_parts.append(cleaned)
-    var composed_status := " ".join(status_parts)
-    var payload := JSON.stringify({
+    var composed_status: String = " ".join(status_parts)
+    var payload: String = JSON.stringify({
         "eyebrow": eyebrow,
         "heading": heading,
         "clue": current_instruction,

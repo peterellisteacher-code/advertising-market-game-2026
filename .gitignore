@@ -12,6 +12,7 @@ tmp/
 build/
 .godot/
 godot/.godot/
+godot/.godotiq/
 *.log
 catalog/generated/*
 !catalog/generated/offline-core-v1/

@@ -1,8 +1,9 @@
 extends RefCounted
+class_name AdMarketTestMarketScreen
 
 const MarketScreenScene = preload("res://src/market/ui/MarketScreen.tscn")
-const MarketHost = preload("res://src/market/MarketHost.gd")
-const FakeMarketTransport = preload("res://tests/fakes/FakeMarketTransport.gd")
+const MarketHost = preload("res://src/market/market_host.gd")
+const FakeMarketTransport = preload("res://tests/fakes/fake_market_transport.gd")
 
 func run() -> bool:
     assert(_scene_uses_accessible_ad_market_layouts())

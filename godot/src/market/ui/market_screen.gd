@@ -1,9 +1,10 @@
 # Godot 4.x — @export var, await, Control containers, instance.signal.connect(method)
 extends Control
+class_name AdMarketMarketScreen
 
 signal fix_requested
 
-const MarketViewState = preload("res://src/market/MarketViewState.gd")
+const MarketViewState = preload("res://src/market/market_view_state.gd")
 const NAVY := Color("#17212b")
 const BURNT_ORANGE := Color("#b63a15")
 const ORANGE_HOVER := Color("#c3471b")
@@ -64,21 +65,21 @@ const STUDENT_MARKET_ERRORS := {
 @onready var poll_timer: Timer = %PollTimer
 
 var market_host: Node
-var _active_role := ""
-var _room_code := ""
+var _active_role: String = ""
+var _room_code: String = ""
 var _latest_snapshot: Dictionary = {}
 var _latest_state: Dictionary = {}
-var _purchase_sequence := 1
+var _purchase_sequence: int = 1
 var _pending_purchases: Dictionary = {}
 var _pending_awards: Dictionary = {}
 var _scorecards: Dictionary = {}
 var _scorecard_controls: Dictionary = {}
 var _artwork_targets: Dictionary = {}
-var _remove_team_id := ""
-var _remove_team_alias := ""
+var _remove_team_id: String = ""
+var _remove_team_alias: String = ""
 var _remove_dialog_focus: Control
-var _practice_mode := false
-var _ready_wired := false
+var _practice_mode: bool = false
+var _ready_wired: bool = false
 
 func _ready() -> void:
     if _ready_wired:
@@ -221,25 +222,73 @@ func columns_for_width(width: float) -> int:
     return 2
 
 func _connect_host(connecting: bool) -> void:
-    var bindings := [
-        ["snapshot_received", Callable(self, "_on_snapshot_received")],
-        ["artwork_received", Callable(self, "_on_artwork_received")],
-        ["diagnostic", Callable(self, "_on_market_diagnostic")],
-        ["market_request_failed", Callable(self, "_on_market_request_failed")],
-        ["purchase_completed", Callable(self, "_on_purchase_completed")],
-        ["award_completed", Callable(self, "_on_award_completed")],
-        ["control_completed", Callable(self, "_on_control_completed")],
-        ["campaign_published", Callable(self, "_on_campaign_published")]
-    ]
-    for binding in bindings:
-        var signal_name := str(binding[0])
-        var callback: Callable = binding[1]
-        if not market_host.has_signal(signal_name):
-            continue
-        if connecting and not market_host.is_connected(signal_name, callback):
-            market_host.connect(signal_name, callback)
-        elif not connecting and market_host.is_connected(signal_name, callback):
-            market_host.disconnect(signal_name, callback)
+    if market_host is AdMarketMarketHost:
+        _connect_live_host(market_host as AdMarketMarketHost, connecting)
+    elif market_host is AdMarketLocalMarketSession:
+        _connect_local_session(market_host as AdMarketLocalMarketSession, connecting)
+
+func _connect_live_host(host: AdMarketMarketHost, connecting: bool) -> void:
+    if connecting:
+        if not host.snapshot_received.is_connected(_on_snapshot_received):
+            host.snapshot_received.connect(_on_snapshot_received)
+        if not host.artwork_received.is_connected(_on_artwork_received):
+            host.artwork_received.connect(_on_artwork_received)
+        if not host.diagnostic.is_connected(_on_market_diagnostic):
+            host.diagnostic.connect(_on_market_diagnostic)
+        if not host.market_request_failed.is_connected(_on_market_request_failed):
+            host.market_request_failed.connect(_on_market_request_failed)
+        if not host.purchase_completed.is_connected(_on_purchase_completed):
+            host.purchase_completed.connect(_on_purchase_completed)
+        if not host.award_completed.is_connected(_on_award_completed):
+            host.award_completed.connect(_on_award_completed)
+        if not host.control_completed.is_connected(_on_control_completed):
+            host.control_completed.connect(_on_control_completed)
+        if not host.campaign_published.is_connected(_on_campaign_published):
+            host.campaign_published.connect(_on_campaign_published)
+        return
+    if host.snapshot_received.is_connected(_on_snapshot_received):
+        host.snapshot_received.disconnect(_on_snapshot_received)
+    if host.artwork_received.is_connected(_on_artwork_received):
+        host.artwork_received.disconnect(_on_artwork_received)
+    if host.diagnostic.is_connected(_on_market_diagnostic):
+        host.diagnostic.disconnect(_on_market_diagnostic)
+    if host.market_request_failed.is_connected(_on_market_request_failed):
+        host.market_request_failed.disconnect(_on_market_request_failed)
+    if host.purchase_completed.is_connected(_on_purchase_completed):
+        host.purchase_completed.disconnect(_on_purchase_completed)
+    if host.award_completed.is_connected(_on_award_completed):
+        host.award_completed.disconnect(_on_award_completed)
+    if host.control_completed.is_connected(_on_control_completed):
+        host.control_completed.disconnect(_on_control_completed)
+    if host.campaign_published.is_connected(_on_campaign_published):
+        host.campaign_published.disconnect(_on_campaign_published)
+
+func _connect_local_session(
+    session: AdMarketLocalMarketSession,
+    connecting: bool
+) -> void:
+    if connecting:
+        if not session.snapshot_received.is_connected(_on_snapshot_received):
+            session.snapshot_received.connect(_on_snapshot_received)
+        if not session.artwork_received.is_connected(_on_artwork_received):
+            session.artwork_received.connect(_on_artwork_received)
+        if not session.diagnostic.is_connected(_on_market_diagnostic):
+            session.diagnostic.connect(_on_market_diagnostic)
+        if not session.purchase_completed.is_connected(_on_purchase_completed):
+            session.purchase_completed.connect(_on_purchase_completed)
+        if not session.award_completed.is_connected(_on_award_completed):
+            session.award_completed.connect(_on_award_completed)
+        return
+    if session.snapshot_received.is_connected(_on_snapshot_received):
+        session.snapshot_received.disconnect(_on_snapshot_received)
+    if session.artwork_received.is_connected(_on_artwork_received):
+        session.artwork_received.disconnect(_on_artwork_received)
+    if session.diagnostic.is_connected(_on_market_diagnostic):
+        session.diagnostic.disconnect(_on_market_diagnostic)
+    if session.purchase_completed.is_connected(_on_purchase_completed):
+        session.purchase_completed.disconnect(_on_purchase_completed)
+    if session.award_completed.is_connected(_on_award_completed):
+        session.award_completed.disconnect(_on_award_completed)
 
 func _render_team(state: Dictionary) -> void:
     team_surface.show()
@@ -838,7 +887,7 @@ func _review_campaign(
         return
     var note: Variant = null
     if status == "returned":
-        var trimmed_note := note_input.text.strip_edges()
+        var trimmed_note: String = note_input.text.strip_edges()
         if trimmed_note.is_empty():
             network_status.text = "Add a brief reason before returning this card."
             note_input.grab_focus()
@@ -875,7 +924,7 @@ func _request_remove_confirmation(
     _remove_team_alias = alias
     _remove_dialog_focus = source
     if _remove_dialog_focus == null:
-        var viewport := get_viewport()
+        var viewport: Viewport = get_viewport()
         _remove_dialog_focus = viewport.gui_get_focus_owner() if viewport != null else null
     remove_team_dialog.dialog_text = (
         "Remove %s from this room? This will end the current room session."

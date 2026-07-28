@@ -1,4 +1,5 @@
 extends RefCounted
+class_name AdMarketGameRun
 
 const LEVELS := ["invent", "sell", "irresistible"]
 const PITCH_PHASES := ["invent", "sell", "irresistible", "publish-check"]
@@ -8,15 +9,15 @@ const MINIMUM_SPEND_PERCENT := 80
 const MAX_WALLET_CENTS := 1000000
 const MEDALS := ["gold", "silver", "bronze"]
 
-var phase := "lobby"
-var team_alias := ""
-var session_id := ""
-var team_id := ""
-var wallet_cents := 0
-var market_mode := ""
-var last_error := ""
+var phase: String = "lobby"
+var team_alias: String = ""
+var session_id: String = ""
+var team_id: String = ""
+var wallet_cents: int = 0
+var market_mode: String = ""
+var last_error: String = ""
 
-var _starting_wallet_cents := 0
+var _starting_wallet_cents: int = 0
 var _ready_levels: Dictionary = {}
 var _purchases: Array[Dictionary] = []
 var _awards: Dictionary = {}

@@ -1,48 +1,48 @@
-extends "res://src/market/transport/MarketTransport.gd"
+extends "res://src/creator/transport/creator_transport.gd"
+class_name AdMarketFakeCreatorTransport
 
-const CONTRACT := "market-bridge@1"
+const CONTRACT := "creator-bridge@1"
 
 var _requests: Array[Dictionary] = []
 var _pending: Dictionary = {}
 var _history: Dictionary = {}
 var _last_responses: Dictionary = {}
-var _next_synchronous_rejection := ""
-var auto_resume_none := false
+var _close_requested_callback: Callable
+var _shown_messages: Array[String] = []
+
+func set_close_requested_callback(callback: Callable) -> void:
+    _close_requested_callback = callback
+
+func request_close() -> void:
+    if _close_requested_callback.is_valid():
+        _close_requested_callback.call()
+
+func show_message(message: String) -> void:
+    _shown_messages.append(message)
+
+func last_shown_message() -> String:
+    return "" if _shown_messages.is_empty() else _shown_messages.back()
 
 func send(request_json: String, resolve: Callable, reject: Callable) -> void:
     var decoded: Variant = JSON.parse_string(request_json)
     if typeof(decoded) != TYPE_DICTIONARY:
-        reject.call("Fake market transport received invalid request JSON")
+        reject.call("Fake transport received invalid request JSON")
         return
     var request: Dictionary = decoded
     var request_id := str(request.get("requestId", ""))
     if request_id.is_empty() or _history.has(request_id):
-        reject.call("Fake market transport received a duplicate or missing requestId")
+        reject.call("Fake transport received a duplicate or missing requestId")
         return
     _requests.append(request.duplicate(true))
     var callbacks := {"resolve": resolve, "reject": reject}
     _pending[request_id] = callbacks
     _history[request_id] = callbacks
-    if auto_resume_none and request.get("method") == "resumeSession":
-        resolve_success(request_id, null)
-        return
-    if not _next_synchronous_rejection.is_empty():
-        var message := _next_synchronous_rejection
-        _next_synchronous_rejection = ""
-        _pending.erase(request_id)
-        reject.call(message)
 
-func reject_next_send_synchronously(message: String) -> void:
-    assert(not message.is_empty())
-    _next_synchronous_rejection = message
-
-func resolve_success(request_id: String, payload: Variant) -> void:
-    resolve_raw(request_id, {
-        "contract": CONTRACT,
-        "requestId": request_id,
-        "ok": true,
-        "payload": payload
-    })
+func resolve_success(request_id: String, payload: Variant = null) -> void:
+    var response := {"contract": CONTRACT, "requestId": request_id, "ok": true}
+    if payload != null:
+        response["payload"] = payload
+    resolve_raw(request_id, response)
 
 func resolve_raw(request_id: String, response: Dictionary) -> void:
     assert(_history.has(request_id))

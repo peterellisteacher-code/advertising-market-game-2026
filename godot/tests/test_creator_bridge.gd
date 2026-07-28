@@ -1,9 +1,10 @@
 extends RefCounted
+class_name AdMarketTestCreatorBridge
 
-const CreatorBridge = preload("res://src/creator/CreatorBridge.gd")
-const CreatorHost = preload("res://src/creator/CreatorHost.gd")
-const CampaignDocument = preload("res://src/creator/CampaignDocument.gd")
-const FakeCreatorTransport = preload("res://tests/fakes/FakeCreatorTransport.gd")
+const CreatorBridge = preload("res://src/creator/creator_bridge.gd")
+const CreatorHost = preload("res://src/creator/creator_host.gd")
+const CampaignDocument = preload("res://src/creator/campaign_document.gd")
+const FakeCreatorTransport = preload("res://tests/fakes/fake_creator_transport.gd")
 
 func run() -> bool:
     assert(_test_request_ids_versions_callbacks_and_replays())

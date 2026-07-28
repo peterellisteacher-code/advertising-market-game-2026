@@ -1,4 +1,5 @@
 extends RefCounted
+class_name AdMarketCampaignDocument
 
 const SCHEMA_VERSION := 1
 const CANVAS_WIDTH := 1600

@@ -1,9 +1,10 @@
 extends RefCounted
+class_name AdMarketTestMarketHost
 
-const MarketHost = preload("res://src/market/MarketHost.gd")
-const FakeMarketTransport = preload("res://tests/fakes/FakeMarketTransport.gd")
+const MarketHost = preload("res://src/market/market_host.gd")
+const FakeMarketTransport = preload("res://tests/fakes/fake_market_transport.gd")
 
-var _cached_png_base64 := ""
+var _cached_png_base64: String = ""
 
 func run() -> bool:
     assert(_durable_command_intents_retry_until_postconditions_are_observed())

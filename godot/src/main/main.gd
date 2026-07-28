@@ -1,14 +1,15 @@
 extends Control
+class_name AdMarketMain
 
-const WebCreatorTransport = preload("res://src/creator/transport/WebCreatorTransport.gd")
-const WebMarketTransport = preload("res://src/market/transport/WebMarketTransport.gd")
-const PracticeBridge = preload("res://src/practice/PracticeBridge.gd")
-const WebPracticeTransport = preload("res://src/practice/transport/WebPracticeTransport.gd")
-const LocalMarketSession = preload("res://src/market/LocalMarketSession.gd")
-const MarketViewState = preload("res://src/market/MarketViewState.gd")
-const GameRun = preload("res://src/game/GameRun.gd")
-const WebRunProgressStore = preload("res://src/game/WebRunProgressStore.gd")
-const GameAccessibilityMirror = preload("res://src/main/GameAccessibilityMirror.gd")
+const WebCreatorTransport = preload("res://src/creator/transport/web_creator_transport.gd")
+const WebMarketTransport = preload("res://src/market/transport/web_market_transport.gd")
+const PracticeBridge = preload("res://src/practice/practice_bridge.gd")
+const WebPracticeTransport = preload("res://src/practice/transport/web_practice_transport.gd")
+const LocalMarketSession = preload("res://src/market/local_market_session.gd")
+const MarketViewState = preload("res://src/market/market_view_state.gd")
+const GameRun = preload("res://src/game/game_run.gd")
+const WebRunProgressStore = preload("res://src/game/web_run_progress_store.gd")
+const GameAccessibilityMirror = preload("res://src/main/game_accessibility_mirror.gd")
 const MARKET_COMPATIBILITY_WALLET_CENTS := 10000
 const LIVE_PROGRESS_CONTRACT := WebRunProgressStore.CONTRACT
 const MAX_LIVE_PROGRESS_BYTES := WebRunProgressStore.MAX_PROGRESS_BYTES
@@ -48,7 +49,7 @@ const AIDA_NEXT_ACTIONS := {
 
 @onready var creator_host: Node = %CreatorHost
 @onready var market_host: Node = %MarketHost
-@onready var market_screen: Control = %MarketScreen
+@onready var market_screen: AdMarketMarketScreen = %MarketScreen as AdMarketMarketScreen
 @onready var launch_button: Button = %LaunchCreator
 @onready var status: Label = %Status
 @onready var hero_heading: Label = $MainMargin/GameInput/HeroHeading
@@ -92,34 +93,34 @@ const AIDA_NEXT_ACTIONS := {
 
 var _game_run: RefCounted = GameRun.new()
 var _campaign_document: Dictionary = {}
-var _level_locked := false
+var _level_locked: bool = false
 var creator_transport_override: RefCounted
 var market_transport_override: RefCounted
 var practice_transport_override: RefCounted
 var run_progress_store_override: RefCounted
-var _publish_after_open := false
+var _publish_after_open: bool = false
 var _published_campaign: Dictionary = {}
-var _room_role := ""
-var _room_code := ""
-var _room_campaign_submitted := false
-var _live_publication_pending := false
+var _room_role: String = ""
+var _room_code: String = ""
+var _room_campaign_submitted: bool = false
+var _live_publication_pending: bool = false
 var _latest_market_snapshot: Dictionary = {}
 var _local_market_session: Node
-var _ready_wired := false
+var _ready_wired: bool = false
 var _practice_bridge: Node
 var _practice_recovery: Dictionary = {}
-var _practice_pending_method := ""
-var _practice_pending_request_id := ""
-var _practice_pending_context := ""
-var _practice_ready := false
-var _practice_operation_counter := 0
+var _practice_pending_method: String = ""
+var _practice_pending_request_id: String = ""
+var _practice_pending_context: String = ""
+var _practice_ready: bool = false
+var _practice_operation_counter: int = 0
 var _pending_creator_document: Dictionary = {}
 var _practice_pending_operation: Dictionary = {}
 var _practice_retry_operation: Dictionary = {}
-var _startup_state := "idle"
+var _startup_state: String = "idle"
 var _run_progress_store: RefCounted
-var _startup_progress_matched := false
-var _startup_expected_document_revision := -1
+var _startup_progress_matched: bool = false
+var _startup_expected_document_revision: int = -1
 var _accessibility_mirror: RefCounted = GameAccessibilityMirror.new()
 var _dialog_focus_target: Control
 
@@ -187,8 +188,8 @@ func _ready() -> void:
     market_host.market_request_failed.connect(_on_market_request_failed)
     if not market_screen.is_node_ready():
         market_screen.call("_ready")
-    market_screen.call("set_market_host", market_host)
-    market_screen.connect("fix_requested", _reopen_returned_campaign)
+    market_screen.set_market_host(market_host)
+    market_screen.fix_requested.connect(_reopen_returned_campaign)
     join_live_market.pressed.connect(_join_live_room)
     teacher_setup_toggle.pressed.connect(_toggle_teacher_setup)
     create_live_market.pressed.connect(_create_live_room)

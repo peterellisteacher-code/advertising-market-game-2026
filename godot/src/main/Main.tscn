@@ -1,8 +1,8 @@
 [gd_scene load_steps=13 format=3]
 
-[ext_resource type="Script" path="res://src/main/Main.gd" id="1_main"]
-[ext_resource type="Script" path="res://src/creator/CreatorHost.gd" id="2_host"]
-[ext_resource type="Script" path="res://src/market/MarketHost.gd" id="3_market_host"]
+[ext_resource type="Script" path="res://src/main/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://src/creator/creator_host.gd" id="2_host"]
+[ext_resource type="Script" path="res://src/market/market_host.gd" id="3_market_host"]
 [ext_resource type="PackedScene" path="res://src/market/ui/MarketScreen.tscn" id="4_market_screen"]
 
 [sub_resource type="StyleBoxFlat" id="Style_panel"]

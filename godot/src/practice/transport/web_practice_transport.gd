@@ -1,4 +1,5 @@
 extends RefCounted
+class_name AdMarketWebPracticeTransport
 
 signal diagnostic(message: String)
 

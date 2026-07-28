@@ -251,9 +251,9 @@ export const STUDENT_COPY_JSON_SOURCES = Object.freeze([
 
 export const STUDENT_COPY_SOURCE_PATHS = Object.freeze([
   ...STUDENT_COPY_JSON_SOURCES.map(({ path: sourcePath }) => sourcePath),
-  "godot/src/main/Main.gd",
+  "godot/src/main/main.gd",
   "godot/src/main/Main.tscn",
-  "godot/src/market/ui/MarketScreen.gd",
+  "godot/src/market/ui/market_screen.gd",
   "godot/src/market/ui/MarketScreen.tscn",
   "godot/web/godot_shell.html",
   "web/src/account/account-gate.ts",

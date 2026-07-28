@@ -1,4 +1,5 @@
 extends SceneTree
+class_name AdMarketRunTests
 
 func _initialize() -> void:
     for suite_path in [

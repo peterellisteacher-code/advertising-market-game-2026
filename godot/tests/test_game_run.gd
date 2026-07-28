@@ -1,6 +1,7 @@
 extends RefCounted
+class_name AdMarketTestGameRun
 
-const GameRun = preload("res://src/game/GameRun.gd")
+const GameRun = preload("res://src/game/game_run.gd")
 
 func run() -> bool:
     assert(_levels_advance_only_after_the_current_level_is_ready())

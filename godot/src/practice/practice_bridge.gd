@@ -1,10 +1,11 @@
 extends Node
+class_name AdMarketPracticeBridge
 
 signal request_succeeded(request_id: String, method: String, payload: Variant)
 signal request_failed(request_id: String, code: String, message: String)
 signal diagnostic(message: String)
 
-const CampaignDocument = preload("res://src/creator/CampaignDocument.gd")
+const CampaignDocument = preload("res://src/creator/campaign_document.gd")
 const CONTRACT := "practice-run@1"
 const CHECKPOINT_CONTRACT := "local-practice-checkpoint@1"
 const STAGES := ["invent", "sell", "irresistible", "publish-check"]
@@ -13,7 +14,7 @@ const MAX_COMPLETED := 64
 const MAX_COUNTER := 1000000
 
 var transport: RefCounted
-var _next_request_number := 1
+var _next_request_number: int = 1
 var _pending: Dictionary = {}
 var _completed: Dictionary = {}
 var _completed_order: Array[String] = []

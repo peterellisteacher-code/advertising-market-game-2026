@@ -1,4 +1,5 @@
 extends Node
+class_name AdMarketCreatorHost
 
 signal diagnostic(message: String)
 signal focus_restore_requested
@@ -8,7 +9,7 @@ signal creator_state_received(document: Dictionary)
 signal latest_draft_received(document: Variant)
 signal creator_published(publication: Dictionary)
 
-const CreatorBridge = preload("res://src/creator/CreatorBridge.gd")
+const CreatorBridge = preload("res://src/creator/creator_bridge.gd")
 
 @export var game_input_root_path: NodePath
 @export var launch_button_path: NodePath
@@ -17,14 +18,14 @@ var transport: RefCounted
 var bridge: Node
 var game_input_root: Node
 var launch_button: Control
-var creator_is_open := false
-var _previous_process_mode := Node.PROCESS_MODE_INHERIT
-var _opening := false
-var _closing := false
-var _save_before_close_request_id := ""
-var _awaiting_save_before_close := false
-var _state_before_close_request_id := ""
-var _awaiting_state_before_close := false
+var creator_is_open: bool = false
+var _previous_process_mode: ProcessMode = Node.PROCESS_MODE_INHERIT
+var _opening: bool = false
+var _closing: bool = false
+var _save_before_close_request_id: String = ""
+var _awaiting_save_before_close: bool = false
+var _state_before_close_request_id: String = ""
+var _awaiting_state_before_close: bool = false
 
 func set_transport(value: RefCounted) -> void:
     transport = value

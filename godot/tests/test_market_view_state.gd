@@ -1,6 +1,7 @@
 extends RefCounted
+class_name AdMarketTestMarketViewState
 
-const MarketViewState = preload("res://src/market/MarketViewState.gd")
+const MarketViewState = preload("res://src/market/market_view_state.gd")
 
 func run() -> bool:
     assert(_team_snapshot_derives_render_ready_cards_and_readiness())

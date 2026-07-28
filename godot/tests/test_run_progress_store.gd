@@ -1,6 +1,7 @@
 extends RefCounted
+class_name AdMarketTestRunProgressStore
 
-const WebRunProgressStore = preload("res://src/game/WebRunProgressStore.gd")
+const WebRunProgressStore = preload("res://src/game/web_run_progress_store.gd")
 
 func run() -> bool:
     var envelope := _envelope()

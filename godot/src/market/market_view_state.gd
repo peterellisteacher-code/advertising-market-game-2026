@@ -1,4 +1,5 @@
 extends RefCounted
+class_name AdMarketMarketViewState
 
 const MAX_SAFE_INTEGER := 9007199254740991
 const MAX_TEAMS := 30
@@ -532,7 +533,7 @@ func _normalise_purchases(
     var seller_ids: Dictionary = {}
     var seller_by_campaign: Dictionary = {}
     var price_by_campaign: Dictionary = {}
-    var spent_total := 0
+    var spent_total: int = 0
     for purchase_value in purchases:
         if typeof(purchase_value) != TYPE_DICTIONARY:
             return {}
@@ -600,7 +601,7 @@ func _normalise_awards(
             or medals.has(str(award.get("medal")))
         ):
             return {}
-        var normalised := {
+        var normalised: Dictionary = {
             "id": str(award.get("id")),
             "campaignId": str(award.get("campaignId")),
             "sellerTeamId": str(award.get("sellerTeamId")),
@@ -721,14 +722,14 @@ func _normalise_medal_campaign(
     ):
         return {}
     for optional_key in ["tagline", "reviewNote"]:
-        var maximum := 160 if optional_key == "tagline" else 240
+        var maximum: int = 160 if optional_key == "tagline" else 240
         if campaign.has(optional_key) and not _is_safe_string(campaign.get(optional_key), maximum):
             return {}
-    var campaign_id := str(campaign.get("id"))
-    var is_own := str(campaign.get("sellerTeamId")) == own_team_id
-    var status := str(campaign.get("status"))
+    var campaign_id: String = str(campaign.get("id"))
+    var is_own: bool = str(campaign.get("sellerTeamId")) == own_team_id
+    var status: String = str(campaign.get("status"))
     var award: Dictionary = awarded_by_campaign.get(campaign_id, {})
-    var card := {
+    var card: Dictionary = {
         "id": campaign_id,
         "sellerTeamId": str(campaign.get("sellerTeamId")),
         "sellerAlias": str(campaign.get("sellerAlias")),
@@ -779,17 +780,17 @@ func _normalise_team_campaign(
     ):
         return {}
     for optional_key in ["tagline", "reviewNote"]:
-        var maximum := 160 if optional_key == "tagline" else 240
+        var maximum: int = 160 if optional_key == "tagline" else 240
         if campaign.has(optional_key) and not _is_safe_string(campaign.get(optional_key), maximum):
             return {}
-    var is_own := str(campaign.get("sellerTeamId")) == own_team_id
-    var status := str(campaign.get("status"))
+    var is_own: bool = str(campaign.get("sellerTeamId")) == own_team_id
+    var status: String = str(campaign.get("status"))
     if not is_own and status != "approved":
         return {}
-    var price := int(campaign.get("price"))
-    var is_bought := bought_campaigns.has(str(campaign.get("id")))
-    var is_affordable := price <= wallet
-    var card := {
+    var price: int = int(campaign.get("price"))
+    var is_bought: bool = bought_campaigns.has(str(campaign.get("id")))
+    var is_affordable: bool = price <= wallet
+    var card: Dictionary = {
         "id": str(campaign.get("id")),
         "sellerTeamId": str(campaign.get("sellerTeamId")),
         "sellerAlias": str(campaign.get("sellerAlias")),
@@ -834,10 +835,10 @@ func _normalise_teacher_campaign(value: Variant, team_aliases: Dictionary) -> Di
     ):
         return {}
     for optional_key in ["tagline", "reviewNote"]:
-        var maximum := 160 if optional_key == "tagline" else 240
+        var maximum: int = 160 if optional_key == "tagline" else 240
         if campaign.has(optional_key) and not _is_safe_string(campaign.get(optional_key), maximum):
             return {}
-    var normalised := {
+    var normalised: Dictionary = {
         "id": str(campaign.get("id")),
         "sellerTeamId": str(campaign.get("sellerTeamId")),
         "sellerAlias": str(campaign.get("sellerAlias")),
@@ -857,8 +858,8 @@ func _derive_teacher_reveal(
     team_aliases: Dictionary,
     market_mode: String
 ) -> Dictionary:
-    var hidden := {"visible": false, "topThree": []}
-    var phase := str(snapshot.get("phase"))
+    var hidden: Dictionary = {"visible": false, "topThree": []}
+    var phase: String = str(snapshot.get("phase"))
     if phase not in ["reveal", "closed"] or not snapshot.has("reveal"):
         return {"ok": true, "reveal": hidden}
     if typeof(snapshot.get("reveal")) != TYPE_DICTIONARY:
@@ -897,7 +898,7 @@ func _derive_teacher_reveal(
             return {}
         standing_team_ids[str(standing.get("teamId"))] = true
         if index < 3:
-            var podium_entry := {
+            var podium_entry: Dictionary = {
                 "place": index + 1,
                 "teamId": str(standing.get("teamId")),
                 "alias": str(standing.get("alias"))

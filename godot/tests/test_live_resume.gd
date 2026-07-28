@@ -1,10 +1,11 @@
 extends RefCounted
+class_name AdMarketTestLiveResume
 
 const MainScene = preload("res://src/main/Main.tscn")
-const FakeCreatorTransport = preload("res://tests/fakes/FakeCreatorTransport.gd")
-const FakeMarketTransport = preload("res://tests/fakes/FakeMarketTransport.gd")
-const FakePracticeTransport = preload("res://tests/fakes/FakePracticeTransport.gd")
-const FakeRunProgressStore = preload("res://tests/fakes/FakeRunProgressStore.gd")
+const FakeCreatorTransport = preload("res://tests/fakes/fake_creator_transport.gd")
+const FakeMarketTransport = preload("res://tests/fakes/fake_market_transport.gd")
+const FakePracticeTransport = preload("res://tests/fakes/fake_practice_transport.gd")
+const FakeRunProgressStore = preload("res://tests/fakes/fake_run_progress_store.gd")
 
 func run() -> bool:
     assert(_startup_arbitrates_live_before_practice())
@@ -418,13 +419,13 @@ func _mount_shell(
     practice_fake: RefCounted,
     progress_store: RefCounted = null
 ) -> Control:
-    var shell := MainScene.instantiate()
+    var shell: Control = MainScene.instantiate() as Control
     shell.creator_transport_override = creator_fake
     shell.market_transport_override = market_fake
     shell.practice_transport_override = practice_fake
     if progress_store != null:
         shell.set("run_progress_store_override", progress_store)
-    var tree := Engine.get_main_loop() as SceneTree
+    var tree: SceneTree = Engine.get_main_loop() as SceneTree
     tree.root.add_child(shell)
     if not shell.is_node_ready():
         shell.call("_ready")
@@ -440,7 +441,7 @@ func _live_progress(
     level_locked: bool,
     document_revision: int
 ) -> Dictionary:
-    var session_id := "room-session-%s" % team_id
+    var session_id: String = "room-session-%s" % team_id
     return {
         "contract": "live-run-progress@1",
         "roomCode": room_code,

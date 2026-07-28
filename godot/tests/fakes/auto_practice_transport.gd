@@ -1,4 +1,5 @@
 extends RefCounted
+class_name AdMarketAutoPracticeTransport
 
 const CONTRACT := "practice-run@1"
 const CHECKPOINT_CONTRACT := "local-practice-checkpoint@1"
@@ -6,7 +7,7 @@ const STAGES := ["invent", "sell", "irresistible", "publish-check"]
 
 var document_provider: Callable
 var _active: Variant = null
-var _adopt_sequence := 0
+var _adopt_sequence: int = 0
 
 func send(request_json: String, resolve: Callable, _reject: Callable) -> void:
     var decoded: Variant = JSON.parse_string(request_json)
@@ -101,11 +102,11 @@ func _recovery(
     sequence: int,
     operation_id: String
 ) -> Dictionary:
-    var recovered_document := document.duplicate(true)
+    var recovered_document: Dictionary = document.duplicate(true)
     var pair: Dictionary = recovered_document["gameplay"]["pair"]
     if not pair.has("roleGuideAcknowledged"):
         pair["roleGuideAcknowledged"] = false
-    var checkpoint := {
+    var checkpoint: Dictionary = {
         "contract": CHECKPOINT_CONTRACT,
         "runId": run_id,
         "documentId": String(recovered_document.get("documentId")),

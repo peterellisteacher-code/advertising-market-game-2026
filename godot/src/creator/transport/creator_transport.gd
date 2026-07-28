@@ -1,4 +1,5 @@
 extends RefCounted
+class_name AdMarketCreatorTransport
 
 func set_close_requested_callback(_callback: Callable) -> void:
     pass

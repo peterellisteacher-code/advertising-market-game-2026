@@ -1,6 +1,7 @@
 extends RefCounted
+class_name AdMarketFakeRunProgressStore
 
-const WebRunProgressStore = preload("res://src/game/WebRunProgressStore.gd")
+const WebRunProgressStore = preload("res://src/game/web_run_progress_store.gd")
 
 var stored: Dictionary = {}
 var saves: Array[Dictionary] = []

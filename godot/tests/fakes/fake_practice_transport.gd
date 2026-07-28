@@ -1,4 +1,5 @@
 extends RefCounted
+class_name AdMarketFakePracticeTransport
 
 const CONTRACT := "practice-run@1"
 

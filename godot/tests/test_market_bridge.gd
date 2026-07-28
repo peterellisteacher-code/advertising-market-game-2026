@@ -1,8 +1,9 @@
 extends RefCounted
+class_name AdMarketTestMarketBridge
 
-const MarketBridge = preload("res://src/market/MarketBridge.gd")
-const WebMarketTransport = preload("res://src/market/transport/WebMarketTransport.gd")
-const FakeMarketTransport = preload("res://tests/fakes/FakeMarketTransport.gd")
+const MarketBridge = preload("res://src/market/market_bridge.gd")
+const WebMarketTransport = preload("res://src/market/transport/web_market_transport.gd")
+const FakeMarketTransport = preload("res://tests/fakes/fake_market_transport.gd")
 const COMMAND_A := "11111111-1111-4111-8111-111111111111"
 const COMMAND_B := "22222222-2222-4222-8222-222222222222"
 const COMMAND_C := "33333333-3333-4333-8333-333333333333"

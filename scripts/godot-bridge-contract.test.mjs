@@ -4,8 +4,8 @@ import test from "node:test";
 
 const root = new URL("../", import.meta.url);
 const godotBridgeDocuments = [
-  "godot/src/creator/CampaignDocument.gd",
-  "godot/src/main/Main.gd",
+  "godot/src/creator/campaign_document.gd",
+  "godot/src/main/main.gd",
   "godot/tests/test_creator_bridge.gd",
   "godot/tests/test_creator_host.gd"
 ];
@@ -35,7 +35,7 @@ test("every Godot bridge document uses the canonical 1600 by 900 canvas", async 
 
 test("Godot JSON integer validation uses the JavaScript safe-integer ceiling", async () => {
   const campaignDocument = await readFile(
-    new URL("godot/src/creator/CampaignDocument.gd", root),
+    new URL("godot/src/creator/campaign_document.gd", root),
     "utf8"
   );
   const bridgeTests = await readFile(
@@ -50,7 +50,7 @@ test("Godot JSON integer validation uses the JavaScript safe-integer ceiling", a
 
 test("the practice bridge accepts and validates the persisted role-guide flag", async () => {
   const [practiceBridge, bridgeTests, campaignDocument] = await Promise.all([
-    readFile(new URL("godot/src/practice/PracticeBridge.gd", root), "utf8"),
+    readFile(new URL("godot/src/practice/practice_bridge.gd", root), "utf8"),
     readFile(new URL("godot/tests/test_practice_bridge.gd", root), "utf8"),
     readFile(new URL("web/src/domain/campaign-document.ts", root), "utf8")
   ]);
@@ -69,7 +69,7 @@ test("the practice bridge accepts and validates the persisted role-guide flag", 
 
 test("CreatorHost never prefixes student diagnostics with internal bridge codes or raw close errors", async () => {
   const creatorHost = await readFile(
-    new URL("godot/src/creator/CreatorHost.gd", root),
+    new URL("godot/src/creator/creator_host.gd", root),
     "utf8"
   );
 
@@ -85,7 +85,7 @@ test("CreatorHost never prefixes student diagnostics with internal bridge codes 
 test("the Godot shell mirrors current instructions semantically without pretending to be an editor", async () => {
   const [shell, main, scene] = await Promise.all([
     readFile(new URL("godot/web/godot_shell.html", root), "utf8"),
-    readFile(new URL("godot/src/main/Main.gd", root), "utf8"),
+    readFile(new URL("godot/src/main/main.gd", root), "utf8"),
     readFile(new URL("godot/src/main/Main.tscn", root), "utf8")
   ]);
 
@@ -122,8 +122,8 @@ test("the Godot shell mirrors current instructions semantically without pretendi
 
 test("room join failures keep their typed code until Main chooses student copy", async () => {
   const [host, main] = await Promise.all([
-    readFile(new URL("godot/src/market/MarketHost.gd", root), "utf8"),
-    readFile(new URL("godot/src/main/Main.gd", root), "utf8")
+    readFile(new URL("godot/src/market/market_host.gd", root), "utf8"),
+    readFile(new URL("godot/src/main/main.gd", root), "utf8")
   ]);
 
   assert.match(host, /signal room_join_failed\(code: String, message: String\)/);
@@ -149,7 +149,7 @@ test("room join failures keep their typed code until Main chooses student copy",
 
 test("the Godot bridge accepts only the optional bounded retry-after field", async () => {
   const bridge = await readFile(
-    new URL("godot/src/market/MarketBridge.gd", root),
+    new URL("godot/src/market/market_bridge.gd", root),
     "utf8"
   );
 

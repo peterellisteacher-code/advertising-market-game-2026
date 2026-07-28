@@ -1,4 +1,5 @@
 extends RefCounted
+class_name AdMarketWebRunProgressStore
 
 const STORAGE_KEY := "ad-market-local-progress@1"
 const CONTRACT := "live-run-progress@1"

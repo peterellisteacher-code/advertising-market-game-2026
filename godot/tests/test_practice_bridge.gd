@@ -1,8 +1,9 @@
 extends RefCounted
+class_name AdMarketTestPracticeBridge
 
-const PracticeBridge = preload("res://src/practice/PracticeBridge.gd")
-const WebPracticeTransport = preload("res://src/practice/transport/WebPracticeTransport.gd")
-const FakePracticeTransport = preload("res://tests/fakes/FakePracticeTransport.gd")
+const PracticeBridge = preload("res://src/practice/practice_bridge.gd")
+const WebPracticeTransport = preload("res://src/practice/transport/web_practice_transport.gd")
+const FakePracticeTransport = preload("res://tests/fakes/fake_practice_transport.gd")
 
 func run() -> bool:
     assert(_requests_and_recovery_are_strict())

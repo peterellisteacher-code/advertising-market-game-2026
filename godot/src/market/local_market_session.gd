@@ -1,12 +1,11 @@
 extends Node
+class_name AdMarketLocalMarketSession
 
 signal snapshot_received(snapshot: Dictionary)
 signal artwork_received(artwork_key: String, png_bytes: PackedByteArray)
 signal diagnostic(message: String)
 signal purchase_completed(result: Dictionary)
 signal award_completed(result: Dictionary)
-signal control_completed(action: String, result: Dictionary)
-signal campaign_published(result: Dictionary)
 
 const SEED_PRICE_CENTS := 4000
 const OWN_ARTWORK_KEY := "practice-artwork-own"
@@ -24,8 +23,8 @@ const SEED_PRODUCTS := [
 ]
 
 var _game_run: RefCounted
-var _alias := ""
-var _revision := 1
+var _alias: String = ""
+var _revision: int = 1
 var _campaigns: Array[Dictionary] = []
 var _artwork_bytes: Dictionary = {}
 

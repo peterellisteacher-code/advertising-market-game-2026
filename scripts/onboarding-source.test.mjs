@@ -11,13 +11,13 @@ const [
   accessibilityMirror,
   marketHost
 ] = await Promise.all([
-  readFile(new URL("../godot/src/main/Main.gd", import.meta.url), "utf8"),
+  readFile(new URL("../godot/src/main/main.gd", import.meta.url), "utf8"),
   readFile(new URL("../godot/src/main/Main.tscn", import.meta.url), "utf8"),
-  readFile(new URL("../godot/src/market/ui/MarketScreen.gd", import.meta.url), "utf8"),
+  readFile(new URL("../godot/src/market/ui/market_screen.gd", import.meta.url), "utf8"),
   readFile(new URL("../godot/src/market/ui/MarketScreen.tscn", import.meta.url), "utf8"),
   readFile(new URL("../godot/project.godot", import.meta.url), "utf8"),
-  readFile(new URL("../godot/src/main/GameAccessibilityMirror.gd", import.meta.url), "utf8"),
-  readFile(new URL("../godot/src/market/MarketHost.gd", import.meta.url), "utf8")
+  readFile(new URL("../godot/src/main/game_accessibility_mirror.gd", import.meta.url), "utf8"),
+  readFile(new URL("../godot/src/market/market_host.gd", import.meta.url), "utf8")
 ]);
 
 test("game shell uses the full 16:10 school MacBook viewport", () => {

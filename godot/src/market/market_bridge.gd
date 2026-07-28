@@ -1,4 +1,5 @@
 extends Node
+class_name AdMarketMarketBridge
 
 signal request_succeeded(request_id: String, method: String, payload: Variant)
 signal request_failed(request_id: String, code: String, message: String)
@@ -31,7 +32,7 @@ const MEDALS := ["gold", "silver", "bronze"]
 const CONTROL_ACTIONS := ["openMarket", "openReveal", "closeMarket", "removeTeam"]
 
 var transport: RefCounted
-var _next_request_number := 1
+var _next_request_number: int = 1
 var _pending: Dictionary = {}
 var _completed: Dictionary = {}
 var _completed_order: Array[String] = []
@@ -134,7 +135,7 @@ func review_campaign(
         return _reject_input("commandId must be a UUID")
     if review_note != null and not _is_safe_string(review_note, 240):
         return _reject_input("reviewNote must be a trimmed string of 1 to 240 characters")
-    var payload := {
+    var payload: Dictionary = {
         "commandId": str(command_id),
         "campaignId": str(campaign_id),
         "submissionVersion": int(submission_version),
@@ -320,7 +321,7 @@ func _validate_success_payload(
             return {"ok": true, "value": null}
         return _validate_room_result(payload, method)
     if method == "getSnapshot":
-        var snapshot := _validate_snapshot(payload)
+        var snapshot: Dictionary = _validate_snapshot(payload)
         if not snapshot.get("ok", false):
             return {
                 "ok": false,
@@ -344,7 +345,7 @@ func _validate_command_result(
     if _contains_sensitive_key(value):
         return _invalid_market_result("Durable command result contains a sensitive field")
     var result: Dictionary = value.duplicate(true)
-    var expected_keys := (
+    var expected_keys: Array[String] = (
         ["replayed", "campaignId", "submissionVersion", "postcondition", "snapshot"]
         if method == "publishCampaign"
         else ["replayed", "postcondition", "snapshot"]
@@ -353,7 +354,7 @@ func _validate_command_result(
         return _invalid_market_result("Durable command result contains unexpected or missing fields")
     if typeof(result.get("replayed")) != TYPE_BOOL:
         return _invalid_market_result("Durable command replayed must be a boolean")
-    var snapshot := _validate_snapshot(result.get("snapshot"))
+    var snapshot: Dictionary = _validate_snapshot(result.get("snapshot"))
     if not snapshot.get("ok", false):
         return _invalid_market_result(str(snapshot.get("message", "Durable command snapshot is invalid")))
     result["snapshot"] = snapshot.get("value")
@@ -406,7 +407,7 @@ func _validate_command_result(
         ):
             return _invalid_market_result("Review postcondition does not match the command")
     else:
-        var expected_action := str(request_context.get("action", ""))
+        var expected_action: String = str(request_context.get("action", ""))
         if expected_action == "removeTeam":
             if not _has_exact_dictionary_keys(postcondition, ["kind", "teamId"]):
                 return _invalid_market_result("Remove-team postcondition contains unexpected or missing fields")
@@ -465,7 +466,7 @@ func _validate_room_result(value: Variant, method: String) -> Dictionary:
             "code": "INVALID_ROOM_RESPONSE",
             "message": "Room result roomCode is invalid"
         }
-    var snapshot := _validate_snapshot(result.get("snapshot"))
+    var snapshot: Dictionary = _validate_snapshot(result.get("snapshot"))
     if not snapshot.get("ok", false):
         return {
             "ok": false,
@@ -651,7 +652,7 @@ func _validate_market_result(value: Variant) -> Dictionary:
         }
     var result: Dictionary = value.duplicate(true)
     if result.has("snapshot"):
-        var snapshot := _validate_snapshot(result.get("snapshot"))
+        var snapshot: Dictionary = _validate_snapshot(result.get("snapshot"))
         if not snapshot.get("ok", false):
             return {
                 "ok": false,

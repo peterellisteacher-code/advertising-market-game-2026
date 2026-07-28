@@ -1,43 +1,42 @@
-extends "res://src/market/transport/MarketTransport.gd"
+extends "res://src/creator/transport/creator_transport.gd"
+class_name AdMarketWebCreatorTransport
 
 signal diagnostic(message: String)
 
-const CONTRACT := "market-bridge@1"
+const CONTRACT := "creator-bridge@1"
+const RETURN_TO_GAME_EVENT := "ad-market-creator:return-to-game"
 const MAX_RETAINED_REQUESTS := 32
 
 var _bridge: JavaScriptObject
+var _window: JavaScriptObject
 var _pending_callbacks: Dictionary = {}
+var _close_requested_callback: Callable
+var _close_event_callback: JavaScriptObject
+
+func set_close_requested_callback(callback: Callable) -> void:
+    _close_requested_callback = callback
+    _register_close_listener()
+
+func show_message(message: String) -> void:
+    if not OS.has_feature("web") or not _ensure_bridge():
+        return
+    _bridge.showMessage(message)
 
 func send(request_json: String, resolve: Callable, reject: Callable) -> void:
     var request_id := _request_id(request_json)
-    if request_id.is_empty():
-        reject.call("Live Market request is missing its requestId")
-        return
     if not OS.has_feature("web"):
         resolve.call(_unavailable_response(request_id))
         return
     if _pending_callbacks.size() >= MAX_RETAINED_REQUESTS:
-        reject.call("Live Market transport has too many pending requests")
+        reject.call("Campaign Creator transport has too many pending requests")
         return
     if not _ensure_bridge():
         resolve.call(_unavailable_response(request_id))
         return
 
-    var handle_member: Variant = _bridge.handle
-    if not handle_member is JavaScriptObject:
-        reject.call("Live Market browser global does not expose handle(requestJson)")
-        return
-    var promise: Variant = _bridge.handle(request_json)
-    _attach_promise(request_id, promise, resolve, reject)
-
-func _attach_promise(
-    request_id: String,
-    promise: Variant,
-    resolve: Callable,
-    reject: Callable
-) -> void:
-    if not _is_browser_promise(promise):
-        reject.call("Live Market handle did not return a Promise")
+    var promise: JavaScriptObject = _bridge.handle(request_json)
+    if promise == null:
+        reject.call("Campaign Creator handle did not return a Promise")
         return
     var then_callback := JavaScriptBridge.create_callback(func(arguments: Array) -> void:
         _resolve_promise(request_id, arguments, resolve)
@@ -49,30 +48,35 @@ func _attach_promise(
         "then": then_callback,
         "catch": catch_callback
     }
-    var promise_object: JavaScriptObject = promise
-    var chained: Variant = promise_object.then(then_callback)
-    if _is_browser_promise(chained):
+    var chained: JavaScriptObject = promise.then(then_callback)
+    if chained != null:
         chained.catch(catch_callback)
     else:
-        promise_object.catch(catch_callback)
-
-func _is_browser_promise(value: Variant) -> bool:
-    if not value is JavaScriptObject:
-        return false
-    var javascript_object: JavaScriptObject = value
-    return (
-        javascript_object.then is JavaScriptObject
-        and javascript_object.catch is JavaScriptObject
-    )
+        promise.catch(catch_callback)
 
 func _ensure_bridge() -> bool:
     if _bridge != null:
+        _register_close_listener()
         return true
-    _bridge = JavaScriptBridge.get_interface("AdMarketRoom")
+    _bridge = JavaScriptBridge.get_interface("AdMarketCreator")
     if _bridge == null:
-        diagnostic.emit("Missing browser global window.AdMarketRoom")
+        diagnostic.emit("Missing browser global window.AdMarketCreator")
         return false
+    _register_close_listener()
     return true
+
+func _register_close_listener() -> void:
+    if not OS.has_feature("web") or _close_event_callback != null or not _close_requested_callback.is_valid():
+        return
+    _window = JavaScriptBridge.get_interface("window")
+    if _window == null:
+        diagnostic.emit("Missing browser window interface")
+        return
+    _close_event_callback = JavaScriptBridge.create_callback(func(_arguments: Array) -> void:
+        if _close_requested_callback.is_valid():
+            _close_requested_callback.call()
+    )
+    _window.addEventListener(RETURN_TO_GAME_EVENT, _close_event_callback)
 
 func _resolve_promise(request_id: String, arguments: Array, resolve: Callable) -> void:
     if not _pending_callbacks.has(request_id):
@@ -87,7 +91,7 @@ func _reject_promise(request_id: String, arguments: Array, reject: Callable) -> 
     if not _pending_callbacks.has(request_id):
         return
     _pending_callbacks.erase(request_id)
-    var message := "Live Market Promise rejected"
+    var message := "Campaign Creator Promise rejected"
     if not arguments.is_empty() and typeof(arguments[0]) == TYPE_STRING:
         message = str(arguments[0])
     reject.call(message)
@@ -104,7 +108,7 @@ func _unavailable_response(request_id: String) -> String:
         "requestId": request_id,
         "ok": false,
         "error": {
-            "code": "MARKET_UNAVAILABLE",
-            "message": "Live Market is unavailable in this runtime."
+            "code": "CREATOR_UNAVAILABLE",
+            "message": "Campaign Creator is unavailable in this runtime."
         }
     })

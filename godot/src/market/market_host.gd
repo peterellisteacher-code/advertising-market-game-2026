@@ -1,4 +1,5 @@
 extends Node
+class_name AdMarketMarketHost
 
 signal diagnostic(message: String)
 signal focus_restore_requested
@@ -16,7 +17,7 @@ signal purchase_completed(result: Dictionary)
 signal award_completed(result: Dictionary)
 signal artwork_received(artwork_key: String, png_bytes: PackedByteArray)
 
-const MarketBridge = preload("res://src/market/MarketBridge.gd")
+const MarketBridge = preload("res://src/market/market_bridge.gd")
 const MAX_CACHED_ARTWORK := 16
 const MAX_COMMAND_INTENTS := 32
 const SAFE_TERMINAL_COMMAND_ERRORS := [
@@ -32,19 +33,19 @@ var transport: RefCounted
 var bridge: Node
 var game_input_root: Node
 var return_focus_control: Control
-var _previous_process_mode := Node.PROCESS_MODE_INHERIT
-var _busy_count := 0
+var _previous_process_mode: ProcessMode = Node.PROCESS_MODE_INHERIT
+var _busy_count: int = 0
 var _request_context: Dictionary = {}
 var _dispatch_frames: Array[Dictionary] = []
-var _next_dispatch_number := 1
-var _silent_snapshot_request_id := ""
+var _next_dispatch_number: int = 1
+var _silent_snapshot_request_id: String = ""
 var _artwork_request_ids: Dictionary = {}
 var _artwork_cache: Dictionary = {}
 var _artwork_cache_request_ids: Dictionary = {}
 var _artwork_cache_order: Array[String] = []
-var _room_generation := 0
-var _room_intent_generation := 0
-var _last_accepted_snapshot_revision := -1
+var _room_generation: int = 0
+var _room_intent_generation: int = 0
+var _last_accepted_snapshot_revision: int = -1
 var _command_intents: Dictionary = {}
 
 func set_transport(value: RefCounted) -> void:
@@ -67,7 +68,7 @@ func create_room(
     classroom_code: Variant,
     max_teams: Variant = 15
 ) -> String:
-    var room_intent_generation := _begin_room_intent()
+    var room_intent_generation: int = _begin_room_intent()
     return _dispatch(
         "createRoom",
         {"roomIntentGeneration": room_intent_generation},
@@ -75,7 +76,7 @@ func create_room(
     )
 
 func join_room(room_code: Variant, alias: Variant) -> String:
-    var room_intent_generation := _begin_room_intent()
+    var room_intent_generation: int = _begin_room_intent()
     return _dispatch(
         "joinRoom",
         {"roomIntentGeneration": room_intent_generation},
@@ -83,7 +84,7 @@ func join_room(room_code: Variant, alias: Variant) -> String:
     )
 
 func resume_session() -> String:
-    var room_intent_generation := _begin_room_intent()
+    var room_intent_generation: int = _begin_room_intent()
     return _dispatch(
         "resumeSession",
         {"roomIntentGeneration": room_intent_generation},
@@ -116,7 +117,7 @@ func request_snapshot_silently() -> String:
 
 func publish_campaign(publication: Variant) -> String:
     var intent := _begin_command_intent("publish", publication)
-    var command_id := str(intent.get("commandId", ""))
+    var command_id: String = str(intent.get("commandId", ""))
     return _dispatch(
         "publishCampaign",
         {
@@ -136,9 +137,9 @@ func purchase(campaign_id: Variant, request_id: Variant) -> String:
 
 func award(campaign_id: Variant, medal: Variant) -> String:
     var command_key := "award:%s" % str(medal)
-    var semantic := {"campaignId": campaign_id, "medal": medal}
-    var intent := _begin_command_intent(command_key, semantic)
-    var command_id := str(intent.get("commandId", ""))
+    var semantic: Dictionary = {"campaignId": campaign_id, "medal": medal}
+    var intent: Dictionary = _begin_command_intent(command_key, semantic)
+    var command_id: String = str(intent.get("commandId", ""))
     return _dispatch(
         "award",
         {
@@ -151,7 +152,7 @@ func award(campaign_id: Variant, medal: Variant) -> String:
 
 func finish() -> String:
     var intent := _begin_command_intent("finish", {})
-    var command_id := str(intent.get("commandId", ""))
+    var command_id: String = str(intent.get("commandId", ""))
     return _dispatch("finish", {
         "roomGeneration": _room_generation,
         "commandKey": "finish",
@@ -164,15 +165,15 @@ func review_campaign(
     status: Variant,
     review_note: Variant = null
 ) -> String:
-    var command_key := "review:%s" % str(campaign_id)
-    var semantic := {
+    var command_key: String = "review:%s" % str(campaign_id)
+    var semantic: Dictionary = {
         "campaignId": campaign_id,
         "submissionVersion": submission_version,
         "status": status,
         "reviewNote": review_note
     }
-    var intent := _begin_command_intent(command_key, semantic)
-    var command_id := str(intent.get("commandId", ""))
+    var intent: Dictionary = _begin_command_intent(command_key, semantic)
+    var command_id: String = str(intent.get("commandId", ""))
     return _dispatch(
         "reviewCampaign",
         {
@@ -196,9 +197,9 @@ func control(action: Variant, team_id: Variant = null) -> String:
         if str(action) == "removeTeam"
         else "control:%s" % str(action)
     )
-    var semantic := {"action": action, "teamId": team_id}
-    var intent := _begin_command_intent(command_key, semantic)
-    var command_id := str(intent.get("commandId", ""))
+    var semantic: Dictionary = {"action": action, "teamId": team_id}
+    var intent: Dictionary = _begin_command_intent(command_key, semantic)
+    var command_id: String = str(intent.get("commandId", ""))
     var context := {
         "action": str(action),
         "roomGeneration": _room_generation,
@@ -248,10 +249,10 @@ func _dispatch(
     interactive := true
 ) -> String:
     _ensure_bridge()
-    var full_context := context.duplicate(true)
+    var full_context: Dictionary = context.duplicate(true)
     full_context["method"] = method
     full_context["interactive"] = interactive
-    var frame := {
+    var frame: Dictionary = {
         "dispatchNumber": _next_dispatch_number,
         "context": full_context,
         "finished": false
@@ -493,7 +494,7 @@ func _command_intent_is_observed(
     if command_key.begins_with("removeTeam:"):
         if typeof(snapshot.get("teams")) != TYPE_ARRAY:
             return false
-        var removed_team_id := str(semantic.get("teamId", ""))
+        var removed_team_id: String = str(semantic.get("teamId", ""))
         for team_value in snapshot.get("teams"):
             if typeof(team_value) == TYPE_DICTIONARY:
                 var team: Dictionary = team_value
@@ -550,7 +551,7 @@ func _snapshot_has_publish_postcondition(
     if typeof(metadata_value) != TYPE_DICTIONARY:
         return false
     var metadata: Dictionary = metadata_value
-    var own_team_id := ""
+    var own_team_id: String = ""
     if typeof(snapshot.get("own")) == TYPE_DICTIONARY:
         own_team_id = str(Dictionary(snapshot.get("own")).get("teamId", ""))
     for campaign_value in snapshot.get("campaigns"):

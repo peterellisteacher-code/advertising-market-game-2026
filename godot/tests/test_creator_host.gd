@@ -1,7 +1,8 @@
 extends RefCounted
+class_name AdMarketTestCreatorHost
 
-const CreatorHost = preload("res://src/creator/CreatorHost.gd")
-const FakeCreatorTransport = preload("res://tests/fakes/FakeCreatorTransport.gd")
+const CreatorHost = preload("res://src/creator/creator_host.gd")
+const FakeCreatorTransport = preload("res://tests/fakes/fake_creator_transport.gd")
 
 func run() -> bool:
     var fake := FakeCreatorTransport.new()

@@ -27,6 +27,53 @@ runtime behaviour.
 | Strong role contribution tracking | Strength | `web/src/game/pair-game-controller.ts`; `web/src/game/pair-game-controller.test.ts` — “tracks both roles across text, canvas changes, handoff and reopen”; `web/src/game/role-guide-controller.test.ts` — “requires acknowledgement on first entry and states both responsibilities” | Task 9 Step 2 item 4 at 1280×800: definitions, current role, recorded contribution and swap | requires current hosted browser observation |
 | Reliable autosave and resume | Strength | `web/src/account/cloud-progress-sync.ts`; `web/src/account/cloud-progress-sync.test.ts` — “keeps the 300ms serialized local save successful when cloud is offline”; `web/src/persistence/draft-store.test.ts` — “begins and resumes one offline local-practice run from an exact checkpoint” | Task 9 Step 2 item 17 at 1280×800 and Task 9 Step 6: local autosave, fake cloud-state presentation and browser-controlled offline reload where supported | requires current hosted browser observation |
 
-The earlier 1366×768 playtest is contextual evidence only. This table remains
-open until Task 9 adds the current hosted transcript and screenshot paths. It
-does not claim Safari, school-wifi, real Supabase or production-hosted evidence.
+The earlier 1366×768 playtest is contextual evidence only.
+
+## Final closure — 28 July 2026
+
+The status column above records the pre-QA gate. The final candidate closes all
+fourteen actionable findings through the following current evidence:
+
+| Finding | Final evidence | Final status |
+| --- | --- | --- |
+| Market Gate loops forever | `godot/tests/test_live_resume.gd`; `godot/tests/test_game_shell.gd`; `scripts/onboarding-source.test.mjs`; Linux Godot run `30304627640` passed the complete twelve-suite seam test before export | closed by deterministic resume and completion tests |
+| Used device cannot start the next pair | `web/src/main.test.ts` covers pair A → sign out → pair B isolation; hosted `/student` reopened at the isolated pair gate | closed |
+| QA price fixtures appear to students | `scripts/production-catalogue-safety.test.mjs` passed against the final release catalogue | closed |
+| Raw `HANDLER_ERROR` is exposed | creator public-boundary and Godot bridge contracts passed; current QA console contained no owned warning or error | closed |
+| Market Gate keyboard dead zone | market screen, game-shell and onboarding keyboard-order tests passed in Linux Godot and the build-contract suite | closed by deterministic keyboard and focus tests |
+| Canvas screens lack assistive state | canvas accessibility tests passed; selected-item Delete and Undo were visible and operable in the hosted studio | closed |
+| First AIDA lock loses apparent selection | `web/src/main.test.ts` selection/AIDA regressions passed in the 2,368-test application suite | closed |
+| Price action has no done state | product-money-panel pending, complete and needs-attention regressions passed | closed |
+| Two revision counters disagree | account-bootstrap student-status regressions passed; no internal revision counter appeared in the hosted pair flow | closed |
+| Full brief overlaps Hide library | hosted full guide, 1440×900 studio and 768×900 Browse/Edit screenshots show no overlay or inaccessible separator | closed |
+| Vague `Follow the highlighted tool step` | current hosted guide shows one concrete action with permanent complete reference; professional-copy contracts passed | closed |
+| Live-room join error blames two causes | typed room and polling error contracts passed in the 118-test build suite | closed |
+| Curved-label wording over-promises | curved artwork round-trip tests and professional-copy prohibitions passed | closed |
+| Large product placement and Undo/Redo | hosted product, Delete and Undo screenshots plus history regressions passed | closed |
+
+The retained current transcript is:
+
+`C:\tmp\admarket-browser-qa-89de81db-full-20260728\evidence\browser-qa-findings.md`
+
+The exact final source SHA `89de81db9c6dd79a47217768ed97cacdf811c719`
+was exported on Linux, assembled, statically verified and deployed to the
+non-production QA draft. Fresh isolated Playwright contexts then opened the
+complete teacher playtest at literal `1280×800` and `1440×900`. Both reached
+`Game ready`, presented the clarified Art Director and Strategist duties,
+showed twelve unselected starters, retained the teacher strip, had no
+horizontal overflow, produced no application console warning/error, and raised
+no page exception. The exact screenshots are:
+
+- `C:\tmp\admarket-browser-qa-89de81db-full-20260728\evidence\03-teacher-playtest-exact-final-1280x800.png`
+- `C:\tmp\admarket-browser-qa-89de81db-full-20260728\evidence\04-teacher-playtest-exact-final-1440x900.png`
+
+The transcript also cites the retained `768×900` fallback and the full student,
+reset, market, guidance, product, Delete/Undo and role-swap evidence whose
+application inputs remain unchanged. Four line-zero Chromium/ANGLE performance
+notices from the headless `1280×800` context are recorded separately from
+application output in `playwright-exact-viewports.json`; the in-app browser and
+`1440×900` context produced none.
+
+This closure does not claim Safari, school wifi, browser-controlled offline
+reload, real Supabase, the production visitor gate, production Functions,
+production edge routing/rate limiting or production-hosted evidence.

@@ -1,0 +1,186 @@
+[gd_scene format=3 uid="uid://ok8vov7n8f45"]
+
+[ext_resource type="Script" uid="uid://drbcjmponcqg5" path="res://src/agency/player/agency_pair.gd" id="1_yns3q"]
+[ext_resource type="Texture2D" uid="uid://dyin7hwo02j1d" path="res://assets/agency/agency-pair.png" id="2_mm0mf"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ufj3u"]
+atlas = ExtResource("2_mm0mf")
+region = Rect2(418, 0, 418, 470)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b003l"]
+atlas = ExtResource("2_mm0mf")
+region = Rect2(0, 0, 418, 470)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xuhrm"]
+atlas = ExtResource("2_mm0mf")
+region = Rect2(836, 0, 418, 470)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ve00a"]
+atlas = ExtResource("2_mm0mf")
+region = Rect2(1254, 0, 418, 470)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_dcsl4"]
+atlas = ExtResource("2_mm0mf")
+region = Rect2(418, 470, 418, 471)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3dmmh"]
+atlas = ExtResource("2_mm0mf")
+region = Rect2(0, 470, 418, 471)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6nbji"]
+atlas = ExtResource("2_mm0mf")
+region = Rect2(836, 470, 418, 471)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_tbg3i"]
+atlas = ExtResource("2_mm0mf")
+region = Rect2(1254, 470, 418, 471)
+filter_clip = true
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_38qut"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ufj3u")
+}],
+"loop": 1,
+"name": &"art-back",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_b003l")
+}],
+"loop": 1,
+"name": &"art-front",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xuhrm")
+}],
+"loop": 1,
+"name": &"art-left",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ve00a")
+}],
+"loop": 1,
+"name": &"art-right",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_dcsl4")
+}],
+"loop": 1,
+"name": &"strategy-back",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3dmmh")
+}],
+"loop": 1,
+"name": &"strategy-front",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_6nbji")
+}],
+"loop": 1,
+"name": &"strategy-left",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_tbg3i")
+}],
+"loop": 1,
+"name": &"strategy-right",
+"speed": 1.0
+}]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_0lhm0"]
+radius = 18.0
+height = 48.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_ydywr"]
+radius = 88.0
+
+[node name="AgencyPair" type="CharacterBody2D" unique_id=536369964]
+unique_name_in_owner = true
+script = ExtResource("1_yns3q")
+
+[node name="ArtDirectorSprite" type="AnimatedSprite2D" parent="." unique_id=1219459495]
+unique_name_in_owner = true
+z_index = 3
+texture_filter = 1
+position = Vector2(-20, 0)
+scale = Vector2(0.13, 0.13)
+sprite_frames = SubResource("SpriteFrames_38qut")
+animation = &"art-front"
+
+[node name="StrategistSprite" type="AnimatedSprite2D" parent="." unique_id=2141600468]
+unique_name_in_owner = true
+z_index = 1
+texture_filter = 1
+position = Vector2(20, -5)
+scale = Vector2(0.13, 0.13)
+sprite_frames = SubResource("SpriteFrames_38qut")
+animation = &"strategy-front"
+
+[node name="BodyCollision" type="CollisionShape2D" parent="." unique_id=426543433]
+unique_name_in_owner = true
+shape = SubResource("CapsuleShape2D_0lhm0")
+
+[node name="ArtDirectorLabel" type="Label" parent="." unique_id=128549504]
+unique_name_in_owner = true
+z_index = 5
+offset_left = -20.0
+offset_top = -54.0
+offset_right = 129.0
+offset_bottom = -31.0
+theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
+theme_override_colors/font_shadow_color = Color(0.0627451, 0.10980392, 0.21176471, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 14
+text = "ART DIRECTOR ACTIVE"
+
+[node name="StrategistLabel" type="Label" parent="." unique_id=1005256011]
+unique_name_in_owner = true
+visible = false
+z_index = 5
+offset_left = -5.0
+offset_top = -54.0
+offset_right = 126.0
+offset_bottom = -31.0
+theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
+theme_override_colors/font_shadow_color = Color(0.0627451, 0.10980392, 0.21176471, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 14
+text = "STRATEGIST ACTIVE"
+
+[node name="InteractionRadius" type="Area2D" parent="." unique_id=323640809]
+unique_name_in_owner = true
+collision_layer = 0
+collision_mask = 2
+
+[node name="InteractionCollision" type="CollisionShape2D" parent="InteractionRadius" unique_id=832864081]
+unique_name_in_owner = true
+shape = SubResource("CircleShape2D_ydywr")
+
+[node name="TravelAgent" type="NavigationAgent2D" parent="." unique_id=107688381]
+unique_name_in_owner = true
+path_desired_distance = 12.0

@@ -12,6 +12,7 @@ func _initialize() -> void:
         "res://tests/test_market_screen.gd",
         "res://tests/test_local_market_session.gd",
         "res://tests/test_agency_mission_catalog.gd",
+        "res://tests/test_agency_world.gd",
         "res://tests/test_agency_progress.gd",
         "res://tests/test_game_run.gd",
         "res://tests/test_run_progress_store.gd",

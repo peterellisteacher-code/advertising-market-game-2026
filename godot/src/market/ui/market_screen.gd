@@ -5,6 +5,8 @@ class_name AdMarketMarketScreen
 signal fix_requested
 
 const MarketViewState = preload("res://src/market/market_view_state.gd")
+const MarketHost = preload("res://src/market/market_host.gd")
+const LocalMarketSession = preload("res://src/market/local_market_session.gd")
 const NAVY := Color("#17212b")
 const BURNT_ORANGE := Color("#b63a15")
 const ORANGE_HOVER := Color("#c3471b")
@@ -222,12 +224,12 @@ func columns_for_width(width: float) -> int:
     return 2
 
 func _connect_host(connecting: bool) -> void:
-    if market_host is AdMarketMarketHost:
-        _connect_live_host(market_host as AdMarketMarketHost, connecting)
-    elif market_host is AdMarketLocalMarketSession:
-        _connect_local_session(market_host as AdMarketLocalMarketSession, connecting)
+    if market_host is MarketHost:
+        _connect_live_host(market_host as MarketHost, connecting)
+    elif market_host is LocalMarketSession:
+        _connect_local_session(market_host as LocalMarketSession, connecting)
 
-func _connect_live_host(host: AdMarketMarketHost, connecting: bool) -> void:
+func _connect_live_host(host: MarketHost, connecting: bool) -> void:
     if connecting:
         if not host.snapshot_received.is_connected(_on_snapshot_received):
             host.snapshot_received.connect(_on_snapshot_received)
@@ -264,7 +266,7 @@ func _connect_live_host(host: AdMarketMarketHost, connecting: bool) -> void:
         host.campaign_published.disconnect(_on_campaign_published)
 
 func _connect_local_session(
-    session: AdMarketLocalMarketSession,
+    session: LocalMarketSession,
     connecting: bool
 ) -> void:
     if connecting:

@@ -6,6 +6,7 @@ const WebMarketTransport = preload("res://src/market/transport/web_market_transp
 const PracticeBridge = preload("res://src/practice/practice_bridge.gd")
 const WebPracticeTransport = preload("res://src/practice/transport/web_practice_transport.gd")
 const LocalMarketSession = preload("res://src/market/local_market_session.gd")
+const MarketScreen = preload("res://src/market/ui/market_screen.gd")
 const MarketViewState = preload("res://src/market/market_view_state.gd")
 const GameRun = preload("res://src/game/game_run.gd")
 const WebRunProgressStore = preload("res://src/game/web_run_progress_store.gd")
@@ -49,7 +50,7 @@ const AIDA_NEXT_ACTIONS := {
 
 @onready var creator_host: Node = %CreatorHost
 @onready var market_host: Node = %MarketHost
-@onready var market_screen: AdMarketMarketScreen = %MarketScreen as AdMarketMarketScreen
+@onready var market_screen: MarketScreen = %MarketScreen as MarketScreen
 @onready var launch_button: Button = %LaunchCreator
 @onready var status: Label = %Status
 @onready var hero_heading: Label = $MainMargin/GameInput/HeroHeading

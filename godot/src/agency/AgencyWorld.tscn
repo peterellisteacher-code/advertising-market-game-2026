@@ -5,9 +5,9 @@
 [ext_resource type="PackedScene" uid="uid://dtcypqr1co0q0" path="res://src/agency/stations/AgencyStation.tscn" id="3_ytwji"]
 [ext_resource type="PackedScene" uid="uid://3m1m5tio6u0p" path="res://src/agency/ui/AgencyHud.tscn" id="5_xifuf"]
 [ext_resource type="PackedScene" uid="uid://ok8vov7n8f45" path="res://src/agency/player/AgencyPair.tscn" id="6_45h1l"]
-[ext_resource type="Script" uid="uid://daunaq7lxb2qu" path="res://src/agency/ui/agency_hud.gd" id="6_ytwji"]
 [ext_resource type="PackedScene" uid="uid://y0p8byuynib7" path="res://src/agency/ui/AgencyGuideDrawer.tscn" id="7_ukfyu"]
-[ext_resource type="Script" uid="uid://c5ttupvkmue84" path="res://src/agency/ui/agency_guide_drawer.gd" id="8_t5o2e"]
+[ext_resource type="PackedScene" uid="uid://dmdn0nl418hup" path="res://src/agency/missions/AgencyMissionPanel.tscn" id="9_t5o2e"]
+[ext_resource type="Script" uid="uid://dt5d3rtsxgwyr" path="res://src/agency/missions/agency_mission_controller.gd" id="11_dufgl"]
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_iardm"]
 vertices = PackedVector2Array(30, 104, 1250, 104, 1250, 772, 30, 772)
@@ -1016,16 +1016,14 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_pxbc1")
 theme_override_styles/focus = SubResource("StyleBoxFlat_qqyns")
 text = "Cancel"
 
-[node name="AgencyHud" type="PanelContainer" parent="HUD/HUDRoot" unique_id=603327499 instance=ExtResource("5_xifuf")]
+[node name="AgencyHud" parent="HUD/HUDRoot" unique_id=603327499 instance=ExtResource("5_xifuf")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(1248, 124)
 layout_mode = 0
 offset_left = 16.0
 offset_top = 12.0
 offset_right = 1264.0
 offset_bottom = 139.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_eq85p")
-script = ExtResource("6_ytwji")
 
 [node name="LegacyHudMargin" type="MarginContainer" parent="HUD/HUDRoot/AgencyHud" unique_id=133624020]
 visible = false
@@ -1137,14 +1135,11 @@ size_flags_vertical = 4
 theme_override_styles/normal = SubResource("StyleBoxFlat_w7xqt")
 text = "Open guide · G"
 
-[node name="AgencyGuideDrawer" type="Control" parent="HUD/HUDRoot" unique_id=1880896600 instance=ExtResource("7_ukfyu")]
+[node name="AgencyGuideDrawer" parent="HUD/HUDRoot" unique_id=1880896600 instance=ExtResource("7_ukfyu")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(1280, 800)
-anchors_preset = 0
+layout_mode = 0
 offset_right = 1280.0
 offset_bottom = 800.0
-mouse_filter = 2
-script = ExtResource("8_t5o2e")
 
 [node name="LegacyGuideTab" type="Button" parent="HUD/HUDRoot/AgencyGuideDrawer" unique_id=436268978]
 unique_name_in_owner = true
@@ -1468,3 +1463,24 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_vn85y")
 theme_override_styles/hover = SubResource("StyleBoxFlat_ma0jh")
 theme_override_styles/focus = SubResource("StyleBoxFlat_e5w04")
 text = "Continue"
+
+[node name="AgencyMissionPanel" parent="HUD/HUDRoot" unique_id=2062866337 instance=ExtResource("9_t5o2e")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_right = 1280.0
+offset_bottom = 800.0
+
+[node name="Backdrop2" type="ColorRect" parent="HUD/HUDRoot/AgencyMissionPanel" unique_id=1838012177]
+visible = false
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.02, 0.05, 0.1, 0.82)
+
+[node name="AgencyMissionController" type="Node" parent="." unique_id=900792274]
+unique_name_in_owner = true
+script = ExtResource("11_dufgl")

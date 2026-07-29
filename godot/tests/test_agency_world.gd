@@ -42,6 +42,9 @@ func run() -> bool:
 	assert(not guide_panel.visible)
 	assert(pair.input_enabled)
 	assert(not pair.modal_open)
+	_assert_station_mission_panel_uses_role_and_modal_state(world, progress)
+	_assert_keyboard_handoff_and_guide_shortcuts(world, progress)
+	assert(world.direct_travel("reception"))
 	assert(world.current_station_id() == "reception")
 	_assert_pair_arrives_beside_station(world, "Reception")
 	_assert_pair_clears_upper_divider(world, "Reception")
@@ -66,6 +69,92 @@ func run() -> bool:
 	assert(world.get_node("HUD/HUDRoot/ObjectiveBar").visible == false)
 	world.free()
 	return true
+
+func _assert_station_mission_panel_uses_role_and_modal_state(
+	world: Node,
+	progress: RefCounted
+) -> void:
+	assert(world.call("direct_travel", "client-briefing"))
+	var pair: CharacterBody2D = world.get_node("%AgencyPair") as CharacterBody2D
+	var panel: Control = world.get_node("%AgencyMissionPanel") as Control
+	var controller: Node = world.get_node("%AgencyMissionController") as Node
+	var station_action: Button = world.get_node("%StationActionButton") as Button
+	station_action.pressed.emit()
+	assert(panel.visible)
+	assert(controller.call("snapshot").get("state") == "holding")
+	var content_path: String = "Backdrop/Dialog/Margin/Content"
+	var holding_label: Label = panel.get_node("%s/OwnerCard/HoldingLabel" % content_path) as Label
+	assert(holding_label.text.contains("Hand control to the Strategist"))
+	var instruction: Label = panel.get_node("%s/Instruction" % content_path) as Label
+	assert(instruction.text == "Close this panel first. Then hand control to the Strategist from the agency HUD.")
+	var keyboard_hint: Label = panel.get_node("%s/ChoiceStage/KeyboardHint" % content_path) as Label
+	assert(keyboard_hint.text == "Keyboard: Esc closes. Touchpad: select Close.")
+	var choice_one: Button = panel.get_node("%s/ChoiceStage/ChoiceGrid/ChoiceOne" % content_path) as Button
+	assert(choice_one.disabled)
+	assert(_perceived_luminance(choice_one.get_theme_color("font_disabled_color")) < 0.45)
+	assert(not pair.input_enabled)
+	assert(pair.modal_open)
+	controller.call("close")
+	assert(not panel.visible)
+	assert(pair.input_enabled)
+	assert(not pair.modal_open)
+	assert(progress.call("handoff_to", "strategist"))
+	pair.call("set_active_role", "strategist")
+	station_action.pressed.emit()
+	assert(panel.visible)
+	assert(controller.call("snapshot").get("state") == "choice")
+	_assert_mission_panel_is_readable_and_bounded(panel)
+	controller.call("close")
+	assert(not panel.visible)
+	assert(pair.input_enabled)
+	assert(not pair.modal_open)
+
+func _assert_keyboard_handoff_and_guide_shortcuts(world: Node, progress: RefCounted) -> void:
+	var pair: CharacterBody2D = world.get_node("%AgencyPair") as CharacterBody2D
+	var handoff_panel: Control = world.get_node("%HandoffPanel") as Control
+	var handoff_event: InputEventKey = InputEventKey.new()
+	handoff_event.keycode = KEY_H
+	handoff_event.pressed = true
+	world.call("_unhandled_key_input", handoff_event)
+	assert(handoff_panel.visible)
+	assert(pair.modal_open)
+	var art_director_button: Button = world.get_node("%ArtDirectorHandoff") as Button
+	art_director_button.pressed.emit()
+	assert(progress.get("active_role") == "art-director")
+	assert(pair.get("active_role") == "art-director")
+	assert(not handoff_panel.visible)
+	assert(not pair.modal_open)
+	var guide_event: InputEventKey = InputEventKey.new()
+	guide_event.keycode = KEY_G
+	guide_event.pressed = true
+	world.call("_unhandled_key_input", guide_event)
+	var guide := world.get_node("%AgencyGuideDrawer") as AdMarketAgencyGuideDrawer
+	assert((guide.get_node("GuidePanel") as Control).visible)
+	guide.set_tucked(true)
+
+func _assert_mission_panel_is_readable_and_bounded(panel: Control) -> void:
+	assert(panel.size == Vector2(1280.0, 800.0))
+	var dialog := panel.get_node("Backdrop/Dialog") as Control
+	assert(dialog.size.x <= 980.0)
+	assert(dialog.size.y <= 700.0)
+	var content_path := "Backdrop/Dialog/Margin/Content"
+	var readable_labels := [
+		panel.get_node("%s/Title" % content_path) as Label,
+		panel.get_node("%s/Goal" % content_path) as Label,
+		panel.get_node("%s/OwnerCard/HoldingLabel" % content_path) as Label,
+		panel.get_node("%s/Instruction" % content_path) as Label,
+		panel.get_node("%s/ChoiceStage/KeyboardHint" % content_path) as Label,
+		panel.get_node("%s/EffectStage/EffectHeading" % content_path) as Label,
+		panel.get_node("%s/TransferStage/TransferPrompt" % content_path) as Label,
+		panel.get_node("%s/CompletedStage/CompletedHeading" % content_path) as Label,
+	]
+	for label in readable_labels:
+		assert(_perceived_luminance(label.get_theme_color("font_color")) < 0.45)
+	var choice_one := panel.get_node("%s/ChoiceStage/ChoiceGrid/ChoiceOne" % content_path) as Button
+	assert(_perceived_luminance(choice_one.get_theme_color("font_focus_color")) < 0.45)
+
+func _perceived_luminance(color: Color) -> float:
+	return color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722
 
 func _assert_pair_arrives_beside_station(world: Node, station_name: String) -> void:
 	var pair := world.get_node("%AgencyPair") as CharacterBody2D

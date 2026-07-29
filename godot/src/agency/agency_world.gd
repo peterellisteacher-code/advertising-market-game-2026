@@ -181,6 +181,7 @@ func configure(progress: AdMarketAgencyProgress) -> void:
 	_current_station_id = progress.current_station_id
 	_ensure_travel_items()
 	_configure_stations()
+	_configure_missions()
 	_configure_guidance()
 	_refresh_world()
 	_show_orientation_if_required()
@@ -282,6 +283,18 @@ func _ensure_travel_items() -> void:
 	if hud != null:
 		hud.configure_stations(records, _current_station_id)
 
+func _configure_missions() -> void:
+	var controller := _mission_controller()
+	if controller == null or _progress == null:
+		return
+	controller.configure(_progress, _mission_panel())
+	if not controller.mission_completed.is_connected(_on_mission_completed):
+		controller.mission_completed.connect(_on_mission_completed)
+	if not controller.sidequest_completed.is_connected(_on_sidequest_completed):
+		controller.sidequest_completed.connect(_on_sidequest_completed)
+	if not controller.state_changed.is_connected(_on_mission_controller_state_changed):
+		controller.state_changed.connect(_on_mission_controller_state_changed)
+
 func _configure_guidance() -> void:
 	if _progress == null:
 		return
@@ -353,7 +366,14 @@ func _update_station_state() -> void:
 		var station_node := _station_node(_current_station_id)
 		responsibilities.text = station_node.responsibility_summary() if station_node != null else ""
 	if action_button != null:
-		action_button.text = "Work at %s" % String(record.get("title", "this station"))
+		var next_mission := _next_mission_for_station(_current_station_id)
+		if next_mission.is_empty():
+			action_button.text = "No open work at %s" % String(record.get("title", "this station"))
+			action_button.disabled = true
+		else:
+			var action_prefix := "Start mission" if bool(next_mission.get("required", true)) else "Optional contract"
+			action_button.text = "%s: %s" % [action_prefix, String(next_mission.get("title", "Agency task"))]
+			action_button.disabled = false
 	var menu := get_node_or_null("%DirectTravel") as OptionButton
 	if menu != null:
 		var selected_index := STATION_ORDER.find(_current_station_id)
@@ -394,14 +414,38 @@ func _on_pair_interaction_requested() -> void:
 	if nearest.is_empty() or pair.position.distance_to(_station_position(nearest)) > NEAR_STATION_DISTANCE:
 		return
 	_set_current_station(nearest, true)
-	station_requested.emit(nearest)
+	_request_station_work(nearest)
 
 func _on_station_requested(station_id: String) -> void:
 	_set_current_station(station_id, true)
-	station_requested.emit(station_id)
+	_request_station_work(station_id)
 
 func _on_station_action_pressed() -> void:
-	station_requested.emit(_current_station_id)
+	_request_station_work(_current_station_id)
+
+func _request_station_work(station_id: String) -> void:
+	station_requested.emit(station_id)
+	if _progress == null:
+		return
+	var record := _next_mission_for_station(station_id)
+	if record.is_empty():
+		return
+	var controller := _mission_controller()
+	if controller != null:
+		controller.open_mission(String(record.get("id")), _progress.active_role)
+
+func _on_mission_completed(_mission_id: String, _evidence: Dictionary) -> void:
+	_refresh_mission_progress()
+
+func _on_sidequest_completed(_sidequest_id: String) -> void:
+	_refresh_mission_progress()
+
+func _on_mission_controller_state_changed(state: Dictionary) -> void:
+	_set_guidance_modal(String(state.get("state", "closed")) != "closed")
+
+func _refresh_mission_progress() -> void:
+	_update_objective_bar()
+	_update_station_state()
 
 func _on_direct_travel_selected(index: int) -> void:
 	var menu := get_node_or_null("%DirectTravel") as OptionButton
@@ -434,6 +478,20 @@ func _on_guide_tucked_changed(tucked: bool) -> void:
 		_hide_embedded_guide_tab(guide)
 	var orientation := guide.get_node_or_null("%OrientationPanel") as Control if guide != null else null
 	_set_guidance_modal(not tucked or (orientation != null and orientation.visible))
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	var key_event: InputEventKey = event as InputEventKey
+	if key_event == null or not key_event.pressed or key_event.echo:
+		return
+	var pair: AdMarketAgencyPair = _pair()
+	if pair == null or not pair.input_enabled or pair.modal_open:
+		return
+	if key_event.keycode == KEY_H:
+		_show_handoff_dialog()
+		get_viewport().set_input_as_handled()
+	elif key_event.keycode == KEY_G:
+		_on_guide_pressed()
+		get_viewport().set_input_as_handled()
 
 func _on_guide_role_handoff_requested(role: String) -> void:
 	var guide := _guide()
@@ -539,6 +597,27 @@ func _station_node(station_id: String) -> AdMarketAgencyStation:
 	if node_name.is_empty():
 		return null
 	return get_node_or_null("Stations/%s" % node_name) as AdMarketAgencyStation
+
+func _next_mission_for_station(station_id: String) -> Dictionary:
+	if _progress == null:
+		return {}
+	var required_records: Array[Dictionary] = MissionCatalog.required_missions()
+	for record: Dictionary in required_records:
+		var mission_id := String(record.get("id"))
+		if String(record.get("stationId")) == station_id and not _progress.completed_mission_ids.has(mission_id):
+			return record.duplicate(true)
+	var sidequest_records: Array[Dictionary] = MissionCatalog.sidequests()
+	for record: Dictionary in sidequest_records:
+		var sidequest_id := String(record.get("id"))
+		if String(record.get("stationId")) == station_id and not _progress.completed_sidequest_ids.has(sidequest_id):
+			return record.duplicate(true)
+	return {}
+
+func _mission_controller() -> AdMarketAgencyMissionController:
+	return get_node_or_null("%AgencyMissionController") as AdMarketAgencyMissionController
+
+func _mission_panel() -> AdMarketAgencyMissionPanel:
+	return get_node_or_null("%AgencyMissionPanel") as AdMarketAgencyMissionPanel
 
 func _hud() -> AdMarketAgencyHud:
 	return get_node_or_null("%AgencyHud") as AdMarketAgencyHud

@@ -1,9 +1,11 @@
 extends RefCounted
 class_name AdMarketGameRun
 
+const AgencyProgress = preload("res://src/agency/agency_progress.gd")
 const LEVELS := ["invent", "sell", "irresistible"]
 const PITCH_PHASES := ["invent", "sell", "irresistible", "publish-check"]
-const PITCH_SNAPSHOT_CONTRACT := "pitch-run@1"
+const PITCH_SNAPSHOT_CONTRACT := "pitch-run@2"
+const LEGACY_PITCH_SNAPSHOT_CONTRACT := "pitch-run@1"
 const MINIMUM_SELLERS := 2
 const MINIMUM_SPEND_PERCENT := 80
 const MAX_WALLET_CENTS := 1000000
@@ -21,6 +23,7 @@ var _starting_wallet_cents: int = 0
 var _ready_levels: Dictionary = {}
 var _purchases: Array[Dictionary] = []
 var _awards: Dictionary = {}
+var _agency_progress: RefCounted = AgencyProgress.new()
 
 func begin(alias: String, next_session_id: String, next_team_id: String) -> bool:
     if phase != "lobby":
@@ -29,10 +32,14 @@ func begin(alias: String, next_session_id: String, next_team_id: String) -> bool
         return _fail("Team alias must not have surrounding spaces")
     if not _safe_id(next_session_id) or not _safe_id(next_team_id):
         return _fail("Session and team IDs must be safe non-empty values")
+    var next_agency: RefCounted = AgencyProgress.new()
+    if not next_agency.begin():
+        return _fail("The agency campaign could not start")
     team_alias = alias
     session_id = next_session_id
     team_id = next_team_id
     phase = LEVELS[0]
+    _agency_progress = next_agency
     return _succeed()
 
 func mark_current_level_ready() -> bool:
@@ -50,6 +57,9 @@ func invalidate_current_level() -> bool:
 func is_current_level_ready() -> bool:
     return LEVELS.has(phase) and _ready_levels.get(phase, false) == true
 
+func agency_progress() -> RefCounted:
+    return _agency_progress
+
 func pitch_snapshot() -> Dictionary:
     if not PITCH_PHASES.has(phase):
         return {}
@@ -63,21 +73,26 @@ func pitch_snapshot() -> Dictionary:
         "teamAlias": team_alias,
         "sessionId": session_id,
         "teamId": team_id,
-        "readyLevels": ready_levels
+        "readyLevels": ready_levels,
+        "agency": _agency_progress.snapshot()
     }
 
 func restore_pitch_snapshot(value: Variant) -> bool:
     if typeof(value) != TYPE_DICTIONARY:
         return _fail("Saved pitch progress must be a dictionary")
     var snapshot: Dictionary = value
+    var contract_value: Variant = snapshot.get("contract")
+    var is_legacy: bool = contract_value == LEGACY_PITCH_SNAPSHOT_CONTRACT
+    if not is_legacy and contract_value != PITCH_SNAPSHOT_CONTRACT:
+        return _fail("Saved pitch progress contract is unsupported")
     var allowed_keys := ["contract", "phase", "teamAlias", "sessionId", "teamId", "readyLevels"]
+    if not is_legacy:
+        allowed_keys.append("agency")
     if snapshot.size() != allowed_keys.size():
         return _fail("Saved pitch progress has unexpected fields")
     for key in allowed_keys:
         if not snapshot.has(key):
             return _fail("Saved pitch progress is missing %s" % key)
-    if snapshot.get("contract") != PITCH_SNAPSHOT_CONTRACT:
-        return _fail("Saved pitch progress contract is unsupported")
     if typeof(snapshot.get("phase")) != TYPE_STRING:
         return _fail("Saved pitch phase must be a string")
     var next_phase := String(snapshot.get("phase"))
@@ -107,11 +122,23 @@ func restore_pitch_snapshot(value: Variant) -> bool:
             return _fail("Saved ready levels must be an ordered level prefix")
         next_ready_levels[String(ready_value[index])] = true
 
+    var agency_snapshot: Dictionary
+    if is_legacy:
+        agency_snapshot = AgencyProgress.from_legacy_pitch(next_phase, ready_value)
+    else:
+        if typeof(snapshot.get("agency")) != TYPE_DICTIONARY:
+            return _fail("Saved agency progress must be a dictionary")
+        agency_snapshot = Dictionary(snapshot.get("agency")).duplicate(true)
+    var next_agency: RefCounted = AgencyProgress.new()
+    if agency_snapshot.is_empty() or not next_agency.restore_snapshot(agency_snapshot):
+        return _fail("Saved agency progress is invalid")
+
     phase = next_phase
     team_alias = next_alias
     session_id = next_session_id
     team_id = next_team_id
     _ready_levels = next_ready_levels
+    _agency_progress = next_agency
     _starting_wallet_cents = 0
     wallet_cents = 0
     market_mode = ""

@@ -4,6 +4,7 @@ class_name AdMarketAgencyWorld
 signal station_requested(station_id: String)
 signal role_handoff_requested(role: String)
 signal guide_requested
+signal audio_settings_requested
 
 const AgencyProgress = preload("res://src/agency/agency_progress.gd")
 const MissionCatalog = preload("res://src/agency/agency_mission_catalog.gd")
@@ -152,7 +153,9 @@ func _ready() -> void:
 		preview_progress.begin()
 		configure(preview_progress)
 	else:
+		_configure_guidance()
 		_refresh_world()
+		_show_orientation_if_required()
 
 func _physics_process(_delta: float) -> void:
 	var pair := _pair()
@@ -178,7 +181,9 @@ func configure(progress: AdMarketAgencyProgress) -> void:
 	_current_station_id = progress.current_station_id
 	_ensure_travel_items()
 	_configure_stations()
+	_configure_guidance()
 	_refresh_world()
+	_show_orientation_if_required()
 
 func set_input_enabled(enabled: bool) -> void:
 	var pair := _pair()
@@ -218,6 +223,22 @@ func _connect_controls() -> void:
 	var pair := _pair()
 	if pair != null and not pair.interaction_requested.is_connected(_on_pair_interaction_requested):
 		pair.interaction_requested.connect(_on_pair_interaction_requested)
+	var hud := _hud()
+	if hud != null:
+		if not hud.direct_travel_requested.is_connected(_on_guidance_travel_requested):
+			hud.direct_travel_requested.connect(_on_guidance_travel_requested)
+		if not hud.guide_requested.is_connected(_on_hud_guide_requested):
+			hud.guide_requested.connect(_on_hud_guide_requested)
+	var guide := _guide()
+	if guide != null:
+		if not guide.direct_travel_requested.is_connected(_on_guidance_travel_requested):
+			guide.direct_travel_requested.connect(_on_guidance_travel_requested)
+		if not guide.role_handoff_requested.is_connected(_on_guide_role_handoff_requested):
+			guide.role_handoff_requested.connect(_on_guide_role_handoff_requested)
+		if not guide.audio_settings_requested.is_connected(_on_guide_audio_settings_requested):
+			guide.audio_settings_requested.connect(_on_guide_audio_settings_requested)
+		if not guide.tucked_changed.is_connected(_on_guide_tucked_changed):
+			guide.tucked_changed.connect(_on_guide_tucked_changed)
 	var guide_button := get_node_or_null("%GuideButton") as Button
 	if guide_button != null and not guide_button.pressed.is_connected(_on_guide_pressed):
 		guide_button.pressed.connect(_on_guide_pressed)
@@ -248,13 +269,34 @@ func _configure_stations() -> void:
 
 func _ensure_travel_items() -> void:
 	var menu := get_node_or_null("%DirectTravel") as OptionButton
-	if menu == null:
-		return
-	menu.clear()
+	if menu != null:
+		menu.clear()
+	var records: Array[Dictionary] = []
 	for station_id in STATION_ORDER:
 		var record: Dictionary = STATION_DATA.get(station_id, {})
-		menu.add_item(String(record.get("title", station_id.capitalize())))
-		menu.set_item_metadata(menu.item_count - 1, station_id)
+		records.append(record.duplicate(true))
+		if menu != null:
+			menu.add_item(String(record.get("title", station_id.capitalize())))
+			menu.set_item_metadata(menu.item_count - 1, station_id)
+	var hud := _hud()
+	if hud != null:
+		hud.configure_stations(records, _current_station_id)
+
+func _configure_guidance() -> void:
+	if _progress == null:
+		return
+	var guide := _guide()
+	if guide != null:
+		guide.configure(_progress, MissionCatalog)
+		_hide_embedded_guide_tab(guide)
+	var hud := _hud()
+	if hud != null:
+		hud.set_tucked(_progress.guide_tucked)
+
+func _hide_embedded_guide_tab(guide: AdMarketAgencyGuideDrawer) -> void:
+	var guide_tab := guide.get_node_or_null("GuideTab") as Button
+	if guide_tab != null:
+		guide_tab.visible = false
 
 func _refresh_world() -> void:
 	var pair := _pair()
@@ -275,14 +317,22 @@ func _set_current_station(station_id: String, update_progress: bool) -> void:
 	_update_station_state()
 
 func _update_objective_bar() -> void:
+	var objective_id := "meet-client" if _progress == null else _progress.current_objective_id
+	var objective: Dictionary = MissionCatalog.objective(objective_id)
 	var objective_label := get_node_or_null("%ObjectiveLabel") as Label
-	if objective_label == null:
-		return
-	if _progress == null:
-		objective_label.text = "Meet the client"
-		return
-	var objective := MissionCatalog.objective(_progress.current_objective_id)
-	objective_label.text = String(objective.get("title", _progress.current_objective_id.capitalize()))
+	if objective_label != null:
+		objective_label.text = String(objective.get("title", objective_id.capitalize()))
+	var required_done := 0 if _progress == null else _progress.completed_mission_ids.size()
+	var required_total := MissionCatalog.required_missions().size()
+	var optional_done := 0 if _progress == null else _progress.completed_sidequest_ids.size()
+	var hud := _hud()
+	if hud != null:
+		hud.show_objective(objective)
+		hud.set_progress(required_done, required_total, optional_done)
+	var guide := _guide()
+	if guide != null:
+		guide.show_objective(objective)
+		guide.set_progress(required_done, required_total, optional_done)
 
 func _update_station_state() -> void:
 	var record: Dictionary = STATION_DATA.get(_current_station_id, {})
@@ -309,6 +359,9 @@ func _update_station_state() -> void:
 		var selected_index := STATION_ORDER.find(_current_station_id)
 		if selected_index >= 0:
 			menu.select(selected_index)
+	var hud := _hud()
+	if hud != null:
+		hud.select_station(_current_station_id)
 
 func _begin_direct_travel(pair: AdMarketAgencyPair, target: Vector2) -> void:
 	if _travel_tween != null and _travel_tween.is_valid():
@@ -357,7 +410,59 @@ func _on_direct_travel_selected(index: int) -> void:
 	direct_travel(String(menu.get_item_metadata(index)))
 
 func _on_guide_pressed() -> void:
+	_open_guide("objective")
+
+func _open_guide(section: String) -> void:
+	var guide := _guide()
+	if guide != null:
+		guide.open_guide(section)
+		_set_guidance_modal(true)
 	guide_requested.emit()
+
+func _on_hud_guide_requested(section: String) -> void:
+	_open_guide(section)
+
+func _on_guidance_travel_requested(station_id: String) -> void:
+	direct_travel(station_id)
+
+func _on_guide_tucked_changed(tucked: bool) -> void:
+	var hud := _hud()
+	if hud != null:
+		hud.set_tucked(tucked)
+	var guide := _guide()
+	if guide != null:
+		_hide_embedded_guide_tab(guide)
+	var orientation := guide.get_node_or_null("%OrientationPanel") as Control if guide != null else null
+	_set_guidance_modal(not tucked or (orientation != null and orientation.visible))
+
+func _on_guide_role_handoff_requested(role: String) -> void:
+	var guide := _guide()
+	if guide != null:
+		guide.set_tucked(true)
+	_show_handoff_dialog()
+	var button_path := "%ArtDirectorHandoff" if role == "art-director" else "%StrategistHandoff"
+	var requested_button := get_node_or_null(button_path) as Button
+	if requested_button != null and is_inside_tree():
+		requested_button.grab_focus()
+
+func _on_guide_audio_settings_requested() -> void:
+	audio_settings_requested.emit()
+
+func _show_orientation_if_required() -> void:
+	if not is_inside_tree():
+		return
+	var guide := _guide()
+	if guide == null or not guide.orientation_required():
+		return
+	guide.open_orientation()
+	_set_guidance_modal(true)
+
+func _set_guidance_modal(is_open: bool) -> void:
+	var pair := _pair()
+	if pair == null:
+		return
+	pair.set_modal_open(is_open)
+	pair.set_input_enabled(not is_open)
 
 func _show_handoff_dialog() -> void:
 	var panel := get_node_or_null("%HandoffPanel") as Control
@@ -434,6 +539,12 @@ func _station_node(station_id: String) -> AdMarketAgencyStation:
 	if node_name.is_empty():
 		return null
 	return get_node_or_null("Stations/%s" % node_name) as AdMarketAgencyStation
+
+func _hud() -> AdMarketAgencyHud:
+	return get_node_or_null("%AgencyHud") as AdMarketAgencyHud
+
+func _guide() -> AdMarketAgencyGuideDrawer:
+	return get_node_or_null("%AgencyGuideDrawer") as AdMarketAgencyGuideDrawer
 
 func _pair() -> AdMarketAgencyPair:
 	return get_node_or_null("%AgencyPair") as AdMarketAgencyPair

@@ -2,8 +2,7 @@ import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
 export const PUBLIC_REPOSITORIES = Object.freeze([
-  "https://github.com/peterellisteacher-code/advertising-market-game-2026.git",
-  "https://github.com/peterellisteacher-code/advertising-market-game.git"
+  "https://github.com/peterellisteacher-code/advertising-market-game-2026.git"
 ]);
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/u;
@@ -31,22 +30,21 @@ export function parseMainRef(repository, output) {
 
 export function assertRepositoriesMatch(refs, expectedHead = undefined) {
   if (!Array.isArray(refs) || refs.length !== PUBLIC_REPOSITORIES.length) {
-    throw new Error("Both public repository main refs are required.");
+    throw new Error("The sole canonical public repository main ref is required.");
   }
-  const [first, second] = refs;
-  if (first.sha !== second.sha) {
+  const [canonical] = refs;
+  if (canonical.repository !== PUBLIC_REPOSITORIES[0]) {
     throw new Error(
-      `Public repository main branches differ: ${first.repository}=${first.sha}, `
-      + `${second.repository}=${second.sha}.`
+      `${canonical.repository} is not the sole canonical public repository.`
     );
   }
-  if (expectedHead !== undefined && first.sha !== expectedHead) {
+  if (expectedHead !== undefined && canonical.sha !== expectedHead) {
     throw new Error(
-      `Public repositories do not match the checked-out release commit: `
-      + `remotes=${first.sha}, local=${expectedHead}.`
+      `The canonical public repository does not match the checked-out release commit: `
+      + `remote=${canonical.sha}, local=${expectedHead}.`
     );
   }
-  return first.sha;
+  return canonical.sha;
 }
 
 function runGit(args) {
@@ -94,7 +92,7 @@ async function main() {
   const { expectLocalHead } = parseArguments(process.argv.slice(2));
   const refs = PUBLIC_REPOSITORIES.map(readRemoteMain);
   const sha = assertRepositoriesMatch(refs, expectLocalHead ? localHead() : undefined);
-  console.log(`PUBLIC_REPOSITORIES_SYNCHRONIZED ${sha}`);
+  console.log(`CANONICAL_PUBLIC_REPOSITORY_VERIFIED ${sha}`);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {

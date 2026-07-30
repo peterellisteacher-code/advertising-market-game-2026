@@ -140,6 +140,19 @@ export function createPracticePublicApi(handler: PracticeRunHandler): PracticePu
           }
           return success(request.requestId, recovery);
         }
+        case "saveProgress": {
+          const recovery = parseRecovery(await handler.saveProgress(request.payload));
+          const expected = request.payload.checkpoint;
+          assertSameBase(recovery, expected);
+          if (recovery.checkpoint.documentRevision !== expected.documentRevision + 1 ||
+            recovery.checkpoint.sequence !== expected.sequence + 1 ||
+            recovery.checkpoint.stage !== expected.stage ||
+            recovery.checkpoint.operationId !== request.payload.operationId ||
+            JSON.stringify(recovery.checkpoint.pitch) !== JSON.stringify(request.payload.pitch)) {
+            throw new Error("Practice progress result does not match the request");
+          }
+          return success(request.requestId, recovery);
+        }
         case "setLock": {
           const recovery = parseRecovery(await handler.setLock(request.payload));
           const expected = request.payload.checkpoint;

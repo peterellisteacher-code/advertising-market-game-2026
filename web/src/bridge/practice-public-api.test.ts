@@ -7,6 +7,30 @@ import {
 } from "./practice-contracts";
 import { createPracticePublicApi } from "./practice-public-api";
 
+const agencyPitch = {
+  contract: "agency-run@1",
+  currentObjectiveId: "meet-client",
+  currentStationId: "client-briefing",
+  activeRole: "strategist",
+  completedMissionIds: [],
+  completedSidequestIds: [],
+  evidenceByMission: {},
+  handoffCount: 1,
+  guideTucked: true,
+  orientationAcknowledged: true,
+  audioSettings: {
+    enabled: true,
+    musicEnabled: false,
+    sfxEnabled: true,
+    masterVolume: 0.55
+  },
+  pitchSettings: {
+    formatId: "billboard",
+    animationId: "reveal"
+  },
+  started: true
+} as const;
+
 const recovery = (overrides: Partial<LocalPracticeRecoveryV1["checkpoint"]> = {}): LocalPracticeRecoveryV1 => {
   const document = createBlankCampaignDocument({
     documentId: "practice-document-0123456789",
@@ -62,6 +86,21 @@ class HandlerHarness implements PracticeRunHandler {
     return structuredClone(value);
   }
 
+  async saveProgress(
+    input: Parameters<PracticeRunHandler["saveProgress"]>[0]
+  ): Promise<LocalPracticeRecoveryV1> {
+    this.calls.push({ method: "saveProgress", payload: input });
+    const value = recovery({
+      ...input.checkpoint,
+      pitch: input.pitch,
+      documentRevision: input.checkpoint.documentRevision + 1,
+      sequence: input.checkpoint.sequence + 1,
+      operationId: input.operationId
+    });
+    value.document.revision = input.checkpoint.documentRevision + 1;
+    return structuredClone(value);
+  }
+
   async advance(input: Parameters<PracticeRunHandler["advance"]>[0]): Promise<LocalPracticeRecoveryV1> {
     this.calls.push({ method: "advance", payload: input });
     const value = recovery({
@@ -94,7 +133,7 @@ async function request(
 }
 
 describe("practice public API", () => {
-  it("routes strict begin, resume, lock and one-step advance requests", async () => {
+  it("routes strict begin, resume, progress, lock and one-step advance requests", async () => {
     const handler = new HandlerHarness();
     const current = recovery();
     const checkpoint = {
@@ -110,6 +149,20 @@ describe("practice public API", () => {
       teamAlias: "Neon Narwhals",
       operationId: "operation-begin-1"
     })).toMatchObject({ ok: true });
+    expect(await request(handler, "progress-1", "saveProgress", {
+      checkpoint,
+      pitch: agencyPitch,
+      operationId: "operation-progress-1"
+    })).toMatchObject({
+      ok: true,
+      payload: {
+        checkpoint: {
+          pitch: agencyPitch,
+          documentRevision: 1,
+          sequence: 1
+        }
+      }
+    });
     expect(await request(handler, "lock-1", "setLock", {
       checkpoint,
       levelLocked: true,
@@ -127,7 +180,7 @@ describe("practice public API", () => {
       payload: { checkpoint: { stage: "sell", documentRevision: 1, sequence: 1 } }
     });
     expect(handler.calls.map(({ method }) => method)).toEqual([
-      "resume", "begin", "setLock", "advance"
+      "resume", "begin", "saveProgress", "setLock", "advance"
     ]);
   });
 

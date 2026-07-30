@@ -219,6 +219,41 @@ describe("teacher account service", () => {
     }));
   });
 
+  it("resumes allowance initialisation after the account identity was created", async () => {
+    const setup = dependencies();
+    setup.client.findAdvertisingGameUser
+      .mockResolvedValueOnce(null)
+      .mockResolvedValue(userRecord);
+    setup.allowances.teacherMutate
+      .mockRejectedValueOnce(new SupabaseAccountError("upstream"));
+    const service = new TeacherAccountService({
+      ...setup,
+      usernameHmacSecret: "h".repeat(32),
+      operationSecret: "o".repeat(32)
+    });
+    const input = {
+      operationId,
+      username: "team-one",
+      password: "chosen-password"
+    };
+
+    await expect(service.createAccount(input)).rejects.toMatchObject({
+      code: "OPERATION_INCOMPLETE",
+      status: 409
+    });
+    const resumed = await service.createAccount(input);
+    const replay = await service.createAccount(input);
+
+    expect(resumed).toMatchObject({
+      status: "created",
+      operationId,
+      account: { username: "team-one" }
+    });
+    expect(replay).toEqual(resumed);
+    expect(setup.client.createConfirmedUser).toHaveBeenCalledTimes(1);
+    expect(setup.allowances.teacherMutate).toHaveBeenCalledTimes(2);
+  });
+
   it("replaces a password once and does not expose the password in its result", async () => {
     const setup = dependencies();
     const service = new TeacherAccountService({

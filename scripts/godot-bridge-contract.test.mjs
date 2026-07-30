@@ -195,7 +195,7 @@ test("published campaigns use the isolated pitch theatre before the market gate"
   }
 });
 
-test("pitch and portfolio rewards use the three documented CC0 audio cues", async () => {
+test("agency ambience, music and rewards use the documented CC0 audio cues", async () => {
   const [mainScene, main, audioScene, audioManager, provenance] = await Promise.all([
     readFile(new URL("godot/src/main/Main.tscn", root), "utf8"),
     readFile(new URL("godot/src/main/main.gd", root), "utf8"),
@@ -208,13 +208,17 @@ test("pitch and portfolio rewards use the three documented CC0 audio cues", asyn
   assert.match(mainScene, /\[node name="AgencyAudio"[^\]]*parent="\."/);
   assert.match(main, /@onready var agency_audio: AdMarketAgencyAudioManager = %AgencyAudio/);
   assert.match(main, /pitch_theatre\.sound_requested\.connect\(_on_pitch_sound_requested\)/);
-  assert.match(main, /func _on_pitch_sound_requested\(cue_id: String\) -> void:\s+agency_audio\.play_cue\(cue_id\)/);
+  assert.match(main, /func _on_pitch_sound_requested\(cue_id: String\) -> void:\s+agency_audio\.play_sfx\(cue_id\)/);
   assert.match(main, /agency_audio\.play_cue\("portfolio-stamp"\)/);
 
   for (const cue of [
     ["camera", "camera-shutter.ogg"],
     ["swoosh", "pitch-swoosh.ogg"],
-    ["portfolio-stamp", "portfolio-stamp.ogg"]
+    ["portfolio-stamp", "portfolio-stamp.ogg"],
+    ["office", "office-loop.ogg"],
+    ["pitch", "pitch-loop.ogg"],
+    ["ui-confirm", "ui-confirm.ogg"],
+    ["ui-move", "ui-move.ogg"]
   ]) {
     const [cueId, fileName] = cue;
     assert.match(audioManager, new RegExp(`"${cueId}"`));
@@ -222,7 +226,7 @@ test("pitch and portfolio rewards use the three documented CC0 audio cues", asyn
     assert.match(provenance, new RegExp(`\\\`${fileName.replace(".", "\\.")}\\\``));
   }
 
-  assert.match(provenance, /All three sounds are distributed under Creative Commons Zero \(CC0\)/);
+  assert.match(provenance, /All seven sounds are distributed under Creative Commons Zero \(CC0\)/);
   for (const sourceHash of [
     "029dfcb981fdf375fb0ae4657962b3d470e1a073932c3d3aefb15d3d9ba38670",
     "2d55b26f918a4d8042e2c97a4db81392757195f5aaac9039f5ec2c557b6f11f2",

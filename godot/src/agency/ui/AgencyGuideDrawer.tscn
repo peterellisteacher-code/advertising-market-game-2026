@@ -509,7 +509,53 @@ theme_override_font_sizes/font_size = 16
 theme_override_styles/normal = SubResource("StyleBoxFlat_h5k8a")
 theme_override_styles/hover = SubResource("StyleBoxFlat_rd7ya")
 theme_override_styles/focus = SubResource("StyleBoxFlat_vskfq")
-text = "Music and sound settings"
+text = "Sound settings"
+
+[node name="AudioSettingsPanel" type="VBoxContainer" parent="GuidePanel/GuideMargin/GuideContent" unique_id=2007224120]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="AudioSettingsHeading" type="Label" parent="GuidePanel/GuideMargin/GuideContent/AudioSettingsPanel" unique_id=1211260294]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Sound settings"
+
+[node name="AudioSettingsHelp" type="Label" parent="GuidePanel/GuideMargin/GuideContent/AudioSettingsPanel" unique_id=1500330926]
+layout_mode = 2
+text = "Choose what you want to hear. These settings are saved with this campaign."
+autowrap_mode = 2
+
+[node name="AudioEnabled" type="CheckButton" parent="GuidePanel/GuideMargin/GuideContent/AudioSettingsPanel" unique_id=1169438716]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Sound on"
+
+[node name="MusicEnabled" type="CheckButton" parent="GuidePanel/GuideMargin/GuideContent/AudioSettingsPanel" unique_id=1183351309]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Music and office ambience"
+
+[node name="SfxEnabled" type="CheckButton" parent="GuidePanel/GuideMargin/GuideContent/AudioSettingsPanel" unique_id=1853520514]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Action sounds"
+
+[node name="MasterVolumeLabel" type="Label" parent="GuidePanel/GuideMargin/GuideContent/AudioSettingsPanel" unique_id=330036981]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Overall volume: 70%"
+
+[node name="MasterVolume" type="HSlider" parent="GuidePanel/GuideMargin/GuideContent/AudioSettingsPanel" unique_id=1064433734]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.05
+value = 0.7
 
 [node name="OrientationLayer" type="Control" parent="." unique_id=1243229796]
 unique_name_in_owner = true

@@ -6,6 +6,7 @@ signal request_failed(request_id: String, code: String, message: String)
 signal diagnostic(message: String)
 
 const CampaignDocument = preload("res://src/creator/campaign_document.gd")
+const AgencyProgress = preload("res://src/agency/agency_progress.gd")
 const CONTRACT := "practice-run@1"
 const CHECKPOINT_CONTRACT := "local-practice-checkpoint@1"
 const STAGES := ["invent", "sell", "irresistible", "publish-check"]
@@ -34,6 +35,27 @@ func begin(team_alias: Variant, operation_id: Variant) -> String:
         "teamAlias": String(team_alias),
         "operationId": String(operation_id)
     }, {"operationId": String(operation_id)})
+
+func save_progress(token: Variant, pitch: Variant, operation_id: Variant) -> String:
+    var validated := _validate_token(token)
+    if not validated.get("ok", false):
+        return _reject_input(String(validated.get("message", "checkpoint token is invalid")))
+    var pitch_check := _validate_pitch(pitch)
+    if not pitch_check.get("ok", false):
+        return _reject_input(String(pitch_check.get("message", "agency progress is invalid")))
+    if not _is_id(operation_id, 128):
+        return _reject_input("operationId is invalid")
+    var value: Dictionary = validated.get("value")
+    var pitch_value: Dictionary = Dictionary(pitch).duplicate(true)
+    return _send("saveProgress", {
+        "checkpoint": value,
+        "pitch": pitch_value,
+        "operationId": String(operation_id)
+    }, {
+        "checkpoint": value,
+        "pitch": pitch_value,
+        "operationId": String(operation_id)
+    })
 
 func set_level_lock(token: Variant, level_locked: Variant, operation_id: Variant) -> String:
     var validated := _validate_token(token)
@@ -188,7 +210,14 @@ func _validate_response_context(method: String, recovery: Dictionary, context: D
         return _invalid("Recovery operationId did not match")
     if int(checkpoint.get("sequence")) != int(expected.get("sequence")) + 1:
         return _invalid("Recovery sequence did not advance exactly once")
-    if method == "setLock":
+    if method == "saveProgress":
+        if int(checkpoint.get("documentRevision")) != int(expected.get("documentRevision")) + 1:
+            return _invalid("Progress save did not create exactly one campaign revision")
+        if checkpoint.get("stage") != expected.get("stage"):
+            return _invalid("Progress save changed the pitch stage")
+        if JSON.stringify(checkpoint.get("pitch")) != JSON.stringify(context.get("pitch")):
+            return _invalid("Progress save did not return the requested agency snapshot")
+    elif method == "setLock":
         if int(checkpoint.get("documentRevision")) != int(expected.get("documentRevision")) + 1:
             return _invalid("Lock did not create exactly one campaign revision")
         if checkpoint.get("stage") != expected.get("stage"):
@@ -214,6 +243,8 @@ func _validate_recovery(value: Variant) -> Dictionary:
         "documentRevision", "documentHash", "stage", "levelLocked", "sequence",
         "operationId", "savedAt"
     ]
+    if checkpoint.has("pitch"):
+        checkpoint_keys.append("pitch")
     if not _has_exact_keys(checkpoint, checkpoint_keys) or checkpoint.get("contract") != CHECKPOINT_CONTRACT:
         return _invalid("Recovery checkpoint contract or fields are invalid")
     for key in ["runId", "documentId", "sessionId", "teamId", "operationId"]:
@@ -234,6 +265,10 @@ func _validate_recovery(value: Variant) -> Dictionary:
     var saved_at: Variant = checkpoint.get("savedAt")
     if typeof(saved_at) != TYPE_STRING or String(saved_at).length() < 20 or String(saved_at).length() > 40 or not String(saved_at).ends_with("Z"):
         return _invalid("Recovery savedAt is invalid")
+    if checkpoint.has("pitch"):
+        var pitch_check := _validate_pitch(checkpoint.get("pitch"))
+        if not pitch_check.get("ok", false):
+            return pitch_check
     var document_check := CampaignDocument.validate_bridge_shape(value.get("document"))
     if not document_check.get("ok", false):
         return _invalid(String(document_check.get("message", "Recovery campaign is invalid")))
@@ -264,6 +299,14 @@ func _validate_pair(value: Variant) -> Dictionary:
             return _invalid("Recovery pair counter is invalid")
     if typeof(value.get("roleGuideAcknowledged")) != TYPE_BOOL:
         return _invalid("Recovery role-guide acknowledgement is invalid")
+    return {"ok": true}
+
+func _validate_pitch(value: Variant) -> Dictionary:
+    if typeof(value) != TYPE_DICTIONARY:
+        return _invalid("Recovery agency progress must be a dictionary")
+    var progress := AgencyProgress.new()
+    if not progress.restore_snapshot(value):
+        return _invalid("Recovery agency progress is invalid")
     return {"ok": true}
 
 func _validate_token(value: Variant) -> Dictionary:

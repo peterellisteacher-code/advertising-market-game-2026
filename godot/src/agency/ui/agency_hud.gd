@@ -3,12 +3,14 @@ class_name AdMarketAgencyHud
 
 signal direct_travel_requested(station_id: String)
 signal guide_requested(section: String)
+signal sound_muted_requested(muted: bool)
 
 const OVERALL_GOAL := "Create and pitch a persuasive advertisement for the client audience."
 
 var _objective: Dictionary = {}
 var _station_ids: Array[String] = []
 var _guide_tucked: bool = true
+var _sound_muted: bool = false
 
 func _ready() -> void:
 	_set_label_text("HudMargin/HudRow/GoalBlock/HudGoal", OVERALL_GOAL)
@@ -53,6 +55,13 @@ func set_tucked(tucked: bool) -> void:
 	if button != null:
 		button.text = "Open guide · G" if tucked else "Guide open"
 
+func set_sound_muted(muted: bool) -> void:
+	_sound_muted = muted
+	var button := get_node_or_null("HudMargin/HudRow/HudSoundToggle") as Button
+	if button != null:
+		button.text = "Turn sound on" if muted else "Mute sound"
+		button.tooltip_text = "Turn campaign sound on" if muted else "Mute campaign sound"
+
 func go_to_objective() -> void:
 	var station_id := String(_objective.get("stationId", ""))
 	if not station_id.is_empty():
@@ -68,6 +77,9 @@ func _connect_controls() -> void:
 	var travel_menu := get_node_or_null("HudMargin/HudRow/TravelBlock/HudDirectTravel") as OptionButton
 	if travel_menu != null and not travel_menu.item_selected.is_connected(_on_direct_travel_selected):
 		travel_menu.item_selected.connect(_on_direct_travel_selected)
+	var sound_button := get_node_or_null("HudMargin/HudRow/HudSoundToggle") as Button
+	if sound_button != null and not sound_button.pressed.is_connected(_on_sound_pressed):
+		sound_button.pressed.connect(_on_sound_pressed)
 
 func _set_label_text(path: String, value: String) -> void:
 	var label := get_node_or_null(path) as Label
@@ -79,6 +91,10 @@ func _on_guide_pressed() -> void:
 
 func _on_objective_pressed() -> void:
 	go_to_objective()
+
+func _on_sound_pressed() -> void:
+	set_sound_muted(not _sound_muted)
+	sound_muted_requested.emit(_sound_muted)
 
 func _on_direct_travel_selected(index: int) -> void:
 	var menu := get_node_or_null("HudMargin/HudRow/TravelBlock/HudDirectTravel") as OptionButton

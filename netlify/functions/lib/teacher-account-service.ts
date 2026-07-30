@@ -89,6 +89,7 @@ export interface TeacherAccountOperationRecord {
   readonly username: string;
   readonly requestDigest: string;
   readonly state: "started" | "completed";
+  readonly createPhase?: "claimed" | "identity-create-authorized";
   readonly result?: TeacherAccountMutationResult;
 }
 
@@ -234,7 +235,12 @@ const parseStoredOperation = (value: unknown): TeacherAccountOperationRecord => 
     typeof record.username === "string" &&
     typeof record.requestDigest === "string" &&
     SHA256_PATTERN.test(record.requestDigest) &&
-    (record.state === "started" || record.state === "completed");
+    (record.state === "started" || record.state === "completed") &&
+    (
+      record.createPhase === undefined ||
+      record.createPhase === "claimed" ||
+      record.createPhase === "identity-create-authorized"
+    );
   if (!baseValid) {
     throw new TeacherAccountServiceError("TEACHER_UNAVAILABLE", 503, true);
   }
@@ -275,16 +281,32 @@ export class TeacherAccountService {
     const parsed = this.parseMutation(input, true);
     const claimed = await this.claim("create", parsed);
     if ("replay" in claimed) return claimed.replay;
+    let createClaim = claimed;
     try {
-      if (await this.dependencies.client.findAdvertisingGameUser(parsed.username) !== null) {
+      let created = await this.dependencies.client.findAdvertisingGameUser(parsed.username);
+      if (
+        created !== null &&
+        (createClaim.record.createPhase ?? "claimed") !== "identity-create-authorized"
+      ) {
         throw new TeacherAccountServiceError("USERNAME_UNAVAILABLE", 409);
       }
-      await this.dependencies.client.createConfirmedUser(
-        deriveSyntheticAccountEmail(parsed.username, this.dependencies.usernameHmacSecret),
-        parsed.password!,
-        parsed.username
-      );
-      const created = await this.dependencies.client.findAdvertisingGameUser(parsed.username);
+      if (created === null) {
+        createClaim = await this.authorizeIdentityCreation(createClaim);
+        try {
+          await this.dependencies.client.createConfirmedUser(
+            deriveSyntheticAccountEmail(parsed.username, this.dependencies.usernameHmacSecret),
+            parsed.password!,
+            parsed.username
+          );
+        } catch (error) {
+          if (error instanceof SupabaseAccountError && error.kind === "duplicate_user") {
+            await this.cancelIdentityCreation(createClaim);
+            throw new TeacherAccountServiceError("USERNAME_UNAVAILABLE", 409);
+          }
+          throw error;
+        }
+        created = await this.dependencies.client.findAdvertisingGameUser(parsed.username);
+      }
       if (created === null || created.username !== parsed.username) {
         throw new TeacherAccountServiceError("OPERATION_INCOMPLETE", 409);
       }
@@ -310,7 +332,7 @@ export class TeacherAccountService {
         operationId: parsed.operationId,
         account: summary(created)
       };
-      await this.complete(claimed, result);
+      await this.complete(createClaim, result);
       return result;
     } catch (error) {
       if (error instanceof TeacherAccountServiceError) throw error;
@@ -715,6 +737,50 @@ export class TeacherAccountService {
       claimed.etag
     )) {
       throw operationFailure(claimed.record.action);
+    }
+  }
+
+  private async authorizeIdentityCreation(
+    claimed: ClaimedOperation
+  ): Promise<ClaimedOperation> {
+    if ((claimed.record.createPhase ?? "claimed") === "identity-create-authorized") {
+      return claimed;
+    }
+    const authorized: TeacherAccountOperationRecord = {
+      ...claimed.record,
+      createPhase: "identity-create-authorized"
+    };
+    if (!await this.dependencies.operations.compareAndSwap(
+      claimed.key,
+      authorized,
+      claimed.etag
+    )) {
+      throw operationFailure("create");
+    }
+    const updated = await this.dependencies.operations.read(claimed.key);
+    if (updated === null) throw operationFailure("create");
+    const record = parseStoredOperation(updated.value);
+    if (
+      record.state !== "started" ||
+      record.action !== "create" ||
+      record.createPhase !== "identity-create-authorized"
+    ) {
+      throw operationFailure("create");
+    }
+    return { key: claimed.key, etag: updated.etag, record };
+  }
+
+  private async cancelIdentityCreation(claimed: ClaimedOperation): Promise<void> {
+    const cancelled: TeacherAccountOperationRecord = {
+      ...claimed.record,
+      createPhase: "claimed"
+    };
+    if (!await this.dependencies.operations.compareAndSwap(
+      claimed.key,
+      cancelled,
+      claimed.etag
+    )) {
+      throw operationFailure("create");
     }
   }
 }

@@ -52,8 +52,29 @@ func _agency_world_replaces_the_run_panel_and_coordinates_roles() -> bool:
 			String(Dictionary(begin_request.get("payload")).get("operationId")),
 		),
 	)
+	var progress_request := practice_fake.request_for("practice-3")
+	assert(progress_request.get("method") == "saveProgress")
+	var progress_payload: Dictionary = progress_request.get("payload")
+	var saved_progress := _practice_recovery(
+		shell,
+		"invent",
+		false,
+		1,
+		1,
+		String(progress_payload.get("operationId")),
+	)
+	saved_progress["checkpoint"]["pitch"] = Dictionary(progress_payload.get("pitch")).duplicate(true)
+	practice_fake.resolve_success("practice-3", saved_progress)
 	assert(agency.visible)
 	assert(not (shell.get_node("%RunPanel") as Control).visible)
+	shell.call("_process", 0.0)
+	var mirror := shell.get("_accessibility_mirror") as RefCounted
+	var accessibility: Dictionary = JSON.parse_string(String(mirror.get("_last_payload")))
+	assert(accessibility.get("eyebrow") == "AGENCY CAMPAIGN")
+	assert(String(accessibility.get("heading")).contains("Create and pitch one persuasive advertisement"))
+	assert(String(accessibility.get("currentInstruction")).contains("Current objective:"))
+	assert(String(accessibility.get("currentInstruction")).contains("Active role:"))
+	assert(not String(mirror.get("_last_payload")).contains("LIVE MARKET"))
 	var pair := agency.get_node("%AgencyPair") as AdMarketAgencyPair
 	assert(pair.input_enabled)
 	var prior_station: String = agency.current_station_id()
@@ -64,6 +85,12 @@ func _agency_world_replaces_the_run_panel_and_coordinates_roles() -> bool:
 	assert(pair.input_enabled)
 	assert(agency.current_station_id() == prior_station)
 	shell.call("_on_agency_role_handoff_requested", "strategist")
+	var handoff_request := practice_fake.request_for("practice-4")
+	assert(handoff_request.get("method") == "saveProgress")
+	assert(
+		Dictionary(Dictionary(handoff_request.get("payload")).get("pitch")).get("activeRole")
+		== "strategist"
+	)
 	var document: Dictionary = shell.get("_campaign_document")
 	var pair_state: Dictionary = Dictionary(Dictionary(document.get("gameplay")).get("pair"))
 	assert(pair_state.get("activeRole") == "strategist")
@@ -167,10 +194,25 @@ func _startup_restores_an_exact_locked_pitch() -> bool:
 		"restore-operation",
 		document
 	)
+	var exact_progress := AdMarketAgencyProgress.new()
+	assert(exact_progress.begin())
+	assert(exact_progress.handoff_to("strategist"))
+	exact_progress.current_station_id = "production-studio"
+	exact_progress.guide_tucked = true
+	exact_progress.orientation_acknowledged = true
+	exact_progress.audio_settings = {
+		"enabled": true,
+		"musicEnabled": false,
+		"sfxEnabled": true,
+		"masterVolume": 0.4,
+	}
+	var exact_pitch := exact_progress.snapshot()
+	recovery["checkpoint"]["pitch"] = exact_pitch.duplicate(true)
 	practice_fake.resolve_success("practice-1", recovery)
 	var run: RefCounted = shell.get("_game_run")
 	assert(run.phase == "sell")
 	assert(run.is_current_level_ready())
+	assert(run.agency_progress().snapshot() == exact_pitch)
 	assert(bool(shell.get("_level_locked")))
 	var restored: Dictionary = shell.get("_campaign_document")
 	assert(String(restored.get("documentId")) == "practice-document-restored")

@@ -4,6 +4,7 @@ class_name AdMarketAgencyGuideDrawer
 signal direct_travel_requested(station_id: String)
 signal role_handoff_requested(role: String)
 signal audio_settings_requested
+signal audio_settings_changed(settings: Dictionary)
 signal tucked_changed(tucked: bool)
 
 const OVERALL_GOAL := "Create and pitch one persuasive advertisement for the audience in the client brief."
@@ -72,6 +73,7 @@ func configure(progress: AdMarketAgencyProgress, catalog: Variant) -> void:
 		progress.completed_sidequest_ids.size()
 	)
 	set_tucked(progress.guide_tucked)
+	_sync_audio_settings(progress.audio_settings)
 
 func show_objective(objective: Dictionary) -> void:
 	_objective = objective.duplicate(true)
@@ -149,6 +151,14 @@ func open_orientation() -> void:
 	if panel != null:
 		panel.reset_size()
 
+func reading_active() -> bool:
+	var guide_panel := get_node_or_null("%GuidePanel") as Control
+	var orientation_panel := get_node_or_null("%OrientationPanel") as Control
+	return (
+		(guide_panel != null and guide_panel.visible)
+		or (orientation_panel != null and orientation_panel.visible)
+	)
+
 func advance_orientation() -> void:
 	if not orientation_required():
 		return
@@ -181,11 +191,77 @@ func _connect_controls() -> void:
 	_connect_button("%ArtDirectorControl", _on_art_director_pressed)
 	_connect_button("%StrategistControl", _on_strategist_pressed)
 	_connect_button("%AudioSettings", _on_audio_settings_pressed)
+	_connect_audio_controls()
 
 func _connect_button(path: String, callback: Callable) -> void:
 	var button := get_node_or_null(path) as Button
 	if button != null and not button.pressed.is_connected(callback):
 		button.pressed.connect(callback)
+
+func _connect_audio_controls() -> void:
+	var audio_enabled := get_node_or_null("%AudioEnabled") as CheckButton
+	var music_enabled := get_node_or_null("%MusicEnabled") as CheckButton
+	var sfx_enabled := get_node_or_null("%SfxEnabled") as CheckButton
+	var master_volume := get_node_or_null("%MasterVolume") as HSlider
+	if audio_enabled != null and not audio_enabled.toggled.is_connected(_on_audio_setting_changed):
+		audio_enabled.toggled.connect(_on_audio_setting_changed)
+	if music_enabled != null and not music_enabled.toggled.is_connected(_on_audio_setting_changed):
+		music_enabled.toggled.connect(_on_audio_setting_changed)
+	if sfx_enabled != null and not sfx_enabled.toggled.is_connected(_on_audio_setting_changed):
+		sfx_enabled.toggled.connect(_on_audio_setting_changed)
+	if master_volume != null and not master_volume.value_changed.is_connected(_on_audio_setting_changed):
+		master_volume.value_changed.connect(_on_audio_setting_changed)
+
+func _sync_audio_settings(settings: Dictionary) -> void:
+	var audio_enabled := get_node_or_null("%AudioEnabled") as CheckButton
+	var music_enabled := get_node_or_null("%MusicEnabled") as CheckButton
+	var sfx_enabled := get_node_or_null("%SfxEnabled") as CheckButton
+	var master_volume := get_node_or_null("%MasterVolume") as HSlider
+	if audio_enabled != null:
+		audio_enabled.set_pressed_no_signal(bool(settings.get("enabled", true)))
+	if music_enabled != null:
+		music_enabled.set_pressed_no_signal(bool(settings.get("musicEnabled", true)))
+	if sfx_enabled != null:
+		sfx_enabled.set_pressed_no_signal(bool(settings.get("sfxEnabled", true)))
+	if master_volume != null:
+		master_volume.set_value_no_signal(float(settings.get("masterVolume", 0.7)))
+	_update_audio_control_state()
+
+func _audio_settings_from_controls() -> Dictionary:
+	var audio_enabled := get_node_or_null("%AudioEnabled") as CheckButton
+	var music_enabled := get_node_or_null("%MusicEnabled") as CheckButton
+	var sfx_enabled := get_node_or_null("%SfxEnabled") as CheckButton
+	var master_volume := get_node_or_null("%MasterVolume") as HSlider
+	return {
+		"enabled": audio_enabled == null or audio_enabled.button_pressed,
+		"musicEnabled": music_enabled == null or music_enabled.button_pressed,
+		"sfxEnabled": sfx_enabled == null or sfx_enabled.button_pressed,
+		"masterVolume": 0.7 if master_volume == null else master_volume.value,
+	}
+
+func _update_audio_control_state() -> void:
+	var settings := _audio_settings_from_controls()
+	var audio_enabled := bool(settings.get("enabled", true))
+	var music_control := get_node_or_null("%MusicEnabled") as CheckButton
+	var sfx_control := get_node_or_null("%SfxEnabled") as CheckButton
+	var volume_control := get_node_or_null("%MasterVolume") as HSlider
+	if music_control != null:
+		music_control.disabled = not audio_enabled
+	if sfx_control != null:
+		sfx_control.disabled = not audio_enabled
+	if volume_control != null:
+		volume_control.editable = audio_enabled
+	_set_label_text(
+		"%MasterVolumeLabel",
+		"Overall volume: %d%%" % roundi(float(settings.get("masterVolume", 0.7)) * 100.0)
+	)
+
+func _on_audio_setting_changed(_value: Variant) -> void:
+	var settings := _audio_settings_from_controls()
+	if _progress != null:
+		_progress.audio_settings = settings.duplicate(true)
+	_update_audio_control_state()
+	audio_settings_changed.emit(settings)
 
 func _update_orientation() -> void:
 	var step: Dictionary = ORIENTATION_STEPS[_orientation_step]
@@ -236,4 +312,10 @@ func _on_strategist_pressed() -> void:
 	role_handoff_requested.emit("strategist")
 
 func _on_audio_settings_pressed() -> void:
+	var panel := get_node_or_null("%AudioSettingsPanel") as Control
+	if panel != null:
+		panel.visible = not panel.visible
+	var button := get_node_or_null("%AudioSettings") as Button
+	if button != null and panel != null:
+		button.text = "Close sound settings" if panel.visible else "Sound settings"
 	audio_settings_requested.emit()

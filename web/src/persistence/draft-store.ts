@@ -1,6 +1,7 @@
 import {
   LOCAL_PRACTICE_CHECKPOINT_CONTRACT as PRACTICE_CHECKPOINT_CONTRACT,
   LocalPracticeCheckpointSchema as PracticeCheckpointSchema,
+  type AgencyRunSnapshotV1,
   type LocalPracticeCheckpointV1 as PracticeCheckpointV1
 } from "../bridge/practice-contracts";
 import {
@@ -95,6 +96,7 @@ export interface CommitLocalPracticeInput {
   document: CampaignDocumentV1;
   blobs: ReadonlyMap<string, Blob>;
   levelLocked: boolean;
+  pitch?: AgencyRunSnapshotV1;
   operationId: string;
   savedAt: string;
 }
@@ -369,6 +371,7 @@ async function recoveryOperationFingerprint(
     expectedDocumentRevision: checkpoint.documentRevision - 1,
     expectedSequence: checkpoint.sequence - 1,
     levelLocked: checkpoint.levelLocked,
+    ...(checkpoint.pitch === undefined ? {} : { pitch: checkpoint.pitch }),
     documentInputHash
   }, blobs);
 }
@@ -677,15 +680,17 @@ export class VolatileDraftStore implements LocalPracticeDraftStore {
       throw new Error("A local-practice commit must advance the campaign revision by exactly one");
     }
     const blobSnapshot = selectReferencedLocalAssetBlobs(source, input.blobs);
+    const active = await this.resumeLocalPractice();
+    if (!active) throw new Error("There is no active local-practice run");
+    const pitch = input.pitch ?? active.checkpoint.pitch;
     const fingerprint = await localPracticeOperationFingerprint({
       kind: "commit",
       expectedDocumentRevision: input.expectedDocumentRevision,
       expectedSequence: input.expectedSequence,
       levelLocked: input.levelLocked,
+      ...(pitch === undefined ? {} : { pitch }),
       documentInputHash: await semanticDurableDocumentInputHash(source)
     }, blobSnapshot);
-    const active = await this.resumeLocalPractice();
-    if (!active) throw new Error("There is no active local-practice run");
     const checkpoint = LocalPracticeCheckpointSchema.parse({
       ...active.checkpoint,
       documentRevision: source.revision,
@@ -694,7 +699,8 @@ export class VolatileDraftStore implements LocalPracticeDraftStore {
       levelLocked: input.levelLocked,
       sequence: input.expectedSequence + 1,
       operationId: input.operationId,
-      savedAt: input.savedAt
+      savedAt: input.savedAt,
+      ...(pitch === undefined ? {} : { pitch })
     });
     const prior = this.#operations.get(input.operationId);
     if (prior) {
@@ -1326,15 +1332,17 @@ export class IndexedDbDraftStore implements LocalPracticeDraftStore {
       throw new Error("A local-practice commit must advance the campaign revision by exactly one");
     }
     const blobSnapshot = selectReferencedLocalAssetBlobs(source, input.blobs);
+    const active = await this.resumeLocalPractice();
+    if (!active) throw new Error("There is no active local-practice run");
+    const pitch = input.pitch ?? active.checkpoint.pitch;
     const operationFingerprint = await localPracticeOperationFingerprint({
       kind: "commit",
       expectedDocumentRevision: input.expectedDocumentRevision,
       expectedSequence: input.expectedSequence,
       levelLocked: input.levelLocked,
+      ...(pitch === undefined ? {} : { pitch }),
       documentInputHash: await semanticDurableDocumentInputHash(source)
     }, blobSnapshot);
-    const active = await this.resumeLocalPractice();
-    if (!active) throw new Error("There is no active local-practice run");
     const checkpoint = LocalPracticeCheckpointSchema.parse({
       ...active.checkpoint,
       documentRevision: source.revision,
@@ -1343,7 +1351,8 @@ export class IndexedDbDraftStore implements LocalPracticeDraftStore {
       levelLocked: input.levelLocked,
       sequence: input.expectedSequence + 1,
       operationId: input.operationId,
-      savedAt: input.savedAt
+      savedAt: input.savedAt,
+      ...(pitch === undefined ? {} : { pitch })
     });
 
     const database = await this.#open();

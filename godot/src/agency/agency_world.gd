@@ -5,6 +5,7 @@ signal station_requested(station_id: String)
 signal role_handoff_requested(role: String)
 signal guide_requested
 signal audio_settings_requested
+signal audio_settings_changed(settings: Dictionary)
 
 const AgencyProgress = preload("res://src/agency/agency_progress.gd")
 const MissionCatalog = preload("res://src/agency/agency_mission_catalog.gd")
@@ -212,6 +213,16 @@ func direct_travel(station_id: String) -> bool:
 	_begin_direct_travel(pair, target)
 	return true
 
+func reading_active() -> bool:
+	var guide := _guide()
+	if guide != null and guide.reading_active():
+		return true
+	for path in ["%AgencyMissionPanel", "%HandoffPanel"]:
+		var panel := get_node_or_null(String(path)) as Control
+		if panel != null and panel.visible:
+			return true
+	return false
+
 func current_station_id() -> String:
 	return _current_station_id
 
@@ -219,6 +230,39 @@ func objective_station_id() -> String:
 	if _progress == null:
 		return "client-briefing"
 	return String(OBJECTIVE_STATIONS.get(_progress.current_objective_id, "reception"))
+
+func accessibility_state() -> Dictionary:
+	var objective_id := "meet-client" if _progress == null else _progress.current_objective_id
+	var objective: Dictionary = MissionCatalog.objective(objective_id)
+	var station: Dictionary = STATION_DATA.get(_current_station_id, STATION_DATA.get("reception", {}))
+	var active_role := "strategist" if _progress == null else _progress.active_role
+	var role_name := "Art Director" if active_role == "art-director" else "Strategist"
+	var action_button := get_node_or_null("%StationActionButton") as Button
+	var station_prompt := (
+		String(action_button.text)
+		if action_button != null
+		else String(station.get("ownerAction", "Choose the next useful action."))
+	)
+	var required_done := 0 if _progress == null else _progress.completed_mission_ids.size()
+	var required_total := MissionCatalog.required_missions().size()
+	var optional_done := 0 if _progress == null else _progress.completed_sidequest_ids.size()
+	return {
+		"eyebrow": "AGENCY CAMPAIGN",
+		"heading": "Create and pitch one persuasive advertisement for the audience in the client brief.",
+		"currentInstruction": (
+			"Current objective: %s. Current station: %s. Active role: %s. %s"
+			% [
+				String(objective.get("title", objective_id.capitalize())),
+				String(station.get("title", "Agency reception")),
+				role_name,
+				station_prompt,
+			]
+		),
+		"completionStatus": (
+			"%d of %d required missions complete; %d optional contracts complete."
+			% [required_done, required_total, optional_done]
+		),
+	}
 
 func _connect_controls() -> void:
 	var pair := _pair()
@@ -230,6 +274,8 @@ func _connect_controls() -> void:
 			hud.direct_travel_requested.connect(_on_guidance_travel_requested)
 		if not hud.guide_requested.is_connected(_on_hud_guide_requested):
 			hud.guide_requested.connect(_on_hud_guide_requested)
+		if not hud.sound_muted_requested.is_connected(_on_hud_sound_muted_requested):
+			hud.sound_muted_requested.connect(_on_hud_sound_muted_requested)
 	var guide := _guide()
 	if guide != null:
 		if not guide.direct_travel_requested.is_connected(_on_guidance_travel_requested):
@@ -238,6 +284,8 @@ func _connect_controls() -> void:
 			guide.role_handoff_requested.connect(_on_guide_role_handoff_requested)
 		if not guide.audio_settings_requested.is_connected(_on_guide_audio_settings_requested):
 			guide.audio_settings_requested.connect(_on_guide_audio_settings_requested)
+		if not guide.audio_settings_changed.is_connected(_on_guide_audio_settings_changed):
+			guide.audio_settings_changed.connect(_on_guide_audio_settings_changed)
 		if not guide.tucked_changed.is_connected(_on_guide_tucked_changed):
 			guide.tucked_changed.connect(_on_guide_tucked_changed)
 	var guide_button := get_node_or_null("%GuideButton") as Button
@@ -305,6 +353,7 @@ func _configure_guidance() -> void:
 	var hud := _hud()
 	if hud != null:
 		hud.set_tucked(_progress.guide_tucked)
+		hud.set_sound_muted(not bool(_progress.audio_settings.get("enabled", true)))
 
 func _hide_embedded_guide_tab(guide: AdMarketAgencyGuideDrawer) -> void:
 	var guide_tab := guide.get_node_or_null("GuideTab") as Button
@@ -466,6 +515,15 @@ func _open_guide(section: String) -> void:
 func _on_hud_guide_requested(section: String) -> void:
 	_open_guide(section)
 
+func _on_hud_sound_muted_requested(muted: bool) -> void:
+	if _progress == null:
+		return
+	var settings := _progress.audio_settings.duplicate(true)
+	settings["enabled"] = not muted
+	_progress.audio_settings = settings
+	_configure_guidance()
+	audio_settings_changed.emit(settings.duplicate(true))
+
 func _on_guidance_travel_requested(station_id: String) -> void:
 	direct_travel(station_id)
 
@@ -505,6 +563,9 @@ func _on_guide_role_handoff_requested(role: String) -> void:
 
 func _on_guide_audio_settings_requested() -> void:
 	audio_settings_requested.emit()
+
+func _on_guide_audio_settings_changed(settings: Dictionary) -> void:
+	audio_settings_changed.emit(settings.duplicate(true))
 
 func _show_orientation_if_required() -> void:
 	if not is_inside_tree():

@@ -44,26 +44,31 @@ func send(request_json: String, resolve: Callable, _reject: Callable) -> void:
         return
     var token: Dictionary = input.get("checkpoint")
     assert(_active != null)
+    var prior_checkpoint: Dictionary = Dictionary(_active).get("checkpoint")
     var current: Dictionary = _provider_document()
     current["revision"] = int(token.get("documentRevision")) + 1
     var stage := String(token.get("stage"))
-    var locked := false
-    if method == "setLock":
+    var locked := bool(prior_checkpoint.get("levelLocked", false))
+    var pitch: Variant = prior_checkpoint.get("pitch")
+    if method == "saveProgress":
+        pitch = input.get("pitch")
+    elif method == "setLock":
         locked = bool(input.get("levelLocked"))
     elif method == "advance":
         stage = String(input.get("nextStage"))
+        locked = false
         assert(STAGES.has(stage))
     else:
         assert(false, "Unexpected practice method")
     current["gameplay"]["stage"] = stage
-    var prior_checkpoint: Dictionary = Dictionary(_active).get("checkpoint")
     _active = _recovery(
         current,
         String(token.get("runId")),
         String(prior_checkpoint.get("teamAlias")),
         locked,
         int(token.get("sequence")) + 1,
-        String(input.get("operationId"))
+        String(input.get("operationId")),
+        pitch
     )
     _resolve(resolve, request_id, _active)
 
@@ -85,7 +90,8 @@ func _adopt_provider_document() -> void:
         String(checkpoint.get("teamAlias")),
         false,
         int(checkpoint.get("sequence")) + 1,
-        "fake-adopt-%d" % _adopt_sequence
+        "fake-adopt-%d" % _adopt_sequence,
+        checkpoint.get("pitch")
     )
 
 func _provider_document() -> Dictionary:
@@ -100,7 +106,8 @@ func _recovery(
     alias: String,
     locked: bool,
     sequence: int,
-    operation_id: String
+    operation_id: String,
+    pitch: Variant = null
 ) -> Dictionary:
     var recovered_document: Dictionary = document.duplicate(true)
     var pair: Dictionary = recovered_document["gameplay"]["pair"]
@@ -121,6 +128,8 @@ func _recovery(
         "operationId": operation_id,
         "savedAt": "2026-07-17T05:00:00.000Z"
     }
+    if typeof(pitch) == TYPE_DICTIONARY:
+        checkpoint["pitch"] = Dictionary(pitch).duplicate(true)
     return {"checkpoint": checkpoint, "document": recovered_document}
 
 func _resolve(resolve: Callable, request_id: String, payload: Variant) -> void:

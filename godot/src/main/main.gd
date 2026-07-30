@@ -126,6 +126,7 @@ var _practice_operation_counter: int = 0
 var _pending_creator_document: Dictionary = {}
 var _practice_pending_operation: Dictionary = {}
 var _practice_retry_operation: Dictionary = {}
+var _queued_practice_pitch: Dictionary = {}
 var _startup_state: String = "idle"
 var _run_progress_store: RefCounted
 var _last_saved_live_progress: Dictionary = {}
@@ -136,6 +137,8 @@ var _accessibility_mirror: RefCounted = GameAccessibilityMirror.new()
 var _dialog_focus_target: Control
 
 func _process(_delta: float) -> void:
+    if agency_audio != null and agency_world != null:
+        agency_audio.set_reading_active(agency_world.visible and agency_world.reading_active())
     if lobby_panel.visible:
         _accessibility_mirror.update(
             "FIRST MOVE",
@@ -151,6 +154,16 @@ func _process(_delta: float) -> void:
             level_heading.text,
             level_clue.text,
             status.text,
+            _focused_control_label(),
+            keyboard_hint.text
+        )
+    elif agency_world != null and agency_world.visible:
+        var agency_accessibility: Dictionary = agency_world.accessibility_state()
+        _accessibility_mirror.update(
+            String(agency_accessibility.get("eyebrow", "AGENCY CAMPAIGN")),
+            String(agency_accessibility.get("heading", "Create and pitch one persuasive advertisement.")),
+            String(agency_accessibility.get("currentInstruction", "Follow the current objective in the agency guide.")),
+            String(agency_accessibility.get("completionStatus", status.text)),
             _focused_control_label(),
             keyboard_hint.text
         )
@@ -174,6 +187,8 @@ func _ready() -> void:
     _agency_campaign = agency_controller_script.new() as AdMarketAgencyCampaignController
     agency_world.station_requested.connect(_on_agency_station_requested)
     agency_world.role_handoff_requested.connect(_on_agency_role_handoff_requested)
+    agency_world.audio_settings_requested.connect(_on_agency_audio_settings_requested)
+    agency_world.audio_settings_changed.connect(_on_agency_audio_settings_changed)
     _agency_campaign.creator_requested.connect(_open_creator)
     _agency_campaign.publish_requested.connect(_publish_campaign)
     _agency_campaign.market_requested.connect(_enter_market)
@@ -261,7 +276,11 @@ func _show_agency() -> void:
     if run == null:
         return
     _agency_campaign.restore_agency(run, _campaign_document)
-    agency_world.configure(run.agency_progress() as AdMarketAgencyProgress)
+    var progress := run.agency_progress() as AdMarketAgencyProgress
+    agency_world.configure(progress)
+    if agency_audio != null and progress != null:
+        agency_audio.apply_settings(progress.audio_settings)
+        agency_audio.play_ambience("office")
     lobby_panel.hide()
     market_screen.hide()
     run_panel.hide()
@@ -277,11 +296,17 @@ func _hide_agency() -> void:
 func _on_agency_station_requested(station_id: String) -> void:
     if _agency_campaign == null:
         return
+    agency_audio.confirm_user_gesture()
+    agency_audio.play_sfx("ui-confirm")
+    agency_audio.play_ambience("office")
     var result: Dictionary = _agency_campaign.open_station(station_id)
     if not bool(result.get("allowed", false)):
         status.text = String(result.get("reason", "That station is not available yet."))
 
 func _on_agency_role_handoff_requested(role: String) -> void:
+    agency_audio.confirm_user_gesture()
+    agency_audio.play_sfx("ui-confirm")
+    agency_audio.play_ambience("office")
     if _agency_campaign != null:
         _agency_campaign.handoff_to(role)
 
@@ -310,6 +335,22 @@ func _on_agency_progress_changed() -> void:
 
 func _on_agency_status_changed(message: String) -> void:
     status.text = message
+
+func _on_agency_audio_settings_requested() -> void:
+    agency_audio.confirm_user_gesture()
+    agency_audio.play_sfx("ui-move")
+    agency_audio.play_ambience("office")
+
+func _on_agency_audio_settings_changed(settings: Dictionary) -> void:
+    agency_audio.confirm_user_gesture()
+    agency_audio.apply_settings(settings)
+    agency_audio.play_sfx("ui-confirm")
+    agency_audio.play_ambience("office")
+    var run := _game_run as AdMarketGameRun
+    var progress := run.agency_progress() as AdMarketAgencyProgress if run != null else null
+    if progress != null:
+        progress.audio_settings = settings.duplicate(true)
+        _on_agency_progress_changed()
 
 func _toggle_teacher_setup() -> void:
     host_area.visible = not host_area.visible
@@ -425,6 +466,7 @@ func _clear_practice_request() -> void:
 func _abandon_practice_request() -> void:
     _clear_practice_request()
     _practice_retry_operation.clear()
+    _queued_practice_pitch.clear()
     _pending_creator_document.clear()
     start_button.disabled = false
 
@@ -455,6 +497,15 @@ func _on_practice_request_succeeded(request_id: String, method: String, payload:
         ):
             _practice_failure(context)
             return
+    if context == "progress":
+        if not _apply_practice_progress_ack(recovery):
+            _practice_failure(context)
+            return
+        _practice_ready = true
+        _queued_practice_pitch.clear()
+        _render_level()
+        status.text = "Campaign progress saved on this computer."
+        return
     if not _apply_practice_recovery(recovery):
         _practice_failure(context)
         return
@@ -536,9 +587,52 @@ func _practice_failure(context: String) -> void:
     elif context == "begin":
         start_button.disabled = false
         status.text = "Practice could not start safely. Retry."
+    elif context == "progress":
+        _suspend_agency_progress_persistence = true
+        _render_level()
+        _suspend_agency_progress_persistence = false
+        status.text = "Campaign progress could not be saved. Your current screen is unchanged."
     else:
         _render_level()
         status.text = "Save failed. No state change. Retry."
+
+func _apply_practice_progress_ack(recovery: Dictionary) -> bool:
+    var checkpoint_value: Variant = recovery.get("checkpoint")
+    var document_value: Variant = recovery.get("document")
+    if typeof(checkpoint_value) != TYPE_DICTIONARY or typeof(document_value) != TYPE_DICTIONARY:
+        return false
+    var checkpoint: Dictionary = checkpoint_value
+    var document: Dictionary = document_value
+    if typeof(checkpoint.get("pitch")) != TYPE_DICTIONARY:
+        return false
+    var run := _game_run as AdMarketGameRun
+    var progress := run.agency_progress() as AdMarketAgencyProgress if run != null else null
+    if progress == null:
+        return false
+    var current_pitch := progress.snapshot()
+    if (
+        current_pitch != checkpoint.get("pitch")
+        and (_queued_practice_pitch.is_empty() or current_pitch != _queued_practice_pitch)
+    ):
+        return false
+    if (
+        _campaign_document.get("documentId") != document.get("documentId")
+        or _campaign_document.get("sessionId") != document.get("sessionId")
+        or _campaign_document.get("teamId") != document.get("teamId")
+    ):
+        return false
+    var merged_document := _campaign_document.duplicate(true)
+    merged_document["revision"] = document.get("revision")
+    merged_document["updatedAt"] = document.get("updatedAt")
+    _campaign_document = merged_document
+    _practice_recovery = recovery.duplicate(true)
+    _level_locked = bool(checkpoint.get("levelLocked", false))
+    _pending_creator_document.clear()
+    _room_role = ""
+    _room_code = ""
+    _room_campaign_submitted = false
+    _live_publication_pending = false
+    return true
 
 func _apply_practice_recovery(recovery: Dictionary) -> bool:
     var checkpoint_value: Variant = recovery.get("checkpoint")
@@ -563,15 +657,21 @@ func _apply_practice_recovery(recovery: Dictionary) -> bool:
             ready_levels.append(levels[index])
         if locked:
             ready_levels.append(phase)
-    var next_run: RefCounted = GameRun.new()
-    if not next_run.restore_pitch_snapshot({
+    var pitch_snapshot := {
         "contract": "pitch-run@1",
         "phase": phase,
         "teamAlias": String(checkpoint.get("teamAlias", "")),
         "sessionId": String(checkpoint.get("sessionId", "")),
         "teamId": String(checkpoint.get("teamId", "")),
         "readyLevels": ready_levels
-    }):
+    }
+    if checkpoint.has("pitch"):
+        if typeof(checkpoint.get("pitch")) != TYPE_DICTIONARY:
+            return false
+        pitch_snapshot["contract"] = "pitch-run@2"
+        pitch_snapshot["agency"] = Dictionary(checkpoint.get("pitch")).duplicate(true)
+    var next_run: RefCounted = GameRun.new()
+    if not next_run.restore_pitch_snapshot(pitch_snapshot):
         return false
     _game_run = next_run
     _campaign_document = document.duplicate(true)
@@ -1189,6 +1289,8 @@ func _on_creator_published(publication: Dictionary) -> void:
     _complete_pitch_when_ready()
 
 func _prepare_pitch_surface() -> void:
+    agency_audio.confirm_user_gesture()
+    agency_audio.play_music("pitch")
     _hide_agency()
     lobby_panel.hide()
     run_panel.hide()
@@ -1213,13 +1315,14 @@ func _on_pitch_setting_changed(_setting_id: String) -> void:
     _on_agency_progress_changed()
 
 func _on_pitch_sound_requested(cue_id: String) -> void:
-    agency_audio.play_cue(cue_id)
+    agency_audio.play_sfx(cue_id)
 
 func _complete_pitch_when_ready() -> void:
     if not _pitch_waiting_for_market or not _pitch_finished or not _pitch_market_ready:
         return
     _pitch_waiting_for_market = false
     pitch_theatre.hide()
+    agency_audio.stop_all()
     var finish_button := pitch_theatre.get_node_or_null("%EnterMarket") as Button
     if finish_button != null:
         finish_button.disabled = false
@@ -1605,7 +1708,37 @@ func _validated_live_progress(value: Variant, identity: Dictionary) -> Dictionar
         return {}
     return {"run": restored_run, "value": progress.duplicate(true)}
 
+func _save_practice_progress() -> void:
+    if _practice_bridge == null or _practice_recovery.is_empty():
+        return
+    var run := _game_run as AdMarketGameRun
+    var progress := run.agency_progress() as AdMarketAgencyProgress if run != null else null
+    if progress == null:
+        return
+    var pitch := progress.snapshot()
+    var checkpoint: Dictionary = _practice_recovery.get("checkpoint", {})
+    if pitch == checkpoint.get("pitch", {}):
+        _queued_practice_pitch.clear()
+        return
+    if not _practice_pending_method.is_empty():
+        _queued_practice_pitch = pitch.duplicate(true)
+        return
+    var token := _practice_token()
+    if token.is_empty():
+        return
+    var input := {
+        "checkpoint": token.duplicate(true),
+        "pitch": pitch.duplicate(true)
+    }
+    _begin_practice_request("saveProgress", "progress")
+    var operation_id := _practice_operation_id("saveProgress", input)
+    var request_id: String = _practice_bridge.save_progress(token, pitch, operation_id)
+    _remember_practice_request_id("saveProgress", request_id)
+
 func _save_live_progress() -> void:
+    if _room_role.is_empty():
+        _save_practice_progress()
+        return
     if _room_role != "team" or _run_progress_store == null:
         return
     var pitch: Dictionary = _game_run.pitch_snapshot()

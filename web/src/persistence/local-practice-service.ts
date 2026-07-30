@@ -4,6 +4,7 @@ import {
   type LocalPracticeRecoveryV1,
   type PracticeAdvanceInput,
   type PracticeRunHandler,
+  type PracticeSaveProgressInput,
   type PracticeSetLockInput
 } from "../bridge/practice-contracts";
 import {
@@ -159,6 +160,22 @@ export class LocalPracticeService implements PracticeRunHandler {
       blobs,
       levelLocked: false,
       operationId,
+      savedAt: this.#now().toISOString()
+    });
+    return this.#recoveryForCheckpoint(checkpoint);
+  }
+
+  async saveProgress(input: PracticeSaveProgressInput): Promise<LocalPracticeRecoveryV1> {
+    const base = await this.#loadBase(input.checkpoint);
+    const document = this.#nextDocument(base.document, base.document.gameplay.stage);
+    const checkpoint = await this.store.commitLocalPractice({
+      expectedDocumentRevision: input.checkpoint.documentRevision,
+      expectedSequence: input.checkpoint.sequence,
+      document,
+      blobs: base.blobs,
+      levelLocked: base.checkpoint.levelLocked,
+      pitch: input.pitch,
+      operationId: input.operationId,
       savedAt: this.#now().toISOString()
     });
     return this.#recoveryForCheckpoint(checkpoint);

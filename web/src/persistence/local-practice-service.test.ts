@@ -1,10 +1,79 @@
 import { IDBFactory } from "fake-indexeddb";
 import { describe, expect, it } from "vitest";
-import { checkpointToken } from "../bridge/practice-contracts";
+import {
+  checkpointToken,
+  type AgencyRunSnapshotV1
+} from "../bridge/practice-contracts";
 import { IndexedDbDraftStore } from "./draft-store";
 import { LocalPracticeService } from "./local-practice-service";
 
+const agencyPitch: AgencyRunSnapshotV1 = {
+  contract: "agency-run@1",
+  currentObjectiveId: "build-product",
+  currentStationId: "art-studio",
+  activeRole: "art-director",
+  completedMissionIds: ["audience-brief"],
+  completedSidequestIds: [],
+  evidenceByMission: {
+    "audience-brief": {
+      decision: "Focus on independent travel after school.",
+      effect: "This gives the audience a practical reason to notice and use the product."
+    }
+  },
+  handoffCount: 2,
+  guideTucked: true,
+  orientationAcknowledged: true,
+  audioSettings: {
+    enabled: true,
+    musicEnabled: false,
+    sfxEnabled: true,
+    masterVolume: 0.55
+  },
+  pitchSettings: {
+    formatId: "billboard",
+    animationId: "reveal"
+  },
+  started: true
+};
+
 describe("LocalPracticeService", () => {
+  it("saves and resumes the exact agency pitch without changing its identity", async () => {
+    const service = new LocalPracticeService(new IndexedDbDraftStore({
+      databaseName: "local-practice-service-agency-progress",
+      factory: new IDBFactory()
+    }), {
+      now: () => new Date("2026-07-30T01:00:00.000Z")
+    });
+    const begun = await service.begin("Agency Owls", "operation-begin-agency");
+
+    const saved = await service.saveProgress({
+      checkpoint: checkpointToken(begun),
+      pitch: agencyPitch,
+      operationId: "operation-save-agency"
+    });
+
+    expect(saved.checkpoint).toMatchObject({
+      runId: begun.checkpoint.runId,
+      documentId: begun.checkpoint.documentId,
+      documentRevision: 1,
+      sequence: 1,
+      operationId: "operation-save-agency",
+      pitch: agencyPitch
+    });
+    expect(saved.document).toMatchObject({
+      documentId: begun.document.documentId,
+      revision: 1,
+      gameplay: { stage: "invent" }
+    });
+    await expect(service.resume()).resolves.toMatchObject({
+      checkpoint: {
+        pitch: agencyPitch,
+        documentRevision: 1,
+        sequence: 1
+      }
+    });
+  });
+
   it("begins, locks, advances and replays only the active atomic result", async () => {
     let tick = 0;
     const service = new LocalPracticeService(new IndexedDbDraftStore({

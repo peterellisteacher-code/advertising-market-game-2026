@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 44,
+  "sourcePng": "44-outdoor-camping-travel-equipment.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Dome camping tent", "tags": ["camping", "dome tent", "shelter"]},
+    {"row": 1, "column": 2, "label": "Cabin camping tent", "tags": ["cabin tent", "camping", "shelter"]},
+    {"row": 1, "column": 3, "label": "Mummy sleeping bag", "tags": ["camping", "sleeping bag", "sleeping gear"]},
+    {"row": 1, "column": 4, "label": "Rolled sleeping mat", "tags": ["camping", "sleeping gear", "sleeping mat"]},
+    {"row": 1, "column": 5, "label": "Folding camping cot", "tags": ["camping", "camping cot", "sleeping gear"]},
+    {"row": 2, "column": 1, "label": "Hiking backpack", "tags": ["backpack", "hiking", "travel gear"]},
+    {"row": 2, "column": 2, "label": "Hard-shell rolling suitcase", "tags": ["hard-shell luggage", "rolling suitcase", "travel gear"]},
+    {"row": 2, "column": 3, "label": "Travel duffel bag", "tags": ["duffel bag", "travel bag", "travel gear"]},
+    {"row": 2, "column": 4, "label": "Rectangular travel case", "tags": ["hard case", "travel case", "travel gear"]},
+    {"row": 2, "column": 5, "label": "Travel neck pillow", "tags": ["neck pillow", "travel comfort", "travel gear"]},
+    {"row": 3, "column": 1, "label": "Folding camping chair", "tags": ["camp chair", "camping", "folding chair"]},
+    {"row": 3, "column": 2, "label": "Folding camping table", "tags": ["camp table", "camping", "folding table"]},
+    {"row": 3, "column": 3, "label": "Two-burner camping stove", "tags": ["camp stove", "camping", "cooking gear"]},
+    {"row": 3, "column": 4, "label": "Hard camping cooler", "tags": ["camp cooler", "camping", "cooler"]},
+    {"row": 3, "column": 5, "label": "Camping lantern", "tags": ["camping", "camping lantern", "lighting"]},
+    {"row": 4, "column": 1, "label": "Insulated travel bottle", "tags": ["drink bottle", "insulated bottle", "travel gear"]},
+    {"row": 4, "column": 2, "label": "Handled travel mug", "tags": ["insulated mug", "travel gear", "travel mug"]},
+    {"row": 4, "column": 3, "label": "Lidded camping saucepan", "tags": ["camp cookware", "camping", "saucepan"]},
+    {"row": 4, "column": 4, "label": "Camping frying pan", "tags": ["camp cookware", "camping", "frying pan"]},
+    {"row": 4, "column": 5, "label": "Trekking-pole pair", "tags": ["hiking", "travel gear", "trekking poles"]},
+    {"row": 5, "column": 1, "label": "Rooftop cargo box", "tags": ["cargo box", "rooftop storage", "travel gear"]},
+    {"row": 5, "column": 2, "label": "Compact backpacking tent", "tags": ["backpacking tent", "camping", "compact tent"], "masterOverride": {"path": "corrections/2026-07-18-shape-audit/44-outdoor-camping-travel-equipment-r05c02-tent-master-v2.png", "sha256": "5890b4190bbb7cadca4aa6708ccdbe0bfee4f901a91dea267dec8ad0c8441fa6"}},
+    {"row": 5, "column": 3, "label": "Clip-on zippered backpack pouch", "tags": ["backpack add-on", "clip-on pouch", "zippered pouch"]},
+    {"row": 5, "column": 4, "label": "Telescopic luggage-handle frame", "tags": ["luggage component", "telescopic handle", "travel add-on"]},
+    {"row": 5, "column": 5, "label": "Rolling-suitcase wheel housing", "tags": ["luggage component", "suitcase wheels", "travel add-on"]}
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 83,
+  "sourcePng": "83-construction-modular-building-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "compact site office cabin", "tags": ["base", "cabin", "compact", "construction", "site-office"]},
+    {"row": 1, "column": 2, "label": "long site office cabin", "tags": ["base", "cabin", "construction", "long", "site-office"]},
+    {"row": 1, "column": 3, "label": "blank portable classroom pod", "tags": ["base", "blank", "classroom", "pod", "portable"]},
+    {"row": 1, "column": 4, "label": "modular meeting room pod", "tags": ["base", "meeting-room", "modular", "pod"]},
+    {"row": 1, "column": 5, "label": "modular studio pod", "tags": ["base", "modular", "pod", "studio"]},
+    {"row": 2, "column": 1, "label": "single module tiny house shell", "tags": ["base", "shell", "single-module", "tiny-house"]},
+    {"row": 2, "column": 2, "label": "double module tiny house shell", "tags": ["base", "double-module", "shell", "tiny-house"]},
+    {"row": 2, "column": 3, "label": "blank garden office pod", "tags": ["base", "blank", "garden-office", "pod"]},
+    {"row": 2, "column": 4, "label": "modular granny flat shell", "tags": ["base", "granny-flat", "modular", "shell"]},
+    {"row": 2, "column": 5, "label": "compact guest cabin shell", "tags": ["base", "cabin", "compact", "guest", "shell"]},
+    {"row": 3, "column": 1, "label": "simple storage shed shell", "tags": ["base", "shed", "simple", "storage"]},
+    {"row": 3, "column": 2, "label": "workshop shed shell", "tags": ["base", "shed", "workshop"]},
+    {"row": 3, "column": 3, "label": "garage module shell", "tags": ["base", "garage", "module", "shell"]},
+    {"row": 3, "column": 4, "label": "carport module shell", "tags": ["base", "carport", "module", "shell"]},
+    {"row": 3, "column": 5, "label": "utility room pod", "tags": ["base", "pod", "utility-room"]},
+    {"row": 4, "column": 1, "label": "bathroom pod shell", "tags": ["base", "bathroom", "pod", "shell"]},
+    {"row": 4, "column": 2, "label": "kitchen pod shell", "tags": ["base", "kitchen", "pod", "shell"]},
+    {"row": 4, "column": 3, "label": "laundry pod shell", "tags": ["base", "laundry", "pod", "shell"]},
+    {"row": 4, "column": 4, "label": "blank retail kiosk pod", "tags": ["base", "blank", "kiosk", "pod", "retail"]},
+    {"row": 4, "column": 5, "label": "blank ticket booth pod", "tags": ["base", "blank", "booth", "pod", "ticket"]},
+    {"row": 5, "column": 1, "label": "blank shipping container module", "tags": ["base", "blank", "container", "module", "shipping"]},
+    {"row": 5, "column": 2, "label": "expandable container module", "tags": ["base", "container", "expandable", "module"]},
+    {"row": 5, "column": 3, "label": "modular wall panel bay", "tags": ["base", "bay", "modular", "panel", "wall"]},
+    {"row": 5, "column": 4, "label": "flat pack pavilion shell", "tags": ["base", "flat-pack", "pavilion", "shell"]},
+    {"row": 5, "column": 5, "label": "modular shelter shell", "tags": ["base", "modular", "shell", "shelter"]}
+  ]
+}

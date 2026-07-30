@@ -1,0 +1,31 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetId": "72-entertainment-event-recreation-add-ons",
+  "items": [
+    {"row": 1, "column": 1, "label": "Low modular stage platform", "tags": ["add-on", "events-recreation", "low-platform", "modular", "stage"]},
+    {"row": 1, "column": 2, "label": "Ticket booth", "tags": ["add-on", "booth", "events-recreation", "ticket-booth", "ticket-sales"]},
+    {"row": 1, "column": 3, "label": "Waist-high turnstile", "tags": ["access-control", "add-on", "events-recreation", "turnstile", "waist-high"]},
+    {"row": 1, "column": 4, "label": "Padded cinema seat with cupholders", "tags": ["add-on", "cinema-seat", "cupholders", "events-recreation", "padded"]},
+    {"row": 1, "column": 5, "label": "Padded auditorium seat", "tags": ["add-on", "auditorium-seat", "events-recreation", "padded", "seating"]},
+    {"row": 2, "column": 1, "label": "Blank handheld signboard", "tags": ["add-on", "blank", "events-recreation", "handheld", "signboard"]},
+    {"row": 2, "column": 2, "label": "Event pass on lanyard", "tags": ["add-on", "event-pass", "events-recreation", "lanyard"]},
+    {"row": 2, "column": 3, "label": "Rope-stanchion pair", "tags": ["add-on", "crowd-control", "events-recreation", "rope", "stanchions"]},
+    {"row": 2, "column": 4, "label": "Crowd-control barrier", "tags": ["add-on", "barrier", "crowd-control", "events-recreation"]},
+    {"row": 2, "column": 5, "label": "Lighting truss with four spotlights", "tags": ["add-on", "events-recreation", "four-lights", "lighting-truss", "spotlights"]},
+    {"row": 3, "column": 1, "label": "Stage spotlight", "tags": ["add-on", "events-recreation", "lighting", "spotlight", "stage"]},
+    {"row": 3, "column": 2, "label": "Loudspeaker cabinet", "tags": ["add-on", "audio", "events-recreation", "loudspeaker", "speaker-cabinet"]},
+    {"row": 3, "column": 3, "label": "Microphone on floor stand", "tags": ["add-on", "audio", "events-recreation", "floor-stand", "microphone"]},
+    {"row": 3, "column": 4, "label": "Arcade cabinet", "tags": ["add-on", "arcade", "arcade-cabinet", "events-recreation", "game"]},
+    {"row": 3, "column": 5, "label": "Miniature-golf ramp obstacle", "tags": ["add-on", "events-recreation", "miniature-golf", "obstacle", "ramp"]},
+    {"row": 4, "column": 1, "label": "Hard equipment case", "tags": ["add-on", "equipment-case", "events-recreation", "hard-case", "storage"]},
+    {"row": 4, "column": 2, "label": "Climbing-wall panel", "tags": ["add-on", "climbing", "climbing-wall", "events-recreation", "panel"]},
+    {"row": 4, "column": 3, "label": "Pair of roller skates", "tags": ["add-on", "events-recreation", "pair", "roller-skates", "skating"]},
+    {"row": 4, "column": 4, "label": "Rolled floor mat", "tags": ["add-on", "events-recreation", "floor-mat", "rolled"]},
+    {"row": 4, "column": 5, "label": "Aerobic step platform", "tags": ["add-on", "aerobic-step", "events-recreation", "fitness", "platform"]},
+    {"row": 5, "column": 1, "label": "Gymnastics vaulting horse", "tags": ["add-on", "events-recreation", "gymnastics", "vaulting-horse"]},
+    {"row": 5, "column": 2, "label": "Freestanding display panel", "tags": ["add-on", "display-panel", "events-recreation", "freestanding"]},
+    {"row": 5, "column": 3, "label": "Folding event table", "tags": ["add-on", "event-table", "events-recreation", "folding", "table"]},
+    {"row": 5, "column": 4, "label": "Photo-booth kiosk", "tags": ["add-on", "events-recreation", "kiosk", "photo-booth"]},
+    {"row": 5, "column": 5, "label": "Freestanding projection screen", "tags": ["add-on", "events-recreation", "freestanding", "projection-screen"]}
+  ]
+}

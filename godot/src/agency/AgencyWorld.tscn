@@ -1,0 +1,1486 @@
+[gd_scene format=3 uid="uid://3wygkl7yhyny"]
+
+[ext_resource type="Script" uid="uid://cpbfvkvjne62k" path="res://src/agency/agency_world.gd" id="1_gscui"]
+[ext_resource type="Texture2D" uid="uid://okm6nvti2llj" path="res://assets/agency/agency-floor.png" id="2_xifuf"]
+[ext_resource type="PackedScene" uid="uid://dtcypqr1co0q0" path="res://src/agency/stations/AgencyStation.tscn" id="3_ytwji"]
+[ext_resource type="PackedScene" uid="uid://3m1m5tio6u0p" path="res://src/agency/ui/AgencyHud.tscn" id="5_xifuf"]
+[ext_resource type="PackedScene" uid="uid://ok8vov7n8f45" path="res://src/agency/player/AgencyPair.tscn" id="6_45h1l"]
+[ext_resource type="PackedScene" uid="uid://y0p8byuynib7" path="res://src/agency/ui/AgencyGuideDrawer.tscn" id="7_ukfyu"]
+[ext_resource type="PackedScene" uid="uid://dmdn0nl418hup" path="res://src/agency/missions/AgencyMissionPanel.tscn" id="9_t5o2e"]
+[ext_resource type="Script" uid="uid://dt5d3rtsxgwyr" path="res://src/agency/missions/agency_mission_controller.gd" id="11_dufgl"]
+
+[sub_resource type="NavigationPolygon" id="NavigationPolygon_iardm"]
+vertices = PackedVector2Array(30, 104, 1250, 104, 1250, 772, 30, 772)
+polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3)])
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1pxfn"]
+size = Vector2(1280, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_d048w"]
+size = Vector2(1280, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_tyr1p"]
+size = Vector2(20, 700)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0f4an"]
+size = Vector2(20, 700)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_jfxdp"]
+size = Vector2(300, 75)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_xe7p1"]
+size = Vector2(240, 80)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_k4se5"]
+size = Vector2(330, 90)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_jwlfn"]
+size = Vector2(250, 80)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_tjfhb"]
+size = Vector2(340, 110)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_cc6ma"]
+size = Vector2(170, 70)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ivbmn"]
+size = Vector2(280, 90)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_k282e"]
+size = Vector2(330, 105)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vxlg1"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.05882353, 0.12941177, 0.23529412, 0.9607843)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.15686275, 0.7764706, 0.72156864, 1)
+corner_radius_top_left = 13
+corner_radius_top_right = 13
+corner_radius_bottom_right = 13
+corner_radius_bottom_left = 13
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_w05ag"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.02745098, 0.08235294, 0.17254902, 0.9411765)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.7411765, 0.22352941, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_atny6"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.02745098, 0.08235294, 0.17254902, 0)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.96862745, 0.9098039, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ogshn"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.0627451, 0.12941177, 0.23529412, 0.9490196)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.15686275, 0.7764706, 0.72156864, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qpchq"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.02745098, 0.08235294, 0.17254902, 0.9843137)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.7411765, 0.22352941, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tuie3"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.09019608, 0.20392157, 0.34901962, 0.98039216)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.9411765, 0.7764706, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_x5o5d"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.0627451, 0.12941177, 0.23529412, 0)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.96862745, 0.9098039, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_10y4f"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.05882353, 0.12941177, 0.23529412, 0.9411765)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.7411765, 0.22352941, 1)
+corner_radius_top_left = 13
+corner_radius_top_right = 13
+corner_radius_bottom_right = 13
+corner_radius_bottom_left = 13
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4lioy"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.0627451, 0.12941177, 0.23529412, 0.9490196)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.15686275, 0.7764706, 0.72156864, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nyk50"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.02745098, 0.08235294, 0.17254902, 0.9843137)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.7411765, 0.22352941, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_h0l3y"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.09019608, 0.20392157, 0.34901962, 0.98039216)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.9411765, 0.7764706, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4mwv4"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.0627451, 0.12941177, 0.23529412, 0)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.96862745, 0.9098039, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5l0p5"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.0627451, 0.12941177, 0.23529412, 0.99215686)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(1, 0.43529412, 0.38039216, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_02utw"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.0627451, 0.12941177, 0.23529412, 0.9490196)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.43529412, 0.38039216, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dvlep"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.02745098, 0.08235294, 0.17254902, 0.9843137)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.7411765, 0.22352941, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cixom"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.09019608, 0.20392157, 0.34901962, 0.98039216)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.9411765, 0.7764706, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_56mdo"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.0627451, 0.12941177, 0.23529412, 0)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.96862745, 0.9098039, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3hwlo"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.0627451, 0.12941177, 0.23529412, 0.9490196)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.15686275, 0.7764706, 0.72156864, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_so5mu"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.02745098, 0.08235294, 0.17254902, 0.9843137)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.7411765, 0.22352941, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_73kxu"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.09019608, 0.20392157, 0.34901962, 0.98039216)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.9411765, 0.7764706, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7lef7"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.0627451, 0.12941177, 0.23529412, 0)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.96862745, 0.9098039, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_l6arw"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.0627451, 0.12941177, 0.23529412, 0.9490196)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.15686275, 0.7764706, 0.72156864, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4wuo7"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.02745098, 0.08235294, 0.17254902, 0.9843137)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.7411765, 0.22352941, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pxbc1"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.09019608, 0.20392157, 0.34901962, 0.98039216)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.9411765, 0.7764706, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qqyns"]
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+bg_color = Color(0.0627451, 0.12941177, 0.23529412, 0)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.96862745, 0.9098039, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_eq85p"]
+bg_color = Color(0.035, 0.105, 0.19, 0.97)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.12, 0.82, 0.82, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4iwib"]
+bg_color = Color(0.96, 0.79, 0.36, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_w7xqt"]
+bg_color = Color(0.2, 0.82, 0.82, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3sbd4"]
+bg_color = Color(0.035, 0.11, 0.17, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0.72, 0.82, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_k5agm"]
+bg_color = Color(0.035, 0.25, 0.31, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.36, 0.91, 0.95, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_j0j8t"]
+bg_color = Color(0.035, 0.063, 0.11, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0.72, 0.82, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4yte5"]
+bg_color = Color(0.035, 0.11, 0.17, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0.72, 0.82, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3nchw"]
+bg_color = Color(0.035, 0.25, 0.31, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.36, 0.91, 0.95, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_h8sdd"]
+bg_color = Color(0.035, 0.11, 0.17, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.965, 0.72, 0.21, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kr5my"]
+bg_color = Color(0.035, 0.11, 0.17, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0.72, 0.82, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wtb38"]
+bg_color = Color(0.035, 0.25, 0.31, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.36, 0.91, 0.95, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3ngad"]
+bg_color = Color(0.035, 0.11, 0.17, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.965, 0.72, 0.21, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_h5k8a"]
+bg_color = Color(0.035, 0.11, 0.17, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0.72, 0.82, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rd7ya"]
+bg_color = Color(0.035, 0.25, 0.31, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.36, 0.91, 0.95, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vskfq"]
+bg_color = Color(0.035, 0.11, 0.17, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.965, 0.72, 0.21, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_02wlv"]
+bg_color = Color(0.047, 0.086, 0.145, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.965, 0.72, 0.21, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vn85y"]
+bg_color = Color(0.035, 0.11, 0.17, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0.72, 0.82, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ma0jh"]
+bg_color = Color(0.035, 0.25, 0.31, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.36, 0.91, 0.95, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_e5w04"]
+bg_color = Color(0.035, 0.11, 0.17, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.965, 0.72, 0.21, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[node name="AgencyWorld" type="Node2D" unique_id=1576448732]
+unique_name_in_owner = true
+script = ExtResource("1_gscui")
+
+[node name="AgencyFloor" type="Sprite2D" parent="." unique_id=1336746350]
+z_index = -100
+texture_filter = 1
+position = Vector2(640, 440)
+scale = Vector2(0.76555, 0.76514)
+texture = ExtResource("2_xifuf")
+
+[node name="WorldCamera" type="Camera2D" parent="." unique_id=1679722303]
+position = Vector2(640, 400)
+
+[node name="WalkableRegion" type="NavigationRegion2D" parent="." unique_id=178798284]
+navigation_polygon = SubResource("NavigationPolygon_iardm")
+
+[node name="WorldBounds" type="StaticBody2D" parent="." unique_id=2090373160]
+
+[node name="TopWall" type="CollisionShape2D" parent="WorldBounds" unique_id=176797145]
+position = Vector2(640, 94)
+shape = SubResource("RectangleShape2D_1pxfn")
+
+[node name="BottomWall" type="CollisionShape2D" parent="WorldBounds" unique_id=521111175]
+position = Vector2(640, 790)
+shape = SubResource("RectangleShape2D_d048w")
+
+[node name="LeftWall" type="CollisionShape2D" parent="WorldBounds" unique_id=832587326]
+position = Vector2(10, 440)
+shape = SubResource("RectangleShape2D_tyr1p")
+
+[node name="RightWall" type="CollisionShape2D" parent="WorldBounds" unique_id=1173118261]
+position = Vector2(1270, 440)
+shape = SubResource("RectangleShape2D_0f4an")
+
+[node name="ReceptionDesk" type="CollisionShape2D" parent="WorldBounds" unique_id=847899988]
+position = Vector2(315, 220)
+shape = SubResource("RectangleShape2D_jfxdp")
+
+[node name="StrategyTable" type="CollisionShape2D" parent="WorldBounds" unique_id=2055871090]
+position = Vector2(640, 220)
+shape = SubResource("RectangleShape2D_xe7p1")
+
+[node name="ArtTables" type="CollisionShape2D" parent="WorldBounds" unique_id=1963227230]
+position = Vector2(1070, 225)
+shape = SubResource("RectangleShape2D_k4se5")
+
+[node name="CopyDesk" type="CollisionShape2D" parent="WorldBounds" unique_id=1056115427]
+position = Vector2(228, 455)
+shape = SubResource("RectangleShape2D_jwlfn")
+
+[node name="ProductionEquipment" type="CollisionShape2D" parent="WorldBounds" unique_id=1950839410]
+position = Vector2(250, 630)
+shape = SubResource("RectangleShape2D_tjfhb")
+
+[node name="MediaTable" type="CollisionShape2D" parent="WorldBounds" unique_id=1439491701]
+position = Vector2(640, 480)
+shape = SubResource("RectangleShape2D_cc6ma")
+
+[node name="SoundDesk" type="CollisionShape2D" parent="WorldBounds" unique_id=1016907487]
+position = Vector2(1000, 450)
+shape = SubResource("RectangleShape2D_ivbmn")
+
+[node name="PitchStage" type="CollisionShape2D" parent="WorldBounds" unique_id=428554995]
+position = Vector2(1010, 628)
+shape = SubResource("RectangleShape2D_k282e")
+
+[node name="Stations" type="Node2D" parent="." unique_id=882541071]
+y_sort_enabled = true
+
+[node name="Reception" parent="Stations" unique_id=795862808 instance=ExtResource("3_ytwji")]
+position = Vector2(317.4, 290.7)
+
+[node name="ClientBriefing" parent="Stations" unique_id=1212045144 instance=ExtResource("3_ytwji")]
+position = Vector2(430, 370)
+
+[node name="StrategyRoom" parent="Stations" unique_id=1683905649 instance=ExtResource("3_ytwji")]
+position = Vector2(640.8, 290.7)
+
+[node name="ArtStudio" parent="Stations" unique_id=1203801639 instance=ExtResource("3_ytwji")]
+position = Vector2(1040, 310)
+
+[node name="CopyRoom" parent="Stations" unique_id=647683404 instance=ExtResource("3_ytwji")]
+position = Vector2(228, 518)
+
+[node name="ProductionStudio" parent="Stations" unique_id=609081351 instance=ExtResource("3_ytwji")]
+position = Vector2(178, 706)
+
+[node name="MediaDesk" parent="Stations" unique_id=445161505 instance=ExtResource("3_ytwji")]
+position = Vector2(640, 532)
+
+[node name="SoundBooth" parent="Stations" unique_id=977954098 instance=ExtResource("3_ytwji")]
+position = Vector2(982, 518)
+
+[node name="PitchTheatre" parent="Stations" unique_id=91552630 instance=ExtResource("3_ytwji")]
+position = Vector2(1012, 708)
+
+[node name="AgencyPair" parent="." unique_id=536369964 instance=ExtResource("6_45h1l")]
+z_index = 12
+position = Vector2(381.4, 290.7)
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1304989824]
+layer = 20
+
+[node name="HUDRoot" type="Control" parent="HUD" unique_id=1764173943]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -1280.0
+offset_bottom = -800.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ObjectiveBar" type="PanelContainer" parent="HUD/HUDRoot" unique_id=1549804216]
+visible = false
+layout_mode = 0
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 1264.0
+offset_bottom = 88.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_vxlg1")
+
+[node name="ObjectiveMargin" type="MarginContainer" parent="HUD/HUDRoot/ObjectiveBar" unique_id=1325397753]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="ObjectiveRow" type="HBoxContainer" parent="HUD/HUDRoot/ObjectiveBar/ObjectiveMargin" unique_id=985942551]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="GoalBlock" type="VBoxContainer" parent="HUD/HUDRoot/ObjectiveBar/ObjectiveMargin/ObjectiveRow" unique_id=1062230325]
+layout_mode = 2
+
+[node name="GoalEyebrow" type="Label" parent="HUD/HUDRoot/ObjectiveBar/ObjectiveMargin/ObjectiveRow/GoalBlock" unique_id=1137450349]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.15686275, 0.7764706, 0.72156864, 1)
+theme_override_font_sizes/font_size = 11
+text = "CAMPAIGN GOAL"
+
+[node name="GoalLabel" type="Label" parent="HUD/HUDRoot/ObjectiveBar/ObjectiveMargin/ObjectiveRow/GoalBlock" unique_id=609919822]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
+theme_override_font_sizes/font_size = 20
+text = "Win the client pitch"
+
+[node name="GoalDivider" type="VSeparator" parent="HUD/HUDRoot/ObjectiveBar/ObjectiveMargin/ObjectiveRow" unique_id=1809564743]
+layout_mode = 2
+
+[node name="ObjectiveBlock" type="VBoxContainer" parent="HUD/HUDRoot/ObjectiveBar/ObjectiveMargin/ObjectiveRow" unique_id=1202380187]
+layout_mode = 2
+
+[node name="ObjectiveEyebrow" type="Label" parent="HUD/HUDRoot/ObjectiveBar/ObjectiveMargin/ObjectiveRow/ObjectiveBlock" unique_id=905863364]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.15686275, 0.7764706, 0.72156864, 1)
+theme_override_font_sizes/font_size = 11
+text = "CURRENT OBJECTIVE"
+
+[node name="ObjectiveLabel" type="Label" parent="HUD/HUDRoot/ObjectiveBar/ObjectiveMargin/ObjectiveRow/ObjectiveBlock" unique_id=1142278045]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
+theme_override_font_sizes/font_size = 20
+text = "Meet the client"
+
+[node name="ObjectiveSpacer" type="Control" parent="HUD/HUDRoot/ObjectiveBar/ObjectiveMargin/ObjectiveRow" unique_id=1662332775]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TravelBlock" type="VBoxContainer" parent="HUD/HUDRoot/ObjectiveBar/ObjectiveMargin/ObjectiveRow" unique_id=1927643133]
+layout_mode = 2
+
+[node name="TravelEyebrow" type="Label" parent="HUD/HUDRoot/ObjectiveBar/ObjectiveMargin/ObjectiveRow/TravelBlock" unique_id=386263833]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.15686275, 0.7764706, 0.72156864, 1)
+theme_override_font_sizes/font_size = 11
+text = "DIRECT TRAVEL"
+
+[node name="DirectTravel" type="OptionButton" parent="HUD/HUDRoot/ObjectiveBar/ObjectiveMargin/ObjectiveRow/TravelBlock" unique_id=104493656]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = SubResource("StyleBoxFlat_w05ag")
+theme_override_styles/focus = SubResource("StyleBoxFlat_atny6")
+
+[node name="GuideButton" type="Button" parent="HUD/HUDRoot/ObjectiveBar/ObjectiveMargin/ObjectiveRow" unique_id=1817918038]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_ogshn")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_qpchq")
+theme_override_styles/hover = SubResource("StyleBoxFlat_tuie3")
+theme_override_styles/focus = SubResource("StyleBoxFlat_x5o5d")
+text = "Open guide  G / F1"
+
+[node name="StationPanel" type="PanelContainer" parent="HUD/HUDRoot" unique_id=786183465]
+layout_mode = 0
+offset_left = 300.0
+offset_top = 598.0
+offset_right = 980.0
+offset_bottom = 756.0
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_10y4f")
+
+[node name="StationMargin" type="MarginContainer" parent="HUD/HUDRoot/StationPanel" unique_id=928471342]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="StationContent" type="VBoxContainer" parent="HUD/HUDRoot/StationPanel/StationMargin" unique_id=417586006]
+layout_mode = 2
+
+[node name="StationHeader" type="HBoxContainer" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent" unique_id=281084114]
+layout_mode = 2
+
+[node name="StationTitle" type="Label" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent/StationHeader" unique_id=1703388437]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
+theme_override_font_sizes/font_size = 20
+text = "Agency reception"
+
+[node name="HandoffHint" type="Label" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent/StationHeader" unique_id=1267355177]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.7411765, 0.22352941, 1)
+theme_override_font_sizes/font_size = 12
+text = "H: hand control to partner"
+
+[node name="StationResponsibilities" type="Label" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent" unique_id=896154039]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.9098039, 0.9490196, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "Station responsibilities"
+autowrap_mode = 2
+
+[node name="StationActionButton" type="Button" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent" unique_id=446819562]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_4lioy")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_nyk50")
+theme_override_styles/hover = SubResource("StyleBoxFlat_h0l3y")
+theme_override_styles/focus = SubResource("StyleBoxFlat_4mwv4")
+text = "Work at this station"
+
+[node name="HandoffPanel" type="PanelContainer" parent="HUD/HUDRoot" unique_id=409753894]
+unique_name_in_owner = true
+visible = false
+z_index = 100
+layout_mode = 0
+offset_left = 260.0
+offset_top = 190.0
+offset_right = 1020.0
+offset_bottom = 610.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_5l0p5")
+
+[node name="HandoffMargin" type="MarginContainer" parent="HUD/HUDRoot/HandoffPanel" unique_id=582871334]
+layout_mode = 2
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 22
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 22
+
+[node name="HandoffContent" type="VBoxContainer" parent="HUD/HUDRoot/HandoffPanel/HandoffMargin" unique_id=443277575]
+layout_mode = 2
+
+[node name="HandoffEyebrow" type="Label" parent="HUD/HUDRoot/HandoffPanel/HandoffMargin/HandoffContent" unique_id=1520362597]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.15686275, 0.7764706, 0.72156864, 1)
+theme_override_font_sizes/font_size = 11
+text = "ROLE HANDOFF"
+
+[node name="HandoffTitle" type="Label" parent="HUD/HUDRoot/HandoffPanel/HandoffMargin/HandoffContent" unique_id=1967538526]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
+theme_override_font_sizes/font_size = 27
+text = "Who controls the next decision?"
+
+[node name="HandoffExplanation" type="Label" parent="HUD/HUDRoot/HandoffPanel/HandoffMargin/HandoffContent" unique_id=151581138]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.92941177, 0.9607843, 1, 1)
+theme_override_font_sizes/font_size = 17
+text = "Both partners keep a defined responsibility."
+autowrap_mode = 2
+
+[node name="HandoffChoices" type="HBoxContainer" parent="HUD/HUDRoot/HandoffPanel/HandoffMargin/HandoffContent" unique_id=347746454]
+layout_mode = 2
+theme_override_constants/separation = 18
+alignment = 1
+
+[node name="ArtDirectorHandoff" type="Button" parent="HUD/HUDRoot/HandoffPanel/HandoffMargin/HandoffContent/HandoffChoices" unique_id=552531368]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_02utw")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_dvlep")
+theme_override_styles/hover = SubResource("StyleBoxFlat_cixom")
+theme_override_styles/focus = SubResource("StyleBoxFlat_56mdo")
+text = "Art Director takes control"
+
+[node name="StrategistHandoff" type="Button" parent="HUD/HUDRoot/HandoffPanel/HandoffMargin/HandoffContent/HandoffChoices" unique_id=830099789]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_3hwlo")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_so5mu")
+theme_override_styles/hover = SubResource("StyleBoxFlat_73kxu")
+theme_override_styles/focus = SubResource("StyleBoxFlat_7lef7")
+text = "Strategist takes control"
+
+[node name="CancelHandoff" type="Button" parent="HUD/HUDRoot/HandoffPanel/HandoffMargin/HandoffContent" unique_id=1370101239]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_l6arw")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_4wuo7")
+theme_override_styles/hover = SubResource("StyleBoxFlat_pxbc1")
+theme_override_styles/focus = SubResource("StyleBoxFlat_qqyns")
+text = "Cancel"
+
+[node name="AgencyHud" parent="HUD/HUDRoot" unique_id=603327499 instance=ExtResource("5_xifuf")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 1264.0
+offset_bottom = 139.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_eq85p")
+
+[node name="LegacyHudMargin" type="MarginContainer" parent="HUD/HUDRoot/AgencyHud" unique_id=133624020]
+visible = false
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="HudRow" type="HBoxContainer" parent="HUD/HUDRoot/AgencyHud/LegacyHudMargin" unique_id=1274818158]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="GoalBlock" type="VBoxContainer" parent="HUD/HUDRoot/AgencyHud/LegacyHudMargin/HudRow" unique_id=1684490239]
+custom_minimum_size = Vector2(270, 0)
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="GoalEyebrow" type="Label" parent="HUD/HUDRoot/AgencyHud/LegacyHudMargin/HudRow/GoalBlock" unique_id=398231955]
+modulate = Color(0.2, 0.92, 0.91, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "CAMPAIGN GOAL"
+
+[node name="HudGoal" type="Label" parent="HUD/HUDRoot/AgencyHud/LegacyHudMargin/HudRow/GoalBlock" unique_id=1786391910]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Create and pitch one advertisement that gives this audience a clear reason to act."
+autowrap_mode = 2
+
+[node name="GoalDivider" type="VSeparator" parent="HUD/HUDRoot/AgencyHud/LegacyHudMargin/HudRow" unique_id=1075320615]
+layout_mode = 2
+
+[node name="ObjectiveBlock" type="VBoxContainer" parent="HUD/HUDRoot/AgencyHud/LegacyHudMargin/HudRow" unique_id=763192851]
+custom_minimum_size = Vector2(263, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="ObjectiveEyebrow" type="Label" parent="HUD/HUDRoot/AgencyHud/LegacyHudMargin/HudRow/ObjectiveBlock" unique_id=1521779022]
+modulate = Color(0.2, 0.92, 0.91, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "CURRENT OBJECTIVE"
+
+[node name="HudObjective" type="Label" parent="HUD/HUDRoot/AgencyHud/LegacyHudMargin/HudRow/ObjectiveBlock" unique_id=933494733]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Meet the client and read the audience brief"
+autowrap_mode = 2
+
+[node name="HudOwner" type="Label" parent="HUD/HUDRoot/AgencyHud/LegacyHudMargin/HudRow/ObjectiveBlock" unique_id=1785870594]
+unique_name_in_owner = true
+modulate = Color(0.78, 0.86, 0.92, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Strategist leads"
+
+[node name="ProgressBlock" type="VBoxContainer" parent="HUD/HUDRoot/AgencyHud/LegacyHudMargin/HudRow" unique_id=279185771]
+custom_minimum_size = Vector2(155, 0)
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ProgressEyebrow" type="Label" parent="HUD/HUDRoot/AgencyHud/LegacyHudMargin/HudRow/ProgressBlock" unique_id=2056293923]
+modulate = Color(0.2, 0.92, 0.91, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "PROGRESS"
+
+[node name="HudProgress" type="Label" parent="HUD/HUDRoot/AgencyHud/LegacyHudMargin/HudRow/ProgressBlock" unique_id=6269288]
+unique_name_in_owner = true
+modulate = Color(0.78, 0.86, 0.92, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "0 of 7 required · 0 optional"
+autowrap_mode = 2
+
+[node name="TravelBlock" type="VBoxContainer" parent="HUD/HUDRoot/AgencyHud/LegacyHudMargin/HudRow" unique_id=1936735072]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="TravelEyebrow" type="Label" parent="HUD/HUDRoot/AgencyHud/LegacyHudMargin/HudRow/TravelBlock" unique_id=1092269331]
+modulate = Color(0.2, 0.92, 0.91, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "DIRECT TRAVEL"
+
+[node name="HudDirectTravel" type="OptionButton" parent="HUD/HUDRoot/AgencyHud/LegacyHudMargin/HudRow/TravelBlock" unique_id=269607643]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 48)
+layout_mode = 2
+
+[node name="HudGoToObjective" type="Button" parent="HUD/HUDRoot/AgencyHud/LegacyHudMargin/HudRow" unique_id=823806934]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(130, 64)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/normal = SubResource("StyleBoxFlat_4iwib")
+text = "Go to objective"
+
+[node name="HudGuideButton" type="Button" parent="HUD/HUDRoot/AgencyHud/LegacyHudMargin/HudRow" unique_id=1438983335]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 64)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/normal = SubResource("StyleBoxFlat_w7xqt")
+text = "Open guide · G"
+
+[node name="AgencyGuideDrawer" parent="HUD/HUDRoot" unique_id=1880896600 instance=ExtResource("7_ukfyu")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 1280.0
+offset_bottom = 800.0
+
+[node name="LegacyGuideTab" type="Button" parent="HUD/HUDRoot/AgencyGuideDrawer" unique_id=436268978]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(150, 48)
+layout_mode = 0
+offset_left = 1114.0
+offset_top = 134.0
+offset_right = 1236.0
+offset_bottom = 165.0
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_3sbd4")
+theme_override_styles/hover = SubResource("StyleBoxFlat_k5agm")
+text = "Open guide"
+
+[node name="LegacyGuidePanel" type="PanelContainer" parent="HUD/HUDRoot/AgencyGuideDrawer" unique_id=143013174]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(584, 656)
+layout_mode = 0
+offset_left = 680.0
+offset_top = 128.0
+offset_right = 680.0
+offset_bottom = 128.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_j0j8t")
+
+[node name="GuideMargin" type="MarginContainer" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel" unique_id=824247818]
+layout_mode = 2
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 18
+
+[node name="GuideContent" type="VBoxContainer" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin" unique_id=89737327]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="GuideHeader" type="HBoxContainer" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent" unique_id=1905388444]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="GuideHeading" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideHeader" unique_id=969158333]
+modulate = Color(0.97, 0.98, 1, 1)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 28
+text = "Agency guide"
+
+[node name="CloseGuide" type="Button" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideHeader" unique_id=1960276920]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(92, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_4yte5")
+theme_override_styles/hover = SubResource("StyleBoxFlat_3nchw")
+theme_override_styles/focus = SubResource("StyleBoxFlat_h8sdd")
+text = "Close"
+
+[node name="GuideTabs" type="TabContainer" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent" unique_id=877889617]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(540, 520)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+focus_mode = 2
+current_tab = 0
+
+[node name="Goal" type="VBoxContainer" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=792057507]
+layout_mode = 2
+theme_override_constants/separation = 12
+metadata/_tab_index = 0
+
+[node name="GoalHeading" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Goal" unique_id=262741088]
+modulate = Color(0.18, 0.84, 0.9, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "What you are trying to achieve"
+
+[node name="OverallGoal" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Goal" unique_id=1444732874]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Create and pitch one persuasive advertisement for the audience in the client brief."
+autowrap_mode = 2
+
+[node name="GoalProcess" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Goal" unique_id=206408573]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Understand the audience, choose and shape a product, create the advertisement, practise advertising techniques, choose media space, and present the finished campaign."
+autowrap_mode = 2
+
+[node name="Current objective" type="VBoxContainer" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=1968546141]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 10
+metadata/_tab_index = 1
+
+[node name="ObjectiveHeading" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Current objective" unique_id=2082745320]
+modulate = Color(0.18, 0.84, 0.9, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "What to do now"
+
+[node name="CurrentObjective" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Current objective" unique_id=593280267]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Meet the client"
+autowrap_mode = 2
+
+[node name="ObjectiveAction" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Current objective" unique_id=1761378584]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Action: Walk to Client Briefing and press Space or Enter."
+autowrap_mode = 2
+
+[node name="ObjectiveReason" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Current objective" unique_id=1101660471]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Why: The pair needs a shared account of the audience situation, need and values before making creative decisions."
+autowrap_mode = 2
+
+[node name="ObjectiveOwner" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Current objective" unique_id=1569814070]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Lead role: The Strategist reads the brief aloud and checks the audience purpose."
+autowrap_mode = 2
+
+[node name="PartnerHoldingAction" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Current objective" unique_id=1463285850]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Partner action: The Art Director identifies visual ideas that could suit that audience."
+autowrap_mode = 2
+
+[node name="GoToObjective" type="Button" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Current objective" unique_id=526148260]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_kr5my")
+theme_override_styles/hover = SubResource("StyleBoxFlat_wtb38")
+theme_override_styles/focus = SubResource("StyleBoxFlat_3ngad")
+text = "Go to this objective"
+
+[node name="Controls" type="VBoxContainer" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=1869904611]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 12
+metadata/_tab_index = 2
+
+[node name="ControlsHeading" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Controls" unique_id=86374215]
+modulate = Color(0.18, 0.84, 0.9, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Keyboard and mouse controls"
+
+[node name="Controls" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Controls" unique_id=1725769208]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "Move: WASD or arrow keys.
+Use a station: Space or Enter.
+Open this guide: G. Close a panel: Escape.
+Change active role: R or the role button.
+Direct travel: choose a room, then select Go to this objective."
+autowrap_mode = 2
+
+[node name="Roles" type="VBoxContainer" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=155131397]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 10
+metadata/_tab_index = 3
+
+[node name="RolesHeading" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Roles" unique_id=409289090]
+modulate = Color(0.18, 0.84, 0.9, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "What each role is responsible for"
+
+[node name="ArtDirectorDefinition" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Roles" unique_id=27676370]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Art Director: controls visual decisions, including hierarchy, colour, framing, composition, imagery, scale and the final presentation."
+autowrap_mode = 2
+
+[node name="ArtDirectorControl" type="Button" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Roles" unique_id=267507291]
+unique_name_in_owner = true
+layout_mode = 2
+text = "On this site, the Art Director leads when the pair edits how the product and advertisement look."
+autowrap_mode = 2
+
+[node name="StrategistDefinition" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Roles" unique_id=1530406804]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "Strategist: controls audience and message decisions, including product value, AIDA, headline, claims, price and media route."
+autowrap_mode = 2
+
+[node name="StrategistControl" type="Button" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Roles" unique_id=1848559865]
+unique_name_in_owner = true
+layout_mode = 2
+text = "On this site, the Strategist leads when the pair decides what the audience should think, feel or do."
+autowrap_mode = 2
+
+[node name="RoleTurnOrder" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Roles" unique_id=41760919]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "Both partners can use the same tools. The roles do not unlock different buttons. They identify who makes the first recommendation; the partner then checks it against the brief."
+autowrap_mode = 2
+
+[node name="Progress" type="VBoxContainer" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=159230697]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 14
+metadata/_tab_index = 4
+
+[node name="ProgressHeading" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Progress" unique_id=1601381172]
+modulate = Color(0.18, 0.84, 0.9, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Campaign progress"
+
+[node name="RequiredProgress" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Progress" unique_id=1788007006]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Required work: 0 of 7 complete"
+autowrap_mode = 2
+
+[node name="OptionalProgress" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Progress" unique_id=463713000]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Optional technique practice: 0 complete"
+autowrap_mode = 2
+
+[node name="PitchReadiness" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Progress" unique_id=327338095]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Pitch readiness: not ready yet"
+autowrap_mode = 2
+
+[node name="ProgressExplanation" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Progress" unique_id=2144681611]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "Required work prepares the campaign pitch. Optional practice strengthens technique evidence but never blocks completion."
+autowrap_mode = 2
+
+[node name="AudioSettings" type="Button" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent" unique_id=895054001]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_h5k8a")
+theme_override_styles/hover = SubResource("StyleBoxFlat_rd7ya")
+theme_override_styles/focus = SubResource("StyleBoxFlat_vskfq")
+text = "Music and sound settings"
+
+[node name="LegacyOrientationPanel" type="PanelContainer" parent="HUD/HUDRoot/AgencyGuideDrawer" unique_id=114488140]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(800, 480)
+layout_mode = 0
+offset_left = 240.0
+offset_top = 160.0
+offset_right = 240.0
+offset_bottom = 160.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_02wlv")
+
+[node name="OrientationMargin" type="MarginContainer" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyOrientationPanel" unique_id=2007986274]
+layout_mode = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 36
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 36
+
+[node name="OrientationContent" type="VBoxContainer" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyOrientationPanel/OrientationMargin" unique_id=87905815]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="OrientationStep" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyOrientationPanel/OrientationMargin/OrientationContent" unique_id=1870832680]
+unique_name_in_owner = true
+modulate = Color(0.18, 0.84, 0.9, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "STEP 1 OF 3"
+
+[node name="OrientationTitle" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyOrientationPanel/OrientationMargin/OrientationContent" unique_id=777688689]
+unique_name_in_owner = true
+modulate = Color(0.97, 0.98, 1, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Meet the client"
+
+[node name="OrientationBody" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyOrientationPanel/OrientationMargin/OrientationContent" unique_id=747531041]
+unique_name_in_owner = true
+modulate = Color(0.88, 0.92, 0.97, 1)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 19
+text = "Walk to Client Briefing and press Space or Enter. Read the audience situation, need and values before the pair makes any creative decision."
+autowrap_mode = 2
+
+[node name="OrientationSpacer" type="Control" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyOrientationPanel/OrientationMargin/OrientationContent" unique_id=1840799099]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="OrientationNext" type="Button" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyOrientationPanel/OrientationMargin/OrientationContent" unique_id=516664550]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_vn85y")
+theme_override_styles/hover = SubResource("StyleBoxFlat_ma0jh")
+theme_override_styles/focus = SubResource("StyleBoxFlat_e5w04")
+text = "Continue"
+
+[node name="AgencyMissionPanel" parent="HUD/HUDRoot" unique_id=2062866337 instance=ExtResource("9_t5o2e")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_right = 1280.0
+offset_bottom = 800.0
+
+[node name="Backdrop2" type="ColorRect" parent="HUD/HUDRoot/AgencyMissionPanel" unique_id=1838012177]
+visible = false
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.02, 0.05, 0.1, 0.82)
+
+[node name="AgencyMissionController" type="Node" parent="." unique_id=900792274]
+unique_name_in_owner = true
+script = ExtResource("11_dufgl")

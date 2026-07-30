@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 95,
+  "sourcePng": "95-appliance-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Top-freezer refrigerator", "tags": ["appliance", "refrigerator", "top freezer"]},
+    {"row": 1, "column": 2, "label": "Bottom-freezer refrigerator", "tags": ["appliance", "bottom freezer", "refrigerator"]},
+    {"row": 1, "column": 3, "label": "Side-by-side refrigerator", "tags": ["appliance", "refrigerator", "side-by-side"]},
+    {"row": 1, "column": 4, "label": "French-door refrigerator", "tags": ["appliance", "french door", "refrigerator"]},
+    {"row": 1, "column": 5, "label": "Compact bar refrigerator", "tags": ["appliance", "bar refrigerator", "compact refrigerator"]},
+    {"row": 2, "column": 1, "label": "Freestanding oven and cooktop", "tags": ["appliance", "cooker", "oven"]},
+    {"row": 2, "column": 2, "label": "Separate flat cooktop", "tags": ["appliance", "cooktop", "kitchen"]},
+    {"row": 2, "column": 3, "label": "Countertop microwave", "tags": ["appliance", "countertop", "microwave"]},
+    {"row": 2, "column": 4, "label": "Built-in dishwasher", "tags": ["appliance", "dishwasher", "kitchen"]},
+    {"row": 2, "column": 5, "label": "Wall-mounted rangehood", "tags": ["appliance", "kitchen", "rangehood"]},
+    {"row": 3, "column": 1, "label": "Front-loading washing machine", "tags": ["appliance", "front loader", "washing machine"]},
+    {"row": 3, "column": 2, "label": "Top-loading washing machine", "tags": ["appliance", "top loader", "washing machine"]},
+    {"row": 3, "column": 3, "label": "Front-loading clothes dryer", "tags": ["appliance", "clothes dryer", "front loader"]},
+    {"row": 3, "column": 4, "label": "Round robot vacuum", "tags": ["appliance", "robot vacuum", "vacuum cleaner"]},
+    {"row": 3, "column": 5, "label": "Cordless stick vacuum", "tags": ["appliance", "stick vacuum", "vacuum cleaner"]},
+    {"row": 4, "column": 1, "label": "Wall split-system air conditioner", "tags": ["air conditioner", "appliance", "split system"]},
+    {"row": 4, "column": 2, "label": "Portable floor air conditioner", "tags": ["air conditioner", "appliance", "portable cooling"]},
+    {"row": 4, "column": 3, "label": "Tower fan", "tags": ["appliance", "cooling", "tower fan"]},
+    {"row": 4, "column": 4, "label": "Compact dehumidifier", "tags": ["appliance", "dehumidifier", "indoor air"]},
+    {"row": 4, "column": 5, "label": "Tall air purifier", "tags": ["air purifier", "appliance", "indoor air"]},
+    {"row": 5, "column": 1, "label": "Flat television with centre pedestal", "tags": ["centre pedestal", "flat television", "home electronics"]},
+    {"row": 5, "column": 2, "label": "Wall-ready flat television", "tags": ["flat television", "home electronics", "wall mount"]},
+    {"row": 5, "column": 3, "label": "Gently curved television", "tags": ["curved television", "home electronics", "television"]},
+    {"row": 5, "column": 4, "label": "Compact home projector", "tags": ["home electronics", "home projector", "projector"]},
+    {"row": 5, "column": 5, "label": "Rectangular tabletop speaker", "tags": ["home electronics", "speaker", "tabletop speaker"]}
+  ]
+}

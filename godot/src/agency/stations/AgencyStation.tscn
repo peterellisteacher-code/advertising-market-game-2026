@@ -1,0 +1,62 @@
+[gd_scene format=3 uid="uid://dtcypqr1co0q0"]
+
+[ext_resource type="Script" uid="uid://cttum60quqjab" path="res://src/agency/stations/agency_station.gd" id="1_knpow"]
+[ext_resource type="Texture2D" uid="uid://djm7fw6vwacod" path="res://assets/agency/interaction-icons.png" id="2_rrq61"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_o3ual"]
+atlas = ExtResource("2_rrq61")
+region = Rect2(310, 0, 310, 724)
+filter_clip = true
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_j14vq"]
+radius = 58.0
+
+[node name="AgencyStation" type="Area2D" unique_id=795862808]
+unique_name_in_owner = true
+collision_layer = 2
+script = ExtResource("1_knpow")
+
+[node name="Glow" type="Polygon2D" parent="." unique_id=1063089120]
+unique_name_in_owner = true
+z_index = -1
+color = Color(1, 0.69, 0.12, 0.34)
+polygon = PackedVector2Array(0, -43, 43, 0, 0, 43, -43, 0)
+
+[node name="InteractionIcon" type="Sprite2D" parent="." unique_id=1750090696]
+unique_name_in_owner = true
+z_index = 1
+texture_filter = 1
+scale = Vector2(0.16, 0.16)
+texture = SubResource("AtlasTexture_o3ual")
+
+[node name="StationCollision" type="CollisionShape2D" parent="." unique_id=1147002784]
+unique_name_in_owner = true
+shape = SubResource("CircleShape2D_j14vq")
+
+[node name="RoomLabel" type="Label" parent="." unique_id=848040966]
+unique_name_in_owner = true
+z_index = 2
+offset_left = -92.0
+offset_top = -68.0
+offset_right = -91.0
+offset_bottom = -45.0
+theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
+theme_override_colors/font_shadow_color = Color(0.0627451, 0.10980392, 0.21176471, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 15
+text = "Agency station"
+
+[node name="OwnerRoleBadge" type="Label" parent="." unique_id=2081638784]
+unique_name_in_owner = true
+z_index = 2
+offset_left = -76.0
+offset_top = -45.0
+offset_right = -75.0
+offset_bottom = -22.0
+theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
+theme_override_colors/font_shadow_color = Color(0.0627451, 0.10980392, 0.21176471, 1)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 12
+text = "STRATEGIST"

@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 81,
+  "sourcePng": "81-renewable-energy-smart-home-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "wall solar inverter shell", "tags": ["base", "energy", "inverter", "solar", "wall"]},
+    {"row": 1, "column": 2, "label": "home battery cabinet", "tags": ["base", "battery", "cabinet", "energy", "home"]},
+    {"row": 1, "column": 3, "label": "smart electrical switchboard cabinet", "tags": ["base", "cabinet", "electrical", "smart-home", "switchboard"]},
+    {"row": 1, "column": 4, "label": "slim ev wall charger body", "tags": ["base", "charger", "ev", "smart-home", "wall"]},
+    {"row": 1, "column": 5, "label": "heat pump outdoor unit shell", "tags": ["base", "heat-pump", "hvac", "outdoor", "smart-home"]},
+    {"row": 2, "column": 1, "label": "flat solar panel module", "tags": ["base", "energy", "flat", "module", "solar-panel"]},
+    {"row": 2, "column": 2, "label": "solar roof tile panel", "tags": ["base", "energy", "roof-tile", "solar"]},
+    {"row": 2, "column": 3, "label": "domestic wind turbine unit", "tags": ["base", "domestic", "energy", "turbine", "wind"]},
+    {"row": 2, "column": 4, "label": "solar hot water tank", "tags": ["base", "hot-water", "solar", "tank"]},
+    {"row": 2, "column": 5, "label": "compact heat pump water heater cabinet", "tags": ["base", "cabinet", "compact", "heat-pump", "water-heater"]},
+    {"row": 3, "column": 1, "label": "smart thermostat body", "tags": ["base", "smart-home", "thermostat"]},
+    {"row": 3, "column": 2, "label": "smart lighting hub", "tags": ["base", "hub", "lighting", "smart-home"]},
+    {"row": 3, "column": 3, "label": "home energy monitor display shell", "tags": ["base", "display", "energy-monitor", "smart-home"]},
+    {"row": 3, "column": 4, "label": "smart power strip body", "tags": ["base", "power-strip", "smart-home"]},
+    {"row": 3, "column": 5, "label": "smart plug body", "tags": ["base", "plug", "smart-home"]},
+    {"row": 4, "column": 1, "label": "motorised blind cassette", "tags": ["base", "blind", "cassette", "motorised", "smart-home"]},
+    {"row": 4, "column": 2, "label": "smart doorbell body", "tags": ["base", "doorbell", "smart-home"]},
+    {"row": 4, "column": 3, "label": "smart door lock body", "tags": ["base", "door-lock", "smart-home"]},
+    {"row": 4, "column": 4, "label": "indoor air quality monitor", "tags": ["air-quality", "base", "indoor", "monitor", "smart-home"]},
+    {"row": 4, "column": 5, "label": "smart irrigation controller cabinet", "tags": ["base", "cabinet", "controller", "irrigation", "smart-home"]},
+    {"row": 5, "column": 1, "label": "ev charging pedestal", "tags": ["base", "charger", "ev", "pedestal"]},
+    {"row": 5, "column": 2, "label": "rainwater tank controller cabinet", "tags": ["base", "cabinet", "controller", "rainwater", "tank"]},
+    {"row": 5, "column": 3, "label": "greywater recycling cabinet", "tags": ["base", "cabinet", "greywater", "recycling"]},
+    {"row": 5, "column": 4, "label": "smart greenhouse controller cabinet", "tags": ["base", "cabinet", "controller", "greenhouse", "smart-home"]},
+    {"row": 5, "column": 5, "label": "home energy gateway router shell", "tags": ["base", "energy", "gateway", "home", "router"]}
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 35,
+  "sourcePng": "35-tools-cleaning-wellness-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Cordless power drill", "tags": ["cordless drill", "power tool", "tool"]},
+    {"row": 1, "column": 2, "label": "Claw hammer", "tags": ["claw hammer", "hand tool", "tool"]},
+    {"row": 1, "column": 3, "label": "Manual screwdriver", "tags": ["hand tool", "screwdriver", "tool"]},
+    {"row": 1, "column": 4, "label": "Adjustable wrench", "tags": ["adjustable wrench", "hand tool", "tool"]},
+    {"row": 1, "column": 5, "label": "Retractable tape measure", "tags": ["measuring tool", "tape measure", "tool"]},
+    {"row": 2, "column": 1, "label": "Portable toolbox", "tags": ["storage", "tool", "toolbox"]},
+    {"row": 2, "column": 2, "label": "Compact pressure washer", "tags": ["cleaning equipment", "outdoor cleaning", "pressure washer"]},
+    {"row": 2, "column": 3, "label": "Garden hose reel", "tags": ["garden equipment", "hose reel", "outdoor cleaning"]},
+    {"row": 2, "column": 4, "label": "Upright vacuum cleaner", "tags": ["cleaning appliance", "upright vacuum", "vacuum cleaner"]},
+    {"row": 2, "column": 5, "label": "Round robot vacuum", "tags": ["cleaning appliance", "robot vacuum", "vacuum cleaner"]},
+    {"row": 3, "column": 1, "label": "Blank trigger spray bottle", "tags": ["cleaning product", "spray bottle", "trigger bottle"]},
+    {"row": 3, "column": 2, "label": "Cleaning bucket", "tags": ["bucket", "cleaning equipment", "container"]},
+    {"row": 3, "column": 3, "label": "Standing string mop", "tags": ["cleaning equipment", "mop", "string mop"]},
+    {"row": 3, "column": 4, "label": "Handheld steam cleaner", "tags": ["cleaning appliance", "handheld cleaner", "steam cleaner"]},
+    {"row": 3, "column": 5, "label": "Laundry basket", "tags": ["basket", "home care", "laundry"]},
+    {"row": 4, "column": 1, "label": "Electric toothbrush", "tags": ["electric toothbrush", "personal care", "wellness"]},
+    {"row": 4, "column": 2, "label": "Handheld hair dryer", "tags": ["hair care", "hair dryer", "personal care"]},
+    {"row": 4, "column": 3, "label": "Rotary electric shaver", "tags": ["electric shaver", "grooming", "personal care"]},
+    {"row": 4, "column": 4, "label": "Massage gun", "tags": ["massage gun", "recovery", "wellness"]},
+    {"row": 4, "column": 5, "label": "Digital bathroom scale", "tags": ["bathroom scale", "digital scale", "wellness"]},
+    {"row": 5, "column": 1, "label": "Rolled yoga mat", "tags": ["fitness", "wellness", "yoga mat"]},
+    {"row": 5, "column": 2, "label": "Round kettlebell", "tags": ["fitness", "kettlebell", "strength equipment"]},
+    {"row": 5, "column": 3, "label": "Textured foam roller", "tags": ["fitness", "foam roller", "recovery"]},
+    {"row": 5, "column": 4, "label": "Blank first-aid hard case", "tags": ["first-aid case", "hard case", "wellness"]},
+    {"row": 5, "column": 5, "label": "Compact aroma diffuser", "tags": ["aroma diffuser", "home wellness", "wellness"]}
+  ]
+}

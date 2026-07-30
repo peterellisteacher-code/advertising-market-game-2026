@@ -1,0 +1,1315 @@
+[gd_scene format=3 uid="uid://bbjvvw77m7jg2"]
+
+[ext_resource type="Script" uid="uid://doan4o3pmvgq1" path="res://src/main/main.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://dl55b4msofffb" path="res://src/creator/creator_host.gd" id="2_host"]
+[ext_resource type="Script" uid="uid://djc28dwhxy50v" path="res://src/market/market_host.gd" id="3_market_host"]
+[ext_resource type="PackedScene" path="res://src/market/ui/MarketScreen.tscn" id="4_market_screen"]
+[ext_resource type="PackedScene" uid="uid://3wygkl7yhyny" path="res://src/agency/AgencyWorld.tscn" id="5_gm8pl"]
+[ext_resource type="PackedScene" uid="uid://5c3ywf63f34q" path="res://src/presentation/PitchTheatre.tscn" id="6_dewna"]
+[ext_resource type="Script" uid="uid://vl201ynxpk3v" path="res://src/presentation/pitch_theatre.gd" id="7_74yfu"]
+[ext_resource type="Texture2D" uid="uid://cefq4icqq2amb" path="res://assets/agency/pitch-devices.png" id="8_bc0i0"]
+[ext_resource type="PackedScene" uid="uid://by2k08y6c6buo" path="res://src/audio/AgencyAudio.tscn" id="9_v6dgk"]
+[ext_resource type="Script" uid="uid://cbd6fe4ab81aq" path="res://src/audio/agency_audio_manager.gd" id="10_5i72y"]
+[ext_resource type="AudioStream" uid="uid://d0h4f1dtf507g" path="res://assets/audio/camera-shutter.ogg" id="11_f4teq"]
+[ext_resource type="AudioStream" uid="uid://b2c7ikuerkkfi" path="res://assets/audio/pitch-swoosh.ogg" id="12_rahfo"]
+[ext_resource type="AudioStream" uid="uid://dikt5rd7n128x" path="res://assets/audio/portfolio-stamp.ogg" id="13_4bm33"]
+
+[sub_resource type="StyleBoxFlat" id="Style_secondary"]
+content_margin_left = 20.0
+content_margin_top = 13.0
+content_margin_right = 20.0
+content_margin_bottom = 13.0
+bg_color = Color(0.0901961, 0.129412, 0.168627, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="Style_focus"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.956863, 0.788235, 0.364706, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+expand_margin_left = 3.0
+expand_margin_top = 3.0
+expand_margin_right = 3.0
+expand_margin_bottom = 3.0
+
+[sub_resource type="StyleBoxFlat" id="Style_panel"]
+content_margin_left = 28.0
+content_margin_top = 24.0
+content_margin_right = 28.0
+content_margin_bottom = 24.0
+bg_color = Color(1, 1, 1, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.85098, 0.819608, 0.764706, 1)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[sub_resource type="StyleBoxFlat" id="Style_chip"]
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+bg_color = Color(0.968627, 0.952941, 0.921569, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="Style_primary"]
+content_margin_left = 20.0
+content_margin_top = 13.0
+content_margin_right = 20.0
+content_margin_bottom = 13.0
+bg_color = Color(0.713725, 0.227451, 0.0823529, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="Style_primary_pressed"]
+content_margin_left = 20.0
+content_margin_top = 13.0
+content_margin_right = 20.0
+content_margin_bottom = 13.0
+bg_color = Color(0.745098, 0.25098, 0.117647, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="Style_primary_hover"]
+content_margin_left = 20.0
+content_margin_top = 13.0
+content_margin_right = 20.0
+content_margin_bottom = 13.0
+bg_color = Color(0.764706, 0.278431, 0.105882, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="Style_disabled"]
+content_margin_left = 20.0
+content_margin_top = 13.0
+content_margin_right = 20.0
+content_margin_bottom = 13.0
+bg_color = Color(0.796078, 0.788235, 0.768627, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xf8bi"]
+bg_color = Color(0.0627451, 0.15686275, 0.23137255, 0.9372549)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_33faw"]
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2lkbr"]
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8rj2o"]
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_j8hr3"]
+bg_color = Color(0.0627451, 0.15686275, 0.23137255, 0.9372549)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9647059, 0.7411765, 0.24705882, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_j81m3"]
+bg_color = Color(0.043137256, 0.105882354, 0.18039216, 0.9372549)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3647059, 0.45882353, 0.54901963, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dewna"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_74yfu"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bc0i0"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_it3ii"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_eve7s"]
+bg_color = Color(0.9647059, 0.7411765, 0.24705882, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9647059, 0.7411765, 0.24705882, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qgce1"]
+bg_color = Color(1, 0.89411765, 0.60784316, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5ieuk"]
+bg_color = Color(0.9647059, 0.7411765, 0.24705882, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="Main" type="Control" unique_id=1908655379]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_main")
+
+[node name="Background" type="ColorRect" parent="." unique_id=532882265]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.94902, 0.937255, 0.909804, 1)
+
+[node name="TopStripe" type="ColorRect" parent="." unique_id=1018588654]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 10.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.894118, 0.341176, 0.180392, 1)
+
+[node name="MainMargin" type="MarginContainer" parent="." unique_id=127445172]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 48.0
+offset_top = 96.0
+offset_right = -48.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="GameInput" type="VBoxContainer" parent="MainMargin" unique_id=1109560816]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="BrandRow" type="HBoxContainer" parent="MainMargin/GameInput" unique_id=399172362]
+layout_mode = 2
+
+[node name="Brand" type="Label" parent="MainMargin/GameInput/BrandRow" unique_id=2124353698]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 22
+text = "AD MARKET // GAME"
+
+[node name="PlayMode" type="Label" parent="MainMargin/GameInput/BrandRow" unique_id=602559865]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.407843, 0.447059, 0.490196, 1)
+theme_override_font_sizes/font_size = 15
+text = "PAIR PLAY  •  ONE MACBOOK"
+
+[node name="ReviewInstructions" type="Button" parent="MainMargin/GameInput/BrandRow" unique_id=1182776230]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(210, 42)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("Style_secondary")
+theme_override_styles/pressed = SubResource("Style_secondary")
+theme_override_styles/hover = SubResource("Style_secondary")
+theme_override_styles/focus = SubResource("Style_focus")
+text = "Review all instructions"
+
+[node name="RoleGuide" type="Button" parent="MainMargin/GameInput/BrandRow" unique_id=1856009854]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 42)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("Style_secondary")
+theme_override_styles/pressed = SubResource("Style_secondary")
+theme_override_styles/hover = SubResource("Style_secondary")
+theme_override_styles/focus = SubResource("Style_focus")
+text = "Role guide"
+
+[node name="AccountClearance" type="Control" parent="MainMargin/GameInput/BrandRow" unique_id=1055410977]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="HeroHeading" type="Label" parent="MainMargin/GameInput" unique_id=954623981]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 40
+text = "First you will invent a product, then you will create an advertisement for it."
+autowrap_mode = 2
+
+[node name="HeroCopy" type="Label" parent="MainMargin/GameInput" unique_id=676836229]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
+theme_override_font_sizes/font_size = 18
+text = "Three levels.
+Level 1: invent a product. Choose its audience.
+Level 2: build a campaign using the four AIDA moves.
+Level 3: set a price. Choose where to advertise. Select the strongest features. Finish the design.
+After all three levels: enter the live class market. Spend a fixed budget on products made by other teams."
+autowrap_mode = 2
+
+[node name="LobbyPanel" type="PanelContainer" parent="MainMargin/GameInput" unique_id=1383971992]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("Style_panel")
+
+[node name="LobbyContent" type="VBoxContainer" parent="MainMargin/GameInput/LobbyPanel" unique_id=1462066403]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="LobbyEyebrow" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent" unique_id=1764878992]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.894118, 0.341176, 0.180392, 1)
+theme_override_font_sizes/font_size = 14
+text = "FIRST MOVE"
+
+[node name="LobbyHeading" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent" unique_id=1210751407]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 26
+text = "Start the game with your pair."
+
+[node name="LobbyColumns" type="HBoxContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent" unique_id=689122473]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="JoinArea" type="PanelContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns" unique_id=1764474164]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("Style_chip")
+
+[node name="JoinContent" type="VBoxContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/JoinArea" unique_id=991122008]
+layout_mode = 2
+theme_override_constants/separation = 9
+
+[node name="JoinEyebrow" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/JoinArea/JoinContent" unique_id=140122356]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.713725, 0.227451, 0.0823529, 1)
+theme_override_font_sizes/font_size = 14
+text = "JOIN A LIVE ROOM"
+
+[node name="AliasLabel" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/JoinArea/JoinContent" unique_id=758750720]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 16
+text = "Pair alias (practice or live room)"
+
+[node name="TeamAlias" type="LineEdit" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/JoinArea/JoinContent" unique_id=126908605]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+placeholder_text = "Try Neon Narwhals"
+max_length = 32
+clear_button_enabled = true
+
+[node name="RoomCodeLabel" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/JoinArea/JoinContent" unique_id=558317454]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 16
+text = "Room code"
+
+[node name="RoomCode" type="LineEdit" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/JoinArea/JoinContent" unique_id=1425549508]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+placeholder_text = "ABC-234"
+max_length = 7
+clear_button_enabled = true
+
+[node name="JoinLiveMarket" type="Button" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/JoinArea/JoinContent" unique_id=1208003795]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(230, 50)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Style_secondary")
+theme_override_styles/pressed = SubResource("Style_secondary")
+theme_override_styles/hover = SubResource("Style_secondary")
+theme_override_styles/focus = SubResource("Style_focus")
+text = "Join the live market"
+
+[node name="HostArea" type="PanelContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns" unique_id=1768977044]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("Style_chip")
+
+[node name="HostContent" type="VBoxContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea" unique_id=999857276]
+layout_mode = 2
+theme_override_constants/separation = 9
+
+[node name="HostEyebrow" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent" unique_id=1330278545]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.713725, 0.227451, 0.0823529, 1)
+theme_override_font_sizes/font_size = 14
+text = "HOST A CLASS MARKET"
+
+[node name="ClassroomCodeLabel" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent" unique_id=2111558034]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 16
+text = "Classroom code"
+
+[node name="ClassroomCode" type="LineEdit" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent" unique_id=834392449]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+placeholder_text = "Teacher room key"
+max_length = 128
+clear_button_enabled = true
+secret = true
+
+[node name="HostOptions" type="HBoxContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent" unique_id=1873126610]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="CapacityField" type="VBoxContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent/HostOptions" unique_id=516547717]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="CapacityLabel" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent/HostOptions/CapacityField" unique_id=926282707]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 14
+text = "Team seats"
+
+[node name="MaxTeams" type="SpinBox" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent/HostOptions/CapacityField" unique_id=820460914]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+min_value = 3.0
+max_value = 30.0
+value = 15.0
+
+[node name="CreateLiveMarket" type="Button" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/HostArea/HostContent" unique_id=1020142553]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(230, 50)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Style_primary")
+theme_override_styles/pressed = SubResource("Style_primary_pressed")
+theme_override_styles/hover = SubResource("Style_primary_hover")
+theme_override_styles/focus = SubResource("Style_focus")
+text = "Open a class market"
+
+[node name="PracticeDivider" type="HSeparator" parent="MainMargin/GameInput/LobbyPanel/LobbyContent" unique_id=1865659698]
+layout_mode = 2
+
+[node name="PracticeRow" type="HBoxContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent" unique_id=1666734603]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="PracticeCopy" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/PracticeRow" unique_id=610480232]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
+theme_override_font_sizes/font_size = 15
+text = "No room code? Play a local practice round."
+vertical_alignment = 1
+
+[node name="TeacherSetupToggle" type="Button" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/PracticeRow" unique_id=691384531]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(170, 50)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Style_secondary")
+theme_override_styles/pressed = SubResource("Style_secondary")
+theme_override_styles/hover = SubResource("Style_secondary")
+theme_override_styles/focus = SubResource("Style_focus")
+text = "Teacher setup"
+
+[node name="StartRun" type="Button" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/PracticeRow" unique_id=1196935447]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 50)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Style_primary")
+theme_override_styles/pressed = SubResource("Style_primary_pressed")
+theme_override_styles/hover = SubResource("Style_primary_hover")
+theme_override_styles/focus = SubResource("Style_focus")
+text = "Practice on this computer"
+
+[node name="MarketScreen" parent="MainMargin/GameInput" unique_id=698235327 instance=ExtResource("4_market_screen")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="RunPanel" type="PanelContainer" parent="MainMargin/GameInput" unique_id=1971428130]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("Style_panel")
+
+[node name="RunContent" type="VBoxContainer" parent="MainMargin/GameInput/RunPanel" unique_id=1145477191]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="LevelProgress" type="HBoxContainer" parent="MainMargin/GameInput/RunPanel/RunContent" unique_id=1566878521]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="InventCard" type="PanelContainer" parent="MainMargin/GameInput/RunPanel/RunContent/LevelProgress" unique_id=1853691857]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("Style_chip")
+
+[node name="InventChip" type="Label" parent="MainMargin/GameInput/RunPanel/RunContent/LevelProgress/InventCard" unique_id=1099713835]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "01  INVENT IT"
+
+[node name="SellCard" type="PanelContainer" parent="MainMargin/GameInput/RunPanel/RunContent/LevelProgress" unique_id=2010789031]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("Style_chip")
+
+[node name="SellChip" type="Label" parent="MainMargin/GameInput/RunPanel/RunContent/LevelProgress/SellCard" unique_id=798294093]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "02  SELL IT"
+
+[node name="IrresistibleCard" type="PanelContainer" parent="MainMargin/GameInput/RunPanel/RunContent/LevelProgress" unique_id=1633962977]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("Style_chip")
+
+[node name="IrresistibleChip" type="Label" parent="MainMargin/GameInput/RunPanel/RunContent/LevelProgress/IrresistibleCard" unique_id=862588065]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "03  FINALISE IT"
+
+[node name="LevelEyebrow" type="Label" parent="MainMargin/GameInput/RunPanel/RunContent" unique_id=1705678333]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.894118, 0.341176, 0.180392, 1)
+theme_override_font_sizes/font_size = 14
+text = "LEVEL 1 // INVENT IT"
+
+[node name="LevelHeading" type="Label" parent="MainMargin/GameInput/RunPanel/RunContent" unique_id=1634364798]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 30
+text = "Invent a product that matches the audience need."
+autowrap_mode = 2
+
+[node name="LevelClue" type="Label" parent="MainMargin/GameInput/RunPanel/RunContent" unique_id=1191599712]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
+theme_override_font_sizes/font_size = 18
+text = "Read your audience signal. Shape a product. Give the product a name."
+autowrap_mode = 2
+
+[node name="FinalReview" type="PanelContainer" parent="MainMargin/GameInput/RunPanel/RunContent" unique_id=170385383]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_styles/panel = SubResource("Style_chip")
+
+[node name="ReviewContent" type="VBoxContainer" parent="MainMargin/GameInput/RunPanel/RunContent/FinalReview" unique_id=287982643]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ReviewHeading" type="Label" parent="MainMargin/GameInput/RunPanel/RunContent/FinalReview/ReviewContent" unique_id=523661851]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 22
+text = "Final review"
+
+[node name="ReviewIntroduction" type="Label" parent="MainMargin/GameInput/RunPanel/RunContent/FinalReview/ReviewContent" unique_id=735645391]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
+theme_override_font_sizes/font_size = 15
+text = "Check the completed advertisement against each statement before building the market card."
+autowrap_mode = 2
+
+[node name="ReviewChecks" type="GridContainer" parent="MainMargin/GameInput/RunPanel/RunContent/FinalReview/ReviewContent" unique_id=1237113133]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 4
+columns = 2
+
+[node name="ReviewAudience" type="CheckBox" parent="MainMargin/GameInput/RunPanel/RunContent/FinalReview/ReviewContent/ReviewChecks" unique_id=276027896]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_next = NodePath("../ReviewValue")
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_focus_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_pressed_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_hover_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 16
+text = "The product and message suit the audience brief."
+
+[node name="ReviewValue" type="CheckBox" parent="MainMargin/GameInput/RunPanel/RunContent/FinalReview/ReviewContent/ReviewChecks" unique_id=1440075783]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_next = NodePath("../ReviewAida")
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_focus_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_pressed_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_hover_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 16
+text = "The product value and visible price are clear."
+
+[node name="ReviewAida" type="CheckBox" parent="MainMargin/GameInput/RunPanel/RunContent/FinalReview/ReviewContent/ReviewChecks" unique_id=1910543020]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_next = NodePath("../ReviewVisual")
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_focus_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_pressed_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_hover_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 16
+text = "Attention, Interest, Desire and Action are all visible."
+
+[node name="ReviewVisual" type="CheckBox" parent="MainMargin/GameInput/RunPanel/RunContent/FinalReview/ReviewContent/ReviewChecks" unique_id=1407796438]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_next = NodePath("../ReviewClaim")
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_focus_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_pressed_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_hover_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 16
+text = "The visual technique supports the message."
+
+[node name="ReviewClaim" type="CheckBox" parent="MainMargin/GameInput/RunPanel/RunContent/FinalReview/ReviewContent/ReviewChecks" unique_id=611028407]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_next = NodePath("../../../../ActionRow/PublishCampaign")
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_focus_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_pressed_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_hover_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_hover_pressed_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 16
+text = "The main claim is clear and supported by a proof point."
+
+[node name="FinalReviewStatus" type="Label" parent="MainMargin/GameInput/RunPanel/RunContent/FinalReview/ReviewContent" unique_id=1143214519]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
+theme_override_font_sizes/font_size = 15
+text = "Select all five review statements."
+autowrap_mode = 2
+
+[node name="ActionRow" type="HBoxContainer" parent="MainMargin/GameInput/RunPanel/RunContent" unique_id=1952306016]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="LaunchCreator" type="Button" parent="MainMargin/GameInput/RunPanel/RunContent/ActionRow" unique_id=275767289]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(230, 50)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Style_primary")
+theme_override_styles/pressed = SubResource("Style_primary_pressed")
+theme_override_styles/hover = SubResource("Style_primary_hover")
+theme_override_styles/focus = SubResource("Style_focus")
+text = "Open the creative studio"
+
+[node name="LockLevel" type="Button" parent="MainMargin/GameInput/RunPanel/RunContent/ActionRow" unique_id=2073528086]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(170, 50)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.35, 0.35, 0.35, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Style_secondary")
+theme_override_styles/pressed = SubResource("Style_secondary")
+theme_override_styles/hover = SubResource("Style_secondary")
+theme_override_styles/disabled = SubResource("Style_disabled")
+theme_override_styles/focus = SubResource("Style_focus")
+text = "Lock this level"
+
+[node name="AdvanceLevel" type="Button" parent="MainMargin/GameInput/RunPanel/RunContent/ActionRow" unique_id=33662189]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 50)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_disabled_color = Color(0.35, 0.35, 0.35, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Style_secondary")
+theme_override_styles/pressed = SubResource("Style_secondary")
+theme_override_styles/hover = SubResource("Style_secondary")
+theme_override_styles/disabled = SubResource("Style_disabled")
+theme_override_styles/focus = SubResource("Style_focus")
+disabled = true
+text = "Next level"
+
+[node name="PublishCampaign" type="Button" parent="MainMargin/GameInput/RunPanel/RunContent/ActionRow" unique_id=1283092921]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 50)
+layout_mode = 2
+focus_next = NodePath("../EnterMarket")
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Style_primary")
+theme_override_styles/pressed = SubResource("Style_primary_pressed")
+theme_override_styles/hover = SubResource("Style_primary_hover")
+theme_override_styles/focus = SubResource("Style_focus")
+text = "Build the market card"
+
+[node name="EnterMarket" type="Button" parent="MainMargin/GameInput/RunPanel/RunContent/ActionRow" unique_id=1501147885]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(180, 50)
+layout_mode = 2
+focus_previous = NodePath("../PublishCampaign")
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Style_primary")
+theme_override_styles/pressed = SubResource("Style_primary_pressed")
+theme_override_styles/hover = SubResource("Style_primary_hover")
+theme_override_styles/focus = SubResource("Style_focus")
+text = "Enter market"
+
+[node name="KeyboardHint" type="Label" parent="MainMargin/GameInput" unique_id=1990202766]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
+theme_override_font_sizes/font_size = 14
+text = "Press Tab to move between controls. Press Enter or Space to use the selected control."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Status" type="Label" parent="MainMargin/GameInput" unique_id=1694803517]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
+theme_override_font_sizes/font_size = 16
+text = "Choose a team name to begin."
+autowrap_mode = 2
+
+[node name="InstructionsDialog" type="AcceptDialog" parent="." unique_id=1900445613]
+unique_name_in_owner = true
+title = "Advertising campaign instructions"
+initial_position = 1
+size = Vector2i(920, 640)
+ok_button_text = "Close"
+
+[node name="InstructionsText" type="RichTextLabel" parent="InstructionsDialog" unique_id=197897576]
+unique_name_in_owner = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = -72.0
+grow_horizontal = 2
+grow_vertical = 2
+focus_mode = 2
+theme_override_font_sizes/normal_font_size = 17
+bbcode_enabled = true
+text = "[b]How to use this site[/b]
+
+[b]What you are making[/b]
+You and one partner are creating one fictional product and one advertisement for a supplied audience. You will then compare the completed advertisements in the market.
+
+[b]How the pair roles work[/b]
+Both partners can use the same tools that are available in the current level. The roles do not unlock different buttons. The Art Director is responsible for what the advertisement looks like: product images, colour, size, position and layout. The Strategist is responsible for what the advertisement says and why the offer should persuade the audience: product name, benefit, AIDA message, price, market route and proof point. The active role tells you whose turn should make the next change with the keyboard or trackpad. The other partner advises and checks the work. The site records the active role, but it cannot identify which person physically touched the device.
+
+[b]How to read the audience brief[/b]
+Context is the situation the audience is in. Need is the problem the product should help solve. Values are the ideas or qualities that matter to this audience. Intended audience response is what the advertisement should encourage the audience to think, feel or do.
+
+[b]How to read the formal steps[/b]
+A premise is a reason. An intermediate conclusion is what a group of reasons supports. You do not need to memorise these terms. The steps form an inductive argument: completing each step gives you a reason for the next judgement. The final conclusion is probable rather than guaranteed.
+
+[b]Start and return[/b]
+This section explains how the site connects the pair, the session and the saved campaign.
+1. A saved campaign belongs to one pair and one practice or class-market session.
+2. Enter one pair alias on one MacBook. Then select Practice on this computer, or enter the room code supplied by your teacher.
+3. When you return, use the same route so the site can restore the correct campaign.
+Sub-conclusion: the pair identity, session and saved campaign can be connected reliably.
+
+[b]Audience and product[/b]
+Read the supplied audience situation first. Then choose and change a product so that it responds to a stated need or value.
+4. The connected campaign contains an audience brief with particular needs and values.
+5. A suitable product responds to at least one need or value in that brief.
+6. Give the product a distinctive name and place the product prominently so that the response is visible.
+7. Each partner must make a visible contribution: the Art Director changes an image and the Strategist changes a message, then the pair swaps roles.
+Intermediate conclusion 1: the completed product is likely to suit the stated audience.
+
+[b]Product and advertisement[/b]
+An advertisement combines what people see with what they read. AIDA gives the message four jobs: attract Attention, hold Interest, create Desire and state the Action the audience should take.
+8. Intermediate conclusion 1 gives the advertisement a relevant product and audience.
+9. Add one visible choice that gains Attention.
+10. Add one visible choice that develops Interest in the product.
+11. Add one visible choice that creates Desire by showing a relevant benefit.
+12. Add one visible Action that tells the audience what to do next.
+13. Use a visual technique that supports these four choices and the intended message.
+Intermediate conclusion 2: the advertisement is likely to communicate a coherent message about the product.
+
+[b]Advertisement and credible offer[/b]
+A credible offer tells the audience what the product costs, where they would encounter the advertisement and what evidence supports its main claim. A proof point is a specific fact, feature or demonstration, not another slogan.
+14. Intermediate conclusion 2 provides the message that the offer must support.
+15. Choose a price that suits the audience and display that price in the advertisement.
+16. Choose and lock a market route that is likely to reach the audience.
+17. Add a specific proof point that supports the main claim.
+Intermediate conclusion 3: the advertisement is likely to present a credible offer to its audience.
+
+[b]Final judgement[/b]
+Use the same five criteria to review your own completed market card and to score the other advertisements. Scoring the market means rating other advertisements, not your own.
+18. Intermediate conclusions 1, 2 and 3 provide the basis for the final review.
+19. Confirm all five review statements: audience suitability, clear value and price, complete AIDA choices, a supporting visual technique, and a claim supported by a proof point.
+20. Build the market card only after all five statements are confirmed.
+21. In the gallery, score every other advertisement from 0 to 2 on the same five criteria. Add the five scores to produce a total out of 10.
+22. If totals are equal, compare audience suitability first, then the combined AIDA judgement.
+23. Award Gold, Silver and Bronze to three different advertisements according to that ranking.
+
+[b]Overall conclusion[/b]
+Therefore, a campaign that completes each linked step is likely to communicate an effective and credible offer to its audience, and the shared scoring process is likely to produce a fair comparison."
+
+[node name="RoleGuideDialog" type="AcceptDialog" parent="." unique_id=2060890745]
+unique_name_in_owner = true
+title = "Pair role guide"
+initial_position = 1
+size = Vector2i(720, 420)
+ok_button_text = "Close"
+
+[node name="RoleGuideText" type="RichTextLabel" parent="RoleGuideDialog" unique_id=386787641]
+unique_name_in_owner = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = -72.0
+grow_horizontal = 2
+grow_vertical = 2
+focus_mode = 2
+theme_override_font_sizes/normal_font_size = 17
+bbcode_enabled = true
+text = "[b]The same controls are available to both partners[/b]
+
+Both partners can use the same tools that are available in the current level. The roles do not unlock different buttons. The role names divide responsibility for decisions; they are not separate site permissions.
+
+[b]Art Director: leads visual decisions[/b]
+
+The Art Director is responsible for what the advertisement looks like: product images, colour, size, position and layout. For example, the Art Director can choose a product image, enlarge it, change a colour and decide where the headline sits.
+
+[b]Strategist: leads message and offer decisions[/b]
+
+The Strategist is responsible for what the advertisement says and why the offer should persuade the audience: product name, benefit, AIDA message, price, market route and proof point. For example, the Strategist can name the product, write its benefit, choose a suitable price and add a proof point.
+
+[b]How a turn works[/b]
+
+The active role tells you whose turn should make the next change with the keyboard or trackpad. The other partner advises, checks the audience brief and prepares the next decision. The site records the role that is active. It does not block tools or identify which person physically touched the device.
+
+[b]What Swap roles changes[/b]
+
+Swapping roles changes the active responsibility and the role recorded for later changes. Earlier work and recorded contributions stay in the campaign. Both partners should be able to explain how the image and message work together for the chosen audience."
+
+[node name="CreatorHost" type="Node" parent="." unique_id=1220491040]
+unique_name_in_owner = true
+script = ExtResource("2_host")
+game_input_root_path = NodePath("../MainMargin/GameInput")
+launch_button_path = NodePath("../MainMargin/GameInput/RunPanel/RunContent/ActionRow/LaunchCreator")
+
+[node name="MarketHost" type="Node" parent="." unique_id=505941996]
+unique_name_in_owner = true
+script = ExtResource("3_market_host")
+game_input_root_path = NodePath("../MainMargin/GameInput")
+
+[node name="AgencyWorld" parent="." unique_id=1576448732 instance=ExtResource("5_gm8pl")]
+visible = false
+
+[node name="PitchTheatre" type="Control" parent="." unique_id=1220221933 instance=ExtResource("6_dewna")]
+unique_name_in_owner = true
+visible = false
+z_index = 30
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("7_74yfu")
+
+[node name="Backdrop" type="ColorRect" parent="PitchTheatre" unique_id=473423594]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="PitchMargin" type="MarginContainer" parent="PitchTheatre" unique_id=1669009986]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 22
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 22
+
+[node name="PitchContent" type="VBoxContainer" parent="PitchTheatre/PitchMargin" unique_id=160130949]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="PitchHeader" type="VBoxContainer" parent="PitchTheatre/PitchMargin/PitchContent" unique_id=881871451]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="PitchEyebrow" type="Label" parent="PitchTheatre/PitchMargin/PitchContent/PitchHeader" unique_id=732836270]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.153, 0.776, 0.82, 1)
+theme_override_font_sizes/font_size = 14
+text = "CLIENT PRESENTATION · FINAL CAMPAIGN"
+
+[node name="PitchHeading" type="Label" parent="PitchTheatre/PitchMargin/PitchContent/PitchHeader" unique_id=927159395]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.965, 0.929, 0.839, 1)
+theme_override_font_sizes/font_size = 30
+text = "Presenting the finished campaign"
+
+[node name="PitchIntro" type="Label" parent="PitchTheatre/PitchMargin/PitchContent/PitchHeader" unique_id=1987986656]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 16
+text = "The client sees the exact advertisement your pair created. Choose how to frame its presentation, then use the evidence cards to explain why the campaign should persuade its audience."
+autowrap_mode = 2
+
+[node name="PitchBody" type="HBoxContainer" parent="PitchTheatre/PitchMargin/PitchContent" unique_id=83547427]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 20
+
+[node name="PresentationCard" type="PanelContainer" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody" unique_id=105699539]
+custom_minimum_size = Vector2(650, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_xf8bi")
+
+[node name="PresentationMargin" type="MarginContainer" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/PresentationCard" unique_id=784444743]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 16
+
+[node name="PresentationContent" type="VBoxContainer" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin" unique_id=1386828223]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="DisplayHeading" type="Label" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent" unique_id=568626076]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.965, 0.741, 0.247, 1)
+theme_override_font_sizes/font_size = 20
+text = "Choose how the campaign is displayed"
+autowrap_mode = 2
+
+[node name="PresentationStage" type="Control" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent" unique_id=1957415239]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(650, 360)
+clip_contents = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BillboardFrame" type="PanelContainer" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent/PresentationStage" unique_id=1617865974]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 41.0
+offset_top = 112.0
+offset_right = 246.0
+offset_bottom = 220.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_33faw")
+
+[node name="BillboardAd" type="TextureRect" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent/PresentationStage/BillboardFrame" unique_id=478608075]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("8_bc0i0")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MagazineFrame" type="PanelContainer" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent/PresentationStage" unique_id=1734124049]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 304.0
+offset_top = 139.0
+offset_right = 532.0
+offset_bottom = 277.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_2lkbr")
+
+[node name="MagazineAd" type="TextureRect" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent/PresentationStage/MagazineFrame" unique_id=1424816325]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("8_bc0i0")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="VerticalFrame" type="PanelContainer" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent/PresentationStage" unique_id=284179467]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 611.0
+offset_top = 118.0
+offset_right = 688.0
+offset_bottom = 273.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_8rj2o")
+
+[node name="VerticalAd" type="TextureRect" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent/PresentationStage/VerticalFrame" unique_id=543169367]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("8_bc0i0")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DevicesArt" type="TextureRect" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent/PresentationStage" unique_id=188859913]
+z_index = -1
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -744.0
+offset_bottom = -414.0
+mouse_filter = 2
+texture = ExtResource("8_bc0i0")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="FormatHelp" type="Label" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent" unique_id=2099492638]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.82, 0.86, 1)
+theme_override_font_sizes/font_size = 14
+text = "The same finished advertisement appears in every format. Change the setting below to rehearse how it will look to the client."
+autowrap_mode = 2
+
+[node name="EvidenceCard" type="PanelContainer" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody" unique_id=1777334868]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_j8hr3")
+
+[node name="EvidenceMargin" type="MarginContainer" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/EvidenceCard" unique_id=1138064881]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 16
+
+[node name="EvidenceContent" type="VBoxContainer" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin" unique_id=1215431473]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ClientHeading" type="Label" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=2045833531]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.965, 0.741, 0.247, 1)
+theme_override_font_sizes/font_size = 20
+text = "Client response"
+
+[node name="ClientResponse" type="Label" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=1499282890]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 14
+text = "The client response will appear here after the campaign is loaded."
+autowrap_mode = 2
+
+[node name="EvidenceDivider" type="HSeparator" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=732149038]
+layout_mode = 2
+
+[node name="EvidenceHeading" type="Label" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=1047032802]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.153, 0.776, 0.82, 1)
+theme_override_font_sizes/font_size = 18
+text = "Evidence for your explanation"
+
+[node name="EvidenceAudience" type="Label" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=567604289]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 14
+text = "Audience fit — Complete the related mission before the pitch."
+autowrap_mode = 2
+
+[node name="EvidenceValue" type="Label" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=100200875]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 14
+text = "Product value — Complete the related mission before the pitch."
+autowrap_mode = 2
+
+[node name="EvidenceAida" type="Label" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=2128314404]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 14
+text = "AIDA — Complete the related mission before the pitch."
+autowrap_mode = 2
+
+[node name="EvidenceHierarchy" type="Label" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=496410005]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 14
+text = "Visual hierarchy — Complete the related mission before the pitch."
+autowrap_mode = 2
+
+[node name="EvidenceClaim" type="Label" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=2064350234]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 14
+text = "Supportable claim — Complete the related mission before the pitch."
+autowrap_mode = 2
+
+[node name="PortfolioStamps" type="Label" parent="PitchTheatre/PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=779439385]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.965, 0.741, 0.247, 1)
+theme_override_font_sizes/font_size = 13
+text = "Portfolio stamps: none yet. Optional contracts add stamps but never block the pitch."
+autowrap_mode = 2
+
+[node name="PitchControlsCard" type="PanelContainer" parent="PitchTheatre/PitchMargin/PitchContent" unique_id=1417339713]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_j81m3")
+
+[node name="ControlsMargin" type="MarginContainer" parent="PitchTheatre/PitchMargin/PitchContent/PitchControlsCard" unique_id=1783748351]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="ControlsRow" type="HBoxContainer" parent="PitchTheatre/PitchMargin/PitchContent/PitchControlsCard/ControlsMargin" unique_id=663254488]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="FormatLabel" type="Label" parent="PitchTheatre/PitchMargin/PitchContent/PitchControlsCard/ControlsMargin/ControlsRow" unique_id=1096898321]
+layout_mode = 2
+text = "Format"
+
+[node name="FormatSelector" type="OptionButton" parent="PitchTheatre/PitchMargin/PitchContent/PitchControlsCard/ControlsMargin/ControlsRow" unique_id=2119352137]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(145, 0)
+layout_mode = 2
+theme_override_styles/focus = SubResource("StyleBoxFlat_dewna")
+
+[node name="AnimationLabel" type="Label" parent="PitchTheatre/PitchMargin/PitchContent/PitchControlsCard/ControlsMargin/ControlsRow" unique_id=553343489]
+layout_mode = 2
+text = "Reveal"
+
+[node name="AnimationSelector" type="OptionButton" parent="PitchTheatre/PitchMargin/PitchContent/PitchControlsCard/ControlsMargin/ControlsRow" unique_id=642729514]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+theme_override_styles/focus = SubResource("StyleBoxFlat_74yfu")
+
+[node name="CameraSound" type="Button" parent="PitchTheatre/PitchMargin/PitchContent/PitchControlsCard/ControlsMargin/ControlsRow" unique_id=1065178228]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/focus = SubResource("StyleBoxFlat_bc0i0")
+text = "Camera sound"
+
+[node name="SwooshSound" type="Button" parent="PitchTheatre/PitchMargin/PitchContent/PitchControlsCard/ControlsMargin/ControlsRow" unique_id=606275198]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/focus = SubResource("StyleBoxFlat_it3ii")
+text = "Swoosh sound"
+
+[node name="ControlsSpacer" type="Control" parent="PitchTheatre/PitchMargin/PitchContent/PitchControlsCard/ControlsMargin/ControlsRow" unique_id=1257858190]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EnterMarket" type="Button" parent="PitchTheatre/PitchMargin/PitchContent/PitchControlsCard/ControlsMargin/ControlsRow" unique_id=1550974076]
+custom_minimum_size = Vector2(190, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.035, 0.105, 0.16, 1)
+theme_override_colors/font_focus_color = Color(0.035, 0.105, 0.16, 1)
+theme_override_colors/font_pressed_color = Color(0.035, 0.105, 0.16, 1)
+theme_override_colors/font_hover_color = Color(0.035, 0.105, 0.16, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_eve7s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_qgce1")
+theme_override_styles/focus = SubResource("StyleBoxFlat_5ieuk")
+text = "Enter client market"
+
+[node name="AgencyAudio" type="Node" parent="." unique_id=1937646235 instance=ExtResource("9_v6dgk")]
+unique_name_in_owner = true
+script = ExtResource("10_5i72y")
+
+[node name="CameraCue" type="AudioStreamPlayer" parent="AgencyAudio" unique_id=971892635]
+unique_name_in_owner = true
+stream = ExtResource("11_f4teq")
+volume_db = -10.0
+
+[node name="SwooshCue" type="AudioStreamPlayer" parent="AgencyAudio" unique_id=1380879382]
+unique_name_in_owner = true
+stream = ExtResource("12_rahfo")
+volume_db = -10.0
+
+[node name="PortfolioStampCue" type="AudioStreamPlayer" parent="AgencyAudio" unique_id=231170843]
+unique_name_in_owner = true
+stream = ExtResource("13_4bm33")
+volume_db = -10.0

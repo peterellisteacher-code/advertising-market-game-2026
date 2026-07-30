@@ -1,0 +1,284 @@
+import type { RecolourZone } from "../catalogue/catalogue-types";
+import {
+  MATERIAL_PRESETS,
+  type MaterialBlendMode,
+  type MaterialPreset,
+  type MaterialPresetId
+} from "./material-presets";
+
+export type ZoneStyle = { colour: string; materialId: string; opacity: number };
+export type ZoneStyles = Partial<Record<RecolourZone, ZoneStyle>>;
+
+export interface MaskedVariantRenderInput {
+  master: ImageBitmap;
+  masks: Partial<Record<RecolourZone, ImageBitmap>>;
+  styles: ZoneStyles;
+  width: number;
+  height: number;
+}
+
+export interface MaskedVariantRenderer {
+  render(input: MaskedVariantRenderInput): Promise<Blob>;
+}
+
+export interface BitmapRasterCodec {
+  read(bitmap: ImageBitmap, width: number, height: number): Uint8ClampedArray;
+  encode(pixels: Uint8ClampedArray, width: number, height: number): Promise<Blob>;
+}
+
+export interface MaterialTextureRasterizer {
+  rasterize(textureUrl: string, width: number, height: number): Promise<Uint8ClampedArray>;
+}
+
+export interface PixelVariantRenderInput {
+  master: Uint8ClampedArray;
+  masks: Partial<Record<RecolourZone, Uint8ClampedArray>>;
+  styles: ZoneStyles;
+  textureRasters: ReadonlyMap<string, Uint8ClampedArray>;
+  width: number;
+  height: number;
+}
+
+export const MASKED_VARIANT_SHADOW_POLICY = "preserve-shadows-in-master" as const;
+const ZONE_PRECEDENCE: readonly RecolourZone[] = ["body", "trim", "accent", "label"];
+
+function validateDimensions(width: number, height: number): void {
+  if (!Number.isFinite(width) || !Number.isFinite(height) ||
+    !Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) {
+    throw new Error("Variant width and height must be positive finite integers");
+  }
+}
+
+function validatePixelBuffer(name: string, pixels: Uint8ClampedArray, length: number): void {
+  if (!(pixels instanceof Uint8ClampedArray) || pixels.length !== length) {
+    throw new Error(`${name} pixels must contain exactly ${length} RGBA values`);
+  }
+}
+
+function parseHexColour(value: string): readonly [number, number, number] {
+  const match = /^#([0-9a-f]{6})$/i.exec(value);
+  if (!match?.[1]) throw new Error("Zone colour must be a six-digit hex colour");
+  return [
+    Number.parseInt(match[1].slice(0, 2), 16),
+    Number.parseInt(match[1].slice(2, 4), 16),
+    Number.parseInt(match[1].slice(4, 6), 16)
+  ];
+}
+
+function materialPreset(materialId: string): Readonly<MaterialPreset> {
+  if (!Object.hasOwn(MATERIAL_PRESETS, materialId)) {
+    throw new Error(`Unknown material preset: ${materialId}`);
+  }
+  return MATERIAL_PRESETS[materialId as MaterialPresetId];
+}
+
+function validateStyle(style: ZoneStyle): {
+  colour: readonly [number, number, number];
+  preset: Readonly<MaterialPreset>;
+} {
+  if (!Number.isFinite(style.opacity) || style.opacity < 0 || style.opacity > 1) {
+    throw new Error("Zone opacity must be a finite number from 0 to 1");
+  }
+  return { colour: parseHexColour(style.colour), preset: materialPreset(style.materialId) };
+}
+
+function clampByte(value: number): number {
+  return Math.max(0, Math.min(255, Math.round(value)));
+}
+
+export function assertUsablePngBlob(value: unknown): asserts value is Blob {
+  if (typeof Blob === "undefined" || !(value instanceof Blob) ||
+    value.type !== "image/png" || value.size === 0) {
+    throw new Error("Rendered variant must be a non-empty image/png Blob");
+  }
+}
+
+function applyBlendMode(channel: number, luminance: number, mode: MaterialBlendMode): number {
+  switch (mode) {
+    case "multiply": return channel;
+    case "soft-light": return channel * 0.88 + luminance * 0.12;
+    case "screen": return 255 - ((255 - channel) * (255 - luminance)) / 255;
+  }
+}
+
+export function compositeMaskedVariantPixels(input: PixelVariantRenderInput): Uint8ClampedArray {
+  validateDimensions(input.width, input.height);
+  const expectedLength = input.width * input.height * 4;
+  validatePixelBuffer("Master", input.master, expectedLength);
+  for (const zone of ZONE_PRECEDENCE) {
+    const mask = input.masks[zone];
+    if (mask) validatePixelBuffer(`${zone} mask`, mask, expectedLength);
+  }
+
+  const validatedStyles = new Map<RecolourZone, {
+    style: ZoneStyle;
+    colour: readonly [number, number, number];
+    preset: Readonly<MaterialPreset>;
+  }>();
+  for (const zone of ZONE_PRECEDENCE) {
+    const style = input.styles[zone];
+    if (!style) continue;
+    const validated = validateStyle(style);
+    validatedStyles.set(zone, { style, ...validated });
+  }
+
+  const output = new Uint8ClampedArray(input.master);
+  for (const zone of ZONE_PRECEDENCE) {
+    const mask = input.masks[zone];
+    const validated = validatedStyles.get(zone);
+    if (!mask || !validated) continue;
+    const { style, colour, preset } = validated;
+    const textureRaster = input.textureRasters.get(preset.textureUrl);
+    if (!textureRaster) {
+      throw new Error(`Missing decoded texture pixels for material preset: ${style.materialId}`);
+    }
+    validatePixelBuffer(`${style.materialId} texture`, textureRaster, expectedLength);
+    for (let y = 0; y < input.height; y += 1) {
+      for (let x = 0; x < input.width; x += 1) {
+        const offset = (y * input.width + x) * 4;
+        const masterAlpha = input.master[offset + 3] ?? 0;
+        const maskAlpha = mask[offset + 3] ?? 0;
+        if (masterAlpha === 0 || maskAlpha === 0) continue;
+
+        const red = input.master[offset] ?? 0;
+        const green = input.master[offset + 1] ?? 0;
+        const blue = input.master[offset + 2] ?? 0;
+        const luminance = red * 0.2126 + green * 0.7152 + blue * 0.0722;
+        const coverage = (maskAlpha / 255) * style.opacity * preset.opacity;
+        const textureRed = textureRaster[offset] ?? 127.5;
+        const textureGreen = textureRaster[offset + 1] ?? 127.5;
+        const textureBlue = textureRaster[offset + 2] ?? 127.5;
+        const textureAlpha = (textureRaster[offset + 3] ?? 0) / 255;
+        const textureLuminance = textureRed * 0.2126 + textureGreen * 0.7152 + textureBlue * 0.0722;
+        const textureSignal = ((textureLuminance - 127.5) / 127.5) * textureAlpha;
+        const textureMultiplier = 1 + textureSignal * preset.textureStrength;
+        const highlightQualification = Math.max(0, Math.min(1, (luminance - 144) / (255 - 144)));
+        const highlightCoverage = highlightQualification * preset.highlightStrength * coverage;
+
+        for (let channel = 0; channel < 3; channel += 1) {
+          const colourChannel = colour[channel] ?? 0;
+          const multiplied = colourChannel * (luminance / 255);
+          const blended = applyBlendMode(multiplied, luminance, preset.blendMode);
+          const materialChannel = clampByte(blended * textureMultiplier);
+          const existing = output[offset + channel] ?? 0;
+          const tinted = existing * (1 - coverage) + materialChannel * coverage;
+          const masterChannel = input.master[offset + channel] ?? 0;
+          output[offset + channel] = clampByte(
+            tinted * (1 - highlightCoverage) + masterChannel * highlightCoverage
+          );
+        }
+        output[offset + 3] = masterAlpha;
+      }
+    }
+  }
+  return output;
+}
+
+function browserCanvas(width: number, height: number): {
+  canvas: HTMLCanvasElement;
+  context: CanvasRenderingContext2D;
+} {
+  if (typeof document === "undefined") throw new Error("Browser canvas rendering is unavailable");
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) throw new Error("A 2D canvas context is required for masked variants");
+  return { canvas, context };
+}
+
+export const browserBitmapRasterCodec: BitmapRasterCodec = {
+  read(bitmap, width, height) {
+    const { context } = browserCanvas(width, height);
+    context.clearRect(0, 0, width, height);
+    context.drawImage(bitmap, 0, 0);
+    return new Uint8ClampedArray(context.getImageData(0, 0, width, height).data);
+  },
+  async encode(pixels, width, height) {
+    const { canvas, context } = browserCanvas(width, height);
+    const image = context.createImageData(width, height);
+    image.data.set(pixels);
+    context.putImageData(image, 0, 0);
+    return new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Canvas could not encode the masked variant"));
+      }, "image/png");
+    });
+  }
+};
+
+export const browserMaterialTextureRasterizer: MaterialTextureRasterizer = {
+  async rasterize(textureUrl, width, height) {
+    validateDimensions(width, height);
+    const image = new Image();
+    image.decoding = "async";
+    image.src = textureUrl;
+    await image.decode();
+    const { context } = browserCanvas(width, height);
+    const pattern = context.createPattern(image, "repeat");
+    if (!pattern) throw new Error("Canvas could not tile the material texture");
+    context.fillStyle = pattern;
+    context.fillRect(0, 0, width, height);
+    return new Uint8ClampedArray(context.getImageData(0, 0, width, height).data);
+  }
+};
+
+export class BrowserMaskedVariantRenderer implements MaskedVariantRenderer {
+  readonly #codec: BitmapRasterCodec;
+  readonly #textureRasterizer: MaterialTextureRasterizer;
+
+  constructor(
+    codec: BitmapRasterCodec = browserBitmapRasterCodec,
+    textureRasterizer: MaterialTextureRasterizer = browserMaterialTextureRasterizer
+  ) {
+    this.#codec = codec;
+    this.#textureRasterizer = textureRasterizer;
+  }
+
+  async render(input: MaskedVariantRenderInput): Promise<Blob> {
+    validateDimensions(input.width, input.height);
+    if (input.master.width !== input.width || input.master.height !== input.height) {
+      throw new Error("Requested dimensions must match the master dimensions");
+    }
+    for (const zone of ZONE_PRECEDENCE) {
+      const mask = input.masks[zone];
+      if (mask && (mask.width !== input.master.width || mask.height !== input.master.height)) {
+        throw new Error(`${zone} mask dimensions must match the master dimensions`);
+      }
+    }
+
+    const selectedTextureUrls = new Set<string>();
+    for (const zone of ZONE_PRECEDENCE) {
+      const style = input.styles[zone];
+      if (style) selectedTextureUrls.add(validateStyle(style).preset.textureUrl);
+    }
+    const expectedLength = input.width * input.height * 4;
+    const textureRasters = new Map<string, Uint8ClampedArray>(await Promise.all(
+      Array.from(selectedTextureUrls, async (textureUrl) => {
+        const pixels = await this.#textureRasterizer.rasterize(textureUrl, input.width, input.height);
+        validatePixelBuffer("Material texture", pixels, expectedLength);
+        return [textureUrl, pixels] as const;
+      })
+    ));
+
+    const masks: Partial<Record<RecolourZone, Uint8ClampedArray>> = {};
+    for (const zone of ZONE_PRECEDENCE) {
+      const mask = input.masks[zone];
+      if (mask) masks[zone] = this.#codec.read(mask, input.width, input.height);
+    }
+    const pixels = compositeMaskedVariantPixels({
+      master: this.#codec.read(input.master, input.width, input.height),
+      masks,
+      styles: input.styles,
+      textureRasters,
+      width: input.width,
+      height: input.height
+    });
+    const blob = await this.#codec.encode(pixels, input.width, input.height);
+    assertUsablePngBlob(blob);
+    return blob;
+  }
+}
+
+export const maskedVariantRenderer: MaskedVariantRenderer = new BrowserMaskedVariantRenderer();

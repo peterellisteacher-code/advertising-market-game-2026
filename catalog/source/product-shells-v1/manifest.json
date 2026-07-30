@@ -1,0 +1,394 @@
+{
+  "schema": "product-shell-source@1",
+  "packId": "product-shells-v1",
+  "families": [
+    {"id": "drinks-snacks", "title": "Drinks & Snacks"},
+    {"id": "fast-food-hospitality", "title": "Fast Food & Hospitality"},
+    {"id": "fashion-footwear", "title": "Fashion & Footwear"},
+    {"id": "beauty-care", "title": "Beauty & Care"},
+    {"id": "tech-gadgets", "title": "Tech & Gadgets"},
+    {"id": "sport-outdoors", "title": "Sport & Outdoors"},
+    {"id": "home-lifestyle", "title": "Home & Lifestyle"},
+    {"id": "travel-transport", "title": "Travel & Transport"},
+    {"id": "pets-animals", "title": "Pets & Animals"},
+    {"id": "shops-services", "title": "Shops & Services"}
+  ],
+  "series": [
+    {
+      "family": "drinks-snacks", "template": "can",
+      "regions": [{"id": "body", "fill": "#EFE8D8"}, {"id": "trim", "fill": "#353B43"}, {"id": "accent", "fill": "#E66B3F"}, {"id": "label", "fill": "#FFF7E8"}],
+      "printAreas": [{"id": "front-wrap", "x": 0.32, "y": 0.28, "width": 0.36, "height": 0.42, "safeInset": 0.03}],
+      "partSlots": [{"id": "top", "accepts": ["pull-tab", "sealed-top"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.16, "shadow": 0.18}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "drinks-slim-can", "title": "Slim Soft Drink Can", "parameters": {"width": 0.42, "height": 0.82, "rounding": 0.09}},
+        {"id": "drinks-classic-can", "title": "Classic Soft Drink Can", "parameters": {"width": 0.52, "height": 0.74, "rounding": 0.08}},
+        {"id": "drinks-wide-can", "title": "Wide Energy Drink Can", "parameters": {"width": 0.6, "height": 0.67, "rounding": 0.07}}
+      ]
+    },
+    {
+      "family": "drinks-snacks", "template": "bottle",
+      "regions": [{"id": "body", "fill": "#DCE8E8"}, {"id": "trim", "fill": "#323A44"}, {"id": "accent", "fill": "#4AA6A0"}, {"id": "label", "fill": "#FFF6DD"}],
+      "printAreas": [{"id": "front-label", "x": 0.34, "y": 0.32, "width": 0.32, "height": 0.36, "safeInset": 0.028}],
+      "partSlots": [{"id": "cap", "accepts": ["flip-cap", "pump", "screw-cap"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.17, "shadow": 0.18}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "drinks-contour-bottle", "title": "Contour Drink Bottle", "parameters": {"width": 0.48, "height": 0.84, "rounding": 0.08}},
+        {"id": "drinks-sports-bottle", "title": "Sports Drink Bottle", "parameters": {"width": 0.56, "height": 0.78, "rounding": 0.1}}
+      ]
+    },
+    {
+      "family": "drinks-snacks", "template": "pouch",
+      "regions": [{"id": "body", "fill": "#F0E2C6"}, {"id": "trim", "fill": "#4A3C32"}, {"id": "accent", "fill": "#E68A3F"}, {"id": "label", "fill": "#FFF8EA"}],
+      "printAreas": [{"id": "front-face", "x": 0.3, "y": 0.3, "width": 0.4, "height": 0.42, "safeInset": 0.03}],
+      "partSlots": [{"id": "closure", "accepts": ["heat-seal", "zipper"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.15, "shadow": 0.17}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "snacks-sharing-pouch", "title": "Sharing Snack Pouch", "parameters": {"width": 0.66, "height": 0.72, "rounding": 0.08}},
+        {"id": "snacks-treat-pouch", "title": "Pocket Treat Pouch", "parameters": {"width": 0.52, "height": 0.78, "rounding": 0.07}}
+      ]
+    },
+
+    {
+      "family": "fast-food-hospitality", "template": "box",
+      "regions": [{"id": "body", "fill": "#E7D6B8"}, {"id": "trim", "fill": "#3C3731"}, {"id": "accent", "fill": "#D85A3E"}, {"id": "label", "fill": "#FFF5DF"}],
+      "printAreas": [{"id": "lid-top", "x": 0.28, "y": 0.28, "width": 0.44, "height": 0.38, "safeInset": 0.03}],
+      "partSlots": [{"id": "lid", "accepts": ["flat-lid", "hinged-lid", "window-lid"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.13, "shadow": 0.2}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "food-burger-box", "title": "Burger Takeaway Box", "parameters": {"width": 0.72, "height": 0.54, "rounding": 0.08}},
+        {"id": "food-pizza-box", "title": "Pizza Takeaway Box", "parameters": {"width": 0.82, "height": 0.46, "rounding": 0.04}},
+        {"id": "food-meal-box", "title": "Meal Takeaway Box", "parameters": {"width": 0.66, "height": 0.62, "rounding": 0.06}}
+      ]
+    },
+    {
+      "family": "fast-food-hospitality", "template": "cup",
+      "regions": [{"id": "body", "fill": "#EFE7D6"}, {"id": "trim", "fill": "#343A40"}, {"id": "accent", "fill": "#D95D47"}, {"id": "label", "fill": "#FFF7E8"}],
+      "printAreas": [{"id": "cup-wrap", "x": 0.34, "y": 0.3, "width": 0.32, "height": 0.36, "safeInset": 0.026}],
+      "partSlots": [{"id": "top", "accepts": ["flat-lid", "straw-lid"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.16, "shadow": 0.18}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "food-takeaway-cup", "title": "Takeaway Drink Cup", "parameters": {"width": 0.5, "height": 0.76, "rounding": 0.08}},
+        {"id": "food-noodle-tub", "title": "Noodle Takeaway Cup", "parameters": {"width": 0.62, "height": 0.66, "rounding": 0.07}}
+      ]
+    },
+    {
+      "family": "fast-food-hospitality", "template": "bag",
+      "regions": [{"id": "body", "fill": "#DCC79F"}, {"id": "trim", "fill": "#4A3E31"}, {"id": "accent", "fill": "#E0783C"}, {"id": "label", "fill": "#FFF2D9"}],
+      "printAreas": [{"id": "bag-face", "x": 0.27, "y": 0.32, "width": 0.46, "height": 0.42, "safeInset": 0.032}],
+      "partSlots": [{"id": "handle", "accepts": ["cutout-handle", "loop-handle", "strap-handle"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.12, "shadow": 0.18}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "food-carry-bag", "title": "Carry Takeaway Bag", "parameters": {"width": 0.62, "height": 0.76, "rounding": 0.04}},
+        {"id": "food-delivery-bag", "title": "Delivery Takeaway Bag", "parameters": {"width": 0.74, "height": 0.68, "rounding": 0.06}}
+      ]
+    },
+
+    {
+      "family": "fashion-footwear", "template": "shoe",
+      "regions": [{"id": "body", "fill": "#E9E4DB"}, {"id": "trim", "fill": "#30343A"}, {"id": "accent", "fill": "#4A8DA8"}, {"id": "label", "fill": "#FFF8EA"}],
+      "printAreas": [{"id": "outer-quarter", "x": 0.32, "y": 0.47, "width": 0.42, "height": 0.2, "safeInset": 0.022}],
+      "partSlots": [{"id": "laces", "accepts": ["lace-up", "slip-on", "strap"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.14, "shadow": 0.2}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "fashion-low-trainer", "title": "Low-top Trainer", "parameters": {"width": 0.84, "height": 0.5, "rounding": 0.06}},
+        {"id": "fashion-high-trainer", "title": "High-top Trainer", "parameters": {"width": 0.76, "height": 0.62, "rounding": 0.07}},
+        {"id": "fashion-slide-shoe", "title": "Slide Trainer", "parameters": {"width": 0.8, "height": 0.42, "rounding": 0.09}}
+      ]
+    },
+    {
+      "family": "fashion-footwear", "template": "jersey",
+      "regions": [{"id": "body", "fill": "#E8E2D8"}, {"id": "trim", "fill": "#343840"}, {"id": "accent", "fill": "#B85165"}, {"id": "label", "fill": "#FFF8ED"}],
+      "printAreas": [{"id": "chest", "x": 0.32, "y": 0.34, "width": 0.36, "height": 0.34, "safeInset": 0.03}],
+      "partSlots": [{"id": "neckline", "accepts": ["crew-neck", "hood", "v-neck"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.12, "shadow": 0.16}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "fashion-street-tee", "title": "Streetwear T-shirt", "parameters": {"width": 0.72, "height": 0.78, "rounding": 0.05}},
+        {"id": "fashion-logo-hoodie", "title": "Logo Hoodie", "parameters": {"width": 0.78, "height": 0.82, "rounding": 0.07}}
+      ]
+    },
+    {
+      "family": "fashion-footwear", "template": "bag",
+      "regions": [{"id": "body", "fill": "#D9CDB9"}, {"id": "trim", "fill": "#35383B"}, {"id": "accent", "fill": "#2D8B75"}, {"id": "label", "fill": "#FFF8EA"}],
+      "printAreas": [{"id": "front-face", "x": 0.28, "y": 0.34, "width": 0.44, "height": 0.38, "safeInset": 0.03}],
+      "partSlots": [{"id": "handle", "accepts": ["loop-handle", "shoulder-strap", "strap-handle"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.12, "shadow": 0.18}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "fashion-tote-bag", "title": "Canvas Tote Bag", "parameters": {"width": 0.66, "height": 0.72, "rounding": 0.04}},
+        {"id": "fashion-city-backpack", "title": "City Backpack", "parameters": {"width": 0.58, "height": 0.8, "rounding": 0.12}}
+      ]
+    },
+
+    {
+      "family": "beauty-care", "template": "bottle",
+      "regions": [{"id": "body", "fill": "#E9E5E1"}, {"id": "trim", "fill": "#3E3B40"}, {"id": "accent", "fill": "#B96E8C"}, {"id": "label", "fill": "#FFF8F4"}],
+      "printAreas": [{"id": "front-label", "x": 0.34, "y": 0.31, "width": 0.32, "height": 0.37, "safeInset": 0.028}],
+      "partSlots": [{"id": "cap", "accepts": ["flip-cap", "pump", "sprayer"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.18, "shadow": 0.18}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "beauty-pump-bottle", "title": "Skincare Pump Bottle", "parameters": {"width": 0.5, "height": 0.8, "rounding": 0.1}},
+        {"id": "beauty-mist-bottle", "title": "Body Mist Bottle", "parameters": {"width": 0.44, "height": 0.84, "rounding": 0.08}},
+        {"id": "beauty-deodorant-bottle", "title": "Deodorant Bottle", "parameters": {"width": 0.56, "height": 0.72, "rounding": 0.14}}
+      ]
+    },
+    {
+      "family": "beauty-care", "template": "tube",
+      "regions": [{"id": "body", "fill": "#ECE7DF"}, {"id": "trim", "fill": "#393B43"}, {"id": "accent", "fill": "#BE7B95"}, {"id": "label", "fill": "#FFF8F2"}],
+      "printAreas": [{"id": "tube-face", "x": 0.35, "y": 0.29, "width": 0.3, "height": 0.4, "safeInset": 0.026}],
+      "partSlots": [{"id": "cap", "accepts": ["flip-cap", "screw-cap"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.16, "shadow": 0.17}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "beauty-squeeze-tube", "title": "Skincare Squeeze Tube", "parameters": {"width": 0.48, "height": 0.82, "rounding": 0.06}},
+        {"id": "beauty-lip-balm", "title": "Lip Balm Tube", "parameters": {"width": 0.34, "height": 0.76, "rounding": 0.09}}
+      ]
+    },
+    {
+      "family": "beauty-care", "template": "jar",
+      "regions": [{"id": "body", "fill": "#E7E3DC"}, {"id": "trim", "fill": "#343840"}, {"id": "accent", "fill": "#C47A8C"}, {"id": "label", "fill": "#FFF8F2"}],
+      "printAreas": [{"id": "jar-band", "x": 0.32, "y": 0.35, "width": 0.36, "height": 0.3, "safeInset": 0.025}],
+      "partSlots": [{"id": "lid", "accepts": ["flat-lid", "pump-lid", "screw-lid"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.17, "shadow": 0.19}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "beauty-cosmetic-jar", "title": "Cosmetic Cream Jar", "parameters": {"width": 0.66, "height": 0.5, "rounding": 0.14}},
+        {"id": "beauty-compact-jar", "title": "Compact Balm Jar", "parameters": {"width": 0.7, "height": 0.42, "rounding": 0.12}}
+      ]
+    },
+
+    {
+      "family": "tech-gadgets", "template": "device",
+      "regions": [{"id": "body", "fill": "#DDE2E5"}, {"id": "trim", "fill": "#2F353D"}, {"id": "accent", "fill": "#3E8FB5"}, {"id": "label", "fill": "#F3F8FA"}],
+      "printAreas": [{"id": "device-face", "x": 0.29, "y": 0.29, "width": 0.42, "height": 0.34, "safeInset": 0.03}],
+      "partSlots": [{"id": "edge", "accepts": ["bumper", "stand", "strap"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.18, "shadow": 0.19}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "tech-phone-case", "title": "Phone Case", "parameters": {"width": 0.46, "height": 0.82, "rounding": 0.14}},
+        {"id": "tech-portable-speaker", "title": "Portable Speaker", "parameters": {"width": 0.78, "height": 0.42, "rounding": 0.18}}
+      ]
+    },
+    {
+      "family": "tech-gadgets", "template": "controller",
+      "regions": [{"id": "body", "fill": "#DDE2E5"}, {"id": "trim", "fill": "#2F353D"}, {"id": "accent", "fill": "#3E8FB5"}, {"id": "label", "fill": "#F3F8FA"}],
+      "printAreas": [{"id": "controller-centre", "x": 0.38, "y": 0.36, "width": 0.24, "height": 0.18, "safeInset": 0.02}],
+      "partSlots": [{"id": "controls", "accepts": ["classic-controls", "dual-stick", "touch-pad"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.18, "shadow": 0.2}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "tech-game-controller", "title": "Game Controller", "parameters": {"width": 0.82, "height": 0.5, "rounding": 0.2}}
+      ]
+    },
+    {
+      "family": "tech-gadgets", "template": "headphones",
+      "regions": [{"id": "body", "fill": "#D8DDE1"}, {"id": "trim", "fill": "#29313A"}, {"id": "accent", "fill": "#4B95B0"}, {"id": "label", "fill": "#F5FAFC"}],
+      "printAreas": [{"id": "ear-cup", "x": 0.4, "y": 0.45, "width": 0.2, "height": 0.18, "safeInset": 0.02}],
+      "partSlots": [{"id": "cushion", "accepts": ["fabric-pad", "foam-pad"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.17, "shadow": 0.18}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "tech-over-ear-headphones", "title": "Over-ear Headphones", "parameters": {"width": 0.76, "height": 0.72, "rounding": 0.18}},
+        {"id": "tech-studio-headphones", "title": "Studio Headphones", "parameters": {"width": 0.68, "height": 0.8, "rounding": 0.15}}
+      ]
+    },
+    {
+      "family": "tech-gadgets", "template": "watch",
+      "regions": [{"id": "body", "fill": "#DCE1E3"}, {"id": "trim", "fill": "#2E343B"}, {"id": "accent", "fill": "#4389A7"}, {"id": "label", "fill": "#F6FAFB"}],
+      "printAreas": [{"id": "watch-face", "x": 0.42, "y": 0.42, "width": 0.16, "height": 0.16, "safeInset": 0.018}],
+      "partSlots": [{"id": "band", "accepts": ["link-band", "sport-band", "woven-band"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.18, "shadow": 0.16}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "tech-smartwatch", "title": "Smartwatch", "parameters": {"width": 0.5, "height": 0.86, "rounding": 0.16}},
+        {"id": "tech-fitness-band", "title": "Fitness Band", "parameters": {"width": 0.4, "height": 0.88, "rounding": 0.18}}
+      ]
+    },
+
+    {
+      "family": "sport-outdoors", "template": "ball",
+      "regions": [{"id": "body", "fill": "#E7E5DD"}, {"id": "trim", "fill": "#30363D"}, {"id": "accent", "fill": "#E07834"}, {"id": "label", "fill": "#FFF8E8"}],
+      "printAreas": [{"id": "feature-panel", "x": 0.37, "y": 0.37, "width": 0.26, "height": 0.26, "safeInset": 0.022}],
+      "partSlots": [{"id": "panel", "accepts": ["classic-panel", "modern-panel"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.2, "shadow": 0.2}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "sport-football", "title": "Training Football", "parameters": {"width": 0.7, "height": 0.7, "rounding": 0.2}},
+        {"id": "sport-basketball", "title": "Street Basketball", "parameters": {"width": 0.76, "height": 0.76, "rounding": 0.2}},
+        {"id": "sport-volleyball", "title": "Beach Volleyball", "parameters": {"width": 0.66, "height": 0.66, "rounding": 0.2}}
+      ]
+    },
+    {
+      "family": "sport-outdoors", "template": "skateboard",
+      "regions": [{"id": "body", "fill": "#D9C6A6"}, {"id": "trim", "fill": "#30363C"}, {"id": "accent", "fill": "#4A86A3"}, {"id": "label", "fill": "#FFF6E6"}],
+      "printAreas": [{"id": "deck-art", "x": 0.3, "y": 0.42, "width": 0.4, "height": 0.16, "safeInset": 0.018}],
+      "partSlots": [{"id": "deck", "accepts": ["kicktail", "longboard"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.14, "shadow": 0.22}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "sport-skateboard", "title": "Street Skateboard", "parameters": {"width": 0.86, "height": 0.42, "rounding": 0.18}}
+      ]
+    },
+    {
+      "family": "sport-outdoors", "template": "surfboard",
+      "regions": [{"id": "body", "fill": "#D9C6A6"}, {"id": "trim", "fill": "#30363C"}, {"id": "accent", "fill": "#4A86A3"}, {"id": "label", "fill": "#FFF6E6"}],
+      "printAreas": [{"id": "deck-art", "x": 0.3, "y": 0.42, "width": 0.4, "height": 0.16, "safeInset": 0.018}],
+      "partSlots": [{"id": "fin", "accepts": ["single-fin", "thruster-fins"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.15, "shadow": 0.2}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "sport-surfboard", "title": "Surfboard", "parameters": {"width": 0.88, "height": 0.34, "rounding": 0.22}}
+      ]
+    },
+    {
+      "family": "sport-outdoors", "template": "jersey",
+      "regions": [{"id": "body", "fill": "#E6E4DE"}, {"id": "trim", "fill": "#313840"}, {"id": "accent", "fill": "#3F8B72"}, {"id": "label", "fill": "#FFF8E8"}],
+      "printAreas": [{"id": "team-chest", "x": 0.32, "y": 0.34, "width": 0.36, "height": 0.34, "safeInset": 0.028}],
+      "partSlots": [{"id": "neckline", "accepts": ["crew-neck", "polo-neck", "v-neck"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.12, "shadow": 0.16}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "sport-team-jersey", "title": "Team Jersey", "parameters": {"width": 0.74, "height": 0.8, "rounding": 0.05}},
+        {"id": "sport-cycling-jersey", "title": "Cycling Jersey", "parameters": {"width": 0.68, "height": 0.84, "rounding": 0.04}}
+      ]
+    },
+
+    {
+      "family": "home-lifestyle", "template": "panel",
+      "regions": [{"id": "body", "fill": "#E7DFD2"}, {"id": "trim", "fill": "#403A35"}, {"id": "accent", "fill": "#BD7048"}, {"id": "label", "fill": "#FFF7E8"}],
+      "printAreas": [{"id": "main-face", "x": 0.25, "y": 0.28, "width": 0.5, "height": 0.44, "safeInset": 0.034}],
+      "partSlots": [{"id": "edge", "accepts": ["fringe", "piping", "plain"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.12, "shadow": 0.18}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "home-cushion", "title": "Scatter Cushion", "parameters": {"width": 0.7, "height": 0.7, "rounding": 0.14}},
+        {"id": "home-rug", "title": "Feature Rug", "parameters": {"width": 0.84, "height": 0.56, "rounding": 0.06}}
+      ]
+    },
+    {
+      "family": "home-lifestyle", "template": "clock",
+      "regions": [{"id": "body", "fill": "#E7DFD2"}, {"id": "trim", "fill": "#403A35"}, {"id": "accent", "fill": "#BD7048"}, {"id": "label", "fill": "#FFF7E8"}],
+      "printAreas": [{"id": "clock-face", "x": 0.31, "y": 0.31, "width": 0.38, "height": 0.38, "safeInset": 0.03}],
+      "partSlots": [{"id": "hands", "accepts": ["bar-hands", "minimal-hands", "numeral-ring"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.14, "shadow": 0.18}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "home-wall-clock", "title": "Wall Clock Face", "parameters": {"width": 0.64, "height": 0.64, "rounding": 0.25}}
+      ]
+    },
+    {
+      "family": "home-lifestyle", "template": "pot",
+      "regions": [{"id": "body", "fill": "#D8C8B2"}, {"id": "trim", "fill": "#413A34"}, {"id": "accent", "fill": "#6F936C"}, {"id": "label", "fill": "#FFF7E8"}],
+      "printAreas": [{"id": "pot-band", "x": 0.34, "y": 0.42, "width": 0.32, "height": 0.28, "safeInset": 0.025}],
+      "partSlots": [{"id": "base", "accepts": ["feet", "saucer", "stand"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.14, "shadow": 0.2}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "home-planter", "title": "Indoor Planter", "parameters": {"width": 0.62, "height": 0.64, "rounding": 0.08}},
+        {"id": "home-lampshade", "title": "Table Lamp Shade", "parameters": {"width": 0.7, "height": 0.58, "rounding": 0.05}}
+      ]
+    },
+    {
+      "family": "home-lifestyle", "template": "jar",
+      "regions": [{"id": "body", "fill": "#E6DED1"}, {"id": "trim", "fill": "#3B3834"}, {"id": "accent", "fill": "#B36D48"}, {"id": "label", "fill": "#FFF6E6"}],
+      "printAreas": [{"id": "jar-label", "x": 0.32, "y": 0.35, "width": 0.36, "height": 0.3, "safeInset": 0.025}],
+      "partSlots": [{"id": "lid", "accepts": ["cork-lid", "flat-lid", "screw-lid"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.16, "shadow": 0.18}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "home-candle-jar", "title": "Candle Jar", "parameters": {"width": 0.58, "height": 0.58, "rounding": 0.14}},
+        {"id": "home-storage-jar", "title": "Storage Jar", "parameters": {"width": 0.56, "height": 0.72, "rounding": 0.12}}
+      ]
+    },
+
+    {
+      "family": "travel-transport", "template": "luggage",
+      "regions": [{"id": "body", "fill": "#D9DEE0"}, {"id": "trim", "fill": "#30363D"}, {"id": "accent", "fill": "#D77A3A"}, {"id": "label", "fill": "#F8FAFA"}],
+      "printAreas": [{"id": "case-face", "x": 0.3, "y": 0.3, "width": 0.4, "height": 0.4, "safeInset": 0.03}],
+      "partSlots": [{"id": "handle", "accepts": ["fixed-handle", "telescopic-handle"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.17, "shadow": 0.22}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "travel-rolling-suitcase", "title": "Rolling Suitcase", "parameters": {"width": 0.56, "height": 0.8, "rounding": 0.13}},
+        {"id": "travel-cabin-case", "title": "Cabin Case", "parameters": {"width": 0.62, "height": 0.72, "rounding": 0.12}},
+        {"id": "travel-trunk-case", "title": "Travel Trunk", "parameters": {"width": 0.72, "height": 0.64, "rounding": 0.08}}
+      ]
+    },
+    {
+      "family": "travel-transport", "template": "vehicle",
+      "regions": [{"id": "body", "fill": "#DBE1E2"}, {"id": "trim", "fill": "#30363D"}, {"id": "accent", "fill": "#4E8EA2"}, {"id": "label", "fill": "#F7FAFA"}],
+      "printAreas": [{"id": "side-wrap", "x": 0.34, "y": 0.4, "width": 0.36, "height": 0.24, "safeInset": 0.022}],
+      "partSlots": [{"id": "roof", "accepts": ["awning", "rack", "roof-sign"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.16, "shadow": 0.24}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "travel-camper-van", "title": "Campervan", "parameters": {"width": 0.86, "height": 0.52, "rounding": 0.08}},
+        {"id": "travel-city-car", "title": "City Hatchback", "parameters": {"width": 0.82, "height": 0.46, "rounding": 0.12}}
+      ]
+    },
+    {
+      "family": "travel-transport", "template": "bag",
+      "regions": [{"id": "body", "fill": "#D8D3C8"}, {"id": "trim", "fill": "#34383D"}, {"id": "accent", "fill": "#4E8B71"}, {"id": "label", "fill": "#FFF8EA"}],
+      "printAreas": [{"id": "travel-face", "x": 0.28, "y": 0.34, "width": 0.44, "height": 0.38, "safeInset": 0.03}],
+      "partSlots": [{"id": "handle", "accepts": ["loop-handle", "shoulder-strap", "strap-handle"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.13, "shadow": 0.19}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "travel-backpack", "title": "Travel Backpack", "parameters": {"width": 0.58, "height": 0.8, "rounding": 0.14}},
+        {"id": "travel-weekender", "title": "Weekend Travel Bag", "parameters": {"width": 0.76, "height": 0.58, "rounding": 0.12}}
+      ]
+    },
+
+    {
+      "family": "pets-animals", "template": "tank",
+      "regions": [{"id": "body", "fill": "#CFE0E2"}, {"id": "trim", "fill": "#334047"}, {"id": "accent", "fill": "#4CA59A"}, {"id": "label", "fill": "#F5FBFA"}],
+      "printAreas": [{"id": "backdrop", "x": 0.25, "y": 0.3, "width": 0.5, "height": 0.44, "safeInset": 0.032}],
+      "partSlots": [{"id": "lid", "accepts": ["open-top", "solid-lid"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.2, "shadow": 0.2}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "pets-aquarium-kit", "title": "Aquarium Starter Kit", "parameters": {"width": 0.82, "height": 0.58, "rounding": 0.04}},
+        {"id": "pets-tall-aquarium", "title": "Tall Aquarium", "parameters": {"width": 0.58, "height": 0.78, "rounding": 0.04}},
+        {"id": "pets-terrarium", "title": "Pet Terrarium", "parameters": {"width": 0.76, "height": 0.62, "rounding": 0.06}}
+      ]
+    },
+    {
+      "family": "pets-animals", "template": "bowl",
+      "regions": [{"id": "body", "fill": "#D9DAD5"}, {"id": "trim", "fill": "#343A3F"}, {"id": "accent", "fill": "#D77C44"}, {"id": "label", "fill": "#FFF8EA"}],
+      "printAreas": [{"id": "bowl-side", "x": 0.36, "y": 0.45, "width": 0.28, "height": 0.22, "safeInset": 0.02}],
+      "partSlots": [{"id": "base", "accepts": ["non-slip-base", "raised-stand"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.16, "shadow": 0.22}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "pets-feeding-bowl", "title": "Pet Feeding Bowl", "parameters": {"width": 0.7, "height": 0.48, "rounding": 0.12}},
+        {"id": "pets-water-bowl", "title": "Pet Water Bowl", "parameters": {"width": 0.78, "height": 0.42, "rounding": 0.1}}
+      ]
+    },
+    {
+      "family": "pets-animals", "template": "pouch",
+      "regions": [{"id": "body", "fill": "#E5D6B9"}, {"id": "trim", "fill": "#3E3A34"}, {"id": "accent", "fill": "#5E9B72"}, {"id": "label", "fill": "#FFF7E5"}],
+      "printAreas": [{"id": "pouch-face", "x": 0.3, "y": 0.3, "width": 0.4, "height": 0.42, "safeInset": 0.03}],
+      "partSlots": [{"id": "closure", "accepts": ["heat-seal", "zipper"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.14, "shadow": 0.18}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "pets-food-pouch", "title": "Pet Food Pouch", "parameters": {"width": 0.62, "height": 0.76, "rounding": 0.08}},
+        {"id": "pets-treat-pouch", "title": "Pet Treat Pouch", "parameters": {"width": 0.52, "height": 0.7, "rounding": 0.1}}
+      ]
+    },
+
+    {
+      "family": "shops-services", "template": "storefront",
+      "regions": [{"id": "body", "fill": "#E3DDD0"}, {"id": "trim", "fill": "#343A3F"}, {"id": "accent", "fill": "#4A8F82"}, {"id": "label", "fill": "#FFF8E8"}],
+      "printAreas": [{"id": "fascia", "x": 0.22, "y": 0.14, "width": 0.56, "height": 0.18, "safeInset": 0.02}],
+      "partSlots": [{"id": "front", "accepts": ["flat-fascia", "projecting-sign", "striped-awning"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.13, "shadow": 0.22}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "shops-pet-shop", "title": "Pet Shop Storefront", "parameters": {"width": 0.84, "height": 0.7, "rounding": 0.04}},
+        {"id": "shops-cafe-front", "title": "Cafe Storefront", "parameters": {"width": 0.78, "height": 0.74, "rounding": 0.06}},
+        {"id": "shops-boutique-front", "title": "Boutique Storefront", "parameters": {"width": 0.72, "height": 0.8, "rounding": 0.05}}
+      ]
+    },
+    {
+      "family": "shops-services", "template": "awning",
+      "regions": [{"id": "body", "fill": "#E1D8C8"}, {"id": "trim", "fill": "#383B3D"}, {"id": "accent", "fill": "#C86645"}, {"id": "label", "fill": "#FFF6E6"}],
+      "printAreas": [{"id": "canopy", "x": 0.26, "y": 0.14, "width": 0.48, "height": 0.18, "safeInset": 0.02}],
+      "partSlots": [{"id": "canopy", "accepts": ["flat-canopy", "scalloped-canopy"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.13, "shadow": 0.2}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "shops-market-stall", "title": "Market Stall Awning", "parameters": {"width": 0.86, "height": 0.66, "rounding": 0.04}},
+        {"id": "shops-popup-kiosk", "title": "Pop-up Shop Kiosk", "parameters": {"width": 0.74, "height": 0.74, "rounding": 0.06}}
+      ]
+    },
+    {
+      "family": "shops-services", "template": "sign",
+      "regions": [{"id": "body", "fill": "#E2D7C3"}, {"id": "trim", "fill": "#363A3E"}, {"id": "accent", "fill": "#4B8E9D"}, {"id": "label", "fill": "#FFF7E8"}],
+      "printAreas": [{"id": "sign-face", "x": 0.28, "y": 0.28, "width": 0.44, "height": 0.44, "safeInset": 0.034}],
+      "partSlots": [{"id": "frame", "accepts": ["a-frame", "hanging-frame", "post-frame"]}],
+      "preview": {"kind": "soft-2.5d", "highlight": 0.12, "shadow": 0.18}, "classroomReviewed": true, "brandFree": true,
+      "variants": [
+        {"id": "shops-sandwich-board", "title": "Sandwich-board Sign", "parameters": {"width": 0.56, "height": 0.78, "rounding": 0.06}},
+        {"id": "shops-service-sign", "title": "Service Business Sign", "parameters": {"width": 0.78, "height": 0.56, "rounding": 0.08}}
+      ]
+    }
+  ]
+}

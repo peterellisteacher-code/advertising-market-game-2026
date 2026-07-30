@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 94,
+  "sourcePng": "94-furniture-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Straight square furniture leg", "tags": ["furniture add-on", "furniture leg", "square leg"]},
+    {"row": 1, "column": 2, "label": "Tapered angled furniture leg", "tags": ["angled leg", "furniture add-on", "tapered leg"]},
+    {"row": 1, "column": 3, "label": "Turned spindle furniture leg", "tags": ["furniture add-on", "spindle leg", "turned leg"]},
+    {"row": 1, "column": 4, "label": "Hairpin metal furniture leg", "tags": ["furniture add-on", "hairpin leg", "metal leg"]},
+    {"row": 1, "column": 5, "label": "Rectangular sled-base leg frame", "tags": ["furniture add-on", "leg frame", "sled base"]},
+    {"row": 2, "column": 1, "label": "Square sofa arm module", "tags": ["furniture add-on", "sofa arm", "square arm"]},
+    {"row": 2, "column": 2, "label": "Rounded rolled sofa arm", "tags": ["furniture add-on", "rolled arm", "sofa arm"]},
+    {"row": 2, "column": 3, "label": "Loose square seat cushion", "tags": ["furniture add-on", "seat cushion", "square cushion"]},
+    {"row": 2, "column": 4, "label": "Button-tufted back cushion", "tags": ["back cushion", "furniture add-on", "tufted cushion"]},
+    {"row": 2, "column": 5, "label": "Chaise extension module", "tags": ["chaise module", "furniture add-on", "sofa extension"]},
+    {"row": 3, "column": 1, "label": "Round table pedestal base", "tags": ["furniture add-on", "pedestal base", "table base"]},
+    {"row": 3, "column": 2, "label": "Table trestle base", "tags": ["furniture add-on", "table base", "trestle base"]},
+    {"row": 3, "column": 3, "label": "Crossed X-leg table base", "tags": ["furniture add-on", "table base", "x-leg base"]},
+    {"row": 3, "column": 4, "label": "Removable table extension leaf", "tags": ["extension leaf", "furniture add-on", "table insert"]},
+    {"row": 3, "column": 5, "label": "Shallow under-table drawer", "tags": ["drawer module", "furniture add-on", "under-table drawer"]},
+    {"row": 4, "column": 1, "label": "Plain slatted bed headboard", "tags": ["bed headboard", "furniture add-on", "slatted headboard"]},
+    {"row": 4, "column": 2, "label": "Plain upholstered bed headboard", "tags": ["bed headboard", "furniture add-on", "upholstered headboard"]},
+    {"row": 4, "column": 3, "label": "Under-bed storage drawer", "tags": ["bed storage", "furniture add-on", "storage drawer"]},
+    {"row": 4, "column": 4, "label": "Single wardrobe door panel", "tags": ["door panel", "furniture add-on", "wardrobe door"]},
+    {"row": 4, "column": 5, "label": "Plain cabinet door panel", "tags": ["cabinet door", "door panel", "furniture add-on"]},
+    {"row": 5, "column": 1, "label": "Round drawer knob", "tags": ["drawer knob", "furniture add-on", "round knob"]},
+    {"row": 5, "column": 2, "label": "Long straight drawer handle", "tags": ["drawer handle", "furniture add-on", "straight handle"]},
+    {"row": 5, "column": 3, "label": "Removable shelf board", "tags": ["furniture add-on", "shelf board", "shelving"]},
+    {"row": 5, "column": 4, "label": "Small furniture caster wheel", "tags": ["caster wheel", "furniture add-on", "small wheel"]},
+    {"row": 5, "column": 5, "label": "Horizontal chair footrest bar", "tags": ["chair footrest", "footrest bar", "furniture add-on"]}
+  ]
+}

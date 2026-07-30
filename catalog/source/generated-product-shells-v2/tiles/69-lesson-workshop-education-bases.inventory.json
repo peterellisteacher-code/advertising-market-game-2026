@@ -1,0 +1,31 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetId": "69-lesson-workshop-education-bases",
+  "items": [
+    {"row": 1, "column": 1, "label": "Art-lesson booth with easel", "tags": ["art-lesson", "base", "booth", "easel", "lessons-workshops"]},
+    {"row": 1, "column": 2, "label": "Cooking-lesson booth", "tags": ["base", "booth", "cooking", "kitchen", "lessons-workshops"]},
+    {"row": 1, "column": 3, "label": "Presentation-lesson booth with display stand", "tags": ["base", "booth", "display-stand", "lessons-workshops", "presentation"]},
+    {"row": 1, "column": 4, "label": "Computer-lesson booth with three workstations", "tags": ["base", "booth", "computer-lesson", "lessons-workshops", "three-workstations"]},
+    {"row": 1, "column": 5, "label": "Classroom-lesson booth with teacher desk", "tags": ["base", "booth", "classroom", "lessons-workshops", "teacher-desk"]},
+    {"row": 2, "column": 1, "label": "Pottery-lesson booth", "tags": ["base", "booth", "ceramics", "lessons-workshops", "pottery"]},
+    {"row": 2, "column": 2, "label": "Sewing-workshop booth", "tags": ["base", "booth", "lessons-workshops", "sewing", "workshop"]},
+    {"row": 2, "column": 3, "label": "Paper-craft workshop booth with display bins", "tags": ["base", "booth", "display-bins", "lessons-workshops", "paper-craft"]},
+    {"row": 2, "column": 4, "label": "Jewellery-making workshop booth", "tags": ["base", "booth", "jewellery-making", "lessons-workshops", "workshop"]},
+    {"row": 2, "column": 5, "label": "Dance-studio booth with barre and mirrors", "tags": ["barre", "base", "booth", "dance", "lessons-workshops", "mirrors"]},
+    {"row": 3, "column": 1, "label": "Photography-lesson booth", "tags": ["base", "booth", "camera", "lessons-workshops", "photography"]},
+    {"row": 3, "column": 2, "label": "Robotics-workshop booth", "tags": ["base", "booth", "lessons-workshops", "robotics", "workshop"]},
+    {"row": 3, "column": 3, "label": "Science-laboratory lesson booth", "tags": ["base", "booth", "laboratory", "lessons-workshops", "science"]},
+    {"row": 3, "column": 4, "label": "Lecture booth with teacher desk", "tags": ["base", "booth", "lecture", "lessons-workshops", "teacher-desk"]},
+    {"row": 3, "column": 5, "label": "Drawing and design workshop booth", "tags": ["angled-worktops", "base", "booth", "design", "drawing", "lessons-workshops"]},
+    {"row": 4, "column": 1, "label": "Baking-lesson booth with mixer", "tags": ["baking", "base", "booth", "lessons-workshops", "mixer"]},
+    {"row": 4, "column": 2, "label": "Guitar-lesson booth", "tags": ["base", "booth", "guitar", "lessons-workshops", "music"]},
+    {"row": 4, "column": 3, "label": "Keyboard-lesson booth", "tags": ["base", "booth", "keyboard", "lessons-workshops", "music"]},
+    {"row": 4, "column": 4, "label": "Vocal-lesson booth with microphone", "tags": ["base", "booth", "lessons-workshops", "microphone", "vocal"]},
+    {"row": 4, "column": 5, "label": "Theatre-workshop stage", "tags": ["base", "lessons-workshops", "stage", "theatre", "workshop"]},
+    {"row": 5, "column": 1, "label": "Hand-tool workshop booth", "tags": ["base", "booth", "hand-tools", "lessons-workshops", "workshop"]},
+    {"row": 5, "column": 2, "label": "Computer-lesson booth with two monitors", "tags": ["base", "booth", "computer-lesson", "lessons-workshops", "two-monitors"]},
+    {"row": 5, "column": 3, "label": "Drawing-lesson booth with angled desks", "tags": ["angled-desks", "base", "booth", "drawing", "lessons-workshops"]},
+    {"row": 5, "column": 4, "label": "Textile-workshop booth", "tags": ["base", "booth", "lessons-workshops", "textiles", "workshop"]},
+    {"row": 5, "column": 5, "label": "Storage-equipped workshop booth", "tags": ["base", "booth", "lessons-workshops", "storage", "workshop"]}
+  ]
+}

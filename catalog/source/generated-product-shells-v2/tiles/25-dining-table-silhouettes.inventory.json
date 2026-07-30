@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 25,
+  "sourcePng": "25-dining-table-silhouettes.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Compact rectangular four-leg table", "tags": ["compact table", "dining table", "rectangular table"]},
+    {"row": 1, "column": 2, "label": "Medium rectangular four-leg table", "tags": ["dining table", "medium table", "rectangular table"]},
+    {"row": 1, "column": 3, "label": "Long rectangular dining table", "tags": ["dining table", "long table", "rectangular table"]},
+    {"row": 1, "column": 4, "label": "Extra-long rectangular dining table", "tags": ["dining table", "extra-long table", "rectangular table"]},
+    {"row": 1, "column": 5, "label": "Long narrow dining table", "tags": ["dining table", "long table", "narrow table"]},
+    {"row": 2, "column": 1, "label": "Round pedestal cafe table", "tags": ["cafe table", "pedestal table", "round table"]},
+    {"row": 2, "column": 2, "label": "Round four-leg dining table", "tags": ["dining table", "four-leg table", "round table"]},
+    {"row": 2, "column": 3, "label": "Round drum-pedestal table", "tags": ["drum pedestal", "round table", "table"]},
+    {"row": 2, "column": 4, "label": "Round curved-metal-leg table", "tags": ["curved legs", "metal legs", "round table"]},
+    {"row": 2, "column": 5, "label": "Round twin-pedestal dining table", "tags": ["dining table", "round table", "twin pedestal"]},
+    {"row": 3, "column": 1, "label": "Compact square dining table", "tags": ["compact table", "dining table", "square table"]},
+    {"row": 3, "column": 2, "label": "Medium square dining table", "tags": ["dining table", "medium table", "square table"]},
+    {"row": 3, "column": 3, "label": "Large square dining table", "tags": ["dining table", "large table", "square table"]},
+    {"row": 3, "column": 4, "label": "Square drop-leaf table", "tags": ["drop-leaf table", "square table", "table"]},
+    {"row": 3, "column": 5, "label": "Square extension table with open leaves", "tags": ["extension leaves", "extension table", "square table"]},
+    {"row": 4, "column": 1, "label": "Small oval dining table", "tags": ["dining table", "oval table", "small table"]},
+    {"row": 4, "column": 2, "label": "Medium oval dining table", "tags": ["dining table", "medium table", "oval table"]},
+    {"row": 4, "column": 3, "label": "Long oval dining table", "tags": ["dining table", "long table", "oval table"]},
+    {"row": 4, "column": 4, "label": "Boat-shaped dining table", "tags": ["boat-shaped table", "dining table", "tapered oval"]},
+    {"row": 4, "column": 5, "label": "Live-edge dining table", "tags": ["dining table", "live-edge table", "organic edge"]},
+    {"row": 5, "column": 1, "label": "Rectangular apron-leg dining table", "tags": ["apron frame", "dining table", "rectangular table"]},
+    {"row": 5, "column": 2, "label": "Traditional trestle dining table", "tags": ["dining table", "traditional table", "trestle table"]},
+    {"row": 5, "column": 3, "label": "Crossed-leg dining table", "tags": ["crossed legs", "dining table", "x-frame table"]},
+    {"row": 5, "column": 4, "label": "Starburst-pedestal dining table", "tags": ["dining table", "starburst base", "starburst table"]},
+    {"row": 5, "column": 5, "label": "Ornate twin-pedestal dining table", "tags": ["dining table", "ornate base", "twin pedestal"]}
+  ]
+}

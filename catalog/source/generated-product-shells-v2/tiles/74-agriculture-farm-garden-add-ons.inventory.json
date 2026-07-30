@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 74,
+  "sourcePng": "74-agriculture-farm-garden-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Open tractor canopy", "tags": ["canopy", "open canopy", "tractor component"]},
+    {"row": 1, "column": 2, "label": "Enclosed tractor cab", "tags": ["cab", "enclosed cab", "tractor component"]},
+    {"row": 1, "column": 3, "label": "Low-profile orchard cab", "tags": ["low-profile cab", "orchard cab", "tractor component"]},
+    {"row": 1, "column": 4, "label": "Rollover protection bar", "tags": ["protection bar", "roll bar", "tractor component"]},
+    {"row": 1, "column": 5, "label": "Small front tractor wheels", "tags": ["front wheels", "small wheels", "tractor wheels"]},
+    {"row": 2, "column": 1, "label": "Large rear tractor wheels", "tags": ["large wheels", "rear wheels", "tractor wheels"]},
+    {"row": 2, "column": 2, "label": "Tracked undercarriage module", "tags": ["tracked undercarriage", "tractor component", "undercarriage"]},
+    {"row": 2, "column": 3, "label": "Front loader bucket", "tags": ["bucket", "front loader", "loader attachment"]},
+    {"row": 2, "column": 4, "label": "Grapple bucket", "tags": ["bucket", "grapple", "loader attachment"]},
+    {"row": 2, "column": 5, "label": "Pallet-fork attachment", "tags": ["fork attachment", "loader attachment", "pallet fork"]},
+    {"row": 3, "column": 1, "label": "Hay-bale spear attachment", "tags": ["bale spear", "hay equipment", "loader attachment"]},
+    {"row": 3, "column": 2, "label": "Rear plough attachment", "tags": ["plough", "rear attachment", "tractor component"]},
+    {"row": 3, "column": 3, "label": "Disc-harrow attachment module", "tags": ["disc harrow", "field attachment", "tractor component"]},
+    {"row": 3, "column": 4, "label": "Cultivator-tine attachment module", "tags": ["cultivator", "field attachment", "tine module"]},
+    {"row": 3, "column": 5, "label": "Seed-hopper and planting-row module", "tags": ["planting module", "row planter", "seed hopper"]},
+    {"row": 4, "column": 1, "label": "Folded boom-sprayer attachment", "tags": ["boom sprayer", "folded boom", "sprayer attachment"]},
+    {"row": 4, "column": 2, "label": "Plain sprayer tank", "tags": ["plain tank", "sprayer attachment", "sprayer tank"]},
+    {"row": 4, "column": 3, "label": "Fertiliser hopper", "tags": ["fertiliser hopper", "spreader attachment", "tractor component"]},
+    {"row": 4, "column": 4, "label": "Mower-deck attachment", "tags": ["garden machinery", "mower deck", "tractor attachment"]},
+    {"row": 4, "column": 5, "label": "Dozer blade attachment", "tags": ["blade", "dozer attachment", "tractor component"]},
+    {"row": 5, "column": 1, "label": "Compact trailer bed", "tags": ["compact trailer", "trailer bed", "utility trailer"]},
+    {"row": 5, "column": 2, "label": "Mesh garden-cart bed", "tags": ["garden cart", "mesh bed", "trailer bed"]},
+    {"row": 5, "column": 3, "label": "Tow-hitch assembly", "tags": ["hitch", "tow assembly", "tractor component"]},
+    {"row": 5, "column": 4, "label": "Protective engine grille", "tags": ["engine grille", "protective grille", "tractor component"]},
+    {"row": 5, "column": 5, "label": "Blank machinery side-panel insert", "tags": ["blank panel", "machinery panel", "personalisation surface"]}
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 79,
+  "sourcePng": "79-accessibility-mobility-aid-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Self-propelled manual wheelchair", "tags": ["manual wheelchair", "mobility aid", "self-propelled wheelchair"]},
+    {"row": 1, "column": 2, "label": "Compact transport wheelchair", "tags": ["compact wheelchair", "mobility aid", "transport wheelchair"]},
+    {"row": 1, "column": 3, "label": "Lightweight sports wheelchair", "tags": ["lightweight wheelchair", "mobility aid", "sports wheelchair"]},
+    {"row": 1, "column": 4, "label": "Supportive tilt wheelchair", "tags": ["mobility aid", "supportive wheelchair", "tilt wheelchair"]},
+    {"row": 1, "column": 5, "label": "Power wheelchair", "tags": ["electric wheelchair", "mobility aid", "power wheelchair"]},
+    {"row": 2, "column": 1, "label": "Three-wheel mobility scooter", "tags": ["mobility scooter", "three-wheel scooter", "transport aid"]},
+    {"row": 2, "column": 2, "label": "Four-wheel mobility scooter", "tags": ["four-wheel scooter", "mobility scooter", "transport aid"]},
+    {"row": 2, "column": 3, "label": "Heavy-duty mobility scooter", "tags": ["heavy-duty scooter", "mobility scooter", "transport aid"]},
+    {"row": 2, "column": 4, "label": "Four-wheel rollator with seat", "tags": ["four-wheel rollator", "mobility aid", "seated rollator"]},
+    {"row": 2, "column": 5, "label": "Wheeled walking frame", "tags": ["mobility aid", "walking frame", "wheeled frame"]},
+    {"row": 3, "column": 1, "label": "Folding walking frame", "tags": ["folding frame", "mobility aid", "walking frame"]},
+    {"row": 3, "column": 2, "label": "Knee scooter", "tags": ["knee scooter", "mobility aid", "wheeled support"]},
+    {"row": 3, "column": 3, "label": "Matched forearm crutches", "tags": ["forearm crutches", "mobility aid", "walking support"]},
+    {"row": 3, "column": 4, "label": "Adjustable walking cane", "tags": ["adjustable cane", "mobility aid", "walking cane"]},
+    {"row": 3, "column": 5, "label": "Quad-base walking cane", "tags": ["mobility aid", "quad cane", "walking cane"]},
+    {"row": 4, "column": 1, "label": "Shower chair", "tags": ["accessible bathroom", "bath seat", "shower chair"]},
+    {"row": 4, "column": 2, "label": "Sliding transfer bench", "tags": ["accessible bathroom", "sliding bench", "transfer bench"]},
+    {"row": 4, "column": 3, "label": "Freestanding toilet support frame", "tags": ["accessible bathroom", "support frame", "toilet frame"]},
+    {"row": 4, "column": 4, "label": "Folding portable ramp", "tags": ["access ramp", "folding ramp", "portable ramp"]},
+    {"row": 4, "column": 5, "label": "Low threshold ramp", "tags": ["access ramp", "low ramp", "threshold ramp"]},
+    {"row": 5, "column": 1, "label": "Residential platform lift", "tags": ["access lift", "platform lift", "residential access"]},
+    {"row": 5, "column": 2, "label": "Stairlift chair with short rail", "tags": ["access lift", "stairlift", "stairlift chair"]},
+    {"row": 5, "column": 3, "label": "Adjustable over-chair table", "tags": ["accessible furniture", "adjustable table", "over-chair table"]},
+    {"row": 5, "column": 4, "label": "Long-handled reacher grabber", "tags": ["daily living aid", "reacher grabber", "retrieval tool"]},
+    {"row": 5, "column": 5, "label": "Desktop electronic magnifier", "tags": ["electronic magnifier", "low-vision aid", "screen magnifier"]}
+  ]
+}

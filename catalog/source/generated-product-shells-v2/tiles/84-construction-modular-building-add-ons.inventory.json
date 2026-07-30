@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 84,
+  "sourcePng": "84-construction-modular-building-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "flat roof cap panel", "tags": ["add-on", "cap", "flat", "panel", "roof"]},
+    {"row": 1, "column": 2, "label": "shallow gable roof module", "tags": ["add-on", "gable", "module", "roof", "shallow"]},
+    {"row": 1, "column": 3, "label": "single slope roof module", "tags": ["add-on", "module", "roof", "single-slope"]},
+    {"row": 1, "column": 4, "label": "curved roof module", "tags": ["add-on", "curved", "module", "roof"]},
+    {"row": 1, "column": 5, "label": "roof edge fascia strip", "tags": ["add-on", "edge", "fascia", "roof", "strip"]},
+    {"row": 2, "column": 1, "label": "plain single door", "tags": ["add-on", "door", "plain", "single"]},
+    {"row": 2, "column": 2, "label": "plain double door", "tags": ["add-on", "door", "double", "plain"]},
+    {"row": 2, "column": 3, "label": "sliding glass door frame", "tags": ["add-on", "door", "frame", "glass", "sliding"]},
+    {"row": 2, "column": 4, "label": "square blank window frame", "tags": ["add-on", "blank", "frame", "square", "window"]},
+    {"row": 2, "column": 5, "label": "wide blank window frame", "tags": ["add-on", "blank", "frame", "wide", "window"]},
+    {"row": 3, "column": 1, "label": "plain wall panel insert", "tags": ["add-on", "insert", "panel", "plain", "wall"]},
+    {"row": 3, "column": 2, "label": "vertical rib wall panel insert", "tags": ["add-on", "insert", "panel", "vertical-rib", "wall"]},
+    {"row": 3, "column": 3, "label": "horizontal board wall panel insert", "tags": ["add-on", "horizontal-board", "insert", "panel", "wall"]},
+    {"row": 3, "column": 4, "label": "blank corner panel insert", "tags": ["add-on", "blank", "corner", "insert", "panel"]},
+    {"row": 3, "column": 5, "label": "blank end wall panel", "tags": ["add-on", "blank", "end-wall", "panel"]},
+    {"row": 4, "column": 1, "label": "straight canopy awning", "tags": ["add-on", "awning", "canopy", "straight"]},
+    {"row": 4, "column": 2, "label": "pitched canopy awning", "tags": ["add-on", "awning", "canopy", "pitched"]},
+    {"row": 4, "column": 3, "label": "small porch platform module", "tags": ["add-on", "module", "platform", "porch", "small"]},
+    {"row": 4, "column": 4, "label": "simple two step module", "tags": ["add-on", "module", "simple", "steps", "two-step"]},
+    {"row": 4, "column": 5, "label": "raised foundation plinth module", "tags": ["add-on", "foundation", "module", "plinth", "raised"]},
+    {"row": 5, "column": 1, "label": "blank ventilation grille", "tags": ["add-on", "blank", "grille", "ventilation"]},
+    {"row": 5, "column": 2, "label": "gutter and downpipe module", "tags": ["add-on", "downpipe", "gutter", "module"]},
+    {"row": 5, "column": 3, "label": "compact external utility cabinet", "tags": ["add-on", "cabinet", "compact", "external", "utility"]},
+    {"row": 5, "column": 4, "label": "simple solar panel roof attachment", "tags": ["add-on", "attachment", "roof", "simple", "solar-panel"]},
+    {"row": 5, "column": 5, "label": "blank signboard fascia plate", "tags": ["add-on", "blank", "fascia", "plate", "signboard"]}
+  ]
+}

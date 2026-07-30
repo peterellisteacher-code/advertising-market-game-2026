@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 99,
+  "sourcePng": "99-footwear-apparel-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Low-top lace-up sneaker", "tags": ["footwear base", "lace-up sneaker", "low-top shoe"]},
+    {"row": 1, "column": 2, "label": "High-top lace-up sneaker", "tags": ["footwear base", "high-top shoe", "lace-up sneaker"]},
+    {"row": 1, "column": 3, "label": "Cushioned running shoe", "tags": ["athletic shoe", "footwear base", "running shoe"]},
+    {"row": 1, "column": 4, "label": "Lace-up hiking boot", "tags": ["boot", "footwear base", "hiking boot"]},
+    {"row": 1, "column": 5, "label": "Wide-band slide sandal", "tags": ["footwear base", "sandal", "slide shoe"]},
+    {"row": 2, "column": 1, "label": "Panelled lace-up dress shoe", "tags": ["dress shoe", "footwear base", "lace-up shoe"]},
+    {"row": 2, "column": 2, "label": "Penny loafer", "tags": ["dress shoe", "footwear base", "loafer"]},
+    {"row": 2, "column": 3, "label": "Low block-heel ankle boot", "tags": ["ankle boot", "block heel", "footwear base"]},
+    {"row": 2, "column": 4, "label": "Tall block-heel boot", "tags": ["block heel", "footwear base", "tall boot"]},
+    {"row": 2, "column": 5, "label": "Plain ballet flat", "tags": ["ballet flat", "flat shoe", "footwear base"]},
+    {"row": 3, "column": 1, "label": "Short-sleeve crew-neck T-shirt", "tags": ["apparel base", "short sleeves", "t-shirt"]},
+    {"row": 3, "column": 2, "label": "Long-sleeve crew-neck shirt", "tags": ["apparel base", "long sleeves", "shirt"]},
+    {"row": 3, "column": 3, "label": "Sleeveless tank top", "tags": ["apparel base", "sleeveless top", "tank top"]},
+    {"row": 3, "column": 4, "label": "Crew-neck sweatshirt", "tags": ["apparel base", "long sleeves", "sweatshirt"]},
+    {"row": 3, "column": 5, "label": "Sleeveless V-neck sweater vest", "tags": ["apparel base", "sweater vest", "v-neck"]},
+    {"row": 4, "column": 1, "label": "Tailored knee-length shorts", "tags": ["apparel base", "shorts", "tailored bottoms"]},
+    {"row": 4, "column": 2, "label": "Straight-leg trousers", "tags": ["apparel base", "straight leg", "trousers"]},
+    {"row": 4, "column": 3, "label": "Fitted leggings", "tags": ["apparel base", "fitted bottoms", "leggings"]},
+    {"row": 4, "column": 4, "label": "A-line skirt", "tags": ["a-line", "apparel base", "skirt"]},
+    {"row": 4, "column": 5, "label": "Sleeveless flared dress", "tags": ["apparel base", "dress", "sleeveless"]},
+    {"row": 5, "column": 1, "label": "Pullover hoodie", "tags": ["apparel base", "hoodie", "pullover"]},
+    {"row": 5, "column": 2, "label": "Zip-front bomber jacket", "tags": ["apparel base", "bomber jacket", "zip front"]},
+    {"row": 5, "column": 3, "label": "Open-front tailored coat", "tags": ["apparel base", "open front", "tailored coat"]},
+    {"row": 5, "column": 4, "label": "Curved-brim baseball cap", "tags": ["apparel base", "baseball cap", "curved brim"]},
+    {"row": 5, "column": 5, "label": "Ribbed knit beanie", "tags": ["apparel base", "beanie", "knit hat"]}
+  ]
+}

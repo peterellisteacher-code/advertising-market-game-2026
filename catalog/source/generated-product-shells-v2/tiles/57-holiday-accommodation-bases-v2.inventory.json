@@ -1,0 +1,31 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetId": "57-holiday-accommodation-bases-v2",
+  "items": [
+    {"row": 1, "column": 1, "label": "Multistorey city hotel", "tags": ["base", "city", "holiday-accommodation", "hotel", "multistorey"]},
+    {"row": 1, "column": 2, "label": "Two-storey motel with exterior staircase", "tags": ["base", "exterior-staircase", "holiday-accommodation", "motel", "two-storey"]},
+    {"row": 1, "column": 3, "label": "Raised holiday cottage with front veranda", "tags": ["base", "cottage", "holiday-accommodation", "raised", "veranda"]},
+    {"row": 1, "column": 4, "label": "Log cabin with front porch", "tags": ["base", "cabin", "holiday-accommodation", "log", "porch"]},
+    {"row": 1, "column": 5, "label": "A-frame cabin with front deck", "tags": ["a-frame", "base", "cabin", "deck", "holiday-accommodation"]},
+    {"row": 2, "column": 1, "label": "Single-storey gabled cottage with front portico", "tags": ["base", "cottage", "gabled", "holiday-accommodation", "portico"]},
+    {"row": 2, "column": 2, "label": "Apartment hotel with stacked balconies", "tags": ["apartment-hotel", "balconies", "base", "holiday-accommodation", "multistorey"]},
+    {"row": 2, "column": 3, "label": "Modern apartment hotel with side balconies", "tags": ["apartment-hotel", "balconies", "base", "holiday-accommodation", "modern"]},
+    {"row": 2, "column": 4, "label": "Tiny-house trailer", "tags": ["base", "holiday-accommodation", "tiny-house", "trailer"]},
+    {"row": 2, "column": 5, "label": "Travel caravan", "tags": ["base", "caravan", "holiday-accommodation", "travel"]},
+    {"row": 3, "column": 1, "label": "Over-cab motorhome", "tags": ["base", "holiday-accommodation", "motorhome", "over-cab"]},
+    {"row": 3, "column": 2, "label": "Modern cabin with wraparound deck", "tags": ["base", "cabin", "deck", "holiday-accommodation", "wraparound"]},
+    {"row": 3, "column": 3, "label": "Bell tent on raised platform", "tags": ["base", "bell-tent", "camping", "holiday-accommodation", "platform"]},
+    {"row": 3, "column": 4, "label": "Round yurt", "tags": ["base", "circular", "holiday-accommodation", "yurt"]},
+    {"row": 3, "column": 5, "label": "Safari tent cabin with veranda", "tags": ["base", "holiday-accommodation", "safari-tent", "tent-cabin", "veranda"]},
+    {"row": 4, "column": 1, "label": "Elevated cabin on stilts with stairs", "tags": ["base", "cabin", "elevated", "holiday-accommodation", "stilts"]},
+    {"row": 4, "column": 2, "label": "Chalet with upper balcony", "tags": ["balcony", "base", "chalet", "holiday-accommodation", "upper-storey"]},
+    {"row": 4, "column": 3, "label": "Gabled cottage with stone lower walls", "tags": ["base", "cottage", "gabled", "holiday-accommodation", "stone"]},
+    {"row": 4, "column": 4, "label": "Modern villa with arched porch", "tags": ["arched-porch", "base", "holiday-accommodation", "modern", "villa"]},
+    {"row": 4, "column": 5, "label": "Barrel-shaped camping pod", "tags": ["barrel-shaped", "base", "camping-pod", "holiday-accommodation"]},
+    {"row": 5, "column": 1, "label": "Urban mid-rise hotel", "tags": ["base", "holiday-accommodation", "hotel", "mid-rise", "urban"]},
+    {"row": 5, "column": 2, "label": "Two-storey guesthouse with dormer windows", "tags": ["base", "dormer-windows", "guesthouse", "holiday-accommodation", "two-storey"]},
+    {"row": 5, "column": 3, "label": "Open-sided pavilion lodge", "tags": ["base", "holiday-accommodation", "lodge", "open-sided", "pavilion"]},
+    {"row": 5, "column": 4, "label": "Park-model cabin", "tags": ["base", "cabin", "holiday-accommodation", "park-model"]},
+    {"row": 5, "column": 5, "label": "Railway carriage accommodation", "tags": ["base", "carriage", "holiday-accommodation", "railway", "railway-carriage"]}
+  ]
+}

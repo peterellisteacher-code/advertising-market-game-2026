@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 98,
+  "sourcePng": "98-bag-carry-product-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Pair of short loop handles", "tags": ["bag add-on", "loop handles", "short handles"]},
+    {"row": 1, "column": 2, "label": "Pair of long tote handles", "tags": ["bag add-on", "long handles", "tote handles"]},
+    {"row": 1, "column": 3, "label": "Rigid arched handbag handle", "tags": ["arched handle", "bag add-on", "handbag handle"]},
+    {"row": 1, "column": 4, "label": "Telescoping suitcase handle", "tags": ["bag add-on", "suitcase handle", "telescoping handle"]},
+    {"row": 1, "column": 5, "label": "Compact top grab handle", "tags": ["bag add-on", "grab handle", "top handle"]},
+    {"row": 2, "column": 1, "label": "Adjustable shoulder strap", "tags": ["adjustable strap", "bag add-on", "shoulder strap"]},
+    {"row": 2, "column": 2, "label": "Padded backpack strap pair", "tags": ["backpack straps", "bag add-on", "padded straps"]},
+    {"row": 2, "column": 3, "label": "Plain chain shoulder strap", "tags": ["bag add-on", "chain strap", "shoulder strap"]},
+    {"row": 2, "column": 4, "label": "Wide crossbody webbing strap", "tags": ["bag add-on", "crossbody strap", "webbing strap"]},
+    {"row": 2, "column": 5, "label": "Padded waist-belt strap", "tags": ["bag add-on", "padded belt", "waist strap"]},
+    {"row": 3, "column": 1, "label": "Straight zipper strip", "tags": ["bag add-on", "zipper", "zipper strip"]},
+    {"row": 3, "column": 2, "label": "Drawstring-channel closure", "tags": ["bag add-on", "drawstring", "drawstring closure"]},
+    {"row": 3, "column": 3, "label": "Roll-top buckle strap", "tags": ["bag add-on", "buckle strap", "roll-top closure"]},
+    {"row": 3, "column": 4, "label": "Plain magnetic flap closure", "tags": ["bag add-on", "flap closure", "magnetic closure"]},
+    {"row": 3, "column": 5, "label": "Simple turn-lock clasp", "tags": ["bag add-on", "clasp", "turn lock"]},
+    {"row": 4, "column": 1, "label": "Flat rectangular patch pocket", "tags": ["bag add-on", "flat pocket", "patch pocket"]},
+    {"row": 4, "column": 2, "label": "Expandable gusset pocket", "tags": ["bag add-on", "expandable pocket", "gusset pocket"]},
+    {"row": 4, "column": 3, "label": "Mesh side pocket", "tags": ["bag add-on", "mesh pocket", "side pocket"]},
+    {"row": 4, "column": 4, "label": "Cylindrical bottle-holder pocket", "tags": ["bag add-on", "bottle holder", "cylindrical pocket"]},
+    {"row": 4, "column": 5, "label": "Padded laptop-sleeve panel", "tags": ["bag add-on", "laptop sleeve", "padded panel"]},
+    {"row": 5, "column": 1, "label": "Pair of small suitcase wheels", "tags": ["bag add-on", "suitcase wheels", "wheel pair"]},
+    {"row": 5, "column": 2, "label": "Set of protective corner caps", "tags": ["bag add-on", "corner caps", "protective hardware"]},
+    {"row": 5, "column": 3, "label": "Blank luggage-tag shape", "tags": ["bag add-on", "blank tag", "luggage tag"]},
+    {"row": 5, "column": 4, "label": "Pair of side compression straps", "tags": ["bag add-on", "compression straps", "side straps"]},
+    {"row": 5, "column": 5, "label": "Set of four bag base feet", "tags": ["bag add-on", "base feet", "protective feet"]}
+  ]
+}

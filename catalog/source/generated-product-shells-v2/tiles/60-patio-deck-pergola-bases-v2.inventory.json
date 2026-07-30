@@ -1,0 +1,31 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetId": "60-patio-deck-pergola-bases-v2",
+  "items": [
+    {"row": 1, "column": 1, "label": "Square timber deck", "tags": ["base", "deck", "patio-outdoor-living", "square", "timber"]},
+    {"row": 1, "column": 2, "label": "Rectangular timber deck", "tags": ["base", "deck", "patio-outdoor-living", "rectangular", "timber"]},
+    {"row": 1, "column": 3, "label": "Two-tier rectangular deck", "tags": ["base", "deck", "patio-outdoor-living", "rectangular", "timber", "two-tier"]},
+    {"row": 1, "column": 4, "label": "L-shaped timber deck", "tags": ["base", "deck", "l-shaped", "patio-outdoor-living", "timber"]},
+    {"row": 1, "column": 5, "label": "Octagonal timber deck", "tags": ["base", "deck", "octagonal", "patio-outdoor-living", "timber"]},
+    {"row": 2, "column": 1, "label": "Square tiled patio", "tags": ["base", "patio", "patio-outdoor-living", "square", "tiled"]},
+    {"row": 2, "column": 2, "label": "Rectangular tiled patio", "tags": ["base", "patio", "patio-outdoor-living", "rectangular", "tiled"]},
+    {"row": 2, "column": 3, "label": "L-shaped tiled patio", "tags": ["base", "l-shaped", "patio", "patio-outdoor-living", "tiled"]},
+    {"row": 2, "column": 4, "label": "Sunken square patio base", "tags": ["base", "patio", "patio-outdoor-living", "square", "sunken", "tiled"]},
+    {"row": 2, "column": 5, "label": "Two-tier square platform", "tags": ["base", "patio-outdoor-living", "platform", "square", "two-tier"]},
+    {"row": 3, "column": 1, "label": "Open-frame square pergola base", "tags": ["base", "open-frame", "patio-outdoor-living", "pergola", "square"]},
+    {"row": 3, "column": 2, "label": "Wall-backed pergola with slatted roof", "tags": ["base", "patio-outdoor-living", "pergola", "slatted-roof", "wall-backed"]},
+    {"row": 3, "column": 3, "label": "Square pergola with flat slatted roof", "tags": ["base", "flat-roof", "patio-outdoor-living", "pergola", "slatted-roof", "square"]},
+    {"row": 3, "column": 4, "label": "Square pergola with curved slatted roof", "tags": ["base", "curved-roof", "patio-outdoor-living", "pergola", "slatted-roof", "square"]},
+    {"row": 3, "column": 5, "label": "Corner pergola with slatted roof", "tags": ["base", "corner", "patio-outdoor-living", "pergola", "slatted-roof"]},
+    {"row": 4, "column": 1, "label": "Square gazebo with pyramidal roof", "tags": ["base", "gazebo", "patio-outdoor-living", "pyramidal-roof", "square"]},
+    {"row": 4, "column": 2, "label": "Octagonal gazebo", "tags": ["base", "gazebo", "octagonal", "patio-outdoor-living"]},
+    {"row": 4, "column": 3, "label": "Rectangular gazebo with pyramidal roof", "tags": ["base", "gazebo", "patio-outdoor-living", "pyramidal-roof", "rectangular"]},
+    {"row": 4, "column": 4, "label": "Enclosed screened gazebo", "tags": ["base", "enclosed", "gazebo", "patio-outdoor-living", "screened"]},
+    {"row": 4, "column": 5, "label": "Long veranda pavilion with railings", "tags": ["base", "long", "patio-outdoor-living", "pavilion", "railings", "veranda"]},
+    {"row": 5, "column": 1, "label": "Square conversation-pit base", "tags": ["base", "conversation-pit", "patio-outdoor-living", "square", "sunken"]},
+    {"row": 5, "column": 2, "label": "Raised centre platform on square deck", "tags": ["base", "deck", "patio-outdoor-living", "platform", "raised", "square"]},
+    {"row": 5, "column": 3, "label": "Circular timber platform", "tags": ["base", "circular", "patio-outdoor-living", "platform", "timber"]},
+    {"row": 5, "column": 4, "label": "Rectangular deck frame with central opening", "tags": ["base", "deck-frame", "opening", "patio-outdoor-living", "rectangular"]},
+    {"row": 5, "column": 5, "label": "Narrow timber walkway deck", "tags": ["base", "narrow", "patio-outdoor-living", "timber", "walkway"]}
+  ]
+}

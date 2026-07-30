@@ -1,0 +1,31 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetId": "67-home-trade-mobile-service-bases",
+  "items": [
+    {"row": 1, "column": 1, "label": "Compact service van", "tags": ["base", "compact", "mobile-trade-services", "service-van", "vehicle"]},
+    {"row": 1, "column": 2, "label": "Long ladder-rack service van", "tags": ["base", "ladder-rack", "long", "mobile-trade-services", "service-van"]},
+    {"row": 1, "column": 3, "label": "Utility van with side compartments", "tags": ["base", "mobile-trade-services", "side-compartments", "utility-van", "vehicle"]},
+    {"row": 1, "column": 4, "label": "Enclosed tandem-axle box trailer", "tags": ["base", "box-trailer", "enclosed", "mobile-trade-services", "tandem-axle"]},
+    {"row": 1, "column": 5, "label": "Roof-rack service van", "tags": ["base", "mobile-trade-services", "roof-rack", "service-van"]},
+    {"row": 2, "column": 1, "label": "Ladder-rack work van", "tags": ["base", "ladder-rack", "mobile-trade-services", "work-van"]},
+    {"row": 2, "column": 2, "label": "Refrigerated service van", "tags": ["base", "mobile-trade-services", "refrigerated", "service-van"]},
+    {"row": 2, "column": 3, "label": "Long panel van", "tags": ["base", "long", "mobile-trade-services", "panel-van"]},
+    {"row": 2, "column": 4, "label": "Panel van with dark lower trim", "tags": ["base", "dark-trim", "mobile-trade-services", "panel-van"]},
+    {"row": 2, "column": 5, "label": "Rounded enclosed service trailer", "tags": ["base", "enclosed", "mobile-trade-services", "rounded", "service-trailer"]},
+    {"row": 3, "column": 1, "label": "Box truck", "tags": ["base", "box-truck", "mobile-trade-services", "truck"]},
+    {"row": 3, "column": 2, "label": "Cargo tricycle with box", "tags": ["base", "cargo-box", "cargo-tricycle", "mobile-trade-services", "three-wheeled"]},
+    {"row": 3, "column": 3, "label": "Three-wheeled box delivery vehicle", "tags": ["base", "box-vehicle", "delivery", "mobile-trade-services", "three-wheeled"]},
+    {"row": 3, "column": 4, "label": "Enclosed tandem-axle utility trailer", "tags": ["base", "enclosed", "mobile-trade-services", "tandem-axle", "utility-trailer"]},
+    {"row": 3, "column": 5, "label": "Refuse-collection truck", "tags": ["base", "mobile-trade-services", "refuse-collection", "service-truck"]},
+    {"row": 4, "column": 1, "label": "Wheeled mobile tool cabinet", "tags": ["base", "cabinet", "mobile-trade-services", "tool-storage", "wheeled"]},
+    {"row": 4, "column": 2, "label": "Enclosed single-axle service trailer with side door", "tags": ["base", "enclosed", "mobile-trade-services", "service-trailer", "side-door", "single-axle"]},
+    {"row": 4, "column": 3, "label": "Service van with roof-mounted conduit bundle", "tags": ["base", "conduit", "mobile-trade-services", "roof-mounted", "service-van"]},
+    {"row": 4, "column": 4, "label": "Service van with roof-mounted pipe bundle", "tags": ["base", "mobile-trade-services", "pipes", "roof-mounted", "service-van"]},
+    {"row": 4, "column": 5, "label": "High-roof panel van", "tags": ["base", "high-roof", "mobile-trade-services", "panel-van"]},
+    {"row": 5, "column": 1, "label": "Roof-rack work van", "tags": ["base", "mobile-trade-services", "roof-rack", "work-van"]},
+    {"row": 5, "column": 2, "label": "Enclosed tandem-axle service trailer", "tags": ["base", "enclosed", "mobile-trade-services", "service-trailer", "tandem-axle"]},
+    {"row": 5, "column": 3, "label": "Plain panel van", "tags": ["base", "mobile-trade-services", "panel-van", "plain"]},
+    {"row": 5, "column": 4, "label": "Ladder-rack service van", "tags": ["base", "ladder-rack", "mobile-trade-services", "service-van"]},
+    {"row": 5, "column": 5, "label": "Mobile concession trailer with awnings", "tags": ["awnings", "base", "concession-trailer", "mobile-trade-services", "service-trailer"]}
+  ]
+}

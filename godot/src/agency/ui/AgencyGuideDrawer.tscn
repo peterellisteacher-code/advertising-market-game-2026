@@ -1,0 +1,648 @@
+[gd_scene format=3 uid="uid://y0p8byuynib7"]
+
+[ext_resource type="Script" uid="uid://c5ttupvkmue84" path="res://src/agency/ui/agency_guide_drawer.gd" id="1_3sbd4"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3sbd4"]
+bg_color = Color(0.035, 0.11, 0.17, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0.72, 0.82, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_k5agm"]
+bg_color = Color(0.035, 0.25, 0.31, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.36, 0.91, 0.95, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_j0j8t"]
+bg_color = Color(0.035, 0.063, 0.11, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0.72, 0.82, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4yte5"]
+bg_color = Color(0.035, 0.11, 0.17, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0.72, 0.82, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3nchw"]
+bg_color = Color(0.035, 0.25, 0.31, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.36, 0.91, 0.95, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_h8sdd"]
+bg_color = Color(0.035, 0.11, 0.17, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.965, 0.72, 0.21, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kr5my"]
+bg_color = Color(0.035, 0.11, 0.17, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0.72, 0.82, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wtb38"]
+bg_color = Color(0.035, 0.25, 0.31, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.36, 0.91, 0.95, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3ngad"]
+bg_color = Color(0.035, 0.11, 0.17, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.965, 0.72, 0.21, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_h5k8a"]
+bg_color = Color(0.035, 0.11, 0.17, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0.72, 0.82, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rd7ya"]
+bg_color = Color(0.035, 0.25, 0.31, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.36, 0.91, 0.95, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vskfq"]
+bg_color = Color(0.035, 0.11, 0.17, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.965, 0.72, 0.21, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_02wlv"]
+bg_color = Color(0.047, 0.086, 0.145, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.965, 0.72, 0.21, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vn85y"]
+bg_color = Color(0.035, 0.11, 0.17, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0.72, 0.82, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ma0jh"]
+bg_color = Color(0.035, 0.25, 0.31, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.36, 0.91, 0.95, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_e5w04"]
+bg_color = Color(0.035, 0.11, 0.17, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.965, 0.72, 0.21, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[node name="AgencyGuideDrawer" type="Control" unique_id=1880896600]
+custom_minimum_size = Vector2(1280, 800)
+layout_mode = 3
+anchors_preset = 0
+mouse_filter = 2
+script = ExtResource("1_3sbd4")
+
+[node name="GuideTab" type="Button" parent="." unique_id=436268978]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 48)
+layout_mode = 0
+offset_left = 1114.0
+offset_top = 148.0
+offset_right = 1264.0
+offset_bottom = 196.0
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_3sbd4")
+theme_override_styles/hover = SubResource("StyleBoxFlat_k5agm")
+text = "Open guide"
+
+[node name="GuidePanel" type="PanelContainer" parent="." unique_id=143013174]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(584, 620)
+layout_mode = 0
+offset_left = 680.0
+offset_top = 148.0
+offset_right = 1268.0
+offset_bottom = 1338.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_j0j8t")
+
+[node name="GuideMargin" type="MarginContainer" parent="GuidePanel" unique_id=824247818]
+layout_mode = 2
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 18
+
+[node name="GuideContent" type="VBoxContainer" parent="GuidePanel/GuideMargin" unique_id=89737327]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="GuideHeader" type="HBoxContainer" parent="GuidePanel/GuideMargin/GuideContent" unique_id=1905388444]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="GuideHeading" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideHeader" unique_id=969158333]
+modulate = Color(0.97, 0.98, 1, 1)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 28
+text = "Agency guide"
+
+[node name="CloseGuide" type="Button" parent="GuidePanel/GuideMargin/GuideContent/GuideHeader" unique_id=1960276920]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(92, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_4yte5")
+theme_override_styles/hover = SubResource("StyleBoxFlat_3nchw")
+theme_override_styles/focus = SubResource("StyleBoxFlat_h8sdd")
+text = "Close"
+
+[node name="GuideTabs" type="TabContainer" parent="GuidePanel/GuideMargin/GuideContent" unique_id=877889617]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(540, 460)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+focus_mode = 2
+current_tab = 0
+
+[node name="Goal" type="VBoxContainer" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=792057507]
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+metadata/_tab_index = 0
+
+[node name="GoalHeading" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Goal" unique_id=262741088]
+modulate = Color(0.18, 0.84, 0.9, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "What you are trying to achieve"
+
+[node name="OverallGoal" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Goal" unique_id=1444732874]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "Create and pitch one persuasive advertisement for the audience in the client brief."
+autowrap_mode = 2
+
+[node name="GoalProcess" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Goal" unique_id=206408573]
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "Understand the audience, choose and shape a product, create the advertisement, practise advertising techniques, choose media space, and present the finished campaign."
+autowrap_mode = 2
+
+[node name="Current objective" type="VBoxContainer" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=1968546141]
+visible = false
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+metadata/_tab_index = 1
+
+[node name="ObjectiveHeading" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Current objective" unique_id=2082745320]
+modulate = Color(0.18, 0.84, 0.9, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "What to do now"
+
+[node name="CurrentObjective" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Current objective" unique_id=593280267]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+text = "Meet the client"
+autowrap_mode = 2
+
+[node name="ObjectiveAction" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Current objective" unique_id=1761378584]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "Action: Walk to Client Briefing and press Space or Enter."
+autowrap_mode = 2
+
+[node name="ObjectiveReason" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Current objective" unique_id=1101660471]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "Why: The pair needs a shared account of the audience situation, need and values before making creative decisions."
+autowrap_mode = 2
+
+[node name="ObjectiveOwner" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Current objective" unique_id=1569814070]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "Lead role: The Strategist reads the brief aloud and checks the audience purpose."
+autowrap_mode = 2
+
+[node name="PartnerHoldingAction" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Current objective" unique_id=1463285850]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "Partner action: The Art Director identifies visual ideas that could suit that audience."
+autowrap_mode = 2
+
+[node name="GoToObjective" type="Button" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Current objective" unique_id=526148260]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_kr5my")
+theme_override_styles/hover = SubResource("StyleBoxFlat_wtb38")
+theme_override_styles/focus = SubResource("StyleBoxFlat_3ngad")
+text = "Go to this objective"
+
+[node name="Controls" type="VBoxContainer" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=1869904611]
+visible = false
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+metadata/_tab_index = 2
+
+[node name="ControlsHeading" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Controls" unique_id=86374215]
+modulate = Color(0.18, 0.84, 0.9, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Keyboard and mouse controls"
+
+[node name="Controls" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Controls" unique_id=1725769208]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 15
+text = "Move: WASD or arrow keys.
+Use a nearby station: E, Space or Enter.
+Open this guide: G or F1. Close a panel: Escape.
+Record a role handover: H or a role button.
+Go straight to a task: choose its room from Direct travel."
+autowrap_mode = 2
+
+[node name="Roles" type="VBoxContainer" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=155131397]
+visible = false
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+metadata/_tab_index = 3
+
+[node name="RolesHeading" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Roles" unique_id=409289090]
+modulate = Color(0.18, 0.84, 0.9, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "What each role is responsible for"
+
+[node name="ArtDirectorDefinition" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Roles" unique_id=27676370]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
+text = "Art Director: leads choices about layout, colour, type, images and visual emphasis. This partner explains where the audience will look first, what they will notice next, and how the design supports the message."
+autowrap_mode = 2
+
+[node name="ArtDirectorControl" type="Button" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Roles" unique_id=267507291]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Make Art Director active"
+autowrap_mode = 2
+
+[node name="StrategistDefinition" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Roles" unique_id=1530406804]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
+text = "Strategist: leads choices about the audience, message, evidence, offer and call to action. This partner explains why those choices should persuade the intended audience."
+autowrap_mode = 2
+
+[node name="StrategistControl" type="Button" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Roles" unique_id=1848559865]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Make Strategist active"
+autowrap_mode = 2
+
+[node name="RoleTurnOrder" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Roles" unique_id=41760919]
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 15
+text = "Both partners can use every control and station. The roles divide responsibility; they do not unlock different tools. The named lead makes the first recommendation, and the other partner checks it against the brief. Press H whenever the other partner takes the lead."
+autowrap_mode = 2
+
+[node name="Progress" type="VBoxContainer" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=159230697]
+visible = false
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
+metadata/_tab_index = 4
+
+[node name="ProgressHeading" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Progress" unique_id=1601381172]
+modulate = Color(0.18, 0.84, 0.9, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Campaign progress"
+
+[node name="RequiredProgress" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Progress" unique_id=1788007006]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "Required work: 0 of 7 complete"
+autowrap_mode = 2
+
+[node name="OptionalProgress" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Progress" unique_id=463713000]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "Optional technique practice: 0 complete"
+autowrap_mode = 2
+
+[node name="PitchReadiness" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Progress" unique_id=327338095]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "Pitch readiness: not ready yet"
+autowrap_mode = 2
+
+[node name="ProgressExplanation" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Progress" unique_id=2144681611]
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 15
+text = "Required work prepares the campaign pitch. Optional practice strengthens technique evidence but never blocks completion."
+autowrap_mode = 2
+
+[node name="AudioSettings" type="Button" parent="GuidePanel/GuideMargin/GuideContent" unique_id=895054001]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_h5k8a")
+theme_override_styles/hover = SubResource("StyleBoxFlat_rd7ya")
+theme_override_styles/focus = SubResource("StyleBoxFlat_vskfq")
+text = "Sound settings"
+
+[node name="AudioSettingsPanel" type="VBoxContainer" parent="GuidePanel/GuideMargin/GuideContent" unique_id=2007224120]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="AudioSettingsHeading" type="Label" parent="GuidePanel/GuideMargin/GuideContent/AudioSettingsPanel" unique_id=1211260294]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Sound settings"
+
+[node name="AudioSettingsHelp" type="Label" parent="GuidePanel/GuideMargin/GuideContent/AudioSettingsPanel" unique_id=1500330926]
+layout_mode = 2
+text = "Choose what you want to hear. These settings are saved with this campaign."
+autowrap_mode = 2
+
+[node name="AudioEnabled" type="CheckButton" parent="GuidePanel/GuideMargin/GuideContent/AudioSettingsPanel" unique_id=1169438716]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Sound on"
+
+[node name="MusicEnabled" type="CheckButton" parent="GuidePanel/GuideMargin/GuideContent/AudioSettingsPanel" unique_id=1183351309]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Music and office ambience"
+
+[node name="SfxEnabled" type="CheckButton" parent="GuidePanel/GuideMargin/GuideContent/AudioSettingsPanel" unique_id=1853520514]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Action sounds"
+
+[node name="MasterVolumeLabel" type="Label" parent="GuidePanel/GuideMargin/GuideContent/AudioSettingsPanel" unique_id=330036981]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Overall volume: 70%"
+
+[node name="MasterVolume" type="HSlider" parent="GuidePanel/GuideMargin/GuideContent/AudioSettingsPanel" unique_id=1064433734]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 1.0
+step = 0.05
+value = 0.7
+
+[node name="OrientationLayer" type="Control" parent="." unique_id=1243229796]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="OrientationScrim" type="ColorRect" parent="OrientationLayer" unique_id=1860475229]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.015, 0.035, 0.065, 0.9)
+
+[node name="OrientationPanel" type="PanelContainer" parent="OrientationLayer" unique_id=114488140]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(860, 560)
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -430.0
+offset_top = -280.0
+offset_right = 430.0
+offset_bottom = 280.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_02wlv")
+
+[node name="OrientationMargin" type="MarginContainer" parent="OrientationLayer/OrientationPanel" unique_id=2007986274]
+layout_mode = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 36
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 36
+
+[node name="OrientationContent" type="VBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin" unique_id=87905815]
+custom_minimum_size = Vector2(720, 408)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 18
+
+[node name="OrientationStep" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=1870832680]
+unique_name_in_owner = true
+modulate = Color(0.18, 0.84, 0.9, 1)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "STEP 1 OF 3"
+
+[node name="OrientationTitle" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=777688689]
+unique_name_in_owner = true
+modulate = Color(0.97, 0.98, 1, 1)
+custom_minimum_size = Vector2(720, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 28
+text = "Meet the client"
+
+[node name="OrientationBody" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=747531041]
+unique_name_in_owner = true
+modulate = Color(0.88, 0.92, 0.97, 1)
+custom_minimum_size = Vector2(720, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 18
+text = "Walk to Client Briefing and press Space or Enter. Read the audience situation, need and values before the pair makes any creative decision."
+autowrap_mode = 2
+
+[node name="OrientationSpacer" type="Control" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=1840799099]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="OrientationNext" type="Button" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=516664550]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_vn85y")
+theme_override_styles/hover = SubResource("StyleBoxFlat_ma0jh")
+theme_override_styles/focus = SubResource("StyleBoxFlat_e5w04")
+text = "Continue"

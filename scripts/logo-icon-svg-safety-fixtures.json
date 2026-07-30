@@ -1,0 +1,58 @@
+{
+  "valid": [
+    {
+      "name": "colourable path",
+      "body": "<path fill=\"none\" stroke=\"currentColor\" d=\"M0 0h4\"/>"
+    },
+    {
+      "name": "local reusable definition",
+      "body": "<defs><path id=\"mark\" fill=\"none\" stroke=\"currentColor\" d=\"M0 0h4\"/></defs><use href=\"#mark\" fill=\"none\" stroke=\"currentColor\"/>"
+    }
+  ],
+  "invalid": [
+    {
+      "name": "space after opening bracket",
+      "body": "< path fill=\"none\" stroke=\"currentColor\" d=\"M0 0h4\"/>"
+    },
+    {
+      "name": "space after closing slash",
+      "body": "</ path>"
+    },
+    {
+      "name": "space after empty-element slash",
+      "body": "<path fill=\"none\" stroke=\"currentColor\" d=\"M0 0h4\"/ >"
+    },
+    {
+      "name": "uppercase element name",
+      "body": "<Path fill=\"none\" stroke=\"currentColor\" d=\"M0 0h4\"/>"
+    },
+    {
+      "name": "uppercase attribute name",
+      "body": "<path Fill=\"none\" stroke=\"currentColor\" d=\"M0 0h4\"/>"
+    },
+    {
+      "name": "XML-forbidden null character",
+      "body": "<path fill=\"none\" stroke=\"currentColor\" d=\"M0 0\u0000h4\"/>"
+    },
+    {
+      "name": "greater-than character in an attribute value",
+      "body": "<path fill=\"none\" stroke=\"currentColor\" d=\"M0>0h4\"/>"
+    },
+    {
+      "name": "unquoted external reference",
+      "body": "<use href=//example.invalid/mark.svg#mark fill=\"none\" stroke=\"currentColor\"/>"
+    },
+    {
+      "name": "default fixed fill alongside colourable stroke",
+      "body": "<path stroke=\"currentColor\" d=\"M0 0h4\"/>"
+    },
+    {
+      "name": "currentColor only in unused metadata",
+      "body": "<path id=\"currentColor\" d=\"M0 0h4\"/>"
+    },
+    {
+      "name": "currentColor in a reusable fragment identifier",
+      "body": "<defs><path id=\"currentColor\" fill=\"none\" stroke=\"currentColor\" d=\"M0 0h4\"/></defs><use href=\"#currentColor\" fill=\"none\" stroke=\"currentColor\"/>"
+    }
+  ]
+}

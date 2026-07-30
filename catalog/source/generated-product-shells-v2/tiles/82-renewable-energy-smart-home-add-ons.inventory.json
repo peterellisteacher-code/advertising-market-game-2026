@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 82,
+  "sourcePng": "82-renewable-energy-smart-home-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "blank rectangular solar module face", "tags": ["add-on", "blank", "face", "solar-module"]},
+    {"row": 1, "column": 2, "label": "curved solar roof tile insert", "tags": ["add-on", "curved", "insert", "roof-tile", "solar"]},
+    {"row": 1, "column": 3, "label": "slim battery expansion module", "tags": ["add-on", "battery", "expansion", "module", "slim"]},
+    {"row": 1, "column": 4, "label": "flat inverter front cover", "tags": ["add-on", "cover", "flat", "front", "inverter"]},
+    {"row": 1, "column": 5, "label": "blank electrical cabinet door", "tags": ["add-on", "blank", "cabinet", "door", "electrical"]},
+    {"row": 2, "column": 1, "label": "ev charger socket bezel", "tags": ["add-on", "bezel", "charger", "ev", "socket"]},
+    {"row": 2, "column": 2, "label": "coiled charging cable component", "tags": ["add-on", "cable", "charging", "coiled", "connector"]},
+    {"row": 2, "column": 3, "label": "simple charging pedestal base plinth", "tags": ["add-on", "charging", "pedestal", "plinth", "simple"]},
+    {"row": 2, "column": 4, "label": "wall mounting bracket", "tags": ["add-on", "bracket", "mounting", "wall"]},
+    {"row": 2, "column": 5, "label": "cable management hook", "tags": ["add-on", "cable", "hook", "management"]},
+    {"row": 3, "column": 1, "label": "blank square display bezel", "tags": ["add-on", "bezel", "blank", "display", "square"]},
+    {"row": 3, "column": 2, "label": "blank circular thermostat dial", "tags": ["add-on", "blank", "circular", "dial", "thermostat"]},
+    {"row": 3, "column": 3, "label": "blank horizontal status strip insert", "tags": ["add-on", "blank", "horizontal", "insert", "status-strip"]},
+    {"row": 3, "column": 4, "label": "blank rounded control pad", "tags": ["add-on", "blank", "control-pad", "rounded"]},
+    {"row": 3, "column": 5, "label": "blank meter window insert", "tags": ["add-on", "blank", "insert", "meter", "window"]},
+    {"row": 4, "column": 1, "label": "smart lock lever handle", "tags": ["add-on", "handle", "lever", "smart-lock"]},
+    {"row": 4, "column": 2, "label": "smart lock round knob", "tags": ["add-on", "knob", "round", "smart-lock"]},
+    {"row": 4, "column": 3, "label": "doorbell camera bezel", "tags": ["add-on", "bezel", "camera", "doorbell"]},
+    {"row": 4, "column": 4, "label": "blind cassette end cap", "tags": ["add-on", "blind", "cassette", "end-cap"]},
+    {"row": 4, "column": 5, "label": "blind pull bar component", "tags": ["add-on", "bar", "blind", "pull"]},
+    {"row": 5, "column": 1, "label": "heat pump fan grille", "tags": ["add-on", "fan", "grille", "heat-pump"]},
+    {"row": 5, "column": 2, "label": "vented equipment side panel", "tags": ["add-on", "equipment", "panel", "side", "vented"]},
+    {"row": 5, "column": 3, "label": "three pipe connector manifold", "tags": ["add-on", "connector", "manifold", "pipe", "three-port"]},
+    {"row": 5, "column": 4, "label": "rainwater controller valve module", "tags": ["add-on", "controller", "module", "rainwater", "valve"]},
+    {"row": 5, "column": 5, "label": "Wireless router with antenna pair", "tags": ["add-on", "antenna pair", "router", "wireless"]}
+  ]
+}

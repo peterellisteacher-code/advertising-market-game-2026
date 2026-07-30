@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 28,
+  "sourcePng": "28-cabinets-media-units.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Compact two-door media console", "tags": ["media console", "storage cabinet", "two door"]},
+    {"row": 1, "column": 2, "label": "Asymmetric drawer-and-shelf media console", "tags": ["asymmetric console", "drawers", "media console"]},
+    {"row": 1, "column": 3, "label": "Long four-door media console", "tags": ["four door", "long console", "media console"]},
+    {"row": 1, "column": 4, "label": "Floating two-compartment media cabinet", "tags": ["floating cabinet", "media cabinet", "two compartment"]},
+    {"row": 1, "column": 5, "label": "Open three-tier metal media stand", "tags": ["media stand", "metal frame", "open shelves"]},
+    {"row": 2, "column": 1, "label": "Tall television hutch cabinet", "tags": ["hutch cabinet", "media storage", "television hutch"]},
+    {"row": 2, "column": 2, "label": "Tower-style entertainment centre", "tags": ["entertainment centre", "media storage", "storage towers"]},
+    {"row": 2, "column": 3, "label": "Asymmetric open-shelf media centre", "tags": ["asymmetric shelving", "media centre", "open shelves"]},
+    {"row": 2, "column": 4, "label": "Sliding-door media cabinet", "tags": ["media cabinet", "sliding doors", "storage cabinet"]},
+    {"row": 2, "column": 5, "label": "Corner media cabinet", "tags": ["corner cabinet", "media cabinet", "storage cabinet"]},
+    {"row": 3, "column": 1, "label": "Compact two-door sideboard", "tags": ["sideboard", "storage cabinet", "two door"]},
+    {"row": 3, "column": 2, "label": "Three-door sideboard", "tags": ["sideboard", "storage cabinet", "three door"]},
+    {"row": 3, "column": 3, "label": "Drawer-top three-door sideboard", "tags": ["drawers", "sideboard", "three door"]},
+    {"row": 3, "column": 4, "label": "Long four-door sideboard", "tags": ["four door", "long cabinet", "sideboard"]},
+    {"row": 3, "column": 5, "label": "Mid-century sideboard with central drawers", "tags": ["central drawers", "mid-century", "sideboard"]},
+    {"row": 4, "column": 1, "label": "Single-door tall cabinet", "tags": ["single door", "storage cabinet", "tall cabinet"]},
+    {"row": 4, "column": 2, "label": "Two-door wardrobe cabinet", "tags": ["storage cabinet", "two door", "wardrobe"]},
+    {"row": 4, "column": 3, "label": "Glass-front display cabinet", "tags": ["display cabinet", "glass doors", "storage cabinet"]},
+    {"row": 4, "column": 4, "label": "Tall open bookcase", "tags": ["bookcase", "open shelves", "tall shelving"]},
+    {"row": 4, "column": 5, "label": "Drawer-and-door tall storage cabinet", "tags": ["drawers", "storage cabinet", "tall cabinet"]},
+    {"row": 5, "column": 1, "label": "Nine-cube storage organiser", "tags": ["cube organiser", "storage shelf", "storage system"]},
+    {"row": 5, "column": 2, "label": "Stepped geometric display shelf", "tags": ["display shelf", "geometric shelving", "stepped shelf"]},
+    {"row": 5, "column": 3, "label": "Six-drawer low chest", "tags": ["drawer chest", "low chest", "six drawer"]},
+    {"row": 5, "column": 4, "label": "Five-drawer tall chest", "tags": ["drawer chest", "five drawer", "tall chest"]},
+    {"row": 5, "column": 5, "label": "Wall storage system with open centre", "tags": ["cabinet system", "open centre", "wall storage"]}
+  ]
+}

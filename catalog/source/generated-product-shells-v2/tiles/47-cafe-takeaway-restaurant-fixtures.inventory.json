@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 47,
+  "sourcePng": "47-cafe-takeaway-restaurant-fixtures.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Lidded takeaway drink cup", "tags": ["drink cup", "lidded", "takeaway packaging"]},
+    {"row": 1, "column": 2, "label": "Dome-lid takeaway drink cup", "tags": ["dome lid", "drink cup", "takeaway packaging"]},
+    {"row": 1, "column": 3, "label": "Round takeaway food tub", "tags": ["food tub", "round", "takeaway packaging"]},
+    {"row": 1, "column": 4, "label": "Hinged clamshell food box", "tags": ["clamshell box", "food packaging", "hinged"]},
+    {"row": 1, "column": 5, "label": "Open folded takeaway carton", "tags": ["folded carton", "open top", "takeaway packaging"]},
+    {"row": 2, "column": 1, "label": "Flat takeaway food box", "tags": ["flat box", "food packaging", "takeaway packaging"]},
+    {"row": 2, "column": 2, "label": "Gusseted paper food bag", "tags": ["food bag", "gusseted", "paper packaging"]},
+    {"row": 2, "column": 3, "label": "Wide round takeaway tub", "tags": ["food tub", "round", "wide"]},
+    {"row": 2, "column": 4, "label": "Rectangular lidded meal tray", "tags": ["lidded tray", "meal tray", "rectangular"]},
+    {"row": 2, "column": 5, "label": "Four-cup carrier tray", "tags": ["cup carrier", "four cup", "takeaway packaging"]},
+    {"row": 3, "column": 1, "label": "Straight-sided mug", "tags": ["ceramic drinkware", "mug", "straight sided"]},
+    {"row": 3, "column": 2, "label": "Cup and saucer", "tags": ["cup", "drinkware", "saucer"]},
+    {"row": 3, "column": 3, "label": "Handleless tumbler cup", "tags": ["drinkware", "handleless", "tumbler cup"]},
+    {"row": 3, "column": 4, "label": "Round dinner plate", "tags": ["dinner plate", "round", "tableware"]},
+    {"row": 3, "column": 5, "label": "Deep round bowl", "tags": ["bowl", "deep", "tableware"]},
+    {"row": 4, "column": 1, "label": "Rectangular serving tray", "tags": ["rectangular", "serving tray", "tableware"]},
+    {"row": 4, "column": 2, "label": "Freestanding tabletop sign", "tags": ["freestanding", "sign holder", "tabletop sign"]},
+    {"row": 4, "column": 3, "label": "Box napkin dispenser", "tags": ["box dispenser", "napkin dispenser", "restaurant fixture"]},
+    {"row": 4, "column": 4, "label": "Squeeze condiment bottle", "tags": ["condiment bottle", "restaurant fixture", "squeeze bottle"]},
+    {"row": 4, "column": 5, "label": "Compartment cutlery caddy", "tags": ["compartment caddy", "cutlery storage", "restaurant fixture"]},
+    {"row": 5, "column": 1, "label": "Curved glass display case", "tags": ["display case", "food display", "restaurant fixture"]},
+    {"row": 5, "column": 2, "label": "Two-group espresso machine", "tags": ["coffee equipment", "espresso machine", "two group"]},
+    {"row": 5, "column": 3, "label": "Lidded beverage urn with tap", "tags": ["beverage urn", "lidded", "tap"]},
+    {"row": 5, "column": 4, "label": "Bentwood cafe chair", "tags": ["bentwood chair", "cafe furniture", "chair"]},
+    {"row": 5, "column": 5, "label": "Round pedestal cafe table", "tags": ["cafe furniture", "pedestal table", "round table"]}
+  ]
+}

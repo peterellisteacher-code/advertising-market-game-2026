@@ -1,0 +1,31 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetId": "58-house-property-bases-v2",
+  "items": [
+    {"row": 1, "column": 1, "label": "Single-storey rectangular building mass", "tags": ["base", "building-mass", "house-property", "rectangular", "single-storey"]},
+    {"row": 1, "column": 2, "label": "Long single-storey rectangular building mass", "tags": ["base", "building-mass", "house-property", "long", "single-storey"]},
+    {"row": 1, "column": 3, "label": "L-shaped single-storey building mass", "tags": ["base", "building-mass", "house-property", "l-shaped", "single-storey"]},
+    {"row": 1, "column": 4, "label": "Stepped single-storey building mass", "tags": ["base", "building-mass", "house-property", "single-storey", "stepped"]},
+    {"row": 1, "column": 5, "label": "Raised rectangular building mass on piers", "tags": ["base", "building-mass", "house-property", "piers", "raised", "rectangular"]},
+    {"row": 2, "column": 1, "label": "Narrow two-storey building mass", "tags": ["base", "building-mass", "house-property", "narrow", "two-storey"]},
+    {"row": 2, "column": 2, "label": "Long two-storey rectangular building mass", "tags": ["base", "building-mass", "house-property", "long", "two-storey"]},
+    {"row": 2, "column": 3, "label": "Offset two-storey building mass", "tags": ["base", "building-mass", "house-property", "offset", "two-storey"]},
+    {"row": 2, "column": 4, "label": "Four-block two-storey building mass", "tags": ["base", "building-mass", "four-block", "house-property", "two-storey"]},
+    {"row": 2, "column": 5, "label": "Six-block two-storey building mass", "tags": ["base", "building-mass", "house-property", "six-block", "two-storey"]},
+    {"row": 3, "column": 1, "label": "Narrow three-storey building mass", "tags": ["base", "building-mass", "house-property", "narrow", "three-storey"]},
+    {"row": 3, "column": 2, "label": "Wide three-storey building mass", "tags": ["base", "building-mass", "house-property", "three-storey", "wide"]},
+    {"row": 3, "column": 3, "label": "Stepped three-storey tower mass", "tags": ["base", "building-mass", "house-property", "stepped", "three-storey", "tower"]},
+    {"row": 3, "column": 4, "label": "Faceted two-storey corner mass", "tags": ["base", "building-mass", "corner", "faceted", "house-property", "two-storey"]},
+    {"row": 3, "column": 5, "label": "L-shaped building mass with tower", "tags": ["base", "building-mass", "house-property", "l-shaped", "tower"]},
+    {"row": 4, "column": 1, "label": "Two-storey building mass with open ground-level bay", "tags": ["base", "building-mass", "house-property", "open-bay", "two-storey"]},
+    {"row": 4, "column": 2, "label": "Tiered two-storey building mass", "tags": ["base", "building-mass", "house-property", "tiered", "two-storey"]},
+    {"row": 4, "column": 3, "label": "Raised gabled building on piers", "tags": ["base", "building-mass", "gabled", "house-property", "piers", "raised"]},
+    {"row": 4, "column": 4, "label": "Gambrel-roof building mass", "tags": ["base", "building-mass", "gambrel-roof", "house-property"]},
+    {"row": 4, "column": 5, "label": "A-frame building shell", "tags": ["a-frame", "base", "building-shell", "house-property"]},
+    {"row": 5, "column": 1, "label": "U-shaped courtyard building mass", "tags": ["base", "building-mass", "courtyard", "house-property", "u-shaped"]},
+    {"row": 5, "column": 2, "label": "Gabled house mass", "tags": ["base", "gabled", "house-mass", "house-property"]},
+    {"row": 5, "column": 3, "label": "Stepped facade mass with central tower", "tags": ["base", "building-mass", "central-tower", "facade", "house-property", "stepped"]},
+    {"row": 5, "column": 4, "label": "Symmetrical building mass with central hipped tower", "tags": ["base", "building-mass", "central-tower", "hipped-roof", "house-property", "symmetrical"]},
+    {"row": 5, "column": 5, "label": "Wide pavilion mass with central hipped tower", "tags": ["base", "building-mass", "central-tower", "hipped-roof", "house-property", "pavilion", "wide"]}
+  ]
+}

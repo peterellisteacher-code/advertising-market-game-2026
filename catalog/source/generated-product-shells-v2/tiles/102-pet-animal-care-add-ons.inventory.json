@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 102,
+  "sourcePng": "102-pet-animal-care-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Perforated feeding mat", "tags": ["feeding mat", "pet add-on", "protective mat"]},
+    {"row": 1, "column": 2, "label": "Double-section feeding dish", "tags": ["divided dish", "feeding dish", "pet add-on"]},
+    {"row": 1, "column": 3, "label": "Hanging water-dispenser nozzle", "tags": ["pet add-on", "water dispenser", "water nozzle"]},
+    {"row": 1, "column": 4, "label": "Elevated bowl-stand frame", "tags": ["bowl stand", "elevated frame", "pet add-on"]},
+    {"row": 1, "column": 5, "label": "Wall-mounted storage bin", "tags": ["pet add-on", "storage bin", "wall mounted"]},
+    {"row": 2, "column": 1, "label": "Padded pet-bed cushion", "tags": ["bed cushion", "padded insert", "pet add-on"]},
+    {"row": 2, "column": 2, "label": "Arched pet-bed canopy", "tags": ["bed canopy", "pet add-on", "tent canopy"]},
+    {"row": 2, "column": 3, "label": "Wire pet gate panel", "tags": ["gate panel", "pet add-on", "wire gate"]},
+    {"row": 2, "column": 4, "label": "Ventilated crate door panel", "tags": ["crate door", "pet add-on", "ventilated panel"]},
+    {"row": 2, "column": 5, "label": "Latched carrier door panel", "tags": ["carrier door", "latched panel", "pet add-on"]},
+    {"row": 3, "column": 1, "label": "Domed litter-box hood", "tags": ["litter hood", "pet add-on", "privacy cover"]},
+    {"row": 3, "column": 2, "label": "Corrugated scratch pad", "tags": ["cat scratcher", "pet add-on", "scratch pad"]},
+    {"row": 3, "column": 3, "label": "Adjustable grooming restraint arm", "tags": ["grooming arm", "pet add-on", "restraint arm"]},
+    {"row": 3, "column": 4, "label": "Handheld pet shower sprayer", "tags": ["grooming sprayer", "pet add-on", "shower head"]},
+    {"row": 3, "column": 5, "label": "Wall-mounted waste-bag dispenser", "tags": ["bag dispenser", "pet add-on", "waste bags"]},
+    {"row": 4, "column": 1, "label": "Circular scratching platform", "tags": ["cat platform", "pet add-on", "scratching platform"]},
+    {"row": 4, "column": 2, "label": "Fabric play tunnel", "tags": ["fabric tunnel", "pet add-on", "play tunnel"]},
+    {"row": 4, "column": 3, "label": "Wall-mounted perch", "tags": ["pet add-on", "pet perch", "wall mounted"]},
+    {"row": 4, "column": 4, "label": "Freestanding exercise wheel", "tags": ["exercise wheel", "pet add-on", "small animal"]},
+    {"row": 4, "column": 5, "label": "Folding stroller canopy", "tags": ["folding canopy", "pet add-on", "stroller canopy"]},
+    {"row": 5, "column": 1, "label": "Buckle pet collar", "tags": ["buckle collar", "pet add-on", "pet collar"]},
+    {"row": 5, "column": 2, "label": "Padded pet harness", "tags": ["padded harness", "pet add-on", "pet harness"]},
+    {"row": 5, "column": 3, "label": "Loop-handle pet leash", "tags": ["loop handle", "pet add-on", "pet leash"]},
+    {"row": 5, "column": 4, "label": "Blank bone-shaped ID tag", "tags": ["bone tag", "identification tag", "pet add-on"]},
+    {"row": 5, "column": 5, "label": "Double-clip pet lead", "tags": ["double clip", "pet add-on", "pet lead"]}
+  ]
+}

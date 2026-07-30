@@ -1,0 +1,31 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetId": "59-house-property-add-ons-v2",
+  "items": [
+    {"row": 1, "column": 1, "label": "Front-gable roof module", "tags": ["add-on", "front-gable", "house-property", "roof-module"]},
+    {"row": 1, "column": 2, "label": "Hipped shingle roof module", "tags": ["add-on", "hipped-roof", "house-property", "roof-module", "shingle"]},
+    {"row": 1, "column": 3, "label": "Mono-pitch roof module", "tags": ["add-on", "house-property", "mono-pitch", "roof-module"]},
+    {"row": 1, "column": 4, "label": "Flat parapet roof module", "tags": ["add-on", "flat-roof", "house-property", "parapet", "roof-module"]},
+    {"row": 1, "column": 5, "label": "Gambrel roof module", "tags": ["add-on", "gambrel-roof", "house-property", "roof-module"]},
+    {"row": 2, "column": 1, "label": "Single exterior door with landing", "tags": ["add-on", "exterior-door", "house-property", "landing", "single-door"]},
+    {"row": 2, "column": 2, "label": "Double exterior doors with landing", "tags": ["add-on", "double-door", "exterior-door", "house-property", "landing"]},
+    {"row": 2, "column": 3, "label": "Sliding glass door with landing", "tags": ["add-on", "glass-door", "house-property", "landing", "sliding-door"]},
+    {"row": 2, "column": 4, "label": "Arched exterior door with landing", "tags": ["add-on", "arched-door", "exterior-door", "house-property", "landing"]},
+    {"row": 2, "column": 5, "label": "Sectional garage door", "tags": ["add-on", "garage-door", "house-property", "sectional"]},
+    {"row": 3, "column": 1, "label": "Square picture window", "tags": ["add-on", "house-property", "picture-window", "square", "window"]},
+    {"row": 3, "column": 2, "label": "Double-hung sash window", "tags": ["add-on", "double-hung", "house-property", "sash-window", "window"]},
+    {"row": 3, "column": 3, "label": "Bay window", "tags": ["add-on", "bay-window", "house-property", "window"]},
+    {"row": 3, "column": 4, "label": "Wide rectangular picture window", "tags": ["add-on", "house-property", "picture-window", "rectangular", "wide"]},
+    {"row": 3, "column": 5, "label": "Round divided window", "tags": ["add-on", "divided-pane", "house-property", "round-window", "window"]},
+    {"row": 4, "column": 1, "label": "Small balcony with railing", "tags": ["add-on", "balcony", "house-property", "railing", "small"]},
+    {"row": 4, "column": 2, "label": "Columned entrance portico", "tags": ["add-on", "columned", "entrance", "house-property", "portico"]},
+    {"row": 4, "column": 3, "label": "Three-bay veranda", "tags": ["add-on", "house-property", "three-bay", "veranda"]},
+    {"row": 4, "column": 4, "label": "Exterior staircase with railings", "tags": ["add-on", "exterior-staircase", "house-property", "railings"]},
+    {"row": 4, "column": 5, "label": "Straight balustrade section", "tags": ["add-on", "balustrade", "house-property", "railing", "straight"]},
+    {"row": 5, "column": 1, "label": "Straight fabric awning", "tags": ["add-on", "awning", "fabric", "house-property", "straight"]},
+    {"row": 5, "column": 2, "label": "Curved canopy awning", "tags": ["add-on", "awning", "canopy", "curved", "house-property"]},
+    {"row": 5, "column": 3, "label": "Rooftop solar-panel array", "tags": ["add-on", "house-property", "rooftop", "solar-panels"]},
+    {"row": 5, "column": 4, "label": "Brick chimney", "tags": ["add-on", "brick", "chimney", "house-property"]},
+    {"row": 5, "column": 5, "label": "Gutter and downpipe section", "tags": ["add-on", "downpipe", "gutter", "house-property", "rainwater"]}
+  ]
+}

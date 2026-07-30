@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 53,
+  "sourcePng": "53-house-exterior-base-silhouettes.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Single-storey house with garage", "tags": ["garage", "house base", "single storey"]},
+    {"row": 1, "column": 2, "label": "Wide hip-roof bungalow", "tags": ["bungalow", "hip roof", "house base"]},
+    {"row": 1, "column": 3, "label": "Steep-gable cottage", "tags": ["cottage", "house base", "steep gable"]},
+    {"row": 1, "column": 4, "label": "Long single-storey house", "tags": ["house base", "long frontage", "single storey"]},
+    {"row": 1, "column": 5, "label": "Two-storey house with garage", "tags": ["garage", "house base", "two storey"]},
+    {"row": 2, "column": 1, "label": "Narrow three-storey terrace house", "tags": ["house base", "narrow", "terrace house"]},
+    {"row": 2, "column": 2, "label": "Row of four terrace houses", "tags": ["four homes", "house base", "terrace row"]},
+    {"row": 2, "column": 3, "label": "Square semi-detached house pair", "tags": ["house base", "semi detached", "square frontage"]},
+    {"row": 2, "column": 4, "label": "Mirrored gable duplex", "tags": ["duplex", "house base", "mirrored gables"]},
+    {"row": 2, "column": 5, "label": "Three-storey apartment block", "tags": ["apartment block", "house base", "three storey"]},
+    {"row": 3, "column": 1, "label": "Stepped modern house", "tags": ["house base", "modern", "stepped form"]},
+    {"row": 3, "column": 2, "label": "Sloping-roof modern house", "tags": ["house base", "modern", "sloping roof"]},
+    {"row": 3, "column": 3, "label": "A-frame house", "tags": ["a frame", "house base", "triangular"]},
+    {"row": 3, "column": 4, "label": "Tiny-house trailer", "tags": ["house base", "tiny house", "trailer"]},
+    {"row": 3, "column": 5, "label": "Split-level house", "tags": ["house base", "offset floors", "split level"]},
+    {"row": 4, "column": 1, "label": "Farmhouse with wraparound veranda", "tags": ["farmhouse", "house base", "wraparound veranda"]},
+    {"row": 4, "column": 2, "label": "Barn-shaped house", "tags": ["barn shaped", "house base", "tall doorway"]},
+    {"row": 4, "column": 3, "label": "Raised house over double garage", "tags": ["double garage", "house base", "raised"]},
+    {"row": 4, "column": 4, "label": "Raised house with front veranda", "tags": ["front veranda", "house base", "raised"]},
+    {"row": 4, "column": 5, "label": "High-set house on stilts", "tags": ["high set", "house base", "stilts"]},
+    {"row": 5, "column": 1, "label": "Ornate two-storey Victorian house", "tags": ["house base", "ornate", "victorian"]},
+    {"row": 5, "column": 2, "label": "Two-storey arched-entry house", "tags": ["arched entry", "house base", "two storey"]},
+    {"row": 5, "column": 3, "label": "Symmetrical art-deco house", "tags": ["art deco", "house base", "symmetrical"]},
+    {"row": 5, "column": 4, "label": "Mediterranean tower house", "tags": ["house base", "mediterranean", "tower"]},
+    {"row": 5, "column": 5, "label": "Balconied alpine chalet", "tags": ["alpine", "balcony", "house base"]}
+  ]
+}

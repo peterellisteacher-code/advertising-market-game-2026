@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 90,
+  "sourcePng": "90-beverage-container-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Crown bottle cap", "tags": ["beverage add-on", "bottle cap", "crown cap"]},
+    {"row": 1, "column": 2, "label": "Ridged screw cap", "tags": ["beverage add-on", "bottle cap", "screw cap"]},
+    {"row": 1, "column": 3, "label": "Flip-top sports cap", "tags": ["beverage add-on", "flip top", "sports cap"]},
+    {"row": 1, "column": 4, "label": "Pull-up nozzle cap", "tags": ["beverage add-on", "nozzle cap", "sports bottle"]},
+    {"row": 1, "column": 5, "label": "Carry-handle screw lid", "tags": ["beverage add-on", "carry handle", "screw lid"]},
+    {"row": 2, "column": 1, "label": "Tall curved wrap label", "tags": ["beverage add-on", "blank label", "wrap label"]},
+    {"row": 2, "column": 2, "label": "Short waist-band label", "tags": ["beverage add-on", "blank label", "waist band"]},
+    {"row": 2, "column": 3, "label": "Oval front badge", "tags": ["beverage add-on", "blank badge", "oval label"]},
+    {"row": 2, "column": 4, "label": "Shield-shaped front badge", "tags": ["beverage add-on", "blank badge", "shield label"]},
+    {"row": 2, "column": 5, "label": "Rounded-rectangle front label", "tags": ["beverage add-on", "blank label", "rounded rectangle"]},
+    {"row": 3, "column": 1, "label": "Detachable side handle", "tags": ["beverage add-on", "bottle handle", "side handle"]},
+    {"row": 3, "column": 2, "label": "Bottle finger-loop handle", "tags": ["beverage add-on", "bottle handle", "finger loop"]},
+    {"row": 3, "column": 3, "label": "Soft bottle grip sleeve", "tags": ["beverage add-on", "grip sleeve", "soft grip"]},
+    {"row": 3, "column": 4, "label": "Ribbed can grip sleeve", "tags": ["beverage add-on", "can sleeve", "ribbed grip"]},
+    {"row": 3, "column": 5, "label": "Protective bottom bumper ring", "tags": ["beverage add-on", "bottom bumper", "protective ring"]},
+    {"row": 4, "column": 1, "label": "Flat takeaway-cup lid", "tags": ["beverage add-on", "cup lid", "takeaway cup"]},
+    {"row": 4, "column": 2, "label": "Dome smoothie-cup lid", "tags": ["beverage add-on", "dome lid", "smoothie cup"]},
+    {"row": 4, "column": 3, "label": "Flip-tab sipper lid", "tags": ["beverage add-on", "flip tab", "sipper lid"]},
+    {"row": 4, "column": 4, "label": "Reusable straw lid", "tags": ["beverage add-on", "straw", "straw lid"]},
+    {"row": 4, "column": 5, "label": "Carton pour-spout fitting", "tags": ["beverage add-on", "carton spout", "pour spout"]},
+    {"row": 5, "column": 1, "label": "Cylindrical bottle neck collar", "tags": ["beverage add-on", "bottle collar", "neck collar"]},
+    {"row": 5, "column": 2, "label": "Tapered neck foil wrap", "tags": ["beverage add-on", "foil wrap", "neck wrap"]},
+    {"row": 5, "column": 3, "label": "Wire swing-top closure", "tags": ["beverage add-on", "swing top", "wire closure"]},
+    {"row": 5, "column": 4, "label": "Ribbed cup heat sleeve", "tags": ["beverage add-on", "cup sleeve", "heat sleeve"]},
+    {"row": 5, "column": 5, "label": "Mini-keg tap fitting", "tags": ["beverage add-on", "keg tap", "tap fitting"]}
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "name": "advertising-market-creator-foundation",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.7.0",
+  "engines": { "node": ">=22.12.0" },
+  "scripts": {
+    "dev": "node scripts/build-netlify-functions.mjs && npx netlify dev",
+    "test": "node scripts/build-netlify-functions.mjs && vitest run --no-cache --configLoader runner --maxWorkers=1",
+    "test:unit": "node scripts/build-netlify-functions.mjs && vitest run --no-cache --configLoader runner --maxWorkers=1",
+    "test:build-web": "node --test scripts/build-logo-icons.test.mjs scripts/build-netlify-functions.test.mjs scripts/build-web.test.mjs scripts/deploy-netlify-artifact.test.mjs scripts/dev-preview.test.mjs scripts/export-godot-web.test.mjs scripts/github-workflow.test.mjs scripts/godot-bridge-contract.test.mjs scripts/onboarding-source.test.mjs scripts/production-catalogue-safety.test.mjs scripts/public-release-contract.test.mjs scripts/public-repository-sync.test.mjs scripts/student-copy-corpus.test.mjs scripts/student-copy-professional-contract.test.mjs scripts/student-copy-scrub-sections.test.mjs scripts/student-copy-source-coverage.test.mjs",
+    "typecheck": "tsc --noEmit",
+    "build:functions": "node scripts/build-netlify-functions.mjs",
+    "build:logo-icons": "node scripts/build-logo-icons.mjs",
+    "build:godot": "node scripts/export-godot-web.mjs",
+    "build:studio": "vite build --configLoader runner",
+    "build:web": "node scripts/build-netlify-functions.mjs && node scripts/export-godot-web.mjs && vite build --configLoader runner && node scripts/build-logo-icons.mjs && node scripts/build-web.mjs --require-offline-core --minimum-offline-records=2000 --require-product-shells --require-product-builder --require-logo-icons && node scripts/verify-web-export.mjs build/web",
+    "verify:export": "node scripts/verify-web-export.mjs build/web",
+    "verify:repo-sync": "node scripts/verify-public-repository-sync.mjs",
+    "deploy:draft": "node scripts/deploy-netlify-artifact.mjs --draft",
+    "deploy:production": "node scripts/deploy-netlify-artifact.mjs --prod",
+    "build": "node scripts/build-netlify-functions.mjs && tsc --noEmit && vitest run --no-cache --configLoader runner --maxWorkers=1 && node --test scripts/build-logo-icons.test.mjs scripts/build-netlify-functions.test.mjs scripts/build-web.test.mjs scripts/deploy-netlify-artifact.test.mjs scripts/dev-preview.test.mjs scripts/export-godot-web.test.mjs scripts/github-workflow.test.mjs scripts/godot-bridge-contract.test.mjs scripts/onboarding-source.test.mjs scripts/production-catalogue-safety.test.mjs scripts/public-release-contract.test.mjs scripts/public-repository-sync.test.mjs scripts/student-copy-corpus.test.mjs scripts/student-copy-professional-contract.test.mjs scripts/student-copy-scrub-sections.test.mjs scripts/student-copy-source-coverage.test.mjs && node scripts/build-logo-icons.mjs && node scripts/export-godot-web.mjs && vite build --configLoader runner && node scripts/build-web.mjs --require-offline-core --minimum-offline-records=2000 --require-product-shells --require-product-builder --require-logo-icons && node scripts/verify-web-export.mjs build/web"
+  },
+  "dependencies": {
+    "@netlify/blobs": "10.7.9",
+    "fabric": "7.4.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "26.1.1",
+    "@netlify/functions": "5.3.0",
+    "@testing-library/dom": "10.4.1",
+    "fake-indexeddb": "6.2.5",
+    "jsdom": "29.1.1",
+    "netlify": "26.2.0",
+    "typescript": "7.0.2",
+    "vite": "8.1.4",
+    "vitest": "4.1.10"
+  }
+}

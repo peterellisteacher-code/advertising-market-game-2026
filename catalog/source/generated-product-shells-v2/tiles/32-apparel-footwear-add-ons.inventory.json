@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 32,
+  "sourcePng": "32-apparel-footwear-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Ribbed crew-neck collar", "tags": ["apparel add-on", "crew neck", "ribbed collar"]},
+    {"row": 1, "column": 2, "label": "V-neck collar insert", "tags": ["apparel add-on", "collar", "v-neck"]},
+    {"row": 1, "column": 3, "label": "Polo collar and placket", "tags": ["apparel add-on", "polo collar", "shirt placket"]},
+    {"row": 1, "column": 4, "label": "Pointed shirt collar", "tags": ["apparel add-on", "pointed collar", "shirt collar"]},
+    {"row": 1, "column": 5, "label": "Drawstring hood", "tags": ["apparel add-on", "drawstring", "hood"]},
+    {"row": 2, "column": 1, "label": "Long zipper strip", "tags": ["apparel add-on", "closure", "zipper"]},
+    {"row": 2, "column": 2, "label": "Button placket strip", "tags": ["apparel add-on", "button placket", "closure"]},
+    {"row": 2, "column": 3, "label": "Kangaroo pocket", "tags": ["apparel add-on", "kangaroo pocket", "pocket"]},
+    {"row": 2, "column": 4, "label": "Chest patch pocket", "tags": ["apparel add-on", "chest pocket", "patch pocket"]},
+    {"row": 2, "column": 5, "label": "Flapped cargo pocket", "tags": ["apparel add-on", "cargo pocket", "flap pocket"]},
+    {"row": 3, "column": 1, "label": "Short-sleeve pair", "tags": ["apparel add-on", "shirt sleeves", "short sleeves"]},
+    {"row": 3, "column": 2, "label": "Rolled-cuff sleeve pair", "tags": ["apparel add-on", "rolled cuffs", "shirt sleeves"]},
+    {"row": 3, "column": 3, "label": "Ribbed waistband", "tags": ["apparel add-on", "ribbed trim", "waistband"]},
+    {"row": 3, "column": 4, "label": "Striped hem band", "tags": ["apparel add-on", "hem band", "striped trim"]},
+    {"row": 3, "column": 5, "label": "Shoulder-panel pair", "tags": ["apparel add-on", "panel", "shoulder panel"]},
+    {"row": 4, "column": 1, "label": "Flat shoelace set", "tags": ["footwear add-on", "laces", "shoelaces"]},
+    {"row": 4, "column": 2, "label": "Shoe toe-cap overlay", "tags": ["footwear add-on", "shoe panel", "toe cap"]},
+    {"row": 4, "column": 3, "label": "Treaded shoe outsole", "tags": ["footwear add-on", "outsole", "shoe sole"]},
+    {"row": 4, "column": 4, "label": "Shoe heel-counter overlay", "tags": ["footwear add-on", "heel counter", "shoe panel"]},
+    {"row": 4, "column": 5, "label": "Shoe side-panel overlay", "tags": ["footwear add-on", "shoe panel", "side overlay"]},
+    {"row": 5, "column": 1, "label": "Padded shoe tongue", "tags": ["footwear add-on", "shoe tongue", "tongue"]},
+    {"row": 5, "column": 2, "label": "Padded ankle cuff", "tags": ["ankle cuff", "footwear add-on", "shoe collar"]},
+    {"row": 5, "column": 3, "label": "Heel pull-tab", "tags": ["footwear add-on", "heel tab", "pull-tab"]},
+    {"row": 5, "column": 4, "label": "Curved cap brim", "tags": ["cap brim", "headwear add-on", "visor"]},
+    {"row": 5, "column": 5, "label": "Blank cap front patch", "tags": ["blank patch", "cap panel", "headwear add-on"]}
+  ]
+}

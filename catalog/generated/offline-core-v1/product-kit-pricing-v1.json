@@ -1,0 +1,175 @@
+{
+  "schema": "product-pricing@1",
+  "packId": "pk1-pilot-drinkware",
+  "pricingVersion": 1,
+  "blueprints": [
+    {
+      "id": "pk1-tumbler-kit",
+      "title": "Reusable tumbler",
+      "groupIds": [
+        "pk1-tumbler-base-group",
+        "pk1-tumbler-lid-group"
+      ]
+    },
+    {
+      "id": "pk1-tv-kit",
+      "title": "Flat-screen television",
+      "groupIds": [
+        "pk1-tv-base-group",
+        "pk1-tv-stand-group"
+      ]
+    },
+    {
+      "id": "pk1-utility-case-kit",
+      "title": "Compact carry case",
+      "groupIds": [
+        "pk1-utility-case-base-group",
+        "pk1-utility-case-handle-group"
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "id": "pk1-tumbler-base-group",
+      "label": "Product body",
+      "kind": "base",
+      "mode": "one",
+      "minSelections": 1,
+      "maxSelections": 1,
+      "choiceIds": [
+        "pk1-price-tumbler"
+      ]
+    },
+    {
+      "id": "pk1-tumbler-lid-group",
+      "label": "Lid",
+      "kind": "part",
+      "mode": "one",
+      "minSelections": 1,
+      "maxSelections": 1,
+      "choiceIds": [
+        "pk1-price-flat-lid"
+      ]
+    },
+    {
+      "id": "pk1-tv-base-group",
+      "label": "Product body",
+      "kind": "base",
+      "mode": "one",
+      "minSelections": 1,
+      "maxSelections": 1,
+      "choiceIds": [
+        "pk1-price-tv"
+      ]
+    },
+    {
+      "id": "pk1-tv-stand-group",
+      "label": "Stand",
+      "kind": "part",
+      "mode": "one",
+      "minSelections": 1,
+      "maxSelections": 1,
+      "choiceIds": [
+        "pk1-price-tv-angled-feet",
+        "pk1-price-tv-centre-pedestal"
+      ]
+    },
+    {
+      "id": "pk1-utility-case-base-group",
+      "label": "Product body",
+      "kind": "base",
+      "mode": "one",
+      "minSelections": 1,
+      "maxSelections": 1,
+      "choiceIds": [
+        "pk1-price-utility-case"
+      ]
+    },
+    {
+      "id": "pk1-utility-case-handle-group",
+      "label": "Handle",
+      "kind": "part",
+      "mode": "one",
+      "minSelections": 1,
+      "maxSelections": 1,
+      "choiceIds": [
+        "pk1-price-utility-case-arched-handle",
+        "pk1-price-utility-case-compact-handle"
+      ]
+    }
+  ],
+  "choices": [
+    {
+      "id": "pk1-price-tumbler",
+      "groupId": "pk1-tumbler-base-group",
+      "label": "Product body",
+      "costCents": 480,
+      "compatibleBlueprintIds": [
+        "pk1-tumbler-kit"
+      ]
+    },
+    {
+      "id": "pk1-price-flat-lid",
+      "groupId": "pk1-tumbler-lid-group",
+      "label": "Flat lid",
+      "costCents": 70,
+      "compatibleBlueprintIds": [
+        "pk1-tumbler-kit"
+      ]
+    },
+    {
+      "id": "pk1-price-tv",
+      "groupId": "pk1-tv-base-group",
+      "label": "Television body",
+      "costCents": 3700,
+      "compatibleBlueprintIds": [
+        "pk1-tv-kit"
+      ]
+    },
+    {
+      "id": "pk1-price-tv-angled-feet",
+      "groupId": "pk1-tv-stand-group",
+      "label": "Angled feet",
+      "costCents": 650,
+      "compatibleBlueprintIds": [
+        "pk1-tv-kit"
+      ]
+    },
+    {
+      "id": "pk1-price-tv-centre-pedestal",
+      "groupId": "pk1-tv-stand-group",
+      "label": "Centre pedestal stand",
+      "costCents": 650,
+      "compatibleBlueprintIds": [
+        "pk1-tv-kit"
+      ]
+    },
+    {
+      "id": "pk1-price-utility-case",
+      "groupId": "pk1-utility-case-base-group",
+      "label": "Carry case body",
+      "costCents": 2400,
+      "compatibleBlueprintIds": [
+        "pk1-utility-case-kit"
+      ]
+    },
+    {
+      "id": "pk1-price-utility-case-arched-handle",
+      "groupId": "pk1-utility-case-handle-group",
+      "label": "Rigid arched handle",
+      "costCents": 450,
+      "compatibleBlueprintIds": [
+        "pk1-utility-case-kit"
+      ]
+    },
+    {
+      "id": "pk1-price-utility-case-compact-handle",
+      "groupId": "pk1-utility-case-handle-group",
+      "label": "Compact grab handle",
+      "costCents": 450,
+      "compatibleBlueprintIds": [
+        "pk1-utility-case-kit"
+      ]
+    }
+  ]
+}

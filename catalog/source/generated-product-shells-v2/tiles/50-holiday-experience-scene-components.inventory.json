@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 50,
+  "sourcePng": "50-holiday-experience-scene-components.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Rectangular pool shell", "tags": ["pool", "rectangular", "travel component"]},
+    {"row": 1, "column": 2, "label": "Sun lounger with umbrella", "tags": ["sun lounger", "travel component", "umbrella"]},
+    {"row": 1, "column": 3, "label": "Upright surfboard", "tags": ["surfboard", "travel component", "water sport"]},
+    {"row": 1, "column": 4, "label": "Snorkel mask and breathing tube", "tags": ["mask", "snorkel", "water sport"]},
+    {"row": 1, "column": 5, "label": "Single-seat kayak", "tags": ["kayak", "single seat", "water sport"]},
+    {"row": 2, "column": 1, "label": "Two-arrow direction signpost", "tags": ["direction sign", "signpost", "travel component"]},
+    {"row": 2, "column": 2, "label": "Pair of hiking boots", "tags": ["footwear", "hiking boots", "pair"]},
+    {"row": 2, "column": 3, "label": "Pedestal viewing telescope", "tags": ["pedestal", "telescope", "viewing"]},
+    {"row": 2, "column": 4, "label": "Enclosed gondola lift cabin", "tags": ["cable lift", "enclosed cabin", "gondola"]},
+    {"row": 2, "column": 5, "label": "Open chairlift seat", "tags": ["cable lift", "chairlift", "open seat"]},
+    {"row": 3, "column": 1, "label": "Pair of alpine skis", "tags": ["alpine skis", "pair", "snow sport"]},
+    {"row": 3, "column": 2, "label": "Snowboard with bindings", "tags": ["bindings", "snow sport", "snowboard"]},
+    {"row": 3, "column": 3, "label": "Timber runner sled", "tags": ["runner sled", "snow activity", "timber"]},
+    {"row": 3, "column": 4, "label": "Padded massage table", "tags": ["massage table", "padded", "wellness"]},
+    {"row": 3, "column": 5, "label": "Square outdoor hot tub", "tags": ["hot tub", "square", "wellness"]},
+    {"row": 4, "column": 1, "label": "Twin-engine passenger aeroplane", "tags": ["aeroplane", "passenger", "twin engine"]},
+    {"row": 4, "column": 2, "label": "Single-deck coach bus", "tags": ["coach bus", "passenger", "road transport"]},
+    {"row": 4, "column": 3, "label": "Compact five-door hatchback", "tags": ["compact car", "five door", "hatchback"]},
+    {"row": 4, "column": 4, "label": "Two-deck passenger ferry", "tags": ["ferry", "passenger vessel", "two deck"]},
+    {"row": 4, "column": 5, "label": "Drop-handlebar road bicycle", "tags": ["bicycle", "drop handlebar", "road bicycle"]},
+    {"row": 5, "column": 1, "label": "Hard-shell wheeled suitcase", "tags": ["hard shell", "suitcase", "wheeled luggage"]},
+    {"row": 5, "column": 2, "label": "Arched luggage trolley", "tags": ["arched frame", "luggage trolley", "wheeled"]},
+    {"row": 5, "column": 3, "label": "Covered room-service trolley", "tags": ["covered trolley", "room service", "wheeled"]},
+    {"row": 5, "column": 4, "label": "Counter service bell", "tags": ["counter bell", "service bell", "travel component"]},
+    {"row": 5, "column": 5, "label": "Upright brochure holder", "tags": ["brochure holder", "display holder", "upright"]}
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 100,
+  "sourcePng": "100-footwear-apparel-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Tied shoelace", "tags": ["footwear add-on", "lace", "shoelace"], "masterOverride": {"path": "corrections/2026-07-18-shape-audit/100-footwear-apparel-add-ons-r01c01-shoelace-master-v2.png", "sha256": "b7d1311b4bc56f3ca562151c9351716294ccca595ffc0b8371be90916d5e7739"}},
+    {"row": 1, "column": 2, "label": "Stitched shoe heel panel", "tags": ["footwear add-on", "heel panel", "stitched panel"]},
+    {"row": 1, "column": 3, "label": "Rounded toe-cap overlay", "tags": ["footwear add-on", "toe cap", "upper overlay"]},
+    {"row": 1, "column": 4, "label": "Curved shoe side panel", "tags": ["footwear add-on", "shoe panel", "side overlay"]},
+    {"row": 1, "column": 5, "label": "Padded heel collar", "tags": ["footwear add-on", "heel collar", "padded collar"]},
+    {"row": 2, "column": 1, "label": "Flat sole unit", "tags": ["flat sole", "footwear add-on", "sole unit"]},
+    {"row": 2, "column": 2, "label": "Shallow lugged sole unit", "tags": ["footwear add-on", "lugged sole", "sole unit"]},
+    {"row": 2, "column": 3, "label": "Deep-tread sole unit", "tags": ["deep tread", "footwear add-on", "sole unit"]},
+    {"row": 2, "column": 4, "label": "Hook-and-loop shoe strap", "tags": ["footwear add-on", "hook-and-loop strap", "shoe strap"]},
+    {"row": 2, "column": 5, "label": "Short shoe zipper", "tags": ["footwear add-on", "shoe closure", "zipper"]},
+    {"row": 3, "column": 1, "label": "Ribbed crew neckline", "tags": ["apparel add-on", "crew neck", "ribbed neckline"]},
+    {"row": 3, "column": 2, "label": "Ribbed V-neckline", "tags": ["apparel add-on", "ribbed neckline", "v-neck"]},
+    {"row": 3, "column": 3, "label": "Pointed shirt collar", "tags": ["apparel add-on", "pointed collar", "shirt collar"]},
+    {"row": 3, "column": 4, "label": "Open hood attachment", "tags": ["apparel add-on", "hood", "hood attachment"]},
+    {"row": 3, "column": 5, "label": "Pair of ribbed wrist cuffs", "tags": ["apparel add-on", "ribbed cuffs", "wrist cuffs"]},
+    {"row": 4, "column": 1, "label": "Pair of short sleeves", "tags": ["apparel add-on", "short sleeves", "sleeve pair"]},
+    {"row": 4, "column": 2, "label": "Pair of long cuffed sleeves", "tags": ["apparel add-on", "long sleeves", "sleeve pair"]},
+    {"row": 4, "column": 3, "label": "Rectangular patch pocket", "tags": ["apparel add-on", "patch pocket", "pocket"]},
+    {"row": 4, "column": 4, "label": "Front pouch pocket", "tags": ["apparel add-on", "front pocket", "pouch pocket"]},
+    {"row": 4, "column": 5, "label": "Long garment zipper", "tags": ["apparel add-on", "garment closure", "zipper"]},
+    {"row": 5, "column": 1, "label": "Four-button placket", "tags": ["apparel add-on", "button placket", "four buttons"]},
+    {"row": 5, "column": 2, "label": "Tied waist sash", "tags": ["apparel add-on", "tied belt", "waist sash"]},
+    {"row": 5, "column": 3, "label": "Pair of oval elbow patches", "tags": ["apparel add-on", "elbow patches", "oval patches"]},
+    {"row": 5, "column": 4, "label": "Pair of rounded knee patches", "tags": ["apparel add-on", "knee patches", "rounded patches"]},
+    {"row": 5, "column": 5, "label": "Tapered ribbed sleeve cuff", "tags": ["apparel add-on", "ribbed cuff", "sleeve cuff"]}
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 107,
+  "sourcePng": "107-advertising-label-cta-frames.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Clipped-corner hanging price tag", "tags": ["blank tag", "hanging tag", "layout component"]},
+    {"row": 1, "column": 2, "label": "Rounded rectangular hanging tag", "tags": ["blank tag", "hanging tag", "layout component"]},
+    {"row": 1, "column": 3, "label": "Scalloped hanging tag", "tags": ["blank tag", "hanging tag", "layout component"]},
+    {"row": 1, "column": 4, "label": "Folded-corner hanging tag", "tags": ["blank tag", "folded corner", "layout component"]},
+    {"row": 1, "column": 5, "label": "Round hanging tag", "tags": ["blank tag", "layout component", "round tag"]},
+    {"row": 2, "column": 1, "label": "Double-line round badge frame", "tags": ["badge frame", "layout component", "round frame"]},
+    {"row": 2, "column": 2, "label": "Double-line oval badge frame", "tags": ["badge frame", "layout component", "oval frame"]},
+    {"row": 2, "column": 3, "label": "Shield badge frame", "tags": ["badge frame", "layout component", "shield frame"]},
+    {"row": 2, "column": 4, "label": "Hexagonal badge frame", "tags": ["badge frame", "hexagonal frame", "layout component"]},
+    {"row": 2, "column": 5, "label": "Ornate ticket label frame", "tags": ["layout component", "ornate frame", "ticket label"]},
+    {"row": 3, "column": 1, "label": "Ornate rectangular border", "tags": ["layout component", "ornate border", "rectangular frame"]},
+    {"row": 3, "column": 2, "label": "Arched-top label frame", "tags": ["arched frame", "label frame", "layout component"]},
+    {"row": 3, "column": 3, "label": "Curved ribbon banner", "tags": ["banner", "curved ribbon", "layout component"]},
+    {"row": 3, "column": 4, "label": "Straight ribbon banner", "tags": ["banner", "layout component", "straight ribbon"]},
+    {"row": 3, "column": 5, "label": "Award rosette ribbon", "tags": ["award ribbon", "layout component", "rosette"]},
+    {"row": 4, "column": 1, "label": "Jagged starburst sticker", "tags": ["layout component", "starburst", "sticker shape"]},
+    {"row": 4, "column": 2, "label": "Scalloped round sticker", "tags": ["layout component", "round sticker", "scalloped edge"]},
+    {"row": 4, "column": 3, "label": "Cloud-shaped sticker", "tags": ["cloud shape", "layout component", "sticker shape"]},
+    {"row": 4, "column": 4, "label": "Blank speech-bubble sticker", "tags": ["blank bubble", "layout component", "speech bubble"]},
+    {"row": 4, "column": 5, "label": "Pill-shaped call-to-action frame", "tags": ["button frame", "call to action", "layout component"]},
+    {"row": 5, "column": 1, "label": "Rounded rectangular content panel", "tags": ["content panel", "layout component", "rounded rectangle"]},
+    {"row": 5, "column": 2, "label": "Capsule-shaped content panel", "tags": ["capsule panel", "content panel", "layout component"]},
+    {"row": 5, "column": 3, "label": "Tabbed rectangular content panel", "tags": ["content panel", "layout component", "tabbed panel"]},
+    {"row": 5, "column": 4, "label": "Folded-corner note panel", "tags": ["content panel", "folded corner", "layout component"]},
+    {"row": 5, "column": 5, "label": "Blank hanging signboard", "tags": ["hanging sign", "layout component", "signboard"]}
+  ]
+}

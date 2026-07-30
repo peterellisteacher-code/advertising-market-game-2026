@@ -1,0 +1,31 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetId": "65-personal-service-venue-bases",
+  "items": [
+    {"row": 1, "column": 1, "label": "Hair salon storefront with two styling chairs", "tags": ["base", "hair-salon", "personal-services", "storefront", "styling-chairs"]},
+    {"row": 1, "column": 2, "label": "Barber shop storefront with two barber chairs", "tags": ["barber-chairs", "barber-shop", "base", "personal-services", "storefront"]},
+    {"row": 1, "column": 3, "label": "Treatment-room storefront with massage table and front counter", "tags": ["base", "front-counter", "massage-table", "personal-services", "treatment-room"]},
+    {"row": 1, "column": 4, "label": "Beauty-product service counter with display stand", "tags": ["base", "beauty-products", "display-stand", "personal-services", "service-counter"]},
+    {"row": 1, "column": 5, "label": "Spa treatment-room storefront with product cabinet", "tags": ["base", "personal-services", "product-cabinet", "spa", "treatment-room"]},
+    {"row": 2, "column": 1, "label": "Photography studio venue", "tags": ["base", "camera-studio", "personal-services", "photography", "studio"]},
+    {"row": 2, "column": 2, "label": "Tailoring studio venue", "tags": ["base", "personal-services", "sewing", "studio", "tailoring"]},
+    {"row": 2, "column": 3, "label": "Shoe-repair service counter", "tags": ["base", "footwear", "personal-services", "repair", "shoe-repair"]},
+    {"row": 2, "column": 4, "label": "Mobile-device repair counter", "tags": ["base", "device-repair", "mobile-device", "personal-services", "service-counter"]},
+    {"row": 2, "column": 5, "label": "Bicycle-repair service counter", "tags": ["base", "bicycle-repair", "personal-services", "repair", "service-counter"]},
+    {"row": 3, "column": 1, "label": "Garment-care service counter", "tags": ["base", "garment-care", "personal-services", "service-counter"]},
+    {"row": 3, "column": 2, "label": "Laundromat venue", "tags": ["base", "laundromat", "laundry", "personal-services", "washing-machines"]},
+    {"row": 3, "column": 3, "label": "Skincare clinic treatment room", "tags": ["base", "clinic", "personal-services", "skincare", "treatment-room"]},
+    {"row": 3, "column": 4, "label": "Barber treatment room with reclined chair", "tags": ["barber-chair", "base", "grooming", "personal-services", "treatment-room"]},
+    {"row": 3, "column": 5, "label": "Makeup studio with lit mirror", "tags": ["base", "lit-mirror", "makeup", "personal-services", "studio"]},
+    {"row": 4, "column": 1, "label": "Nail-service counter", "tags": ["base", "manicure", "nail-service", "personal-services", "service-counter"]},
+    {"row": 4, "column": 2, "label": "Jewellery service counter with display case", "tags": ["base", "display-case", "jewellery", "personal-services", "service-counter"]},
+    {"row": 4, "column": 3, "label": "Picture-framing service counter", "tags": ["base", "frames", "personal-services", "picture-framing", "service-counter"]},
+    {"row": 4, "column": 4, "label": "Empty service counter with wall shelves", "tags": ["base", "empty-counter", "personal-services", "service-counter", "wall-shelves"]},
+    {"row": 4, "column": 5, "label": "Clothing-fitting boutique venue", "tags": ["base", "boutique", "clothing", "fitting-room", "personal-services"]},
+    {"row": 5, "column": 1, "label": "Pedicure-service storefront with reclining chair", "tags": ["base", "pedicure", "personal-services", "reclining-chair", "storefront"]},
+    {"row": 5, "column": 2, "label": "Aesthetic treatment storefront with task lamp", "tags": ["aesthetic-treatment", "base", "personal-services", "reclining-chair", "task-lamp"]},
+    {"row": 5, "column": 3, "label": "Tattoo studio with treatment chair and flash board", "tags": ["base", "flash-board", "personal-services", "studio", "tattoo"]},
+    {"row": 5, "column": 4, "label": "Garment service counter with hanging formalwear", "tags": ["base", "formalwear", "garment-service", "hanging-clothes", "personal-services"]},
+    {"row": 5, "column": 5, "label": "Compact service kiosk with shutter and counter", "tags": ["base", "compact", "kiosk", "personal-services", "service-counter", "shutter"]}
+  ]
+}

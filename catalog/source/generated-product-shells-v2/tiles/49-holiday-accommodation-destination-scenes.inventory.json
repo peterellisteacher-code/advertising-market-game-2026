@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 49,
+  "sourcePng": "49-holiday-accommodation-destination-scenes.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Multistorey hotel with balconies", "tags": ["balconies", "hotel", "multistorey"]},
+    {"row": 1, "column": 2, "label": "Two-storey roadside motel", "tags": ["exterior corridor", "motel", "two storey"]},
+    {"row": 1, "column": 3, "label": "Forest log cabin", "tags": ["cabin", "forest", "log"]},
+    {"row": 1, "column": 4, "label": "Single-axle travel caravan", "tags": ["caravan", "single axle", "travel"]},
+    {"row": 1, "column": 5, "label": "Large cruise ship", "tags": ["cruise ship", "large vessel", "travel"]},
+    {"row": 2, "column": 1, "label": "Dome camping tent among trees", "tags": ["camping", "dome tent", "trees"]},
+    {"row": 2, "column": 2, "label": "Snow-roof alpine chalet", "tags": ["alpine", "chalet", "snow roof"]},
+    {"row": 2, "column": 3, "label": "Mid-rise apartment building", "tags": ["apartment building", "mid rise", "multistorey"]},
+    {"row": 2, "column": 4, "label": "Stilted bungalow with deck", "tags": ["bungalow", "deck", "stilts"]},
+    {"row": 2, "column": 5, "label": "Gabled country cottage", "tags": ["cottage", "gabled", "veranda"]},
+    {"row": 3, "column": 1, "label": "Four-storey rectangular hotel", "tags": ["four storey", "hotel", "rectangular"]},
+    {"row": 3, "column": 2, "label": "Arched two-storey villa", "tags": ["arched doorway", "two storey", "villa"]},
+    {"row": 3, "column": 3, "label": "Bell tent on raised platform", "tags": ["bell tent", "camping", "raised platform"]},
+    {"row": 3, "column": 4, "label": "Flat-roof houseboat", "tags": ["flat roof", "houseboat", "water accommodation"]},
+    {"row": 3, "column": 5, "label": "Treehouse with ladder", "tags": ["ladder", "treehouse", "wooden deck"]},
+    {"row": 4, "column": 1, "label": "Raised cabin with wraparound deck", "tags": ["cabin", "raised", "wraparound deck"]},
+    {"row": 4, "column": 2, "label": "Rounded desert pod cabin", "tags": ["desert", "pod cabin", "rounded"]},
+    {"row": 4, "column": 3, "label": "Turreted castle hotel", "tags": ["castle", "hotel", "turrets"]},
+    {"row": 4, "column": 4, "label": "Tropical stilt cottage", "tags": ["cottage", "stilts", "tropical plants"]},
+    {"row": 4, "column": 5, "label": "Double-axle tiny-house trailer", "tags": ["double axle", "tiny house", "trailer"]},
+    {"row": 5, "column": 1, "label": "Column-front resort entrance", "tags": ["column front", "entrance", "resort building"]},
+    {"row": 5, "column": 2, "label": "Single-storey cottage with veranda", "tags": ["cottage", "single storey", "veranda"]},
+    {"row": 5, "column": 3, "label": "Raised cabin with surfboard", "tags": ["cabin", "raised", "surfboard"]},
+    {"row": 5, "column": 4, "label": "Railway carriage accommodation", "tags": ["accommodation", "railway carriage", "wheeled"]},
+    {"row": 5, "column": 5, "label": "Waterside cottage with jetty", "tags": ["cottage", "jetty", "waterside"]}
+  ]
+}

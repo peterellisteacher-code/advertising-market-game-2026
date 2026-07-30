@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 104,
+  "sourcePng": "104-toy-tabletop-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Pair of toy wheels", "tags": ["toy add-on", "vehicle parts", "wheel pair"]},
+    {"row": 1, "column": 2, "label": "Straight toy axle", "tags": ["axle", "toy add-on", "vehicle parts"]},
+    {"row": 1, "column": 3, "label": "Pair of aerodynamic wing pieces", "tags": ["aircraft parts", "toy add-on", "wing pair"]},
+    {"row": 1, "column": 4, "label": "Four-blade propeller", "tags": ["aircraft parts", "propeller", "toy add-on"]},
+    {"row": 1, "column": 5, "label": "Two-loop coupling block", "tags": ["connector block", "coupling", "toy add-on"]},
+    {"row": 2, "column": 1, "label": "Six-stud construction bar", "tags": ["construction bar", "studded piece", "toy add-on"]},
+    {"row": 2, "column": 2, "label": "Articulated connector joint", "tags": ["articulated joint", "connector", "toy add-on"]},
+    {"row": 2, "column": 3, "label": "Large gear wheel", "tags": ["gear", "mechanical part", "toy add-on"]},
+    {"row": 2, "column": 4, "label": "Pair of peg-end caps", "tags": ["end caps", "peg parts", "toy add-on"]},
+    {"row": 2, "column": 5, "label": "Flat circular ring", "tags": ["flat ring", "round part", "toy add-on"]},
+    {"row": 3, "column": 1, "label": "Six-space scoring strip", "tags": ["score strip", "tabletop add-on", "track strip"]},
+    {"row": 3, "column": 2, "label": "Recessed portrait card frame", "tags": ["card frame", "portrait frame", "tabletop add-on"]},
+    {"row": 3, "column": 3, "label": "Square blank card tile", "tags": ["blank tile", "square card", "tabletop add-on"]},
+    {"row": 3, "column": 4, "label": "Thick round game token", "tags": ["round token", "tabletop add-on", "thick counter"]},
+    {"row": 3, "column": 5, "label": "Arrow-shaped game piece", "tags": ["arrow piece", "direction marker", "tabletop add-on"]},
+    {"row": 4, "column": 1, "label": "Open card-storage tray", "tags": ["card tray", "storage tray", "tabletop add-on"]},
+    {"row": 4, "column": 2, "label": "Four-compartment organiser tray", "tags": ["component tray", "organiser tray", "tabletop add-on"]},
+    {"row": 4, "column": 3, "label": "Shallow hexagonal tray", "tags": ["hexagonal tray", "tabletop add-on", "token tray"]},
+    {"row": 4, "column": 4, "label": "Three-panel game screen", "tags": ["folding screen", "game screen", "tabletop add-on"]},
+    {"row": 4, "column": 5, "label": "Round spinning-top base", "tags": ["spinning top", "tabletop add-on", "toy base part"]},
+    {"row": 5, "column": 1, "label": "Pair of articulated toy arms", "tags": ["articulated arms", "toy add-on", "toy limbs"]},
+    {"row": 5, "column": 2, "label": "Ball-tipped antenna mast", "tags": ["antenna", "mast", "toy add-on"]},
+    {"row": 5, "column": 3, "label": "Pitched toy roof panel", "tags": ["roof panel", "toy add-on", "toy building"]},
+    {"row": 5, "column": 4, "label": "Curling blank ribbon", "tags": ["blank ribbon", "decorative strip", "toy add-on"]},
+    {"row": 5, "column": 5, "label": "Pair of pointed toy ears", "tags": ["ear pair", "toy add-on", "toy ears"]}
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 91,
+  "sourcePng": "91-vehicle-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Compact city hatchback", "tags": ["car", "city vehicle", "hatchback"]},
+    {"row": 1, "column": 2, "label": "Four-door sedan", "tags": ["car", "four-door", "sedan"]},
+    {"row": 1, "column": 3, "label": "Two-door sports coupe", "tags": ["car", "coupe", "sports car"]},
+    {"row": 1, "column": 4, "label": "Station wagon", "tags": ["car", "estate car", "station wagon"]},
+    {"row": 1, "column": 5, "label": "Open-top convertible", "tags": ["car", "convertible", "open top"]},
+    {"row": 2, "column": 1, "label": "Compact SUV", "tags": ["compact suv", "suv", "utility vehicle"]},
+    {"row": 2, "column": 2, "label": "Double-cab pickup truck", "tags": ["double cab", "pickup truck", "utility vehicle"]},
+    {"row": 2, "column": 3, "label": "Panel delivery van", "tags": ["delivery vehicle", "panel van", "van"]},
+    {"row": 2, "column": 4, "label": "Small passenger minibus", "tags": ["minibus", "passenger vehicle", "van"]},
+    {"row": 2, "column": 5, "label": "Cab-over delivery truck", "tags": ["cab-over truck", "delivery vehicle", "truck"]},
+    {"row": 3, "column": 1, "label": "Road bicycle", "tags": ["bicycle", "road bicycle", "transport"]},
+    {"row": 3, "column": 2, "label": "Mountain bicycle", "tags": ["bicycle", "mountain bicycle", "off road"]},
+    {"row": 3, "column": 3, "label": "Front-cargo bicycle", "tags": ["bicycle", "cargo bicycle", "front cargo"]},
+    {"row": 3, "column": 4, "label": "Step-through electric bicycle", "tags": ["bicycle", "electric bicycle", "step-through"]},
+    {"row": 3, "column": 5, "label": "Motor scooter", "tags": ["motor scooter", "scooter", "transport"]},
+    {"row": 4, "column": 1, "label": "Standard street motorcycle", "tags": ["motorcycle", "street bike", "transport"]},
+    {"row": 4, "column": 2, "label": "Low cruiser motorcycle", "tags": ["cruiser", "motorcycle", "transport"]},
+    {"row": 4, "column": 3, "label": "Off-road dirt motorcycle", "tags": ["dirt bike", "motorcycle", "off road"]},
+    {"row": 4, "column": 4, "label": "Four-wheel quad bike", "tags": ["all-terrain vehicle", "four wheel", "quad bike"]},
+    {"row": 4, "column": 5, "label": "Enclosed three-wheel city vehicle", "tags": ["city vehicle", "three wheel", "urban transport"]},
+    {"row": 5, "column": 1, "label": "Full-size city bus", "tags": ["bus", "city transport", "public transport"]},
+    {"row": 5, "column": 2, "label": "Box-body delivery truck", "tags": ["box truck", "delivery vehicle", "truck"]},
+    {"row": 5, "column": 3, "label": "Pop-top campervan", "tags": ["campervan", "pop top", "recreation vehicle"]},
+    {"row": 5, "column": 4, "label": "Small golf buggy", "tags": ["golf buggy", "small vehicle", "utility cart"]},
+    {"row": 5, "column": 5, "label": "Low racing go-kart", "tags": ["go-kart", "racing vehicle", "small vehicle"]}
+  ]
+}

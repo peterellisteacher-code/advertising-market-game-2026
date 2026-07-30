@@ -1,0 +1,10 @@
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    environment: "jsdom",
+    include: ["web/src/**/*.test.ts", "netlify/**/*.test.ts", "shared/**/*.test.ts"],
+    restoreMocks: true,
+    clearMocks: true
+  }
+});

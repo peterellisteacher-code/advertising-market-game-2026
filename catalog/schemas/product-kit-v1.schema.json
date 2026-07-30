@@ -1,0 +1,1086 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://admarket.classroom.invalid/schemas/product-kit-v1.schema.json",
+  "$comment": "Structural product-kit@1 contract. Browser and Python graph validators enforce catalogue binding, canonical fragment layer order, feasible connectors, grid compatibility, and other cross-record semantics.",
+  "$defs": {
+    "AssetReference": {
+      "additionalProperties": false,
+      "properties": {
+        "assetId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "title": "Assetid",
+          "type": "string"
+        },
+        "masterSha256": {
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])",
+          "title": "Mastersha256",
+          "type": "string"
+        },
+        "frame": {
+          "$ref": "#/$defs/RasterFrame"
+        }
+      },
+      "required": [
+        "assetId",
+        "masterSha256",
+        "frame"
+      ],
+      "title": "AssetReference",
+      "type": "object"
+    },
+    "Bounds": {
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Y",
+          "type": "number"
+        },
+        "width": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Width",
+          "type": "number"
+        },
+        "height": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Height",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "title": "Bounds",
+      "type": "object"
+    },
+    "CellSize": {
+      "additionalProperties": false,
+      "properties": {
+        "width": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Width",
+          "type": "number"
+        },
+        "height": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Height",
+          "type": "number"
+        }
+      },
+      "required": [
+        "width",
+        "height"
+      ],
+      "title": "CellSize",
+      "type": "object"
+    },
+    "Certification": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "title": "Id",
+          "type": "string"
+        },
+        "kitId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "title": "Kitid",
+          "type": "string"
+        },
+        "mountFrameId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "title": "Mountframeid",
+          "type": "string"
+        },
+        "componentId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "title": "Componentid",
+          "type": "string"
+        },
+        "fingerprint": {
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])",
+          "title": "Fingerprint",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kitId",
+        "mountFrameId",
+        "componentId",
+        "fingerprint"
+      ],
+      "title": "Certification",
+      "type": "object"
+    },
+    "CompatibilityProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "familyId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "title": "Familyid",
+          "type": "string"
+        },
+        "perspectiveId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "title": "Perspectiveid",
+          "type": "string"
+        },
+        "geometryId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "title": "Geometryid",
+          "type": "string"
+        },
+        "styleId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "title": "Styleid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "familyId",
+        "perspectiveId",
+        "geometryId",
+        "styleId"
+      ],
+      "title": "CompatibilityProfile",
+      "type": "object"
+    },
+    "Component": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^(?![\\u0009-\\u000d\\u0020\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000\\ufeff])(?![\\s\\S]*[\\u0009-\\u000d\\u0020\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000\\ufeff]$)[^\\u0000-\\u001f]+$",
+          "title": "Title",
+          "type": "string"
+        },
+        "slotId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "title": "Slotid",
+          "type": "string"
+        },
+        "compatibilityProfile": {
+          "$ref": "#/$defs/CompatibilityProfile"
+        },
+        "componentFrame": {
+          "discriminator": {
+            "mapping": {
+              "grid": "#/$defs/GridComponentFrame",
+              "grip": "#/$defs/GripComponentFrame",
+              "socket": "#/$defs/SocketComponentFrame"
+            },
+            "propertyName": "mountType"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/SocketComponentFrame"
+            },
+            {
+              "$ref": "#/$defs/GripComponentFrame"
+            },
+            {
+              "$ref": "#/$defs/GridComponentFrame"
+            }
+          ],
+          "title": "Componentframe"
+        },
+        "fragments": {
+          "items": {
+            "$ref": "#/$defs/Fragment"
+          },
+          "maxItems": 3,
+          "minItems": 1,
+          "title": "Fragments",
+          "type": "array",
+          "oneOf": [
+            {
+              "minItems": 1,
+              "maxItems": 1
+            },
+            {
+              "minItems": 2,
+              "maxItems": 2,
+              "prefixItems": [
+                {
+                  "properties": {
+                    "layer": { "const": "rear" }
+                  }
+                },
+                {
+                  "properties": {
+                    "layer": { "const": "front" }
+                  }
+                }
+              ]
+            },
+            {
+              "minItems": 2,
+              "maxItems": 2,
+              "prefixItems": [
+                {
+                  "properties": {
+                    "layer": { "const": "rear" }
+                  }
+                },
+                {
+                  "properties": {
+                    "layer": { "const": "overlay" }
+                  }
+                }
+              ]
+            },
+            {
+              "minItems": 2,
+              "maxItems": 2,
+              "prefixItems": [
+                {
+                  "properties": {
+                    "layer": { "const": "front" }
+                  }
+                },
+                {
+                  "properties": {
+                    "layer": { "const": "overlay" }
+                  }
+                }
+              ]
+            },
+            {
+              "minItems": 3,
+              "maxItems": 3,
+              "prefixItems": [
+                {
+                  "properties": {
+                    "layer": { "const": "rear" }
+                  }
+                },
+                {
+                  "properties": {
+                    "layer": { "const": "front" }
+                  }
+                },
+                {
+                  "properties": {
+                    "layer": { "const": "overlay" }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "priceAssetId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "title": "Priceassetid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "slotId",
+        "compatibilityProfile",
+        "componentFrame",
+        "fragments",
+        "priceAssetId"
+      ],
+      "title": "Component",
+      "type": "object"
+    },
+    "EdgeTypes": {
+      "additionalProperties": false,
+      "properties": {
+        "north": {
+          "title": "North",
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "type": "string"
+        },
+        "east": {
+          "title": "East",
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "type": "string"
+        },
+        "south": {
+          "title": "South",
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "type": "string"
+        },
+        "west": {
+          "title": "West",
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "type": "string"
+        }
+      },
+      "title": "EdgeTypes",
+      "type": "object"
+    },
+    "Footprint": {
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "maximum": 64,
+          "minimum": 1,
+          "title": "Columns",
+          "type": "integer"
+        },
+        "rows": {
+          "maximum": 64,
+          "minimum": 1,
+          "title": "Rows",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "columns",
+        "rows"
+      ],
+      "title": "Footprint",
+      "type": "object"
+    },
+    "Fragment": {
+      "additionalProperties": false,
+      "properties": {
+        "layer": {
+          "enum": [
+            "rear",
+            "front",
+            "overlay"
+          ],
+          "title": "Layer",
+          "type": "string"
+        },
+        "raster": {
+          "$ref": "#/$defs/AssetReference"
+        }
+      },
+      "required": [
+        "layer",
+        "raster"
+      ],
+      "title": "Fragment",
+      "type": "object"
+    },
+    "GridComponentFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "mountType": {
+          "const": "grid",
+          "title": "Mounttype",
+          "type": "string"
+        },
+        "plane": {
+          "enum": [
+            "floor",
+            "wall"
+          ],
+          "title": "Plane",
+          "type": "string"
+        },
+        "footprint": {
+          "$ref": "#/$defs/Footprint"
+        },
+        "edgeTypes": {
+          "$ref": "#/$defs/EdgeTypes"
+        }
+      },
+      "required": [
+        "mountType",
+        "plane",
+        "footprint",
+        "edgeTypes"
+      ],
+      "title": "GridComponentFrame",
+      "type": "object"
+    },
+    "GridMountFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "title": "Id",
+          "type": "string"
+        },
+        "slotId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "title": "Slotid",
+          "type": "string"
+        },
+        "mountType": {
+          "const": "grid",
+          "title": "Mounttype",
+          "type": "string"
+        },
+        "origin": {
+          "$ref": "#/$defs/Point"
+        },
+        "cellSize": {
+          "$ref": "#/$defs/CellSize"
+        },
+        "columns": {
+          "maximum": 64,
+          "minimum": 1,
+          "title": "Columns",
+          "type": "integer"
+        },
+        "rows": {
+          "maximum": 64,
+          "minimum": 1,
+          "title": "Rows",
+          "type": "integer"
+        },
+        "plane": {
+          "enum": [
+            "floor",
+            "wall"
+          ],
+          "title": "Plane",
+          "type": "string"
+        },
+        "acceptedEdgeTypes": {
+          "items": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+            "type": "string"
+          },
+          "maxItems": 32,
+          "title": "Acceptededgetypes",
+          "type": "array",
+          "uniqueItems": true,
+          "x-canonicalOrder": true
+        }
+      },
+      "required": [
+        "id",
+        "slotId",
+        "mountType",
+        "origin",
+        "cellSize",
+        "columns",
+        "rows",
+        "plane",
+        "acceptedEdgeTypes"
+      ],
+      "title": "GridMountFrame",
+      "type": "object"
+    },
+    "GripComponentFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "mountType": {
+          "const": "grip",
+          "title": "Mounttype",
+          "type": "string"
+        },
+        "contacts": {
+          "items": {
+            "$ref": "#/$defs/Point"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Contacts",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "normals": {
+          "items": {
+            "$ref": "#/$defs/Normal"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Normals",
+          "type": "array"
+        }
+      },
+      "required": [
+        "mountType",
+        "contacts",
+        "normals"
+      ],
+      "title": "GripComponentFrame",
+      "type": "object"
+    },
+    "GripMountFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "title": "Id",
+          "type": "string"
+        },
+        "slotId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "title": "Slotid",
+          "type": "string"
+        },
+        "mountType": {
+          "const": "grip",
+          "title": "Mounttype",
+          "type": "string"
+        },
+        "contacts": {
+          "items": {
+            "$ref": "#/$defs/Point"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Contacts",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "normals": {
+          "items": {
+            "$ref": "#/$defs/Normal"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Normals",
+          "type": "array"
+        },
+        "constraints": {
+          "$ref": "#/$defs/TransformConstraints"
+        }
+      },
+      "required": [
+        "id",
+        "slotId",
+        "mountType",
+        "contacts",
+        "normals",
+        "constraints"
+      ],
+      "title": "GripMountFrame",
+      "type": "object"
+    },
+    "Kit": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^(?![\\u0009-\\u000d\\u0020\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000\\ufeff])(?![\\s\\S]*[\\u0009-\\u000d\\u0020\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000\\ufeff]$)[^\\u0000-\\u001f]+$",
+          "title": "Title",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "whole",
+            "socket",
+            "grip",
+            "grid"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "compatibilityProfile": {
+          "$ref": "#/$defs/CompatibilityProfile"
+        },
+        "base": {
+          "$ref": "#/$defs/AssetReference"
+        },
+        "priceAssetId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "title": "Priceassetid",
+          "type": "string"
+        },
+        "mountFrames": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "grid": "#/$defs/GridMountFrame",
+                "grip": "#/$defs/GripMountFrame",
+                "socket": "#/$defs/SocketMountFrame"
+              },
+              "propertyName": "mountType"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/SocketMountFrame"
+              },
+              {
+                "$ref": "#/$defs/GripMountFrame"
+              },
+              {
+                "$ref": "#/$defs/GridMountFrame"
+              }
+            ]
+          },
+          "maxItems": 32,
+          "title": "Mountframes",
+          "type": "array",
+          "x-canonicalOrder": "id",
+          "x-uniqueBy": "id"
+        },
+        "artworkBounds": {
+          "items": {
+            "$ref": "#/$defs/Bounds"
+          },
+          "maxItems": 8,
+          "title": "Artworkbounds",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "mode",
+        "compatibilityProfile",
+        "base",
+        "priceAssetId",
+        "mountFrames",
+        "artworkBounds"
+      ],
+      "title": "Kit",
+      "type": "object",
+      "allOf": [
+        {
+          "if": {
+            "required": ["mode"],
+            "properties": { "mode": { "const": "whole" } }
+          },
+          "then": {
+            "properties": { "mountFrames": { "maxItems": 0 } }
+          }
+        },
+        {
+          "if": {
+            "required": ["mode"],
+            "properties": { "mode": { "const": "socket" } }
+          },
+          "then": {
+            "properties": {
+              "mountFrames": {
+                "minItems": 1,
+                "items": { "$ref": "#/$defs/SocketMountFrame" }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["mode"],
+            "properties": { "mode": { "const": "grip" } }
+          },
+          "then": {
+            "properties": {
+              "mountFrames": {
+                "minItems": 1,
+                "items": { "$ref": "#/$defs/GripMountFrame" }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["mode"],
+            "properties": { "mode": { "const": "grid" } }
+          },
+          "then": {
+            "properties": {
+              "mountFrames": {
+                "minItems": 1,
+                "items": { "$ref": "#/$defs/GridMountFrame" }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Normal": {
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "title": "Normal",
+      "type": "object",
+      "not": {
+        "required": [
+          "x",
+          "y"
+        ],
+        "properties": {
+          "x": {
+            "const": 0
+          },
+          "y": {
+            "const": 0
+          }
+        }
+      }
+    },
+    "Point": {
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "title": "Point",
+      "type": "object"
+    },
+    "RasterFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "originalWidth": {
+          "maximum": 8192,
+          "minimum": 1,
+          "title": "Originalwidth",
+          "type": "integer"
+        },
+        "originalHeight": {
+          "maximum": 8192,
+          "minimum": 1,
+          "title": "Originalheight",
+          "type": "integer"
+        },
+        "trimX": {
+          "maximum": 8191,
+          "minimum": 0,
+          "title": "Trimx",
+          "type": "integer"
+        },
+        "trimY": {
+          "maximum": 8191,
+          "minimum": 0,
+          "title": "Trimy",
+          "type": "integer"
+        },
+        "trimWidth": {
+          "maximum": 8192,
+          "minimum": 1,
+          "title": "Trimwidth",
+          "type": "integer"
+        },
+        "trimHeight": {
+          "maximum": 8192,
+          "minimum": 1,
+          "title": "Trimheight",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "originalWidth",
+        "originalHeight",
+        "trimX",
+        "trimY",
+        "trimWidth",
+        "trimHeight"
+      ],
+      "title": "RasterFrame",
+      "type": "object"
+    },
+    "SocketComponentFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "mountType": {
+          "const": "socket",
+          "title": "Mounttype",
+          "type": "string"
+        },
+        "point": {
+          "$ref": "#/$defs/Point"
+        },
+        "normal": {
+          "$ref": "#/$defs/Normal"
+        },
+        "referenceScale": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 2.0,
+          "title": "Referencescale",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mountType",
+        "point",
+        "normal",
+        "referenceScale"
+      ],
+      "title": "SocketComponentFrame",
+      "type": "object"
+    },
+    "SocketMountFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "title": "Id",
+          "type": "string"
+        },
+        "slotId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+          "title": "Slotid",
+          "type": "string"
+        },
+        "mountType": {
+          "const": "socket",
+          "title": "Mounttype",
+          "type": "string"
+        },
+        "point": {
+          "$ref": "#/$defs/Point"
+        },
+        "normal": {
+          "$ref": "#/$defs/Normal"
+        },
+        "referenceScale": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 2.0,
+          "title": "Referencescale",
+          "type": "number"
+        },
+        "constraints": {
+          "$ref": "#/$defs/TransformConstraints"
+        }
+      },
+      "required": [
+        "id",
+        "slotId",
+        "mountType",
+        "point",
+        "normal",
+        "referenceScale",
+        "constraints"
+      ],
+      "title": "SocketMountFrame",
+      "type": "object"
+    },
+    "TransformConstraints": {
+      "additionalProperties": false,
+      "properties": {
+        "minScale": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 8.0,
+          "title": "Minscale",
+          "type": "number"
+        },
+        "maxScale": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 8.0,
+          "title": "Maxscale",
+          "type": "number"
+        },
+        "minRotationDegrees": {
+          "maximum": 180.0,
+          "minimum": -180.0,
+          "title": "Minrotationdegrees",
+          "type": "number"
+        },
+        "maxRotationDegrees": {
+          "maximum": 180.0,
+          "minimum": -180.0,
+          "title": "Maxrotationdegrees",
+          "type": "number"
+        },
+        "maxNormalErrorDegrees": {
+          "maximum": 45.0,
+          "minimum": 0.0,
+          "title": "Maxnormalerrordegrees",
+          "type": "number"
+        },
+        "mirrorAllowed": {
+          "title": "Mirrorallowed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "minScale",
+        "maxScale",
+        "minRotationDegrees",
+        "maxRotationDegrees",
+        "maxNormalErrorDegrees",
+        "mirrorAllowed"
+      ],
+      "title": "TransformConstraints",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": "product-kit@1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "version": {
+      "const": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "packId": {
+      "maxLength": 80,
+      "minLength": 1,
+      "pattern": "^pk1-[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+      "title": "Packid",
+      "type": "string"
+    },
+    "catalogPackId": {
+      "maxLength": 80,
+      "minLength": 1,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])",
+      "title": "Catalogpackid",
+      "type": "string"
+    },
+    "catalogSha256": {
+      "pattern": "^[0-9a-f]{64}(?![\\s\\S])",
+      "title": "Catalogsha256",
+      "type": "string"
+    },
+    "pricingVersion": {
+      "const": "product-pricing@1",
+      "title": "Pricingversion",
+      "type": "string"
+    },
+    "connectorFormulaVersion": {
+      "const": "product-kit-connectors@1",
+      "title": "Connectorformulaversion",
+      "type": "string"
+    },
+    "kits": {
+      "items": {
+        "$ref": "#/$defs/Kit"
+      },
+      "maxItems": 10000,
+      "minItems": 1,
+      "title": "Kits",
+      "type": "array",
+      "x-canonicalOrder": "id",
+      "x-uniqueBy": "id"
+    },
+    "components": {
+      "items": {
+        "$ref": "#/$defs/Component"
+      },
+      "maxItems": 10000,
+      "title": "Components",
+      "type": "array",
+      "x-canonicalOrder": "id",
+      "x-uniqueBy": "id"
+    },
+    "certifications": {
+      "items": {
+        "$ref": "#/$defs/Certification"
+      },
+      "maxItems": 10000,
+      "title": "Certifications",
+      "type": "array",
+      "x-canonicalOrder": "id",
+      "x-uniqueBy": "id"
+    }
+  },
+  "required": [
+    "schema",
+    "version",
+    "packId",
+    "catalogPackId",
+    "catalogSha256",
+    "pricingVersion",
+    "connectorFormulaVersion",
+    "kits",
+    "components",
+    "certifications"
+  ],
+  "title": "Advertising Market product kit v1",
+  "type": "object"
+}

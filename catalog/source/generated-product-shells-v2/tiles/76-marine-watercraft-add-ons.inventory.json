@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 76,
+  "sourcePng": "76-marine-watercraft-add-ons.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Single canoe paddle", "tags": ["canoe paddle", "paddle", "watercraft component"]},
+    {"row": 1, "column": 2, "label": "Detachable canoe paddle", "tags": ["canoe paddle", "detachable paddle", "paddle"]},
+    {"row": 1, "column": 3, "label": "Matched rowing oars", "tags": ["oars", "rowing equipment", "watercraft component"]},
+    {"row": 1, "column": 4, "label": "Compact outboard motor", "tags": ["compact motor", "marine engine", "outboard motor"]},
+    {"row": 1, "column": 5, "label": "Tall outboard motor", "tags": ["marine engine", "outboard motor", "tall motor"]},
+    {"row": 2, "column": 1, "label": "Twin-outboard motor assembly", "tags": ["marine engine", "outboard motor", "twin outboard"]},
+    {"row": 2, "column": 2, "label": "Compact angular windshield", "tags": ["angular windshield", "boat windshield", "compact windshield"]},
+    {"row": 2, "column": 3, "label": "Wide wraparound windshield", "tags": ["boat windshield", "wide windshield", "wraparound windshield"]},
+    {"row": 2, "column": 4, "label": "Fabric bimini canopy", "tags": ["bimini", "boat canopy", "fabric canopy"]},
+    {"row": 2, "column": 5, "label": "Rigid T-top canopy", "tags": ["boat canopy", "rigid canopy", "t-top"]},
+    {"row": 3, "column": 1, "label": "Small boat cabin module", "tags": ["boat cabin", "cabin module", "marine component"]},
+    {"row": 3, "column": 2, "label": "Open steering-console module", "tags": ["boat console", "open console", "steering module"]},
+    {"row": 3, "column": 3, "label": "Single sailboat mast", "tags": ["mast", "sailboat component", "single mast"]},
+    {"row": 3, "column": 4, "label": "Triangular mainsail", "tags": ["mainsail", "sail", "triangular sail"]},
+    {"row": 3, "column": 5, "label": "Small triangular jib sail", "tags": ["jib sail", "sail", "triangular sail"]},
+    {"row": 4, "column": 1, "label": "Rudder assembly", "tags": ["rudder", "steering component", "watercraft component"]},
+    {"row": 4, "column": 2, "label": "Plain anchor", "tags": ["anchor", "marine equipment", "plain anchor"]},
+    {"row": 4, "column": 3, "label": "Folding swim ladder", "tags": ["boat ladder", "folding ladder", "swim ladder"]},
+    {"row": 4, "column": 4, "label": "Rear swim platform", "tags": ["boat platform", "rear platform", "swim platform"]},
+    {"row": 4, "column": 5, "label": "Cylindrical boat fenders", "tags": ["boat fenders", "cylindrical fenders", "marine equipment"]},
+    {"row": 5, "column": 1, "label": "Straight railing module", "tags": ["boat railing", "railing module", "straight railing"]},
+    {"row": 5, "column": 2, "label": "Fishing-rod rack", "tags": ["fishing equipment", "rod holder", "rod rack"]},
+    {"row": 5, "column": 3, "label": "Wakeboard tower", "tags": ["boat tower", "sports equipment", "wakeboard tower"]},
+    {"row": 5, "column": 4, "label": "Plain bench seat", "tags": ["bench seat", "boat seating", "plain seat"]},
+    {"row": 5, "column": 5, "label": "Blank hull-side panel insert", "tags": ["blank panel", "hull panel", "personalisation surface"]}
+  ]
+}

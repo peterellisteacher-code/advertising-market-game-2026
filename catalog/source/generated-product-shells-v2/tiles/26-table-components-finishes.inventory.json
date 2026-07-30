@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 26,
+  "sourcePng": "26-table-components-finishes.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Round tabletop", "tags": ["round top", "table add-on", "tabletop"]},
+    {"row": 1, "column": 2, "label": "Square tabletop", "tags": ["square top", "table add-on", "tabletop"]},
+    {"row": 1, "column": 3, "label": "Rectangular tabletop", "tags": ["rectangular top", "table add-on", "tabletop"]},
+    {"row": 1, "column": 4, "label": "Oval tabletop", "tags": ["oval top", "table add-on", "tabletop"]},
+    {"row": 1, "column": 5, "label": "Racetrack tabletop", "tags": ["racetrack top", "rounded rectangle", "tabletop"]},
+    {"row": 2, "column": 1, "label": "Thin rectangular slab tabletop", "tags": ["slab top", "table add-on", "thin tabletop"]},
+    {"row": 2, "column": 2, "label": "Thick rectangular slab tabletop", "tags": ["slab top", "table add-on", "thick tabletop"]},
+    {"row": 2, "column": 3, "label": "Live-edge timber slab tabletop", "tags": ["live-edge slab", "table add-on", "timber tabletop"]},
+    {"row": 2, "column": 4, "label": "Drop-leaf tabletop module", "tags": ["drop leaf", "table add-on", "tabletop module"]},
+    {"row": 2, "column": 5, "label": "Three-panel extension tabletop", "tags": ["extension panels", "extension top", "table add-on"]},
+    {"row": 3, "column": 1, "label": "Straight square-leg table base", "tags": ["square legs", "table base", "table legs"]},
+    {"row": 3, "column": 2, "label": "Tapered-leg table base", "tags": ["table base", "table legs", "tapered legs"]},
+    {"row": 3, "column": 3, "label": "Square table with turned legs", "tags": ["square table", "table", "turned legs"]},
+    {"row": 3, "column": 4, "label": "Hairpin-leg table base", "tags": ["hairpin legs", "metal legs", "table base"]},
+    {"row": 3, "column": 5, "label": "Sled-leg table base", "tags": ["metal legs", "sled base", "table base"]},
+    {"row": 4, "column": 1, "label": "Single-pedestal table base", "tags": ["pedestal base", "single pedestal", "table base"]},
+    {"row": 4, "column": 2, "label": "Double-pedestal table base", "tags": ["double pedestal", "pedestal base", "table base"]},
+    {"row": 4, "column": 3, "label": "Traditional trestle table base", "tags": ["table base", "traditional trestle", "trestle base"]},
+    {"row": 4, "column": 4, "label": "X-frame trestle table base", "tags": ["table base", "trestle base", "x-frame"]},
+    {"row": 4, "column": 5, "label": "Starburst-pedestal table base", "tags": ["pedestal base", "starburst base", "table base"]},
+    {"row": 5, "column": 1, "label": "Straight wood-grain finish swatch", "tags": ["finish swatch", "straight grain", "wood grain"]},
+    {"row": 5, "column": 2, "label": "Flowing wood-grain finish swatch", "tags": ["finish swatch", "flowing grain", "wood grain"]},
+    {"row": 5, "column": 3, "label": "Knotty wood-grain finish swatch", "tags": ["finish swatch", "knotty grain", "wood grain"]},
+    {"row": 5, "column": 4, "label": "Distressed whitewashed-wood swatch", "tags": ["distressed finish", "finish swatch", "whitewashed wood"]},
+    {"row": 5, "column": 5, "label": "Glossy plain finish swatch", "tags": ["finish swatch", "glossy surface", "plain finish"]}
+  ]
+}

@@ -1,0 +1,1428 @@
+extends RefCounted
+class_name AdMarketTestGameShell
+
+const MainScene = preload("res://src/main/Main.tscn")
+const FakeCreatorTransport = preload("res://tests/fakes/fake_creator_transport.gd")
+const FakeMarketTransport = preload("res://tests/fakes/fake_market_transport.gd")
+const FakePracticeTransport = preload("res://tests/fakes/fake_practice_transport.gd")
+const AutoPracticeTransport = preload("res://tests/fakes/auto_practice_transport.gd")
+
+var _market_png_cache: String = ""
+
+func run() -> bool:
+	assert(_agency_world_replaces_the_run_panel_and_coordinates_roles())
+	assert(_authored_shell_is_fun_first_and_accessible())
+	assert(_live_room_routes_are_primary_and_accessible())
+	assert(_instructions_remain_available_as_a_complete_reference())
+	assert(_practice_start_and_lock_wait_for_storage_ack())
+	assert(_ambiguous_practice_failure_reuses_operation_id())
+	assert(_startup_restores_an_exact_locked_pitch())
+	assert(_invalid_startup_recovery_keeps_the_lobby_usable())
+	assert(_late_startup_recovery_cannot_overwrite_a_live_room())
+	assert(_late_join_cannot_overwrite_acknowledged_practice())
+	assert(_late_create_cannot_overwrite_acknowledged_practice())
+	assert(_late_join_cannot_overwrite_acknowledged_teacher_room())
+	assert(_team_join_starts_the_three_levels_with_a_room_document())
+	assert(_host_defaults_open_a_teacher_dashboard())
+	assert(_campaign_moves_gate_each_level())
+	assert(_returned_editor_state_is_reopened_verbatim())
+	assert(_closed_studio_reopens_to_publish_and_enters_the_market())
+	assert(_room_publication_waits_for_review_and_reopens_returned_work())
+	assert(_room_errors_are_distinct_and_safe())
+	return true
+
+func _agency_world_replaces_the_run_panel_and_coordinates_roles() -> bool:
+	var practice_fake := FakePracticeTransport.new()
+	var shell := _mount_shell(FakeCreatorTransport.new(), null, practice_fake)
+	var agency := shell.get_node_or_null("%AgencyWorld") as Node2D
+	assert(agency != null)
+	assert(not agency.visible)
+	practice_fake.resolve_success("practice-1", null)
+	(shell.get_node("%TeamAlias") as LineEdit).text = "North Star Studio"
+	(shell.get_node("%StartRun") as Button).pressed.emit()
+	var begin_request: Dictionary = practice_fake.request_for("practice-2")
+	practice_fake.resolve_success(
+		"practice-2",
+		_practice_recovery(
+			shell,
+			"invent",
+			false,
+			0,
+			0,
+			String(Dictionary(begin_request.get("payload")).get("operationId")),
+		),
+	)
+	var progress_request := practice_fake.request_for("practice-3")
+	assert(progress_request.get("method") == "saveProgress")
+	var progress_payload: Dictionary = progress_request.get("payload")
+	var saved_progress := _practice_recovery(
+		shell,
+		"invent",
+		false,
+		1,
+		1,
+		String(progress_payload.get("operationId")),
+	)
+	saved_progress["checkpoint"]["pitch"] = Dictionary(progress_payload.get("pitch")).duplicate(true)
+	practice_fake.resolve_success("practice-3", saved_progress)
+	assert(agency.visible)
+	assert(not (shell.get_node("%RunPanel") as Control).visible)
+	shell.call("_process", 0.0)
+	var mirror := shell.get("_accessibility_mirror") as RefCounted
+	var accessibility: Dictionary = JSON.parse_string(String(mirror.get("_last_payload")))
+	assert(accessibility.get("eyebrow") == "AGENCY CAMPAIGN")
+	assert(String(accessibility.get("heading")).contains("Create and pitch one persuasive advertisement"))
+	assert(String(accessibility.get("currentInstruction")).contains("Current objective:"))
+	assert(String(accessibility.get("currentInstruction")).contains("Active role:"))
+	assert(not String(mirror.get("_last_payload")).contains("LIVE MARKET"))
+	var pair := agency.get_node("%AgencyPair") as AdMarketAgencyPair
+	assert(pair.input_enabled)
+	var prior_station: String = agency.current_station_id()
+	shell.call("_on_creator_opened")
+	assert(not pair.input_enabled)
+	var refreshed_document := _invent_ready_document(shell)
+	shell.call("_on_creator_state_received", refreshed_document)
+	var refresh_request := practice_fake.request_for("practice-4")
+	assert(refresh_request.get("method") == "resume")
+	practice_fake.resolve_success(
+		"practice-4",
+		_practice_recovery(
+			shell,
+			"invent",
+			false,
+			1,
+			1,
+			"creator-refresh-1",
+			refreshed_document,
+		),
+	)
+	shell.call("_on_creator_closed")
+	assert(pair.input_enabled)
+	assert(agency.current_station_id() == prior_station)
+	shell.call("_on_agency_role_handoff_requested", "strategist")
+	var pending_request := practice_fake.request_for("practice-5")
+	assert(pending_request.get("method") == "saveProgress")
+	var queued_pitch: Dictionary = shell.get("_queued_practice_pitch")
+	assert(queued_pitch.get("activeRole") == "strategist")
+	var document: Dictionary = shell.get("_campaign_document")
+	var pair_state: Dictionary = Dictionary(Dictionary(document.get("gameplay")).get("pair"))
+	assert(pair_state.get("activeRole") == "strategist")
+	shell.free()
+	return true
+
+func _practice_start_and_lock_wait_for_storage_ack() -> bool:
+	var creator_fake := FakeCreatorTransport.new()
+	var practice_fake := FakePracticeTransport.new()
+	var shell := _mount_shell(creator_fake, null, practice_fake)
+	var start := shell.get_node("%StartRun") as Button
+	var lobby := shell.get_node("%LobbyPanel") as Control
+	var advance := shell.get_node("%AdvanceLevel") as Button
+	assert(not start.disabled)
+	assert(practice_fake.request_count() == 1)
+	var resume_id := String(practice_fake.request_for("practice-1").get("requestId"))
+	assert(practice_fake.request_for(resume_id).get("method") == "resume")
+	practice_fake.resolve_success(resume_id, null)
+	assert(not start.disabled)
+
+	(shell.get_node("%TeamAlias") as LineEdit).text = "Signal Foxes"
+	start.pressed.emit()
+	var begin_id := "practice-2"
+	var begin_request := practice_fake.request_for(begin_id)
+	assert(begin_request.get("method") == "begin")
+	assert(lobby.visible)
+	assert((shell.get("_game_run") as RefCounted).phase == "lobby")
+	var begun := _practice_recovery(
+		shell,
+		"invent",
+		false,
+		0,
+		0,
+		String(Dictionary(begin_request.get("payload")).get("operationId"))
+	)
+	practice_fake.resolve_success(begin_id, begun)
+	var initial_progress_id := "practice-3"
+	var initial_progress_request := practice_fake.request_for(initial_progress_id)
+	assert(initial_progress_request.get("method") == "saveProgress")
+	var initial_progress_payload: Dictionary = initial_progress_request.get("payload")
+	var begun_with_progress := _practice_recovery(
+		shell,
+		"invent",
+		false,
+		1,
+		1,
+		String(initial_progress_payload.get("operationId"))
+	)
+	begun_with_progress["checkpoint"]["pitch"] = Dictionary(
+		initial_progress_payload.get("pitch")
+	).duplicate(true)
+	practice_fake.resolve_success(initial_progress_id, begun_with_progress)
+	assert(not lobby.visible)
+	assert((shell.get("_game_run") as RefCounted).phase == "invent")
+	assert(str(Dictionary(shell.get("_campaign_document")).get("documentId")) != "classroom-campaign")
+	assert((shell.get_node("%LaunchCreator") as Button).visible)
+	assert(not (shell.get_node("%LockLevel") as Button).visible)
+	assert(not advance.visible)
+
+	var ready := _invent_ready_document(shell)
+	ready["revision"] = 1
+	var prior_document: Dictionary = Dictionary(shell.get("_campaign_document")).duplicate(true)
+	shell.call("_on_creator_state_received", ready)
+	var refresh_id := "practice-4"
+	assert(practice_fake.request_for(refresh_id).get("method") == "resume")
+	assert(shell.get("_campaign_document") == prior_document)
+	assert(shell.get_node("%Status").text == "Checking the saved campaign.")
+	var ready_pitch := AdMarketAgencyProgress.from_legacy_pitch("sell", [])
+	ready_pitch["activeRole"] = "strategist"
+	ready_pitch["handoffCount"] = 1
+	var ready_recovery := _practice_recovery(
+		shell,
+		"invent",
+		false,
+		1,
+		1,
+		"autosave-1",
+		ready
+	)
+	ready_recovery["checkpoint"]["pitch"] = ready_pitch
+	practice_fake.resolve_success(refresh_id, ready_recovery)
+	var acknowledged_recovery: Dictionary = shell.get("_practice_recovery")
+	var acknowledged_checkpoint: Dictionary = acknowledged_recovery.get("checkpoint", {})
+	assert(
+		practice_fake.request_count() == 4,
+		"Equivalent JSON pitch triggered an extra practice save"
+	)
+	var acknowledged: Dictionary = shell.get("_campaign_document")
+	assert(String(Dictionary(acknowledged.get("product")).get("name")) == "Orbit Bottle")
+	assert((shell.get_node("%LockLevel") as Button).visible)
+	assert(not advance.visible)
+	(shell.get_node("%LockLevel") as Button).pressed.emit()
+	var lock_id := "practice-5"
+	var lock_request := practice_fake.request_for(lock_id)
+	assert(lock_request.get("method") == "setLock")
+	assert(not bool(shell.get("_level_locked")))
+	assert(advance.disabled)
+	var lock_payload: Dictionary = lock_request.get("payload")
+	var lock_checkpoint: Dictionary = lock_payload.get("checkpoint")
+	var locked := _practice_recovery(
+		shell,
+		"invent",
+		true,
+		int(lock_checkpoint.get("documentRevision")) + 1,
+		int(lock_checkpoint.get("sequence")) + 1,
+		String(lock_payload.get("operationId")),
+		ready
+	)
+	locked["checkpoint"]["pitch"] = Dictionary(
+		acknowledged_checkpoint.get("pitch")
+	).duplicate(true)
+	practice_fake.resolve_success(lock_id, locked)
+	assert(
+		bool(shell.get("_level_locked")),
+		"Lock response rejected: %s" % (shell.get_node("%Status") as Label).text
+	)
+	assert(not advance.disabled)
+	assert(advance.visible)
+	assert(not (shell.get_node("%LaunchCreator") as Button).visible)
+	assert(not (shell.get_node("%LockLevel") as Button).visible)
+	shell.free()
+	return true
+
+func _startup_restores_an_exact_locked_pitch() -> bool:
+	var practice_fake := FakePracticeTransport.new()
+	var shell := _mount_shell(FakeCreatorTransport.new(), null, practice_fake)
+	var document: Dictionary = shell.call("_blank_campaign_document")
+	document["documentId"] = "practice-document-restored"
+	document["sessionId"] = "practice-session-restored"
+	document["teamId"] = "practice-team-restored"
+	document["revision"] = 7
+	document["gameplay"]["stage"] = "sell"
+	document = _sell_ready_document(document)
+	var recovery := _practice_recovery(
+		shell,
+		"sell",
+		true,
+		7,
+		9,
+		"restore-operation",
+		document
+	)
+	var exact_progress := AdMarketAgencyProgress.new()
+	assert(exact_progress.begin())
+	assert(exact_progress.handoff_to("strategist"))
+	exact_progress.current_station_id = "production-studio"
+	exact_progress.guide_tucked = true
+	exact_progress.orientation_acknowledged = true
+	exact_progress.audio_settings = {
+		"enabled": true,
+		"musicEnabled": false,
+		"sfxEnabled": true,
+		"masterVolume": 0.4,
+	}
+	var exact_pitch := exact_progress.snapshot()
+	recovery["checkpoint"]["pitch"] = exact_pitch.duplicate(true)
+	practice_fake.resolve_success("practice-1", recovery)
+	var run: RefCounted = shell.get("_game_run")
+	assert(run.phase == "sell")
+	assert(run.is_current_level_ready())
+	assert(run.agency_progress().snapshot() == exact_pitch)
+	assert(bool(shell.get("_level_locked")))
+	var restored: Dictionary = shell.get("_campaign_document")
+	assert(String(restored.get("documentId")) == "practice-document-restored")
+	assert(int(restored.get("revision")) == 7)
+	assert(String(Dictionary(restored.get("gameplay")).get("stage")) == "sell")
+	assert(
+		String(Dictionary(Dictionary(restored.get("strategy")).get("aidaPlan")).get("action"))
+		== "Grab yours before the buzzer."
+	)
+	assert(not (shell.get_node("%LobbyPanel") as Control).visible)
+	assert((shell.get_node("%AgencyWorld") as Node2D).visible)
+	assert(not (shell.get_node("%RunPanel") as Control).visible)
+	assert((shell.get_node("%LockLevel") as Button).disabled)
+	assert(not (shell.get_node("%AdvanceLevel") as Button).disabled)
+	assert(not (shell.get_node("%LaunchCreator") as Button).visible)
+	assert(not (shell.get_node("%LockLevel") as Button).visible)
+	assert((shell.get_node("%AdvanceLevel") as Button).visible)
+	shell.free()
+	return true
+
+func _ambiguous_practice_failure_reuses_operation_id() -> bool:
+	var practice_fake := FakePracticeTransport.new()
+	var shell := _mount_shell(FakeCreatorTransport.new(), null, practice_fake)
+	practice_fake.resolve_success("practice-1", null)
+	(shell.get_node("%TeamAlias") as LineEdit).text = "Retry Ravens"
+	(shell.get_node("%StartRun") as Button).pressed.emit()
+	var first_request := practice_fake.request_for("practice-2")
+	var first_operation_id := String(Dictionary(first_request.get("payload")).get("operationId"))
+	assert(not first_operation_id.is_empty())
+	practice_fake.reject_request("practice-2", "Response vanished after the durable write")
+	assert((shell.get_node("%LobbyPanel") as Control).visible)
+
+	(shell.get_node("%StartRun") as Button).pressed.emit()
+	var retry_request := practice_fake.request_for("practice-3")
+	assert(retry_request.get("method") == "begin")
+	assert(String(Dictionary(retry_request.get("payload")).get("operationId")) == first_operation_id)
+	practice_fake.resolve_success(
+		"practice-3",
+		_practice_recovery(shell, "invent", false, 0, 0, first_operation_id)
+	)
+	assert(String((shell.get("_game_run") as RefCounted).phase) == "invent")
+	assert((shell.get_node("%AgencyWorld") as Node2D).visible)
+	assert(not (shell.get_node("%RunPanel") as Control).visible)
+	shell.free()
+	return true
+
+func _invalid_startup_recovery_keeps_the_lobby_usable() -> bool:
+	var practice_fake := FakePracticeTransport.new()
+	var shell := _mount_shell(FakeCreatorTransport.new(), null, practice_fake)
+	var invalid := _practice_recovery(
+		shell,
+		"invent",
+		true,
+		4,
+		6,
+        "invalid-locked-not-ready"
+	)
+	practice_fake.resolve_success("practice-1", invalid)
+	assert((shell.get_node("%LobbyPanel") as Control).visible)
+	assert(not (shell.get_node("%StartRun") as Button).disabled)
+	assert(not (shell.get_node("%RunPanel") as Control).visible)
+	assert(Dictionary(shell.get("_practice_recovery")).is_empty())
+	assert(String(Dictionary(shell.get("_campaign_document")).get("documentId")) == "classroom-campaign")
+	assert(
+		(shell.get_node("%Status") as Label).text
+		== "Saved progress could not be verified. Data unchanged. Start fresh, or join live."
+	)
+	shell.free()
+	return true
+
+func _late_startup_recovery_cannot_overwrite_a_live_room() -> bool:
+	var practice_fake := FakePracticeTransport.new()
+	var market_fake := FakeMarketTransport.new()
+	var shell := _mount_shell(FakeCreatorTransport.new(), market_fake, practice_fake)
+	(shell.get_node("%TeamAlias") as LineEdit).text = "Live Lynxes"
+	(shell.get_node("%RoomCode") as LineEdit).text = "ABC-234"
+	(shell.get_node("%JoinLiveMarket") as Button).pressed.emit()
+	var join_id: String = market_fake.last_request_id()
+	market_fake.resolve_success(join_id, {
+		"role": "team",
+		"roomCode": "ABC-234",
+		"snapshot": _team_market_snapshot()
+	})
+	var room_document: Dictionary = Dictionary(shell.get("_campaign_document")).duplicate(true)
+	var late_document: Dictionary = shell.call("_blank_campaign_document")
+	late_document["documentId"] = "late-practice-document"
+	late_document["sessionId"] = "late-practice-session"
+	late_document["teamId"] = "late-practice-team"
+	late_document["revision"] = 8
+	late_document["gameplay"]["stage"] = "sell"
+	late_document = _sell_ready_document(late_document)
+	practice_fake.resolve_success(
+		"practice-1",
+		_practice_recovery(shell, "sell", true, 8, 10, "late-startup", late_document)
+	)
+	var after_late: Dictionary = shell.get("_campaign_document")
+	assert(after_late == room_document)
+	assert(String(shell.get("_room_role")) == "team")
+	assert(String(shell.get("_room_code")) == "ABC-234")
+	assert(String((shell.get("_game_run") as RefCounted).phase) == "invent")
+	assert(Dictionary(shell.get("_practice_recovery")).is_empty())
+	shell.free()
+	return true
+
+func _late_join_cannot_overwrite_acknowledged_practice() -> bool:
+	var practice_fake := FakePracticeTransport.new()
+	var market_fake := FakeMarketTransport.new()
+	var shell := _mount_shell(FakeCreatorTransport.new(), market_fake, practice_fake)
+	practice_fake.resolve_success("practice-1", null)
+	(shell.get_node("%TeamAlias") as LineEdit).text = "Practice Puffins"
+	(shell.get_node("%RoomCode") as LineEdit).text = "ABC-234"
+	(shell.get_node("%JoinLiveMarket") as Button).pressed.emit()
+	var old_join_id := market_fake.last_request_id()
+	assert(market_fake.request_for(old_join_id).get("method") == "joinRoom")
+
+	(shell.get_node("%StartRun") as Button).pressed.emit()
+	var begin_id := "practice-2"
+	var begin_request := practice_fake.request_for(begin_id)
+	assert(begin_request.get("method") == "begin")
+	practice_fake.resolve_success(
+		begin_id,
+		_practice_recovery(
+			shell,
+			"invent",
+			false,
+			0,
+			0,
+			String(Dictionary(begin_request.get("payload")).get("operationId"))
+		)
+	)
+	var practice_document: Dictionary = Dictionary(shell.get("_campaign_document")).duplicate(true)
+	assert(String((shell.get("_game_run") as RefCounted).phase) == "invent")
+	assert(String(practice_document.get("mode")) == "offline")
+
+	market_fake.resolve_success(old_join_id, {
+		"role": "team",
+		"roomCode": "ABC-234",
+		"snapshot": _team_market_snapshot()
+	})
+	assert(String((shell.get("_game_run") as RefCounted).phase) == "invent")
+	assert(Dictionary(shell.get("_campaign_document")) == practice_document)
+	assert(String(shell.get("_room_role")).is_empty())
+	assert(String(shell.get("_room_code")).is_empty())
+	assert(not (shell.get_node("%LobbyPanel") as Control).visible)
+	assert((shell.get_node("%AgencyWorld") as Node2D).visible)
+	assert(not (shell.get_node("%RunPanel") as Control).visible)
+	shell.free()
+	return true
+
+func _late_join_cannot_overwrite_acknowledged_teacher_room() -> bool:
+	var market_fake := FakeMarketTransport.new()
+	var shell := _mount_shell(FakeCreatorTransport.new(), market_fake)
+	(shell.get_node("%TeamAlias") as LineEdit).text = "Live Lynxes"
+	(shell.get_node("%RoomCode") as LineEdit).text = "ABC-234"
+	(shell.get_node("%JoinLiveMarket") as Button).pressed.emit()
+	var old_join_id := market_fake.last_request_id()
+	(shell.get_node("%ClassroomCode") as LineEdit).text = "teacher-code-7"
+	(shell.get_node("%CreateLiveMarket") as Button).pressed.emit()
+	var create_id := market_fake.last_request_id()
+	assert(create_id != old_join_id)
+	assert(market_fake.request_for(create_id).get("method") == "createRoom")
+	var teacher_snapshot := _teacher_market_snapshot()
+	market_fake.resolve_success(create_id, {
+		"role": "teacher",
+		"roomCode": "DEF-567",
+		"snapshot": teacher_snapshot
+	})
+	assert(String(shell.get("_room_role")) == "teacher")
+	assert(Dictionary(shell.get("_latest_market_snapshot")) == teacher_snapshot)
+
+	market_fake.resolve_success(old_join_id, {
+		"role": "team",
+		"roomCode": "ABC-234",
+		"snapshot": _team_market_snapshot()
+	})
+	assert(String(shell.get("_room_role")) == "teacher")
+	assert(String(shell.get("_room_code")) == "DEF-567")
+	assert(Dictionary(shell.get("_latest_market_snapshot")) == teacher_snapshot)
+	assert((shell.get_node("%MarketScreen") as Control).visible)
+	assert(not (shell.get_node("%RunPanel") as Control).visible)
+	shell.free()
+	return true
+
+func _late_create_cannot_overwrite_acknowledged_practice() -> bool:
+	var practice_fake := FakePracticeTransport.new()
+	var market_fake := FakeMarketTransport.new()
+	var shell := _mount_shell(FakeCreatorTransport.new(), market_fake, practice_fake)
+	practice_fake.resolve_success("practice-1", null)
+	(shell.get_node("%ClassroomCode") as LineEdit).text = "teacher-code-old"
+	(shell.get_node("%CreateLiveMarket") as Button).pressed.emit()
+	var old_create_id := market_fake.last_request_id()
+	assert(market_fake.request_for(old_create_id).get("method") == "createRoom")
+
+	(shell.get_node("%TeamAlias") as LineEdit).text = "Practice Puffins"
+	(shell.get_node("%StartRun") as Button).pressed.emit()
+	var begin_request := practice_fake.request_for("practice-2")
+	practice_fake.resolve_success(
+		"practice-2",
+		_practice_recovery(
+			shell,
+			"invent",
+			false,
+			0,
+			0,
+			String(Dictionary(begin_request.get("payload")).get("operationId"))
+		)
+	)
+	var practice_document: Dictionary = Dictionary(shell.get("_campaign_document")).duplicate(true)
+	market_fake.resolve_success(old_create_id, {
+		"role": "teacher",
+		"roomCode": "DDD-555",
+		"snapshot": _teacher_market_snapshot()
+	})
+	assert(String(shell.get("_room_role")).is_empty())
+	assert(String(shell.get("_room_code")).is_empty())
+	assert(Dictionary(shell.get("_campaign_document")) == practice_document)
+	assert(String((shell.get("_game_run") as RefCounted).phase) == "invent")
+	assert((shell.get_node("%AgencyWorld") as Node2D).visible)
+	assert(not (shell.get_node("%RunPanel") as Control).visible)
+	assert(not (shell.get_node("%MarketScreen") as Control).visible)
+	shell.free()
+	return true
+
+func _authored_shell_is_fun_first_and_accessible() -> bool:
+	var shell: Control = MainScene.instantiate() as Control
+	var lobby := shell.get_node("%LobbyPanel") as Control
+	var run_panel := shell.get_node("%RunPanel") as Control
+	var heading := shell.get_node("%LevelHeading") as Label
+	var lock := shell.get_node("%LockLevel") as Button
+	var advance := shell.get_node("%AdvanceLevel") as Button
+	var publish := shell.get_node("%PublishCampaign") as Button
+	var start := shell.get_node("%StartRun") as Button
+	var join_live := shell.get_node("%JoinLiveMarket") as Button
+	var create_live := shell.get_node("%CreateLiveMarket") as Button
+	var launch := shell.get_node("%LaunchCreator") as Button
+	var review_instructions := shell.get_node("%ReviewInstructions") as Button
+	var role_guide := shell.get_node("%RoleGuide") as Button
+	var enter_market := shell.get_node("%EnterMarket") as Button
+	var hero_copy := shell.get_node("MainMargin/GameInput/HeroCopy") as Label
+
+	assert(lobby.visible)
+	assert(run_panel.visible)
+	assert(not hero_copy.visible)
+	assert(hero_copy.text.contains("Level 1"))
+	assert(heading.text.contains("matches the audience need"))
+	assert(lock.text == "Lock this level")
+	assert(advance.text == "Next level")
+	assert(advance.disabled)
+	assert(publish.visible)
+	assert(review_instructions.text == "Review all instructions")
+	assert(review_instructions.focus_mode == Control.FOCUS_ALL)
+	assert(role_guide.text == "Role guide")
+	assert(role_guide.focus_mode == Control.FOCUS_ALL)
+	assert(enter_market.text == "Enter market")
+	assert(not enter_market.visible)
+	assert((shell.get_node("MainMargin/GameInput/RunPanel/RunContent") as VBoxContainer).alignment == BoxContainer.ALIGNMENT_CENTER)
+
+	var accessible_normal := Color("#b63a15")
+	var accessible_hover := Color("#c3471b")
+	for button in [start, create_live, launch, publish]:
+		var normal := button.get_theme_stylebox("normal") as StyleBoxFlat
+		var hover := button.get_theme_stylebox("hover") as StyleBoxFlat
+		assert(normal != null)
+		assert(hover != null)
+		assert(normal.bg_color.is_equal_approx(accessible_normal))
+		assert(hover.bg_color.is_equal_approx(accessible_hover))
+		assert(_contrast_with_white(normal.bg_color) >= 4.5)
+		assert(_contrast_with_white(hover.bg_color) >= 4.5)
+
+	assert(start.text == "Practice on this computer")
+	var join_style := join_live.get_theme_stylebox("normal") as StyleBoxFlat
+	var join_hover_style := join_live.get_theme_stylebox("hover") as StyleBoxFlat
+	assert(join_style != null)
+	assert(join_hover_style != null)
+	assert(join_style.bg_color.is_equal_approx(Color("#17212b")))
+	assert(join_hover_style.bg_color.is_equal_approx(Color("#17212b")))
+	assert(_contrast_with_white(join_style.bg_color) >= 4.5)
+
+	shell.free()
+	return true
+
+func _live_room_routes_are_primary_and_accessible() -> bool:
+	var shell: Control = MainScene.instantiate() as Control
+	var alias := shell.get_node("%TeamAlias") as LineEdit
+	var room_code := shell.get_node("%RoomCode") as LineEdit
+	var join_live := shell.get_node("%JoinLiveMarket") as Button
+	var classroom_code := shell.get_node("%ClassroomCode") as LineEdit
+	var max_teams := shell.get_node("%MaxTeams") as SpinBox
+	var create_live := shell.get_node("%CreateLiveMarket") as Button
+	var practice := shell.get_node("%StartRun") as Button
+	assert(alias.placeholder_text.contains("Neon Narwhals"))
+	assert(room_code.placeholder_text == "ABC-234")
+	assert(room_code.max_length == 7)
+	assert(join_live.text == "Join the live market")
+	assert(classroom_code.secret)
+	assert(shell.find_child("OpeningWalletBucks", true, false) == null)
+	assert(shell.find_child("WalletField", true, false) == null)
+	assert(max_teams.value == 15.0)
+	assert(max_teams.min_value == 3.0 and max_teams.max_value == 30.0)
+	assert(create_live.text == "Open a class market")
+	assert(practice.text == "Practice on this computer")
+	for control in [alias, room_code, join_live, classroom_code, max_teams, create_live, practice]:
+		assert((control as Control).custom_minimum_size.y >= 44.0)
+	shell.free()
+	return true
+
+func _instructions_remain_available_as_a_complete_reference() -> bool:
+	var shell := _mount_shell(FakeCreatorTransport.new())
+	var review_instructions := shell.get_node("%ReviewInstructions") as Button
+	var instructions_dialog := shell.get_node("%InstructionsDialog") as AcceptDialog
+	var instructions_text := shell.get_node("%InstructionsText") as RichTextLabel
+	var role_guide := shell.get_node("%RoleGuide") as Button
+	var role_dialog := shell.get_node("%RoleGuideDialog") as AcceptDialog
+	var role_text := shell.get_node("%RoleGuideText") as RichTextLabel
+	assert(
+		review_instructions.pressed.is_connected(Callable(shell, "_show_instructions"))
+	)
+	assert(role_guide.pressed.is_connected(Callable(shell, "_show_role_guide")))
+	assert(not instructions_dialog.visible)
+	assert(not role_dialog.visible)
+	assert(instructions_dialog.title == "Advertising campaign instructions")
+	assert(role_dialog.title == "Pair role guide")
+	assert(instructions_text.focus_mode == Control.FOCUS_ALL)
+	for section in [
+		"Audience and product",
+		"Product and advertisement",
+		"Advertisement and credible offer",
+		"Final judgement",
+        "Overall conclusion"
+	]:
+		assert(instructions_text.text.contains(section))
+	for required in [
+		"The same controls are available to both partners",
+		"The roles do not unlock different buttons",
+		"Art Director: leads visual decisions",
+		"Strategist: leads message and offer decisions",
+        "Swapping roles changes the active responsibility"
+	]:
+		assert(role_text.text.contains(required))
+	instructions_dialog.hide()
+	shell.free()
+	return true
+
+func _team_join_starts_the_three_levels_with_a_room_document() -> bool:
+	var creator_fake := FakeCreatorTransport.new()
+	var market_fake := FakeMarketTransport.new()
+	var shell := _mount_shell(creator_fake, market_fake)
+	(shell.get_node("%TeamAlias") as LineEdit).text = "Signal Foxes"
+	(shell.get_node("%RoomCode") as LineEdit).text = "ABC-234"
+	(shell.get_node("%JoinLiveMarket") as Button).pressed.emit()
+	var join_id: String = market_fake.last_request_id()
+	var request := market_fake.request_for(join_id)
+	assert(request.get("method") == "joinRoom")
+	assert(request.get("payload") == {"roomCode": "ABC-234", "alias": "Signal Foxes"})
+	var snapshot := _team_market_snapshot()
+	market_fake.resolve_success(join_id, {
+		"role": "team",
+		"roomCode": "ABC-234",
+		"snapshot": snapshot
+	})
+
+	var game_run: RefCounted = shell.get("_game_run")
+	assert(game_run.phase == "invent")
+	assert(game_run.team_id == "team-a")
+	assert(game_run.session_id == "room-session-team-a")
+	var document: Dictionary = shell.get("_campaign_document")
+	assert(document.get("mode") == "room")
+	assert(document.get("roomId") == "room-a")
+	assert(document.get("teamId") == "team-a")
+	assert(document.get("sessionId") == "room-session-team-a")
+	assert(document.get("documentId") == "room-room-a-team-team-a-campaign")
+	assert(not (shell.get_node("%LobbyPanel") as Control).visible)
+	assert((shell.get_node("%AgencyWorld") as Node2D).visible)
+	assert(not (shell.get_node("%RunPanel") as Control).visible)
+	assert(not (shell.get_node("%MarketScreen") as Control).visible)
+	shell.free()
+	return true
+
+func _host_defaults_open_a_teacher_dashboard() -> bool:
+	var creator_fake := FakeCreatorTransport.new()
+	var market_fake := FakeMarketTransport.new()
+	var shell := _mount_shell(creator_fake, market_fake)
+	var host_area := shell.get_node("%HostArea") as Control
+	var teacher_setup := shell.get_node("%TeacherSetupToggle") as Button
+	assert(not host_area.visible)
+	assert(teacher_setup.text == "Teacher setup")
+	teacher_setup.pressed.emit()
+	assert(host_area.visible)
+	assert(teacher_setup.text == "Hide teacher setup")
+	assert((shell.get_node("MainMargin/GameInput/BrandRow/PlayMode") as Label).text == "PAIR PLAY  •  ONE MACBOOK")
+	(shell.get_node("%ClassroomCode") as LineEdit).text = "teacher-code-7"
+	(shell.get_node("%CreateLiveMarket") as Button).pressed.emit()
+	var create_id: String = market_fake.last_request_id()
+	var request := market_fake.request_for(create_id)
+	assert(request.get("method") == "createRoom")
+	assert(request.get("payload") == {
+		"openingWallet": 10000.0,
+		"classroomCode": "teacher-code-7",
+		"maxTeams": 15.0
+	})
+	market_fake.resolve_success(create_id, {
+		"role": "teacher",
+		"roomCode": "ABC-234",
+		"snapshot": _teacher_market_snapshot()
+	})
+	var market_screen := shell.get_node("%MarketScreen") as Control
+	assert(not (shell.get_node("%LobbyPanel") as Control).visible)
+	assert(market_screen.visible)
+	assert((market_screen.get_node("%MarketRoomCode") as Label).text == "ABC-234")
+	assert((market_screen.get_node("%TeacherSurface") as Control).visible)
+	shell.free()
+	return true
+
+func _campaign_moves_gate_each_level() -> bool:
+	var fake := FakeCreatorTransport.new()
+	var shell := _mount_shell(fake)
+	var alias := shell.get_node("%TeamAlias") as LineEdit
+	var start := shell.get_node("%StartRun") as Button
+	var lock := shell.get_node("%LockLevel") as Button
+	var advance := shell.get_node("%AdvanceLevel") as Button
+	var status := shell.get_node("%Status") as Label
+	alias.text = "Signal Foxes"
+	start.pressed.emit()
+
+	var invent_ready := _invent_ready_document(shell)
+	for case in [
+		{"document": _with_product_name(invent_ready, "   "), "expected": "Next: add a product name."},
+		{"document": _with_product_build(invent_ready, null), "expected": "Next: build a product in the studio."},
+		{"document": _with_audience(invent_ready, "   "), "expected": "Next: choose an audience signal."}
+	]:
+		var invent_incomplete_document: Dictionary = case.get("document")
+		var expected_invent_clue: String = case.get("expected")
+		_deliver_saved_creator_state(shell, invent_incomplete_document)
+		lock.pressed.emit()
+		assert(status.text == expected_invent_clue)
+		assert(not bool(shell.get("_level_locked")))
+		assert(advance.disabled)
+
+	var solo_invent := invent_ready.duplicate(true)
+	solo_invent["gameplay"]["pair"] = {
+		"activeRole": "art-director",
+		"handoffCount": 0,
+		"artDirectorActions": 1,
+		"strategistActions": 0
+	}
+	_deliver_saved_creator_state(shell, solo_invent)
+	lock.pressed.emit()
+	assert(
+		status.text == "Next: swap roles once.",
+		"Unexpected readiness status: %s" % status.text
+	)
+	assert(not bool(shell.get("_level_locked")))
+	assert(advance.disabled)
+
+	invent_ready = _deliver_saved_creator_state(shell, invent_ready)
+	lock.pressed.emit()
+	assert(status.text == _agency_mission_gate_clue())
+	assert(not bool(shell.get("_level_locked")))
+	assert(advance.disabled)
+	_complete_required_missions(shell, ["audience-brief", "salience", "reading-path"])
+	lock.pressed.emit()
+	assert(bool(shell.get("_level_locked")))
+	assert(not advance.disabled)
+	advance.pressed.emit()
+
+	var sell_ready := _sell_ready_document(invent_ready)
+	for move in ["attention", "interest", "desire", "action"]:
+		var incomplete := sell_ready.duplicate(true)
+		incomplete["strategy"]["aidaPlan"][move] = "   "
+		_deliver_saved_creator_state(shell, incomplete)
+		lock.pressed.emit()
+		assert(status.text == "Next: link one choice to %s." % move.capitalize())
+		assert(not bool(shell.get("_level_locked")))
+		assert(advance.disabled)
+
+		incomplete = sell_ready.duplicate(true)
+		incomplete["evidence"][move] = []
+		_deliver_saved_creator_state(shell, incomplete)
+		lock.pressed.emit()
+		assert(status.text == "Next: link one choice to %s." % move.capitalize())
+		assert(not bool(shell.get("_level_locked")))
+		assert(advance.disabled)
+
+	sell_ready = _deliver_saved_creator_state(shell, sell_ready)
+	lock.pressed.emit()
+	assert(status.text == _agency_mission_gate_clue())
+	assert(not bool(shell.get("_level_locked")))
+	assert(advance.disabled)
+	_complete_required_missions(shell, ["contrast", "framing", "aida"])
+	lock.pressed.emit()
+	assert(bool(shell.get("_level_locked")))
+	assert(not advance.disabled)
+
+	var regressed_sell := sell_ready.duplicate(true)
+	regressed_sell["evidence"]["attention"] = []
+	_deliver_saved_creator_state(shell, regressed_sell)
+	assert(not bool(shell.get("_level_locked")))
+	assert(advance.disabled)
+	assert(status.text == "Next: link one choice to Attention.")
+	advance.pressed.emit()
+	assert((shell.get("_game_run") as RefCounted).phase == "sell")
+
+	sell_ready = _deliver_saved_creator_state(shell, sell_ready)
+	lock.pressed.emit()
+	assert(
+		bool(shell.get("_level_locked")),
+		"Sell relock failed: clue=%s status=%s missions=%s" % [
+			shell.call("_level_completion_clue"),
+			status.text,
+			(shell.get("_game_run") as AdMarketGameRun).agency_progress().completed_mission_ids,
+		],
+	)
+	advance.pressed.emit()
+
+	var market_ready := _market_ready_document(sell_ready)
+	for case in [
+		{"document": _with_price(market_ready, 0), "expected": "Next: add a price."},
+		{"document": _with_evidence(market_ready, "price", []), "expected": "Next: add a price."},
+		{"document": _with_market_route(market_ready, null), "expected": "Next: choose and lock a market route."},
+		{"document": _with_market_route(market_ready, {"committed": false}), "expected": "Next: choose and lock a market route."},
+		{
+			"document": _with_market_route(market_ready, {"committed": true, "proofPoint": "   "}),
+			"expected": "Next: add a proof point to the market route."
+		}
+	]:
+		var market_incomplete_document: Dictionary = case.get("document")
+		var expected_market_clue: String = case.get("expected")
+		_deliver_saved_creator_state(shell, market_incomplete_document)
+		lock.pressed.emit()
+		assert(status.text == expected_market_clue)
+		assert(not bool(shell.get("_level_locked")))
+		assert(advance.disabled)
+
+	market_ready = _deliver_saved_creator_state(shell, market_ready)
+	lock.pressed.emit()
+	assert(status.text == _agency_mission_gate_clue())
+	assert(not bool(shell.get("_level_locked")))
+	assert(advance.disabled)
+	_complete_required_missions(shell, ["claim-proof"])
+	lock.pressed.emit()
+	assert(bool(shell.get("_level_locked")))
+	assert(not advance.disabled)
+
+	var regressed_market := market_ready.duplicate(true)
+	regressed_market["evidence"]["price"] = []
+	_deliver_saved_creator_state(shell, regressed_market)
+	assert(not bool(shell.get("_level_locked")))
+	assert(advance.disabled)
+	assert(status.text == "Next: add a price.")
+
+	market_ready = _deliver_saved_creator_state(shell, market_ready)
+	lock.pressed.emit()
+	assert(bool(shell.get("_level_locked")))
+	assert(not advance.disabled)
+	assert(advance.text == "Final check")
+	assert((shell.get_node("%LevelClue") as Label).text == "Level 3 is locked. Choose Final check.")
+	assert(status.text == "Level 3 locked. Ready for the final check.")
+	advance.pressed.emit()
+	assert((shell.get("_game_run") as RefCounted).phase == "publish-check")
+	assert(status.text == "Final check unlocked. Complete the five-part final review.")
+	assert((shell.get_node("%FinalReview") as Control).visible)
+	var publish := shell.get_node("%PublishCampaign") as Button
+	assert(publish.disabled)
+	var review_names := [
+		"%ReviewAudience",
+		"%ReviewValue",
+		"%ReviewAida",
+		"%ReviewVisual",
+        "%ReviewClaim"
+	]
+	for index in 4:
+		(shell.get_node(review_names[index]) as CheckBox).button_pressed = true
+	shell.call("_update_final_review")
+	assert(publish.disabled)
+	(shell.get_node("%ReviewClaim") as CheckBox).button_pressed = true
+	shell.call("_update_final_review")
+	assert(not publish.disabled)
+	assert((shell.get_node("%FinalReviewStatus") as Label).text == "Final review complete. Build the market card.")
+	assert((shell.get_node("%ReviewAudience") as CheckBox).focus_next == NodePath("../ReviewValue"))
+	assert((shell.get_node("%ReviewValue") as CheckBox).focus_next == NodePath("../ReviewAida"))
+	assert((shell.get_node("%ReviewAida") as CheckBox).focus_next == NodePath("../ReviewVisual"))
+	assert((shell.get_node("%ReviewVisual") as CheckBox).focus_next == NodePath("../ReviewClaim"))
+	assert(
+		(shell.get_node("%ReviewClaim") as CheckBox).focus_next
+		== NodePath("../../../../ActionRow/PublishCampaign")
+	)
+	assert(publish.focus_next == NodePath("../EnterMarket"))
+	shell.free()
+	return true
+
+func _closed_studio_reopens_to_publish_and_enters_the_market() -> bool:
+	var fake := FakeCreatorTransport.new()
+	var shell := _mount_shell(fake)
+
+	var alias := shell.get_node("%TeamAlias") as LineEdit
+	var start := shell.get_node("%StartRun") as Button
+	var lock := shell.get_node("%LockLevel") as Button
+	var advance := shell.get_node("%AdvanceLevel") as Button
+	var publish := shell.get_node("%PublishCampaign") as Button
+	alias.text = "Neon Narwhals"
+	start.pressed.emit()
+	var campaign := _invent_ready_document(shell)
+	campaign = _deliver_saved_creator_state(shell, campaign)
+	_complete_required_missions(shell, ["audience-brief", "salience", "reading-path"])
+	lock.pressed.emit()
+	advance.pressed.emit()
+	campaign = _sell_ready_document(campaign)
+	campaign = _deliver_saved_creator_state(shell, campaign)
+	_complete_required_missions(shell, ["contrast", "framing", "aida"])
+	lock.pressed.emit()
+	advance.pressed.emit()
+	campaign = _market_ready_document(campaign)
+	campaign = _deliver_saved_creator_state(shell, campaign)
+	_complete_required_missions(shell, ["claim-proof"])
+	lock.pressed.emit()
+	advance.pressed.emit()
+	assert(publish.visible)
+
+	_complete_final_review(shell)
+	publish.pressed.emit()
+	assert(fake.request_for(fake.last_request_id()).get("method") == "open")
+	fake.resolve_success(fake.last_request_id())
+	assert(fake.request_for(fake.last_request_id()).get("method") == "publish")
+	var saved_campaign: Dictionary = shell.get("_campaign_document")
+	fake.resolve_success(fake.last_request_id(), _market_publication(str(saved_campaign.get("documentId"))))
+
+	var theatre := shell.get_node_or_null("%PitchTheatre") as AdMarketPitchTheatre
+	assert(theatre != null and theatre.visible)
+	var exact_texture: Texture2D = theatre.get_node("%BillboardAd").texture
+	assert(exact_texture != null and exact_texture.get_image().get_width() == 1600)
+	var agency_audio := shell.get_node_or_null("%AgencyAudio")
+	assert(agency_audio != null)
+	assert(theatre.play_sound("camera"))
+	assert(theatre.is_connected("sound_requested", Callable(shell, "_on_pitch_sound_requested")))
+	var game_run: RefCounted = shell.get("_game_run")
+	assert(game_run.phase == "market")
+	var market_screen := shell.get_node("%MarketScreen") as Control
+	var enter_market := shell.get_node("%EnterMarket") as Button
+	assert(not market_screen.visible)
+	assert(not enter_market.visible)
+	theatre.finish_pitch()
+	assert((shell.get_node("%LevelEyebrow") as Label).text == "LIVE MARKET")
+	assert((shell.get_node("%RunPanel") as Control).visible)
+	assert(enter_market.visible)
+	assert(not enter_market.disabled)
+	enter_market.pressed.emit()
+	assert(market_screen.visible)
+	assert(not (shell.get_node("%RunPanel") as Control).visible)
+	assert(not enter_market.visible)
+	assert((market_screen.get_node("%MarketRoomCode") as Label).text == "PRACTICE")
+	var cards := market_screen.get_node("%TeamCards") as GridContainer
+	assert(cards.get_child_count() == 5)
+	_complete_all_market_scorecards(cards)
+	var gold := _first_enabled_button(cards, "AwardGold")
+	assert(gold != null and not gold.disabled)
+	gold.pressed.emit()
+	cards = market_screen.get_node("%TeamCards") as GridContainer
+	var silver := _first_enabled_button(cards, "AwardSilver")
+	assert(silver != null and not silver.disabled)
+	silver.pressed.emit()
+	cards = market_screen.get_node("%TeamCards") as GridContainer
+	var bronze := _first_enabled_button(cards, "AwardBronze")
+	assert(bronze != null and not bronze.disabled)
+	bronze.pressed.emit()
+	assert((market_screen.get_node("%WalletLabel") as Label).text.contains("Gold"))
+	assert(not (market_screen.get_node("%WalletLabel") as Label).text.contains("$"))
+	var finish := market_screen.get_node("%FinishMarket") as Button
+	assert(not finish.disabled)
+	finish.pressed.emit()
+	assert((market_screen.get_node("%StudentReveal") as Control).visible)
+	assert((market_screen.get_node("%StudentRevealCopy") as Label).text.contains("Gold, Silver and Bronze choices are locked"))
+	assert(fake.request_for(fake.last_request_id()).get("method") == "close")
+	fake.resolve_success(fake.last_request_id())
+	var market_status := (shell.get_node("%Status") as Label).text
+	assert(
+		market_status == "The market podium is ready for the reveal.",
+		"Unexpected post-market creator-close status: %s (room role: %s; phase: %s)" % [
+			market_status,
+			str(shell.get("_room_role")),
+			str(game_run.phase)
+		]
+	)
+	shell.free()
+	return true
+
+func _first_enabled_button(root: Node, node_name: String) -> Button:
+	for value in root.find_children(node_name, "Button", true, false):
+		var button := value as Button
+		if button != null and not button.disabled:
+			return button
+	return null
+
+func _complete_all_market_scorecards(cards: Node) -> void:
+	for score_control_value in cards.find_children("Score*", "OptionButton", true, false):
+		var score_control := score_control_value as OptionButton
+		score_control.select(3)
+		score_control.item_selected.emit(3)
+
+func _returned_editor_state_is_reopened_verbatim() -> bool:
+	var fake := FakeCreatorTransport.new()
+	var shell := _mount_shell(fake)
+	(shell.get_node("%TeamAlias") as LineEdit).text = "Neon Narwhals"
+	(shell.get_node("%StartRun") as Button).pressed.emit()
+	(shell.get_node("%LaunchCreator") as Button).pressed.emit()
+	var first_open_id := fake.last_request_id()
+	var first_open := fake.request_for(first_open_id)
+	assert(first_open.get("method") == "open")
+	assert(first_open.get("payload").get("gameplay").get("stage") == "invent")
+	fake.resolve_success(first_open_id)
+
+	var rich_document: Dictionary = Dictionary(first_open.get("payload")).duplicate(true)
+	rich_document["product"]["name"] = "Loop Sip"
+	rich_document["product"]["priceCents"] = 950.0
+	rich_document["product"]["build"] = {
+		"familyId": "drinkware",
+		"bodyId": "reusable-tumbler",
+		"partIds": ["flat-lid"],
+		"costCents": 550.0
+	}
+	rich_document["fabricState"]["objects"] = [{
+		"type": "image",
+		"assetId": "reusable-tumbler",
+		"left": 420.0,
+		"top": 210.0
+	}]
+	rich_document["strategy"]["marketRoute"] = {
+		"audienceBriefId": "after-school-freedom",
+		"zoneId": "suburban",
+		"mediaIds": ["transit"],
+		"proofPoint": "The insulated body keeps the drink cold during the trip home.",
+		"committed": true
+	}
+
+	fake.request_close()
+	var save_id := fake.last_request_id()
+	assert(fake.request_for(save_id).get("method") == "save")
+	fake.resolve_success(save_id)
+	var state_id := fake.last_request_id()
+	assert(fake.request_for(state_id).get("method") == "getState")
+	fake.resolve_success(state_id, rich_document)
+	var returned_document: Dictionary = Dictionary(shell.get("_campaign_document"))
+	assert(
+		int(returned_document.get("revision")) == int(rich_document.get("revision")) + 1,
+		"Acknowledged editor state must advance the campaign revision exactly once"
+	)
+	var expected_returned_document: Dictionary = rich_document.duplicate(true)
+	expected_returned_document["revision"] = returned_document.get("revision")
+	assert(
+		returned_document.recursive_equal(expected_returned_document, 32),
+		"Returned editor state must preserve the saved campaign content\nActual: %s\nExpected: %s" % [
+			JSON.stringify(returned_document),
+			JSON.stringify(expected_returned_document),
+		]
+	)
+	var close_id := fake.last_request_id()
+	assert(fake.request_for(close_id).get("method") == "close")
+	fake.resolve_success(close_id)
+
+	(shell.get_node("%LaunchCreator") as Button).pressed.emit()
+	var second_open := fake.request_for(fake.last_request_id())
+	assert(second_open.get("method") == "open")
+	assert(
+		Dictionary(second_open.get("payload")).recursive_equal(returned_document, 32),
+		"Reopened editor state must match the acknowledged campaign document"
+	)
+	assert(second_open.get("payload").get("gameplay").get("stage") == "invent")
+	shell.free()
+	return true
+
+func _room_publication_waits_for_review_and_reopens_returned_work() -> bool:
+	var creator_fake := FakeCreatorTransport.new()
+	var market_fake := FakeMarketTransport.new()
+	var shell := _mount_shell(creator_fake, market_fake)
+	(shell.get_node("%TeamAlias") as LineEdit).text = "Signal Foxes"
+	(shell.get_node("%RoomCode") as LineEdit).text = "ABC-234"
+	(shell.get_node("%JoinLiveMarket") as Button).pressed.emit()
+	var join_id: String = market_fake.last_request_id()
+	market_fake.resolve_success(join_id, {
+		"role": "team",
+		"roomCode": "ABC-234",
+		"snapshot": _team_market_snapshot()
+	})
+
+	var lock := shell.get_node("%LockLevel") as Button
+	var advance := shell.get_node("%AdvanceLevel") as Button
+	var campaign := _invent_ready_document(shell)
+	shell.call("_on_creator_state_received", campaign)
+	_complete_required_missions(shell, ["audience-brief", "salience", "reading-path"])
+	lock.pressed.emit()
+	advance.pressed.emit()
+	campaign = _sell_ready_document(campaign)
+	shell.call("_on_creator_state_received", campaign)
+	_complete_required_missions(shell, ["contrast", "framing", "aida"])
+	lock.pressed.emit()
+	advance.pressed.emit()
+	campaign = _market_ready_document(campaign)
+	shell.call("_on_creator_state_received", campaign)
+	_complete_required_missions(shell, ["claim-proof"])
+	lock.pressed.emit()
+	advance.pressed.emit()
+	_complete_final_review(shell)
+	(shell.get_node("%PublishCampaign") as Button).pressed.emit()
+	var final_open := creator_fake.request_for(creator_fake.last_request_id())
+	assert(final_open.get("method") == "open")
+	assert(final_open.get("payload").get("gameplay").get("stage") == "publish-check")
+	creator_fake.resolve_success(creator_fake.last_request_id())
+	var document: Dictionary = shell.get("_campaign_document")
+	creator_fake.resolve_success(
+		creator_fake.last_request_id(),
+		_market_publication(str(document.get("documentId")))
+	)
+	var market_publish_id: String = market_fake.last_request_id()
+	assert(market_fake.request_for(market_publish_id).get("method") == "publishCampaign")
+	var pending := _team_market_snapshot("pending")
+	market_fake.resolve_success(market_publish_id, {
+		"replayed": false,
+		"campaignId": "campaign-own",
+		"submissionVersion": 1.0,
+		"postcondition": {
+			"kind": "publish",
+			"campaignId": "campaign-own",
+			"submissionVersion": 1.0
+		},
+		"snapshot": pending
+	})
+	var market_screen := shell.get_node("%MarketScreen") as Control
+	var enter_market := shell.get_node("%EnterMarket") as Button
+	var theatre := shell.get_node_or_null("%PitchTheatre") as AdMarketPitchTheatre
+	assert(theatre != null and theatre.visible)
+	assert(not market_screen.visible)
+	assert(not enter_market.visible)
+	assert((market_screen.get_node("%CampaignStatusTitle") as Label).text == "Waiting for the host")
+	assert(creator_fake.request_for(creator_fake.last_request_id()).get("method") == "close")
+	creator_fake.resolve_success(creator_fake.last_request_id())
+	assert(theatre.visible)
+	assert(not enter_market.visible)
+	theatre.finish_pitch()
+	assert((shell.get_node("%Status") as Label).text == "Market card built. Select Enter market to continue.")
+	assert((shell.get_node("%RunPanel") as Control).visible)
+	assert(enter_market.visible)
+	enter_market.pressed.emit()
+	assert(market_screen.visible)
+	assert(not (shell.get_node("%RunPanel") as Control).visible)
+
+	var returned := _team_market_snapshot("returned")
+	returned["campaigns"][0]["reviewNote"] = "Bring the price forward."
+	shell.call("_on_market_snapshot", returned)
+	assert((market_screen.get_node("%CampaignStatusCopy") as Label).text.contains("Bring the price forward."))
+	(market_screen.get_node("%FixCampaign") as Button).pressed.emit()
+	assert((shell.get_node("%AgencyWorld") as Node2D).visible)
+	assert(not (shell.get_node("%RunPanel") as Control).visible)
+	assert(not (shell.get_node("%MarketScreen") as Control).visible)
+	assert(creator_fake.request_for(creator_fake.last_request_id()).get("method") == "open")
+	assert(creator_fake.request_for(creator_fake.last_request_id()).get("payload").get("gameplay").get("stage") == "publish-check")
+	shell.free()
+	return true
+
+func _room_errors_are_distinct_and_safe() -> bool:
+	var shell := _mount_shell(FakeCreatorTransport.new())
+	var status := shell.get_node("%Status") as Label
+	var cases := {
+		"INVALID_ROOM_CODE": "Enter the room code in the format ABC-234.",
+		"INVALID_REQUEST": "Enter the room code in the format ABC-234.",
+		"ROOM_NOT_FOUND": "That room could not be found. Check the code and try again.",
+		"ROOM_UNAVAILABLE": "That room is not available. Ask your teacher what to do next.",
+		"CONNECTION_TIMEOUT": "The connection took too long. Check the network and try again.",
+		"CONNECTION_UNAVAILABLE": "The market could not be reached. Check the network and try again.",
+		"RATE_LIMITED": "Too many requests were sent. Wait briefly, then try again.",
+		"SESSION_EXPIRED": "This market session has ended. Rejoin the room to continue."
+	}
+	for code in cases:
+		shell.call("_on_room_join_failed", code, "PRIVATE transport detail")
+		assert(status.text == cases.get(code))
+		assert(not status.text.contains("PRIVATE"))
+	shell.call("_on_market_request_failed", "UNRECOGNISED_INTERNAL_CODE", "secret")
+	assert(status.text == "The market could not be reached. Check the network and try again.")
+	shell.free()
+	return true
+
+func _mount_shell(
+	fake: RefCounted,
+	market_fake: RefCounted = null,
+	practice_fake: RefCounted = null
+) -> Control:
+	var shell: Control = MainScene.instantiate() as Control
+	shell.creator_transport_override = fake
+	var selected_market: RefCounted = market_fake if market_fake != null else FakeMarketTransport.new()
+	selected_market.set("auto_resume_none", true)
+	shell.market_transport_override = selected_market
+	var selected_practice: RefCounted = practice_fake
+	if selected_practice == null:
+		selected_practice = AutoPracticeTransport.new()
+		selected_practice.document_provider = func() -> Dictionary:
+			var pending: Dictionary = shell.get("_pending_creator_document")
+			if not pending.is_empty():
+				return pending.duplicate(true)
+			return Dictionary(shell.get("_campaign_document")).duplicate(true)
+	shell.practice_transport_override = selected_practice
+	var tree: SceneTree = Engine.get_main_loop() as SceneTree
+	tree.root.add_child(shell)
+	if not shell.is_node_ready():
+		shell.call("_ready")
+	return shell
+
+func _team_market_snapshot(own_status: String = "") -> Dictionary:
+	var campaigns: Array[Dictionary] = []
+	if not own_status.is_empty():
+		campaigns.append({
+			"id": "campaign-own",
+			"sellerTeamId": "team-a",
+			"sellerAlias": "Signal Foxes",
+			"status": own_status,
+			"productName": "Orbit Bottle",
+			"tagline": "Hydration with lift-off energy.",
+			"price": 2499.0,
+			"artworkKey": "artwork/campaign-own"
+		})
+	return {
+		"roomId": "room-a",
+		"revision": 1.0,
+		"phase": "building",
+		"marketMode": "medals",
+		"own": {
+			"teamId": "team-a",
+			"alias": "Signal Foxes",
+			"finished": false
+		},
+		"teams": [{"id": "team-a", "alias": "Signal Foxes"}],
+		"campaigns": campaigns,
+		"myPurchases": [],
+		"myAwards": []
+	}
+
+func _teacher_market_snapshot() -> Dictionary:
+	return {
+		"roomCode": "ABC-234",
+		"roomId": "room-a",
+		"revision": 1.0,
+		"phase": "building",
+		"marketMode": "medals",
+		"maxTeams": 15.0,
+		"availableSeats": 15.0,
+		"teams": [],
+		"campaigns": [],
+		"awardCount": 0.0,
+		"controls": {
+			"canOpenMarket": false,
+			"canOpenReveal": false,
+			"canCloseMarket": false
+		}
+	}
+
+func _invent_ready_document(shell: Control) -> Dictionary:
+	var document: Dictionary = Dictionary(shell.get("_campaign_document")).duplicate(true)
+	document["product"]["name"] = "Orbit Bottle"
+	document["product"]["build"] = {"blueprintId": "orbit-bottle"}
+	document["brief"]["targetAudienceId"] = "after-school-athletes"
+	document["gameplay"]["pair"] = {
+		"activeRole": "strategist",
+		"handoffCount": 1,
+		"artDirectorActions": 1,
+		"strategistActions": 1
+	}
+	return document
+
+func _deliver_saved_creator_state(shell: Control, value: Dictionary) -> Dictionary:
+	var current: Dictionary = Dictionary(shell.get("_campaign_document")).duplicate(true)
+	var document := value.duplicate(true)
+	document["documentId"] = current.get("documentId")
+	document["sessionId"] = current.get("sessionId")
+	document["teamId"] = current.get("teamId")
+	document["mode"] = current.get("mode")
+	document["revision"] = int(current.get("revision")) + 1
+	document["gameplay"]["stage"] = String((shell.get("_game_run") as RefCounted).phase)
+	shell.call("_on_creator_state_received", document)
+	return document
+
+func _complete_required_missions(shell: Control, mission_ids: Array) -> void:
+	var run := shell.get("_game_run") as AdMarketGameRun
+	assert(run != null)
+	for mission_id_value in mission_ids:
+		var mission_id := String(mission_id_value)
+		shell.call("_on_agency_mission_completed", mission_id, {
+			"decision": mission_id,
+			"effect": "This decision suits the intended audience and makes the advertisement more persuasive.",
+		})
+		assert(run.agency_progress().completed_mission_ids.has(mission_id))
+
+func _agency_mission_gate_clue() -> String:
+	return "Next: complete this level's required agency missions. Follow the current objective in the agency guide."
+
+func _sell_ready_document(document: Dictionary) -> Dictionary:
+	var ready := document.duplicate(true)
+	ready["strategy"]["aidaPlan"] = {
+		"attention": "Flash the impossible colour.",
+		"interest": "Reveal the spill-proof lid.",
+		"desire": "Make every training bag feel ready.",
+		"action": "Grab yours before the buzzer."
+	}
+	ready["evidence"]["attention"] = ["attention-proof"]
+	ready["evidence"]["interest"] = ["interest-proof"]
+	ready["evidence"]["desire"] = ["desire-proof"]
+	ready["evidence"]["action"] = ["action-proof"]
+	return ready
+
+func _market_ready_document(document: Dictionary) -> Dictionary:
+	var ready := document.duplicate(true)
+	ready["product"]["priceCents"] = 2499
+	ready["evidence"]["price"] = ["price-proof"]
+	ready["strategy"]["marketRoute"] = {
+		"audienceBriefId": "after-school-athletes",
+		"zoneId": "city",
+		"mediaIds": ["transit"],
+		"proofPoint": "The insulated body keeps a cold drink cold during the trip home.",
+		"committed": true
+	}
+	return ready
+
+func _complete_final_review(shell: Control) -> void:
+	for node_name in [
+		"%ReviewAudience",
+		"%ReviewValue",
+		"%ReviewAida",
+		"%ReviewVisual",
+        "%ReviewClaim"
+	]:
+		(shell.get_node(node_name) as CheckBox).button_pressed = true
+	shell.call("_update_final_review")
+
+func _with_product_name(document: Dictionary, name: String) -> Dictionary:
+	var changed := document.duplicate(true)
+	changed["product"]["name"] = name
+	return changed
+
+func _with_product_build(document: Dictionary, build: Variant) -> Dictionary:
+	var changed := document.duplicate(true)
+	changed["product"]["build"] = build
+	return changed
+
+func _with_audience(document: Dictionary, audience_id: String) -> Dictionary:
+	var changed := document.duplicate(true)
+	changed["brief"]["targetAudienceId"] = audience_id
+	return changed
+
+func _with_price(document: Dictionary, price_cents: Variant) -> Dictionary:
+	var changed := document.duplicate(true)
+	changed["product"]["priceCents"] = price_cents
+	return changed
+
+func _with_evidence(document: Dictionary, slot: String, value: Array) -> Dictionary:
+	var changed := document.duplicate(true)
+	changed["evidence"][slot] = value.duplicate(true)
+	return changed
+
+func _with_market_route(document: Dictionary, route: Variant) -> Dictionary:
+	var changed := document.duplicate(true)
+	changed["strategy"]["marketRoute"] = route
+	return changed
+
+func _practice_recovery(
+	shell: Control,
+	stage: String,
+	locked: bool,
+	revision: int,
+	sequence: int,
+	operation_id: String,
+	source_document: Dictionary = {}
+) -> Dictionary:
+	var document: Dictionary = (
+		source_document.duplicate(true)
+		if not source_document.is_empty()
+		else shell.call("_blank_campaign_document")
+	)
+	if String(document.get("documentId", "")) == "classroom-campaign":
+		document["documentId"] = "practice-document-test"
+		document["sessionId"] = "practice-session-test"
+	if not document.has("teamId"):
+		document["teamId"] = "practice-team-test"
+	document["mode"] = "offline"
+	document["revision"] = revision
+	document["gameplay"]["stage"] = stage
+	var pair: Dictionary = document["gameplay"]["pair"]
+	if not pair.has("roleGuideAcknowledged"):
+		pair["roleGuideAcknowledged"] = false
+	return {
+		"checkpoint": {
+			"contract": "local-practice-checkpoint@1",
+			"runId": "practice-run-test",
+			"documentId": document["documentId"],
+			"sessionId": document["sessionId"],
+			"teamId": document["teamId"],
+			"teamAlias": "Signal Foxes",
+			"documentRevision": revision,
+			"documentHash": "b".repeat(64),
+			"stage": stage,
+			"levelLocked": locked,
+			"sequence": sequence,
+			"operationId": operation_id,
+			"savedAt": "2026-07-17T05:00:00.000Z"
+		},
+		"document": document
+	}
+
+func _contrast_with_white(background: Color) -> float:
+	var luminance := (
+		0.2126 * _linear_channel(background.r)
+		+ 0.7152 * _linear_channel(background.g)
+		+ 0.0722 * _linear_channel(background.b)
+	)
+	return 1.05 / (luminance + 0.05)
+
+func _linear_channel(channel: float) -> float:
+	if channel <= 0.04045:
+		return channel / 12.92
+	return pow((channel + 0.055) / 1.055, 2.4)
+
+func _publication(document_id: String) -> Dictionary:
+	return {
+		"contract": "published-campaign@1",
+		"documentId": document_id,
+		"revision": 0.0,
+		"pngBase64": _png_base64(),
+		"metadata": {
+			"productName": "Product",
+			"priceCents": 1000.0,
+			"brief": {},
+			"evidence": {},
+			"assetReferences": []
+		}
+	}
+
+func _market_publication(document_id: String) -> Dictionary:
+	var publication := _publication(document_id)
+	if _market_png_cache.is_empty():
+		var image := Image.create_empty(1600, 900, false, Image.FORMAT_RGBA8)
+		image.fill(Color(0.16, 0.22, 0.32, 1.0))
+		_market_png_cache = Marshalls.raw_to_base64(image.save_png_to_buffer())
+	publication["pngBase64"] = _market_png_cache
+	return publication
+
+func _png_base64() -> String:
+	var bytes := PackedByteArray()
+	bytes.resize(33)
+	var signature := PackedByteArray([137, 80, 78, 71, 13, 10, 26, 10])
+	for index in signature.size():
+		bytes[index] = signature[index]
+	_write_uint32_be(bytes, 8, 13)
+	var type_bytes := "IHDR".to_ascii_buffer()
+	for index in 4:
+		bytes[12 + index] = type_bytes[index]
+	_write_uint32_be(bytes, 16, 1600)
+	_write_uint32_be(bytes, 20, 900)
+	bytes[24] = 8
+	bytes[25] = 6
+	return Marshalls.raw_to_base64(bytes)
+
+func _write_uint32_be(bytes: PackedByteArray, offset: int, value: int) -> void:
+	bytes[offset] = (value >> 24) & 0xff
+	bytes[offset + 1] = (value >> 16) & 0xff
+	bytes[offset + 2] = (value >> 8) & 0xff
+	bytes[offset + 3] = value & 0xff

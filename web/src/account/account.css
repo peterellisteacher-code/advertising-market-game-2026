@@ -1,0 +1,336 @@
+#account-gate-root[hidden],
+#account-session-root[hidden] {
+  display: none !important;
+}
+
+.account-access,
+.account-access *,
+.account-session,
+.account-session *,
+.account-reset-dialog,
+.account-reset-dialog * {
+  box-sizing: border-box;
+}
+
+.account-access {
+  --account-ink: #172033;
+  --account-paper: #f6f1e7;
+  --account-coral: #f25f5c;
+  --account-blue: #096b8f;
+  --account-gold: #f4c95d;
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  min-height: 100dvh;
+  padding: clamp(1rem, 4vw, 3rem);
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  background:
+    radial-gradient(circle at 16% 18%, rgb(244 201 93 / .42), transparent 26rem),
+    radial-gradient(circle at 86% 80%, rgb(9 107 143 / .22), transparent 30rem),
+    repeating-linear-gradient(135deg, rgb(23 32 51 / .025) 0 10px, transparent 10px 22px),
+    var(--account-paper);
+  color: var(--account-ink);
+  font-family: "Trebuchet MS", "Aptos", "Segoe UI", sans-serif;
+}
+
+.account-access__card {
+  width: min(100%, 30rem);
+  padding: clamp(1.35rem, 5vw, 2.25rem);
+  border: 3px solid var(--account-ink);
+  border-radius: 1.25rem;
+  background: #fffaf2;
+  box-shadow: .55rem .55rem 0 var(--account-gold);
+}
+
+.account-access__card h1 {
+  margin: 0;
+  color: var(--account-ink);
+  font-size: clamp(1.75rem, 7vw, 2.6rem);
+  line-height: 1;
+  letter-spacing: -.035em;
+}
+
+.account-access__card > p {
+  margin: 1rem 0 0;
+  color: #3d4c64;
+  line-height: 1.5;
+}
+
+.account-access form {
+  margin-top: 1.25rem;
+  display: grid;
+  gap: .9rem;
+}
+
+.account-access label {
+  display: grid;
+  gap: .35rem;
+  color: #29364b;
+  font-weight: 850;
+}
+
+.account-access input,
+.account-access button {
+  min-height: 44px;
+  border-radius: .65rem;
+  font: inherit;
+}
+
+.account-access input {
+  width: 100%;
+  padding: .65rem .75rem;
+  border: 2px solid #80909f;
+  background: #fff;
+  color: var(--account-ink);
+}
+
+.account-access button {
+  padding: .65rem 1rem;
+  border: 2px solid var(--account-ink);
+  background: var(--account-blue);
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.account-access button + button {
+  background: #fff;
+  color: var(--account-blue);
+}
+
+.account-access input:focus-visible,
+.account-access button:focus-visible,
+.account-session button:focus-visible {
+  outline: 3px solid var(--account-coral, #f25f5c);
+  outline-offset: 3px;
+}
+
+.account-access button:disabled,
+.account-access input:disabled {
+  cursor: wait;
+  opacity: .62;
+}
+
+.account-access__error {
+  min-height: 1.5rem;
+  margin: 0;
+  color: #9b1c1c;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.account-session {
+  position: fixed;
+  top: max(.65rem, env(safe-area-inset-top));
+  right: max(.65rem, env(safe-area-inset-right));
+  z-index: 180;
+  max-width: min(27rem, calc(100vw - 1.3rem));
+  padding: .55rem .65rem;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: .25rem .75rem;
+  align-items: center;
+  border: 2px solid #172033;
+  border-radius: .8rem;
+  background: rgb(255 250 242 / .96);
+  color: #172033;
+  box-shadow: 0 .35rem 1.2rem rgb(23 32 51 / .24);
+  font-family: "Trebuchet MS", "Aptos", "Segoe UI", sans-serif;
+  font-size: .875rem;
+}
+
+.account-session [data-account-identity] {
+  font-weight: 900;
+}
+
+.account-session [data-account-cloud-status] {
+  grid-column: 1;
+  color: #3d4c64;
+  line-height: 1.3;
+}
+
+.account-session [data-account-handover] {
+  grid-column: 1;
+  color: #5d3d00;
+  line-height: 1.3;
+}
+
+.account-session button {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  min-height: 44px;
+  padding: .45rem .7rem;
+  border: 2px solid #096b8f;
+  border-radius: .6rem;
+  background: #fff;
+  color: #07536f;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.account-session__actions {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .35rem;
+}
+
+.account-session .account-session__actions button {
+  grid-column: auto;
+  grid-row: auto;
+}
+
+.account-reset-dialog {
+  width: min(36rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  overflow: auto;
+  border: 3px solid #172033;
+  border-radius: 1rem;
+  background: #fffaf2;
+  color: #172033;
+  box-shadow: .55rem .55rem 0 #f4c95d;
+  font-family: "Trebuchet MS", "Aptos", "Segoe UI", sans-serif;
+}
+
+.account-reset-dialog::backdrop {
+  background: rgb(23 32 51 / .72);
+}
+
+.account-reset-dialog form {
+  padding: clamp(1.25rem, 4vw, 2rem);
+  display: grid;
+  gap: .85rem;
+}
+
+.account-reset-dialog h2,
+.account-reset-dialog p {
+  margin: 0;
+}
+
+.account-reset-dialog h2 {
+  font-size: clamp(1.5rem, 5vw, 2.1rem);
+  line-height: 1.1;
+}
+
+.account-reset-dialog label {
+  display: grid;
+  gap: .35rem;
+  font-weight: 900;
+}
+
+.account-reset-dialog input,
+.account-reset-dialog button {
+  min-height: 44px;
+  border: 2px solid #172033;
+  border-radius: .65rem;
+  font: inherit;
+}
+
+.account-reset-dialog input {
+  padding: .65rem .75rem;
+  background: #fff;
+  color: #172033;
+  text-transform: uppercase;
+}
+
+.account-reset-dialog button {
+  padding: .6rem .9rem;
+  background: #fff;
+  color: #07536f;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.account-reset-dialog button[type="submit"] {
+  background: #9b1c1c;
+  color: #fff;
+}
+
+.account-reset-dialog input:focus-visible,
+.account-reset-dialog button:focus-visible {
+  outline: 3px solid #f25f5c;
+  outline-offset: 3px;
+}
+
+.account-reset-dialog button:disabled,
+.account-reset-dialog input:disabled {
+  cursor: wait;
+  opacity: .62;
+}
+
+.account-reset-dialog [role="alert"] {
+  min-height: 1.4em;
+  color: #9b1c1c;
+  font-weight: 850;
+}
+
+.account-reset-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .55rem;
+}
+
+.account-session__conflict {
+  grid-column: 1 / -1;
+  padding: .55rem;
+  display: grid;
+  gap: .45rem;
+  border: 1px solid #b56b00;
+  border-radius: .55rem;
+  background: #fff4d6;
+}
+
+.account-session__conflict p {
+  margin: 0;
+  line-height: 1.35;
+}
+
+.account-session__conflict-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+}
+
+.account-session__conflict .account-session__conflict-actions button {
+  grid-column: auto;
+  grid-row: auto;
+  min-height: 44px;
+  padding: .4rem .55rem;
+}
+
+.account-session__conflict-error {
+  min-height: 1.2em;
+  color: #9b1c1c;
+  font-weight: 850;
+}
+
+.account-session__conflict button:disabled {
+  cursor: wait;
+  opacity: .62;
+}
+
+@media (max-width: 34rem) {
+  .account-session {
+    left: .65rem;
+    right: .65rem;
+    max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-access *,
+  .account-session *,
+  .account-reset-dialog * {
+    scroll-behavior: auto !important;
+    transition-duration: .001ms !important;
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

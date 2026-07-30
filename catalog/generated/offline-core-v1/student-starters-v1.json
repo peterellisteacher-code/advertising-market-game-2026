@@ -1,0 +1,123 @@
+{
+  "schema": "student-product-starters@1",
+  "version": 1,
+  "fillProfiles": {
+    "bounded-linework-v1": {
+      "lineDarknessThreshold": 220,
+      "minimumAlpha": 200,
+      "colourDistance": 48,
+      "minimumRegionPixels": 20,
+      "maximumRegionFraction": 0.95
+    },
+    "opaque-body-v1": {
+      "minimumAlpha": 200
+    }
+  },
+  "starters": [
+    {
+      "kind": "kit",
+      "id": "starter-reusable-tumbler",
+      "title": "Reusable tumbler",
+      "category": "food-and-drink",
+      "kitId": "pk1-tumbler-kit",
+      "defaultComponentId": "pk1-flat-lid"
+    },
+    {
+      "kind": "kit",
+      "id": "starter-flat-screen-television",
+      "title": "Flat-screen television",
+      "category": "technology",
+      "kitId": "pk1-tv-kit",
+      "defaultComponentId": "pk1-tv-centre-pedestal"
+    },
+    {
+      "kind": "kit",
+      "id": "starter-compact-carry-case",
+      "title": "Compact carry case",
+      "category": "practical-carry",
+      "kitId": "pk1-utility-case-kit",
+      "defaultComponentId": "pk1-utility-case-compact-handle"
+    },
+    {
+      "kind": "raster",
+      "id": "starter-classic-beverage-can",
+      "title": "Classic beverage can",
+      "category": "food-and-drink",
+      "assetId": "01-food-packaging-r03c02",
+      "fillMode": "connected-sections",
+      "fillProfile": "bounded-linework-v1"
+    },
+    {
+      "kind": "raster",
+      "id": "starter-padded-headphones",
+      "title": "Padded over-ear headphones",
+      "category": "technology",
+      "assetId": "04-consumer-tech-r01c01",
+      "fillMode": "connected-sections",
+      "fillProfile": "bounded-linework-v1"
+    },
+    {
+      "kind": "raster",
+      "id": "starter-low-top-sneaker",
+      "title": "Low-top sneaker",
+      "category": "personal-style",
+      "assetId": "31-apparel-footwear-bases-r03c04",
+      "fillMode": "connected-sections",
+      "fillProfile": "bounded-linework-v1"
+    },
+    {
+      "kind": "raster",
+      "id": "starter-table-lamp",
+      "title": "Rounded-base table lamp",
+      "category": "home",
+      "assetId": "03-home-garden-r01c01",
+      "fillMode": "whole-object",
+      "fillProfile": "opaque-body-v1"
+    },
+    {
+      "kind": "raster",
+      "id": "starter-soccer-ball",
+      "title": "Soccer ball",
+      "category": "leisure",
+      "assetId": "43-sports-fitness-equipment-r01c01",
+      "fillMode": "connected-sections",
+      "fillProfile": "bounded-linework-v1"
+    },
+    {
+      "kind": "raster",
+      "id": "starter-pump-bottle",
+      "title": "Square pump toiletry bottle",
+      "category": "personal-care",
+      "assetId": "05-beauty-self-care-r01c05",
+      "fillMode": "connected-sections",
+      "fillProfile": "bounded-linework-v1"
+    },
+    {
+      "kind": "raster",
+      "id": "starter-toy-robot",
+      "title": "Square-head toy robot",
+      "category": "play",
+      "assetId": "07-toys-games-r01c07",
+      "fillMode": "connected-sections",
+      "fillProfile": "bounded-linework-v1"
+    },
+    {
+      "kind": "raster",
+      "id": "starter-hardcover-notebook",
+      "title": "Hardcover notebook",
+      "category": "creative",
+      "assetId": "37-stationery-music-hobby-bases-r01c01",
+      "fillMode": "connected-sections",
+      "fillProfile": "bounded-linework-v1"
+    },
+    {
+      "kind": "raster",
+      "id": "starter-dome-tent",
+      "title": "Dome camping tent",
+      "category": "outdoors",
+      "assetId": "44-outdoor-camping-travel-equipment-r01c01",
+      "fillMode": "connected-sections",
+      "fillProfile": "bounded-linework-v1"
+    }
+  ]
+}

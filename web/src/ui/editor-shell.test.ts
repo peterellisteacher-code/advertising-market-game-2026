@@ -1,0 +1,246 @@
+import { getByLabelText, getByRole, getAllByRole } from "@testing-library/dom";
+import { describe, expect, it } from "vitest";
+import { createEditorShell } from "./editor-shell";
+
+describe("createEditorShell", () => {
+  it("creates a canvas-first studio with one active tool drawer", () => {
+    document.body.innerHTML = '<div id="creator-root"></div>';
+    const root = document.querySelector<HTMLElement>("#creator-root")!;
+    const shell = createEditorShell(root);
+
+    expect(getByRole<HTMLInputElement>(root, "textbox", { name: "Product name" }).placeholder)
+      .toBe("Name your product");
+    expect(getByRole<HTMLInputElement>(root, "searchbox", { name: "Search assets", hidden: true }).placeholder)
+      .toBe("Try running shoe, tent or pet shop");
+    const libraryView = getByRole<HTMLSelectElement>(root, "combobox", {
+      name: "Library view",
+      hidden: true
+    });
+    expect([...libraryView.options].map(({ value, textContent }) => [value, textContent]))
+      .toEqual([
+        ["products", "Products"],
+        ["parts", "Parts"],
+        ["all", "All pieces"]
+      ]);
+    expect(libraryView.value).toBe("products");
+    expect(shell.libraryView).toBe(libraryView);
+    expect(getByRole<HTMLSelectElement>(root, "combobox", { name: "Product category", hidden: true }).value)
+      .toBe("");
+    expect(getByRole(root, "tablist", { name: "Studio tools" })).toBeTruthy();
+    const studioTools = getAllByRole<HTMLButtonElement>(root, "tab", { name: /./ })
+      .filter((tab) => tab.hasAttribute("data-studio-tool"));
+    expect(studioTools.map((tab) => tab.textContent?.trim())).toEqual([
+      "Build", "Assets", "Words", "Logo", "Image", "Price", "Route", "AIDA", "Coach"
+    ]);
+    expect(studioTools.map((tab) => tab.dataset.glyph)).toEqual([
+      "◆", "✦", "Aa", "◎", "▧", "$", "↗", "A", "?"
+    ]);
+    expect(new Set(studioTools.map((tab) => tab.dataset.glyph)).size).toBe(studioTools.length);
+    expect(studioTools.filter((tab) => tab.getAttribute("aria-selected") === "true"))
+      .toHaveLength(1);
+    expect(studioTools[0]?.getAttribute("aria-selected")).toBe("true");
+    expect(root.querySelectorAll<HTMLElement>("[data-studio-panel]:not([hidden])"))
+      .toHaveLength(1);
+    expect(root.querySelector<HTMLElement>('[data-studio-panel="product"]')?.hidden)
+      .toBe(false);
+    expect(getByRole(root, "region", { name: "Product builder" })).toBeTruthy();
+    const launchPath = getByRole(root, "note", { name: "Launch path" });
+    expect([...launchPath.querySelectorAll("strong")].map((step) => step.textContent))
+      .toEqual(["Build", "Place", "Design"]);
+    expect(shell.productBuilderPanel.dataset.productBuilderPanel).toBe("");
+    expect(root.querySelector('[data-studio-panel="price"][aria-label="Money check"]')).toBeTruthy();
+    expect(shell.moneyCheckPanel.dataset.moneyCheckPanel).toBe("");
+    expect(root.querySelector('[data-studio-panel="route"][aria-label="Market Route"]')).toBeTruthy();
+    expect(shell.marketRoutePanel.dataset.marketRoutePanel).toBe("");
+    expect(root.querySelector('[data-studio-panel="aida"][aria-label="AIDA move deck"]')).toBeTruthy();
+    expect(shell.aidaPlaybookPanel.dataset.aidaPlaybookPanel).toBe("");
+    expect(root.querySelector('[data-studio-panel="coach"][aria-label="Studio Coach"]')).toBeTruthy();
+    expect(shell.studioCoachPanel.dataset.studioCoachPanel).toBe("");
+    expect(root.querySelector('[data-studio-panel="image"][aria-label="Image Lab"]')).toBeTruthy();
+    expect(shell.imageLabPanel.dataset.imageLabPanel).toBe("");
+    expect(root.querySelector('[data-product-shell-select]')).toBeNull();
+    const livePhotos = getByRole<HTMLInputElement>(root, "checkbox", { name: "Show photo products", hidden: true });
+    expect(livePhotos.checked).toBe(false);
+    const pieceColour = getByLabelText<HTMLInputElement>(root, "Colour for new pieces");
+    expect(pieceColour.type).toBe("color");
+    expect(pieceColour.value).toBe("#e4572e");
+    expect(shell.libraryColour).toBe(pieceColour);
+    expect(shell.libraryResults.dataset.libraryResults).toBe("");
+    expect(shell.libraryStatus.getAttribute("role")).toBe("status");
+    expect(root.querySelector('[data-studio-collapse]')).toBeNull();
+    expect(root.textContent).not.toContain("Hide library");
+    const separator = getByRole<HTMLElement>(root, "separator", {
+      name: "Resize the library and design areas"
+    });
+    expect(separator.getAttribute("aria-orientation")).toBe("vertical");
+    expect(separator.getAttribute("tabindex")).toBe("0");
+    expect(shell.workspace.querySelector("[data-studio-separator]")).toBe(separator);
+    const splitHint = shell.workspace.querySelector<HTMLElement>("[data-studio-split-hint]")!;
+    expect(splitHint.id).toBe("studio-split-hint");
+    expect(separator.getAttribute("aria-describedby")).toBe(splitHint.id);
+    expect(splitHint.textContent)
+      .toMatch(/Left Arrow.*Right Arrow.*Shift.*Home.*End.*Press R.*double-click/s);
+    const areaTabs = root.querySelector<HTMLElement>("[data-studio-pane-tabs]")!;
+    expect(areaTabs.getAttribute("aria-label")).toBe("Studio areas");
+    expect(areaTabs.hidden).toBe(true);
+    expect(getByRole(areaTabs, "tab", { name: "Browse", hidden: true }).getAttribute("aria-controls"))
+      .toBe("studio-browse-pane");
+    expect(getByRole(areaTabs, "tab", { name: "Edit", hidden: true }).getAttribute("aria-controls"))
+      .toBe("studio-edit-pane");
+    expect(shell.library.id).toBe("studio-browse-pane");
+    expect(shell.canvasRegion.id).toBe("studio-edit-pane");
+    const currentInstruction = getByRole(root, "region", { name: "Current instruction" });
+    expect(currentInstruction).toBeTruthy();
+    expect(["Now", "Why", "Done", "Next"].every((label) =>
+      currentInstruction.textContent?.includes(label)
+    )).toBe(true);
+    const guideRows = currentInstruction.querySelectorAll("dl > div");
+    expect(guideRows).toHaveLength(4);
+    expect([...guideRows].every((row) =>
+      row.querySelector("dt") !== null && row.querySelector("dd") !== null
+    )).toBe(true);
+    const availableMethods = currentInstruction
+      .querySelector<HTMLDetailsElement>("[data-guide-methods]")!;
+    expect(availableMethods.hidden).toBe(true);
+    expect(availableMethods.querySelector("summary")?.textContent).toBe("Available methods");
+    expect(availableMethods.querySelector("[data-guide-method-list]")).toBeTruthy();
+    expect(getAllByRole(root, "button", { name: "How to use this site" })).toHaveLength(2);
+    const instructions = root.querySelector<HTMLElement>('[data-guide-dialog]')!;
+    expect(instructions.hidden).toBe(true);
+    expect(instructions.getAttribute("aria-label")).toBe("How to use this site");
+    expect(instructions.querySelector("[data-guide-reference]")).toBeTruthy();
+    expect(instructions.querySelector("[data-guide-reference]")?.childElementCount).toBe(0);
+    const lockedActions = root.querySelector<HTMLElement>("[data-locked-actions-status]")!;
+    expect(lockedActions.id).toBe("studio-locked-actions-status");
+    expect(lockedActions.hidden).toBe(true);
+    expect(getByRole(root, "region", { name: "Campaign canvas" }).getAttribute("tabindex")).toBe("0");
+    const sizeControls = getByRole(root, "group", { name: "Selected product or image size" });
+    expect(getByRole(sizeControls, "button", { name: "Make selected product or image smaller" }))
+      .toBeTruthy();
+    expect(getByRole(sizeControls, "button", { name: "Fill ad with selected image" }))
+      .toBeTruthy();
+    expect(getByRole(sizeControls, "button", { name: "Make selected product or image larger" }))
+      .toBeTruthy();
+    const deleteSelected = getByRole<HTMLButtonElement>(
+      sizeControls,
+      "button",
+      { name: "Delete selected item" }
+    );
+    expect(deleteSelected.disabled).toBe(true);
+    expect(deleteSelected.getAttribute("aria-describedby")).toBe("canvas-delete-status");
+    expect(root.querySelector<HTMLElement>("#canvas-delete-status")?.textContent)
+      .toBe("Select an item to delete");
+    expect(shell.deleteSelected).toBe(deleteSelected);
+    expect(shell.deleteStatus.id).toBe("canvas-delete-status");
+    expect(getByRole(sizeControls, "status").textContent).toBe("Select a product or image");
+    expect(getByRole(root, "status", { name: "Empty canvas" }).textContent)
+      .toContain("Canvas empty");
+    expect(shell.canvasEmptyState.hidden).toBe(false);
+    expect(getByRole(root, "region", { name: "Pair play" })).toBeTruthy();
+    expect(getByRole(root, "status", { name: "Pair progress" })).toBeTruthy();
+    expect(root.querySelector(".creator__role-card [data-active-role-action]"))
+      .toBe(shell.activeRoleAction);
+    expect(root.querySelector(".creator__role-card [data-partner-role]"))
+      .toBe(shell.partnerRole);
+    expect(root.querySelector(".creator__role-card [data-partner-role-action]"))
+      .toBe(shell.partnerRoleAction);
+    expect(shell.partnerRoleAction.closest("[hidden]")).toBeNull();
+    expect(shell.activeRoleAction.textContent)
+      .toMatch(/build the product/i);
+    expect(shell.partnerRole.textContent).toBe("Strategist");
+    expect(shell.partnerRoleAction.textContent)
+      .toContain("Prepare a product name and one useful benefit");
+    expect(getByRole(root, "button", { name: "Swap roles" })).toBeTruthy();
+    const roleActions = getByRole(root, "group", { name: "Partner role controls" });
+    expect([...roleActions.querySelectorAll("button")].map(({ textContent }) => textContent))
+      .toEqual(["Swap roles", "Role guide"]);
+    const roleGuideLayer = root.querySelector<HTMLElement>("[data-role-guide-layer]")!;
+    expect(roleGuideLayer.hidden).toBe(true);
+    expect(roleGuideLayer.textContent).toContain(
+      "Controls the product's appearance, images, colour, arrangement and layout."
+    );
+    expect(roleGuideLayer.textContent).toContain(
+      "Controls the product name, advertising words, claim, price reasoning and market-route reasoning."
+    );
+    expect(roleGuideLayer.textContent).toContain(
+      "Both partners can use the same tools that are unlocked for the current level."
+    );
+    expect(roleGuideLayer.textContent).toContain(
+      "The roles do not unlock different buttons."
+    );
+    expect(getByRole(root, "combobox", { name: "Audience signal" })).toBeTruthy();
+    const audienceBrief = root.querySelector<HTMLElement>(
+      '#studio-full-brief[aria-label="Audience brief"]'
+    )!;
+    expect(audienceBrief).toBeTruthy();
+    expect(audienceBrief.textContent).toContain(
+      "Context is the situation the audience is in."
+    );
+    expect(audienceBrief.textContent).toContain(
+      "Need is the problem the product should help solve."
+    );
+    expect(audienceBrief.textContent).toContain(
+      "Values are the ideas or qualities that matter to this audience."
+    );
+    expect(audienceBrief.textContent).toContain(
+      "Intended audience response is what the advertisement should encourage the audience to think, feel or do."
+    );
+    expect(getByRole(root, "button", { name: "Open full brief" }).getAttribute("aria-expanded"))
+      .toBe("false");
+    expect(root.querySelector('[data-studio-panel="words"][aria-label="Pair tools"]')).toBeTruthy();
+    expect(root.querySelector('[data-studio-panel="logo"][aria-label="Logo Lab"]')).toBeTruthy();
+    expect(shell.logoLabPanel.dataset.logoLabPanel).toBe("");
+    expect(getByRole<HTMLInputElement>(root, "textbox", { name: "Canvas words", hidden: true }).placeholder)
+      .toBe("Try Make room for adventure");
+    expect(getByRole(root, "button", { name: "Add words to ad", hidden: true }))
+      .toBe(shell.addWords);
+    expect(getByRole(root, "button", { name: "Put words on selected product", hidden: true }))
+      .toBe(shell.productWords);
+    expect(root.querySelector('[data-studio-panel="words"]')?.textContent)
+      .toContain("On supported products, the words appear on a curved label and the original text remains editable.");
+    expect(root.querySelector('.creator__layers[aria-label="Canvas layers"]')).toBeTruthy();
+    expect(getByRole(root, "button", { name: "Open canvas layers", hidden: true })).toBeTruthy();
+    expect(root.querySelector('.creator__inspector[aria-label="Selected element"]')).toBeTruthy();
+    expect(shell.inspector.hidden).toBe(true);
+    const sectionFill = root.querySelector<HTMLElement>(
+      '[data-section-fill-panel][role="region"][aria-label="Selected item fill"]'
+    )!;
+    expect(sectionFill).toBe(shell.sectionFillPanel);
+    expect(shell.sectionFillPanel.hidden).toBe(true);
+    expect(getByRole(root, "group", { name: "AIDA steps", hidden: true })).toBeTruthy();
+    expect(getAllByRole(root, "button", { hidden: true })
+      .filter((button) => button.hasAttribute("data-slot"))
+      .map((button) => button.textContent)).toEqual([
+      "Price", "Attention", "Interest", "Desire", "Action"
+    ]);
+    expect(shell.polite.getAttribute("aria-live")).toBe("polite");
+    expect(shell.assertive.getAttribute("aria-live")).toBe("assertive");
+    expect(getByRole(root, "status", { name: "Saved progress" }))
+      .toBe(shell.saveStatus);
+    expect(shell.saveStatus.textContent).toBe("");
+    expect(shell.undo.dataset.command).toBe("undo");
+    expect(shell.redo.dataset.command).toBe("redo");
+    expect(root.textContent).not.toMatch(/\b(?:assignment|unit|task)\b/i);
+  });
+
+  it("opens and closes the full brief without adding a floating drawer control", () => {
+    document.body.innerHTML = '<div id="creator-root"></div>';
+    const root = document.querySelector<HTMLElement>("#creator-root")!;
+    const shell = createEditorShell(root);
+    const creator = shell.overlay;
+    const toggle = getByRole<HTMLButtonElement>(root, "button", { name: "Open full brief" });
+
+    toggle.focus();
+    toggle.click();
+
+    expect(creator.dataset.briefOpen).toBe("true");
+    expect(root.querySelector("[data-studio-collapse]")).toBeNull();
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+
+    toggle.click();
+
+    expect(creator.dataset.briefOpen).toBeUndefined();
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(toggle);
+  });
+});

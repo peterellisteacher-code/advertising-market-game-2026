@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 97,
+  "sourcePng": "97-bag-carry-product-bases.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Wide canvas tote", "tags": ["bag", "canvas tote", "carry product"]},
+    {"row": 1, "column": 2, "label": "Upright shopping bag", "tags": ["bag", "carry product", "shopping bag"]},
+    {"row": 1, "column": 3, "label": "Structured handbag", "tags": ["bag", "carry product", "handbag"]},
+    {"row": 1, "column": 4, "label": "Crescent shoulder bag", "tags": ["bag", "crescent bag", "shoulder bag"]},
+    {"row": 1, "column": 5, "label": "Rectangular crossbody bag body", "tags": ["bag", "crossbody bag", "rectangular bag"]},
+    {"row": 2, "column": 1, "label": "Compact daypack", "tags": ["backpack", "daypack", "small bag"]},
+    {"row": 2, "column": 2, "label": "Rectangular school backpack", "tags": ["backpack", "school backpack", "school bag"]},
+    {"row": 2, "column": 3, "label": "Tall hiking backpack", "tags": ["backpack", "hiking backpack", "outdoor bag"]},
+    {"row": 2, "column": 4, "label": "Roll-top backpack", "tags": ["backpack", "roll top", "travel bag"]},
+    {"row": 2, "column": 5, "label": "Drawstring gym bag", "tags": ["drawstring bag", "gym bag", "sports bag"]},
+    {"row": 3, "column": 1, "label": "Hard-shell rolling suitcase", "tags": ["hard-shell luggage", "rolling suitcase", "travel bag"]},
+    {"row": 3, "column": 2, "label": "Soft-sided suitcase", "tags": ["soft luggage", "suitcase", "travel bag"]},
+    {"row": 3, "column": 3, "label": "Cylindrical duffel bag", "tags": ["cylindrical bag", "duffel bag", "travel bag"]},
+    {"row": 3, "column": 4, "label": "Rectangular weekender bag", "tags": ["rectangular bag", "travel bag", "weekender bag"]},
+    {"row": 3, "column": 5, "label": "Flat garment-carrier shell", "tags": ["flat bag", "garment carrier", "travel bag"]},
+    {"row": 4, "column": 1, "label": "Slim laptop briefcase", "tags": ["briefcase", "laptop bag", "work bag"]},
+    {"row": 4, "column": 2, "label": "Wide messenger-bag shell", "tags": ["messenger bag", "shoulder bag", "wide bag"]},
+    {"row": 4, "column": 3, "label": "Boxy camera bag", "tags": ["camera bag", "equipment bag", "square bag"]},
+    {"row": 4, "column": 4, "label": "Open-top tool bag", "tags": ["open-top bag", "tool bag", "work bag"]},
+    {"row": 4, "column": 5, "label": "Compact medical-kit bag", "tags": ["equipment bag", "medical bag", "small bag"]},
+    {"row": 5, "column": 1, "label": "Fold-top insulated lunch sack", "tags": ["food carrier", "insulated bag", "lunch bag"]},
+    {"row": 5, "column": 2, "label": "Soft cooler box bag", "tags": ["cooler bag", "food carrier", "insulated bag"]},
+    {"row": 5, "column": 3, "label": "Cylindrical yoga-mat carrier", "tags": ["cylindrical bag", "sports bag", "yoga-mat carrier"]},
+    {"row": 5, "column": 4, "label": "Ventilated pet-carrier bag", "tags": ["animal carrier", "pet carrier", "ventilated bag"]},
+    {"row": 5, "column": 5, "label": "Small toiletry pouch", "tags": ["small bag", "toiletry pouch", "travel bag"]}
+  ]
+}

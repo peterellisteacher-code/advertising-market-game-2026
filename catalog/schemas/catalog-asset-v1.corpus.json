@@ -1,0 +1,346 @@
+{
+  "valid": [
+    {
+      "name": "valid offline asset",
+      "value": {
+        "schema": "catalog-asset@1",
+        "delivery": "offline",
+        "id": "bottle-basic",
+        "version": 1,
+        "kind": "raster-master",
+        "title": "Basic bottle",
+        "category": "drinkware",
+        "tags": ["bottle", "drinkware"],
+        "files": {
+          "thumbnail": "/catalog/generated/offline-core-v1/assets/bottle-basic/thumbnail-192.webp",
+          "preview": "/catalog/generated/offline-core-v1/assets/bottle-basic/preview-640.webp",
+          "master": "/catalog/generated/offline-core-v1/assets/bottle-basic/master.png",
+          "masks": {
+            "body": "/catalog/generated/offline-core-v1/assets/bottle-basic/masks/body.png"
+          }
+        },
+        "masterSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "dimensions": { "width": 320, "height": 640 },
+        "recolourZones": ["body"],
+        "anchors": [{ "id": "lid", "x": 0.5, "y": 0.1, "accepts": ["cap"] }],
+        "materialProfiles": ["matte-plastic"],
+        "classroomReviewed": false,
+        "brandFree": false,
+        "attribution": {
+          "creator": "Pipeline fixture",
+          "sourceUrl": "local",
+          "license": "Classroom fixture"
+        },
+        "defaultZoneStyles": {
+          "body": { "colour": "#3366CC", "materialId": "matte-plastic", "opacity": 1.0 }
+        }
+      }
+    },
+    {
+      "name": "valid live photo",
+      "value": {
+        "schema": "catalog-asset@1",
+        "delivery": "live-photo",
+        "id": "04730a38-97d4-46dc-b9fa-58c0c91a7d62",
+        "version": 1,
+        "kind": "photo",
+        "title": "Market water bottle",
+        "category": "photos",
+        "tags": ["photo", "water"],
+        "files": {
+          "thumbnail": "/api/openverse-image/04730a38-97d4-46dc-b9fa-58c0c91a7d62?variant=thumbnail",
+          "preview": "/api/openverse-image/04730a38-97d4-46dc-b9fa-58c0c91a7d62",
+          "master": "/api/openverse-image/04730a38-97d4-46dc-b9fa-58c0c91a7d62"
+        },
+        "dimensions": { "width": 653, "height": 1024 },
+        "recolourZones": [],
+        "anchors": [],
+        "materialProfiles": [],
+        "classroomReviewed": false,
+        "brandFree": false,
+        "attribution": {
+          "creator": "Openverse fixture",
+          "sourceUrl": "https://openverse.org/image/04730a38-97d4-46dc-b9fa-58c0c91a7d62",
+          "license": "CC BY 2.0"
+        }
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "name": "invalid offline traversal path",
+      "value": {
+        "schema": "catalog-asset@1",
+        "delivery": "offline",
+        "id": "bottle-basic",
+        "version": 1,
+        "kind": "raster-master",
+        "title": "Basic bottle",
+        "category": "drinkware",
+        "tags": ["bottle"],
+        "files": {
+          "thumbnail": "/catalog/generated/offline-core-v1/assets/bottle-basic/thumbnail-192.webp",
+          "preview": "/catalog/generated/offline-core-v1/assets/bottle-basic/preview-640.webp",
+          "master": "/catalog/generated/offline-core-v1/assets/bottle-basic/../secret.png",
+          "masks": { "body": "/catalog/generated/offline-core-v1/assets/bottle-basic/masks/body.png" }
+        },
+        "masterSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "dimensions": { "width": 320, "height": 640 },
+        "recolourZones": ["body"],
+        "anchors": [],
+        "materialProfiles": ["matte-plastic"],
+        "classroomReviewed": false,
+        "brandFree": false,
+        "attribution": { "creator": "Fixture", "sourceUrl": "local", "license": "Fixture" }
+      }
+    },
+    {
+      "name": "invalid uppercase offline hash",
+      "value": {
+        "schema": "catalog-asset@1",
+        "delivery": "offline",
+        "id": "bottle-basic",
+        "version": 1,
+        "kind": "raster-master",
+        "title": "Basic bottle",
+        "category": "drinkware",
+        "tags": ["bottle"],
+        "files": {
+          "thumbnail": "/catalog/generated/offline-core-v1/assets/bottle-basic/thumbnail-192.webp",
+          "preview": "/catalog/generated/offline-core-v1/assets/bottle-basic/preview-640.webp",
+          "master": "/catalog/generated/offline-core-v1/assets/bottle-basic/master.png",
+          "masks": { "body": "/catalog/generated/offline-core-v1/assets/bottle-basic/masks/body.png" }
+        },
+        "masterSha256": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "dimensions": { "width": 320, "height": 640 },
+        "recolourZones": ["body"],
+        "anchors": [],
+        "materialProfiles": ["matte-plastic"],
+        "classroomReviewed": false,
+        "brandFree": false,
+        "attribution": { "creator": "Fixture", "sourceUrl": "local", "license": "Fixture" }
+      }
+    },
+    {
+      "name": "invalid live photo with offline hash",
+      "value": {
+        "schema": "catalog-asset@1",
+        "delivery": "live-photo",
+        "id": "04730a38-97d4-46dc-b9fa-58c0c91a7d62",
+        "version": 1,
+        "kind": "photo",
+        "title": "Market photo",
+        "category": "photos",
+        "tags": ["photo"],
+        "files": {
+          "thumbnail": "/api/openverse-image/04730a38-97d4-46dc-b9fa-58c0c91a7d62?variant=thumbnail",
+          "preview": "/api/openverse-image/04730a38-97d4-46dc-b9fa-58c0c91a7d62",
+          "master": "/api/openverse-image/04730a38-97d4-46dc-b9fa-58c0c91a7d62"
+        },
+        "masterSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "dimensions": { "width": 653, "height": 1024 },
+        "recolourZones": [],
+        "anchors": [],
+        "materialProfiles": [],
+        "classroomReviewed": false,
+        "brandFree": false,
+        "attribution": { "creator": "Fixture", "sourceUrl": "https://openverse.org", "license": "CC" }
+      }
+    },
+    {
+      "name": "invalid anchor outside normalized bounds",
+      "value": {
+        "schema": "catalog-asset@1",
+        "delivery": "offline",
+        "id": "bottle-basic",
+        "version": 1,
+        "kind": "raster-master",
+        "title": "Basic bottle",
+        "category": "drinkware",
+        "tags": ["bottle"],
+        "files": {
+          "thumbnail": "/catalog/generated/offline-core-v1/assets/bottle-basic/thumbnail-192.webp",
+          "preview": "/catalog/generated/offline-core-v1/assets/bottle-basic/preview-640.webp",
+          "master": "/catalog/generated/offline-core-v1/assets/bottle-basic/master.png",
+          "masks": { "body": "/catalog/generated/offline-core-v1/assets/bottle-basic/masks/body.png" }
+        },
+        "masterSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "dimensions": { "width": 320, "height": 640 },
+        "recolourZones": ["body"],
+        "anchors": [{ "id": "lid", "x": 1.01, "y": 0.1, "accepts": ["cap"] }],
+        "materialProfiles": ["matte-plastic"],
+        "classroomReviewed": false,
+        "brandFree": false,
+        "attribution": { "creator": "Fixture", "sourceUrl": "local", "license": "Fixture" }
+      }
+    },
+    {
+      "name": "invalid duplicate anchors",
+      "value": {
+        "schema": "catalog-asset@1",
+        "delivery": "offline",
+        "id": "bottle-basic",
+        "version": 1,
+        "kind": "raster-master",
+        "title": "Basic bottle",
+        "category": "drinkware",
+        "tags": ["bottle"],
+        "files": {
+          "thumbnail": "/catalog/generated/offline-core-v1/assets/bottle-basic/thumbnail-192.webp",
+          "preview": "/catalog/generated/offline-core-v1/assets/bottle-basic/preview-640.webp",
+          "master": "/catalog/generated/offline-core-v1/assets/bottle-basic/master.png",
+          "masks": { "body": "/catalog/generated/offline-core-v1/assets/bottle-basic/masks/body.png" }
+        },
+        "masterSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "dimensions": { "width": 320, "height": 640 },
+        "recolourZones": ["body"],
+        "anchors": [
+          { "id": "lid", "x": 0.5, "y": 0.1, "accepts": ["cap"] },
+          { "id": "lid", "x": 0.5, "y": 0.1, "accepts": ["cap"] }
+        ],
+        "materialProfiles": ["matte-plastic"],
+        "classroomReviewed": false,
+        "brandFree": false,
+        "attribution": { "creator": "Fixture", "sourceUrl": "local", "license": "Fixture" }
+      }
+    },
+    {
+      "name": "invalid material profile",
+      "value": {
+        "schema": "catalog-asset@1",
+        "delivery": "offline",
+        "id": "bottle-basic",
+        "version": 1,
+        "kind": "raster-master",
+        "title": "Basic bottle",
+        "category": "drinkware",
+        "tags": ["bottle"],
+        "files": {
+          "thumbnail": "/catalog/generated/offline-core-v1/assets/bottle-basic/thumbnail-192.webp",
+          "preview": "/catalog/generated/offline-core-v1/assets/bottle-basic/preview-640.webp",
+          "master": "/catalog/generated/offline-core-v1/assets/bottle-basic/master.png",
+          "masks": { "body": "/catalog/generated/offline-core-v1/assets/bottle-basic/masks/body.png" }
+        },
+        "masterSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "dimensions": { "width": 320, "height": 640 },
+        "recolourZones": ["body"],
+        "anchors": [],
+        "materialProfiles": ["unknown-material"],
+        "classroomReviewed": false,
+        "brandFree": false,
+        "attribution": { "creator": "Fixture", "sourceUrl": "local", "license": "Fixture" }
+      }
+    },
+    {
+      "name": "invalid zone and mask mismatch",
+      "value": {
+        "schema": "catalog-asset@1",
+        "delivery": "offline",
+        "id": "bottle-basic",
+        "version": 1,
+        "kind": "raster-master",
+        "title": "Basic bottle",
+        "category": "drinkware",
+        "tags": ["bottle"],
+        "files": {
+          "thumbnail": "/catalog/generated/offline-core-v1/assets/bottle-basic/thumbnail-192.webp",
+          "preview": "/catalog/generated/offline-core-v1/assets/bottle-basic/preview-640.webp",
+          "master": "/catalog/generated/offline-core-v1/assets/bottle-basic/master.png",
+          "masks": { "body": "/catalog/generated/offline-core-v1/assets/bottle-basic/masks/body.png" }
+        },
+        "masterSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "dimensions": { "width": 320, "height": 640 },
+        "recolourZones": [],
+        "anchors": [],
+        "materialProfiles": ["matte-plastic"],
+        "classroomReviewed": false,
+        "brandFree": false,
+        "attribution": { "creator": "Fixture", "sourceUrl": "local", "license": "Fixture" }
+      }
+    },
+    {
+      "name": "invalid missing explicit review booleans",
+      "value": {
+        "schema": "catalog-asset@1",
+        "delivery": "offline",
+        "id": "bottle-basic",
+        "version": 1,
+        "kind": "raster-master",
+        "title": "Basic bottle",
+        "category": "drinkware",
+        "tags": ["bottle"],
+        "files": {
+          "thumbnail": "/catalog/generated/offline-core-v1/assets/bottle-basic/thumbnail-192.webp",
+          "preview": "/catalog/generated/offline-core-v1/assets/bottle-basic/preview-640.webp",
+          "master": "/catalog/generated/offline-core-v1/assets/bottle-basic/master.png",
+          "masks": { "body": "/catalog/generated/offline-core-v1/assets/bottle-basic/masks/body.png" }
+        },
+        "masterSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "dimensions": { "width": 320, "height": 640 },
+        "recolourZones": ["body"],
+        "anchors": [],
+        "materialProfiles": ["matte-plastic"],
+        "attribution": { "creator": "Fixture", "sourceUrl": "local", "license": "Fixture" }
+      }
+    }
+  ],
+  "derivedInvalid": [
+    {
+      "name": "invalid live photo with explicit null offline field",
+      "baseValid": 1,
+      "path": ["masterSha256"],
+      "value": null
+    },
+    {
+      "name": "invalid unsorted tags",
+      "baseValid": 0,
+      "path": ["tags"],
+      "value": ["drinkware", "bottle"]
+    },
+    {
+      "name": "invalid dimension product above 64 megapixels",
+      "baseValid": 0,
+      "path": ["dimensions"],
+      "value": { "width": 8192, "height": 8192 }
+    },
+    {
+      "name": "invalid duplicate anchor IDs with different coordinates",
+      "baseValid": 0,
+      "path": ["anchors"],
+      "value": [
+        { "id": "lid", "x": 0.5, "y": 0.1, "accepts": ["cap"] },
+        { "id": "lid", "x": 0.6, "y": 0.2, "accepts": ["cap"] }
+      ]
+    },
+    {
+      "name": "invalid empty default zone styles",
+      "baseValid": 0,
+      "path": ["defaultZoneStyles"],
+      "value": {}
+    },
+    {
+      "name": "invalid title outer whitespace",
+      "baseValid": 0,
+      "path": ["title"],
+      "value": " Basic bottle "
+    },
+    {
+      "name": "invalid title over 160 characters",
+      "baseValid": 0,
+      "path": ["title"],
+      "value": "This deliberately overlong catalogue title contains far more than one hundred and sixty characters so every contract layer must reject it instead of silently accepting text that cannot fit the creator interface."
+    },
+    {
+      "name": "invalid unsafe attribution URL",
+      "baseValid": 0,
+      "path": ["attribution", "sourceUrl"],
+      "value": "file:///classroom-secret"
+    },
+    {
+      "name": "invalid attribution URL with malformed port",
+      "baseValid": 0,
+      "path": ["attribution", "sourceUrl"],
+      "value": "https://example.test:not-a-port/image"
+    }
+  ]
+}

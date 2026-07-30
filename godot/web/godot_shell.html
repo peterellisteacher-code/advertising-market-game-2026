@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <base href="/">
+    <title>$GODOT_PROJECT_NAME</title>
+    $GODOT_HEAD_INCLUDE
+    <link rel="stylesheet" href="./studio/studio.css">
+  </head>
+  <body>
+    <div id="account-gate-root"></div>
+    <section id="account-session-root" hidden></section>
+    <main aria-label="Advertising Market Game" hidden inert aria-hidden="true">
+      <canvas id="canvas" tabindex="-1" aria-label="Advertising Market Game canvas">Your browser does not support the canvas element.</canvas>
+      <p id="status" role="status" aria-live="polite">Loading game…</p>
+      <section id="game-a11y" class="sr-only" aria-live="polite" aria-atomic="true">
+        <p id="game-a11y-eyebrow"></p>
+        <h1 id="game-a11y-heading"></h1>
+        <p id="game-a11y-clue"></p>
+        <p id="game-a11y-status"></p>
+      </section>
+    </main>
+    <div id="creator-root" hidden></div>
+    <script src="./studio/studio.js"></script>
+    <script src="$GODOT_URL"></script>
+    <script>
+      window.AdMarketGameA11y = Object.freeze({
+        update(payload) {
+          let next;
+          try {
+            next = typeof payload === "string" ? JSON.parse(payload) : payload;
+          } catch {
+            return false;
+          }
+          if (!next || typeof next !== "object") return false;
+          for (const key of ["eyebrow", "heading", "clue", "status"]) {
+            const target = document.querySelector(`#game-a11y-${key}`);
+            if (target) target.textContent = typeof next[key] === "string" ? next[key] : "";
+          }
+          return true;
+        }
+      });
+      const engine = new Engine($GODOT_CONFIG);
+      window.AdMarketGameAccess.requireAccess().then(() => engine.startGame({
+        onProgress(current, total) {
+          const status = document.querySelector("#status");
+          if (status && total > 0) status.textContent = `Loading game… ${Math.round(current / total * 100)}%`;
+        }
+      })).then(() => {
+        const status = document.querySelector("#status");
+        if (status) status.textContent = "Game ready";
+      }).catch((error) => {
+        const status = document.querySelector("#status");
+        if (status) status.textContent = "The game could not start. Reload the page and try again.";
+        console.error(error);
+      });
+    </script>
+  </body>
+</html>

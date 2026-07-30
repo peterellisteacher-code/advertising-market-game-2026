@@ -1,0 +1,32 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetNumber": 56,
+  "sourcePng": "56-patio-outdoor-living-components.png",
+  "items": [
+    {"row": 1, "column": 1, "label": "Single outdoor armchair", "tags": ["armchair", "outdoor furniture", "single seat"]},
+    {"row": 1, "column": 2, "label": "Two-seat outdoor sofa", "tags": ["outdoor furniture", "sofa", "two seat"]},
+    {"row": 1, "column": 3, "label": "Corner outdoor chair", "tags": ["corner chair", "outdoor furniture", "single seat"]},
+    {"row": 1, "column": 4, "label": "Slatted outdoor dining chair", "tags": ["dining chair", "outdoor furniture", "slatted"]},
+    {"row": 1, "column": 5, "label": "Hanging egg chair with stand", "tags": ["egg chair", "hanging chair", "outdoor furniture"]},
+    {"row": 2, "column": 1, "label": "Rectangular slatted outdoor table", "tags": ["outdoor furniture", "rectangular table", "slatted"]},
+    {"row": 2, "column": 2, "label": "Low rectangular outdoor coffee table", "tags": ["coffee table", "low", "outdoor furniture"]},
+    {"row": 2, "column": 3, "label": "Square outdoor side table", "tags": ["outdoor furniture", "side table", "square"]},
+    {"row": 2, "column": 4, "label": "Round pedestal outdoor table", "tags": ["outdoor furniture", "pedestal table", "round"]},
+    {"row": 2, "column": 5, "label": "Two-tier wheeled serving cart", "tags": ["serving cart", "two tier", "wheeled"]},
+    {"row": 3, "column": 1, "label": "Cabinet gas barbecue grill", "tags": ["barbecue", "cabinet grill", "outdoor cooking"]},
+    {"row": 3, "column": 2, "label": "Kettle charcoal grill on wheels", "tags": ["charcoal grill", "kettle grill", "wheeled"]},
+    {"row": 3, "column": 3, "label": "Three-cabinet outdoor kitchen counter", "tags": ["cabinet counter", "outdoor kitchen", "three cabinet"]},
+    {"row": 3, "column": 4, "label": "Round pebble-filled fire bowl", "tags": ["fire bowl", "pebble filled", "round"]},
+    {"row": 3, "column": 5, "label": "Freestanding patio heater", "tags": ["freestanding", "outdoor heating", "patio heater"]},
+    {"row": 4, "column": 1, "label": "Tall tapered rectangular planter", "tags": ["planter", "rectangular", "tall"]},
+    {"row": 4, "column": 2, "label": "Long rectangular planter box", "tags": ["long", "planter box", "rectangular"]},
+    {"row": 4, "column": 3, "label": "Freestanding patio umbrella", "tags": ["freestanding", "outdoor shade", "patio umbrella"]},
+    {"row": 4, "column": 4, "label": "Retractable striped awning", "tags": ["awning", "retractable", "striped"]},
+    {"row": 4, "column": 5, "label": "Triangular shade sail", "tags": ["outdoor shade", "shade sail", "triangular"]},
+    {"row": 5, "column": 1, "label": "Four-bulb outdoor string light", "tags": ["four bulb", "outdoor lighting", "string light"]},
+    {"row": 5, "column": 2, "label": "Cylindrical wall lantern", "tags": ["cylindrical", "outdoor lighting", "wall lantern"]},
+    {"row": 5, "column": 3, "label": "Tiered stake garden light", "tags": ["garden light", "stake light", "tiered"]},
+    {"row": 5, "column": 4, "label": "Square outdoor hot tub", "tags": ["hot tub", "outdoor living", "square"]},
+    {"row": 5, "column": 5, "label": "Freestanding outdoor shower", "tags": ["freestanding", "outdoor shower", "square base"]}
+  ]
+}

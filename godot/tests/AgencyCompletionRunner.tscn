@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://d3n2ydmn2we6u"]
+
+[ext_resource type="Script" uid="uid://bno5f53t5bhxw" path="res://tests/agency_completion_runner.gd" id="1_yhf85"]
+
+[node name="AgencyCompletionRunner" type="Node" unique_id=844880774]
+script = ExtResource("1_yhf85")

@@ -1,0 +1,2 @@
+*.svg text eol=lf
+catalog/generated/**/*.json text eol=lf

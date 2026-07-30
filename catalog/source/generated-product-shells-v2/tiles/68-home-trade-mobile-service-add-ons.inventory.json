@@ -1,0 +1,31 @@
+{
+  "schema": "contact-sheet-inventory@1",
+  "sheetId": "68-home-trade-mobile-service-add-ons",
+  "items": [
+    {"row": 1, "column": 1, "label": "Portable toolbox", "tags": ["add-on", "mobile-trade-services", "portable", "toolbox"]},
+    {"row": 1, "column": 2, "label": "Upright vacuum cleaner", "tags": ["add-on", "cleaning", "mobile-trade-services", "upright", "vacuum-cleaner"]},
+    {"row": 1, "column": 3, "label": "Mop bucket with wringer", "tags": ["add-on", "bucket", "cleaning", "mobile-trade-services", "mop", "wringer"]},
+    {"row": 1, "column": 4, "label": "Window squeegee", "tags": ["add-on", "cleaning", "mobile-trade-services", "squeegee", "window-cleaning"]},
+    {"row": 1, "column": 5, "label": "Pressure washer", "tags": ["add-on", "cleaning", "mobile-trade-services", "pressure-washer"]},
+    {"row": 2, "column": 1, "label": "Lawn mower", "tags": ["add-on", "garden-care", "lawn-mower", "mobile-trade-services"]},
+    {"row": 2, "column": 2, "label": "Long portable toolbox", "tags": ["add-on", "long", "mobile-trade-services", "portable", "toolbox"]},
+    {"row": 2, "column": 3, "label": "Shallow portable toolbox", "tags": ["add-on", "mobile-trade-services", "portable", "shallow", "toolbox"]},
+    {"row": 2, "column": 4, "label": "Step ladder", "tags": ["add-on", "ladder", "mobile-trade-services", "step-ladder"]},
+    {"row": 2, "column": 5, "label": "Pipe wrench", "tags": ["add-on", "mobile-trade-services", "pipe-wrench", "plumbing", "tool"]},
+    {"row": 3, "column": 1, "label": "Manual pipe cutter", "tags": ["add-on", "manual", "mobile-trade-services", "pipe-cutter", "plumbing"]},
+    {"row": 3, "column": 2, "label": "Open tool bag", "tags": ["add-on", "mobile-trade-services", "open", "tool-bag", "tool-storage"]},
+    {"row": 3, "column": 3, "label": "Extension-cable reel", "tags": ["add-on", "cable-reel", "electrical", "extension-cable", "mobile-trade-services"]},
+    {"row": 3, "column": 4, "label": "Cordless drill", "tags": ["add-on", "cordless", "drill", "mobile-trade-services", "power-tool"]},
+    {"row": 3, "column": 5, "label": "Portable utility wash tub", "tags": ["add-on", "mobile-trade-services", "portable", "utility-tub", "wash-tub"]},
+    {"row": 4, "column": 1, "label": "Electric clippers", "tags": ["add-on", "clippers", "electric", "mobile-trade-services", "tool"]},
+    {"row": 4, "column": 2, "label": "Two-wheel hand truck", "tags": ["add-on", "hand-truck", "hauling", "mobile-trade-services", "two-wheel"]},
+    {"row": 4, "column": 3, "label": "Sealed cardboard box", "tags": ["add-on", "cardboard-box", "mobile-trade-services", "sealed", "storage"]},
+    {"row": 4, "column": 4, "label": "Stack of folded protective blankets", "tags": ["add-on", "blankets", "folded", "mobile-trade-services", "protective", "stack"]},
+    {"row": 4, "column": 5, "label": "Paint tray with roller", "tags": ["add-on", "mobile-trade-services", "paint-roller", "paint-tray", "painting"]},
+    {"row": 5, "column": 1, "label": "Lidded utility bucket", "tags": ["add-on", "bucket", "lidded", "mobile-trade-services", "utility"]},
+    {"row": 5, "column": 2, "label": "Small-parts drawer cabinet", "tags": ["add-on", "drawer-cabinet", "mobile-trade-services", "small-parts", "storage"]},
+    {"row": 5, "column": 3, "label": "Freestanding blank signboard", "tags": ["add-on", "blank", "freestanding", "mobile-trade-services", "signboard"]},
+    {"row": 5, "column": 4, "label": "Folding workbench", "tags": ["add-on", "folding", "mobile-trade-services", "workbench"]},
+    {"row": 5, "column": 5, "label": "Floor-scrubber machine", "tags": ["add-on", "cleaning", "floor-scrubber", "machine", "mobile-trade-services"]}
+  ]
+}

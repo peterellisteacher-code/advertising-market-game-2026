@@ -1,0 +1,48 @@
+[gd_scene format=3 uid="uid://by2k08y6c6buo"]
+
+[ext_resource type="Script" uid="uid://cbd6fe4ab81aq" path="res://src/audio/agency_audio_manager.gd" id="1_t1oyd"]
+[ext_resource type="AudioStream" uid="uid://d0h4f1dtf507g" path="res://assets/audio/camera-shutter.ogg" id="2_xxbj0"]
+[ext_resource type="AudioStream" uid="uid://b2c7ikuerkkfi" path="res://assets/audio/pitch-swoosh.ogg" id="3_5irfx"]
+[ext_resource type="AudioStream" uid="uid://dikt5rd7n128x" path="res://assets/audio/portfolio-stamp.ogg" id="4_g2nva"]
+[ext_resource type="AudioStream" uid="uid://j5brvgs7oyu6" path="res://assets/audio/office-loop.ogg" id="5_vuwue"]
+[ext_resource type="AudioStream" uid="uid://bfnrxmaavrdon" path="res://assets/audio/pitch-loop.ogg" id="6_5gqo4"]
+[ext_resource type="AudioStream" uid="uid://bmu6vhthrbk2n" path="res://assets/audio/ui-confirm.ogg" id="7_sclmc"]
+[ext_resource type="AudioStream" uid="uid://dlw5n1vma72ow" path="res://assets/audio/ui-move.ogg" id="8_6rajc"]
+
+[node name="AgencyAudio" type="Node" unique_id=1937646235]
+script = ExtResource("1_t1oyd")
+
+[node name="CameraCue" type="AudioStreamPlayer" parent="." unique_id=971892635]
+unique_name_in_owner = true
+stream = ExtResource("2_xxbj0")
+volume_db = -10.0
+
+[node name="SwooshCue" type="AudioStreamPlayer" parent="." unique_id=1380879382]
+unique_name_in_owner = true
+stream = ExtResource("3_5irfx")
+volume_db = -10.0
+
+[node name="PortfolioStampCue" type="AudioStreamPlayer" parent="." unique_id=231170843]
+unique_name_in_owner = true
+stream = ExtResource("4_g2nva")
+volume_db = -10.0
+
+[node name="OfficeLoop" type="AudioStreamPlayer" parent="." unique_id=1105921898]
+unique_name_in_owner = true
+stream = ExtResource("5_vuwue")
+volume_db = -12.0
+
+[node name="PitchLoop" type="AudioStreamPlayer" parent="." unique_id=163201778]
+unique_name_in_owner = true
+stream = ExtResource("6_5gqo4")
+volume_db = -10.0
+
+[node name="UiConfirmCue" type="AudioStreamPlayer" parent="." unique_id=1835717147]
+unique_name_in_owner = true
+stream = ExtResource("7_sclmc")
+volume_db = -8.0
+
+[node name="UiMoveCue" type="AudioStreamPlayer" parent="." unique_id=1153130985]
+unique_name_in_owner = true
+stream = ExtResource("8_6rajc")
+volume_db = -12.0

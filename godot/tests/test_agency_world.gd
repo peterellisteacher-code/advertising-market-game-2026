@@ -15,7 +15,7 @@ func run() -> bool:
 	tree.root.add_child(world)
 	var pair := world.get_node("%AgencyPair") as CharacterBody2D
 	var guide := world.get_node("%AgencyGuideDrawer") as AdMarketAgencyGuideDrawer
-	var orientation := guide.get_node("OrientationPanel") as Control
+	var orientation := guide.get_node("OrientationLayer") as Control
 	var guide_panel := guide.get_node("GuidePanel") as Control
 	assert(orientation.visible)
 	assert(not pair.input_enabled)

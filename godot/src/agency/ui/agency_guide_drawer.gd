@@ -101,9 +101,9 @@ func open_guide(section: String = "objective") -> void:
 	var tabs := get_node_or_null("%GuideTabs") as TabContainer
 	if tabs != null:
 		var target_tab := int(SECTION_INDEX.get(section, SECTION_INDEX["objective"]))
-		_stabilise_guide_layout(tabs, target_tab)
 		if tabs.is_inside_tree():
 			tabs.grab_focus()
+		_stabilise_guide_layout(tabs, target_tab)
 
 func set_tucked(tucked: bool) -> void:
 	_tucked = tucked

@@ -80,15 +80,30 @@ func _agency_world_replaces_the_run_panel_and_coordinates_roles() -> bool:
 	var prior_station: String = agency.current_station_id()
 	shell.call("_on_creator_opened")
 	assert(not pair.input_enabled)
-	shell.call("_on_creator_state_received", _invent_ready_document(shell))
+	var refreshed_document := _invent_ready_document(shell)
+	shell.call("_on_creator_state_received", refreshed_document)
+	var refresh_request := practice_fake.request_for("practice-4")
+	assert(refresh_request.get("method") == "resume")
+	practice_fake.resolve_success(
+		"practice-4",
+		_practice_recovery(
+			shell,
+			"invent",
+			false,
+			1,
+			1,
+			"creator-refresh-1",
+			refreshed_document,
+		),
+	)
 	shell.call("_on_creator_closed")
 	assert(pair.input_enabled)
 	assert(agency.current_station_id() == prior_station)
 	shell.call("_on_agency_role_handoff_requested", "strategist")
-	var handoff_request := practice_fake.request_for("practice-4")
+	var handoff_request := practice_fake.request_for("practice-5")
 	assert(
 		handoff_request.get("method") == "saveProgress",
-		"Expected practice-4 to save the role handoff; actual=%s requests=%s" % [
+		"Expected practice-5 to save the role handoff; actual=%s requests=%s" % [
 			String(handoff_request.get("method", "<missing>")),
 			JSON.stringify(practice_fake.get("_requests")),
 		]

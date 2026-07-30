@@ -92,6 +92,9 @@ jobs:
           mv -v "$TEMPLATE_SOURCE" \
                ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
 
+      - name: Import Godot project
+        run: godot --headless --path godot --import
+
       - name: Run Godot tests
         run: godot --headless --path godot --script res://tests/run_tests.gd
 

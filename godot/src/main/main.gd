@@ -1565,7 +1565,10 @@ func _focus_if_ready(control: Control) -> void:
         control.grab_focus()
 
 func _focused_control_label() -> String:
-    var focused := get_viewport().gui_get_focus_owner()
+    var viewport := get_viewport()
+    if viewport == null:
+        return ""
+    var focused := viewport.gui_get_focus_owner()
     if focused == null:
         return ""
     var label := String(focused.get_meta("accessibilityLabel", "")).strip_edges()

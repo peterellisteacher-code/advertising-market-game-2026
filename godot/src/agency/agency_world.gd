@@ -544,12 +544,15 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	var pair: AdMarketAgencyPair = _pair()
 	if pair == null or not pair.input_enabled or pair.modal_open:
 		return
+	var viewport := get_viewport()
 	if key_event.keycode == KEY_H:
 		_show_handoff_dialog()
-		get_viewport().set_input_as_handled()
+		if viewport != null:
+			viewport.set_input_as_handled()
 	elif key_event.keycode == KEY_G:
 		_on_guide_pressed()
-		get_viewport().set_input_as_handled()
+		if viewport != null:
+			viewport.set_input_as_handled()
 
 func _on_guide_role_handoff_requested(role: String) -> void:
 	var guide := _guide()
@@ -600,7 +603,7 @@ func _show_handoff_dialog() -> void:
 	var active_button := get_node_or_null(
 		"%StrategistHandoff" if _progress != null and _progress.active_role == "art-director" else "%ArtDirectorHandoff"
 	) as Button
-	if active_button != null:
+	if active_button != null and active_button.is_inside_tree():
 		active_button.grab_focus()
 
 func _on_art_director_handoff_pressed() -> void:
@@ -627,7 +630,7 @@ func _hide_handoff_dialog() -> void:
 		pair.set_modal_open(false)
 	set_input_enabled(true)
 	var action_button := get_node_or_null("%StationActionButton") as Button
-	if action_button != null:
+	if action_button != null and action_button.is_inside_tree():
 		action_button.grab_focus()
 
 func _nearest_station_id(from_position: Vector2) -> String:

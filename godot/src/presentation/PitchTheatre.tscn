@@ -1,0 +1,467 @@
+[gd_scene format=3 uid="uid://5c3ywf63f34q"]
+
+[ext_resource type="Script" uid="uid://vl201ynxpk3v" path="res://src/presentation/pitch_theatre.gd" id="1_xf8bi"]
+[ext_resource type="Texture2D" uid="uid://cefq4icqq2amb" path="res://assets/agency/pitch-devices.png" id="2_grj54"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xf8bi"]
+bg_color = Color(0.0627451, 0.15686275, 0.23137255, 0.9372549)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_33faw"]
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2lkbr"]
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8rj2o"]
+bg_color = Color(0, 0, 0, 0)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_j8hr3"]
+bg_color = Color(0.0627451, 0.15686275, 0.23137255, 0.9372549)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9647059, 0.7411765, 0.24705882, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_j81m3"]
+bg_color = Color(0.043137256, 0.105882354, 0.18039216, 0.9372549)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3647059, 0.45882353, 0.54901963, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_grj54"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xlaq7"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_seoru"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sqos1"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_eve7s"]
+bg_color = Color(0.9647059, 0.7411765, 0.24705882, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9647059, 0.7411765, 0.24705882, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qgce1"]
+bg_color = Color(1, 0.89411765, 0.60784316, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5ieuk"]
+bg_color = Color(0.9647059, 0.7411765, 0.24705882, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="PitchTheatre" type="Control" unique_id=1220221933]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_xf8bi")
+
+[node name="Backdrop" type="ColorRect" parent="." unique_id=473423594]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="PitchMargin" type="MarginContainer" parent="." unique_id=1669009986]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 22
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 22
+
+[node name="PitchContent" type="VBoxContainer" parent="PitchMargin" unique_id=160130949]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="PitchHeader" type="VBoxContainer" parent="PitchMargin/PitchContent" unique_id=881871451]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="PitchEyebrow" type="Label" parent="PitchMargin/PitchContent/PitchHeader" unique_id=732836270]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.153, 0.776, 0.82, 1)
+theme_override_font_sizes/font_size = 14
+text = "CLIENT PRESENTATION · FINAL CAMPAIGN"
+
+[node name="PitchHeading" type="Label" parent="PitchMargin/PitchContent/PitchHeader" unique_id=927159395]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.965, 0.929, 0.839, 1)
+theme_override_font_sizes/font_size = 30
+text = "Presenting the finished campaign"
+
+[node name="PitchIntro" type="Label" parent="PitchMargin/PitchContent/PitchHeader" unique_id=1987986656]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 16
+text = "The client sees the exact advertisement your pair created. Choose how to frame its presentation, then use the evidence cards to explain why the campaign should persuade its audience."
+autowrap_mode = 2
+
+[node name="PitchBody" type="HBoxContainer" parent="PitchMargin/PitchContent" unique_id=83547427]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 20
+
+[node name="PresentationCard" type="PanelContainer" parent="PitchMargin/PitchContent/PitchBody" unique_id=105699539]
+custom_minimum_size = Vector2(650, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_xf8bi")
+
+[node name="PresentationMargin" type="MarginContainer" parent="PitchMargin/PitchContent/PitchBody/PresentationCard" unique_id=784444743]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 16
+
+[node name="PresentationContent" type="VBoxContainer" parent="PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin" unique_id=1386828223]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="DisplayHeading" type="Label" parent="PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent" unique_id=568626076]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.965, 0.741, 0.247, 1)
+theme_override_font_sizes/font_size = 20
+text = "Choose how the campaign is displayed"
+autowrap_mode = 2
+
+[node name="PresentationStage" type="Control" parent="PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent" unique_id=1957415239]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(650, 360)
+clip_contents = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BillboardFrame" type="PanelContainer" parent="PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent/PresentationStage" unique_id=1617865974]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 41.0
+offset_top = 112.0
+offset_right = 246.0
+offset_bottom = 220.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_33faw")
+
+[node name="BillboardAd" type="TextureRect" parent="PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent/PresentationStage/BillboardFrame" unique_id=478608075]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("2_grj54")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MagazineFrame" type="PanelContainer" parent="PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent/PresentationStage" unique_id=1734124049]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 304.0
+offset_top = 139.0
+offset_right = 532.0
+offset_bottom = 277.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_2lkbr")
+
+[node name="MagazineAd" type="TextureRect" parent="PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent/PresentationStage/MagazineFrame" unique_id=1424816325]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("2_grj54")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="VerticalFrame" type="PanelContainer" parent="PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent/PresentationStage" unique_id=284179467]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 611.0
+offset_top = 118.0
+offset_right = 688.0
+offset_bottom = 273.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_8rj2o")
+
+[node name="VerticalAd" type="TextureRect" parent="PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent/PresentationStage/VerticalFrame" unique_id=543169367]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("2_grj54")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DevicesArt" type="TextureRect" parent="PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent/PresentationStage" unique_id=188859913]
+z_index = -1
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -744.0
+offset_bottom = -414.0
+mouse_filter = 2
+texture = ExtResource("2_grj54")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="FormatHelp" type="Label" parent="PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent" unique_id=2099492638]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.82, 0.86, 1)
+theme_override_font_sizes/font_size = 14
+text = "The same finished advertisement appears in every format. Change the setting below to rehearse how it will look to the client."
+autowrap_mode = 2
+
+[node name="EvidenceCard" type="PanelContainer" parent="PitchMargin/PitchContent/PitchBody" unique_id=1777334868]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_j8hr3")
+
+[node name="EvidenceMargin" type="MarginContainer" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard" unique_id=1138064881]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 16
+
+[node name="EvidenceContent" type="VBoxContainer" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin" unique_id=1215431473]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ClientHeading" type="Label" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=2045833531]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.965, 0.741, 0.247, 1)
+theme_override_font_sizes/font_size = 20
+text = "Client response"
+
+[node name="ClientResponse" type="Label" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=1499282890]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 14
+text = "The client response will appear here after the campaign is loaded."
+autowrap_mode = 2
+
+[node name="EvidenceDivider" type="HSeparator" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=732149038]
+layout_mode = 2
+
+[node name="EvidenceHeading" type="Label" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=1047032802]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.153, 0.776, 0.82, 1)
+theme_override_font_sizes/font_size = 18
+text = "Evidence for your explanation"
+
+[node name="EvidenceAudience" type="Label" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=567604289]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 14
+text = "Audience fit — Complete the related mission before the pitch."
+autowrap_mode = 2
+
+[node name="EvidenceValue" type="Label" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=100200875]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 14
+text = "Product value — Complete the related mission before the pitch."
+autowrap_mode = 2
+
+[node name="EvidenceAida" type="Label" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=2128314404]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 14
+text = "AIDA — Complete the related mission before the pitch."
+autowrap_mode = 2
+
+[node name="EvidenceHierarchy" type="Label" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=496410005]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 14
+text = "Visual hierarchy — Complete the related mission before the pitch."
+autowrap_mode = 2
+
+[node name="EvidenceClaim" type="Label" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=2064350234]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 14
+text = "Supportable claim — Complete the related mission before the pitch."
+autowrap_mode = 2
+
+[node name="PortfolioStamps" type="Label" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=779439385]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.965, 0.741, 0.247, 1)
+theme_override_font_sizes/font_size = 13
+text = "Portfolio stamps: none yet. Optional contracts add stamps but never block the pitch."
+autowrap_mode = 2
+
+[node name="PitchControlsCard" type="PanelContainer" parent="PitchMargin/PitchContent" unique_id=1417339713]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_j81m3")
+
+[node name="ControlsMargin" type="MarginContainer" parent="PitchMargin/PitchContent/PitchControlsCard" unique_id=1783748351]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="ControlsRow" type="HBoxContainer" parent="PitchMargin/PitchContent/PitchControlsCard/ControlsMargin" unique_id=663254488]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="FormatLabel" type="Label" parent="PitchMargin/PitchContent/PitchControlsCard/ControlsMargin/ControlsRow" unique_id=1096898321]
+layout_mode = 2
+text = "Format"
+
+[node name="FormatSelector" type="OptionButton" parent="PitchMargin/PitchContent/PitchControlsCard/ControlsMargin/ControlsRow" unique_id=2119352137]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(145, 0)
+layout_mode = 2
+theme_override_styles/focus = SubResource("StyleBoxFlat_grj54")
+
+[node name="AnimationLabel" type="Label" parent="PitchMargin/PitchContent/PitchControlsCard/ControlsMargin/ControlsRow" unique_id=553343489]
+layout_mode = 2
+text = "Reveal"
+
+[node name="AnimationSelector" type="OptionButton" parent="PitchMargin/PitchContent/PitchControlsCard/ControlsMargin/ControlsRow" unique_id=642729514]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+theme_override_styles/focus = SubResource("StyleBoxFlat_xlaq7")
+
+[node name="CameraSound" type="Button" parent="PitchMargin/PitchContent/PitchControlsCard/ControlsMargin/ControlsRow" unique_id=1065178228]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/focus = SubResource("StyleBoxFlat_seoru")
+text = "Camera sound"
+
+[node name="SwooshSound" type="Button" parent="PitchMargin/PitchContent/PitchControlsCard/ControlsMargin/ControlsRow" unique_id=606275198]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_styles/focus = SubResource("StyleBoxFlat_sqos1")
+text = "Swoosh sound"
+
+[node name="ControlsSpacer" type="Control" parent="PitchMargin/PitchContent/PitchControlsCard/ControlsMargin/ControlsRow" unique_id=1257858190]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EnterMarket" type="Button" parent="PitchMargin/PitchContent/PitchControlsCard/ControlsMargin/ControlsRow" unique_id=1550974076]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(190, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.035, 0.105, 0.16, 1)
+theme_override_colors/font_focus_color = Color(0.035, 0.105, 0.16, 1)
+theme_override_colors/font_pressed_color = Color(0.035, 0.105, 0.16, 1)
+theme_override_colors/font_hover_color = Color(0.035, 0.105, 0.16, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_eve7s")
+theme_override_styles/hover = SubResource("StyleBoxFlat_qgce1")
+theme_override_styles/focus = SubResource("StyleBoxFlat_5ieuk")
+text = "Finish client pitch"

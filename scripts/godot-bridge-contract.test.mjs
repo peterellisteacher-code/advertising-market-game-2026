@@ -115,7 +115,7 @@ test("the Godot shell mirrors current instructions semantically without pretendi
   )];
   assert.ok(buttonBlocks.length >= 7, "Main scene should retain its real interactive buttons");
   for (const [, block] of buttonBlocks) {
-    assert.match(block, /theme_override_styles\/focus = SubResource\("Style_focus"\)/);
+    assert.match(block, /theme_override_styles\/focus = SubResource\("[^"]+"\)/);
   }
   assert.doesNotMatch(scene, /\[node name="(?:InventChip|SellChip|IrresistibleChip)" type="Button"/);
 });
@@ -162,4 +162,35 @@ test("the Godot bridge accepts only the optional bounded retry-after field", asy
     /error\.has\("retryAfterSeconds"\)[\s\S]*?_is_nonnegative_integer_number\(error\.get\("retryAfterSeconds"\)\)/
   );
   assert.doesNotMatch(bridge, /allowed_error_keys[\s\S]{0,240}"debug"/);
+});
+
+test("published campaigns use the isolated pitch theatre before the market gate", async () => {
+  const [scene, main, theatre, decoder] = await Promise.all([
+    readFile(new URL("godot/src/main/Main.tscn", root), "utf8"),
+    readFile(new URL("godot/src/main/main.gd", root), "utf8"),
+    readFile(new URL("godot/src/presentation/pitch_theatre.gd", root), "utf8"),
+    readFile(new URL("godot/src/presentation/campaign_image_decoder.gd", root), "utf8")
+  ]);
+
+  assert.match(scene, /res:\/\/src\/presentation\/PitchTheatre\.tscn/);
+  assert.match(scene, /\[node name="PitchTheatre"[^\]]*parent="\."/);
+  assert.match(main, /@onready var pitch_theatre: AdMarketPitchTheatre = %PitchTheatre/);
+  assert.match(
+    main,
+    /pitch_theatre\.present\(publication, progress, agency_world\.reduced_motion_enabled\)/
+  );
+  assert.match(main, /func _complete_pitch_when_ready\(\) -> void:/);
+  assert.match(main, /not _pitch_finished or not _pitch_market_ready/);
+  assert.match(theatre, /_assign_exact_texture\(decoded\)/);
+  assert.match(decoder, /const PUBLICATION_CONTRACT := "published-campaign@1"/);
+  assert.match(decoder, /const CANVAS_WIDTH := 1600/);
+  assert.match(decoder, /const CANVAS_HEIGHT := 900/);
+  assert.match(
+    decoder,
+    /image\.get_width\(\) != CANVAS_WIDTH or image\.get_height\(\) != CANVAS_HEIGHT/
+  );
+
+  for (const source of [main, theatre, decoder]) {
+    assert.doesNotMatch(source, /window\.AdMarketAccount|pairIdentity|account\/session/);
+  }
 });

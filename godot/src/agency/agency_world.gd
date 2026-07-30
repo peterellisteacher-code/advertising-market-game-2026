@@ -128,7 +128,7 @@ const OBJECTIVE_STATIONS := {
 	"meet-client": "client-briefing",
 	"build-product": "art-studio",
 	"direct-attention": "art-studio",
-	"shape-message": "copy-room",
+	"shape-message": "strategy-room",
 	"set-campaign-tone": "art-studio",
 	"focus-image": "production-studio",
 	"prove-value": "strategy-room",

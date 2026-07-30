@@ -11,6 +11,7 @@ const MarketViewState = preload("res://src/market/market_view_state.gd")
 const GameRun = preload("res://src/game/game_run.gd")
 const WebRunProgressStore = preload("res://src/game/web_run_progress_store.gd")
 const GameAccessibilityMirror = preload("res://src/main/game_accessibility_mirror.gd")
+const AGENCY_CAMPAIGN_CONTROLLER_PATH := "res://src/agency/agency_campaign_controller.gd"
 const MARKET_COMPATIBILITY_WALLET_CENTS := 10000
 const LIVE_PROGRESS_CONTRACT := WebRunProgressStore.CONTRACT
 const MAX_LIVE_PROGRESS_BYTES := WebRunProgressStore.MAX_PROGRESS_BYTES
@@ -51,6 +52,8 @@ const AIDA_NEXT_ACTIONS := {
 @onready var creator_host: Node = %CreatorHost
 @onready var market_host: Node = %MarketHost
 @onready var market_screen: MarketScreen = %MarketScreen as MarketScreen
+@onready var agency_world: AdMarketAgencyWorld = %AgencyWorld as AdMarketAgencyWorld
+@onready var pitch_theatre: AdMarketPitchTheatre = %PitchTheatre as AdMarketPitchTheatre
 @onready var launch_button: Button = %LaunchCreator
 @onready var status: Label = %Status
 @onready var hero_heading: Label = $MainMargin/GameInput/HeroHeading
@@ -93,6 +96,7 @@ const AIDA_NEXT_ACTIONS := {
 @onready var irresistible_chip: Label = %IrresistibleChip
 
 var _game_run: RefCounted = GameRun.new()
+var _agency_campaign: AdMarketAgencyCampaignController
 var _campaign_document: Dictionary = {}
 var _level_locked: bool = false
 var creator_transport_override: RefCounted
@@ -105,6 +109,9 @@ var _room_role: String = ""
 var _room_code: String = ""
 var _room_campaign_submitted: bool = false
 var _live_publication_pending: bool = false
+var _pitch_finished: bool = false
+var _pitch_market_ready: bool = false
+var _pitch_waiting_for_market: bool = false
 var _latest_market_snapshot: Dictionary = {}
 var _local_market_session: Node
 var _ready_wired: bool = false
@@ -120,6 +127,8 @@ var _practice_pending_operation: Dictionary = {}
 var _practice_retry_operation: Dictionary = {}
 var _startup_state: String = "idle"
 var _run_progress_store: RefCounted
+var _last_saved_live_progress: Dictionary = {}
+var _suspend_agency_progress_persistence: bool = false
 var _startup_progress_matched: bool = false
 var _startup_expected_document_revision: int = -1
 var _accessibility_mirror: RefCounted = GameAccessibilityMirror.new()
@@ -160,6 +169,22 @@ func _ready() -> void:
         return
     _ready_wired = true
     _campaign_document = _blank_campaign_document()
+    var agency_controller_script: Script = load(AGENCY_CAMPAIGN_CONTROLLER_PATH) as Script
+    _agency_campaign = agency_controller_script.new() as AdMarketAgencyCampaignController
+    agency_world.station_requested.connect(_on_agency_station_requested)
+    agency_world.role_handoff_requested.connect(_on_agency_role_handoff_requested)
+    _agency_campaign.creator_requested.connect(_open_creator)
+    _agency_campaign.publish_requested.connect(_publish_campaign)
+    _agency_campaign.market_requested.connect(_enter_market)
+    _agency_campaign.progress_changed.connect(_on_agency_progress_changed)
+    _agency_campaign.status_changed.connect(_on_agency_status_changed)
+    var mission_controller: AdMarketAgencyMissionController = (
+        agency_world.get_node_or_null("%AgencyMissionController")
+        as AdMarketAgencyMissionController
+    )
+    if mission_controller != null:
+        mission_controller.mission_completed.connect(_on_agency_mission_completed)
+        mission_controller.sidequest_completed.connect(_on_agency_sidequest_completed)
     var selected_transport: RefCounted = creator_transport_override
     if selected_transport == null:
         selected_transport = WebCreatorTransport.new()
@@ -174,6 +199,9 @@ func _ready() -> void:
     creator_host.creator_state_received.connect(_on_creator_state_received)
     creator_host.latest_draft_received.connect(_on_latest_draft_received)
     creator_host.creator_published.connect(_on_creator_published)
+    pitch_theatre.pitch_finished.connect(_on_pitch_finished)
+    pitch_theatre.format_changed.connect(_on_pitch_setting_changed)
+    pitch_theatre.animation_changed.connect(_on_pitch_setting_changed)
     var selected_market_transport: RefCounted = market_transport_override
     if selected_market_transport == null:
         selected_market_transport = WebMarketTransport.new()
@@ -216,6 +244,69 @@ func _ready() -> void:
         _run_progress_store = WebRunProgressStore.new()
     _begin_startup()
     _focus_if_ready(team_alias)
+
+func _begin_agency() -> void:
+    if _agency_campaign == null:
+        return
+    var run: AdMarketGameRun = _game_run as AdMarketGameRun
+    if run != null:
+        _agency_campaign.begin_agency(run, _campaign_document)
+
+func _show_agency() -> void:
+    if agency_world == null or _agency_campaign == null:
+        return
+    var run: AdMarketGameRun = _game_run as AdMarketGameRun
+    if run == null:
+        return
+    _agency_campaign.restore_agency(run, _campaign_document)
+    agency_world.configure(run.agency_progress() as AdMarketAgencyProgress)
+    lobby_panel.hide()
+    market_screen.hide()
+    run_panel.hide()
+    agency_world.show()
+    agency_world.set_input_enabled(not bool(creator_host.get("creator_is_open")))
+
+func _hide_agency() -> void:
+    if agency_world == null:
+        return
+    agency_world.set_input_enabled(false)
+    agency_world.hide()
+
+func _on_agency_station_requested(station_id: String) -> void:
+    if _agency_campaign == null:
+        return
+    var result: Dictionary = _agency_campaign.open_station(station_id)
+    if not bool(result.get("allowed", false)):
+        status.text = String(result.get("reason", "That station is not available yet."))
+
+func _on_agency_role_handoff_requested(role: String) -> void:
+    if _agency_campaign != null:
+        _agency_campaign.handoff_to(role)
+
+func _on_agency_mission_completed(mission_id: String, evidence: Dictionary) -> void:
+    if _agency_campaign == null:
+        return
+    if _agency_campaign.complete_mission(mission_id, evidence):
+        _agency_campaign.reconcile_level_readiness(_readiness_clue())
+        _render_level()
+
+func _on_agency_sidequest_completed(sidequest_id: String) -> void:
+    if _agency_campaign != null:
+        _agency_campaign.complete_sidequest(sidequest_id)
+
+func _on_agency_progress_changed() -> void:
+    var run: AdMarketGameRun = _game_run as AdMarketGameRun
+    if run == null:
+        return
+    if _agency_campaign != null:
+        _campaign_document = _agency_campaign.document()
+    if agency_world != null:
+        agency_world.configure(run.agency_progress() as AdMarketAgencyProgress)
+    if not _suspend_agency_progress_persistence:
+        _save_live_progress()
+
+func _on_agency_status_changed(message: String) -> void:
+    status.text = message
 
 func _toggle_teacher_setup() -> void:
     host_area.visible = not host_area.visible
@@ -377,6 +468,7 @@ func _on_practice_request_succeeded(request_id: String, method: String, payload:
             lobby_panel.hide()
             run_panel.show()
             market_screen.hide()
+            _begin_agency()
             _render_level()
             status.text = "Open the studio. Build one product with your pair."
             _focus_if_ready(launch_button)
@@ -393,7 +485,7 @@ func _on_practice_request_succeeded(request_id: String, method: String, payload:
             )
         "creator-refresh":
             _render_level()
-            var readiness_clue := _readiness_clue()
+            var readiness_clue := _level_completion_clue()
             if readiness_clue.is_empty():
                 status.text = _saved_campaign_status()
             else:
@@ -613,6 +705,7 @@ func _begin_resumed_team(wrapper: Dictionary) -> void:
         next_run = restored.get("run")
         var progress: Dictionary = restored.get("value")
         _level_locked = bool(progress.get("levelLocked"))
+        _last_saved_live_progress = progress.duplicate(true)
         _startup_progress_matched = true
         _startup_expected_document_revision = int(progress.get("documentRevision"))
     else:
@@ -720,6 +813,7 @@ func _on_room_joined(wrapper: Dictionary) -> void:
     lobby_panel.hide()
     run_panel.show()
     status.text = "Room joined. Open the studio and build one product."
+    _begin_agency()
     _render_level()
     _save_live_progress()
     _focus_if_ready(launch_button)
@@ -794,14 +888,17 @@ func _on_market_campaign_published(_result: Dictionary) -> void:
         return
     _live_publication_pending = false
     _room_campaign_submitted = true
+    _pitch_market_ready = true
     publish_campaign.disabled = false
     creator_host.close_creator()
     market_screen.call("show_publication_waiting")
-    _show_market_entry_gate()
+    status.text = "Campaign delivered. Finish the client pitch when your pair is ready."
+    _complete_pitch_when_ready()
 
 func _reopen_returned_campaign() -> void:
     if _room_role != "team" or _live_publication_pending:
         return
+    _reset_pitch_state()
     if _startup_state == "team-hydrating":
         status.text = "Restoring this pair's saved live campaign. The studio will reopen when the restore is complete."
         return
@@ -817,14 +914,14 @@ func _reopen_returned_campaign() -> void:
 
 func _show_market_diagnostic(_message: String) -> void:
     if _live_publication_pending:
-        _live_publication_pending = false
-        publish_campaign.disabled = false
+        _cancel_pitch_after_market_failure(_student_market_error("CONNECTION_UNAVAILABLE"))
+        return
     status.text = _student_market_error("CONNECTION_UNAVAILABLE")
 
 func _on_market_request_failed(code: String, _message: String) -> void:
     if _live_publication_pending:
-        _live_publication_pending = false
-        publish_campaign.disabled = false
+        _cancel_pitch_after_market_failure(_student_market_error(code))
+        return
     status.text = _student_market_error(code)
 
 func _student_market_error(code: String) -> String:
@@ -848,6 +945,8 @@ func _open_creator() -> void:
     creator_host.open_creator(_campaign_document)
 
 func _on_creator_opened() -> void:
+    if agency_world != null:
+        agency_world.set_input_enabled(false)
     if _publish_after_open:
         status.text = "Building the market card."
         if creator_host.publish_creator().is_empty():
@@ -858,6 +957,8 @@ func _on_creator_opened() -> void:
     status.text = "Campaign Creator open. Game input paused."
 
 func _on_creator_closed() -> void:
+    if agency_world != null and agency_world.visible:
+        agency_world.set_input_enabled(true)
     if enter_market.visible:
         status.text = "Market card built. Select Enter market to continue."
         _focus_if_ready(enter_market)
@@ -898,8 +999,13 @@ func _on_creator_state_received(document: Dictionary) -> void:
             status.text = "An older campaign save was ignored. Your latest live progress is still safe."
             return
     _campaign_document = document.duplicate(true)
+    if _agency_campaign != null:
+        _suspend_agency_progress_persistence = true
+        _agency_campaign.on_creator_returned(_campaign_document)
+        _suspend_agency_progress_persistence = false
+        _campaign_document = _agency_campaign.document()
     if _level_locked:
-        var readiness_clue := _readiness_clue()
+        var readiness_clue := _level_completion_clue()
         if not readiness_clue.is_empty():
             _level_locked = false
             _game_run.invalidate_current_level()
@@ -914,7 +1020,7 @@ func _on_creator_state_received(document: Dictionary) -> void:
     status.text = _saved_campaign_status()
 
 func _lock_current_level() -> void:
-    var readiness_clue := _readiness_clue()
+    var readiness_clue := _level_completion_clue()
     if not readiness_clue.is_empty():
         status.text = readiness_clue
         _render_level()
@@ -957,7 +1063,7 @@ func _advance_level() -> void:
         status.text = "Lock this level before moving on."
         _focus_if_ready(lock_level)
         return
-    var readiness_clue := _readiness_clue()
+    var readiness_clue := _level_completion_clue()
     if not readiness_clue.is_empty():
         _level_locked = false
         _game_run.invalidate_current_level()
@@ -1021,25 +1127,42 @@ func _publish_campaign() -> void:
 
 func _on_creator_published(publication: Dictionary) -> void:
     _publish_after_open = false
+    var run: AdMarketGameRun = _game_run as AdMarketGameRun
+    var progress: AdMarketAgencyProgress = (
+        run.agency_progress() as AdMarketAgencyProgress
+        if run != null
+        else null
+    )
+    if not pitch_theatre.present(publication, progress, agency_world.reduced_motion_enabled):
+        publish_campaign.disabled = false
+        status.text = "The finished campaign image could not be prepared. Return to the studio and publish it again."
+        return
     _published_campaign = publication.duplicate(true)
+    if _agency_campaign != null:
+        _agency_campaign.on_publication(publication)
+    _pitch_finished = false
+    _pitch_market_ready = false
+    _pitch_waiting_for_market = true
+    _prepare_pitch_surface()
+    creator_host.close_creator()
     if _room_role == "team":
         _live_publication_pending = true
-        status.text = "Sending your market card to the host."
+        status.text = "Sending the finished campaign to the host while your pair presents it to the client."
         if market_host.publish_campaign(publication).is_empty():
-            _live_publication_pending = false
-            publish_campaign.disabled = false
-            status.text = "The market card could not be sent. Check the room connection, then try again."
+            _cancel_pitch_after_market_failure(
+                "The market card could not be sent. Check the room connection, then try again."
+            )
         return
     if (
         _game_run.phase == "publish-check"
         and not _game_run.open_medal_market()
     ):
-        publish_campaign.disabled = false
-        status.text = _game_run.last_error
+        _cancel_pitch_after_market_failure(_game_run.last_error)
         return
     if _game_run.phase not in ["market", "reveal"]:
-        publish_campaign.disabled = false
-        status.text = "The practice market could not open safely. Try building the card again."
+        _cancel_pitch_after_market_failure(
+            "The practice market could not open safely. Try building the card again."
+        )
         return
     if _local_market_session == null:
         _local_market_session = LocalMarketSession.new()
@@ -1051,18 +1174,79 @@ func _on_creator_published(publication: Dictionary) -> void:
         _game_run.team_alias
     )
     if initial_snapshot.is_empty():
-        publish_campaign.disabled = false
-        status.text = "The practice market could not load its stalls. Try building the card again."
+        _cancel_pitch_after_market_failure(
+            "The practice market could not load its stalls. Try building the card again."
+        )
         return
     market_screen.call("set_market_host", _local_market_session)
     market_screen.call("enter_room", "team", "PRACTICE")
     market_screen.call("present_snapshot", initial_snapshot)
-    creator_host.close_creator()
-    _render_level()
+    _pitch_market_ready = true
+    status.text = "The practice market is ready. Finish the client pitch when your pair is satisfied."
+    _complete_pitch_when_ready()
+
+func _prepare_pitch_surface() -> void:
+    _hide_agency()
+    lobby_panel.hide()
+    run_panel.hide()
+    market_screen.hide()
+    enter_market.hide()
+    var finish_button := pitch_theatre.get_node_or_null("%EnterMarket") as Button
+    if finish_button != null:
+        finish_button.disabled = false
+        finish_button.text = "Finish client pitch"
+
+func _on_pitch_finished() -> void:
+    _pitch_finished = true
+    if not _pitch_market_ready:
+        var finish_button := pitch_theatre.get_node_or_null("%EnterMarket") as Button
+        if finish_button != null:
+            finish_button.disabled = true
+            finish_button.text = "Delivering campaign..."
+        status.text = "The pitch is complete. Waiting for the campaign to reach the host."
+    _complete_pitch_when_ready()
+
+func _on_pitch_setting_changed(_setting_id: String) -> void:
+    _on_agency_progress_changed()
+
+func _complete_pitch_when_ready() -> void:
+    if not _pitch_waiting_for_market or not _pitch_finished or not _pitch_market_ready:
+        return
+    _pitch_waiting_for_market = false
+    pitch_theatre.hide()
+    var finish_button := pitch_theatre.get_node_or_null("%EnterMarket") as Button
+    if finish_button != null:
+        finish_button.disabled = false
+        finish_button.text = "Finish client pitch"
     _show_market_entry_gate()
+
+func _cancel_pitch_after_market_failure(message: String) -> void:
+    _live_publication_pending = false
+    publish_campaign.disabled = false
+    _reset_pitch_state()
+    run_panel.show()
+    _render_level()
+    status.text = message
+    _set_campaign_stage_for_phase()
+    if creator_host.open_creator(_campaign_document).is_empty():
+        status.text = "%s The saved campaign could not be reopened; select Build market card to try again." % message
+
+func _reset_pitch_state() -> void:
+    _pitch_finished = false
+    _pitch_market_ready = false
+    _pitch_waiting_for_market = false
+    pitch_theatre.hide()
+    var finish_button := pitch_theatre.get_node_or_null("%EnterMarket") as Button
+    if finish_button != null:
+        finish_button.disabled = false
+        finish_button.text = "Finish client pitch"
 
 func _render_level() -> void:
     var phase: String = _game_run.phase
+    if phase in ["invent", "sell", "irresistible", "publish-check"]:
+        _show_agency()
+    else:
+        _hide_agency()
     enter_market.hide()
     level_progress.visible = phase != "publish-check"
     var level_order := ["invent", "sell", "irresistible"]
@@ -1108,7 +1292,7 @@ func _render_level() -> void:
     var copy: Dictionary = LEVEL_COPY.get(phase, {})
     level_eyebrow.text = str(copy.get("eyebrow", "PITCH LEVEL"))
     level_heading.text = str(copy.get("heading", "Make the next move."))
-    var readiness_clue := _readiness_clue()
+    var readiness_clue := _level_completion_clue()
     var ready_to_lock := readiness_clue.is_empty()
     if not readiness_clue.is_empty():
         level_clue.text = readiness_clue
@@ -1133,6 +1317,7 @@ func _render_level() -> void:
     advance_level.disabled = not _level_locked
 
 func _show_market_entry_gate() -> void:
+    _hide_agency()
     lobby_panel.hide()
     market_screen.hide()
     run_panel.show()
@@ -1165,6 +1350,7 @@ func _enter_market() -> void:
     ):
         return
     enter_market.hide()
+    _hide_agency()
     run_panel.hide()
     market_screen.show()
     market_screen.call("focus_initial_control")
@@ -1288,6 +1474,18 @@ func _focused_control_label() -> String:
 
 func _readiness_clue() -> String:
     return _readiness_clue_for(_game_run.phase, _campaign_document)
+
+func _level_completion_clue() -> String:
+    var document_clue := _readiness_clue()
+    if not document_clue.is_empty():
+        return document_clue
+    if (
+        _agency_campaign != null
+        and _game_run.phase in ["invent", "sell", "irresistible"]
+        and not _agency_campaign.missions_complete_for_level(_game_run.phase)
+    ):
+        return "Next: complete this level's required agency missions. Follow the current objective in the agency guide."
+    return ""
 
 func _readiness_clue_for(phase: String, document: Dictionary) -> String:
     if phase == "invent":
@@ -1419,8 +1617,13 @@ func _save_live_progress() -> void:
         "pitch": pitch,
         "levelLocked": _level_locked
     }
-    if JSON.stringify(envelope).to_utf8_buffer().size() <= MAX_LIVE_PROGRESS_BYTES:
-        _run_progress_store.save(envelope)
+    if envelope == _last_saved_live_progress:
+        return
+    if (
+        JSON.stringify(envelope).to_utf8_buffer().size() <= MAX_LIVE_PROGRESS_BYTES
+        and bool(_run_progress_store.save(envelope))
+    ):
+        _last_saved_live_progress = envelope.duplicate(true)
 
 func _live_document_identity_matches(document: Dictionary) -> bool:
     if _room_role != "team":

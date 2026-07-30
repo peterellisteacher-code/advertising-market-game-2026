@@ -389,10 +389,10 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 15
 text = "Move: WASD or arrow keys.
-Use a station: Space or Enter.
-Open this guide: G. Close a panel: Escape.
-Change active role: R or the role button.
-Direct travel: choose a room, then select Go to this objective."
+Use a nearby station: E, Space or Enter.
+Open this guide: G or F1. Close a panel: Escape.
+Record a role handover: H or a role button.
+Go straight to a task: choose its room from Direct travel."
 autowrap_mode = 2
 
 [node name="Roles" type="VBoxContainer" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=155131397]
@@ -415,7 +415,7 @@ custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 17
-text = "Art Director: controls visual decisions, including hierarchy, colour, framing, composition, imagery, scale and the final presentation."
+text = "Art Director: leads choices about layout, colour, type, images and visual emphasis. This partner explains where the audience will look first, what they will notice next, and how the design supports the message."
 autowrap_mode = 2
 
 [node name="ArtDirectorControl" type="Button" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Roles" unique_id=267507291]
@@ -432,7 +432,7 @@ custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 17
-text = "Strategist: controls audience and message decisions, including product value, AIDA, headline, claims, price and media route."
+text = "Strategist: leads choices about the audience, message, evidence, offer and call to action. This partner explains why those choices should persuade the intended audience."
 autowrap_mode = 2
 
 [node name="StrategistControl" type="Button" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Roles" unique_id=1848559865]
@@ -448,7 +448,7 @@ custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 15
-text = "Both partners can use the same tools. The roles do not unlock different buttons. They identify who makes the first recommendation; the partner then checks it against the brief."
+text = "Both partners can use every control and station. The roles divide responsibility; they do not unlock different tools. The named lead makes the first recommendation, and the other partner checks it against the brief. Press H whenever the other partner takes the lead."
 autowrap_mode = 2
 
 [node name="Progress" type="VBoxContainer" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=159230697]
@@ -511,31 +511,54 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_rd7ya")
 theme_override_styles/focus = SubResource("StyleBoxFlat_vskfq")
 text = "Music and sound settings"
 
-[node name="OrientationPanel" type="PanelContainer" parent="." unique_id=114488140]
+[node name="OrientationLayer" type="Control" parent="." unique_id=1243229796]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(800, 480)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="OrientationScrim" type="ColorRect" parent="OrientationLayer" unique_id=1860475229]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.015, 0.035, 0.065, 0.9)
+
+[node name="OrientationPanel" type="PanelContainer" parent="OrientationLayer" unique_id=114488140]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(860, 560)
 layout_mode = 0
-offset_left = 240.0
-offset_top = 160.0
-offset_right = 1046.0
-offset_bottom = 1110.0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -430.0
+offset_top = -280.0
+offset_right = 430.0
+offset_bottom = 280.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_02wlv")
 
-[node name="OrientationMargin" type="MarginContainer" parent="OrientationPanel" unique_id=2007986274]
+[node name="OrientationMargin" type="MarginContainer" parent="OrientationLayer/OrientationPanel" unique_id=2007986274]
 layout_mode = 2
 theme_override_constants/margin_left = 40
 theme_override_constants/margin_top = 36
 theme_override_constants/margin_right = 40
 theme_override_constants/margin_bottom = 36
 
-[node name="OrientationContent" type="VBoxContainer" parent="OrientationPanel/OrientationMargin" unique_id=87905815]
+[node name="OrientationContent" type="VBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin" unique_id=87905815]
 custom_minimum_size = Vector2(720, 408)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 18
 
-[node name="OrientationStep" type="Label" parent="OrientationPanel/OrientationMargin/OrientationContent" unique_id=1870832680]
+[node name="OrientationStep" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=1870832680]
 unique_name_in_owner = true
 modulate = Color(0.18, 0.84, 0.9, 1)
 layout_mode = 2
@@ -543,31 +566,31 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 16
 text = "STEP 1 OF 3"
 
-[node name="OrientationTitle" type="Label" parent="OrientationPanel/OrientationMargin/OrientationContent" unique_id=777688689]
+[node name="OrientationTitle" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=777688689]
 unique_name_in_owner = true
 modulate = Color(0.97, 0.98, 1, 1)
 custom_minimum_size = Vector2(720, 0)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 30
+theme_override_font_sizes/font_size = 28
 text = "Meet the client"
 
-[node name="OrientationBody" type="Label" parent="OrientationPanel/OrientationMargin/OrientationContent" unique_id=747531041]
+[node name="OrientationBody" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=747531041]
 unique_name_in_owner = true
 modulate = Color(0.88, 0.92, 0.97, 1)
 custom_minimum_size = Vector2(720, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_font_sizes/font_size = 19
+theme_override_font_sizes/font_size = 18
 text = "Walk to Client Briefing and press Space or Enter. Read the audience situation, need and values before the pair makes any creative decision."
 autowrap_mode = 2
 
-[node name="OrientationSpacer" type="Control" parent="OrientationPanel/OrientationMargin/OrientationContent" unique_id=1840799099]
+[node name="OrientationSpacer" type="Control" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=1840799099]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="OrientationNext" type="Button" parent="OrientationPanel/OrientationMargin/OrientationContent" unique_id=516664550]
+[node name="OrientationNext" type="Button" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=516664550]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2

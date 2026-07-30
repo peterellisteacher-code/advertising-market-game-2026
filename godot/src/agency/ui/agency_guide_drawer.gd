@@ -16,19 +16,37 @@ const SECTION_INDEX := {
 }
 const ORIENTATION_STEPS := [
 	{
-		"title": "The campaign goal",
-		"body": "Create one advertisement for the supplied audience, then pitch why its visual and message choices are likely to make that audience act.",
-		"button": "Show movement controls",
+		"title": "Your goal: win the client pitch",
+		"body": (
+			"1. Read the client brief.\n"
+			+ "2. Build one advertisement for that audience.\n"
+			+ "3. Complete the required practice missions.\n"
+			+ "4. Pitch the finished advertisement and explain why it should persuade the audience.\n\n"
+			+ "The pitch unlocks only after every required mission is complete."
+		),
+		"button": "Next: learn the controls",
 	},
 	{
-		"title": "Movement and direct travel",
-		"body": "Use WASD or the arrow keys to walk. Use the direct-travel menu when the pair needs a particular room immediately. Press E, Space or Enter to work at a nearby station.",
-		"button": "Show the pair roles",
+		"title": "How to reach each task",
+		"body": (
+			"Walk: WASD or arrow keys.\n"
+			+ "Use a nearby station: E, Space or Enter.\n"
+			+ "Go straight to a task: choose its room from Direct travel.\n\n"
+			+ "Start at Client Brief. It tells you who the advertisement must persuade."
+		),
+		"button": "Next: understand the roles",
 	},
 	{
-		"title": "The two pair roles",
-		"body": "The Art Director leads visual decisions. The Strategist leads audience, message and offer decisions. Both partners use the same controls. Press H when control should pass to the other partner.",
-		"button": "Start with the client brief",
+		"title": "How the pair roles differ",
+		"body": (
+			"Strategist: leads choices about the audience, message, evidence, offer and call to action. "
+			+ "This partner explains why the advertisement should persuade the audience.\n\n"
+			+ "Art Director: leads choices about layout, colour, type, images and visual emphasis. "
+			+ "This partner explains where the audience will look first and why.\n\n"
+			+ "Both partners can use every control and station. The roles divide responsibility; "
+			+ "they do not unlock different tools. Press H whenever the other partner takes the lead."
+		),
+		"button": "Go to Client Brief",
 	},
 ]
 
@@ -115,9 +133,12 @@ func open_orientation() -> void:
 	if not orientation_required():
 		return
 	_orientation_step = 0
+	var layer := get_node_or_null("%OrientationLayer") as Control
 	var panel := get_node_or_null("%OrientationPanel") as Control
 	var guide_tab := get_node_or_null("%GuideTab") as Control
 	var guide_panel := get_node_or_null("%GuidePanel") as Control
+	if layer != null:
+		layer.visible = true
 	if panel != null:
 		panel.visible = true
 	if guide_tab != null:
@@ -134,7 +155,10 @@ func advance_orientation() -> void:
 	_orientation_step += 1
 	if _orientation_step >= ORIENTATION_STEPS.size():
 		_progress.orientation_acknowledged = true
+		var layer := get_node_or_null("%OrientationLayer") as Control
 		var panel := get_node_or_null("%OrientationPanel") as Control
+		if layer != null:
+			layer.visible = false
 		if panel != null:
 			panel.visible = false
 		open_guide("objective")

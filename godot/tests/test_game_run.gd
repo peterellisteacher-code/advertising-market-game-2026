@@ -109,14 +109,11 @@ func _pitch_snapshot_restore_rejects_invalid_state_atomically() -> bool:
 	var game := GameRun.new()
 	assert(game.begin("Existing Pair", "existing-session", "existing-team"))
 	var before: Dictionary = game.pitch_snapshot()
-	var valid := {
-		"contract": "pitch-run@1",
-		"phase": "sell",
-		"teamAlias": "Neon Narwhals",
-		"sessionId": "local-session",
-		"teamId": "local-team",
-		"readyLevels": ["invent"]
-	}
+	var source := GameRun.new()
+	assert(source.begin("Neon Narwhals", "local-session", "local-team"))
+	assert(source.mark_current_level_ready())
+	assert(source.advance_level())
+	var valid: Dictionary = source.pitch_snapshot()
 	var invalid_cases: Array[Dictionary] = []
 	var wrong_contract := valid.duplicate(true)
 	wrong_contract["contract"] = "pitch-run@999"

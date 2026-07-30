@@ -2,6 +2,7 @@ extends RefCounted
 class_name AdMarketTestRunProgressStore
 
 const WebRunProgressStore = preload("res://src/game/web_run_progress_store.gd")
+const AgencyProgress = preload("res://src/agency/agency_progress.gd")
 
 func run() -> bool:
     var envelope := _envelope()
@@ -30,12 +31,13 @@ func _envelope() -> Dictionary:
         "documentId": "room-room-a-team-team-a-campaign",
         "documentRevision": 3,
         "pitch": {
-            "contract": "pitch-run@1",
+            "contract": "pitch-run@2",
             "phase": "sell",
             "teamAlias": "Signal Foxes",
             "sessionId": "room-session-team-a",
             "teamId": "team-a",
-            "readyLevels": ["invent"]
+            "readyLevels": ["invent"],
+            "agency": AgencyProgress.from_legacy_pitch("sell", ["invent"])
         },
         "levelLocked": false
     }

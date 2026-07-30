@@ -35,7 +35,7 @@ func _assert_guide(progress: AdMarketAgencyProgress) -> void:
 	assert(art_role.contains("where the audience will look first"))
 	var strategy_role: String = guide.get_node("%StrategistDefinition").text
 	assert(strategy_role.contains("audience, message, evidence, offer and call to action"))
-	assert(strategy_role.contains("why the advertisement should persuade"))
+	assert(strategy_role.contains("why those choices should persuade the intended audience"))
 	var role_access: String = guide.get_node("%RoleTurnOrder").text
 	assert(role_access.contains("every control and station"))
 	assert(role_access.contains("divide responsibility"))

@@ -79,6 +79,8 @@ func _assert_station_mission_panel_uses_role_and_modal_state(
 	assert(world.call("direct_travel", "client-briefing"))
 	var pair: CharacterBody2D = world.get_node("%AgencyPair") as CharacterBody2D
 	var panel: Control = world.get_node("%AgencyMissionPanel") as Control
+	if not panel.is_node_ready():
+		panel.call("_ready")
 	var controller: Node = world.get_node("%AgencyMissionController") as Node
 	var station_action: Button = world.get_node("%StationActionButton") as Button
 	station_action.pressed.emit()

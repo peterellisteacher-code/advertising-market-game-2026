@@ -344,6 +344,7 @@ func _live_transitions_persist_bounded_progress() -> bool:
 	shell.call("_on_creator_state_received", ready)
 	assert(progress.saves.size() == 2)
 	assert(progress.saves.back().get("documentRevision") == 1)
+	_complete_agency_missions(shell, ["audience-brief", "salience", "reading-path"])
 	(shell.get_node("%LockLevel") as Button).pressed.emit()
 	assert(progress.saves.size() == 3)
 	assert(progress.saves.back().get("levelLocked") == true)
@@ -359,6 +360,7 @@ func _live_transitions_persist_bounded_progress() -> bool:
 	ready["revision"] = 3
 	shell.call("_on_creator_state_received", ready)
 	assert(progress.saves.size() == 5)
+	_complete_agency_missions(shell, ["contrast", "framing", "aida"])
 	(shell.get_node("%LockLevel") as Button).pressed.emit()
 	assert(progress.saves.size() == 6)
 	(shell.get_node("%AdvanceLevel") as Button).pressed.emit()
@@ -418,6 +420,21 @@ func _manual_create_invalidates_a_late_startup_resume() -> bool:
 	assert(String(shell.get("_room_code")) == "CCC-444")
 	shell.free()
 	return true
+
+func _complete_agency_missions(shell: Control, mission_ids: Array) -> void:
+	var game_run := shell.get("_game_run") as RefCounted
+	assert(game_run != null)
+	var agency_progress := game_run.call("agency_progress") as RefCounted
+	assert(agency_progress != null)
+	for mission_id: String in mission_ids:
+		assert(bool(agency_progress.call(
+			"complete_mission",
+			mission_id,
+			{
+				"decision": "Test mission decision.",
+				"effect": "This test decision has a clear intended audience effect.",
+			}
+		)))
 
 func _mount_shell(
 	creator_fake: RefCounted,

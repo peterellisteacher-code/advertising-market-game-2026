@@ -27,8 +27,9 @@ Exact prompt:
 
 > Create the clean in-game background asset derived from this concept: a polished high-resolution top-down 2D pixel-art advertising agency floor for a Year 10 classroom browser game. Exact wide 16:9 composition. IMPORTANT: remove every interface panel, objective bar, character, arrow, badge, sign, word, letter, numeral, logo, poster text and screen text from the reference. No people. No readable writing of any kind. Preserve the attractive modern editorial/Bauhaus interior language and palette of deep navy, warm cream, teal, coral, mustard and cobalt. Clearly separated but connected spaces: welcoming client reception, strategy room with an abstract planning wall, art studio with drawing tables and colour materials, copy room represented by abstract paper/layout props without letters, production studio with large blank abstract monitors, media desk, sound booth with mixer and speakers, and a dramatic pitch theatre with a blank abstract presentation screen. Wide walkable corridors, obvious door openings, uncluttered central routes, rich props around room edges, even lighting, crisp coherent pixel edges, one consistent orthographic top-down perspective and scale. Make nine interaction positions visually readable and preserve generous empty walkable floor around every workstation. This is a single full-bleed game map, not a mockup, screenshot, UI, collage, cutaway with labels, or concept sheet.
 
-Reference supplied to the generator:
-`docs/superpowers/specs/assets/2026-07-29-agency-world-primary.png`.
+Reference supplied to the generator: a locally retained concept rendering of
+the same original agency environment. It contains no third-party artwork and is
+not required to build, use or license the public game.
 
 ## `agency-pair.png`
 

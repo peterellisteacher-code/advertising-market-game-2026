@@ -64,3 +64,13 @@ test("retained operation guides do not link deleted research or review records",
   const imageLab = await read("docs/operations/image-lab.md");
   assert.doesNotMatch(imageLab, /\.\.\/(?:research|reviews)\//u);
 });
+
+test("public asset provenance does not depend on private plans or reviews", async () => {
+  const [agencySources, audioSources] = await Promise.all([
+    read("godot/assets/agency/ASSET-SOURCES.md"),
+    read("godot/assets/audio/ASSET-SOURCES.md"),
+  ]);
+  const publicProvenance = `${agencySources}\n${audioSources}`;
+
+  assert.doesNotMatch(publicProvenance, /docs\/superpowers\/|(?:^|[\s`"'(])reviews\//mu);
+});

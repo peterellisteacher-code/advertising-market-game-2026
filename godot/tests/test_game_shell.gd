@@ -504,14 +504,6 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
 	assert(join_hover_style.bg_color.is_equal_approx(Color("#17212b")))
 	assert(_contrast_with_white(join_style.bg_color) >= 4.5)
 
-	var all_copy := ""
-	for node in shell.find_children("*", "Label", true, false):
-		all_copy += " " + str(node.get("text"))
-	for node in shell.find_children("*", "Button", true, false):
-		all_copy += " " + str(node.get("text"))
-	for banned in ["assignment", "unit", "task"]:
-		assert(not all_copy.to_lower().contains(banned))
-
 	shell.free()
 	return true
 

@@ -1,12 +1,11 @@
 # Sanitized public snapshot privacy, workflow and licence scan
-snapshot_root	C:\tmp\admarket-public-source-726cfad8
-validated_workcopy	C:\tmp\admarket-public-snapshot-726cfad8
-snapshot_tree_sha256	7978e3f0d7d943ae1ec0e25351f31de4900eb6b7b3c28ae6c33afc486dd00397
-scanned_text_files	797
+snapshot_root	C:\tmp\admarket-public-source-cb79b6ba9014
+public_candidate_checkout	C:\tmp\admarket-public-candidate-cb79b6ba9014
+snapshot_tree_sha256	32ee9ab81e00aa9ca958ea30022fb18f939fbf691daad84d29c7f78819e0f0c9
+scanned_text_files	837
 forbidden_filename_hits	0
 detector:private-key-header	0
-detector:credential-token-shape	1
-detector-path:credential-token-shape	web/src/persistence/draft-store.test.ts
+detector:credential-token-shape	0
 detector:jwt-shape	0
 detector:literal-bearer-token	0
 detector:live-supabase-url	9
@@ -25,6 +24,10 @@ detector:known-qa-site-id	0
 detector:personal-local-path	0
 detector:private-plan-reference	0
 detector:private-review-reference	0
+history_reference_sha	87dd848a20be8140dbbaab86aeb10f7dfd943a2c
+history_commit_count	1
+history_forbidden_path_hits	0
+history_private_message_hits	0
 workflow_permissions_contents_read	True
 workflow_secret_references	0
 workflow_write_permissions	0
@@ -34,7 +37,8 @@ workflow_unpinned_uses	0
 project_license_present	True
 credits_present	True
 tabler_vendor_license_present	True
-credential-token-shape_classification	false positive: the detector matched the letters "sk-" inside a deterministic IndexedDB test database name; no credential token is present.
-live-supabase-url_classification	test fixture only: ten occurrences use one deterministic alphabetic placeholder project reference in nine test files; no live project reference is present.
-asset_decision	Retain 2,503 original offline catalogue records, editable product assets, project writing and the vendored Tabler corpus under the terms stated in LICENSE, CREDITS.md and the retained vendor licence; no stock-media file is included.
+agency_asset_sources_present	True
+audio_asset_sources_present	True
+live-supabase-url_classification	test-fixture placeholder URLs only; paths listed above; known live project reference detector is zero.
+asset_decision	Retain the existing licensed catalogue and Tabler corpus, bespoke agency art with self-contained source notes, and three documented CC0 audio cues; exclude internal design images and all private operational evidence.
 privacy_workflow_licence_verdict	PASS

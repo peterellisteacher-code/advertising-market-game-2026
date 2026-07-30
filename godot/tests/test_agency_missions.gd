@@ -112,6 +112,8 @@ func _panel_stages_are_bounded_and_sequence_one_action() -> bool:
 	var tree := Engine.get_main_loop() as SceneTree
 	assert(tree != null)
 	tree.root.add_child(panel)
+	if not panel.is_node_ready():
+		panel.call("_ready")
 	var record := {
 		"title": "Control what the audience notices first",
 		"goal": "Use visual salience to direct attention.",

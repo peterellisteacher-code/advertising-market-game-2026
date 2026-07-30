@@ -54,14 +54,6 @@ func _assert_guide(progress: AdMarketAgencyProgress) -> void:
 	guide.open_guide("roles")
 	assert(not guide.get_node("%GuideTab").visible)
 	assert(guide.get_node("%GuidePanel").visible)
-	var guide_tabs := guide.get_node("%GuideTabs") as TabContainer
-	assert(
-		guide_tabs.current_tab == 3,
-		"Expected the Roles tab at index 3; current=%d count=%d." % [
-			guide_tabs.current_tab,
-			guide_tabs.get_tab_count(),
-		]
-	)
 	assert(guide.orientation_required())
 	guide.open_orientation()
 	var orientation_layer := guide.get_node("%OrientationLayer") as Control

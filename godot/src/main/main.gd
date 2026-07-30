@@ -502,9 +502,14 @@ func _on_practice_request_succeeded(request_id: String, method: String, payload:
             _practice_failure(context)
             return
         _practice_ready = true
+        var should_flush_queued_pitch := not _queued_practice_pitch.is_empty()
         _queued_practice_pitch.clear()
+        _suspend_agency_progress_persistence = true
         _render_level()
+        _suspend_agency_progress_persistence = false
         status.text = "Campaign progress saved on this computer."
+        if should_flush_queued_pitch:
+            _save_practice_progress()
         return
     if not _apply_practice_recovery(recovery):
         _practice_failure(context)

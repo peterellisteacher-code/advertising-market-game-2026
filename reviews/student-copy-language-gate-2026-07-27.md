@@ -138,3 +138,100 @@ An in-app Playwright pass at 1280 × 800 confirmed that:
   formal premises.
 
 Hosted evidence remains part of the final non-production draft QA.
+
+---
+
+## Final stable-corpus pass — 30 July 2026
+
+This pass covers the completed agency world, orientation, mission, pitch,
+reward and audio surfaces added after the earlier language gate.
+
+### Retained evidence and corpus
+
+- Retained root:
+  `C:\tmp\admarket-language-gate-9c972ab041de`
+- Occurrences: 4,750
+- Unique strings: 4,350
+- Objective input, post-Plain-Language corpus, post-scrub corpus and tracked
+  candidate SHA-256:
+  `f77f10ae35fb5fb68e17682fa4727d643e592386eb3836ddc8512abde633d141`
+- Objective input bytes: 1,080,284
+- Scrub manifest SHA-256:
+  `9ee6bbb10d26f82f9f19074201ae8dd07298ff861b03bd96e9188e1a1797f160`
+- MICROCOPY prompt SHA-256:
+  `6cb7d9d8f6f7e3c04eb9cb454aa1ab4b38098f63703fcc1cf2f9fae61c3e717c`
+
+The tracked July candidate differed because it predated fourteen agency and
+pitch source files and the later gameplay, role, editor, reset and teacher
+copy. The corpus source manifest was extended to cover every path reported by
+the deterministic source-coverage test.
+
+### Plain Language
+
+- Frozen-preset completed response count: 1
+- HTTP attempts: 2. The first attempt returned
+  `plain_language_http_error` and created no response file. The bounded retry
+  used the identical bytes and contract and saved the sole completed response.
+- Response bytes: 2,539
+- Response SHA-256:
+  `d1cf4a837e9f98322c01a0cbd09dc19113e2334d6838d04c41bb45dc51cb4cec`
+
+The response classified most corpus entries as labels, actions, errors or
+task scaffolding outside its register-check scope. It proposed no exact
+replacement wording and requested a narrower, guided submission. Narrowing
+would have violated the approved objective whole-corpus scan, so no
+Plain-Language wording was applied.
+
+### Claude Scrubber MICROCOPY
+
+- Model: `google/gemini-3.1-flash-lite`
+- Completed section call count: 11
+- System prompt: installed MICROCOPY prompt, passed verbatim
+- User prompts: exact section bytes, sent once in manifest order
+- Requested maximum output: 4,000 tokens
+- Reasoning: omitted
+- Transport: Codex-owned OpenRouter execution server
+
+The transport does not expose a temperature field and applies its own output
+policy floor. Its generation record was retained in `scrub-output`; the
+assistant-only bytes were extracted without copy editing to `scrub-response`
+before the diff guard ran.
+
+| Section | Input SHA-256 | Assistant SHA-256 | Diff SHA-256 |
+|---|---|---|---|
+| 001 | `9e759dba858b896e01218babb70195373238b4dd7497408d724a5dc9246604a4` | `e886b0de020df764dae4c974b79721e83ad369da071f5c9c1bf546585c059400` | `b499809017435166259572ff1727a1b950cec8c04825e7a4ca86dbe8790b4dfa` |
+| 002 | `9c10dad6b94ee7ca2474ba006853de27e14aa504e67109dea1ec1ed41adce422` | `874f7a22ae13b1a3ffbf902495fcbf125b5a9b9be5af529b48abfcd09c4afb49` | `b499809017435166259572ff1727a1b950cec8c04825e7a4ca86dbe8790b4dfa` |
+| 003 | `fb7fb5ae02a6a8b2df2ad91e0cd76d36a96a92704cd99ee94e920ee4bbedb6cd` | `22cc78e6e50327987d417199b6b0deafd4c4498588c61bbb3a8737d68dabbe64` | `b499809017435166259572ff1727a1b950cec8c04825e7a4ca86dbe8790b4dfa` |
+| 004 | `4ca56cbd941432c87b4d584d63ff5113641ceeb46ffe0b17b7a982634005c497` | `32a631706c944aae24f131222b1d5553cef5679ebb9c1735ea90f73d8eddd3db` | `b499809017435166259572ff1727a1b950cec8c04825e7a4ca86dbe8790b4dfa` |
+| 005 | `1b2eae2c0628e978cbb9977714e0ea85d0bbcf0ca4af141a8920c3f593a27458` | `92e139b198bbbd019bb7f21543fc1ab3b41f5ec0be11f28c6edc4b30a21504f1` | `b499809017435166259572ff1727a1b950cec8c04825e7a4ca86dbe8790b4dfa` |
+| 006 | `3a69474c06dd82d29c9b7b3c060a60213408a49547f85eabfbaad02d4e88669e` | `744822ae8a4c460a4d4315c38189cbe165d342eecb7f738f7aaba2103bfb6d4b` | `11afef5a5f9ad39d0774186fa0184016d4f83eb37bc3c21b90ce071edbe4052b` |
+| 007 | `624cd7dfd848aeeb1a4f8bbdddbb1026b9a9fc8446e87c74d80ce226ec1724f7` | `7ec9303ebe8515050f235b048d21ff2cb1dd32728091ac7bbe98de9a09b794f0` | `6c88b3b7725f31cd0058c2664a6a721611e91776fe713a0f8c55914dd853adc0` |
+| 008 | `ac6d2d469d72662ee00dfe85be123481c1ec125a786345c8c1be0a526e9328e5` | `e259bb922016f86f17d3c89a524f0437fbbc0427ebae11d85c8bfaa9731a75bd` | `19f5d32d9cfa70994bf244f82ee1cdec58a1fe79ef161a1d812d684e422e4cca` |
+| 009 | `9c40a02e6cf4a616cf9bc9bba346b9ed0de967badae976835764f1972818c6d0` | `a99a0c3360dc2ff708dbf71680589002df53a4ecc8d30cd686853f735665e67a` | `c370582dc24b1abad12d3bb5df2bf8df8d8cc92489167f46d94888b57092348d` |
+| 010 | `3f47ce7ad6361472771efd1f46eb8ea6bd2d8326029ad628b3e63133c31eee0b` | `ceb0cb32feb40a01659f73b4fc10a6f6305c2000f40c22a98a272b13c5ba0ad8` | `4f2a5970377a7afe8d32930bb55fe04efba265aea82a0bcbfacc1c7a95f46a88` |
+| 011 | `4747ec39a0318dcd80197c21cd49caa6fb454bf65a6831609934770429da2765` | `a81d359995f68e13a810accb860f76f07009e485d0f6ffdbe92b3f85ae98a5b0` | `b499809017435166259572ff1727a1b950cec8c04825e7a4ca86dbe8790b4dfa` |
+
+Diff-guard adjudication:
+
+- sections 001–005 and 011: no word-level change;
+- section 007: rejected because line count changed from 264 to 306;
+- sections 006, 008, 009 and 010: chrome passed, but all sixteen
+  word-level changes were rejected for meaning loss or grammatical damage.
+
+Rejected changes included removing required concepts such as `persuasive`,
+`clear`, `verifiable`, `key`, `first`, `own`, `visual` and `deliberately`;
+changing intentional order to fixed order; and replacing a grammatical
+evidence sentence with `Some evidence connection remains`.
+
+No scrubber wording was applied. The applied-source-path record is empty.
+
+### Focused verification
+
+```text
+node --test scripts/student-copy-scrub-sections.test.mjs
+  scripts/student-copy-corpus.test.mjs
+  scripts/student-copy-source-coverage.test.mjs
+  scripts/student-copy-professional-contract.test.mjs
+
+15 tests passed; 0 failed
+```

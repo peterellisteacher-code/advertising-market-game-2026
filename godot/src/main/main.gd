@@ -54,6 +54,7 @@ const AIDA_NEXT_ACTIONS := {
 @onready var market_screen: MarketScreen = %MarketScreen as MarketScreen
 @onready var agency_world: AdMarketAgencyWorld = %AgencyWorld as AdMarketAgencyWorld
 @onready var pitch_theatre: AdMarketPitchTheatre = %PitchTheatre as AdMarketPitchTheatre
+@onready var agency_audio: AdMarketAgencyAudioManager = %AgencyAudio as AdMarketAgencyAudioManager
 @onready var launch_button: Button = %LaunchCreator
 @onready var status: Label = %Status
 @onready var hero_heading: Label = $MainMargin/GameInput/HeroHeading
@@ -202,6 +203,7 @@ func _ready() -> void:
     pitch_theatre.pitch_finished.connect(_on_pitch_finished)
     pitch_theatre.format_changed.connect(_on_pitch_setting_changed)
     pitch_theatre.animation_changed.connect(_on_pitch_setting_changed)
+    pitch_theatre.sound_requested.connect(_on_pitch_sound_requested)
     var selected_market_transport: RefCounted = market_transport_override
     if selected_market_transport == null:
         selected_market_transport = WebMarketTransport.new()
@@ -287,12 +289,13 @@ func _on_agency_mission_completed(mission_id: String, evidence: Dictionary) -> v
     if _agency_campaign == null:
         return
     if _agency_campaign.complete_mission(mission_id, evidence):
+        agency_audio.play_cue("portfolio-stamp")
         _agency_campaign.reconcile_level_readiness(_readiness_clue())
         _render_level()
 
 func _on_agency_sidequest_completed(sidequest_id: String) -> void:
-    if _agency_campaign != null:
-        _agency_campaign.complete_sidequest(sidequest_id)
+    if _agency_campaign != null and _agency_campaign.complete_sidequest(sidequest_id):
+        agency_audio.play_cue("portfolio-stamp")
 
 func _on_agency_progress_changed() -> void:
     var run: AdMarketGameRun = _game_run as AdMarketGameRun
@@ -1208,6 +1211,9 @@ func _on_pitch_finished() -> void:
 
 func _on_pitch_setting_changed(_setting_id: String) -> void:
     _on_agency_progress_changed()
+
+func _on_pitch_sound_requested(cue_id: String) -> void:
+    agency_audio.play_cue(cue_id)
 
 func _complete_pitch_when_ready() -> void:
     if not _pitch_waiting_for_market or not _pitch_finished or not _pitch_market_ready:

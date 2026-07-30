@@ -806,6 +806,10 @@ func _closed_studio_reopens_to_publish_and_enters_the_market() -> bool:
 	assert(theatre != null and theatre.visible)
 	var exact_texture: Texture2D = theatre.get_node("%BillboardAd").texture
 	assert(exact_texture != null and exact_texture.get_image().get_width() == 1600)
+	var agency_audio := shell.get_node_or_null("%AgencyAudio")
+	assert(agency_audio != null)
+	assert(theatre.play_sound("camera"))
+	assert((agency_audio.get_node("%CameraCue") as AudioStreamPlayer).playing)
 	var game_run: RefCounted = shell.get("_game_run")
 	assert(game_run.phase == "market")
 	var market_screen := shell.get_node("%MarketScreen") as Control

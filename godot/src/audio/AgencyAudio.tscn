@@ -1,0 +1,24 @@
+[gd_scene format=3 uid="uid://by2k08y6c6buo"]
+
+[ext_resource type="Script" uid="uid://cbd6fe4ab81aq" path="res://src/audio/agency_audio_manager.gd" id="1_t1oyd"]
+[ext_resource type="AudioStream" uid="uid://d0h4f1dtf507g" path="res://assets/audio/camera-shutter.ogg" id="2_xxbj0"]
+[ext_resource type="AudioStream" uid="uid://b2c7ikuerkkfi" path="res://assets/audio/pitch-swoosh.ogg" id="3_5irfx"]
+[ext_resource type="AudioStream" uid="uid://dikt5rd7n128x" path="res://assets/audio/portfolio-stamp.ogg" id="4_g2nva"]
+
+[node name="AgencyAudio" type="Node" unique_id=1937646235]
+script = ExtResource("1_t1oyd")
+
+[node name="CameraCue" type="AudioStreamPlayer" parent="." unique_id=971892635]
+unique_name_in_owner = true
+stream = ExtResource("2_xxbj0")
+volume_db = -10.0
+
+[node name="SwooshCue" type="AudioStreamPlayer" parent="." unique_id=1380879382]
+unique_name_in_owner = true
+stream = ExtResource("3_5irfx")
+volume_db = -10.0
+
+[node name="PortfolioStampCue" type="AudioStreamPlayer" parent="." unique_id=231170843]
+unique_name_in_owner = true
+stream = ExtResource("4_g2nva")
+volume_db = -10.0

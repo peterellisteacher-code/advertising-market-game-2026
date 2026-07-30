@@ -22,7 +22,7 @@ const ORIENTATION_STEPS := [
 			+ "2. Build one advertisement for that audience.\n"
 			+ "3. Complete the required practice missions.\n"
 			+ "4. Pitch the finished advertisement and explain why it should persuade the audience.\n\n"
-			+ "The pitch unlocks only after every required mission is complete."
+			+ "The pitch unlocks only after every required mission is complete. At the pitch, you will see your own advertisement in three display formats and receive a client response. Optional contracts add portfolio stamps; they never block completion. The market can award Gold, Silver and Bronze medals."
 		),
 		"button": "Next: learn the controls",
 	},

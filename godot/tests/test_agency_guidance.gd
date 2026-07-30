@@ -74,6 +74,11 @@ func _assert_guide(progress: AdMarketAgencyProgress) -> void:
 	assert(goal_copy.contains("required practice missions"))
 	assert(goal_copy.contains("Pitch the finished advertisement"))
 	assert(goal_copy.contains("unlocks only after every required mission"))
+	assert(goal_copy.contains("three display formats"))
+	assert(goal_copy.contains("client response"))
+	assert(goal_copy.contains("portfolio stamps"))
+	assert(goal_copy.contains("never block completion"))
+	assert(goal_copy.contains("Gold, Silver and Bronze"))
 	guide.advance_orientation()
 	assert(guide.get_node("%OrientationTitle").text == "How to reach each task")
 	var controls_copy: String = guide.get_node("%OrientationBody").text

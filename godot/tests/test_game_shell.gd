@@ -100,28 +100,10 @@ func _agency_world_replaces_the_run_panel_and_coordinates_roles() -> bool:
 	assert(pair.input_enabled)
 	assert(agency.current_station_id() == prior_station)
 	shell.call("_on_agency_role_handoff_requested", "strategist")
-	var baseline_request := practice_fake.request_for("practice-5")
-	assert(baseline_request.get("method") == "saveProgress")
-	var baseline_payload: Dictionary = baseline_request.get("payload")
-	var baseline_recovery := _practice_recovery(
-		shell,
-		"invent",
-		false,
-		2,
-		2,
-		String(baseline_payload.get("operationId")),
-		refreshed_document,
-	)
-	baseline_recovery["checkpoint"]["pitch"] = (
-		Dictionary(baseline_payload.get("pitch")).duplicate(true)
-	)
-	practice_fake.resolve_success("practice-5", baseline_recovery)
-	var handoff_request := practice_fake.request_for("practice-6")
-	assert(handoff_request.get("method") == "saveProgress")
-	assert(
-		Dictionary(Dictionary(handoff_request.get("payload")).get("pitch")).get("activeRole")
-		== "strategist"
-	)
+	var pending_request := practice_fake.request_for("practice-5")
+	assert(pending_request.get("method") == "saveProgress")
+	var queued_pitch: Dictionary = shell.get("_queued_practice_pitch")
+	assert(queued_pitch.get("activeRole") == "strategist")
 	var document: Dictionary = shell.get("_campaign_document")
 	var pair_state: Dictionary = Dictionary(Dictionary(document.get("gameplay")).get("pair"))
 	assert(pair_state.get("activeRole") == "strategist")

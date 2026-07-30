@@ -611,8 +611,11 @@ func _apply_practice_progress_ack(recovery: Dictionary) -> bool:
         return false
     var current_pitch := progress.snapshot()
     if (
-        current_pitch != checkpoint.get("pitch")
-        and (_queued_practice_pitch.is_empty() or current_pitch != _queued_practice_pitch)
+        not _agency_pitches_match(current_pitch, checkpoint.get("pitch"))
+        and (
+            _queued_practice_pitch.is_empty()
+            or not _agency_pitches_match(current_pitch, _queued_practice_pitch)
+        )
     ):
         return false
     if (
@@ -958,6 +961,9 @@ func _on_market_snapshot(snapshot: Dictionary) -> void:
     var entry_gate_visible := enter_market.visible
     var prior_phase := String(_game_run.phase)
     _apply_market_completion(snapshot)
+    if _pitch_waiting_for_market:
+        market_screen.hide()
+        return
     if prior_phase != _game_run.phase and not entry_gate_visible:
         _render_level()
     if _room_campaign_submitted or server_phase in ["market", "reveal", "closed"]:
@@ -995,6 +1001,8 @@ func _on_market_campaign_published(_result: Dictionary) -> void:
     publish_campaign.disabled = false
     creator_host.close_creator()
     market_screen.call("show_publication_waiting")
+    if _pitch_waiting_for_market:
+        market_screen.hide()
     status.text = "Campaign delivered. Finish the client pitch when your pair is ready."
     _complete_pitch_when_ready()
 
@@ -1284,6 +1292,7 @@ func _on_creator_published(publication: Dictionary) -> void:
     market_screen.call("set_market_host", _local_market_session)
     market_screen.call("enter_room", "team", "PRACTICE")
     market_screen.call("present_snapshot", initial_snapshot)
+    market_screen.hide()
     _pitch_market_ready = true
     status.text = "The practice market is ready. Finish the client pitch when your pair is satisfied."
     _complete_pitch_when_ready()
@@ -1711,6 +1720,15 @@ func _validated_live_progress(value: Variant, identity: Dictionary) -> Dictionar
         return {}
     return {"run": restored_run, "value": progress.duplicate(true)}
 
+func _agency_pitches_match(left: Variant, right: Variant) -> bool:
+    if typeof(left) != TYPE_DICTIONARY or typeof(right) != TYPE_DICTIONARY:
+        return false
+    var left_progress := AdMarketAgencyProgress.new()
+    var right_progress := AdMarketAgencyProgress.new()
+    if not left_progress.restore_snapshot(left) or not right_progress.restore_snapshot(right):
+        return false
+    return left_progress.snapshot() == right_progress.snapshot()
+
 func _save_practice_progress() -> void:
     if _practice_bridge == null or _practice_recovery.is_empty():
         return
@@ -1720,7 +1738,7 @@ func _save_practice_progress() -> void:
         return
     var pitch := progress.snapshot()
     var checkpoint: Dictionary = _practice_recovery.get("checkpoint", {})
-    if pitch == checkpoint.get("pitch", {}):
+    if _agency_pitches_match(pitch, checkpoint.get("pitch", {})):
         _queued_practice_pitch.clear()
         return
     if not _practice_pending_method.is_empty():

@@ -259,9 +259,16 @@ func _validated_snapshot(value: Variant) -> Dictionary:
         candidate.get("completedMissionIds")
     ):
         return {}
-    if typeof(candidate.get("handoffCount")) != TYPE_INT:
+    var handoff_value: Variant = candidate.get("handoffCount")
+    if typeof(handoff_value) != TYPE_INT and typeof(handoff_value) != TYPE_FLOAT:
         return {}
-    if int(candidate.get("handoffCount")) < 0 or int(candidate.get("handoffCount")) > 10000:
+    var handoff_number := float(handoff_value)
+    if (
+        not is_finite(handoff_number)
+        or handoff_number != floor(handoff_number)
+        or handoff_number < 0.0
+        or handoff_number > 10000.0
+    ):
         return {}
     for boolean_key in ["guideTucked", "orientationAcknowledged", "started"]:
         if typeof(candidate.get(boolean_key)) != TYPE_BOOL:

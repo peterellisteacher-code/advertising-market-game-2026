@@ -215,7 +215,13 @@ func _validate_response_context(method: String, recovery: Dictionary, context: D
             return _invalid("Progress save did not create exactly one campaign revision")
         if checkpoint.get("stage") != expected.get("stage"):
             return _invalid("Progress save changed the pitch stage")
-        if JSON.stringify(checkpoint.get("pitch")) != JSON.stringify(context.get("pitch")):
+        var returned_pitch := _normalized_pitch(checkpoint.get("pitch"))
+        var requested_pitch := _normalized_pitch(context.get("pitch"))
+        if (
+            returned_pitch.is_empty()
+            or requested_pitch.is_empty()
+            or returned_pitch != requested_pitch
+        ):
             return _invalid("Progress save did not return the requested agency snapshot")
     elif method == "setLock":
         if int(checkpoint.get("documentRevision")) != int(expected.get("documentRevision")) + 1:
@@ -308,6 +314,14 @@ func _validate_pitch(value: Variant) -> Dictionary:
     if not progress.restore_snapshot(value):
         return _invalid("Recovery agency progress is invalid")
     return {"ok": true}
+
+func _normalized_pitch(value: Variant) -> Dictionary:
+    if typeof(value) != TYPE_DICTIONARY:
+        return {}
+    var progress := AgencyProgress.new()
+    if not progress.restore_snapshot(value):
+        return {}
+    return progress.snapshot()
 
 func _validate_token(value: Variant) -> Dictionary:
     var keys := ["runId", "documentId", "documentRevision", "sequence", "stage"]

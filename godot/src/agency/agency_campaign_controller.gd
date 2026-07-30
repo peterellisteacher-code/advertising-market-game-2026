@@ -37,10 +37,15 @@ func begin_agency(game_run: AdMarketGameRun, document: Dictionary) -> void:
 
 func restore_agency(game_run: AdMarketGameRun, document: Dictionary) -> void:
 	_set_context(game_run, document)
+	var progress_changed: bool = false
+	var objective_before: String = _progress.current_objective_id if _progress != null else ""
 	if _progress != null and not _progress.started:
-		_progress.begin()
+		progress_changed = _progress.begin()
 	_reconcile_document_objective()
-	_emit_progress()
+	if _progress != null and _progress.current_objective_id != objective_before:
+		progress_changed = true
+	if progress_changed:
+		_emit_progress()
 
 func current_objective() -> Dictionary:
 	if _progress == null:

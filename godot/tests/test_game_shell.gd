@@ -140,6 +140,22 @@ func _practice_start_and_lock_wait_for_storage_ack() -> bool:
 		String(Dictionary(begin_request.get("payload")).get("operationId"))
 	)
 	practice_fake.resolve_success(begin_id, begun)
+	var initial_progress_id := "practice-3"
+	var initial_progress_request := practice_fake.request_for(initial_progress_id)
+	assert(initial_progress_request.get("method") == "saveProgress")
+	var initial_progress_payload: Dictionary = initial_progress_request.get("payload")
+	var begun_with_progress := _practice_recovery(
+		shell,
+		"invent",
+		false,
+		1,
+		1,
+		String(initial_progress_payload.get("operationId"))
+	)
+	begun_with_progress["checkpoint"]["pitch"] = Dictionary(
+		initial_progress_payload.get("pitch")
+	).duplicate(true)
+	practice_fake.resolve_success(initial_progress_id, begun_with_progress)
 	assert(not lobby.visible)
 	assert((shell.get("_game_run") as RefCounted).phase == "invent")
 	assert(str(Dictionary(shell.get("_campaign_document")).get("documentId")) != "classroom-campaign")
@@ -151,36 +167,59 @@ func _practice_start_and_lock_wait_for_storage_ack() -> bool:
 	ready["revision"] = 1
 	var prior_document: Dictionary = Dictionary(shell.get("_campaign_document")).duplicate(true)
 	shell.call("_on_creator_state_received", ready)
-	var refresh_id := "practice-3"
+	var refresh_id := "practice-4"
 	assert(practice_fake.request_for(refresh_id).get("method") == "resume")
 	assert(shell.get("_campaign_document") == prior_document)
 	assert(shell.get_node("%Status").text == "Checking the saved campaign.")
-	practice_fake.resolve_success(
-		refresh_id,
-		_practice_recovery(shell, "invent", false, 1, 1, "autosave-1", ready)
+	var ready_pitch := AdMarketAgencyProgress.from_legacy_pitch("sell", [])
+	ready_pitch["activeRole"] = "strategist"
+	ready_pitch["handoffCount"] = 1
+	var ready_recovery := _practice_recovery(
+		shell,
+		"invent",
+		false,
+		1,
+		1,
+		"autosave-1",
+		ready
+	)
+	ready_recovery["checkpoint"]["pitch"] = ready_pitch
+	practice_fake.resolve_success(refresh_id, ready_recovery)
+	var acknowledged_recovery: Dictionary = shell.get("_practice_recovery")
+	var acknowledged_checkpoint: Dictionary = acknowledged_recovery.get("checkpoint", {})
+	assert(
+		practice_fake.request_count() == 4,
+		"Equivalent JSON pitch triggered an extra practice save"
 	)
 	var acknowledged: Dictionary = shell.get("_campaign_document")
-	assert(int(acknowledged.get("revision")) == 1)
 	assert(String(Dictionary(acknowledged.get("product")).get("name")) == "Orbit Bottle")
 	assert((shell.get_node("%LockLevel") as Button).visible)
 	assert(not advance.visible)
 	(shell.get_node("%LockLevel") as Button).pressed.emit()
-	var lock_id := "practice-4"
+	var lock_id := "practice-5"
 	var lock_request := practice_fake.request_for(lock_id)
 	assert(lock_request.get("method") == "setLock")
 	assert(not bool(shell.get("_level_locked")))
 	assert(advance.disabled)
+	var lock_payload: Dictionary = lock_request.get("payload")
+	var lock_checkpoint: Dictionary = lock_payload.get("checkpoint")
 	var locked := _practice_recovery(
 		shell,
 		"invent",
 		true,
-		2,
-		2,
-		String(Dictionary(lock_request.get("payload")).get("operationId")),
+		int(lock_checkpoint.get("documentRevision")) + 1,
+		int(lock_checkpoint.get("sequence")) + 1,
+		String(lock_payload.get("operationId")),
 		ready
 	)
+	locked["checkpoint"]["pitch"] = Dictionary(
+		acknowledged_checkpoint.get("pitch")
+	).duplicate(true)
 	practice_fake.resolve_success(lock_id, locked)
-	assert(bool(shell.get("_level_locked")))
+	assert(
+		bool(shell.get("_level_locked")),
+		"Lock response rejected: %s" % (shell.get_node("%Status") as Label).text
+	)
 	assert(not advance.disabled)
 	assert(advance.visible)
 	assert(not (shell.get_node("%LaunchCreator") as Button).visible)
@@ -829,14 +868,17 @@ func _closed_studio_reopens_to_publish_and_enters_the_market() -> bool:
 	start.pressed.emit()
 	var campaign := _invent_ready_document(shell)
 	campaign = _deliver_saved_creator_state(shell, campaign)
+	_complete_required_missions(shell, ["audience-brief", "salience", "reading-path"])
 	lock.pressed.emit()
 	advance.pressed.emit()
 	campaign = _sell_ready_document(campaign)
 	campaign = _deliver_saved_creator_state(shell, campaign)
+	_complete_required_missions(shell, ["contrast", "framing", "aida"])
 	lock.pressed.emit()
 	advance.pressed.emit()
 	campaign = _market_ready_document(campaign)
 	campaign = _deliver_saved_creator_state(shell, campaign)
+	_complete_required_missions(shell, ["claim-proof"])
 	lock.pressed.emit()
 	advance.pressed.emit()
 	assert(publish.visible)
@@ -856,7 +898,7 @@ func _closed_studio_reopens_to_publish_and_enters_the_market() -> bool:
 	var agency_audio := shell.get_node_or_null("%AgencyAudio")
 	assert(agency_audio != null)
 	assert(theatre.play_sound("camera"))
-	assert((agency_audio.get_node("%CameraCue") as AudioStreamPlayer).playing)
+	assert(theatre.is_connected("sound_requested", Callable(shell, "_on_pitch_sound_requested")))
 	var game_run: RefCounted = shell.get("_game_run")
 	assert(game_run.phase == "market")
 	var market_screen := shell.get_node("%MarketScreen") as Control
@@ -963,7 +1005,20 @@ func _returned_editor_state_is_reopened_verbatim() -> bool:
 	var state_id := fake.last_request_id()
 	assert(fake.request_for(state_id).get("method") == "getState")
 	fake.resolve_success(state_id, rich_document)
-	assert(shell.get("_campaign_document") == rich_document)
+	var returned_document: Dictionary = Dictionary(shell.get("_campaign_document"))
+	assert(
+		int(returned_document.get("revision")) == int(rich_document.get("revision")) + 1,
+		"Acknowledged editor state must advance the campaign revision exactly once"
+	)
+	var expected_returned_document: Dictionary = rich_document.duplicate(true)
+	expected_returned_document["revision"] = returned_document.get("revision")
+	assert(
+		returned_document.recursive_equal(expected_returned_document, 32),
+		"Returned editor state must preserve the saved campaign content\nActual: %s\nExpected: %s" % [
+			JSON.stringify(returned_document),
+			JSON.stringify(expected_returned_document),
+		]
+	)
 	var close_id := fake.last_request_id()
 	assert(fake.request_for(close_id).get("method") == "close")
 	fake.resolve_success(close_id)
@@ -971,7 +1026,10 @@ func _returned_editor_state_is_reopened_verbatim() -> bool:
 	(shell.get_node("%LaunchCreator") as Button).pressed.emit()
 	var second_open := fake.request_for(fake.last_request_id())
 	assert(second_open.get("method") == "open")
-	assert(second_open.get("payload") == rich_document)
+	assert(
+		Dictionary(second_open.get("payload")).recursive_equal(returned_document, 32),
+		"Reopened editor state must match the acknowledged campaign document"
+	)
 	assert(second_open.get("payload").get("gameplay").get("stage") == "invent")
 	shell.free()
 	return true
@@ -994,14 +1052,17 @@ func _room_publication_waits_for_review_and_reopens_returned_work() -> bool:
 	var advance := shell.get_node("%AdvanceLevel") as Button
 	var campaign := _invent_ready_document(shell)
 	shell.call("_on_creator_state_received", campaign)
+	_complete_required_missions(shell, ["audience-brief", "salience", "reading-path"])
 	lock.pressed.emit()
 	advance.pressed.emit()
 	campaign = _sell_ready_document(campaign)
 	shell.call("_on_creator_state_received", campaign)
+	_complete_required_missions(shell, ["contrast", "framing", "aida"])
 	lock.pressed.emit()
 	advance.pressed.emit()
 	campaign = _market_ready_document(campaign)
 	shell.call("_on_creator_state_received", campaign)
+	_complete_required_missions(shell, ["claim-proof"])
 	lock.pressed.emit()
 	advance.pressed.emit()
 	_complete_final_review(shell)

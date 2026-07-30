@@ -13,6 +13,8 @@ func run() -> bool:
 	var tree := Engine.get_main_loop() as SceneTree
 	assert(tree != null)
 	tree.root.add_child(world)
+	if not world.is_node_ready():
+		world.call("_ready")
 	var pair := world.get_node("%AgencyPair") as CharacterBody2D
 	var guide := world.get_node("%AgencyGuideDrawer") as AdMarketAgencyGuideDrawer
 	var orientation := guide.get_node("OrientationLayer") as Control

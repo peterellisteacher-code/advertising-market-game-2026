@@ -568,8 +568,6 @@ func _on_guide_audio_settings_changed(settings: Dictionary) -> void:
 	audio_settings_changed.emit(settings.duplicate(true))
 
 func _show_orientation_if_required() -> void:
-	if not is_inside_tree():
-		return
 	var guide := _guide()
 	if guide == null or not guide.orientation_required():
 		return

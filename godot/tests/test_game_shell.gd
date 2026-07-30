@@ -86,7 +86,13 @@ func _agency_world_replaces_the_run_panel_and_coordinates_roles() -> bool:
 	assert(agency.current_station_id() == prior_station)
 	shell.call("_on_agency_role_handoff_requested", "strategist")
 	var handoff_request := practice_fake.request_for("practice-4")
-	assert(handoff_request.get("method") == "saveProgress")
+	assert(
+		handoff_request.get("method") == "saveProgress",
+		"Expected practice-4 to save the role handoff; actual=%s requests=%s" % [
+			String(handoff_request.get("method", "<missing>")),
+			JSON.stringify(practice_fake.get("_requests")),
+		]
+	)
 	assert(
 		Dictionary(Dictionary(handoff_request.get("payload")).get("pitch")).get("activeRole")
 		== "strategist"

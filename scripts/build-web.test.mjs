@@ -431,6 +431,24 @@ test("release assembly binds static assets, private functions and one atomic ser
     "the replacement worker must not activate until every core asset is cached"
   );
   assert.doesNotMatch(worker, /clients\.claim/);
+  const navigationHandler = worker.slice(
+    worker.indexOf('if (request.mode === "navigate")'),
+    worker.indexOf('if (!isReleaseAsset(url.pathname))')
+  );
+  assert.match(navigationHandler, /return await fetch\(request\);/);
+  assert.match(navigationHandler, /catch \{/);
+  assert.match(
+    navigationHandler,
+    /return await cache\.match\("\/index\.html"\) \?\? Response\.error\(\);/
+  );
+  assert.ok(
+    navigationHandler.indexOf("fetch(request)") < navigationHandler.indexOf('cache.match("/index.html")'),
+    "online navigation must reach the host before the offline shell is considered"
+  );
+  assert.doesNotMatch(
+    navigationHandler,
+    /return await cache\.match\("\/index\.html"\) \?\? fetch\(request\);/
+  );
   assert.doesNotMatch(worker, /\.release\/functions/);
 
   const headers = await readFile(path.join(web, "_headers"), "utf8");

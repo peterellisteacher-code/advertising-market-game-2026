@@ -3,6 +3,7 @@ export { default } from "../function-bundles/teacher-accounts.mjs";
 export const config = {
   path: [
     "/api/teacher/accounts",
+    "/api/teacher/accounts/:username/approve",
     "/api/teacher/accounts/:username/password",
     "/api/teacher/accounts/:username/reset",
     "/api/teacher/image-lab",

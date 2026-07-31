@@ -11,6 +11,10 @@ import {
   config as accountSessionConfig,
   createAccountSessionHandler
 } from "./account-session.mjs";
+import {
+  PairRegistrationStoreError,
+  type PairRegistrationStore
+} from "./lib/pair-registration-store";
 
 const environment = {
   SUPABASE_URL: "https://abcdefghijklmnopqrst.supabase.co",
@@ -47,6 +51,19 @@ const validTokens = {
   refresh_token: "refresh-token",
   expires_in: 3600
 };
+
+const registrationStore = (): PairRegistrationStore => ({
+  request: vi.fn().mockImplementation(async ({ username, password, requestedAt }) => ({
+    username,
+    password,
+    status: "pending" as const,
+    requestedAt,
+    approvedAt: null
+  })),
+  pending: vi.fn().mockResolvedValue(null),
+  list: vi.fn().mockResolvedValue([]),
+  recordApproved: vi.fn()
+});
 
 const accessJwt = (sessionEpoch: string): string => {
   const encode = (value: unknown): string => Buffer.from(JSON.stringify(value), "utf8")
@@ -132,28 +149,26 @@ describe("account session API", () => {
     }
   });
 
-  it("creates a confirmed opaque account, signs it in, and returns only username state", async () => {
-    const fetcher = vi.fn<typeof fetch>()
-      .mockResolvedValueOnce(json({ id: "b9b32e20-0ba8-4896-b89f-44efdfc52942" }, 201))
-      .mockResolvedValueOnce(json(validTokens))
-      .mockResolvedValueOnce(json({
-        id: "b9b32e20-0ba8-4896-b89f-44efdfc52942",
-        app_metadata: { advertising_game_username: "team-one" }
-      }));
-    const handler = createAccountSessionHandler({ environment, fetcher });
+  it("queues a normalized pair registration without creating a user or issuing cookies", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(json({ user: null }));
+    const registrations = registrationStore();
+    const handler = createAccountSessionHandler({
+      environment,
+      fetcher,
+      registrations,
+      now: () => new Date("2026-07-31T00:00:00.000Z")
+    });
 
     const response = await handler(accountRequest("/api/account/signup", "POST", {
       username: "  TEAM-One  ",
-      password: "student-password",
-      classroomCode: "classroom-access"
+      password: "student-password"
     }));
 
-    expect(response.status).toBe(201);
+    expect(response.status).toBe(202);
     const payload = await response.json();
     expect(payload).toEqual({
-      authenticated: true,
-      username: "team-one",
-      resetGeneration: null
+      status: "pending",
+      username: "team-one"
     });
     const responseText = JSON.stringify({
       payload,
@@ -162,25 +177,17 @@ describe("account session API", () => {
     expect(responseText).not.toContain(environment.SUPABASE_URL);
     expect(responseText).not.toContain(environment.SUPABASE_PUBLISHABLE_KEY);
     expect(responseText).not.toContain(environment.ADVERTISING_GAME_EDGE_GATEWAY_SECRET);
-    expect(responseText).not.toContain("access-token");
-    expect(responseText).not.toContain("refresh-token");
-    expect(responseText).not.toContain("accounts.admarket.invalid");
-    expect(responseText).not.toContain("b9b32e20-0ba8-4896-b89f-44efdfc52942");
-
-    const adminBody = JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body));
-    expect(adminBody.email).toBe(deriveSyntheticAccountEmail(
-      "team-one",
-      environment.ADVERTISING_GAME_USERNAME_HMAC_SECRET
-    ));
-    expect(adminBody.email).not.toContain("team-one");
-    expect(setCookies(response)).toEqual([
-      `${ACCOUNT_ACCESS_COOKIE}=access-token; Path=/api; HttpOnly; SameSite=Strict; ` +
-        "Max-Age=3600; Secure",
-      `${ACCOUNT_REFRESH_COOKIE}=refresh-token; Path=/api; HttpOnly; SameSite=Strict; ` +
-        "Max-Age=2592000; Secure",
-      `${ACCOUNT_RESET_GENERATION_COOKIE}=; Path=/api; HttpOnly; SameSite=Strict; ` +
-        "Max-Age=0; Secure"
-    ]);
+    expect(responseText).not.toContain("student-password");
+    expect(setCookies(response)).toEqual([]);
+    expect(registrations.request).toHaveBeenCalledWith({
+      username: "team-one",
+      password: "student-password",
+      requestedAt: "2026-07-31T00:00:00.000Z"
+    });
+    expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toMatchObject({
+      operation: "find_user",
+      username: "team-one"
+    });
   });
 
   it("verifies a fresh password login against the current server epoch before issuing cookies", async () => {
@@ -273,27 +280,32 @@ describe("account session API", () => {
     expect(setCookies(response).every((cookie) => cookie.includes("Max-Age=0"))).toBe(true);
   });
 
-  it("rejects an invalid classroom access code before any Supabase call", async () => {
+  it("rejects the removed classroom-code field before any upstream or registration write", async () => {
     const fetcher = vi.fn<typeof fetch>();
-    const response = await createAccountSessionHandler({ environment, fetcher })(
+    const registrations = registrationStore();
+    const response = await createAccountSessionHandler({ environment, fetcher, registrations })(
       accountRequest("/api/account/signup", "POST", {
         username: "team-one",
         password: "student-password",
-        classroomCode: "wrong-code"
+        classroomCode: "must-not-be-required-on-student-devices"
       })
     );
-    expect(response.status).toBe(401);
-    await expect(response.json()).resolves.toEqual({ error: "SIGNUP_DENIED" });
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "INVALID_REQUEST" });
     expect(fetcher).not.toHaveBeenCalled();
+    expect(registrations.request).not.toHaveBeenCalled();
   });
 
-  it("maps duplicate signup to one bounded username-unavailable response", async () => {
-    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(json({ error: "USERNAME_UNAVAILABLE" }, 409));
-    const response = await createAccountSessionHandler({ environment, fetcher })(
+  it("maps a conflicting pending registration to one bounded username-unavailable response", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(json({ user: null }));
+    const registrations = registrationStore();
+    vi.mocked(registrations.request).mockRejectedValueOnce(
+      new PairRegistrationStoreError("USERNAME_UNAVAILABLE")
+    );
+    const response = await createAccountSessionHandler({ environment, fetcher, registrations })(
       accountRequest("/api/account/signup", "POST", {
         username: "team-one",
-        password: "student-password",
-        classroomCode: "classroom-access"
+        password: "student-password"
       })
     );
     expect(response.status).toBe(409);
@@ -301,16 +313,16 @@ describe("account session API", () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
 
-  it("does not misclassify a non-duplicate Supabase signup rejection", async () => {
-    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(json({
-      code: "weak_password",
-      message: environment.ADVERTISING_GAME_EDGE_GATEWAY_SECRET
-    }, 422));
-    const response = await createAccountSessionHandler({ environment, fetcher })(
+  it("does not expose a registration-store failure", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(json({ user: null }));
+    const registrations = registrationStore();
+    vi.mocked(registrations.request).mockRejectedValueOnce(
+      new PairRegistrationStoreError("REGISTRATION_UNAVAILABLE")
+    );
+    const response = await createAccountSessionHandler({ environment, fetcher, registrations })(
       accountRequest("/api/account/signup", "POST", {
         username: "team-one",
-        password: "student-password",
-        classroomCode: "classroom-access"
+        password: "student-password"
       })
     );
 

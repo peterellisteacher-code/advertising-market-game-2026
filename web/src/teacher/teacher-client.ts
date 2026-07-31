@@ -1,7 +1,19 @@
 export interface TeacherPairSummary {
   readonly username: string;
+  readonly password: string | null;
   readonly createdAt: string;
   readonly lastSignInAt: string | null;
+}
+
+export interface TeacherPendingRegistration {
+  readonly username: string;
+  readonly password: string;
+  readonly requestedAt: string;
+}
+
+export interface TeacherAccountsOverview {
+  readonly accounts: readonly TeacherPairSummary[];
+  readonly pending: readonly TeacherPendingRegistration[];
 }
 
 export interface TeacherImageLabCounts {
@@ -64,7 +76,7 @@ export interface TeacherClient {
   session(): Promise<{ authenticated: boolean }>;
   login(password: string): Promise<void>;
   logout(): Promise<void>;
-  listAccounts(): Promise<readonly TeacherPairSummary[]>;
+  listAccounts(): Promise<TeacherAccountsOverview>;
   createAccount(input: {
     operationId: string;
     username: string;
@@ -75,6 +87,10 @@ export interface TeacherClient {
     username: string;
     password: string;
   }): Promise<void>;
+  approveRegistration(input: {
+    operationId: string;
+    username: string;
+  }): Promise<TeacherPairSummary>;
   resetAccount(input: {
     operationId: string;
     username: string;
@@ -142,12 +158,19 @@ const validIsoTimestamp = (value: unknown): value is string =>
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/u.test(value) &&
   Number.isFinite(Date.parse(value));
 
+const validPassword = (value: unknown): value is string =>
+  typeof value === "string" &&
+  !value.includes("\0") &&
+  new TextEncoder().encode(value).byteLength >= 8 &&
+  new TextEncoder().encode(value).byteLength <= 128;
+
 const parseSummary = (value: unknown): TeacherPairSummary => {
   if (
     !isRecord(value) ||
-    !hasExactKeys(value, ["username", "createdAt", "lastSignInAt"]) ||
+    !hasExactKeys(value, ["username", "password", "createdAt", "lastSignInAt"]) ||
     typeof value.username !== "string" ||
     !USERNAME_PATTERN.test(value.username) ||
+    (value.password !== null && !validPassword(value.password)) ||
     !validIsoTimestamp(value.createdAt) ||
     (value.lastSignInAt !== null && !validIsoTimestamp(value.lastSignInAt))
   ) {
@@ -155,8 +178,27 @@ const parseSummary = (value: unknown): TeacherPairSummary => {
   }
   return {
     username: value.username,
+    password: value.password,
     createdAt: value.createdAt,
     lastSignInAt: value.lastSignInAt
+  };
+};
+
+const parsePendingRegistration = (value: unknown): TeacherPendingRegistration => {
+  if (
+    !isRecord(value) ||
+    !hasExactKeys(value, ["username", "password", "requestedAt"]) ||
+    typeof value.username !== "string" ||
+    !USERNAME_PATTERN.test(value.username) ||
+    !validPassword(value.password) ||
+    !validIsoTimestamp(value.requestedAt)
+  ) {
+    throw new TeacherClientError("INVALID_RESPONSE", 503, true);
+  }
+  return {
+    username: value.username,
+    password: value.password,
+    requestedAt: value.requestedAt
   };
 };
 
@@ -343,23 +385,30 @@ export class HttpTeacherClient implements TeacherClient {
     await this.#requestNoContent("/api/teacher/logout", "POST");
   }
 
-  async listAccounts(): Promise<readonly TeacherPairSummary[]> {
+  async listAccounts(): Promise<TeacherAccountsOverview> {
     const value = await this.#requestJson("/api/teacher/accounts", "GET");
     if (
       !isRecord(value) ||
-      !hasExactKeys(value, ["accounts"]) ||
+      !hasExactKeys(value, ["accounts", "pending"]) ||
       !Array.isArray(value.accounts) ||
-      value.accounts.length > 1_000
+      !Array.isArray(value.pending) ||
+      value.accounts.length > 1_000 ||
+      value.pending.length > 1_000
     ) {
       throw new TeacherClientError("INVALID_RESPONSE", 503, true);
     }
     const accounts = value.accounts.map(parseSummary);
+    const pending = value.pending.map(parsePendingRegistration);
     if (
-      new Set(accounts.map(({ username }) => username)).size !== accounts.length
+      new Set(accounts.map(({ username }) => username)).size !== accounts.length ||
+      new Set(pending.map(({ username }) => username)).size !== pending.length
     ) {
       throw new TeacherClientError("INVALID_RESPONSE", 503, true);
     }
-    return accounts.sort((left, right) => left.username.localeCompare(right.username));
+    return {
+      accounts: accounts.sort((left, right) => left.username.localeCompare(right.username)),
+      pending: pending.sort((left, right) => left.username.localeCompare(right.username))
+    };
   }
 
   async createAccount(input: {
@@ -401,6 +450,30 @@ export class HttpTeacherClient implements TeacherClient {
       }
     );
     this.#assertMutationResult(value, "password-replaced", input);
+  }
+
+  async approveRegistration(input: {
+    operationId: string;
+    username: string;
+  }): Promise<TeacherPairSummary> {
+    const value = await this.#requestJson(
+      `/api/teacher/accounts/${encodeURIComponent(input.username)}/approve`,
+      "POST",
+      {
+        schema: "ad-market-teacher-registration-approve",
+        version: 1,
+        operationId: input.operationId
+      }
+    );
+    if (
+      !isRecord(value) ||
+      !hasExactKeys(value, ["status", "operationId", "account"]) ||
+      value.status !== "approved" ||
+      value.operationId !== input.operationId
+    ) {
+      throw new TeacherClientError("INVALID_RESPONSE", 503, true);
+    }
+    return parseSummary(value.account);
   }
 
   async resetAccount(input: {

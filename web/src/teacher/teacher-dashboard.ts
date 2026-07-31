@@ -4,7 +4,8 @@ import {
   type TeacherClient,
   type TeacherImageLabAccount,
   type TeacherImageLabOverview,
-  type TeacherPairSummary
+  type TeacherPairSummary,
+  type TeacherPendingRegistration
 } from "./teacher-client";
 import {
   openManagedModalDialog,
@@ -74,6 +75,7 @@ export class TeacherDashboard {
   readonly #clipboard: Pick<Clipboard, "writeText"> | undefined;
   readonly #navigate: (path: string) => void;
   #accounts: readonly TeacherPairSummary[] = [];
+  #pending: readonly TeacherPendingRegistration[] = [];
   #imageLab: TeacherImageLabOverview | null = null;
   #imageLabLoadError = "";
   #imageLabAudit = "";
@@ -166,7 +168,8 @@ export class TeacherDashboard {
       this.#client.imageLabStatus()
     ]);
     if (accounts.status === "fulfilled") {
-      this.#accounts = accounts.value;
+      this.#accounts = accounts.value.accounts;
+      this.#pending = accounts.value.pending;
     }
     if (imageLab.status === "fulfilled") {
       this.#imageLab = imageLab.value;
@@ -195,7 +198,7 @@ export class TeacherDashboard {
     heading.textContent = "Classroom accounts";
     const summary = document.createElement("p");
     summary.textContent =
-      "Create pair logins, replace passwords and reset one pair's saved work.";
+      "Approve student requests, view classroom credentials, replace passwords and reset one pair's saved work.";
     identity.append(eyebrow, heading, summary);
     const headerActions = document.createElement("div");
     headerActions.className = "teacher-header__actions";
@@ -227,20 +230,6 @@ export class TeacherDashboard {
     create.addEventListener("click", () => this.#openCreateDialog(create));
     toolbar.append(toolbarCopy, create);
 
-    const accountRegion = document.createElement("section");
-    accountRegion.className = "teacher-accounts";
-    accountRegion.setAttribute("aria-label", "Pair accounts");
-    if (this.#accounts.length === 0) {
-      const empty = document.createElement("p");
-      empty.className = "teacher-card teacher-empty";
-      empty.textContent = "No pair accounts have been created.";
-      accountRegion.append(empty);
-    } else {
-      for (const account of this.#accounts) {
-        accountRegion.append(this.#accountCard(account));
-      }
-    }
-
     this.#announcement = document.createElement("p");
     this.#announcement.className = "teacher-announcement";
     this.#announcement.setAttribute("role", initialError === "" ? "status" : "alert");
@@ -251,11 +240,112 @@ export class TeacherDashboard {
       header,
       toolbar,
       this.#announcement,
-      accountRegion,
+      this.#pendingRegion(),
+      this.#accountRegion(),
       this.#imageLabRegion()
     );
     this.#root.replaceChildren(main);
     main.focus();
+  }
+
+  #pendingRegion(): HTMLElement {
+    const region = document.createElement("section");
+    region.className = "teacher-accounts teacher-card";
+    region.setAttribute("aria-label", "Pending pair approvals");
+    const heading = document.createElement("h2");
+    heading.textContent = "Pending pair approvals";
+    const explanation = document.createElement("p");
+    explanation.textContent =
+      "Students choose a classroom-only username and password. Check the credentials, then approve the request to create their login.";
+    region.append(heading, explanation);
+    if (this.#pending.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "teacher-empty";
+      empty.textContent = "No pair logins are waiting for approval.";
+      region.append(empty);
+      return region;
+    }
+    for (const pending of this.#pending) {
+      region.append(this.#pendingCard(pending));
+    }
+    return region;
+  }
+
+  #pendingCard(pending: TeacherPendingRegistration): HTMLElement {
+    const article = document.createElement("article");
+    article.className = "teacher-account";
+    const details = document.createElement("div");
+    const heading = document.createElement("h3");
+    heading.textContent = pending.username;
+    const username = document.createElement("p");
+    username.textContent = `Username: ${pending.username}`;
+    const password = document.createElement("p");
+    password.textContent = `Password: ${pending.password}`;
+    const requested = document.createElement("p");
+    requested.textContent = `Requested ${new Date(pending.requestedAt).toLocaleString()}`;
+    details.append(heading, username, password, requested);
+    const actions = document.createElement("div");
+    actions.className = "teacher-account__actions";
+    actions.append(this.#copyCredentialsButton(
+      pending.username,
+      pending.password
+    ));
+    const approve = button(`Approve ${pending.username}`);
+    approve.addEventListener("click", () => {
+      if (approve.disabled) return;
+      approve.disabled = true;
+      void this.#client.approveRegistration({
+        operationId: this.#createOperationId(),
+        username: pending.username
+      }).then((account) => {
+        this.#pending = this.#pending.filter(
+          ({ username }) => username !== pending.username
+        );
+        this.#accounts = [
+          ...this.#accounts.filter(({ username }) => username !== account.username),
+          account
+        ].sort((left, right) => left.username.localeCompare(right.username));
+        this.#refreshAccountSurfaces();
+        this.#announce(`Login approved for ${pending.username}.`);
+      }).catch(() => {
+        approve.disabled = false;
+        this.#announce(
+          `The login for ${pending.username} was not approved. Check the connection and try again.`
+        );
+      });
+    });
+    actions.append(approve);
+    article.append(details, actions);
+    return article;
+  }
+
+  #accountRegion(): HTMLElement {
+    const region = document.createElement("section");
+    region.className = "teacher-accounts";
+    region.setAttribute("aria-label", "Pair accounts");
+    if (this.#accounts.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "teacher-card teacher-empty";
+      empty.textContent = "No pair accounts have been created.";
+      region.append(empty);
+    } else {
+      for (const account of this.#accounts) {
+        region.append(this.#accountCard(account));
+      }
+    }
+    return region;
+  }
+
+  #refreshAccountSurfaces(): void {
+    const toolbarSummary = this.#root.querySelector(".teacher-toolbar p");
+    if (toolbarSummary !== null) {
+      toolbarSummary.textContent =
+        `${this.#accounts.length} ${this.#accounts.length === 1 ? "account" : "accounts"}`;
+    }
+    this.#root.querySelector('[aria-label="Pending pair approvals"]')
+      ?.replaceWith(this.#pendingRegion());
+    this.#root.querySelector('[aria-label="Pair accounts"]')
+      ?.replaceWith(this.#accountRegion());
   }
 
   #imageLabRegion(): HTMLElement {
@@ -641,13 +731,25 @@ export class TeacherDashboard {
     const details = document.createElement("div");
     const heading = document.createElement("h3");
     heading.textContent = account.username;
+    const username = document.createElement("p");
+    username.textContent = `Username: ${account.username}`;
+    const password = document.createElement("p");
+    password.textContent = account.password === null
+      ? "Password: Not recorded. Replace it to make the new password visible here."
+      : `Password: ${account.password}`;
     const activity = document.createElement("p");
     activity.textContent = account.lastSignInAt === null
       ? "Not used yet"
       : `Last used ${new Date(account.lastSignInAt).toLocaleString()}`;
-    details.append(heading, activity);
+    details.append(heading, username, password, activity);
     const actions = document.createElement("div");
     actions.className = "teacher-account__actions";
+    if (account.password !== null) {
+      actions.append(this.#copyCredentialsButton(
+        account.username,
+        account.password
+      ));
+    }
     const replace = button(`Change password for ${account.username}`);
     replace.addEventListener("click", () =>
       this.#openPasswordDialog(replace, account.username));
@@ -658,6 +760,28 @@ export class TeacherDashboard {
     actions.append(replace, reset);
     article.append(details, actions);
     return article;
+  }
+
+  #copyCredentialsButton(username: string, password: string): HTMLButtonElement {
+    const copy = button(`Copy credentials for ${username}`);
+    copy.addEventListener("click", () => {
+      if (this.#clipboard === undefined) {
+        this.#announce(
+          "Clipboard access is unavailable. Copy the username and password manually."
+        );
+        return;
+      }
+      void this.#clipboard.writeText(
+        `Username: ${username}\nPassword: ${password}`
+      ).then(() => {
+        this.#announce(`Credentials copied for ${username}.`);
+      }).catch(() => {
+        this.#announce(
+          `The credentials for ${username} could not be copied. Copy them manually.`
+        );
+      });
+    });
+    return copy;
   }
 
   #openDialog(trigger: HTMLButtonElement, titleText: string): DialogSurface {
@@ -809,6 +933,7 @@ export class TeacherDashboard {
       }).then((created) => {
         this.#accounts = [...this.#accounts, created]
           .sort((left, right) => left.username.localeCompare(right.username));
+        this.#refreshAccountSurfaces();
         surface.dialog.replaceChildren();
         const title = document.createElement("h2");
         title.id = `teacher-dialog-success-${crypto.randomUUID()}`;
@@ -816,7 +941,7 @@ export class TeacherDashboard {
         surface.dialog.setAttribute("aria-labelledby", title.id);
         const explanation = document.createElement("p");
         explanation.textContent =
-          "Copy these credentials now. The password will be removed from this page when you close this panel.";
+          "Copy these credentials now if useful. They will remain visible in the Pair accounts list.";
         const credentials = document.createElement("dl");
         const usernameTerm = document.createElement("dt");
         usernameTerm.textContent = "Username";
@@ -921,14 +1046,27 @@ export class TeacherDashboard {
         passwords.confirmation.value !== passwords.password.value
       ) return;
       surface.setPending(true);
+      const plaintextPassword = passwords.password.value;
       void this.#client.replacePassword({
         operationId,
         username,
-        password: passwords.password.value
+        password: plaintextPassword
       }).then(() => {
         surface.setPending(false);
         surface.close();
+        this.#accounts = this.#accounts.map((account) =>
+          account.username === username
+            ? { ...account, password: plaintextPassword }
+            : account);
+        this.#refreshAccountSurfaces();
         this.#announce(`Password replaced for ${username}. The pair must sign in again.`);
+        queueMicrotask(() => {
+          [...this.#root.querySelectorAll<HTMLButtonElement>(
+            '[aria-label="Pair accounts"] button'
+          )].find((control) =>
+            control.textContent === `Change password for ${username}`
+          )?.focus();
+        });
       }).catch(() => {
         surface.setPending(false);
         formError.hidden = false;

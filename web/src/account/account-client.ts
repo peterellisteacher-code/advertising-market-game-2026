@@ -57,7 +57,11 @@ export type AccountSession =
 export interface AccountSignupInput {
   readonly username: string;
   readonly password: string;
-  readonly classroomCode: string;
+}
+
+export interface AccountSignupResult {
+  readonly status: "pending";
+  readonly username: string;
 }
 
 export interface AccountLoginInput {
@@ -103,7 +107,7 @@ export interface AccountSessionClient {
 }
 
 export interface AccountSignupClient {
-  signup(input: AccountSignupInput): Promise<Extract<AccountSession, { authenticated: true }>>;
+  signup(input: AccountSignupInput): Promise<AccountSignupResult>;
 }
 
 export interface AccountResetClient {
@@ -351,8 +355,23 @@ export class HttpAccountClient implements
     });
   }
 
-  signup(input: AccountSignupInput): Promise<Extract<AccountSession, { authenticated: true }>> {
-    return this.#authenticate("/api/account/signup", input);
+  signup(input: AccountSignupInput): Promise<AccountSignupResult> {
+    return this.#serialise(async () => {
+      const value = await jsonBody(
+        await this.#request("/api/account/signup", "POST", input),
+        ACCOUNT_JSON_LIMIT
+      );
+      if (
+        !isRecord(value) ||
+        !exactKeys(value, ["status", "username"]) ||
+        value.status !== "pending" ||
+        typeof value.username !== "string" ||
+        !ACCOUNT_USERNAME.test(value.username)
+      ) {
+        throw new AccountClientError("INVALID_RESPONSE");
+      }
+      return { status: "pending", username: value.username };
+    });
   }
 
   login(input: AccountLoginInput): Promise<Extract<AccountSession, { authenticated: true }>> {
@@ -403,8 +422,8 @@ export class HttpAccountClient implements
   }
 
   async #authenticate(
-    path: "/api/account/signup" | "/api/account/login",
-    input: AccountSignupInput | AccountLoginInput
+    path: "/api/account/login",
+    input: AccountLoginInput
   ): Promise<Extract<AccountSession, { authenticated: true }>> {
     return this.#serialise(async () => {
       const response = await this.#request(path, "POST", input);

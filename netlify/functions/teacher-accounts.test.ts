@@ -51,17 +51,36 @@ const request = (
 });
 
 const service = () => ({
-  listAccounts: vi.fn().mockResolvedValue([{
-    username: "team-one",
-    createdAt: "2026-07-20T01:02:03.000Z",
-    lastSignInAt: null
-  }]),
+  listAccounts: vi.fn().mockResolvedValue({
+    accounts: [{
+      username: "team-one",
+      password: "class-pair-12",
+      createdAt: "2026-07-20T01:02:03.000Z",
+      lastSignInAt: null
+    }],
+    pending: [{
+      username: "bright-ideas",
+      password: "classroom-only-password",
+      requestedAt: "2026-07-31T00:00:00.000Z"
+    }]
+  }),
   createAccount: vi.fn().mockResolvedValue({
     status: "created",
     operationId,
     account: {
       username: "team-one",
+      password: "chosen-password",
       createdAt: "2026-07-20T01:02:03.000Z",
+      lastSignInAt: null
+    }
+  }),
+  approveRegistration: vi.fn().mockResolvedValue({
+    status: "approved",
+    operationId,
+    account: {
+      username: "bright-ideas",
+      password: "classroom-only-password",
+      createdAt: "2026-07-31T00:10:00.000Z",
       lastSignInAt: null
     }
   }),
@@ -118,6 +137,7 @@ describe("teacher account API", () => {
   it("keeps teacher-account traffic on a separate bounded rate limit", () => {
     expect(teacherAccountsConfig.path).toEqual([
       "/api/teacher/accounts",
+      "/api/teacher/accounts/:username/approve",
       "/api/teacher/accounts/:username/password",
       "/api/teacher/accounts/:username/reset",
       "/api/teacher/image-lab",
@@ -156,6 +176,11 @@ describe("teacher account API", () => {
         operationId,
         password: "chosen-password"
       }, false),
+      request("/api/teacher/accounts/bright-ideas/approve", "POST", {
+        schema: "ad-market-teacher-registration-approve",
+        version: 1,
+        operationId
+      }, false),
       request("/api/teacher/accounts/team-one/reset", "POST", {
         schema: "ad-market-teacher-account-reset",
         version: 1,
@@ -187,7 +212,7 @@ describe("teacher account API", () => {
     expect(fake.setImageLabGlobal).not.toHaveBeenCalled();
   });
 
-  it("lists only browser-safe pair summaries", async () => {
+  it("lists teacher-visible pair credentials and pending approval requests without backend IDs", async () => {
     const fake = service();
     const response = await createTeacherAccountsHandler({
       environment,
@@ -200,13 +225,48 @@ describe("teacher account API", () => {
     expect(JSON.parse(text)).toEqual({
       accounts: [{
         username: "team-one",
+        password: "class-pair-12",
         createdAt: "2026-07-20T01:02:03.000Z",
         lastSignInAt: null
+      }],
+      pending: [{
+        username: "bright-ideas",
+        password: "classroom-only-password",
+        requestedAt: "2026-07-31T00:00:00.000Z"
       }]
     });
     expect(text).not.toContain("userId");
     expect(text).not.toContain("accounts.admarket.invalid");
     expect(response.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("accepts a pending pair with one exact teacher approval contract", async () => {
+    const fake = service();
+    const response = await createTeacherAccountsHandler({
+      environment,
+      service: fake,
+      nowSeconds: () => nowSeconds
+    })(request("/api/teacher/accounts/bright-ideas/approve", "POST", {
+      schema: "ad-market-teacher-registration-approve",
+      version: 1,
+      operationId
+    }));
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toEqual({
+      status: "approved",
+      operationId,
+      account: {
+        username: "bright-ideas",
+        password: "classroom-only-password",
+        createdAt: "2026-07-31T00:10:00.000Z",
+        lastSignInAt: null
+      }
+    });
+    expect(fake.approveRegistration).toHaveBeenCalledWith({
+      operationId,
+      username: "bright-ideas"
+    });
   });
 
   it("accepts exact creation, editable-password, and typed-reset contracts", async () => {

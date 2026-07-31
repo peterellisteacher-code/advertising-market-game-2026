@@ -254,47 +254,62 @@ describe("Netlify deployment layout", () => {
       {
         pattern: "/api/teacher/accounts",
         literal: "/api/teacher/accounts",
-        methods: []
+        methods: [],
+        prefer_static: undefined
+      },
+      {
+        pattern: "/api/teacher/accounts/:username/approve",
+        expression: "^\\/api\\/teacher\\/accounts(?:\\/([^\\/]+?))\\/approve\\/?$",
+        methods: [],
+        prefer_static: undefined
       },
       {
         pattern: "/api/teacher/accounts/:username/password",
         expression: "^\\/api\\/teacher\\/accounts(?:\\/([^\\/]+?))\\/password\\/?$",
-        methods: []
+        methods: [],
+        prefer_static: undefined
       },
       {
         pattern: "/api/teacher/accounts/:username/reset",
         expression: "^\\/api\\/teacher\\/accounts(?:\\/([^\\/]+?))\\/reset\\/?$",
-        methods: []
+        methods: [],
+        prefer_static: undefined
       },
       {
         pattern: "/api/teacher/image-lab",
         literal: "/api/teacher/image-lab",
-        methods: []
+        methods: [],
+        prefer_static: undefined
       },
       {
         pattern: "/api/teacher/image-lab/global",
         literal: "/api/teacher/image-lab/global",
-        methods: []
+        methods: [],
+        prefer_static: undefined
       },
       {
         pattern: "/api/teacher/image-lab/accounts/:username",
         expression: "^\\/api\\/teacher\\/image-lab\\/accounts(?:\\/([^\\/]+?))\\/?$",
-        methods: []
+        methods: [],
+        prefer_static: undefined
       },
       {
         pattern: "/api/teacher/image-lab/accounts/:username/add",
         expression: "^\\/api\\/teacher\\/image-lab\\/accounts(?:\\/([^\\/]+?))\\/add\\/?$",
-        methods: []
+        methods: [],
+        prefer_static: undefined
       },
       {
         pattern: "/api/teacher/image-lab/accounts/:username/revoke",
         expression: "^\\/api\\/teacher\\/image-lab\\/accounts(?:\\/([^\\/]+?))\\/revoke\\/?$",
-        methods: []
+        methods: [],
+        prefer_static: undefined
       },
       {
         pattern: "/api/teacher/image-lab/batch",
         literal: "/api/teacher/image-lab/batch",
-        methods: []
+        methods: [],
+        prefer_static: undefined
       }
     ]);
     expect(byName.get("teacher-playtest")?.routes).toEqual([
@@ -533,6 +548,7 @@ describe("Netlify deployment layout", () => {
       "teacher-accounts": {
         path: [
           "/api/teacher/accounts",
+          "/api/teacher/accounts/:username/approve",
           "/api/teacher/accounts/:username/password",
           "/api/teacher/accounts/:username/reset",
           "/api/teacher/image-lab",

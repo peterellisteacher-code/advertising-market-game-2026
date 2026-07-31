@@ -424,7 +424,13 @@ test("release assembly binds static assets, private functions and one atomic ser
   assert.doesNotMatch(worker, /Promise\.all\(CORE\.map/);
   assert.doesNotMatch(worker, /cache: "reload"/);
   assert.match(worker, /await caches\.delete\(CACHE_NAME\)/);
-  assert.doesNotMatch(worker, /skipWaiting/);
+  assert.match(worker, /await self\.skipWaiting\(\)/);
+  assert.ok(
+    worker.indexOf("await self.skipWaiting()") >
+      worker.indexOf("await cache.put(pathname, response)"),
+    "the replacement worker must not activate until every core asset is cached"
+  );
+  assert.doesNotMatch(worker, /clients\.claim/);
   assert.doesNotMatch(worker, /\.release\/functions/);
 
   const headers = await readFile(path.join(web, "_headers"), "utf8");

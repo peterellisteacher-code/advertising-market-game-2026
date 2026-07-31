@@ -1285,7 +1285,7 @@ describe("window.AdMarketCreator", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(3);
   });
 
-  it("boots the complete teacher playtest through its isolated storage and server adapters", async () => {
+  it("boots the teacher playtest into the agency world instead of covering it with the design studio", async () => {
     window.history.replaceState(null, "", "/teacher/playtest");
     document.body.innerHTML = `
       <main aria-label="Advertising Market Game" hidden inert aria-hidden="true">
@@ -1329,7 +1329,7 @@ describe("window.AdMarketCreator", () => {
     expect(document.querySelector<HTMLElement>(
       "main[aria-label=\"Advertising Market Game\"]"
     )?.hidden).toBe(false);
-    expect(document.querySelector<HTMLElement>("#creator-root")?.hidden).toBe(false);
+    expect(document.querySelector<HTMLElement>("#creator-root")?.hidden).toBe(true);
     expect(fetchSpy.mock.calls.map(([input]) => input)).toEqual([
       "/api/teacher/session",
       "/api/teacher/playtest/progress"

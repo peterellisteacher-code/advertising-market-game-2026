@@ -2234,7 +2234,6 @@ const teacherReady = mode.kind === "teacher-playtest"
       gameSurface.inert = false;
       gameSurface.removeAttribute("aria-hidden");
       gameCanvas.tabIndex = 0;
-      root.hidden = false;
       root.inert = false;
       root.removeAttribute("aria-hidden");
     })()

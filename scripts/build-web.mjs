@@ -237,7 +237,11 @@ self.addEventListener("fetch", (event) => {
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
     if (request.mode === "navigate") {
-      return await cache.match("/index.html") ?? fetch(request);
+      try {
+        return await fetch(request);
+      } catch {
+        return await cache.match("/index.html") ?? Response.error();
+      }
     }
     if (!isReleaseAsset(url.pathname)) return fetch(request);
     const cached = await cache.match(request);

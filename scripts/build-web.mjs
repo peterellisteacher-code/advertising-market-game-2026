@@ -28,8 +28,6 @@ import {
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ROOT = path.resolve(SCRIPT_DIR, "..");
 const REQUIRED_GODOT_FILES = ["index.html", "index.js", "index.wasm", "index.pck"];
-const STUDIO_STYLE = '<link rel="stylesheet" href="./studio/studio.css">';
-const STUDIO_SCRIPT = '<script src="./studio/studio.js"></script>';
 const ROUTE_BASE = '<base href="/">';
 const ROUTED_GAME_ACCESS = "window.AdMarketGameAccess.requireAccess()";
 const WEB_MANIFEST = '<link rel="manifest" href="./manifest.webmanifest">';
@@ -106,6 +104,18 @@ function fileRecord(relative, bytes) {
     bytes: bytes.byteLength,
     sha256: createHash("sha256").update(bytes).digest("hex")
   };
+}
+
+function studioAssetVersion(bytes) {
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
+function studioAssetUrl(fileName, version) {
+  if (version === undefined) return `./studio/${fileName}`;
+  if (!/^[a-f0-9]{64}$/u.test(version)) {
+    throw new Error(`Invalid Studio asset version for ${fileName}`);
+  }
+  return `./studio/${fileName}?v=${version}`;
 }
 
 async function readExactTree(directory, prefix = "") {
@@ -413,11 +423,18 @@ function insertAfter(html, anchorIndex, line) {
 }
 
 /** Pure shell assembly used by both the CLI and its built-in Node test. */
-export function injectStudioAssets(html) {
+export function injectStudioAssets(html, {
+  scriptVersion,
+  styleVersion
+} = {}) {
   let result = removeStudioTags(html);
   const headClose = result.search(/<\/head\s*>/i);
   if (headClose < 0) throw new Error("Godot export is missing </head>");
-  result = insertBefore(result, headClose, STUDIO_STYLE);
+  result = insertBefore(
+    result,
+    headClose,
+    `<link rel="stylesheet" href="${studioAssetUrl("studio.css", styleVersion)}">`
+  );
 
   const indexScript = scanHtmlStartTags(result).find((tag) => tag.name === "script" &&
     tag.inertDepth === 0 && tag.attributes.some((attribute) =>
@@ -426,7 +443,11 @@ export function injectStudioAssets(html) {
       )));
   const scriptAnchor = indexScript?.start ?? -1;
   if (scriptAnchor < 0) throw new Error("Godot export is missing an executable local index script");
-  result = insertBefore(result, scriptAnchor, STUDIO_SCRIPT);
+  result = insertBefore(
+    result,
+    scriptAnchor,
+    `<script src="${studioAssetUrl("studio.js", scriptVersion)}"></script>`
+  );
   return result;
 }
 
@@ -612,8 +633,11 @@ export async function assembleWebExport({
   }
   const studioDir = path.join(root, "build", "studio");
   const webDir = path.join(root, "build", "web");
+  const studioAssets = new Map();
   for (const name of ["studio.js", "studio.css"]) {
-    await requireFile(path.join(studioDir, name), `studio asset ${name}`);
+    const source = path.join(studioDir, name);
+    await requireFile(source, `studio asset ${name}`);
+    studioAssets.set(name, await readFile(source));
   }
   for (const name of REQUIRED_GODOT_FILES) {
     await requireFile(path.join(webDir, name), `Godot Web export ${name}`);
@@ -676,7 +700,15 @@ export async function assembleWebExport({
     injectProductBuilderCatalogueUrl(
       injectProductShellCatalogueUrl(
         injectOfflineCatalogueUrl(
-          normaliseRoutedGodotShell(injectStudioAssets(exportedHtml)),
+          normaliseRoutedGodotShell(injectStudioAssets(
+            exportedHtml,
+            bindRelease
+              ? {
+                  scriptVersion: studioAssetVersion(studioAssets.get("studio.js")),
+                  styleVersion: studioAssetVersion(studioAssets.get("studio.css"))
+                }
+              : undefined
+          )),
           hasOfflineCore ? `/${offlineRelative.replaceAll(path.sep, "/")}` : undefined
         ),
         hasProductShells ? `/${PRODUCT_SHELL_RELATIVE.replaceAll(path.sep, "/")}` : undefined
@@ -696,7 +728,7 @@ export async function assembleWebExport({
   const outputStudioDir = path.join(webDir, "studio");
   await mkdir(outputStudioDir, { recursive: true });
   await Promise.all(["studio.js", "studio.css"].map((name) =>
-    copyFile(path.join(studioDir, name), path.join(outputStudioDir, name))
+    writeFile(path.join(outputStudioDir, name), studioAssets.get(name))
   ));
   if (assembledHtml !== exportedHtml) await writeFile(indexPath, assembledHtml, "utf8");
   await writeFile(path.join(webDir, "_headers"), makeNetlifyHeaders(inlineScriptBodies[0]), "utf8");

@@ -455,6 +455,32 @@ test("release assembly binds static assets, private functions and one atomic ser
   assert.notEqual(after, before);
 });
 
+test("bound releases give changed Studio assets new browser URLs", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "admarket-studio-version-"));
+  const { web, studio } = await writeExportScaffold(root);
+  await writeFunctionArtifactFixture(root);
+
+  await assembleWebExport({ root, bindRelease: true, log: () => {} });
+  const first = await readFile(path.join(web, "index.html"), "utf8");
+  assert.match(
+    first,
+    /<link rel="stylesheet" href="\.\/studio\/studio\.css\?v=b0cb96ff4232a4994a01694816da3f182974bb603a0f3afa3e15c8fd76dc4071">/
+  );
+  assert.match(
+    first,
+    /<script src="\.\/studio\/studio\.js\?v=ff5d6cd0bc0529a93a705b6594d1d2a0fcdba657e4914abbb3b46e8bc196b8b2"><\/script>/
+  );
+
+  await writeFile(path.join(studio, "studio.js"), "window.AdMarketCreator = { version: 2 };");
+  await assembleWebExport({ root, bindRelease: true, log: () => {} });
+  const second = await readFile(path.join(web, "index.html"), "utf8");
+  assert.match(
+    second,
+    /<script src="\.\/studio\/studio\.js\?v=d28c8b9f6c6eb03e18c8c5c5a6c3ab7c71e781848ed7354bab92f8b0626570e8"><\/script>/
+  );
+  assert.doesNotMatch(second, /studio\.js\?v=ff5d6cd0/);
+});
+
 test("application route verification rejects teacher API shell rewrites", () => {
   const valid = new Map([
     ["_redirects", [
@@ -541,6 +567,21 @@ test("static verification requires a matching strict Netlify CSP header", () => 
     () => inspectExportContents({ files: unsafe, pckHash: "current" }),
     /unsafe inline script policy/i
   );
+});
+
+test("static verification accepts Studio URLs versioned by their exact content hashes", () => {
+  const files = addCspHeaders(new Map([
+    ["index.html", '<link rel="stylesheet" href="./studio/studio.css?v=b0cb96ff4232a4994a01694816da3f182974bb603a0f3afa3e15c8fd76dc4071"><script src="./studio/studio.js?v=dec8539975ce6c8785f083bd7a6893d5b4952c3d1266b225e1bb75eaaa722249"></script><script>bootstrap();</script><script src="./index.js"></script>'],
+    ["index.js", "const target = 'wasm32.nothreads'; const audio = new AudioWorklet();"],
+    ["index.wasm", Buffer.from([0])],
+    ["index.pck", Buffer.from([1])],
+    ["index.audio.worklet.js", "class GodotAudioWorklet {}"],
+    ["studio/studio.css", ".creator{}"],
+    ["studio/studio.js", VALID_STUDIO_BRIDGES],
+    ["godot/export_presets.cfg", "variant/thread_support=false"]
+  ]));
+
+  assert.doesNotThrow(() => inspectExportContents({ files, pckHash: "current" }));
 });
 
 test("static verification rejects nested-route and student-gate regressions", () => {

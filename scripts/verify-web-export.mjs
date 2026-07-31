@@ -1093,25 +1093,38 @@ export function inspectExportContents({
   const html = asText(files.get("index.html"));
   const headers = asText(files.get("_headers"));
   const runtime = asText(files.get("index.js"));
+  const studioStyle = asText(files.get("studio/studio.css"));
   const studio = asText(files.get("studio/studio.js"));
   const preset = asText(files.get("godot/export_presets.cfg"));
 
-  if (count(html, /(?:href|src)=["']\.\/studio\/studio\.css["']/gi) !== 1) {
-    errors.push("index.html must reference ./studio/studio.css exactly once");
-  }
   let htmlTags = [];
   try {
     htmlTags = scanHtmlStartTags(html);
   } catch (error) {
     errors.push(`index.html start tags cannot be parsed: ${error instanceof Error ? error.message : error}`);
   }
+  const studioStyleUrls = new Set([
+    "./studio/studio.css",
+    `./studio/studio.css?v=${createHash("sha256").update(studioStyle).digest("hex")}`
+  ]);
+  const studioStyles = htmlTags.filter((tag) => tag.name === "link" &&
+    tag.attributes.some((attribute) =>
+      attribute.name === "href" &&
+      studioStyleUrls.has(decodeHtmlAttributeValue(attribute.value))));
+  if (studioStyles.length !== 1) {
+    errors.push("index.html must reference ./studio/studio.css exactly once");
+  }
+  const studioScriptUrls = new Set([
+    "./studio/studio.js",
+    `./studio/studio.js?v=${createHash("sha256").update(studio).digest("hex")}`
+  ]);
   const studioScripts = htmlTags.filter((tag) => tag.name === "script" &&
     tag.attributes.some((attribute) =>
       attribute.name === "src" &&
-      decodeHtmlAttributeValue(attribute.value) === "./studio/studio.js"));
+      studioScriptUrls.has(decodeHtmlAttributeValue(attribute.value))));
   const executableStudioScripts = studioScripts.filter((tag) =>
     tag.inertDepth === 0 &&
-    tag.raw === '<script src="./studio/studio.js">' &&
+    [...studioScriptUrls].some((url) => tag.raw === `<script src="${url}">`) &&
     tag.attributes.length === 1);
   if (studioScripts.length !== 1 || executableStudioScripts.length !== 1) {
     errors.push("index.html must contain exactly one executable classic synchronous Studio script");

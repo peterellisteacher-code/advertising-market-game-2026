@@ -29,10 +29,14 @@ import {
   TeacherAccountServiceError,
   defaultTeacherAccountOperationStore
 } from "./lib/teacher-account-service";
+import {
+  defaultPairRegistrationStore,
+  type PairRegistrationStore
+} from "./lib/pair-registration-store";
 
 const ACCOUNT_LIST_PATH = "/api/teacher/accounts";
 const ACCOUNT_ACTION_PATH =
-  /^\/api\/teacher\/accounts\/([a-z0-9][a-z0-9_-]{2,23})\/(password|reset)$/u;
+  /^\/api\/teacher\/accounts\/([a-z0-9][a-z0-9_-]{2,23})\/(approve|password|reset)$/u;
 const IMAGE_LAB_PATH = "/api/teacher/image-lab";
 const IMAGE_LAB_GLOBAL_PATH = "/api/teacher/image-lab/global";
 const IMAGE_LAB_BATCH_PATH = "/api/teacher/image-lab/batch";
@@ -64,6 +68,10 @@ interface TeacherAccountsService {
     operationId: string;
     username: string;
     password: string;
+  }): Promise<unknown>;
+  approveRegistration(input: {
+    operationId: string;
+    username: string;
   }): Promise<unknown>;
   resetAccount(input: {
     operationId: string;
@@ -104,12 +112,14 @@ interface TeacherAccountsDependencies {
     teacherEnvironment: TeacherEnvironment
   ) => Promise<TeacherAccountsService>;
   readonly nowSeconds?: () => number;
+  readonly registrations?: PairRegistrationStore;
 }
 
 interface ParsedRoute {
   readonly kind:
     | "list"
     | "create"
+    | "approve"
     | "password"
     | "reset"
     | "image-lab-status"
@@ -178,6 +188,9 @@ const routeFor = (pathname: string): ParsedRoute | null => {
   const match = ACCOUNT_ACTION_PATH.exec(pathname);
   if (match === null) return null;
   const username = match[1]!;
+  if (match[2] === "approve") {
+    return { kind: "approve", username, allowedMethod: "POST" };
+  }
   return match[2] === "password"
     ? { kind: "password", username, allowedMethod: "PUT" }
     : { kind: "reset", username, allowedMethod: "POST" };
@@ -256,6 +269,21 @@ const parsePasswordBody = (value: unknown, username: string) => {
     operationId: parseOperationId(value.operationId),
     username,
     password: parsePassword(value.password)
+  };
+};
+
+const parseApproveBody = (value: unknown, username: string) => {
+  if (
+    !isRecord(value) ||
+    !hasExactKeys(value, ["schema", "version", "operationId"]) ||
+    value.schema !== "ad-market-teacher-registration-approve" ||
+    value.version !== 1
+  ) {
+    throw new AccountRequestError("INVALID_REQUEST", 400);
+  }
+  return {
+    operationId: parseOperationId(value.operationId),
+    username
   };
 };
 
@@ -434,10 +462,11 @@ const routeError = (error: unknown, operationId?: string): Response => {
 const defaultService = async (
   accountEnvironment: AccountAssetEnvironment,
   teacherEnvironment: TeacherEnvironment,
-  fetcher: typeof fetch
+  fetcher: typeof fetch,
+  registrations: PairRegistrationStore
 ): Promise<TeacherAccountsService> => {
   const client = new SupabaseAccountClient(accountEnvironment, fetcher);
-  return new TeacherAccountService({
+  const accounts = new TeacherAccountService({
     client,
     assets: await defaultAccountAssetService(accountEnvironment.assetNamespaceSecret),
     allowances: new SupabaseImageLabAllowanceStore(client),
@@ -445,6 +474,105 @@ const defaultService = async (
     usernameHmacSecret: accountEnvironment.usernameHmacSecret,
     operationSecret: teacherEnvironment.sessionSecret
   });
+  const approvedAt = (): string => new Date().toISOString();
+  return {
+    async listAccounts() {
+      const [summaries, records] = await Promise.all([
+        accounts.listAccounts(),
+        registrations.list()
+      ]);
+      const approved = new Map(
+        records
+          .filter((record) => record.status === "approved")
+          .map((record) => [record.username, record.password])
+      );
+      return {
+        accounts: summaries.map((account) => ({
+          ...account,
+          password: approved.get(account.username) ?? null
+        })),
+        pending: records
+          .filter((record) => record.status === "pending")
+          .map(({ username, password, requestedAt }) => ({
+            username,
+            password,
+            requestedAt
+          }))
+      };
+    },
+    async createAccount(input) {
+      const result = await accounts.createAccount(input);
+      if (result.status !== "created") {
+        throw new TeacherAccountServiceError("OPERATION_INCOMPLETE", 409);
+      }
+      await registrations.recordApproved({
+        username: input.username,
+        password: input.password,
+        approvedAt: approvedAt()
+      });
+      return {
+        ...result,
+        account: { ...result.account, password: input.password }
+      };
+    },
+    async replacePassword(input) {
+      const result = await accounts.replacePassword(input);
+      await registrations.recordApproved({
+        username: input.username,
+        password: input.password,
+        approvedAt: approvedAt()
+      });
+      return result;
+    },
+    async approveRegistration(input) {
+      const registration = await registrations.pending(input.username);
+      if (registration === null) {
+        throw new TeacherAccountServiceError("ACCOUNT_NOT_FOUND", 404);
+      }
+      let account;
+      try {
+        const created = await accounts.createAccount({
+          ...input,
+          password: registration.password
+        });
+        if (created.status !== "created") {
+          throw new TeacherAccountServiceError("OPERATION_INCOMPLETE", 409);
+        }
+        account = created.account;
+      } catch (error) {
+        if (
+          !(error instanceof TeacherAccountServiceError) ||
+          error.code !== "USERNAME_UNAVAILABLE"
+        ) {
+          throw error;
+        }
+        await accounts.replacePassword({
+          ...input,
+          password: registration.password
+        });
+        account = (await accounts.listAccounts())
+          .find(({ username }) => username === input.username);
+        if (account === undefined) {
+          throw new TeacherAccountServiceError("OPERATION_INCOMPLETE", 409);
+        }
+      }
+      await registrations.recordApproved({
+        username: input.username,
+        password: registration.password,
+        approvedAt: approvedAt()
+      });
+      return {
+        status: "approved",
+        operationId: input.operationId,
+        account: { ...account, password: registration.password }
+      };
+    },
+    resetAccount: (input) => accounts.resetAccount(input),
+    imageLabStatus: () => accounts.imageLabStatus(),
+    setImageLabGlobal: (input) => accounts.setImageLabGlobal(input),
+    mutateImageLabAccount: (action, input) => accounts.mutateImageLabAccount(action, input),
+    batchAddImageLab: (input) => accounts.batchAddImageLab(input)
+  };
 };
 
 export function createTeacherAccountsHandler(
@@ -497,12 +625,13 @@ export function createTeacherAccountsHandler(
           : defaultService(
               accountEnvironment!,
               teacherEnvironment,
-              dependencies.fetcher ?? fetch
+              dependencies.fetcher ?? fetch,
+              dependencies.registrations ?? defaultPairRegistrationStore()
             )
       );
 
       if (routeWithMethod.kind === "list") {
-        return accountJson({ accounts: await service.listAccounts() });
+        return accountJson(await service.listAccounts());
       }
       if (routeWithMethod.kind === "image-lab-status") {
         return accountJson(await service.imageLabStatus());
@@ -512,6 +641,11 @@ export function createTeacherAccountsHandler(
         const input = parseCreateBody(body);
         operationId = input.operationId;
         return accountJson(await service.createAccount(input), 201);
+      }
+      if (routeWithMethod.kind === "approve") {
+        const input = parseApproveBody(body, routeWithMethod.username!);
+        operationId = input.operationId;
+        return accountJson(await service.approveRegistration(input), 201);
       }
       if (routeWithMethod.kind === "password") {
         const input = parsePasswordBody(body, routeWithMethod.username!);
@@ -557,6 +691,7 @@ export default createTeacherAccountsHandler();
 export const config: Config = {
   path: [
     "/api/teacher/accounts",
+    "/api/teacher/accounts/:username/approve",
     "/api/teacher/accounts/:username/password",
     "/api/teacher/accounts/:username/reset",
     "/api/teacher/image-lab",

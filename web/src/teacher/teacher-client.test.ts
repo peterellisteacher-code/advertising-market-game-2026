@@ -7,8 +7,14 @@ import {
 const operationId = "2d90c112-4de8-4e7b-92d2-0d655738987f";
 const summary = {
   username: "team-one",
+  password: "class-pair-12",
   createdAt: "2026-07-20T01:02:03.000Z",
   lastSignInAt: null
+};
+const pending = {
+  username: "bright-ideas",
+  password: "classroom-only-password",
+  requestedAt: "2026-07-31T00:00:00.000Z"
 };
 const counts = (granted: number, consumed = 0, reserved = 0) => ({
   granted,
@@ -46,11 +52,14 @@ describe("HttpTeacherClient", () => {
   it("uses exact same-origin session and account-list GET contracts", async () => {
     const fetcher = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(Response.json({ authenticated: true }))
-      .mockResolvedValueOnce(Response.json({ accounts: [summary] }));
+      .mockResolvedValueOnce(Response.json({ accounts: [summary], pending: [pending] }));
     const client = new HttpTeacherClient({ fetcher });
 
     await expect(client.session()).resolves.toEqual({ authenticated: true });
-    await expect(client.listAccounts()).resolves.toEqual([summary]);
+    await expect(client.listAccounts()).resolves.toEqual({
+      accounts: [summary],
+      pending: [pending]
+    });
 
     expect(fetcher).toHaveBeenNthCalledWith(1, "/api/teacher/session", {
       method: "GET",
@@ -66,6 +75,41 @@ describe("HttpTeacherClient", () => {
       headers: { accept: "application/json" },
       signal: expect.any(AbortSignal)
     });
+  });
+
+  it("approves one pending pair without sending its password back through the browser", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({
+      status: "approved",
+      operationId,
+      account: {
+        username: "bright-ideas",
+        password: "classroom-only-password",
+        createdAt: "2026-07-31T00:10:00.000Z",
+        lastSignInAt: null
+      }
+    }, { status: 201 }));
+    const client = new HttpTeacherClient({ fetcher });
+
+    await expect(client.approveRegistration({
+      operationId,
+      username: "bright-ideas"
+    })).resolves.toMatchObject({
+      username: "bright-ideas",
+      password: "classroom-only-password"
+    });
+
+    expect(fetcher).toHaveBeenCalledWith(
+      "/api/teacher/accounts/bright-ideas/approve",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          schema: "ad-market-teacher-registration-approve",
+          version: 1,
+          operationId
+        })
+      })
+    );
+    expect(String(fetcher.mock.calls[0]?.[1]?.body)).not.toContain("classroom-only-password");
   });
 
   it("accepts a hosted 204 whose browser exposes an empty response stream", async () => {
@@ -294,10 +338,10 @@ describe("HttpTeacherClient", () => {
         status: 429,
         headers: { "retry-after": "2" }
       }))
-      .mockResolvedValueOnce(Response.json({ accounts: [summary] }));
+      .mockResolvedValueOnce(Response.json({ accounts: [summary], pending: [] }));
     const client = new HttpTeacherClient({ fetcher, delay });
 
-    await expect(client.listAccounts()).resolves.toEqual([summary]);
+    await expect(client.listAccounts()).resolves.toEqual({ accounts: [summary], pending: [] });
     expect(fetcher).toHaveBeenCalledTimes(2);
     expect(delay).toHaveBeenCalledWith(2_000);
 

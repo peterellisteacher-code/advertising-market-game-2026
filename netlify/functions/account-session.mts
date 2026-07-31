@@ -12,7 +12,6 @@ import {
   parseAccountEnvironment,
   readAccountJson,
   resolveAccountSession,
-  secureAccountCodeMatches,
   type AccountAuthTokens,
   type AccountEnvironment,
   type AccountEnvironmentRecord,
@@ -25,6 +24,11 @@ import {
   normaliseAccountUsername,
   serialiseAccountSessionCookies
 } from "./lib/account-primitives";
+import {
+  defaultPairRegistrationStore,
+  PairRegistrationStoreError,
+  type PairRegistrationStore
+} from "./lib/pair-registration-store";
 
 const ACCOUNT_ROUTES = [
   "/api/account/signup",
@@ -44,6 +48,8 @@ const ENVIRONMENT_KEYS = [
 interface AccountSessionDependencies {
   readonly environment?: AccountEnvironment | AccountEnvironmentRecord;
   readonly fetcher?: typeof fetch;
+  readonly registrations?: PairRegistrationStore;
+  readonly now?: () => Date;
 }
 
 const runtimeEnvironment = (): AccountEnvironmentRecord => Object.fromEntries(
@@ -87,19 +93,15 @@ const parsePassword = (value: unknown): string => {
 };
 
 const parseCredentials = (
-  value: unknown,
-  signup: boolean
-): { username: string; password: string; classroomCode?: unknown } => {
+  value: unknown
+): { username: string; password: string } => {
   if (!isRecord(value)) throw new AccountRequestError("INVALID_REQUEST", 400);
-  const expectedKeys = signup
-    ? ["username", "password", "classroomCode"]
-    : ["username", "password"];
+  const expectedKeys = ["username", "password"];
   if (!hasExactKeys(value, expectedKeys)) throw new AccountRequestError("INVALID_REQUEST", 400);
   try {
     return {
       username: normaliseAccountUsername(value.username),
-      password: parsePassword(value.password),
-      ...(signup ? { classroomCode: value.classroomCode } : {})
+      password: parsePassword(value.password)
     };
   } catch (error) {
     if (error instanceof AccountRequestError) throw error;
@@ -151,6 +153,11 @@ const routeError = (error: unknown): Response => {
       return accountJson({ error: "USERNAME_UNAVAILABLE" }, 409);
     }
   }
+  if (error instanceof PairRegistrationStoreError) {
+    if (error.code === "USERNAME_UNAVAILABLE") {
+      return accountJson({ error: "USERNAME_UNAVAILABLE" }, 409);
+    }
+  }
   return accountJson({ error: "ACCOUNT_UNAVAILABLE" }, 503);
 };
 
@@ -177,38 +184,24 @@ export function createAccountSessionHandler(
       const client = new SupabaseAccountClient(environment, dependencies.fetcher ?? fetch);
 
       if (path === "/api/account/signup") {
-        const body = parseCredentials(await readAccountJson(request, ACCOUNT_JSON_LIMIT), true);
-        if (!secureAccountCodeMatches(body.classroomCode, environment.classroomCode)) {
-          return accountJson({ error: "SIGNUP_DENIED" }, 401);
+        const body = parseCredentials(await readAccountJson(request, ACCOUNT_JSON_LIMIT));
+        if (await client.findAdvertisingGameUser(body.username) !== null) {
+          return accountJson({ error: "USERNAME_UNAVAILABLE" }, 409);
         }
-        const syntheticEmail = deriveSyntheticAccountEmail(
-          body.username,
-          environment.usernameHmacSecret
-        );
-        await client.createConfirmedUser(syntheticEmail, body.password, body.username);
-        let tokens: AccountAuthTokens;
-        try {
-          tokens = await client.signInWithPassword(syntheticEmail, body.password);
-        } catch (error) {
-          if (error instanceof SupabaseAccountError && error.kind === "invalid_credentials") {
-            throw new SupabaseAccountError("upstream");
-          }
-          throw error;
-        }
-        const identity = await verifyFreshTokens(client, tokens, body.username);
-        return accountJson(
-          {
-            authenticated: true,
-            username: body.username,
-            resetGeneration: identity.resetGeneration
-          },
-          201,
-          sessionCookies(tokens, identity.resetGeneration)
-        );
+        const registration = await (
+          dependencies.registrations ?? defaultPairRegistrationStore()
+        ).request({
+          ...body,
+          requestedAt: (dependencies.now?.() ?? new Date()).toISOString()
+        });
+        return accountJson({
+          status: "pending",
+          username: registration.username
+        }, 202);
       }
 
       if (path === "/api/account/login") {
-        const body = parseCredentials(await readAccountJson(request, ACCOUNT_JSON_LIMIT), false);
+        const body = parseCredentials(await readAccountJson(request, ACCOUNT_JSON_LIMIT));
         const syntheticEmail = deriveSyntheticAccountEmail(
           body.username,
           environment.usernameHmacSecret

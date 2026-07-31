@@ -1,12 +1,14 @@
 import {
   AccountClientError,
-  type AccountSessionClient
+  type AccountSessionClient,
+  type AccountSignupClient
 } from "./account-client";
 
-export type { AccountSessionClient } from "./account-client";
+export type { AccountSessionClient, AccountSignupClient } from "./account-client";
 
 export interface AccountAccessControllerOptions {
   readonly client: AccountSessionClient;
+  readonly signupClient?: AccountSignupClient;
   readonly gateRoot: HTMLElement;
   readonly statusRoot: HTMLElement;
   readonly gameSurface: HTMLElement;
@@ -33,6 +35,10 @@ const copyForError = (error: unknown): string => {
   switch (code) {
     case "INVALID_CREDENTIALS":
       return "That username or password did not match. Try again.";
+    case "USERNAME_UNAVAILABLE":
+      return "That username is already in use or waiting for approval. Choose another.";
+    case "INVALID_REQUEST":
+      return "Check the username and password, then try again.";
     case "ACCOUNT_NOT_CONFIGURED":
       return "Accounts are not ready yet. Ask your teacher to try again later.";
     case "ACCOUNT_RATE_LIMITED": {
@@ -50,6 +56,7 @@ const copyForError = (error: unknown): string => {
 
 export class AccountAccessController {
   readonly #client: AccountSessionClient;
+  readonly #signupClient: AccountSignupClient | undefined;
   readonly #gateRoot: HTMLElement;
   readonly #statusRoot: HTMLElement;
   readonly #gameSurface: HTMLElement;
@@ -71,6 +78,7 @@ export class AccountAccessController {
 
   constructor(options: AccountAccessControllerOptions) {
     this.#client = options.client;
+    this.#signupClient = options.signupClient;
     this.#gateRoot = options.gateRoot;
     this.#statusRoot = options.statusRoot;
     this.#gameSurface = options.gameSurface;
@@ -206,8 +214,89 @@ export class AccountAccessController {
         });
     });
     section.append(intro, form);
+    if (this.#signupClient !== undefined) {
+      const create = document.createElement("button");
+      create.type = "button";
+      create.textContent = "Create a pair login";
+      create.addEventListener("click", () => this.#renderSignup());
+      section.append(create);
+    }
     this.#gateRoot.replaceChildren(section);
     queueMicrotask(() => username.focus());
+  }
+
+  #renderSignup(message = ""): void {
+    if (this.#signupClient === undefined) return;
+    const section = this.#gateCard("Create a pair login");
+    const explanation = document.createElement("p");
+    explanation.textContent =
+      "Choose a classroom-only username and password for your pair. Your teacher must approve them before you can log in.";
+    const form = document.createElement("form");
+    form.setAttribute("aria-label", "Create a pair login");
+    const username = this.#field(form, "Username", "text", "username", "username");
+    username.maxLength = 24;
+    username.pattern = "[A-Za-z0-9][A-Za-z0-9_-]{2,23}";
+    const password = this.#field(form, "Password", "password", "password", "new-password");
+    password.minLength = 8;
+    password.maxLength = 128;
+    const confirmation = this.#field(
+      form,
+      "Confirm password",
+      "password",
+      "password-confirmation",
+      "new-password"
+    );
+    confirmation.minLength = 8;
+    confirmation.maxLength = 128;
+    const error = this.#liveError(message);
+    const submit = document.createElement("button");
+    submit.type = "submit";
+    submit.textContent = "Send for teacher approval";
+    const back = document.createElement("button");
+    back.type = "button";
+    back.textContent = "Back to log in";
+    back.addEventListener("click", () => this.#renderLogin());
+    form.append(error, submit, back);
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (password.value !== confirmation.value) {
+        error.textContent = "The passwords do not match.";
+        confirmation.focus();
+        return;
+      }
+      const input = { username: username.value, password: password.value };
+      password.value = "";
+      confirmation.value = "";
+      this.#setBusy(form, true);
+      error.textContent = "";
+      void this.#signupClient!.signup(input)
+        .then((result) => this.#renderPendingApproval(result.username))
+        .catch((failure: unknown) => {
+          this.#setBusy(form, false);
+          error.textContent = copyForError(failure);
+          password.focus();
+        });
+    });
+    section.append(explanation, form);
+    this.#gateRoot.replaceChildren(section);
+    queueMicrotask(() => username.focus());
+  }
+
+  #renderPendingApproval(username: string): void {
+    const section = this.#gateCard("Waiting for teacher approval");
+    const message = document.createElement("p");
+    message.setAttribute("role", "status");
+    message.setAttribute("aria-live", "polite");
+    message.textContent =
+      `Your request for ${username} has been sent. Ask your teacher to approve it. ` +
+      "After approval, return here and log in with the same username and password.";
+    const back = document.createElement("button");
+    back.type = "button";
+    back.textContent = "Back to log in";
+    back.addEventListener("click", () => this.#renderLogin());
+    section.append(message, back);
+    this.#gateRoot.replaceChildren(section);
+    queueMicrotask(() => section.querySelector("h1")?.focus());
   }
 
   async #admit(username: string, resetGeneration: string | null): Promise<boolean> {

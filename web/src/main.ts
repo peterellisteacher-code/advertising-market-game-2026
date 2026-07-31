@@ -2126,6 +2126,7 @@ if (mode.kind === "student") {
   }
   accountController = new AccountAccessController({
     client: accountClient,
+    signupClient: accountClient,
     gateRoot: accountGateRoot,
     statusRoot: accountStatusRoot,
     gameSurface,

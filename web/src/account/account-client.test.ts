@@ -252,14 +252,13 @@ describe("HttpAccountClient", () => {
     await expect(client.session()).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
   });
 
-  it("sends exact signup/login JSON with same-origin cookie auth and returns no tokens", async () => {
+  it("submits a pair registration for teacher approval without opening an account session", async () => {
     const fetcher = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(Response.json({
-        authenticated: true,
-        username: "team-one",
-        resetGeneration: null
+        status: "pending",
+        username: "team-one"
       }, {
-        status: 201
+        status: 202
       }))
       .mockResolvedValueOnce(Response.json({
         authenticated: true,
@@ -272,13 +271,13 @@ describe("HttpAccountClient", () => {
 
     await expect(client.signup({
       username: "team-one",
-      password: "student-password",
-      classroomCode: "classroom-access"
+      password: "student-password"
     })).resolves.toEqual({
-      authenticated: true,
-      username: "team-one",
-      resetGeneration: null
+      status: "pending",
+      username: "team-one"
     });
+    expect(binding.current()).toBeNull();
+    expect(publisher.publish).not.toHaveBeenCalled();
     await expect(client.login({
       username: "team-one",
       password: "student-password"
@@ -288,7 +287,7 @@ describe("HttpAccountClient", () => {
       resetGeneration: "7440e792-3ddc-4484-ae32-a53088d0d679"
     });
     expect(binding.current()).toBe("team-one");
-    expect(publisher.publish).toHaveBeenCalledTimes(2);
+    expect(publisher.publish).toHaveBeenCalledOnce();
 
     expect(fetcher.mock.calls.map(([path, init]) => [path, {
       method: init?.method,
@@ -304,8 +303,7 @@ describe("HttpAccountClient", () => {
         headers: { accept: "application/json", "content-type": "application/json" },
         body: {
           username: "team-one",
-          password: "student-password",
-          classroomCode: "classroom-access"
+          password: "student-password"
         }
       }],
       ["/api/account/login", {

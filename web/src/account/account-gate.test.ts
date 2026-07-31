@@ -8,7 +8,8 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   AccountAccessController,
-  type AccountSessionClient
+  type AccountSessionClient,
+  type AccountSignupClient
 } from "./account-gate";
 import { AccountClientError } from "./account-client";
 
@@ -31,6 +32,7 @@ const authenticatedSession = (
 function mount(client: AccountSessionClient, callbacks: {
   onSession?: (username: string, generation: string | null) => void | Promise<void>;
   onSignedOut?: (explicit: boolean) => void | Promise<void>;
+  signupClient?: AccountSignupClient;
   reload?: () => void;
 } = {}) {
   document.body.innerHTML = `
@@ -52,6 +54,7 @@ function mount(client: AccountSessionClient, callbacks: {
     gameCanvas: canvas,
     creatorRoot,
     reload,
+    ...(callbacks.signupClient === undefined ? {} : { signupClient: callbacks.signupClient }),
     ...(callbacks.onSession === undefined ? {} : { onSession: callbacks.onSession }),
     ...(callbacks.onSignedOut === undefined ? {} : { onSignedOut: callbacks.onSignedOut })
   });
@@ -215,6 +218,52 @@ describe("AccountAccessController", () => {
     expect(document.activeElement).toBe(password);
     expect(password.value).toBe("");
     expect(harness.gameSurface.hidden).toBe(true);
+  });
+
+  it("lets a pair request its own login and keeps the game locked until teacher approval", async () => {
+    const client: AccountSessionClient = {
+      session: vi.fn().mockResolvedValue({ authenticated: false }),
+      login: vi.fn(),
+      logout: vi.fn()
+    };
+    const signupClient: AccountSignupClient = {
+      signup: vi.fn().mockResolvedValue({ status: "pending", username: "bright-ideas" })
+    };
+    const harness = mount(client, { signupClient });
+    void harness.controller.requireAccess();
+    await waitFor(() => expect(getByRole(harness.gateRoot, "form", {
+      name: "Log in"
+    })).toBeTruthy());
+
+    fireEvent.click(getByRole(harness.gateRoot, "button", {
+      name: "Create a pair login"
+    }));
+    const form = getByRole(harness.gateRoot, "form", { name: "Create a pair login" });
+    fireEvent.input(getByLabelText(form, "Username"), {
+      target: { value: "Bright-Ideas" }
+    });
+    fireEvent.input(getByLabelText(form, "Password"), {
+      target: { value: "classroom-only-password" }
+    });
+    fireEvent.input(getByLabelText(form, "Confirm password"), {
+      target: { value: "classroom-only-password" }
+    });
+    fireEvent.submit(form);
+
+    await waitFor(() => expect(signupClient.signup).toHaveBeenCalledWith({
+      username: "Bright-Ideas",
+      password: "classroom-only-password"
+    }));
+    await waitFor(() => expect(getByRole(harness.gateRoot, "heading", {
+      name: "Waiting for teacher approval"
+    })).toBeTruthy());
+    expect(harness.gateRoot.textContent).toContain("bright-ideas");
+    expect(harness.gateRoot.textContent).toContain("same username and password");
+    expect(harness.gameSurface.hidden).toBe(true);
+    expect(harness.creatorRoot.hidden).toBe(true);
+
+    fireEvent.click(getByRole(harness.gateRoot, "button", { name: "Back to log in" }));
+    expect(getByRole(harness.gateRoot, "form", { name: "Log in" })).toBeTruthy();
   });
 
   it("locks both account surfaces immediately and reloads only after logout isolation", async () => {

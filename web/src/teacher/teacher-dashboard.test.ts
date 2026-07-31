@@ -12,8 +12,14 @@ import { TeacherClientError, type TeacherClient } from "./teacher-client";
 const operationId = "2d90c112-4de8-4e7b-92d2-0d655738987f";
 const account = {
   username: "team-one",
+  password: "existing-pair-password",
   createdAt: "2026-07-20T01:02:03.000Z",
   lastSignInAt: null
+};
+const pending = {
+  username: "bright-ideas",
+  password: "classroom-only-password",
+  requestedAt: "2026-07-31T00:00:00.000Z"
 };
 const counts = (granted: number, consumed = 0, reserved = 0) => ({
   granted,
@@ -40,8 +46,21 @@ const client = (authenticated = true): TeacherClient => ({
   session: vi.fn().mockResolvedValue({ authenticated }),
   login: vi.fn().mockResolvedValue(undefined),
   logout: vi.fn().mockResolvedValue(undefined),
-  listAccounts: vi.fn().mockResolvedValue([account]),
-  createAccount: vi.fn().mockResolvedValue(account),
+  listAccounts: vi.fn().mockResolvedValue({ accounts: [account], pending: [pending] }),
+  createAccount: vi.fn().mockImplementation(async (
+    input: { readonly username: string; readonly password: string }
+  ) => ({
+    username: input.username,
+    password: input.password,
+    createdAt: "2026-07-31T00:10:00.000Z",
+    lastSignInAt: null
+  })),
+  approveRegistration: vi.fn().mockResolvedValue({
+    username: "bright-ideas",
+    password: "classroom-only-password",
+    createdAt: "2026-07-31T00:10:00.000Z",
+    lastSignInAt: null
+  }),
   replacePassword: vi.fn().mockResolvedValue(undefined),
   resetAccount: vi.fn().mockResolvedValue(undefined),
   imageLabStatus: vi.fn().mockResolvedValue(imageLab),
@@ -120,6 +139,27 @@ describe("TeacherDashboard", () => {
     expect(fake.imageLabStatus).toHaveBeenCalledOnce();
   });
 
+  it("shows classroom credentials and approves a student-created pair login", async () => {
+    const { root, fake } = await mount();
+
+    expect(getByRole(root, "region", { name: "Pending pair approvals" }).textContent)
+      .toContain("classroom-only-password");
+    expect(getByRole(root, "region", { name: "Pair accounts" }).textContent)
+      .toContain("existing-pair-password");
+
+    fireEvent.click(getByRole(root, "button", { name: "Approve bright-ideas" }));
+
+    await waitFor(() => expect(fake.approveRegistration).toHaveBeenCalledWith({
+      operationId,
+      username: "bright-ideas"
+    }));
+    await waitFor(() => expect(queryByRole(root, "button", {
+      name: "Approve bright-ideas"
+    })).toBeNull());
+    expect(getByRole(root, "region", { name: "Pair accounts" }).textContent)
+      .toContain("classroom-only-password");
+  });
+
   it("creates manually chosen credentials and keeps them copyable until dismissed", async () => {
     const { root, fake, clipboard } = await mount();
     const trigger = getByRole<HTMLButtonElement>(root, "button", {
@@ -160,7 +200,8 @@ describe("TeacherDashboard", () => {
 
     fireEvent.click(getByRole(dialog, "button", { name: "Done" }));
     expect(queryByRole(root, "dialog")).toBeNull();
-    expect(root.textContent).not.toContain("class-pair-12");
+    expect(getByRole(root, "region", { name: "Pair accounts" }).textContent)
+      .toContain("class-pair-12");
     expect(document.activeElement).toBe(trigger);
   });
 
@@ -210,6 +251,8 @@ describe("TeacherDashboard", () => {
     }));
     await waitFor(() => expect(queryByRole(root, "dialog")).toBeNull());
     expect(root.textContent).toContain("Password replaced for team-one");
+    expect(getByRole(root, "region", { name: "Pair accounts" }).textContent)
+      .toContain("replacement-password");
   });
 
   it("explains account reset scope, requires the exact username and restores focus on Escape", async () => {

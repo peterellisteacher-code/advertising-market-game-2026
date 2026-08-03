@@ -48,6 +48,7 @@ func _assert_guide(progress: AdMarketAgencyProgress) -> void:
 	guide.set_progress(2, 7, 1)
 	assert(guide.get_node("%RequiredProgress").text.contains("2 of 7 required"))
 	assert(guide.get_node("%OptionalProgress").text.contains("1 optional"))
+	assert(guide.get_node("%MasterVolumeLabel").text == "Overall volume: 70%")
 	guide.set_tucked(true)
 	assert(guide.get_node("%GuideTab").visible)
 	assert(not guide.get_node("%GuidePanel").visible)

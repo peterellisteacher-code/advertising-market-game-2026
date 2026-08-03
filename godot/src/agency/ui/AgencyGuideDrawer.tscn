@@ -647,7 +647,7 @@ autowrap_mode = 2
 
 [node name="OrientationItems" type="VBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=1840799099]
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 1
 theme_override_constants/separation = 12
 
 [node name="OrientationItemOne" type="VBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems" unique_id=2026080302]

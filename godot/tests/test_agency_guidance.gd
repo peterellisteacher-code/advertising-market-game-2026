@@ -81,8 +81,10 @@ func _assert_guide(progress: AdMarketAgencyProgress) -> void:
 	assert(not guide.get_node("%OrientationItemThree").visible)
 	var minimise := guide.get_node("%MinimiseOrientation") as Button
 	var resume := guide.get_node("%ResumeOrientation") as Button
+	assert(not progress.guide_tucked)
 	minimise.pressed.emit()
 	assert(not orientation_layer.visible)
+	assert(progress.guide_tucked)
 	assert(resume.visible)
 	assert(not progress.orientation_acknowledged)
 	assert(not guide.reading_active())

@@ -36,7 +36,10 @@ func _agency_world_replaces_the_run_panel_and_coordinates_roles() -> bool:
 	var shell := _mount_shell(FakeCreatorTransport.new(), null, practice_fake)
 	var agency := shell.get_node_or_null("%AgencyWorld") as Node2D
 	assert(agency != null)
+	var agency_surface := agency.get_node_or_null("HUD") as CanvasLayer
+	assert(agency_surface != null)
 	assert(not agency.visible)
+	assert(not agency_surface.visible)
 	practice_fake.resolve_success("practice-1", null)
 	(shell.get_node("%TeamAlias") as LineEdit).text = "North Star Studio"
 	(shell.get_node("%StartRun") as Button).pressed.emit()
@@ -66,6 +69,7 @@ func _agency_world_replaces_the_run_panel_and_coordinates_roles() -> bool:
 	saved_progress["checkpoint"]["pitch"] = Dictionary(progress_payload.get("pitch")).duplicate(true)
 	practice_fake.resolve_success("practice-3", saved_progress)
 	assert(agency.visible)
+	assert(agency_surface.visible)
 	assert(not (shell.get_node("%RunPanel") as Control).visible)
 	shell.call("_process", 0.0)
 	var mirror := shell.get("_accessibility_mirror") as RefCounted

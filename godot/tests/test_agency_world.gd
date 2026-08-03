@@ -15,6 +15,8 @@ func run() -> bool:
 	tree.root.add_child(world)
 	if not world.is_node_ready():
 		world.call("_ready")
+	var agency_floor := world.get_node("AgencyFloor") as Sprite2D
+	assert(agency_floor.z_index >= 0)
 	var pair := world.get_node("%AgencyPair") as CharacterBody2D
 	var guide := world.get_node("%AgencyGuideDrawer") as AdMarketAgencyGuideDrawer
 	var orientation := guide.get_node("OrientationLayer") as Control

@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { link, mkdtemp, mkdir, readFile, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { runInNewContext } from "node:vm";
 
 import {
   assembleWebExport,
@@ -23,6 +24,73 @@ const STALE_PCK_HASH =
   "e8b1d3f2729a16f0d001f8b1483aa4fbc150dcb1b3411b5aacd7456b6cb92459";
 const VALID_STUDIO_BRIDGES =
   "window.AdMarketCreator = Object.freeze({ handle() {} }); window.AdMarketPractice = Object.freeze({ handle() {} });";
+
+async function activateGeneratedWorker(worker, cacheNames) {
+  const handlers = new Map();
+  const deleted = [];
+  const matchOptions = [];
+  const navigated = [];
+  const studentUrl =
+    "https://advertising-market-game-2026.netlify.app/student?pair=7";
+  runInNewContext(worker, {
+    Response,
+    URL,
+    crypto: globalThis.crypto,
+    fetch: globalThis.fetch,
+    caches: {
+      async delete(name) {
+        deleted.push(name);
+        return true;
+      },
+      async keys() {
+        return [...cacheNames];
+      },
+      async open() {
+        throw new Error("Activation must not open a cache");
+      }
+    },
+    self: {
+      addEventListener(type, handler) {
+        handlers.set(type, handler);
+      },
+      clients: {
+        async matchAll(options) {
+          matchOptions.push({ ...options });
+          return [
+            {
+              url: studentUrl,
+              async navigate(url) {
+                navigated.push(url);
+                return null;
+              }
+            },
+            {
+              url: "https://advertising-market-game-2026.netlify.app/teacher",
+              async navigate() {
+                throw new Error("Client closed during activation");
+              }
+            }
+          ];
+        }
+      },
+      location: {
+        origin: "https://advertising-market-game-2026.netlify.app"
+      },
+      async skipWaiting() {}
+    }
+  });
+  const activate = handlers.get("activate");
+  assert.equal(typeof activate, "function");
+  let activation;
+  activate({
+    waitUntil(promise) {
+      activation = promise;
+    }
+  });
+  assert.ok(activation, "activate must register completion work");
+  await activation;
+  return { deleted, matchOptions, navigated };
+}
 
 function rasterPricing(catalogueText, entries) {
   return JSON.stringify({
@@ -408,6 +476,14 @@ test("release assembly binds static assets, private functions and one atomic ser
   const assetManifest = JSON.parse(await readFile(path.join(web, "asset-manifest.json"), "utf8"));
   assert.equal(assetManifest.schema, "ad-market-asset-manifest@1");
   assert.match(assetManifest.cacheVersion, /^[a-f0-9]{24}$/);
+  assert.notEqual(
+    assetManifest.cacheVersion,
+    createHash("sha256")
+      .update(JSON.stringify(assetManifest.assets))
+      .digest("hex")
+      .slice(0, 24),
+    "the worker-policy revision must change the legacy asset-only cache identity"
+  );
   assert.ok(assetManifest.assets.some(({ path: relative }) => relative === "index.pck"));
   assert.ok(assetManifest.core.includes("/index.html"));
 
@@ -431,6 +507,22 @@ test("release assembly binds static assets, private functions and one atomic ser
     "the replacement worker must not activate until every core asset is cached"
   );
   assert.doesNotMatch(worker, /clients\.claim/);
+  const updated = await activateGeneratedWorker(worker, [
+    `ad-market-${assetManifest.cacheVersion}`,
+    "ad-market-previous-release"
+  ]);
+  assert.deepEqual(updated.matchOptions, [{ type: "window" }]);
+  assert.deepEqual(updated.navigated, [
+    "https://advertising-market-game-2026.netlify.app/student?pair=7"
+  ]);
+  assert.deepEqual(updated.deleted, ["ad-market-previous-release"]);
+
+  const firstInstall = await activateGeneratedWorker(worker, [
+    `ad-market-${assetManifest.cacheVersion}`
+  ]);
+  assert.deepEqual(firstInstall.matchOptions, []);
+  assert.deepEqual(firstInstall.navigated, []);
+  assert.deepEqual(firstInstall.deleted, []);
   const navigationHandler = worker.slice(
     worker.indexOf('if (request.mode === "navigate")'),
     worker.indexOf('if (!isReleaseAsset(url.pathname))')

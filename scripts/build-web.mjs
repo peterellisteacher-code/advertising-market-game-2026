@@ -25,6 +25,8 @@ import {
   scanHtmlStartTags
 } from "./html-start-tags.mjs";
 
+const SERVICE_WORKER_POLICY_REVISION = "release-refresh-v1";
+
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ROOT = path.resolve(SCRIPT_DIR, "..");
 const REQUIRED_GODOT_FILES = ["index.html", "index.js", "index.wasm", "index.pck"];
@@ -217,9 +219,15 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const names = await caches.keys();
-    await Promise.all(names
-      .filter((name) => name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME)
-      .map((name) => caches.delete(name)));
+    const staleReleaseNames = names.filter(
+      (name) => name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME
+    );
+    await Promise.all(staleReleaseNames.map((name) => caches.delete(name)));
+    if (staleReleaseNames.length === 0) return;
+    const windowClients = await self.clients.matchAll({ type: "window" });
+    await Promise.allSettled(
+      windowClients.map((client) => client.navigate(client.url))
+    );
   })());
 });
 
@@ -344,7 +352,10 @@ async function emitBoundRelease(root, webDir) {
     .map(([relative, bytes]) => fileRecord(relative, bytes))
     .sort((left, right) => left.path.localeCompare(right.path));
   const cacheVersion = createHash("sha256")
-    .update(JSON.stringify(assetRecords))
+    .update(JSON.stringify({
+      assets: assetRecords,
+      workerPolicyRevision: SERVICE_WORKER_POLICY_REVISION
+    }))
     .digest("hex")
     .slice(0, 24);
   const coreCandidates = [

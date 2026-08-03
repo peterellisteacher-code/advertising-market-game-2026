@@ -672,7 +672,7 @@ unique_name_in_owner = true
 script = ExtResource("1_gscui")
 
 [node name="AgencyFloor" type="Sprite2D" parent="." unique_id=1336746350]
-z_index = -100
+z_index = 0
 texture_filter = 1
 position = Vector2(640, 440)
 scale = Vector2(0.76555, 0.76514)

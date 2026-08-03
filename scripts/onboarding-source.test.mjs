@@ -77,6 +77,14 @@ test("agency quick start keeps its actions inside a 1280 by 800 game view", () =
   assert.match(itemsBlock, /size_flags_vertical = 1/);
 });
 
+test("agency floor renders above the main shell background", () => {
+  const floorBlock = agencyWorldScene.match(
+    /\[node name="AgencyFloor"[\s\S]*?(?=\n\[node name="WorldCamera")/
+  )?.[0] ?? "";
+  assert.match(floorBlock, /z_index = 0/);
+  assert.doesNotMatch(floorBlock, /z_index = -/);
+});
+
 test("agency volume label avoids runtime percent-format errors", () => {
   assert.ok(agencyGuideScript.includes('"Overall volume: " + str('));
   assert.doesNotMatch(agencyGuideScript, /"Overall volume: %d%%"\s*%/);

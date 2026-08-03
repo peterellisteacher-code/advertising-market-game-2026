@@ -14,6 +14,7 @@ import {
 } from "../domain/campaign-document";
 import {
   canonicalDurableDocumentHash,
+  canonicalDurableSnapshotHash,
   selectReferencedLocalAssetBlobs,
   type LocalPracticeDraftStore,
   type LocalPracticeCheckpointV1 as StoredCheckpointV1,
@@ -179,8 +180,8 @@ export class LocalPracticeService implements PracticeRunHandler {
       updatedAt: base.document.updatedAt
     });
     const [baseHash, activeHash] = await Promise.all([
-      canonicalDurableDocumentHash(base.document),
-      canonicalDurableDocumentHash(activeAtBaseRevision)
+      canonicalDurableSnapshotHash(base.document, base.blobs),
+      canonicalDurableSnapshotHash(activeAtBaseRevision, active.blobs)
     ]);
     return baseHash === activeHash;
   }

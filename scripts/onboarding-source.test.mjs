@@ -143,6 +143,7 @@ test("agency mission keeps evidence and a direct role handover beside clickable 
   assert.ok(missionPanelScript.includes("Strategist decides audience, purpose, product and message"));
   assert.ok(missionPanelScript.includes("Art Director decides visual design and execution"));
   assert.ok(missionPanelScript.includes("Hide audience brief"));
+  assert.ok(missionPanelScript.includes("Hide mission reference"));
   assert.match(missionPanelScript, /func show_handoff_error\(\) -> void:/);
   assert.doesNotMatch(
     missionPanelScript,

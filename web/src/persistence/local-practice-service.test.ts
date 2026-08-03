@@ -1,11 +1,44 @@
 import { IDBFactory } from "fake-indexeddb";
+import { Blob as NodeBlob } from "node:buffer";
 import { describe, expect, it } from "vitest";
 import {
   checkpointToken,
   type AgencyRunSnapshotV1
 } from "../bridge/practice-contracts";
+import type { CampaignDocumentV1 } from "../domain/campaign-document";
 import { IndexedDbDraftStore } from "./draft-store";
 import { LocalPracticeService } from "./local-practice-service";
+
+// fake-indexeddb uses Node structuredClone; jsdom's Blob is not cloneable by it.
+Object.defineProperty(globalThis, "Blob", { configurable: true, value: NodeBlob });
+
+const localImageKey = "product-photo-png";
+
+function addLocalImage(document: CampaignDocumentV1): void {
+  document.fabricState.objects.push({
+    type: "image",
+    objectId: "product-photo",
+    elementKind: "image",
+    assetId: "product-photo",
+    accessibleName: "Product photograph",
+    src: `local-blob:${localImageKey}`
+  });
+  document.assetReferences.push({
+    kind: "local-blob",
+    objectId: "product-photo",
+    assetId: "product-photo",
+    blobKey: localImageKey,
+    mimeType: "image/png"
+  });
+}
+
+function localImage(bytes: readonly number[]): Map<string, Blob> {
+  return new Map([[localImageKey, new Blob([Uint8Array.from(bytes)], { type: "image/png" })]]);
+}
+
+async function blobBytes(blob: Blob): Promise<number[]> {
+  return [...new Uint8Array(await blob.arrayBuffer())];
+}
 
 const agencyPitch: AgencyRunSnapshotV1 = {
   contract: "agency-run@1",
@@ -195,6 +228,42 @@ describe("LocalPracticeService", () => {
       operationId: "operation-editor-after-checkpoint"
     });
     expect(saved?.document.product.name).toBe("Headphone Halo");
+  });
+
+  it("does not rebase across a same-key asset-body change", async () => {
+    const store = new IndexedDbDraftStore({
+      databaseName: "local-practice-service-asset-rebase",
+      factory: new IDBFactory()
+    });
+    const service = new LocalPracticeService(store, {
+      now: () => new Date("2026-07-17T04:20:00.000Z")
+    });
+    const begun = await service.begin("Asset Albatrosses", "operation-begin-asset-rebase");
+    const firstSnapshot = structuredClone(begun.document);
+    addLocalImage(firstSnapshot);
+    const oldBlobs = localImage([1, 2, 3, 4]);
+    const first = await service.commitEditorSnapshot(
+      firstSnapshot,
+      oldBlobs,
+      "operation-editor-old-asset"
+    );
+    const staleSnapshot = structuredClone(first!.document);
+    const newBlobs = localImage([9, 8, 7, 6]);
+    const active = await service.commitEditorSnapshot(
+      structuredClone(first!.document),
+      newBlobs,
+      "operation-editor-new-asset"
+    );
+
+    await expect(service.commitEditorSnapshot(
+      staleSnapshot,
+      oldBlobs,
+      "operation-editor-stale-asset"
+    )).rejects.toThrow(/snapshot revision.*stale/i);
+
+    const recovered = await store.resumeLocalPractice();
+    expect(recovered?.checkpoint).toEqual(active?.checkpoint);
+    expect(await blobBytes(recovered!.blobs.get(localImageKey)!)).toEqual([9, 8, 7, 6]);
   });
 
   it("rejects a stale editor snapshot without overwriting the active checkpoint", async () => {

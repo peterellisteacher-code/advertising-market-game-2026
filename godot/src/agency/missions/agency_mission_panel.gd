@@ -66,6 +66,7 @@ var _record: Dictionary = {}
 var _choice_ids: Array[String] = ["", "", "", ""]
 var _role_details_visible: bool = false
 var _reference_visible: bool = true
+var _reference_name: String = "mission reference"
 
 func _ready() -> void:
     _apply_visual_theme()
@@ -215,6 +216,7 @@ func _show_stage(active_stage: Control) -> void:
 
 func _set_reference_text(record: Dictionary) -> void:
     var facts_value: Variant = record.get("referenceFacts", {})
+    _reference_name = "audience brief" if record.has("referenceFacts") else "mission reference"
     var lines: Array[String] = []
     if typeof(facts_value) == TYPE_DICTIONARY:
         var facts: Dictionary = facts_value
@@ -249,7 +251,10 @@ func _set_role_details_visible(is_visible: bool) -> void:
 func _set_reference_visible(is_visible: bool) -> void:
     _reference_visible = is_visible
     reference_card.visible = is_visible and choice_stage.visible and not reference_label.text.is_empty()
-    reference_toggle.text = "Hide audience brief" if is_visible else "Show audience brief"
+    if _reference_name == "audience brief":
+        reference_toggle.text = "Hide audience brief" if is_visible else "Show audience brief"
+    else:
+        reference_toggle.text = "Hide mission reference" if is_visible else "Show mission reference"
 
 func _select_choice(index: int) -> void:
     if index < 0 or index >= _choice_ids.size():

@@ -510,16 +510,15 @@ test("release assembly binds static assets, private functions and one atomic ser
       worker.indexOf("await cache.put(pathname, response)"),
     "the replacement worker must not activate until every core asset is cached"
   );
-  assert.match(worker, /await self\.clients\.claim\(\)/);
+  assert.doesNotMatch(worker, /self\.clients\.claim\(\)/);
+  assert.doesNotMatch(worker, /client\.navigate\(/);
   const updated = await activateGeneratedWorker(worker, [
     `ad-market-${assetManifest.cacheVersion}`,
     "ad-market-previous-release"
   ]);
-  assert.deepEqual(updated.matchOptions, [{ type: "window" }]);
-  assert.deepEqual(updated.claimed, [true]);
-  assert.deepEqual(updated.navigated, [
-    `https://advertising-market-game-2026.netlify.app/student?pair=7&release=${assetManifest.cacheVersion}`
-  ]);
+  assert.deepEqual(updated.matchOptions, []);
+  assert.deepEqual(updated.claimed, []);
+  assert.deepEqual(updated.navigated, []);
   assert.deepEqual(updated.deleted, ["ad-market-previous-release"]);
 
   const firstInstall = await activateGeneratedWorker(worker, [

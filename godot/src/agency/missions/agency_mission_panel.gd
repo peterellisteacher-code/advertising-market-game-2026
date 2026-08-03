@@ -111,8 +111,8 @@ func show_choice(record: Dictionary, active_role: String, allowed: bool) -> void
         else:
             _choice_ids[index] = ""
             button.visible = false
-    _reference_visible = true
     _show_stage(choice_stage)
+    _set_reference_visible(true)
     choice_stage.visible = allowed
     if not allowed:
         reference_toggle.visible = false

@@ -96,21 +96,58 @@ describe("AccountAccessController", () => {
     expect(harness.creatorRoot.inert).toBe(false);
   });
 
-  it("fails closed with safe copy when account storage activation fails", async () => {
+  it("returns to the full student landing screen when account storage activation fails", async () => {
     const client: AccountSessionClient = {
       session: vi.fn().mockResolvedValue(authenticatedSession()),
       login: vi.fn(),
-      logout: vi.fn()
+      logout: vi.fn().mockResolvedValue(undefined)
     };
+    const signupClient: AccountSignupClient = {
+      signup: vi.fn()
+    };
+    const onSignedOut = vi.fn().mockResolvedValue(undefined);
     const harness = mount(client, {
-      onSession: vi.fn().mockRejectedValue(new Error("raw indexeddb detail"))
+      onSession: vi.fn().mockRejectedValue(new Error("raw indexeddb detail")),
+      onSignedOut,
+      signupClient
     });
 
     void harness.controller.requireAccess();
 
-    await waitFor(() => expect(getByRole(harness.gateRoot, "alert").textContent)
-      .toContain("private device storage"));
+    await waitFor(() => expect(getByRole(harness.gateRoot, "form", {
+      name: "Log in"
+    })).toBeTruthy());
+    expect(getByRole(harness.gateRoot, "alert").textContent)
+      .toContain("returned to the start");
+    expect(getByRole(harness.gateRoot, "button", {
+      name: "Create a pair login"
+    })).toBeTruthy();
     expect(harness.gateRoot.textContent).not.toContain("raw indexeddb detail");
+    expect(client.logout).toHaveBeenCalledOnce();
+    expect(onSignedOut).toHaveBeenCalledWith(false);
+    expect(harness.gameSurface.hidden).toBe(true);
+    expect(harness.gameSurface.inert).toBe(true);
+    expect(harness.creatorRoot.hidden).toBe(true);
+    expect(harness.creatorRoot.inert).toBe(true);
+  });
+
+  it("clears the server session and reloads when local isolation also fails", async () => {
+    const client: AccountSessionClient = {
+      session: vi.fn().mockResolvedValue(authenticatedSession()),
+      login: vi.fn(),
+      logout: vi.fn().mockResolvedValue(undefined)
+    };
+    const reload = vi.fn();
+    const harness = mount(client, {
+      onSession: vi.fn().mockRejectedValue(new Error("activation failed")),
+      onSignedOut: vi.fn().mockRejectedValue(new Error("isolation failed")),
+      reload
+    });
+
+    void harness.controller.requireAccess();
+
+    await waitFor(() => expect(client.logout).toHaveBeenCalledOnce());
+    await waitFor(() => expect(reload).toHaveBeenCalledOnce());
     expect(harness.gameSurface.hidden).toBe(true);
     expect(harness.gameSurface.inert).toBe(true);
     expect(harness.creatorRoot.hidden).toBe(true);

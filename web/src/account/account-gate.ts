@@ -308,7 +308,7 @@ export class AccountAccessController {
         if (error instanceof AccountClientError && error.code === "AUTHENTICATION_REQUIRED") {
           this.#renderLogin(copyForError(error));
         } else {
-          this.#renderActivationFailure();
+          await this.#recoverActivationFailure();
         }
       }
       return false;
@@ -332,10 +332,45 @@ export class AccountAccessController {
     this.#gateRoot.className = "account-access";
     const section = this.#gateCard("Your private save could not open.");
     const message = this.#liveError(
-      "We could not prepare private device storage. Your game stayed locked and no other account's work was opened. Reload this page and try again."
+      "We could not prepare private device storage. Your game stayed locked and no other account's work was opened. Return to the start and try again."
     );
-    section.append(message);
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.textContent = "Return to start";
+    retry.addEventListener("click", () => {
+      retry.disabled = true;
+      void this.#recoverActivationFailure();
+    });
+    section.append(message, retry);
     this.#gateRoot.replaceChildren(section);
+  }
+
+  async #recoverActivationFailure(): Promise<void> {
+    this.#lockAccountSurfaces();
+    this.#statusRoot.hidden = true;
+    this.#statusRoot.replaceChildren();
+    let localIsolationFailed = false;
+    try {
+      await this.#onSignedOut?.(false);
+    } catch {
+      localIsolationFailed = true;
+    }
+    try {
+      await this.#client.logout();
+    } catch (error) {
+      if (!(error instanceof AccountClientError && error.code === "AUTHENTICATION_REQUIRED")) {
+        this.#renderActivationFailure();
+        return;
+      }
+    }
+    this.#username = null;
+    if (localIsolationFailed) {
+      this.#reload();
+      return;
+    }
+    this.#renderLogin(
+      "Private storage did not open, so you were signed out and returned to the start. Log in again or create a pair login."
+    );
   }
 
   #renderStatus(username: string): void {

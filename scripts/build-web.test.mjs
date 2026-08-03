@@ -30,6 +30,7 @@ async function activateGeneratedWorker(worker, cacheNames) {
   const deleted = [];
   const matchOptions = [];
   const navigated = [];
+  const claimed = [];
   const studentUrl =
     "https://advertising-market-game-2026.netlify.app/student?pair=7";
   runInNewContext(worker, {
@@ -54,6 +55,9 @@ async function activateGeneratedWorker(worker, cacheNames) {
         handlers.set(type, handler);
       },
       clients: {
+        async claim() {
+          claimed.push(true);
+        },
         async matchAll(options) {
           matchOptions.push({ ...options });
           return [
@@ -89,7 +93,7 @@ async function activateGeneratedWorker(worker, cacheNames) {
   });
   assert.ok(activation, "activate must register completion work");
   await activation;
-  return { deleted, matchOptions, navigated };
+  return { claimed, deleted, matchOptions, navigated };
 }
 
 function rasterPricing(catalogueText, entries) {
@@ -506,14 +510,15 @@ test("release assembly binds static assets, private functions and one atomic ser
       worker.indexOf("await cache.put(pathname, response)"),
     "the replacement worker must not activate until every core asset is cached"
   );
-  assert.doesNotMatch(worker, /clients\.claim/);
+  assert.match(worker, /await self\.clients\.claim\(\)/);
   const updated = await activateGeneratedWorker(worker, [
     `ad-market-${assetManifest.cacheVersion}`,
     "ad-market-previous-release"
   ]);
   assert.deepEqual(updated.matchOptions, [{ type: "window" }]);
+  assert.deepEqual(updated.claimed, [true]);
   assert.deepEqual(updated.navigated, [
-    "https://advertising-market-game-2026.netlify.app/student?pair=7"
+    `https://advertising-market-game-2026.netlify.app/student?pair=7&release=${assetManifest.cacheVersion}`
   ]);
   assert.deepEqual(updated.deleted, ["ad-market-previous-release"]);
 
@@ -521,6 +526,7 @@ test("release assembly binds static assets, private functions and one atomic ser
     `ad-market-${assetManifest.cacheVersion}`
   ]);
   assert.deepEqual(firstInstall.matchOptions, []);
+  assert.deepEqual(firstInstall.claimed, []);
   assert.deepEqual(firstInstall.navigated, []);
   assert.deepEqual(firstInstall.deleted, []);
   const navigationHandler = worker.slice(

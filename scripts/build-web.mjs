@@ -166,7 +166,6 @@ function renderServiceWorker({ cacheVersion, assets, core }) {
   return `/* Generated. Do not edit. */
 const CACHE_PREFIX = "ad-market-";
 const CACHE_NAME = ${JSON.stringify(cacheName)};
-const CACHE_VERSION = ${JSON.stringify(cacheVersion)};
 const CORE_SHA256 = new Map(Object.entries(${JSON.stringify(expected)}));
 const CORE = ${JSON.stringify(core)};
 const UPDATE_PATHS = new Set([
@@ -224,16 +223,6 @@ self.addEventListener("activate", (event) => {
       (name) => name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME
     );
     await Promise.all(staleReleaseNames.map((name) => caches.delete(name)));
-    if (staleReleaseNames.length === 0) return;
-    await self.clients.claim();
-    const windowClients = await self.clients.matchAll({ type: "window" });
-    await Promise.allSettled(
-      windowClients.map((client) => {
-        const url = new URL(client.url);
-        url.searchParams.set("release", CACHE_VERSION);
-        return client.navigate(url.href);
-      })
-    );
   })());
 });
 

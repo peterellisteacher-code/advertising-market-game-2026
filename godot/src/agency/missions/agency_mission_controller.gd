@@ -85,6 +85,14 @@ func open_mission(mission_id: String, active_role: String) -> Dictionary:
 		"holdingAction": String(_record.get("holdingAction"))
 	}
 
+func refresh_active_role(role: String) -> Dictionary:
+	_active_role = role
+	if _state == STATE_HOLDING or _state == STATE_CHOICE:
+		_state = STATE_CHOICE if _role_allowed() else STATE_HOLDING
+		_show_choice()
+		_emit_state()
+	return snapshot()
+
 func choose(choice_id: String) -> Dictionary:
 	if _state == STATE_HOLDING:
 		return {

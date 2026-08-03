@@ -10,6 +10,12 @@ const REQUIRED_MISSION_RECORDS := [
         "goal": "Identify the audience situation, need and values that the campaign must respect.",
         "instruction": "Compare the four interpretations with the brief, then select the one supported by all of its evidence.",
         "holdingAction": "The Art Director identifies one visual detail that could represent the selected value without relying on a written label.",
+        "referenceFacts": {
+            "context": "Teenagers. One-hour window between school dismissal and home arrival.",
+            "need": "A method to make the window productive.",
+            "values": "Independence and belonging.",
+            "intendedResponse": "See the offer as supporting the student's own plan, not an imposed routine.",
+        },
         "choices": [
             {
                 "id": "independence",

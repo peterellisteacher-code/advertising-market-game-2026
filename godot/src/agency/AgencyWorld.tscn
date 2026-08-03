@@ -873,6 +873,7 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_x5o5d")
 text = "Open guide  G / F1"
 
 [node name="StationPanel" type="PanelContainer" parent="HUD/HUDRoot" unique_id=786183465]
+unique_name_in_owner = true
 layout_mode = 0
 offset_left = 300.0
 offset_top = 598.0
@@ -908,8 +909,21 @@ theme_override_colors/font_color = Color(1, 0.7411765, 0.22352941, 1)
 theme_override_font_sizes/font_size = 12
 text = "H: hand control to partner"
 
+[node name="StationDetailsToggle" type="Button" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent/StationHeader" unique_id=2026080314]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(112, 36)
+layout_mode = 2
+text = "Show station details"
+
+[node name="StationPanelTuck" type="Button" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent/StationHeader" unique_id=2026080315]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(88, 36)
+layout_mode = 2
+text = "Hide card"
+
 [node name="StationResponsibilities" type="Label" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent" unique_id=896154039]
 unique_name_in_owner = true
+visible = false
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_colors/font_color = Color(0.9098039, 0.9490196, 1, 1)
@@ -929,6 +943,17 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_nyk50")
 theme_override_styles/hover = SubResource("StyleBoxFlat_h0l3y")
 theme_override_styles/focus = SubResource("StyleBoxFlat_4mwv4")
 text = "Work at this station"
+
+[node name="StationPanelTab" type="Button" parent="HUD/HUDRoot" unique_id=2026080316]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 500.0
+offset_top = 700.0
+offset_right = 780.0
+offset_bottom = 752.0
+theme_override_font_sizes/font_size = 16
+text = "Open station card"
 
 [node name="HandoffPanel" type="PanelContainer" parent="HUD/HUDRoot" unique_id=409753894]
 unique_name_in_owner = true

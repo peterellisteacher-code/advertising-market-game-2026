@@ -9,7 +9,16 @@ const [
   marketScene,
   projectSettings,
   accessibilityMirror,
-  marketHost
+  marketHost,
+  agencyGuideScript,
+  agencyGuideScene,
+  agencyHudScript,
+  agencyHudScene,
+  missionPanelScript,
+  missionPanelScene,
+  missionCatalogScript,
+  agencyWorldScript,
+  agencyWorldScene
 ] = await Promise.all([
   readFile(new URL("../godot/src/main/main.gd", import.meta.url), "utf8"),
   readFile(new URL("../godot/src/main/Main.tscn", import.meta.url), "utf8"),
@@ -17,8 +26,80 @@ const [
   readFile(new URL("../godot/src/market/ui/MarketScreen.tscn", import.meta.url), "utf8"),
   readFile(new URL("../godot/project.godot", import.meta.url), "utf8"),
   readFile(new URL("../godot/src/main/game_accessibility_mirror.gd", import.meta.url), "utf8"),
-  readFile(new URL("../godot/src/market/market_host.gd", import.meta.url), "utf8")
+  readFile(new URL("../godot/src/market/market_host.gd", import.meta.url), "utf8"),
+  readFile(new URL("../godot/src/agency/ui/agency_guide_drawer.gd", import.meta.url), "utf8"),
+  readFile(new URL("../godot/src/agency/ui/AgencyGuideDrawer.tscn", import.meta.url), "utf8"),
+  readFile(new URL("../godot/src/agency/ui/agency_hud.gd", import.meta.url), "utf8"),
+  readFile(new URL("../godot/src/agency/ui/AgencyHud.tscn", import.meta.url), "utf8"),
+  readFile(new URL("../godot/src/agency/missions/agency_mission_panel.gd", import.meta.url), "utf8"),
+  readFile(new URL("../godot/src/agency/missions/AgencyMissionPanel.tscn", import.meta.url), "utf8"),
+  readFile(new URL("../godot/src/agency/agency_mission_catalog.gd", import.meta.url), "utf8"),
+  readFile(new URL("../godot/src/agency/agency_world.gd", import.meta.url), "utf8"),
+  readFile(new URL("../godot/src/agency/AgencyWorld.tscn", import.meta.url), "utf8")
 ]);
+
+test("agency quick start presents one action at a time and can be resumed", () => {
+  for (const nodeName of [
+    "OrientationAction",
+    "OrientationItemOneLabel",
+    "OrientationItemTwoLabel",
+    "OrientationItemThreeLabel",
+    "MinimiseOrientation",
+    "ResumeOrientation"
+  ]) {
+    assert.ok(agencyGuideScene.includes(`name="${nodeName}"`), `missing ${nodeName}`);
+  }
+  assert.match(agencyGuideScript, /func minimise_orientation\(\) -> void:/);
+  assert.match(agencyGuideScript, /func resume_orientation\(\) -> void:/);
+  assert.ok(agencyGuideScript.includes("Continue quick start"));
+  assert.match(
+    agencyGuideScript,
+    /orientation_acknowledged = true[\s\S]*?direct_travel_requested\.emit\("client-briefing"\)/
+  );
+  assert.doesNotMatch(agencyGuideScript, /portfolio stamps|Gold, Silver and Bronze/);
+});
+
+test("agency HUD and station card can be tucked without hiding the next action", () => {
+  assert.match(agencyHudScript, /func set_compact\(compact: bool\) -> void:/);
+  assert.match(agencyHudScript, /func is_compact\(\) -> bool:/);
+  assert.ok(agencyHudScene.includes('name="HudTuckToggle"'));
+  assert.ok(agencyHudScene.includes('text = "More"'));
+  for (const nodeName of [
+    "StationDetailsToggle",
+    "StationPanelTuck",
+    "StationPanelTab"
+  ]) {
+    assert.ok(agencyWorldScene.includes(`name="${nodeName}"`), `missing ${nodeName}`);
+  }
+  assert.match(
+    agencyWorldScript,
+    /func _set_station_panel_tucked\(tucked: bool\) -> void:/
+  );
+  assert.match(
+    agencyWorldScript,
+    /func _set_station_details_visible\(visible: bool\) -> void:/
+  );
+});
+
+test("agency mission keeps evidence and a direct role handover beside clickable answers", () => {
+  assert.ok(missionCatalogScript.includes('"referenceFacts"'));
+  for (const nodeName of [
+    "MissionStep",
+    "ReferenceCard",
+    "ReferenceLabel",
+    "RoleDetailsToggle",
+    "RoleHandoffButton"
+  ]) {
+    assert.ok(missionPanelScene.includes(`name="${nodeName}"`), `missing ${nodeName}`);
+  }
+  assert.match(missionPanelScript, /signal role_handoff_requested\(role: String\)/);
+  assert.ok(missionPanelScript.includes("Click one answer"));
+  assert.doesNotMatch(
+    missionPanelScript,
+    /Close this panel first\. Then hand control/
+  );
+  assert.match(agencyWorldScript, /func _on_mission_role_handoff_requested\(role: String\) -> void:/);
+});
 
 test("game shell uses the full 16:10 school MacBook viewport", () => {
   assert.match(projectSettings, /window\/size\/viewport_width=1280/);

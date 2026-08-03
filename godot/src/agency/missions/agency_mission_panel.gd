@@ -6,6 +6,7 @@ signal evidence_submitted(text: String)
 signal continue_requested
 signal retry_requested
 signal close_requested
+signal role_handoff_requested(role: String)
 
 const CHOICE_COLOURS: Array[Color] = [
     Color("f8d165"),
@@ -25,7 +26,12 @@ const MAX_EVIDENCE_LENGTH := 400
 @onready var goal_label: Label = $Backdrop/Dialog/Margin/Content/Goal
 @onready var owner_label: Label = $Backdrop/Dialog/Margin/Content/OwnerCard/OwnerLabel
 @onready var holding_label: Label = $Backdrop/Dialog/Margin/Content/OwnerCard/HoldingLabel
+@onready var mission_step: Label = $Backdrop/Dialog/Margin/Content/MissionStep
+@onready var role_details_toggle: Button = $Backdrop/Dialog/Margin/Content/OwnerCard/RoleDetailsToggle
+@onready var role_handoff_button: Button = $Backdrop/Dialog/Margin/Content/RoleHandoffButton
 @onready var instruction_label: Label = $Backdrop/Dialog/Margin/Content/Instruction
+@onready var reference_card: PanelContainer = $Backdrop/Dialog/Margin/Content/ReferenceCard
+@onready var reference_label: Label = $Backdrop/Dialog/Margin/Content/ReferenceCard/ReferenceLabel
 @onready var choice_stage: VBoxContainer = $Backdrop/Dialog/Margin/Content/ChoiceStage
 @onready var choice_grid: GridContainer = $Backdrop/Dialog/Margin/Content/ChoiceStage/ChoiceGrid
 @onready var choice_buttons: Array[Button] = [
@@ -55,6 +61,7 @@ const MAX_EVIDENCE_LENGTH := 400
 
 var _record: Dictionary = {}
 var _choice_ids: Array[String] = ["", "", "", ""]
+var _role_details_visible: bool = false
 
 func _ready() -> void:
     _apply_visual_theme()
@@ -63,6 +70,8 @@ func _ready() -> void:
     continue_button.pressed.connect(_request_continue)
     submit_button.pressed.connect(_submit_evidence)
     completed_close_button.pressed.connect(_request_close)
+    role_details_toggle.pressed.connect(_toggle_role_details)
+    role_handoff_button.pressed.connect(_request_role_handoff)
     evidence_edit.text_changed.connect(_update_evidence_count)
     for index in choice_buttons.size():
         choice_buttons[index].pressed.connect(_select_choice.bind(index))
@@ -72,20 +81,17 @@ func _ready() -> void:
 func show_choice(record: Dictionary, active_role: String, allowed: bool) -> void:
     _record = record.duplicate(true)
     _set_common_text()
-    var owner_name := _role_name(String(record.get("ownerRole")))
-    owner_label.text = "%s DECIDES" % owner_name.to_upper()
-    if allowed:
-        holding_label.text = "The other partner supports this decision: %s" % String(record.get("holdingAction"))
-        instruction_label.text = "Choose one treatment. Compare what the audience would notice and understand."
-    else:
-        holding_label.text = "%s currently has control. Hand control to the %s before this choice can be submitted. While waiting: %s" % [
-            _role_name(active_role),
-            owner_name,
-            String(record.get("holdingAction"))
-        ]
-        instruction_label.text = (
-            "Close this panel first. Then hand control to the %s from the agency HUD." % owner_name
-        )
+    _set_reference_text(record)
+    mission_step.text = "1. Click one answer"
+    var owner_role := String(record.get("ownerRole"))
+    var owner_name := _role_name(owner_role)
+    owner_label.text = "%s leads this choice." % owner_name
+    holding_label.text = "Partner job: %s" % String(record.get("holdingAction"))
+    instruction_label.text = (
+        "Click one answer."
+        if allowed
+        else "Make the %s active to answer this question." % owner_name
+    )
     var choices: Array = record.get("choices", [])
     for index in choice_buttons.size():
         var button := choice_buttons[index]
@@ -93,27 +99,27 @@ func show_choice(record: Dictionary, active_role: String, allowed: bool) -> void
             var choice: Dictionary = choices[index]
             _choice_ids[index] = String(choice.get("id"))
             button.text = "%d  %s" % [index + 1, String(choice.get("label"))]
-            button.disabled = not allowed
+            button.disabled = false
             button.visible = true
         else:
             _choice_ids[index] = ""
             button.visible = false
     _show_stage(choice_stage)
-    choice_keyboard_hint.text = (
-        "Touchpad: select a treatment. Keyboard: Tab and Return, or number keys 1–4. Esc closes."
-        if allowed
-        else "Keyboard: Esc closes. Touchpad: select Close."
-    )
+    choice_stage.visible = allowed
+    role_handoff_button.visible = not allowed
+    role_handoff_button.text = "Make %s active" % owner_name
+    choice_keyboard_hint.text = "Click an answer, or use Tab and Return or number keys 1–4. Esc closes."
     visible = true
     if allowed:
         _focus_first_choice()
     else:
-        close_button.call_deferred("grab_focus")
+        role_handoff_button.call_deferred("grab_focus")
 
 func show_effect(record: Dictionary, evaluation: Dictionary) -> void:
     _record = record.duplicate(true)
     _set_common_text()
     var correct := bool(evaluation.get("correct"))
+    mission_step.text = "2. Check what the choice does"
     instruction_label.text = (
         "Read the effect, then select Apply this decision."
         if correct
@@ -133,6 +139,7 @@ func show_effect(record: Dictionary, evaluation: Dictionary) -> void:
 func show_transfer(record: Dictionary, objective_text: String) -> void:
     _record = record.duplicate(true)
     _set_common_text()
+    mission_step.text = "3. Explain how you will use it"
     transfer_prompt.text = String(record.get("transferPrompt"))
     application_objective.text = objective_text
     instruction_label.text = (
@@ -148,6 +155,7 @@ func show_transfer(record: Dictionary, objective_text: String) -> void:
 func show_completed(record: Dictionary, result: Dictionary) -> void:
     _record = record.duplicate(true)
     _set_common_text()
+    mission_step.text = "Complete"
     var required := bool(result.get("required", true))
     instruction_label.text = "Review the result, then return to the agency."
     completed_heading.text = "MISSION COMPLETE" if required else "OPTIONAL CONTRACT COMPLETE"
@@ -183,6 +191,42 @@ func _show_stage(active_stage: Control) -> void:
     effect_stage.visible = active_stage == effect_stage
     transfer_stage.visible = active_stage == transfer_stage
     completed_stage.visible = active_stage == completed_stage
+    reference_card.visible = active_stage == choice_stage and not reference_label.text.is_empty()
+    role_details_toggle.visible = active_stage == choice_stage
+    role_handoff_button.visible = false
+    _set_role_details_visible(false)
+
+func _set_reference_text(record: Dictionary) -> void:
+    var facts_value: Variant = record.get("referenceFacts", {})
+    var lines: Array[String] = []
+    if typeof(facts_value) == TYPE_DICTIONARY:
+        var facts: Dictionary = facts_value
+        for entry: Dictionary in [
+            {"key": "context", "label": "CONTEXT"},
+            {"key": "need", "label": "NEED"},
+            {"key": "values", "label": "VALUES"},
+            {"key": "intendedResponse", "label": "INTENDED RESPONSE"},
+        ]:
+            var value := String(facts.get(String(entry.get("key")), ""))
+            if not value.is_empty():
+                lines.append("%s: %s" % [String(entry.get("label")), value])
+    elif typeof(facts_value) == TYPE_ARRAY:
+        for fact_value: Variant in facts_value:
+            if typeof(fact_value) != TYPE_DICTIONARY:
+                continue
+            var fact: Dictionary = fact_value
+            var label := String(fact.get("label", "FACT"))
+            var text := String(fact.get("text", ""))
+            if not text.is_empty():
+                lines.append("%s: %s" % [label, text])
+    if lines.is_empty():
+        lines.append("USE THIS: %s" % String(record.get("instruction", record.get("goal", "Check the mission goal."))))
+    reference_label.text = "\n".join(lines)
+
+func _set_role_details_visible(is_visible: bool) -> void:
+    _role_details_visible = is_visible
+    holding_label.visible = is_visible
+    role_details_toggle.text = "Hide pair roles" if is_visible else "Show pair roles"
 
 func _select_choice(index: int) -> void:
     if index < 0 or index >= _choice_ids.size():
@@ -199,6 +243,12 @@ func _request_continue() -> void:
 
 func _request_retry() -> void:
     retry_requested.emit()
+
+func _toggle_role_details() -> void:
+    _set_role_details_visible(not _role_details_visible)
+
+func _request_role_handoff() -> void:
+    role_handoff_requested.emit(String(_record.get("ownerRole", "strategist")))
 
 func _request_close() -> void:
     close_requested.emit()
@@ -225,8 +275,10 @@ func _apply_visual_theme() -> void:
     mission_badge.add_theme_color_override("font_color", Color("0087a8"))
     title_label.add_theme_font_size_override("font_size", 30)
     goal_label.add_theme_font_size_override("font_size", 18)
+    mission_step.add_theme_font_size_override("font_size", 15)
     owner_label.add_theme_font_size_override("font_size", 16)
     owner_label.add_theme_color_override("font_color", Color("007a92"))
+    reference_label.add_theme_font_size_override("font_size", 15)
     holding_label.add_theme_font_size_override("font_size", 15)
     instruction_label.add_theme_font_size_override("font_size", 17)
     choice_keyboard_hint.add_theme_font_size_override("font_size", 14)
@@ -240,7 +292,7 @@ func _apply_visual_theme() -> void:
     completed_heading.add_theme_color_override("font_color", Color("00785c"))
     reward_label.add_theme_font_size_override("font_size", 24)
     application_summary.add_theme_font_size_override("font_size", 18)
-    for button in [close_button, retry_button, continue_button, submit_button, completed_close_button]:
+    for button in [close_button, role_details_toggle, role_handoff_button, retry_button, continue_button, submit_button, completed_close_button]:
         button.add_theme_font_size_override("font_size", 16)
 
 func _focus_first_choice() -> void:

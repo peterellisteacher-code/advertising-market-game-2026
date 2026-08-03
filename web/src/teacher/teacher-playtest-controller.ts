@@ -100,21 +100,37 @@ export class TeacherPlaytestController {
   #renderStrip(): void {
     const strip = document.createElement("header");
     strip.className = "teacher-playtest-strip";
+    strip.dataset.expanded = "false";
     strip.setAttribute("role", "banner");
     strip.setAttribute("aria-label", "Teacher playtest");
     const identity = document.createElement("strong");
     identity.textContent = "Teacher playtest";
     const description = document.createElement("span");
     description.textContent = "Isolated from every pair account.";
+    const toggle = actionButton("Show teacher controls");
+    toggle.className = "teacher-playtest-strip__toggle";
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-controls", "teacher-playtest-actions");
     const actions = document.createElement("div");
+    actions.id = "teacher-playtest-actions";
     actions.className = "teacher-playtest-strip__actions";
+    actions.hidden = true;
     const dashboard = actionButton("Return to teacher dashboard");
     dashboard.addEventListener("click", () => this.#navigate("/teacher"));
     const reset = actionButton("Factory reset playtest");
     reset.className = "teacher-button--danger";
     reset.addEventListener("click", () => this.#openResetDialog(reset));
     actions.append(dashboard, reset);
-    strip.append(identity, description, actions);
+    toggle.addEventListener("click", () => {
+      const expanded = strip.dataset.expanded !== "true";
+      strip.dataset.expanded = String(expanded);
+      toggle.textContent = expanded
+        ? "Hide teacher controls"
+        : "Show teacher controls";
+      toggle.setAttribute("aria-expanded", String(expanded));
+      actions.hidden = !expanded;
+    });
+    strip.append(identity, description, toggle, actions);
     this.#root.replaceChildren(strip);
   }
 

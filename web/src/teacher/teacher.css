@@ -30,12 +30,17 @@ body:has([data-admarket-route="teacher-playtest"]) {
   display: flex;
   align-items: center;
   gap: 12px;
-  height: 66px;
+  height: 44px;
   box-sizing: border-box;
   border-bottom: 1px solid var(--teacher-line);
-  padding: 10px 16px;
+  padding: 4px 16px;
   background: var(--teacher-paper);
   box-shadow: 0 4px 16px rgb(20 32 51 / 12%);
+}
+
+.teacher-playtest-strip[data-expanded="true"] {
+  height: 66px;
+  padding-block: 10px;
 }
 
 .teacher-playtest-strip > span {
@@ -48,9 +53,37 @@ body:has([data-admarket-route="teacher-playtest"]) {
   margin-left: auto;
 }
 
+.teacher-playtest-strip__actions[hidden] {
+  display: none;
+}
+
+.teacher-playtest-strip button {
+  min-height: 36px;
+  border: 1px solid var(--teacher-accent);
+  border-radius: 8px;
+  padding: 6px 12px;
+  background: var(--teacher-paper);
+  color: var(--teacher-accent-dark);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.teacher-playtest-strip__toggle {
+  margin-left: auto;
+}
+
+.teacher-playtest-strip[data-expanded="true"] .teacher-playtest-strip__toggle {
+  margin-left: 0;
+}
+
 body:has([data-admarket-route="teacher-playtest"]) #creator-root {
-  top: 66px;
+  top: 44px;
   bottom: 0;
+}
+
+body:has(.teacher-playtest-strip[data-expanded="true"]) #creator-root {
+  top: 66px;
 }
 
 .teacher-page {

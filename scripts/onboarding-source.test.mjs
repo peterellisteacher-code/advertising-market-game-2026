@@ -63,9 +63,13 @@ test("agency quick start keeps its actions inside a 1280 by 800 game view", () =
   const panelBlock = agencyGuideScene.match(
     /\[node name="OrientationPanel"[\s\S]*?(?=\n\[node name="OrientationMargin")/
   )?.[0] ?? "";
+  const itemsBlock = agencyGuideScene.match(
+    /\[node name="OrientationItems"[\s\S]*?(?=\n\[node name="OrientationItemOne")/
+  )?.[0] ?? "";
   assert.match(panelBlock, /custom_minimum_size = Vector2\(860, 520\)/);
   assert.match(panelBlock, /offset_top = -260\.0/);
   assert.match(panelBlock, /offset_bottom = 260\.0/);
+  assert.match(itemsBlock, /size_flags_vertical = 1/);
 });
 
 test("agency volume label avoids runtime percent-format errors", () => {

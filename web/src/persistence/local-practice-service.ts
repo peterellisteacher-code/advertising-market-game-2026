@@ -14,6 +14,7 @@ import {
 } from "../domain/campaign-document";
 import {
   canonicalDurableDocumentHash,
+  canonicalDurableSnapshotHash,
   selectReferencedLocalAssetBlobs,
   type LocalPracticeDraftStore,
   type LocalPracticeCheckpointV1 as StoredCheckpointV1,
@@ -140,7 +141,8 @@ export class LocalPracticeService implements PracticeRunHandler {
       snapshot.teamId !== active.checkpoint.teamId) {
       return null;
     }
-    if (snapshot.revision !== active.checkpoint.documentRevision) {
+    if (snapshot.revision !== active.checkpoint.documentRevision &&
+      !await this.#canRebaseCheckpointOnlyAdvance(snapshot, active)) {
       throw new Error(
         `Editor snapshot revision ${snapshot.revision} is stale; active revision is ${active.checkpoint.documentRevision}`
       );
@@ -151,7 +153,7 @@ export class LocalPracticeService implements PracticeRunHandler {
     const document = CampaignDocumentSchema.parse({
       ...snapshot,
       revision: active.checkpoint.documentRevision + 1,
-      updatedAt: nextUpdatedAt(snapshot.updatedAt, this.#now())
+      updatedAt: nextUpdatedAt(active.document.updatedAt, this.#now())
     });
     const checkpoint = await this.store.commitLocalPractice({
       expectedDocumentRevision: active.checkpoint.documentRevision,
@@ -163,6 +165,25 @@ export class LocalPracticeService implements PracticeRunHandler {
       savedAt: this.#now().toISOString()
     });
     return this.#recoveryForCheckpoint(checkpoint);
+  }
+
+  async #canRebaseCheckpointOnlyAdvance(
+    snapshot: CampaignDocumentV1,
+    active: StoredRecoveryV1
+  ): Promise<boolean> {
+    if (snapshot.revision > active.checkpoint.documentRevision) return false;
+    const base = await this.store.loadRevision(snapshot.documentId, snapshot.revision);
+    if (base === null) return false;
+    const activeAtBaseRevision = CampaignDocumentSchema.parse({
+      ...structuredClone(active.document),
+      revision: base.document.revision,
+      updatedAt: base.document.updatedAt
+    });
+    const [baseHash, activeHash] = await Promise.all([
+      canonicalDurableSnapshotHash(base.document, base.blobs),
+      canonicalDurableSnapshotHash(activeAtBaseRevision, active.blobs)
+    ]);
+    return baseHash === activeHash;
   }
 
   async saveProgress(input: PracticeSaveProgressInput): Promise<LocalPracticeRecoveryV1> {

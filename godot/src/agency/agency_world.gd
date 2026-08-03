@@ -144,6 +144,8 @@ var reduced_motion_enabled: bool = false
 var _progress: AdMarketAgencyProgress
 var _current_station_id: String = "reception"
 var _travel_tween: Tween
+var _station_details_visible: bool = false
+var _station_panel_tucked: bool = false
 
 func _ready() -> void:
 	_connect_controls()
@@ -288,6 +290,8 @@ func _connect_controls() -> void:
 			guide.audio_settings_changed.connect(_on_guide_audio_settings_changed)
 		if not guide.tucked_changed.is_connected(_on_guide_tucked_changed):
 			guide.tucked_changed.connect(_on_guide_tucked_changed)
+		if not guide.reading_state_changed.is_connected(_on_guide_reading_state_changed):
+			guide.reading_state_changed.connect(_on_guide_reading_state_changed)
 	var guide_button := get_node_or_null("%GuideButton") as Button
 	if guide_button != null and not guide_button.pressed.is_connected(_on_guide_pressed):
 		guide_button.pressed.connect(_on_guide_pressed)
@@ -297,6 +301,15 @@ func _connect_controls() -> void:
 	var station_action := get_node_or_null("%StationActionButton") as Button
 	if station_action != null and not station_action.pressed.is_connected(_on_station_action_pressed):
 		station_action.pressed.connect(_on_station_action_pressed)
+	var details_button := get_node_or_null("%StationDetailsToggle") as Button
+	if details_button != null and not details_button.pressed.is_connected(_on_station_details_pressed):
+		details_button.pressed.connect(_on_station_details_pressed)
+	var tuck_button := get_node_or_null("%StationPanelTuck") as Button
+	if tuck_button != null and not tuck_button.pressed.is_connected(_on_station_panel_tuck_pressed):
+		tuck_button.pressed.connect(_on_station_panel_tuck_pressed)
+	var station_tab := get_node_or_null("%StationPanelTab") as Button
+	if station_tab != null and not station_tab.pressed.is_connected(_on_station_panel_tab_pressed):
+		station_tab.pressed.connect(_on_station_panel_tab_pressed)
 	var art_button := get_node_or_null("%ArtDirectorHandoff") as Button
 	if art_button != null and not art_button.pressed.is_connected(_on_art_director_handoff_pressed):
 		art_button.pressed.connect(_on_art_director_handoff_pressed)
@@ -335,7 +348,10 @@ func _configure_missions() -> void:
 	var controller := _mission_controller()
 	if controller == null or _progress == null:
 		return
-	controller.configure(_progress, _mission_panel())
+	var panel := _mission_panel()
+	controller.configure(_progress, panel)
+	if panel != null and not panel.role_handoff_requested.is_connected(_on_mission_role_handoff_requested):
+		panel.role_handoff_requested.connect(_on_mission_role_handoff_requested)
 	if not controller.mission_completed.is_connected(_on_mission_completed):
 		controller.mission_completed.connect(_on_mission_completed)
 	if not controller.sidequest_completed.is_connected(_on_sidequest_completed):
@@ -431,6 +447,26 @@ func _update_station_state() -> void:
 	var hud := _hud()
 	if hud != null:
 		hud.select_station(_current_station_id)
+	_set_station_details_visible(_station_details_visible)
+	_set_station_panel_tucked(_station_panel_tucked)
+
+func _set_station_details_visible(visible: bool) -> void:
+	_station_details_visible = visible
+	var responsibilities := get_node_or_null("%StationResponsibilities") as Control
+	if responsibilities != null:
+		responsibilities.visible = visible
+	var button := get_node_or_null("%StationDetailsToggle") as Button
+	if button != null:
+		button.text = "Hide station details" if visible else "Show station details"
+
+func _set_station_panel_tucked(tucked: bool) -> void:
+	_station_panel_tucked = tucked
+	var panel := get_node_or_null("%StationPanel") as Control
+	var tab := get_node_or_null("%StationPanelTab") as Control
+	if panel != null:
+		panel.visible = not tucked
+	if tab != null:
+		tab.visible = tucked
 
 func _begin_direct_travel(pair: AdMarketAgencyPair, target: Vector2) -> void:
 	if _travel_tween != null and _travel_tween.is_valid():
@@ -472,6 +508,21 @@ func _on_station_requested(station_id: String) -> void:
 func _on_station_action_pressed() -> void:
 	_request_station_work(_current_station_id)
 
+func _on_station_details_pressed() -> void:
+	_set_station_details_visible(not _station_details_visible)
+
+func _on_station_panel_tuck_pressed() -> void:
+	_set_station_panel_tucked(true)
+	var tab := get_node_or_null("%StationPanelTab") as Button
+	if tab != null and tab.is_inside_tree():
+		tab.call_deferred("grab_focus")
+
+func _on_station_panel_tab_pressed() -> void:
+	_set_station_panel_tucked(false)
+	var action_button := get_node_or_null("%StationActionButton") as Button
+	if action_button != null and action_button.is_inside_tree():
+		action_button.call_deferred("grab_focus")
+
 func _request_station_work(station_id: String) -> void:
 	station_requested.emit(station_id)
 	if _progress == null:
@@ -491,6 +542,20 @@ func _on_sidequest_completed(_sidequest_id: String) -> void:
 
 func _on_mission_controller_state_changed(state: Dictionary) -> void:
 	_set_guidance_modal(String(state.get("state", "closed")) != "closed")
+
+func _on_mission_role_handoff_requested(role: String) -> void:
+	if _progress == null or not _progress.handoff_to(role):
+		var panel := _mission_panel()
+		if panel != null and panel.has_method("show_handoff_error"):
+			panel.call("show_handoff_error")
+		return
+	var pair := _pair()
+	if pair != null:
+		pair.set_active_role(role)
+	role_handoff_requested.emit(role)
+	var controller := _mission_controller()
+	if controller != null:
+		controller.refresh_active_role(role)
 
 func _refresh_mission_progress() -> void:
 	_update_objective_bar()
@@ -536,6 +601,9 @@ func _on_guide_tucked_changed(tucked: bool) -> void:
 		_hide_embedded_guide_tab(guide)
 	var orientation := guide.get_node_or_null("%OrientationPanel") as Control if guide != null else null
 	_set_guidance_modal(not tucked or (orientation != null and orientation.visible))
+
+func _on_guide_reading_state_changed(active: bool) -> void:
+	_set_guidance_modal(active)
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	var key_event: InputEventKey = event as InputEventKey

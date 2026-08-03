@@ -255,6 +255,7 @@ func _ready() -> void:
         review_check.toggled.connect(_on_final_review_changed)
     run_panel.hide()
     market_screen.hide()
+    _hide_agency()
     _setup_practice_recovery()
     _run_progress_store = run_progress_store_override
     if _run_progress_store == null:
@@ -285,13 +286,20 @@ func _show_agency() -> void:
     market_screen.hide()
     run_panel.hide()
     agency_world.show()
+    _set_agency_surface_visible(true)
     agency_world.set_input_enabled(not bool(creator_host.get("creator_is_open")))
 
 func _hide_agency() -> void:
     if agency_world == null:
         return
     agency_world.set_input_enabled(false)
+    _set_agency_surface_visible(false)
     agency_world.hide()
+
+func _set_agency_surface_visible(is_visible: bool) -> void:
+    var surface := agency_world.get_node_or_null("HUD") as CanvasLayer
+    if surface != null:
+        surface.visible = is_visible
 
 func _on_agency_station_requested(station_id: String) -> void:
     if _agency_campaign == null:

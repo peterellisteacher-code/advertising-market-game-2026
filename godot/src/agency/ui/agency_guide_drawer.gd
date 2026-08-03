@@ -6,6 +6,7 @@ signal role_handoff_requested(role: String)
 signal audio_settings_requested
 signal audio_settings_changed(settings: Dictionary)
 signal tucked_changed(tucked: bool)
+signal reading_state_changed(active: bool)
 
 const OVERALL_GOAL := "Create and pitch one persuasive advertisement for the audience in the client brief."
 const SECTION_INDEX := {
@@ -15,39 +16,60 @@ const SECTION_INDEX := {
 	"roles": 3,
 	"progress": 4,
 }
+const ORIENTATION_ITEM_SUFFIXES: Array[String] = ["One", "Two", "Three"]
 const ORIENTATION_STEPS := [
 	{
-		"title": "Your goal: win the client pitch",
-		"body": (
-			"1. Read the client brief.\n"
-			+ "2. Build one advertisement for that audience.\n"
-			+ "3. Complete the required practice missions.\n"
-			+ "4. Pitch the finished advertisement and explain why it should persuade the audience.\n\n"
-			+ "The pitch unlocks only after every required mission is complete. At the pitch, you will see your own advertisement in three display formats and receive a client response. Optional contracts add portfolio stamps; they never block completion. The market can award Gold, Silver and Bronze medals."
-		),
-		"button": "Next: learn the controls",
+		"title": "Make one advertisement for one client",
+		"action": "Build one advertisement that suits the audience in the client brief.",
+		"items": [
+			{
+				"label": "START",
+				"text": "Read the client brief so you know who the advertisement must persuade.",
+			},
+			{
+				"label": "FINISH",
+				"text": "Complete the required missions, build the advertisement, then present it.",
+			},
+		],
+		"button": "Show me where to start",
 	},
 	{
-		"title": "How to reach each task",
-		"body": (
-			"Walk: WASD or arrow keys.\n"
-			+ "Use a nearby station: E, Space or Enter.\n"
-			+ "Go straight to a task: choose its room from Direct travel.\n\n"
-			+ "Start at Client Brief. It tells you who the advertisement must persuade."
-		),
-		"button": "Next: understand the roles",
+		"title": "Go to Client Briefing",
+		"action": "Move there, then open the first task.",
+		"items": [
+			{
+				"label": "MOVE",
+				"text": "Use WASD or arrow keys.",
+			},
+			{
+				"label": "USE A STATION",
+				"text": "Press E, Space or Enter when the station prompt appears.",
+			},
+			{
+				"label": "TRACKPAD",
+				"text": "You can click every menu, button and answer.",
+			},
+		],
+		"button": "Show the pair roles",
 	},
 	{
-		"title": "How the pair roles differ",
-		"body": (
-			"Strategist: leads choices about the audience, message, evidence, offer and call to action. "
-			+ "This partner explains why the advertisement should persuade the audience.\n\n"
-			+ "Art Director: leads choices about layout, colour, type, images and visual emphasis. "
-			+ "This partner explains where the audience will look first and why.\n\n"
-			+ "Both partners can use every control and station. The roles divide responsibility; "
-			+ "they do not unlock different tools. Press H whenever the other partner takes the lead."
-		),
-		"button": "Go to Client Brief",
+		"title": "Know who leads each decision",
+		"action": "The lead role makes the first recommendation. Both partners discuss the decision.",
+		"items": [
+			{
+				"label": "STRATEGIST",
+				"text": "Leads choices about the audience, message, evidence and offer.",
+			},
+			{
+				"label": "ART DIRECTOR",
+				"text": "Leads choices about layout, colour, type and image.",
+			},
+			{
+				"label": "BOTH PARTNERS",
+				"text": "Have the same controls and access. The roles divide responsibility, not permissions.",
+			},
+		],
+		"button": "Go to Client Briefing",
 	},
 ]
 
@@ -115,6 +137,7 @@ func set_tucked(tucked: bool) -> void:
 		guide_tab.visible = tucked
 	if guide_panel != null:
 		guide_panel.visible = not tucked
+	_update_resume_orientation()
 	if tucked:
 		var focus_target := _opener if is_instance_valid(_opener) and _opener.visible else guide_tab
 		if focus_target != null and focus_target.is_inside_tree():
@@ -135,21 +158,35 @@ func open_orientation() -> void:
 	if not orientation_required():
 		return
 	_orientation_step = 0
-	var layer := get_node_or_null("%OrientationLayer") as Control
-	var panel := get_node_or_null("%OrientationPanel") as Control
+	resume_orientation()
+
+func minimise_orientation() -> void:
+	if not orientation_required():
+		return
+	set_tucked(true)
+	_set_orientation_visible(false)
+	_update_resume_orientation()
+	reading_state_changed.emit(false)
+	var resume_button := get_node_or_null("%ResumeOrientation") as Button
+	if resume_button != null and resume_button.is_inside_tree():
+		resume_button.grab_focus()
+
+func resume_orientation() -> void:
+	if not orientation_required():
+		return
 	var guide_tab := get_node_or_null("%GuideTab") as Control
 	var guide_panel := get_node_or_null("%GuidePanel") as Control
-	if layer != null:
-		layer.visible = true
-	if panel != null:
-		panel.visible = true
 	if guide_tab != null:
 		guide_tab.visible = false
 	if guide_panel != null:
 		guide_panel.visible = false
+	_set_orientation_visible(true)
+	_update_resume_orientation()
 	_update_orientation()
+	var panel := get_node_or_null("%OrientationPanel") as Control
 	if panel != null:
 		panel.reset_size()
+	reading_state_changed.emit(true)
 
 func reading_active() -> bool:
 	var guide_panel := get_node_or_null("%GuidePanel") as Control
@@ -165,15 +202,29 @@ func advance_orientation() -> void:
 	_orientation_step += 1
 	if _orientation_step >= ORIENTATION_STEPS.size():
 		_progress.orientation_acknowledged = true
-		var layer := get_node_or_null("%OrientationLayer") as Control
-		var panel := get_node_or_null("%OrientationPanel") as Control
-		if layer != null:
-			layer.visible = false
-		if panel != null:
-			panel.visible = false
-		open_guide("objective")
+		_set_orientation_visible(false)
+		set_tucked(true)
+		_update_resume_orientation()
+		reading_state_changed.emit(false)
+		direct_travel_requested.emit("client-briefing")
 		return
 	_update_orientation()
+
+func _set_orientation_visible(is_visible: bool) -> void:
+	var layer := get_node_or_null("%OrientationLayer") as Control
+	var panel := get_node_or_null("%OrientationPanel") as Control
+	if layer != null:
+		layer.visible = is_visible
+	if panel != null:
+		panel.visible = is_visible
+
+func _update_resume_orientation() -> void:
+	var resume_button := get_node_or_null("%ResumeOrientation") as Button
+	var orientation_panel := get_node_or_null("%OrientationPanel") as Control
+	var orientation_visible := orientation_panel != null and orientation_panel.visible
+	if resume_button != null:
+		resume_button.text = "Continue quick start"
+		resume_button.visible = orientation_required() and _tucked and not orientation_visible
 
 func _stabilise_guide_layout(tabs: TabContainer, target_tab: int) -> void:
 	for tab_index in range(tabs.get_tab_count()):
@@ -188,6 +239,8 @@ func _connect_controls() -> void:
 	_connect_button("%CloseGuide", _on_close_guide_pressed)
 	_connect_button("%GoToObjective", _on_go_to_objective_pressed)
 	_connect_button("%OrientationNext", _on_orientation_next_pressed)
+	_connect_button("%MinimiseOrientation", _on_minimise_orientation_pressed)
+	_connect_button("%ResumeOrientation", _on_resume_orientation_pressed)
 	_connect_button("%ArtDirectorControl", _on_art_director_pressed)
 	_connect_button("%StrategistControl", _on_strategist_pressed)
 	_connect_button("%AudioSettings", _on_audio_settings_pressed)
@@ -253,7 +306,7 @@ func _update_audio_control_state() -> void:
 		volume_control.editable = audio_enabled
 	_set_label_text(
 		"%MasterVolumeLabel",
-		"Overall volume: %d%%" % roundi(float(settings.get("masterVolume", 0.7)) * 100.0)
+		"Overall volume: " + str(roundi(float(settings.get("masterVolume", 0.7)) * 100.0)) + "%"
 	)
 
 func _on_audio_setting_changed(_value: Variant) -> void:
@@ -265,9 +318,18 @@ func _on_audio_setting_changed(_value: Variant) -> void:
 
 func _update_orientation() -> void:
 	var step: Dictionary = ORIENTATION_STEPS[_orientation_step]
-	_set_label_text("%OrientationStep", "Orientation %d of %d" % [_orientation_step + 1, ORIENTATION_STEPS.size()])
-	_set_label_text("%OrientationTitle", String(step.get("title", "Agency orientation")))
-	_set_label_text("%OrientationBody", String(step.get("body", "")))
+	_set_label_text("%OrientationStep", "Quick start %d of %d" % [_orientation_step + 1, ORIENTATION_STEPS.size()])
+	_set_label_text("%OrientationTitle", String(step.get("title", "Quick start")))
+	_set_label_text("%OrientationAction", String(step.get("action", "Choose the next action.")))
+	var items: Array = step.get("items", [])
+	for item_index in ORIENTATION_ITEM_SUFFIXES.size():
+		var suffix := ORIENTATION_ITEM_SUFFIXES[item_index]
+		var row := get_node_or_null("%OrientationItem" + suffix) as Control
+		var item: Dictionary = items[item_index] if item_index < items.size() else {}
+		if row != null:
+			row.visible = not item.is_empty()
+		_set_label_text("%OrientationItem" + suffix + "Label", String(item.get("label", "")))
+		_set_label_text("%OrientationItem" + suffix + "Text", String(item.get("text", "")))
 	var next_button := get_node_or_null("%OrientationNext") as Button
 	if next_button != null:
 		next_button.text = String(step.get("button", "Continue"))
@@ -304,6 +366,12 @@ func _on_go_to_objective_pressed() -> void:
 
 func _on_orientation_next_pressed() -> void:
 	advance_orientation()
+
+func _on_minimise_orientation_pressed() -> void:
+	minimise_orientation()
+
+func _on_resume_orientation_pressed() -> void:
+	resume_orientation()
 
 func _on_art_director_pressed() -> void:
 	role_handoff_requested.emit("art-director")

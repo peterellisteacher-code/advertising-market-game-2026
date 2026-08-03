@@ -11,6 +11,7 @@ func run() -> bool:
 	assert(_choice_effect_and_transfer_complete_required_progress())
 	assert(_optional_contract_awards_only_progress_metadata())
 	assert(_panel_stages_are_bounded_and_sequence_one_action())
+	assert(_panel_exposes_reference_and_direct_handoff())
 	assert(_panel_scene_exposes_the_mission_contract())
 	return true
 
@@ -147,6 +148,92 @@ func _panel_stages_are_bounded_and_sequence_one_action() -> bool:
 	panel.free()
 	return true
 
+func _panel_exposes_reference_and_direct_handoff() -> bool:
+	var panel_scene := load(PANEL_SCENE_PATH) as PackedScene
+	if panel_scene == null:
+		return false
+	var panel := panel_scene.instantiate() as Control
+	var tree := Engine.get_main_loop() as SceneTree
+	assert(tree != null)
+	tree.root.add_child(panel)
+	if not panel.is_node_ready():
+		panel.call("_ready")
+	var record := {
+		"title": "Read the audience before making anything",
+		"instruction": "Choose the interpretation supported by every brief fact.",
+		"goal": "Identify the audience evidence.",
+		"ownerRole": "strategist",
+		"holdingAction": "The Art Director identifies one visual detail.",
+		"required": true,
+		"referenceFacts": [
+			{"label": "CONTEXT", "text": "Teenagers between school and home."},
+			{"label": "NEED", "text": "Make one hour productive."},
+			{"label": "VALUES", "text": "Independence and belonging."},
+		],
+		"choices": [
+			{"id": "supported", "label": "The supported answer."},
+			{"id": "unsupported", "label": "The unsupported answer."},
+		],
+	}
+	var requested_roles: Array[String] = []
+	panel.role_handoff_requested.connect(func(role: String) -> void: requested_roles.append(role))
+	panel.call("show_choice", record, "art-director", false)
+	var content_path := "Backdrop/Dialog/Margin/Content"
+	var reference := panel.get_node("%s/ReferenceCard/ReferenceLabel" % content_path) as Label
+	assert(reference.text.contains("CONTEXT"))
+	assert(reference.text.contains("NEED"))
+	assert(reference.text.contains("VALUES"))
+	var choice_stage := panel.get_node("%s/ChoiceStage" % content_path) as VBoxContainer
+	var handoff := panel.get_node("%s/RoleHandoffButton" % content_path) as Button
+	assert(not choice_stage.visible)
+	assert(handoff.visible)
+	assert(handoff.text == "Make Strategist active")
+	assert((panel.get_node("%s/MissionStep" % content_path) as Label).text == "1. Make Strategist active")
+	assert((choice_stage.get_node("ChoiceGrid/ChoiceOne") as Button).disabled)
+	assert(not (panel.get_node("%s/ReferenceCard" % content_path) as PanelContainer).visible)
+	assert(not (panel.get_node("%s/ReferenceToggle" % content_path) as Button).visible)
+	handoff.pressed.emit()
+	assert(requested_roles == ["strategist"])
+	panel.call("show_handoff_error")
+	assert((panel.get_node("%s/MissionStep" % content_path) as Label).text == "1. Hand control over again")
+	assert((panel.get_node("%s/Instruction" % content_path) as Label).text.contains("Select the handover button again"))
+	panel.call("show_choice", record, "strategist", true)
+	assert(choice_stage.visible)
+	assert(not handoff.visible)
+	assert((panel.get_node("%s/Instruction" % content_path) as Label).text == "Click one answer.")
+	assert(not (choice_stage.get_node("ChoiceGrid/ChoiceOne") as Button).disabled)
+	var reference_card := panel.get_node("%s/ReferenceCard" % content_path) as PanelContainer
+	var reference_toggle := panel.get_node("%s/ReferenceToggle" % content_path) as Button
+	assert(reference_card.visible)
+	assert(reference_toggle.visible)
+	assert(reference_toggle.text == "Hide audience brief")
+	reference_toggle.pressed.emit()
+	assert(not reference_card.visible)
+	assert(reference_toggle.text == "Show audience brief")
+	assert(choice_stage.visible)
+	reference_toggle.pressed.emit()
+	assert(reference_card.visible)
+	var mission_reference_record := record.duplicate(true)
+	mission_reference_record.erase("referenceFacts")
+	panel.call("show_choice", mission_reference_record, "strategist", true)
+	assert(reference_toggle.text == "Hide mission reference")
+	reference_toggle.pressed.emit()
+	assert(reference_toggle.text == "Show mission reference")
+	var role_details := panel.get_node("%s/OwnerCard/HoldingLabel" % content_path) as Label
+	var role_definition := panel.get_node("%s/OwnerCard/RoleDefinitionLabel" % content_path) as Label
+	var role_toggle := panel.get_node("%s/OwnerCard/RoleDetailsToggle" % content_path) as Button
+	assert(not role_details.visible)
+	assert(not role_definition.visible)
+	role_toggle.pressed.emit()
+	assert(role_details.visible)
+	assert(role_definition.visible)
+	assert(role_definition.text.contains("Both partners use the same controls"))
+	assert(role_definition.text.contains("Strategist decides audience, purpose, product and message"))
+	assert(role_definition.text.contains("Art Director decides visual design and execution"))
+	assert(role_toggle.text == "Hide pair roles")
+	panel.free()
+	return true
+
 func _panel_scene_exposes_the_mission_contract() -> bool:
 	var panel_scene := load(PANEL_SCENE_PATH) as PackedScene
 	if panel_scene == null:
@@ -157,9 +244,11 @@ func _panel_scene_exposes_the_mission_contract() -> bool:
 	assert(panel.has_signal("continue_requested"))
 	assert(panel.has_signal("retry_requested"))
 	assert(panel.has_signal("close_requested"))
+	assert(panel.has_signal("role_handoff_requested"))
 	assert(panel.has_method("show_choice"))
 	assert(panel.has_method("show_effect"))
 	assert(panel.has_method("show_transfer"))
 	assert(panel.has_method("show_completed"))
+	assert(panel.has_method("show_handoff_error"))
 	panel.free()
 	return true

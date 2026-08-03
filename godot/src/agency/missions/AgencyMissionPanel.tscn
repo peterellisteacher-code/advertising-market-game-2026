@@ -99,6 +99,13 @@ custom_minimum_size = Vector2(120, 48)
 layout_mode = 2
 text = "Close  Esc"
 
+[node name="MissionStep" type="Label" parent="Backdrop/Dialog/Margin/Content" unique_id=2026080317]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0.48, 0.62, 1)
+theme_override_font_sizes/font_size = 15
+text = "1. Click one answer"
+
 [node name="Title" type="Label" parent="Backdrop/Dialog/Margin/Content" unique_id=277245916]
 custom_minimum_size = Vector2(800, 0)
 layout_mode = 2
@@ -122,7 +129,24 @@ layout_mode = 2
 layout_mode = 2
 text = "ART DIRECTOR DECIDES"
 
+[node name="RoleDetailsToggle" type="Button" parent="Backdrop/Dialog/Margin/Content/OwnerCard" unique_id=2026080318]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+text = "Show pair roles"
+
+[node name="RoleDefinitionLabel" type="Label" parent="Backdrop/Dialog/Margin/Content/OwnerCard" unique_id=2026080322]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(800, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.14, 0.2, 0.3, 1)
+text = "Both partners use the same controls. Strategist decides audience, purpose, product and message. Art Director decides visual design and execution."
+autowrap_mode = 3
+
 [node name="HoldingLabel" type="Label" parent="Backdrop/Dialog/Margin/Content/OwnerCard" unique_id=2121413035]
+visible = false
 custom_minimum_size = Vector2(800, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -130,12 +154,44 @@ theme_override_colors/font_color = Color(0.14, 0.2, 0.3, 1)
 text = "The other partner checks the audience effect."
 autowrap_mode = 3
 
+[node name="RoleHandoffButton" type="Button" parent="Backdrop/Dialog/Margin/Content" unique_id=2026080319]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Make the lead role active"
+
 [node name="Instruction" type="Label" parent="Backdrop/Dialog/Margin/Content" unique_id=681311123]
 custom_minimum_size = Vector2(800, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.14, 0.2, 0.3, 1)
 text = "Choose one treatment."
+autowrap_mode = 3
+
+[node name="ReferenceToggle" type="Button" parent="Backdrop/Dialog/Margin/Content" unique_id=2026080323]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+text = "Hide audience brief"
+
+[node name="ReferenceCard" type="PanelContainer" parent="Backdrop/Dialog/Margin/Content" unique_id=2026080320]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(800, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_qm1oy")
+
+[node name="ReferenceLabel" type="Label" parent="Backdrop/Dialog/Margin/Content/ReferenceCard" unique_id=2026080321]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(760, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.14, 0.2, 0.3, 1)
+theme_override_font_sizes/font_size = 15
+text = "Audience brief facts"
 autowrap_mode = 3
 
 [node name="ChoiceStage" type="VBoxContainer" parent="Backdrop/Dialog/Margin/Content" unique_id=1577818898]

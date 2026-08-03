@@ -15,6 +15,8 @@ func run() -> bool:
 	tree.root.add_child(world)
 	if not world.is_node_ready():
 		world.call("_ready")
+	var agency_floor := world.get_node("AgencyFloor") as Sprite2D
+	assert(agency_floor.z_index >= 0)
 	var pair := world.get_node("%AgencyPair") as CharacterBody2D
 	var guide := world.get_node("%AgencyGuideDrawer") as AdMarketAgencyGuideDrawer
 	var orientation := guide.get_node("OrientationLayer") as Control
@@ -26,12 +28,8 @@ func run() -> bool:
 	guide.advance_orientation()
 	guide.advance_orientation()
 	assert(not orientation.visible)
-	assert(guide_panel.visible)
-	assert(not guide.orientation_required())
-	assert(not pair.input_enabled)
-	assert(pair.modal_open)
-	guide.set_tucked(true)
 	assert(not guide_panel.visible)
+	assert(not guide.orientation_required())
 	assert(pair.input_enabled)
 	assert(not pair.modal_open)
 	assert(not guide.get_node("GuideTab").visible)
@@ -44,6 +42,7 @@ func run() -> bool:
 	assert(not guide_panel.visible)
 	assert(pair.input_enabled)
 	assert(not pair.modal_open)
+	_assert_station_card_can_be_tucked(world, progress)
 	_assert_station_mission_panel_uses_role_and_modal_state(world, progress)
 	_assert_keyboard_handoff_and_guide_shortcuts(world, progress)
 	assert(world.direct_travel("reception"))
@@ -72,6 +71,32 @@ func run() -> bool:
 	world.free()
 	return true
 
+func _assert_station_card_can_be_tucked(world: Node, progress: RefCounted) -> void:
+	var station_panel := world.get_node("%StationPanel") as Control
+	var station_tab := world.get_node("%StationPanelTab") as Button
+	var details := world.get_node("%StationResponsibilities") as Label
+	var details_toggle := world.get_node("%StationDetailsToggle") as Button
+	var tuck := world.get_node("%StationPanelTuck") as Button
+	assert(station_panel.visible)
+	assert(not station_tab.visible)
+	assert(not details.visible)
+	assert(details_toggle.text == "Show station details")
+	details_toggle.pressed.emit()
+	assert(details.visible)
+	assert(details_toggle.text == "Hide station details")
+	details_toggle.pressed.emit()
+	assert(not details.visible)
+	var station_before := world.call("current_station_id") as String
+	tuck.pressed.emit()
+	assert(not station_panel.visible)
+	assert(station_tab.visible)
+	assert(station_tab.text.contains("Open"))
+	assert(world.call("current_station_id") == station_before)
+	assert(progress.get("current_station_id") == station_before)
+	station_tab.pressed.emit()
+	assert(station_panel.visible)
+	assert(not station_tab.visible)
+
 func _assert_station_mission_panel_uses_role_and_modal_state(
 	world: Node,
 	progress: RefCounted
@@ -88,25 +113,26 @@ func _assert_station_mission_panel_uses_role_and_modal_state(
 	assert(controller.call("snapshot").get("state") == "holding")
 	var content_path: String = "Backdrop/Dialog/Margin/Content"
 	var holding_label: Label = panel.get_node("%s/OwnerCard/HoldingLabel" % content_path) as Label
-	assert(holding_label.text.contains("Hand control to the Strategist"))
+	assert(not holding_label.visible)
 	var instruction: Label = panel.get_node("%s/Instruction" % content_path) as Label
-	assert(instruction.text == "Close this panel first. Then hand control to the Strategist from the agency HUD.")
-	var keyboard_hint: Label = panel.get_node("%s/ChoiceStage/KeyboardHint" % content_path) as Label
-	assert(keyboard_hint.text == "Keyboard: Esc closes. Touchpad: select Close.")
-	var choice_one: Button = panel.get_node("%s/ChoiceStage/ChoiceGrid/ChoiceOne" % content_path) as Button
-	assert(choice_one.disabled)
-	assert(_perceived_luminance(choice_one.get_theme_color("font_disabled_color")) < 0.45)
+	assert(instruction.text == "Make the Strategist active to answer this question.")
+	var choice_stage: VBoxContainer = panel.get_node("%s/ChoiceStage" % content_path) as VBoxContainer
+	assert(not choice_stage.visible)
+	var handoff_button: Button = panel.get_node("%s/RoleHandoffButton" % content_path) as Button
+	assert(handoff_button.visible)
+	assert(handoff_button.text == "Make Strategist active")
 	assert(not pair.input_enabled)
 	assert(pair.modal_open)
-	controller.call("close")
-	assert(not panel.visible)
-	assert(pair.input_enabled)
-	assert(not pair.modal_open)
-	assert(progress.call("handoff_to", "strategist"))
-	pair.call("set_active_role", "strategist")
-	station_action.pressed.emit()
+	handoff_button.pressed.emit()
+	assert(progress.get("active_role") == "strategist")
+	assert(pair.get("active_role") == "strategist")
 	assert(panel.visible)
 	assert(controller.call("snapshot").get("state") == "choice")
+	assert(choice_stage.visible)
+	assert(not handoff_button.visible)
+	var choice_one: Button = panel.get_node("%s/ChoiceStage/ChoiceGrid/ChoiceOne" % content_path) as Button
+	assert(not choice_one.disabled)
+	assert(_perceived_luminance(choice_one.get_theme_color("font_disabled_color")) < 0.45)
 	_assert_mission_panel_is_readable_and_bounded(panel)
 	controller.call("close")
 	assert(not panel.visible)

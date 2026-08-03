@@ -11,10 +11,12 @@ var _objective: Dictionary = {}
 var _station_ids: Array[String] = []
 var _guide_tucked: bool = true
 var _sound_muted: bool = false
+var _compact: bool = true
 
 func _ready() -> void:
 	_set_label_text("HudMargin/HudRow/GoalBlock/HudGoal", OVERALL_GOAL)
 	_connect_controls()
+	set_compact(true)
 
 func show_objective(objective: Dictionary) -> void:
 	_objective = objective.duplicate(true)
@@ -55,6 +57,44 @@ func set_tucked(tucked: bool) -> void:
 	if button != null:
 		button.text = "Open guide · G" if tucked else "Guide open"
 
+func set_compact(compact: bool) -> void:
+	_compact = compact
+	for path: String in [
+		"HudMargin/HudRow/GoalBlock",
+		"HudMargin/HudRow/GoalDivider",
+		"HudMargin/HudRow/ProgressBlock",
+		"HudMargin/HudRow/TravelBlock",
+		"HudMargin/HudRow/HudSoundToggle",
+	]:
+		var control := get_node_or_null(path) as Control
+		if control != null:
+			control.visible = not compact
+	var margin := get_node_or_null("HudMargin") as MarginContainer
+	var vertical_margin := 4 if compact else 12
+	if margin != null:
+		margin.add_theme_constant_override("margin_top", vertical_margin)
+		margin.add_theme_constant_override("margin_bottom", vertical_margin)
+	var action_height := 56.0 if compact else 64.0
+	for path: String in [
+		"HudMargin/HudRow/HudGoToObjective",
+		"HudMargin/HudRow/HudGuideButton",
+		"HudMargin/HudRow/HudTuckToggle",
+	]:
+		var action_button := get_node_or_null(path) as Button
+		if action_button != null:
+			action_button.custom_minimum_size.y = action_height
+	var target_height := 72.0 if compact else 124.0
+	custom_minimum_size.y = target_height
+	size.x = custom_minimum_size.x
+	size.y = target_height
+	var button := get_node_or_null("HudMargin/HudRow/HudTuckToggle") as Button
+	if button != null:
+		button.text = "Show campaign details" if compact else "Hide campaign details"
+		button.tooltip_text = "Show campaign details" if compact else "Hide campaign details"
+
+func is_compact() -> bool:
+	return _compact
+
 func set_sound_muted(muted: bool) -> void:
 	_sound_muted = muted
 	var button := get_node_or_null("HudMargin/HudRow/HudSoundToggle") as Button
@@ -80,6 +120,9 @@ func _connect_controls() -> void:
 	var sound_button := get_node_or_null("HudMargin/HudRow/HudSoundToggle") as Button
 	if sound_button != null and not sound_button.pressed.is_connected(_on_sound_pressed):
 		sound_button.pressed.connect(_on_sound_pressed)
+	var tuck_button := get_node_or_null("HudMargin/HudRow/HudTuckToggle") as Button
+	if tuck_button != null and not tuck_button.pressed.is_connected(_on_tuck_pressed):
+		tuck_button.pressed.connect(_on_tuck_pressed)
 
 func _set_label_text(path: String, value: String) -> void:
 	var label := get_node_or_null(path) as Label
@@ -95,6 +138,9 @@ func _on_objective_pressed() -> void:
 func _on_sound_pressed() -> void:
 	set_sound_muted(not _sound_muted)
 	sound_muted_requested.emit(_sound_muted)
+
+func _on_tuck_pressed() -> void:
+	set_compact(not _compact)
 
 func _on_direct_travel_selected(index: int) -> void:
 	var menu := get_node_or_null("HudMargin/HudRow/TravelBlock/HudDirectTravel") as OptionButton

@@ -399,6 +399,17 @@ export async function canonicalDurableDocumentHash(document: CampaignDocumentV1)
   return sha256Hex(new TextEncoder().encode(canonicalJson));
 }
 
+export async function canonicalDurableSnapshotHash(
+  document: CampaignDocumentV1,
+  blobs: ReadonlyMap<string, Blob>
+): Promise<string> {
+  const source = normaliseDurableSources(document);
+  const referencedBlobs = selectReferencedLocalAssetBlobs(source, blobs);
+  return localPracticeOperationFingerprint({
+    documentHash: await canonicalDurableDocumentHash(source)
+  }, referencedBlobs);
+}
+
 const browserObjectUrls: ObjectUrlPort = {
   createObjectURL: (blob) => URL.createObjectURL(blob),
   revokeObjectURL: (url) => URL.revokeObjectURL(url)

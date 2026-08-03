@@ -20,6 +20,12 @@ function createRoot(): HTMLElement {
   return root;
 }
 
+function showTeacherControls(root: HTMLElement): void {
+  fireEvent.click(
+    getByRole(root, "button", { name: "Show teacher controls" })
+  );
+}
+
 describe("TeacherPlaytestController", () => {
   beforeEach(() => {
     document.body.replaceChildren();
@@ -74,11 +80,48 @@ describe("TeacherPlaytestController", () => {
       expect(Number.parseInt(stripStyle.zIndex, 10)).toBeGreaterThan(
         Number.parseInt(creatorStyle.zIndex, 10)
       );
-      expect(creatorStyle.top).toBe("66px");
+      expect(creatorStyle.top).toBe("44px");
       expect(creatorStyle.bottom).toBe("0px");
     } finally {
       style.remove();
     }
+  });
+
+  it("lets the teacher reveal and tuck the playtest controls with a pointer", async () => {
+    const root = createRoot();
+    const controller = new TeacherPlaytestController({
+      root,
+      sessionClient: {
+        session: async () => ({ authenticated: true })
+      },
+      playtestClient: { reset: vi.fn() },
+      startGame: vi.fn(),
+      resetLocalState: vi.fn(),
+      openFirstScreen: vi.fn()
+    });
+    await controller.mount();
+
+    const strip = getByRole(root, "banner", { name: "Teacher playtest" });
+    const toggle = getByRole(root, "button", { name: "Show teacher controls" });
+    const actions = strip.querySelector<HTMLElement>(".teacher-playtest-strip__actions");
+    expect(strip.dataset.expanded).toBe("false");
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(actions?.hidden).toBe(true);
+
+    fireEvent.click(toggle);
+
+    expect(strip.dataset.expanded).toBe("true");
+    expect(toggle.textContent).toBe("Hide teacher controls");
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(actions?.hidden).toBe(false);
+    expect(getByRole(root, "button", { name: "Return to teacher dashboard" })).toBeTruthy();
+    expect(getByRole(root, "button", { name: "Factory reset playtest" })).toBeTruthy();
+
+    fireEvent.click(toggle);
+
+    expect(strip.dataset.expanded).toBe("false");
+    expect(toggle.textContent).toBe("Show teacher controls");
+    expect(actions?.hidden).toBe(true);
   });
 
   it("checks the independent teacher session before starting the complete game", async () => {
@@ -104,6 +147,7 @@ describe("TeacherPlaytestController", () => {
 
     expect(order).toEqual(["session", "game"]);
     expect(getByRole(root, "banner", { name: "Teacher playtest" })).toBeTruthy();
+    showTeacherControls(root);
     expect(getByRole(root, "button", { name: "Return to teacher dashboard" })).toBeTruthy();
     expect(queryByRole(root, "form", { name: /pair sign-in/i })).toBeNull();
   });
@@ -148,6 +192,7 @@ describe("TeacherPlaytestController", () => {
     });
     await controller.mount();
 
+    showTeacherControls(root);
     fireEvent.click(getByRole(root, "button", { name: "Return to teacher dashboard" }));
 
     expect(navigate).toHaveBeenCalledWith("/teacher");
@@ -170,6 +215,7 @@ describe("TeacherPlaytestController", () => {
     });
     await controller.mount();
 
+    showTeacherControls(root);
     const trigger = getByRole(root, "button", { name: "Factory reset playtest" });
     fireEvent.click(trigger);
     expect(
@@ -223,6 +269,7 @@ describe("TeacherPlaytestController", () => {
       });
       await controller.mount();
 
+      showTeacherControls(root);
       fireEvent.click(getByRole(root, "button", { name: "Factory reset playtest" }));
       const dialog = getByRole(root, "dialog");
       expect(showModal).toHaveBeenCalledOnce();
@@ -265,6 +312,7 @@ describe("TeacherPlaytestController", () => {
       createOperationId: () => operationId
     });
     await controller.mount();
+    showTeacherControls(root);
     fireEvent.click(getByRole(root, "button", { name: "Factory reset playtest" }));
     const input = getByLabelText(root, "Type RESET to confirm");
     const form = getByRole(root, "form", { name: "Confirm teacher playtest factory reset" });
@@ -303,6 +351,7 @@ describe("TeacherPlaytestController", () => {
       createOperationId: () => operationId
     });
     await controller.mount();
+    showTeacherControls(root);
     fireEvent.click(getByRole(root, "button", { name: "Factory reset playtest" }));
     const input = getByLabelText(root, "Type RESET to confirm");
     fireEvent.input(input, { target: { value: "RESET" } });
@@ -338,6 +387,7 @@ describe("TeacherPlaytestController", () => {
       createOperationId
     });
     await controller.mount();
+    showTeacherControls(root);
     fireEvent.click(getByRole(root, "button", { name: "Factory reset playtest" }));
     const input = getByLabelText(root, "Type RESET to confirm");
     const form = getByRole(root, "form", { name: "Confirm teacher playtest factory reset" });

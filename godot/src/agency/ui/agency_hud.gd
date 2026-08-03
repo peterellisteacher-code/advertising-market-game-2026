@@ -85,6 +85,7 @@ func set_compact(compact: bool) -> void:
 			action_button.custom_minimum_size.y = action_height
 	var target_height := 72.0 if compact else 124.0
 	custom_minimum_size.y = target_height
+	size.x = custom_minimum_size.x
 	size.y = target_height
 	var button := get_node_or_null("HudMargin/HudRow/HudTuckToggle") as Button
 	if button != null:

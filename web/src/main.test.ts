@@ -1572,6 +1572,7 @@ describe("window.AdMarketCreator", () => {
     await import("./main");
     const secondAccess = window.AdMarketAccount.requireAccess();
     const login = await findByRole(document.body, "form", { name: "Log in" });
+    expect(getByRole(document.body, "button", { name: "Create a pair login" })).toBeTruthy();
     expect(document.querySelector<HTMLElement>(
       'main[aria-label="Advertising Market Game"]'
     )?.hidden).toBe(true);

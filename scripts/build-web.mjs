@@ -25,7 +25,7 @@ import {
   scanHtmlStartTags
 } from "./html-start-tags.mjs";
 
-const SERVICE_WORKER_POLICY_REVISION = "release-refresh-v1";
+const SERVICE_WORKER_POLICY_REVISION = "release-refresh-v2";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ROOT = path.resolve(SCRIPT_DIR, "..");
@@ -166,6 +166,7 @@ function renderServiceWorker({ cacheVersion, assets, core }) {
   return `/* Generated. Do not edit. */
 const CACHE_PREFIX = "ad-market-";
 const CACHE_NAME = ${JSON.stringify(cacheName)};
+const CACHE_VERSION = ${JSON.stringify(cacheVersion)};
 const CORE_SHA256 = new Map(Object.entries(${JSON.stringify(expected)}));
 const CORE = ${JSON.stringify(core)};
 const UPDATE_PATHS = new Set([
@@ -224,9 +225,14 @@ self.addEventListener("activate", (event) => {
     );
     await Promise.all(staleReleaseNames.map((name) => caches.delete(name)));
     if (staleReleaseNames.length === 0) return;
+    await self.clients.claim();
     const windowClients = await self.clients.matchAll({ type: "window" });
     await Promise.allSettled(
-      windowClients.map((client) => client.navigate(client.url))
+      windowClients.map((client) => {
+        const url = new URL(client.url);
+        url.searchParams.set("release", CACHE_VERSION);
+        return client.navigate(url.href);
+      })
     );
   })());
 });

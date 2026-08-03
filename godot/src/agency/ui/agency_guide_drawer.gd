@@ -163,6 +163,7 @@ func open_orientation() -> void:
 func minimise_orientation() -> void:
 	if not orientation_required():
 		return
+	set_tucked(true)
 	_set_orientation_visible(false)
 	_update_resume_orientation()
 	reading_state_changed.emit(false)

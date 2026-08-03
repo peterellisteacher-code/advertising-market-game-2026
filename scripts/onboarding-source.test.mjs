@@ -51,6 +51,11 @@ test("agency quick start presents one action at a time and can be resumed", () =
   }
   assert.match(agencyGuideScript, /func minimise_orientation\(\) -> void:/);
   assert.match(agencyGuideScript, /func resume_orientation\(\) -> void:/);
+  assert.match(
+    agencyGuideScript,
+    /func minimise_orientation\(\) -> void:[\s\S]*?set_tucked\(true\)[\s\S]*?_set_orientation_visible\(false\)/,
+    "minimising must tuck the guide before exposing the quick-start resume control"
+  );
   assert.ok(agencyGuideScript.includes("Continue quick start"));
   assert.match(
     agencyGuideScript,

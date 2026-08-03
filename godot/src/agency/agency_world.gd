@@ -148,9 +148,6 @@ var _station_details_visible: bool = false
 var _station_panel_tucked: bool = false
 
 func _ready() -> void:
-	_sync_surface_visibility()
-	if not visibility_changed.is_connected(_sync_surface_visibility):
-		visibility_changed.connect(_sync_surface_visibility)
 	_connect_controls()
 	_ensure_travel_items()
 	_configure_stations()
@@ -162,11 +159,6 @@ func _ready() -> void:
 		_configure_guidance()
 		_refresh_world()
 		_show_orientation_if_required()
-
-func _sync_surface_visibility() -> void:
-	var hud := get_node_or_null("HUD") as CanvasLayer
-	if hud != null:
-		hud.visible = visible
 
 func _physics_process(_delta: float) -> void:
 	var pair := _pair()

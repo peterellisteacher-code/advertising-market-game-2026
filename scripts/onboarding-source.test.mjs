@@ -59,6 +59,11 @@ test("agency quick start presents one action at a time and can be resumed", () =
   assert.doesNotMatch(agencyGuideScript, /portfolio stamps|Gold, Silver and Bronze/);
 });
 
+test("agency volume label avoids runtime percent-format errors", () => {
+  assert.ok(agencyGuideScript.includes('"Overall volume: " + str('));
+  assert.doesNotMatch(agencyGuideScript, /"Overall volume: %d%%"\s*%/);
+});
+
 test("agency HUD and station card can be tucked without hiding the next action", () => {
   assert.match(agencyHudScript, /func set_compact\(compact: bool\) -> void:/);
   assert.match(agencyHudScript, /func is_compact\(\) -> bool:/);

@@ -305,7 +305,7 @@ func _update_audio_control_state() -> void:
 		volume_control.editable = audio_enabled
 	_set_label_text(
 		"%MasterVolumeLabel",
-		"Overall volume: %d%%" % roundi(float(settings.get("masterVolume", 0.7)) * 100.0)
+		"Overall volume: " + str(roundi(float(settings.get("masterVolume", 0.7)) * 100.0)) + "%"
 	)
 
 func _on_audio_setting_changed(_value: Variant) -> void:

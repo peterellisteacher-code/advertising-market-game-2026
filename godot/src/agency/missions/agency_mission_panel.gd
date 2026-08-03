@@ -18,6 +18,7 @@ const INK := Color("10243e")
 const PAPER := Color("fffaf0")
 const FOCUS := Color("ffffff")
 const MAX_EVIDENCE_LENGTH := 400
+const ROLE_DEFINITION := "Both partners use the same controls. Strategist decides audience, purpose, product and message. Art Director decides visual design and execution."
 
 @onready var dialog: PanelContainer = $Backdrop/Dialog
 @onready var mission_badge: Label = $Backdrop/Dialog/Margin/Content/Header/MissionBadge
@@ -25,11 +26,13 @@ const MAX_EVIDENCE_LENGTH := 400
 @onready var title_label: Label = $Backdrop/Dialog/Margin/Content/Title
 @onready var goal_label: Label = $Backdrop/Dialog/Margin/Content/Goal
 @onready var owner_label: Label = $Backdrop/Dialog/Margin/Content/OwnerCard/OwnerLabel
+@onready var role_definition_label: Label = $Backdrop/Dialog/Margin/Content/OwnerCard/RoleDefinitionLabel
 @onready var holding_label: Label = $Backdrop/Dialog/Margin/Content/OwnerCard/HoldingLabel
 @onready var mission_step: Label = $Backdrop/Dialog/Margin/Content/MissionStep
 @onready var role_details_toggle: Button = $Backdrop/Dialog/Margin/Content/OwnerCard/RoleDetailsToggle
 @onready var role_handoff_button: Button = $Backdrop/Dialog/Margin/Content/RoleHandoffButton
 @onready var instruction_label: Label = $Backdrop/Dialog/Margin/Content/Instruction
+@onready var reference_toggle: Button = $Backdrop/Dialog/Margin/Content/ReferenceToggle
 @onready var reference_card: PanelContainer = $Backdrop/Dialog/Margin/Content/ReferenceCard
 @onready var reference_label: Label = $Backdrop/Dialog/Margin/Content/ReferenceCard/ReferenceLabel
 @onready var choice_stage: VBoxContainer = $Backdrop/Dialog/Margin/Content/ChoiceStage
@@ -62,6 +65,7 @@ const MAX_EVIDENCE_LENGTH := 400
 var _record: Dictionary = {}
 var _choice_ids: Array[String] = ["", "", "", ""]
 var _role_details_visible: bool = false
+var _reference_visible: bool = true
 
 func _ready() -> void:
     _apply_visual_theme()
@@ -72,6 +76,7 @@ func _ready() -> void:
     completed_close_button.pressed.connect(_request_close)
     role_details_toggle.pressed.connect(_toggle_role_details)
     role_handoff_button.pressed.connect(_request_role_handoff)
+    reference_toggle.pressed.connect(_toggle_reference)
     evidence_edit.text_changed.connect(_update_evidence_count)
     for index in choice_buttons.size():
         choice_buttons[index].pressed.connect(_select_choice.bind(index))
@@ -82,10 +87,11 @@ func show_choice(record: Dictionary, active_role: String, allowed: bool) -> void
     _record = record.duplicate(true)
     _set_common_text()
     _set_reference_text(record)
-    mission_step.text = "1. Click one answer"
     var owner_role := String(record.get("ownerRole"))
     var owner_name := _role_name(owner_role)
+    mission_step.text = "1. Click one answer" if allowed else "1. Make %s active" % owner_name
     owner_label.text = "%s leads this choice." % owner_name
+    role_definition_label.text = ROLE_DEFINITION
     holding_label.text = "Partner job: %s" % String(record.get("holdingAction"))
     instruction_label.text = (
         "Click one answer."
@@ -99,13 +105,17 @@ func show_choice(record: Dictionary, active_role: String, allowed: bool) -> void
             var choice: Dictionary = choices[index]
             _choice_ids[index] = String(choice.get("id"))
             button.text = "%d  %s" % [index + 1, String(choice.get("label"))]
-            button.disabled = false
+            button.disabled = not allowed
             button.visible = true
         else:
             _choice_ids[index] = ""
             button.visible = false
+    _reference_visible = true
     _show_stage(choice_stage)
     choice_stage.visible = allowed
+    if not allowed:
+        reference_toggle.visible = false
+        reference_card.visible = false
     role_handoff_button.visible = not allowed
     role_handoff_button.text = "Make %s active" % owner_name
     choice_keyboard_hint.text = "Click an answer, or use Tab and Return or number keys 1–4. Esc closes."
@@ -175,6 +185,11 @@ func show_validation_error(message: String) -> void:
     validation_label.text = message
     evidence_edit.call_deferred("grab_focus")
 
+func show_handoff_error() -> void:
+    mission_step.text = "1. Hand control over again"
+    instruction_label.text = "Control did not change. Select the handover button again."
+    role_handoff_button.call_deferred("grab_focus")
+
 func close_panel() -> void:
     visible = false
     _record = {}
@@ -191,7 +206,9 @@ func _show_stage(active_stage: Control) -> void:
     effect_stage.visible = active_stage == effect_stage
     transfer_stage.visible = active_stage == transfer_stage
     completed_stage.visible = active_stage == completed_stage
-    reference_card.visible = active_stage == choice_stage and not reference_label.text.is_empty()
+    var showing_choice := active_stage == choice_stage
+    reference_toggle.visible = showing_choice and not reference_label.text.is_empty()
+    reference_card.visible = showing_choice and _reference_visible and not reference_label.text.is_empty()
     role_details_toggle.visible = active_stage == choice_stage
     role_handoff_button.visible = false
     _set_role_details_visible(false)
@@ -225,8 +242,14 @@ func _set_reference_text(record: Dictionary) -> void:
 
 func _set_role_details_visible(is_visible: bool) -> void:
     _role_details_visible = is_visible
+    role_definition_label.visible = is_visible
     holding_label.visible = is_visible
     role_details_toggle.text = "Hide pair roles" if is_visible else "Show pair roles"
+
+func _set_reference_visible(is_visible: bool) -> void:
+    _reference_visible = is_visible
+    reference_card.visible = is_visible and choice_stage.visible and not reference_label.text.is_empty()
+    reference_toggle.text = "Hide audience brief" if is_visible else "Show audience brief"
 
 func _select_choice(index: int) -> void:
     if index < 0 or index >= _choice_ids.size():
@@ -246,6 +269,9 @@ func _request_retry() -> void:
 
 func _toggle_role_details() -> void:
     _set_role_details_visible(not _role_details_visible)
+
+func _toggle_reference() -> void:
+    _set_reference_visible(not _reference_visible)
 
 func _request_role_handoff() -> void:
     role_handoff_requested.emit(String(_record.get("ownerRole", "strategist")))
@@ -278,6 +304,7 @@ func _apply_visual_theme() -> void:
     mission_step.add_theme_font_size_override("font_size", 15)
     owner_label.add_theme_font_size_override("font_size", 16)
     owner_label.add_theme_color_override("font_color", Color("007a92"))
+    role_definition_label.add_theme_font_size_override("font_size", 15)
     reference_label.add_theme_font_size_override("font_size", 15)
     holding_label.add_theme_font_size_override("font_size", 15)
     instruction_label.add_theme_font_size_override("font_size", 17)
@@ -292,7 +319,7 @@ func _apply_visual_theme() -> void:
     completed_heading.add_theme_color_override("font_color", Color("00785c"))
     reward_label.add_theme_font_size_override("font_size", 24)
     application_summary.add_theme_font_size_override("font_size", 18)
-    for button in [close_button, role_details_toggle, role_handoff_button, retry_button, continue_button, submit_button, completed_close_button]:
+    for button in [close_button, role_details_toggle, role_handoff_button, reference_toggle, retry_button, continue_button, submit_button, completed_close_button]:
         button.add_theme_font_size_override("font_size", 16)
 
 func _focus_first_choice() -> void:

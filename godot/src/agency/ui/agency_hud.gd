@@ -88,7 +88,7 @@ func set_compact(compact: bool) -> void:
 	size.y = target_height
 	var button := get_node_or_null("HudMargin/HudRow/HudTuckToggle") as Button
 	if button != null:
-		button.text = "More" if compact else "Less"
+		button.text = "Show campaign details" if compact else "Hide campaign details"
 		button.tooltip_text = "Show campaign details" if compact else "Hide campaign details"
 
 func is_compact() -> bool:

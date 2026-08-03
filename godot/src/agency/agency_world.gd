@@ -515,13 +515,13 @@ func _on_station_panel_tuck_pressed() -> void:
 	_set_station_panel_tucked(true)
 	var tab := get_node_or_null("%StationPanelTab") as Button
 	if tab != null and tab.is_inside_tree():
-		tab.grab_focus()
+		tab.call_deferred("grab_focus")
 
 func _on_station_panel_tab_pressed() -> void:
 	_set_station_panel_tucked(false)
 	var action_button := get_node_or_null("%StationActionButton") as Button
 	if action_button != null and action_button.is_inside_tree():
-		action_button.grab_focus()
+		action_button.call_deferred("grab_focus")
 
 func _request_station_work(station_id: String) -> void:
 	station_requested.emit(station_id)
@@ -545,6 +545,9 @@ func _on_mission_controller_state_changed(state: Dictionary) -> void:
 
 func _on_mission_role_handoff_requested(role: String) -> void:
 	if _progress == null or not _progress.handoff_to(role):
+		var panel := _mission_panel()
+		if panel != null and panel.has_method("show_handoff_error"):
+			panel.call("show_handoff_error")
 		return
 	var pair := _pair()
 	if pair != null:

@@ -73,6 +73,13 @@ test("agency volume label avoids runtime percent-format errors", () => {
   assert.doesNotMatch(agencyGuideScript, /"Overall volume: %d%%"\s*%/);
 });
 
+test("agency quick start does not format unique-node paths as percent strings", () => {
+  assert.ok(agencyGuideScript.includes('"%OrientationItem" + suffix'));
+  assert.ok(agencyGuideScript.includes('"%OrientationItem" + suffix + "Label"'));
+  assert.ok(agencyGuideScript.includes('"%OrientationItem" + suffix + "Text"'));
+  assert.doesNotMatch(agencyGuideScript, /"%OrientationItem%s(?:Label|Text)?"\s*%\s*suffix/);
+});
+
 test("agency HUD and station card can be tucked without hiding the next action", () => {
   assert.match(agencyHudScript, /func set_compact\(compact: bool\) -> void:/);
   assert.match(agencyHudScript, /func is_compact\(\) -> bool:/);

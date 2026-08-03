@@ -323,12 +323,12 @@ func _update_orientation() -> void:
 	var items: Array = step.get("items", [])
 	for item_index in ORIENTATION_ITEM_SUFFIXES.size():
 		var suffix := ORIENTATION_ITEM_SUFFIXES[item_index]
-		var row := get_node_or_null("%OrientationItem%s" % suffix) as Control
+		var row := get_node_or_null("%OrientationItem" + suffix) as Control
 		var item: Dictionary = items[item_index] if item_index < items.size() else {}
 		if row != null:
 			row.visible = not item.is_empty()
-		_set_label_text("%OrientationItem%sLabel" % suffix, String(item.get("label", "")))
-		_set_label_text("%OrientationItem%sText" % suffix, String(item.get("text", "")))
+		_set_label_text("%OrientationItem" + suffix + "Label", String(item.get("label", "")))
+		_set_label_text("%OrientationItem" + suffix + "Text", String(item.get("text", "")))
 	var next_button := get_node_or_null("%OrientationNext") as Button
 	if next_button != null:
 		next_button.text = String(step.get("button", "Continue"))

@@ -147,10 +147,10 @@ text = "Open guide · G"
 
 [node name="HudTuckToggle" type="Button" parent="HudMargin/HudRow" unique_id=2026080313]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(72, 64)
+custom_minimum_size = Vector2(190, 64)
 layout_mode = 2
 size_flags_vertical = 4
-text = "More"
+text = "Show campaign details"
 
 [node name="HudSoundToggle" type="Button" parent="HudMargin/HudRow" unique_id=1687461009]
 unique_name_in_owner = true

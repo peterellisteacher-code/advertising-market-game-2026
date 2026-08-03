@@ -63,7 +63,7 @@ test("agency HUD and station card can be tucked without hiding the next action",
   assert.match(agencyHudScript, /func set_compact\(compact: bool\) -> void:/);
   assert.match(agencyHudScript, /func is_compact\(\) -> bool:/);
   assert.ok(agencyHudScene.includes('name="HudTuckToggle"'));
-  assert.ok(agencyHudScene.includes('text = "More"'));
+  assert.ok(agencyHudScene.includes('text = "Show campaign details"'));
   for (const nodeName of [
     "StationDetailsToggle",
     "StationPanelTuck",
@@ -87,13 +87,20 @@ test("agency mission keeps evidence and a direct role handover beside clickable 
     "MissionStep",
     "ReferenceCard",
     "ReferenceLabel",
+    "ReferenceToggle",
     "RoleDetailsToggle",
+    "RoleDefinitionLabel",
     "RoleHandoffButton"
   ]) {
     assert.ok(missionPanelScene.includes(`name="${nodeName}"`), `missing ${nodeName}`);
   }
   assert.match(missionPanelScript, /signal role_handoff_requested\(role: String\)/);
   assert.ok(missionPanelScript.includes("Click one answer"));
+  assert.ok(missionPanelScript.includes("Both partners use the same controls"));
+  assert.ok(missionPanelScript.includes("Strategist decides audience, purpose, product and message"));
+  assert.ok(missionPanelScript.includes("Art Director decides visual design and execution"));
+  assert.ok(missionPanelScript.includes("Hide audience brief"));
+  assert.match(missionPanelScript, /func show_handoff_error\(\) -> void:/);
   assert.doesNotMatch(
     missionPanelScript,
     /Close this panel first\. Then hand control/

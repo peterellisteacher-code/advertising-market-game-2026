@@ -163,6 +163,40 @@ describe("LocalPracticeService", () => {
     expect(saved?.document.gameplay.pair.activeRole).toBe("strategist");
   });
 
+  it("rebases an editor snapshot after a checkpoint-only revision advance", async () => {
+    const store = new IndexedDbDraftStore({
+      databaseName: "local-practice-service-checkpoint-rebase",
+      factory: new IDBFactory()
+    });
+    const service = new LocalPracticeService(store, {
+      now: () => new Date("2026-07-17T04:15:00.000Z")
+    });
+    const begun = await service.begin("Revision Robins", "operation-begin-rebase");
+    const editorSnapshot = structuredClone(begun.document);
+    editorSnapshot.product.name = "Headphone Halo";
+
+    const checkpointOnlyAdvance = await service.setLock({
+      checkpoint: checkpointToken(begun),
+      levelLocked: true,
+      operationId: "operation-lock-before-editor-save"
+    });
+    expect(checkpointOnlyAdvance.document.revision).toBe(1);
+
+    const saved = await service.commitEditorSnapshot(
+      editorSnapshot,
+      new Map(),
+      "operation-editor-after-checkpoint"
+    );
+
+    expect(saved?.checkpoint).toMatchObject({
+      documentRevision: 2,
+      sequence: 2,
+      stage: "invent",
+      operationId: "operation-editor-after-checkpoint"
+    });
+    expect(saved?.document.product.name).toBe("Headphone Halo");
+  });
+
   it("rejects a stale editor snapshot without overwriting the active checkpoint", async () => {
     const store = new IndexedDbDraftStore({
       databaseName: "local-practice-service-stale-editor",

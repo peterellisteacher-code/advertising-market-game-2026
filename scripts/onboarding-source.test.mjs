@@ -100,6 +100,11 @@ test("agency quick start does not format unique-node paths as percent strings", 
 test("agency HUD and station card can be tucked without hiding the next action", () => {
   assert.match(agencyHudScript, /func set_compact\(compact: bool\) -> void:/);
   assert.match(agencyHudScript, /func is_compact\(\) -> bool:/);
+  assert.match(
+    agencyHudScript,
+    /size\.x\s*=\s*custom_minimum_size\.x/,
+    "compact HUD must shrink back to its viewport width after expanded children are hidden"
+  );
   assert.ok(agencyHudScene.includes('name="HudTuckToggle"'));
   assert.ok(agencyHudScene.includes('text = "Show campaign details"'));
   for (const nodeName of [

@@ -93,6 +93,13 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 12
 text = "Strategist leads"
 
+[node name="HudTuckToggle" type="Button" parent="HudMargin/HudRow" unique_id=2026080313]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(190, 64)
+layout_mode = 2
+size_flags_vertical = 4
+text = "Show campaign details"
+
 [node name="ProgressBlock" type="VBoxContainer" parent="HudMargin/HudRow" unique_id=279185771]
 custom_minimum_size = Vector2(155, 0)
 layout_mode = 2
@@ -144,13 +151,6 @@ layout_mode = 2
 size_flags_vertical = 4
 theme_override_styles/normal = SubResource("StyleBoxFlat_w7xqt")
 text = "Open guide · G"
-
-[node name="HudTuckToggle" type="Button" parent="HudMargin/HudRow" unique_id=2026080313]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(190, 64)
-layout_mode = 2
-size_flags_vertical = 4
-text = "Show campaign details"
 
 [node name="HudSoundToggle" type="Button" parent="HudMargin/HudRow" unique_id=1687461009]
 unique_name_in_owner = true

@@ -59,6 +59,8 @@ func _assert_guide(progress: AdMarketAgencyProgress) -> void:
 	guide.open_orientation()
 	var orientation_layer := guide.get_node("%OrientationLayer") as Control
 	var orientation_card := guide.get_node("%OrientationPanel") as Control
+	var orientation_minimise := guide.get_node("%MinimiseOrientation") as Control
+	var orientation_next := guide.get_node("%OrientationNext") as Control
 	assert(orientation_layer.visible)
 	assert(orientation_layer.anchor_left == 0.0)
 	assert(orientation_layer.anchor_top == 0.0)
@@ -66,7 +68,10 @@ func _assert_guide(progress: AdMarketAgencyProgress) -> void:
 	assert(orientation_layer.anchor_bottom == 1.0)
 	assert(orientation_layer.mouse_filter == Control.MOUSE_FILTER_STOP)
 	assert(orientation_card.size.x <= 960.0)
-	assert(orientation_card.size.y <= 720.0)
+	assert(orientation_card.size.y <= 560.0)
+	assert(orientation_card.global_position.y >= 48.0)
+	assert(orientation_minimise.global_position.y + orientation_minimise.size.y <= 760.0)
+	assert(orientation_next.global_position.y + orientation_next.size.y <= 760.0)
 	assert(guide.get_node("%OrientationTitle").text == "Make one advertisement for one client")
 	assert(guide.get_node("%OrientationAction").text.contains("Build one advertisement"))
 	assert(guide.get_node("%OrientationItemOneLabel").text == "START")

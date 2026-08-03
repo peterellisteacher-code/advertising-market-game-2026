@@ -59,6 +59,15 @@ test("agency quick start presents one action at a time and can be resumed", () =
   assert.doesNotMatch(agencyGuideScript, /portfolio stamps|Gold, Silver and Bronze/);
 });
 
+test("agency quick start keeps its actions inside a 1280 by 800 game view", () => {
+  const panelBlock = agencyGuideScene.match(
+    /\[node name="OrientationPanel"[\s\S]*?(?=\n\[node name="OrientationMargin")/
+  )?.[0] ?? "";
+  assert.match(panelBlock, /custom_minimum_size = Vector2\(860, 520\)/);
+  assert.match(panelBlock, /offset_top = -260\.0/);
+  assert.match(panelBlock, /offset_bottom = 260\.0/);
+});
+
 test("agency volume label avoids runtime percent-format errors", () => {
   assert.ok(agencyGuideScript.includes('"Overall volume: " + str('));
   assert.doesNotMatch(agencyGuideScript, /"Overall volume: %d%%"\s*%/);

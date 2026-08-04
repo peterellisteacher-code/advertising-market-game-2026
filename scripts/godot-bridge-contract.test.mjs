@@ -129,6 +129,20 @@ test("the Godot shell mirrors current instructions semantically without pretendi
   assert.doesNotMatch(scene, /\[node name="(?:InventChip|SellChip|IrresistibleChip)" type="Button"/);
 });
 
+test("the deployed game shell locks gameplay to the viewport without trapping the teacher dashboard", async () => {
+  const shell = await readFile(
+    new URL("godot/web/godot_shell.html", root),
+    "utf8"
+  );
+
+  assert.match(shell, /<html lang="en-AU">/);
+  assert.match(shell, /body:not\(:has\(\[data-admarket-route="teacher-dashboard"\]\)\)/);
+  assert.match(shell, /height:\s*100dvh/);
+  assert.match(shell, /overflow:\s*hidden/);
+  assert.match(shell, /class="game-skip-link"[^>]*href="#canvas"/);
+  assert.match(shell, /\.game-skip-link:focus/);
+});
+
 test("room join failures keep their typed code until Main chooses student copy", async () => {
   const [host, main] = await Promise.all([
     readFile(new URL("godot/src/market/market_host.gd", root), "utf8"),

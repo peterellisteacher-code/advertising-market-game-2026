@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-AU">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,11 +7,45 @@
     <title>$GODOT_PROJECT_NAME</title>
     $GODOT_HEAD_INCLUDE
     <link rel="stylesheet" href="./studio/studio.css">
+    <style>
+      html {
+        width: 100%;
+        height: 100%;
+      }
+      body {
+        min-height: 100vh;
+        min-height: 100dvh;
+        margin: 0;
+      }
+      body:not(:has([data-admarket-route="teacher-dashboard"])) {
+        width: 100%;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+      }
+      .game-skip-link {
+        position: fixed;
+        top: .75rem;
+        left: .75rem;
+        z-index: 500;
+        padding: .65rem .85rem;
+        border: 3px solid #172033;
+        border-radius: .5rem;
+        background: #fffaf2;
+        color: #07536f;
+        font: 900 1rem/1.2 "Trebuchet MS", "Aptos", "Segoe UI", sans-serif;
+        transform: translateY(calc(-100% - 1.5rem));
+      }
+      .game-skip-link:focus {
+        transform: none;
+      }
+    </style>
   </head>
   <body>
     <div id="account-gate-root"></div>
     <section id="account-session-root" hidden></section>
     <main aria-label="Advertising Market Game" hidden inert aria-hidden="true">
+      <a class="game-skip-link" href="#canvas">Skip to game controls</a>
       <canvas id="canvas" tabindex="-1" aria-label="Advertising Market Game canvas">Your browser does not support the canvas element.</canvas>
       <section
         id="game-startup-status"

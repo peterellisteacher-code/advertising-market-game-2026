@@ -20,6 +20,7 @@ export interface AccountAccessControllerOptions {
   ) => void | Promise<void>;
   readonly onSignedOut?: (explicit: boolean) => void | Promise<void>;
   readonly reload?: () => void;
+  readonly retryGame?: () => void;
 }
 
 export interface AccountCloudConflictOptions {
@@ -68,6 +69,7 @@ export class AccountAccessController {
   ) => void | Promise<void>) | undefined;
   readonly #onSignedOut: ((explicit: boolean) => void | Promise<void>) | undefined;
   readonly #reload: () => void;
+  readonly #retryGame: () => void;
   #accessPromise: Promise<void> | null = null;
   #resolveAccess: (() => void) | null = null;
   #username: string | null = null;
@@ -75,6 +77,7 @@ export class AccountAccessController {
   #cloudConflict: AccountCloudConflictOptions | null = null;
   #lifecycleGeneration = 0;
   #leavingAccount = false;
+  #gameStartFailed = false;
 
   constructor(options: AccountAccessControllerOptions) {
     this.#client = options.client;
@@ -87,6 +90,9 @@ export class AccountAccessController {
     this.#onSession = options.onSession;
     this.#onSignedOut = options.onSignedOut;
     this.#reload = options.reload ?? (() => globalThis.location.reload());
+    this.#retryGame = options.retryGame ?? (() => {
+      globalThis.location.replace(`/student?retry=${Date.now()}`);
+    });
   }
 
   requireAccess(): Promise<void> {
@@ -136,6 +142,38 @@ export class AccountAccessController {
 
   completeReset(): void {
     this.#reload();
+  }
+
+  reportGameStartFailure(reason: "timeout" | "engine"): void {
+    this.#lifecycleGeneration += 1;
+    this.#lockAccountSurfaces();
+    this.#statusRoot.hidden = true;
+    this.#statusRoot.replaceChildren();
+    this.#gateRoot.hidden = false;
+    this.#gateRoot.className = "account-access";
+
+    const section = this.#gateCard("The game could not start");
+    const message = document.createElement("p");
+    message.setAttribute("role", "alert");
+    message.textContent = reason === "timeout"
+      ? "Loading took too long. Your saved work is safe."
+      : "The game stopped while loading. Your saved work is safe.";
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.textContent = "Try loading again";
+    retry.addEventListener("click", () => this.#retryGame());
+    const signIn = document.createElement("button");
+    signIn.type = "button";
+    signIn.textContent = "Return to sign in";
+    signIn.addEventListener("click", () => {
+      this.#gameStartFailed = true;
+      retry.disabled = true;
+      signIn.disabled = true;
+      void this.#recoverActivationFailure();
+    });
+    section.append(message, retry, signIn);
+    this.#gateRoot.replaceChildren(section);
+    queueMicrotask(() => retry.focus());
   }
 
   #lockAccountSurfaces(): void {
@@ -321,6 +359,9 @@ export class AccountAccessController {
     this.#renderStatus(username);
     this.#resolveAccess?.();
     this.#resolveAccess = null;
+    if (this.#gameStartFailed) {
+      this.#retryGame();
+    }
     return true;
   }
 

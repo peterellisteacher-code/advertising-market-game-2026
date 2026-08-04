@@ -1280,7 +1280,12 @@ describe("window.AdMarketCreator", () => {
     expect(Reflect.has(window, "AdMarketAccount")).toBe(false);
     expect(Reflect.ownKeys((window as Window & {
       AdMarketGameAccess: { requireAccess(): Promise<void> };
-    }).AdMarketGameAccess)).toEqual(["requireAccess"]);
+    }).AdMarketGameAccess)).toEqual([
+      "requireAccess",
+      "reportStartupProgress",
+      "reportStartupReady",
+      "reportStartupFailure"
+    ]);
     expect(Reflect.has(window, "AdMarketCreator")).toBe(false);
     expect(fetchSpy).toHaveBeenCalledTimes(3);
   });
@@ -1343,6 +1348,53 @@ describe("window.AdMarketCreator", () => {
     expect(Reflect.has(window, "AdMarketAccount")).toBe(true);
   });
 
+  it("keeps visible engine progress above the canvas and exposes startup recovery", async () => {
+    document.body.innerHTML = `
+      <div id="account-gate-root"></div>
+      <section id="account-session-root" hidden></section>
+      <main aria-label="Advertising Market Game" hidden inert aria-hidden="true">
+        <canvas id="canvas" tabindex="-1"></canvas>
+        <section id="game-startup-status" aria-label="Game startup" role="status">
+          <strong data-game-startup-heading>Loading Ad Market</strong>
+          <span data-game-startup-message>Preparing the game…</span>
+        </section>
+      </main>
+      <div id="creator-root" hidden></div>`;
+
+    await import("./main");
+    const gameAccess = (window as Window & {
+      AdMarketGameAccess: {
+        requireAccess(): Promise<void>;
+        reportStartupProgress(percent: number): void;
+        reportStartupReady(): void;
+        reportStartupFailure(reason: "timeout" | "engine"): void;
+      };
+    }).AdMarketGameAccess;
+
+    expect(Reflect.ownKeys(gameAccess)).toEqual([
+      "requireAccess",
+      "reportStartupProgress",
+      "reportStartupReady",
+      "reportStartupFailure"
+    ]);
+    gameAccess.reportStartupProgress(37);
+    expect(document.querySelector("[data-game-startup-message]")?.textContent)
+      .toBe("Loading game… 37%");
+    expect(document.querySelector<HTMLElement>("#game-startup-status")?.hidden)
+      .toBe(false);
+
+    gameAccess.reportStartupReady();
+    expect(document.querySelector<HTMLElement>("#game-startup-status")?.hidden)
+      .toBe(true);
+
+    gameAccess.reportStartupFailure("engine");
+    expect(getByRole(document.body, "heading", {
+      name: "The game could not start"
+    })).toBeTruthy();
+    expect(getByRole(document.body, "button", { name: "Return to sign in" }))
+      .toBeTruthy();
+  });
+
   it("reconciles a teacher reset before activating the pair's private storage", async () => {
     document.body.innerHTML = `
       <div id="account-gate-root"></div>
@@ -1390,7 +1442,12 @@ describe("window.AdMarketCreator", () => {
       AdMarketGameAccess: { requireAccess(): Promise<void> };
     }).AdMarketGameAccess;
     expect(Object.isFrozen(gameAccess)).toBe(true);
-    expect(Reflect.ownKeys(gameAccess)).toEqual(["requireAccess"]);
+    expect(Reflect.ownKeys(gameAccess)).toEqual([
+      "requireAccess",
+      "reportStartupProgress",
+      "reportStartupReady",
+      "reportStartupFailure"
+    ]);
     expect(fetchSpy).not.toHaveBeenCalled();
     await gameAccess.requireAccess();
     expect(fetchSpy).toHaveBeenCalledTimes(2);

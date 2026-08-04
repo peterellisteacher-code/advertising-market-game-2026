@@ -532,8 +532,11 @@ export function assertAccountGatedGodotShell(html) {
   const starts = scripts.flatMap((body) =>
     body.match(/\bengine\s*\.\s*startGame\s*\(/gu) ?? []);
   const gatedStart = scripts.some((body) =>
-    /window\s*\.\s*AdMarketGameAccess\s*\.\s*requireAccess\s*\(\s*\)\s*\.\s*then\s*\(\s*\(\s*\)\s*=>\s*engine\s*\.\s*startGame\s*\(/su.test(body));
-  if (!structurallyLocked || starts.length !== 1 || !gatedStart) {
+    /window\s*\.\s*AdMarketGameAccess\s*\.\s*requireAccess\s*\(\s*\)\s*\.\s*then\s*\(\s*\(\s*\)\s*=>\s*(?:withStartupTimeout\s*\(\s*)?engine\s*\.\s*startGame\s*\(/su.test(body));
+  const boundedFailure = scripts.some((body) =>
+    /reportStartupFailure\s*\(\s*"timeout"\s*\)/su.test(body) &&
+    /reportStartupFailure\s*\(\s*"engine"\s*\)/su.test(body));
+  if (!structurallyLocked || starts.length !== 1 || !gatedStart || !boundedFailure) {
     throw new Error("Godot shell must enforce mandatory routed access before starting the game");
   }
 }

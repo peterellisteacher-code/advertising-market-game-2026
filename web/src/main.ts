@@ -1845,14 +1845,45 @@ declare global {
     AdMarketAccount: AccountBootstrapPublicApi;
     AdMarketGameAccess: {
       requireAccess(): Promise<void>;
+      reportStartupProgress(percent: number): void;
+      reportStartupReady(): void;
+      reportStartupFailure(reason: "timeout" | "engine"): void;
     };
   }
 }
 
 const unavailableGameAccess = new Promise<void>(() => undefined);
 let requireGameAccess = (): Promise<void> => unavailableGameAccess;
+let reportGameStartupFailure = (reason: "timeout" | "engine"): void => {
+  const status = document.querySelector<HTMLElement>("#game-startup-status");
+  const heading = status?.querySelector<HTMLElement>("[data-game-startup-heading]");
+  const message = status?.querySelector<HTMLElement>("[data-game-startup-message]");
+  if (heading !== undefined && heading !== null) heading.textContent = "The game could not start";
+  if (message !== undefined && message !== null) {
+    message.textContent = reason === "timeout"
+      ? "Loading took too long. Reload this page to try again."
+      : "The game stopped while loading. Reload this page to try again.";
+  }
+  if (status !== null) status.hidden = false;
+};
 window.AdMarketGameAccess = Object.freeze({
-  requireAccess: () => requireGameAccess()
+  requireAccess: () => requireGameAccess(),
+  reportStartupProgress: (percent: number) => {
+    const status = document.querySelector<HTMLElement>("#game-startup-status");
+    const message = status?.querySelector<HTMLElement>("[data-game-startup-message]");
+    const safePercent = Math.min(100, Math.max(0, Math.round(percent)));
+    if (message !== undefined && message !== null) {
+      message.textContent = `Loading game… ${safePercent}%`;
+    }
+    if (status !== null) status.hidden = false;
+  },
+  reportStartupReady: () => {
+    const status = document.querySelector<HTMLElement>("#game-startup-status");
+    if (status !== null) status.hidden = true;
+  },
+  reportStartupFailure: (reason: "timeout" | "engine") => {
+    reportGameStartupFailure(reason);
+  }
 });
 
 function renderRouteBoundary(
@@ -2184,6 +2215,9 @@ if (mode.kind === "student") {
       }
     }
   });
+  reportGameStartupFailure = (reason) => {
+    accountController?.reportGameStartFailure(reason);
+  };
   window.AdMarketAccount = createAccountBootstrap(accountController);
 }
 const handler = new BrowserCreatorHandler(

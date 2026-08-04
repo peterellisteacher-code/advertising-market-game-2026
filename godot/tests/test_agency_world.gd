@@ -66,8 +66,14 @@ func run() -> bool:
 	assert(agency_hud != null)
 	assert(guide != null)
 	assert(not guide.get_node("GuideTab").visible)
-	assert(agency_hud.get_node("HudMargin/HudRow/HudGuideButton").focus_mode == Control.FOCUS_ALL)
-	assert((agency_hud.get_node("HudMargin/HudRow/TravelBlock/HudDirectTravel") as OptionButton).item_count == 9)
+	var hud_guide_button := (
+		agency_hud.get_node("HudMargin/HudStack/PrimaryRow/HudGuideButton") as Button
+	)
+	var hud_travel_menu := agency_hud.get_node(
+		"HudMargin/HudStack/ExpandedDetails/TravelBlock/HudDirectTravel"
+	) as OptionButton
+	assert(hud_guide_button.focus_mode == Control.FOCUS_ALL)
+	assert(hud_travel_menu.item_count == 9)
 	assert(world.get_node("HUD/HUDRoot/ObjectiveBar").visible == false)
 	world.free()
 	return true

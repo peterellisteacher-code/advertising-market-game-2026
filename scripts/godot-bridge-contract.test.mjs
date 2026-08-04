@@ -140,8 +140,10 @@ test("the deployed game shell locks gameplay to the viewport without trapping th
   assert.match(shell, /height:\s*100dvh/);
   assert.match(shell, /overflow:\s*hidden/);
   assert.match(shell, /class="game-skip-link"[^>]*href="#canvas"/);
-  assert.match(shell, /--game-skip-link-padding:\s*\.65rem \.85rem/);
-  assert.match(shell, /padding:\s*var\(--game-skip-link-padding\)/);
+  assert.match(shell, /--space-2:\s*\.65rem/);
+  assert.match(shell, /--space-3:\s*\.85rem/);
+  assert.match(shell, /padding:\s*var\(--space-2\) var\(--space-3\)/);
+  assert.doesNotMatch(shell, /--game-skip-link-padding/);
   assert.match(shell, /\.game-skip-link:focus/);
 });
 

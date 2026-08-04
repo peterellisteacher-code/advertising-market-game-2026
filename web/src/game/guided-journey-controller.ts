@@ -4,9 +4,6 @@ import {
   evaluateGuidedJourney,
   type GuidedJourneyStep
 } from "./guided-journey";
-import { INSTRUCTION_ARGUMENT } from "./instruction-argument";
-import { ROLE_GUIDE } from "./role-guide-controller";
-import { STUDENT_COPY } from "./student-copy";
 
 type OpenGuidedJourneyStep = (step: GuidedJourneyStep) => void;
 
@@ -50,7 +47,7 @@ export class GuidedJourneyController {
     this.#now = required(root, "[data-guide-now]");
     this.#why = required(root, "[data-guide-why]");
     this.#done = required(root, "[data-guide-done]");
-    this.#next = required(root, "[data-guide-next]");
+    this.#next = required(root, "dd[data-guide-next]");
     this.#methods = required(root, "[data-guide-methods]");
     this.#methodList = required(root, "[data-guide-method-list]");
     this.#openTool = required(root, "[data-guide-open-tool]");
@@ -63,7 +60,7 @@ export class GuidedJourneyController {
     this.#reference = required(root, "[data-guide-reference]");
     this.#manualPosition = required(root, "[data-guide-page-position]");
     this.#manualPrevious = required(root, "[data-guide-previous]");
-    this.#manualNext = required(root, "[data-guide-next]");
+    this.#manualNext = required(root, "button[data-guide-next]");
     this.#lockStatus = required(root, "[data-locked-actions-status]");
     const dialogParent = this.#dialog.parentElement;
     if (dialogParent === null) throw new Error("Guided journey dialog has no parent");
@@ -80,8 +77,8 @@ export class GuidedJourneyController {
       button.addEventListener("click", this.#onReview);
     }
     this.#close.addEventListener("click", this.#onClose);
-    this.#manualPrevious.addEventListener("click", () => this.#setManualPage(this.#manualPage - 1));
-    this.#manualNext.addEventListener("click", () => this.#setManualPage(this.#manualPage + 1));
+    this.#manualPrevious.addEventListener("click", this.#onManualPrevious);
+    this.#manualNext.addEventListener("click", this.#onManualNext);
     this.#dialog.addEventListener("keydown", this.#onDialogKeydown);
   }
 
@@ -123,6 +120,8 @@ export class GuidedJourneyController {
       button.removeEventListener("click", this.#onReview);
     }
     this.#close.removeEventListener("click", this.#onClose);
+    this.#manualPrevious.removeEventListener("click", this.#onManualPrevious);
+    this.#manualNext.removeEventListener("click", this.#onManualNext);
     this.#dialog.removeEventListener("keydown", this.#onDialogKeydown);
     this.#closeDialog();
   }
@@ -218,80 +217,6 @@ export class GuidedJourneyController {
       return section;
     }));
     this.#setManualPage(0);
-    return;
-    const fragment = document.createDocumentFragment();
-    const foundations = document.createElement("div");
-    foundations.className = "creator__guide-foundations";
-    const foundationParagraphs = [
-      [
-        "What you are making: ",
-        STUDENT_COPY.guideFoundations.product
-      ],
-      [
-        "How to read this guide: ",
-        `${STUDENT_COPY.guideFoundations.terms} ${STUDENT_COPY.guideFoundations.termsReassurance} Complete each linked action in order. You may return to completed work at any time.`
-      ],
-      [
-        "How the pair roles work: ",
-        `${ROLE_GUIDE.sharedAccess} ${ROLE_GUIDE.sameButtons} The Art Director leads decisions about how the product and advertisement look. The Strategist leads decisions about what the product and advertisement say, what they cost and why the offer is credible. ${ROLE_GUIDE.activeTurn} ${ROLE_GUIDE.recordedRole} ${ROLE_GUIDE.physicalUser}`
-      ],
-      [
-        "How to read the audience brief: ",
-        `${STUDENT_COPY.audienceBriefDefinitions.context} ${STUDENT_COPY.audienceBriefDefinitions.need} ${STUDENT_COPY.audienceBriefDefinitions.values} ${STUDENT_COPY.audienceBriefDefinitions.intendedEffect}`
-      ]
-    ] as const;
-    for (const [labelText, bodyText] of foundationParagraphs) {
-      const paragraph = document.createElement("p");
-      const label = document.createElement("strong");
-      label.textContent = labelText;
-      paragraph.append(label, bodyText);
-      foundations.append(paragraph);
-    }
-    fragment.append(foundations);
-
-    for (const subargument of INSTRUCTION_ARGUMENT) {
-      const section = document.createElement("section");
-      section.dataset.instructionSubargument = subargument.id;
-      const heading = document.createElement("h3");
-      heading.textContent = `${subargument.id}. ${subargument.title}`;
-      section.append(heading);
-
-      const explanation = document.createElement("p");
-      explanation.className = "creator__instruction-explanation";
-      explanation.textContent = subargument.plainExplanation;
-      section.append(explanation);
-
-      const premises = subargument.claims.filter(({ kind }) => kind === "premise");
-      const list = document.createElement("ol");
-      if (premises.length > 0) {
-        list.start = Number.parseInt(premises[0]!.id.slice(1), 10);
-      }
-      for (const premise of premises) {
-        const item = document.createElement("li");
-        item.value = Number.parseInt(premise.id.slice(1), 10);
-        item.dataset.instructionClaimId = premise.id;
-        item.textContent = premise.text;
-        list.append(item);
-      }
-      section.append(list);
-
-      const conclusion = subargument.claims.find(
-        ({ id }) => id === subargument.conclusionId
-      )!;
-      if (conclusion !== undefined) {
-        const paragraph = document.createElement("p");
-        paragraph.dataset.instructionClaimId = conclusion.id;
-        const label = document.createElement("strong");
-        label.textContent = conclusion.kind === "overall-conclusion"
-          ? "Overall conclusion: "
-          : `Intermediate conclusion ${subargument.id}: `;
-        paragraph.append(label, conclusion.text);
-        section.append(paragraph);
-      }
-      fragment.append(section);
-    }
-
-    this.#reference.replaceChildren(fragment);
   }
 
   #setManualPage(index: number): void {
@@ -316,6 +241,7 @@ export class GuidedJourneyController {
       ? event.currentTarget
       : null;
     for (const surface of this.#protectedSurfaces) surface.inert = true;
+    this.#setManualPage(0);
     this.#dialog.hidden = false;
     this.#dialog.setAttribute("open", "");
     this.#close.focus();
@@ -332,8 +258,16 @@ export class GuidedJourneyController {
       return;
     }
     if (event.key === "Tab") {
+      const controls = [this.#manualPrevious, this.#manualNext, this.#close]
+        .filter((control) => !control.hidden);
+      const activeIndex = controls.indexOf(
+        this.#dialog.ownerDocument.activeElement as HTMLButtonElement
+      );
+      const nextIndex = event.shiftKey
+        ? (activeIndex <= 0 ? controls.length - 1 : activeIndex - 1)
+        : (activeIndex + 1) % controls.length;
       event.preventDefault();
-      this.#close.focus();
+      controls[nextIndex]?.focus();
     }
   };
 

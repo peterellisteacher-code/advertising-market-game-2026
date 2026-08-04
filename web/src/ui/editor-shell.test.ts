@@ -1,4 +1,4 @@
-import { getByLabelText, getByRole, getAllByRole } from "@testing-library/dom";
+import { fireEvent, getByLabelText, getByRole, getAllByRole } from "@testing-library/dom";
 import { describe, expect, it } from "vitest";
 import { createEditorShell } from "./editor-shell";
 
@@ -232,5 +232,36 @@ describe("createEditorShell", () => {
     expect(creator.dataset.briefOpen).toBeUndefined();
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
     expect(document.activeElement).toBe(toggle);
+  });
+
+  it("opens each brief definition on demand and returns focus when it closes", () => {
+    document.body.innerHTML = '<div id="creator-root"></div>';
+    const root = document.querySelector<HTMLElement>("#creator-root")!;
+    createEditorShell(root);
+    getByRole<HTMLButtonElement>(root, "button", { name: "Open full brief" }).click();
+
+    const definitions = [
+      ["What does Context mean?", "Context is the situation the audience is in."],
+      ["What does Need mean?", "Need is the problem the product should help solve."],
+      ["What does Values mean?", "Values are the ideas or qualities that matter to this audience."],
+      ["What does Intended audience response mean?", "Intended audience response is what the advertisement should encourage the audience to think, feel or do."]
+    ] as const;
+    for (const [label, definition] of definitions) {
+      const help = getByRole<HTMLButtonElement>(root, "button", { name: label });
+      fireEvent.click(help);
+      const card = root.querySelector<HTMLElement>("[data-brief-help-card]")!;
+      expect(card.textContent).toContain(definition);
+      expect(root.querySelectorAll("[data-brief-help-card]")).toHaveLength(1);
+      const close = getByRole<HTMLButtonElement>(card, "button", { name: "Close" });
+      fireEvent.keyDown(card, { key: "Escape" });
+      expect(root.querySelector("[data-brief-help-card]")).toBeNull();
+      expect(document.activeElement).toBe(help);
+      fireEvent.click(help);
+      fireEvent.click(getByRole<HTMLButtonElement>(
+        root.querySelector<HTMLElement>("[data-brief-help-card]")!, "button", { name: "Close" }
+      ));
+      expect(root.querySelector("[data-brief-help-card]")).toBeNull();
+      expect(document.activeElement).toBe(help);
+    }
   });
 });

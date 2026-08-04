@@ -116,7 +116,7 @@ describe("GuidedJourneyController", () => {
     expect(methods.textContent).not.toMatch(/\bcode\b/i);
   });
 
-  it("keeps a six-page reference manual available from both review buttons", () => {
+  it("navigates the six-page reference manual with labelled controls and cleans up listeners", () => {
     const { root, controller } = setup();
     controller.setCampaign(campaign());
     const dialog = root.querySelector<HTMLElement>("[data-guide-dialog]")!;
@@ -129,6 +129,18 @@ describe("GuidedJourneyController", () => {
     expect(dialog.hidden).toBe(false);
     expect(dialog.textContent).toContain("Page 1 of 6 · Goal");
     expect(dialog.querySelector<HTMLButtonElement>("[data-guide-previous]")!.hidden).toBe(true);
+    const previous = dialog.querySelector<HTMLButtonElement>("[data-guide-previous]")!;
+    const next = dialog.querySelector<HTMLButtonElement>("[data-guide-next]")!;
+    expect(dialog.querySelectorAll("[data-guide-manual-page]:not([hidden])")).toHaveLength(1);
+    fireEvent.click(next);
+    expect(dialog.textContent).toContain("Page 2 of 6 · Brief");
+    expect(previous.hidden).toBe(false);
+    expect(dialog.querySelectorAll("[data-guide-manual-page]:not([hidden])")).toHaveLength(1);
+    fireEvent.click(previous);
+    expect(dialog.textContent).toContain("Page 1 of 6 · Goal");
+    for (let page = 1; page <= 6; page += 1) fireEvent.click(next);
+    expect(dialog.textContent).toContain("Page 6 of 6 · Pitch");
+    expect(next.hidden).toBe(true);
     expect(dialog.querySelectorAll("[data-guide-manual-page]:not([hidden])")).toHaveLength(1);
     expect(document.activeElement).toBe(
       getByRole(dialog, "button", { name: "Close guide" })
@@ -139,8 +151,8 @@ describe("GuidedJourneyController", () => {
 
     const close = getByRole<HTMLButtonElement>(dialog, "button", { name: "Close guide" });
     fireEvent.keyDown(close, { key: "Tab" });
-    expect(document.activeElement).toBe(close);
-    fireEvent.keyDown(close, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(previous);
+    fireEvent.keyDown(previous, { key: "Tab", shiftKey: true });
     expect(document.activeElement).toBe(close);
 
     fireEvent.keyDown(dialog, { key: "Escape" });
@@ -151,6 +163,9 @@ describe("GuidedJourneyController", () => {
 
     fireEvent.click(reviewButtons[1]!);
     expect(dialog.hidden).toBe(false);
+    controller.destroy();
+    fireEvent.click(next);
+    expect(dialog.hidden).toBe(true);
   });
 
   it("unlocks AIDA checklist stages one at a time while preserving completed stages", () => {

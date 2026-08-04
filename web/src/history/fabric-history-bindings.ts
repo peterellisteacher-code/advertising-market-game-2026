@@ -76,7 +76,7 @@ export class FabricHistoryBindings<T = Record<string, unknown>> {
         await this.port.load(current);
         this.#currentHash = snapshotHash(this.port.serialize());
       } catch (rollbackError) {
-        throw new AggregateError([error, rollbackError], "Canvas and history rollback failed.");
+        throw new AggregateError([error, rollbackError], "Advertisement and history rollback failed.");
       }
       throw error;
     } finally {

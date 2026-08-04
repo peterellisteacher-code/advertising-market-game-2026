@@ -25,7 +25,7 @@ export const STUDENT_COPY = deepFreeze({
   labels: {
     gameTitle: "Advertising Market Game",
     audienceBrief: "Audience brief",
-    audienceSignal: "Audience signal",
+    audienceSignal: "Audience brief",
     roundProgress: "Pair progress",
     pairPlay: "Pair play",
     canvasWords: "Advertisement words",
@@ -161,14 +161,14 @@ export const STUDENT_COPY = deepFreeze({
     productWords: "Put words on selected product",
     productWordsHint: "Select the product first. On supported products, the words appear on a curved label and the original text remains editable.",
     blankWords: "Type advertisement words first.",
-    audienceChanged: "Audience signal changed.",
+    audienceChanged: "Audience brief changed.",
     wordsAdded: "Words added to the advertisement.",
     productWordsAdded: "Words added to the selected product.",
     productWordsUpdated: "Words updated on the selected product.",
     productWordsNeedSelection: "Select a product with a label area first.",
     undoUnavailable: "Nothing to undo.",
     redoUnavailable: "Nothing to redo.",
-    operationFailed: "That move did not work. Try again."
+    operationFailed: "That action did not work. Try again."
   },
   release: {
     updateReady: "A game update is ready. Save your work, then reopen the game."

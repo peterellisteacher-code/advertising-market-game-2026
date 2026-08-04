@@ -46,7 +46,7 @@ test("student copy uses direct factual wording without obsolete promotional phra
   );
 });
 
-test("the web game reuses advertisement language instead of campaign aliases", async () => {
+test("the web game uses advertisement language instead of campaign or canvas aliases", async () => {
   const corpus = await buildStudentCopyCorpus(ROOT);
   const webGameCopy = corpus
     .filter(({ path: sourcePath }) => sourcePath.startsWith("web/"))
@@ -54,10 +54,10 @@ test("the web game reuses advertisement language instead of campaign aliases", a
 
   assert.deepEqual(
     webGameCopy
-      .filter(({ text }) => /\bcampaign\b/iu.test(text))
+      .filter(({ text }) => /\b(?:campaign|canvas)\b/iu.test(text))
       .map(({ path: sourcePath, line, text }) => `${sourcePath}:${line}: ${text}`),
     [],
-    "student-facing web copy must call the work an advertisement, not alternate with campaign"
+    "student-facing web copy must call the work an advertisement, not alternate with campaign or canvas"
   );
 });
 

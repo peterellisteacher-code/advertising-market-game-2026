@@ -44,7 +44,7 @@ describe("createEditorShell", () => {
     expect(root.querySelector<HTMLElement>('[data-studio-panel="product"]')?.hidden)
       .toBe(false);
     expect(getByRole(root, "region", { name: "Product builder" })).toBeTruthy();
-    const launchPath = getByRole(root, "note", { name: "Launch path" });
+    const launchPath = getByRole(root, "note", { name: "Build order" });
     expect([...launchPath.querySelectorAll("strong")].map((step) => step.textContent))
       .toEqual(["Build", "Place", "Design"]);
     expect(shell.productBuilderPanel.dataset.productBuilderPanel).toBe("");
@@ -52,7 +52,7 @@ describe("createEditorShell", () => {
     expect(shell.moneyCheckPanel.dataset.moneyCheckPanel).toBe("");
     expect(root.querySelector('[data-studio-panel="route"][aria-label="Market Route"]')).toBeTruthy();
     expect(shell.marketRoutePanel.dataset.marketRoutePanel).toBe("");
-    expect(root.querySelector('[data-studio-panel="aida"][aria-label="AIDA move deck"]')).toBeTruthy();
+    expect(root.querySelector('[data-studio-panel="aida"][aria-label="AIDA techniques"]')).toBeTruthy();
     expect(shell.aidaPlaybookPanel.dataset.aidaPlaybookPanel).toBe("");
     expect(root.querySelector('[data-studio-panel="coach"][aria-label="Studio Coach"]')).toBeTruthy();
     expect(shell.studioCoachPanel.dataset.studioCoachPanel).toBe("");
@@ -67,8 +67,9 @@ describe("createEditorShell", () => {
     expect(shell.libraryColour).toBe(pieceColour);
     expect(shell.libraryResults.dataset.libraryResults).toBe("");
     expect(shell.libraryStatus.getAttribute("role")).toBe("status");
-    expect(root.querySelector('[data-studio-collapse]')).toBeNull();
-    expect(root.textContent).not.toContain("Hide library");
+    const hideTools = getByRole<HTMLButtonElement>(root, "button", { name: "Hide tools" });
+    expect(hideTools.getAttribute("aria-controls")).toBe("studio-browse-pane");
+    expect(hideTools.getAttribute("aria-expanded")).toBe("true");
     const separator = getByRole<HTMLElement>(root, "separator", {
       name: "Resize the library and design areas"
     });
@@ -168,7 +169,7 @@ describe("createEditorShell", () => {
     expect(roleGuideLayer.textContent).toContain(
       "The roles do not unlock different buttons."
     );
-    expect(getByRole(root, "combobox", { name: "Audience signal" })).toBeTruthy();
+    expect(getByRole(root, "combobox", { name: "Audience brief" })).toBeTruthy();
     const audienceBrief = root.querySelector<HTMLElement>(
       '#studio-full-brief[aria-label="Audience brief"]'
     )!;
@@ -177,6 +178,9 @@ describe("createEditorShell", () => {
     expect(audienceBrief.querySelectorAll("[data-brief-help]")).toHaveLength(4);
     expect(getByRole(root, "button", { name: "Open full brief" }).getAttribute("aria-expanded"))
       .toBe("false");
+    const taskBarToggle = getByRole<HTMLButtonElement>(root, "button", { name: "Hide task bar" });
+    expect(taskBarToggle.getAttribute("aria-controls")).toBe("studio-task-bar");
+    expect(taskBarToggle.getAttribute("aria-expanded")).toBe("true");
     expect(root.querySelector('[data-studio-panel="words"][aria-label="Pair tools"]')).toBeTruthy();
     expect(root.querySelector('[data-studio-panel="logo"][aria-label="Logo Lab"]')).toBeTruthy();
     expect(shell.logoLabPanel.dataset.logoLabPanel).toBe("");

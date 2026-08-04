@@ -5,6 +5,8 @@ import { STUDENT_COPY } from "../game/student-copy";
 export interface EditorShell extends PairGameView {
   overlay: HTMLElement;
   workspace: HTMLElement;
+  taskBar: HTMLElement;
+  taskBarToggle: HTMLButtonElement;
   library: HTMLElement;
   workspaceSeparator: HTMLElement;
   productBuilder: HTMLElement;
@@ -51,9 +53,10 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         <span class="creator__save-status" role="status" aria-label="Saved progress" data-save-status></span>
         <button type="button" data-guide-review-top>How to use this site</button>
         <button type="button" data-studio-tour-open>Studio tour</button>
+        <button type="button" data-task-bar-toggle aria-controls="studio-task-bar" aria-expanded="true">Hide task bar</button>
         <button type="button" data-command="return">Return to game</button>
       </header>
-      <section class="creator__pair-strip" role="region" aria-label="${STUDENT_COPY.labels.pairPlay}">
+      <section class="creator__pair-strip" id="studio-task-bar" role="region" aria-label="${STUDENT_COPY.labels.pairPlay}">
         <div class="creator__level-chip">
           <span class="creator__eyebrow" data-creator-level-label>${STUDENT_COPY.phaseLabels["round-zero"]}</span>
         </div>
@@ -127,6 +130,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           <button type="button" role="tab" aria-selected="false" aria-controls="studio-edit-pane" tabindex="-1" data-studio-pane-tab="edit">Edit</button>
         </nav>
         <aside class="creator__library creator__tool-drawer" id="studio-browse-pane" aria-label="Studio drawer" data-studio-drawer>
+          <button type="button" class="creator__tool-drawer-toggle" data-studio-drawer-toggle aria-controls="studio-browse-pane" aria-expanded="true">Hide tools</button>
           <section class="creator__guide" role="region" aria-label="Current instruction" data-guide>
             <p class="creator__guide-progress" data-guide-progress>Task 1 of 11</p>
             <h2 data-guide-title>Audience evidence</h2>
@@ -154,8 +158,8 @@ export function createEditorShell(root: HTMLElement): EditorShell {
               <p role="status">Product maker loading</p>
               <button type="button" disabled>Add it to the advertisement</button>
             </div>
-            <aside class="creator__launch-path" role="note" aria-label="Launch path">
-              <p>LAUNCH PATH</p>
+            <aside class="creator__launch-path" role="note" aria-label="Build order">
+              <p>BUILD ORDER</p>
               <ol>
                 <li><span>1</span><strong>Build</strong></li>
                 <li><span>2</span><strong>Place</strong></li>
@@ -205,9 +209,9 @@ export function createEditorShell(root: HTMLElement): EditorShell {
             <h2>Choose a market route</h2>
             <div data-market-route-panel><p role="status">Market map loading</p></div>
           </section>
-          <section class="creator__tool-panel creator__aida-playbook" id="studio-panel-aida" role="region" aria-label="AIDA move deck" data-studio-panel="aida" data-creator-feature="aida" hidden>
-            <h2>AIDA move deck</h2>
-            <div data-aida-playbook-panel><p role="status">Move deck shuffling</p></div>
+          <section class="creator__tool-panel creator__aida-playbook" id="studio-panel-aida" role="region" aria-label="AIDA techniques" data-studio-panel="aida" data-creator-feature="aida" hidden>
+            <h2>AIDA techniques</h2>
+            <div data-aida-playbook-panel><p role="status">AIDA techniques loading</p></div>
           </section>
           <section class="creator__tool-panel creator__studio-coach" id="studio-panel-coach" role="region" aria-label="Studio Coach" data-studio-panel="coach" data-creator-feature="coach" hidden>
             <h2>Studio Coach</h2>
@@ -382,6 +386,8 @@ export function createEditorShell(root: HTMLElement): EditorShell {
   return {
     overlay,
     workspace: root.querySelector(".creator__workspace")!,
+    taskBar: root.querySelector("#studio-task-bar")!,
+    taskBarToggle: root.querySelector("[data-task-bar-toggle]")!,
     library: root.querySelector(".creator__library")!,
     workspaceSeparator: root.querySelector("[data-studio-separator]")!,
     productBuilder: root.querySelector(".creator__product-builder")!,

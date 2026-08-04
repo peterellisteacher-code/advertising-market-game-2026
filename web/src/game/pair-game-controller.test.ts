@@ -98,7 +98,7 @@ function createPairGameView(): { root: HTMLElement; view: PairGameView } {
         <p data-partner-role-action></p>
         <p role="status" aria-label="Pair progress" data-round-progress></p>
         <button type="button" data-swap-roles>Swap roles</button>
-        <label>Audience signal <select data-audience-signal></select></label>
+      <label>Audience brief <select data-audience-signal></select></label>
         <section role="region" aria-label="Audience brief">
           <p data-audience-context></p>
           <p data-audience-need></p>
@@ -163,7 +163,7 @@ describe("PairGameController", () => {
     expect(port.briefIds).toEqual([AUDIENCE_BRIEFS[0].id]);
     expect(getByRole(root, "heading", { name: "Art Director" })).toBeTruthy();
     const audienceSignal = getByRole<HTMLSelectElement>(root, "combobox", {
-      name: "Audience signal"
+      name: "Audience brief"
     });
     expect(audienceSignal.options).toHaveLength(AUDIENCE_BRIEFS.length);
     expect(audienceSignal.value).toBe(AUDIENCE_BRIEFS[0].id);
@@ -332,7 +332,7 @@ describe("PairGameController", () => {
     await controller.open(campaign);
     const selectedBrief = AUDIENCE_BRIEFS[1];
 
-    fireEvent.change(getByRole(root, "combobox", { name: "Audience signal" }), {
+    fireEvent.change(getByRole(root, "combobox", { name: "Audience brief" }), {
       target: { value: selectedBrief.id }
     });
 
@@ -415,15 +415,15 @@ describe("PairGameController", () => {
     await controller.open(campaign);
     port.audienceError = new Error("Internal assignment record failed");
 
-    fireEvent.change(getByRole(root, "combobox", { name: "Audience signal" }), {
+    fireEvent.change(getByRole(root, "combobox", { name: "Audience brief" }), {
       target: { value: AUDIENCE_BRIEFS[1].id }
     });
 
     await waitFor(() => {
-      expect(view.assertive.textContent).toBe("That move did not work. Try again.");
+    expect(view.assertive.textContent).toBe("That action did not work. Try again.");
     });
     expect(root.textContent).not.toContain("Internal assignment record failed");
-    expect(getByRole<HTMLSelectElement>(root, "combobox", { name: "Audience signal" }).value)
+    expect(getByRole<HTMLSelectElement>(root, "combobox", { name: "Audience brief" }).value)
       .toBe(AUDIENCE_BRIEFS[0].id);
   });
 });

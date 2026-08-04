@@ -61,7 +61,7 @@ describe("student copy", () => {
     expect(STUDENT_COPY.labels).toMatchObject({
       gameTitle: expect.any(String),
       audienceBrief: expect.any(String),
-      audienceSignal: "Audience signal",
+    audienceSignal: "Audience brief",
       roundProgress: "Pair progress",
       pairPlay: "Pair play",
       canvasWords: "Advertisement words",
@@ -102,14 +102,14 @@ describe("student copy", () => {
       productWords: "Put words on selected product",
       productWordsHint: "Select the product first. On supported products, the words appear on a curved label and the original text remains editable.",
       blankWords: "Type advertisement words first.",
-      audienceChanged: "Audience signal changed.",
+    audienceChanged: "Audience brief changed.",
       wordsAdded: "Words added to the advertisement.",
       productWordsAdded: "Words added to the selected product.",
       productWordsUpdated: "Words updated on the selected product.",
       productWordsNeedSelection: "Select a product with a label area first.",
       undoUnavailable: "Nothing to undo.",
       redoUnavailable: "Nothing to redo.",
-      operationFailed: "That move did not work. Try again."
+      operationFailed: "That action did not work. Try again."
     });
     expect(STUDENT_COPY.roundZero).not.toHaveProperty("bothRolesReady");
     expect(STUDENT_COPY.readiness).toMatchObject({

@@ -1830,6 +1830,35 @@ describe("window.AdMarketCreator", () => {
     }));
   }, 20_000);
 
+  it("hides and restores the task bar from the Studio header without resetting its brief", async () => {
+    await import("./main");
+    const api = (window as Window & { AdMarketCreator: CreatorPublicApi }).AdMarketCreator;
+    expect(await parsed(api, "open-task-bar", "open", blankDocument)).toMatchObject({ ok: true });
+
+    const creator = document.querySelector<HTMLElement>(".creator")!;
+    const taskBar = getByRole<HTMLElement>(document.body, "region", { name: "Pair play" });
+    const toggle = getByRole<HTMLButtonElement>(document.body, "button", { name: "Hide task bar" });
+    const audienceBrief = getByRole<HTMLSelectElement>(document.body, "combobox", {
+      name: "Audience brief"
+    });
+    audienceBrief.value = "weekend-neighbours";
+
+    fireEvent.click(toggle);
+
+    expect(creator.hasAttribute("data-task-bar-collapsed")).toBe(true);
+    expect(taskBar.hidden).toBe(true);
+    expect(toggle.textContent).toBe("Show task bar");
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.click(toggle);
+
+    expect(creator.dataset.taskBarCollapsed).toBeUndefined();
+    expect(taskBar.hidden).toBe(false);
+    expect(toggle.textContent).toBe("Hide task bar");
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(audienceBrief.value).toBe("weekend-neighbours");
+  }, 20_000);
+
   it("resizes the studio panes without changing serialized canvas state", async () => {
     const documentWithCanvasObject = CampaignDocumentSchema.parse({
       ...structuredClone(blankDocument),
@@ -2067,7 +2096,7 @@ describe("window.AdMarketCreator", () => {
 
     runtime.selectedObjectId = "placed-product";
     const idea = getByRole<HTMLTextAreaElement>(document.body, "textbox", {
-      name: "Your Attention move"
+      name: "Your Attention technique"
     });
     fireEvent.input(idea, { target: { value: "Use a close product image as the focal point." } });
     fireEvent.click(getByRole(document.body, "button", { name: "Lock in Attention" }));
@@ -2562,7 +2591,7 @@ describe("window.AdMarketCreator", () => {
     activateStudioTool("aida");
 
     const idea = getByRole<HTMLTextAreaElement>(document.body, "textbox", {
-      name: "Your Attention move"
+      name: "Your Attention technique"
     });
     fireEvent.input(idea, {
       target: { value: "Lead with one bold promise that breaks the pattern." }
@@ -2571,7 +2600,7 @@ describe("window.AdMarketCreator", () => {
 
     await waitFor(() => expect(document.querySelector<HTMLElement>(
       "[data-aida-playbook-panel] [role=status]"
-    )?.textContent).toContain("Attention move locked to the selected item"));
+  )?.textContent).toContain("Attention technique locked to the selected item"));
     const response = await parsed(api, "state-aida-evidence", "getState", null);
     if (!response.ok) throw new Error(JSON.stringify(response.error));
     const state = CampaignDocumentSchema.parse(response.payload);
@@ -2604,7 +2633,7 @@ describe("window.AdMarketCreator", () => {
 
     expect(runtime.selectedObjectId).toBe("placed-product");
     const idea = getByRole<HTMLTextAreaElement>(document.body, "textbox", {
-      name: "Your Attention move"
+      name: "Your Attention technique"
     });
     fireEvent.input(idea, {
       target: { value: "Use the product close-up as the first focal point." }
@@ -2613,7 +2642,7 @@ describe("window.AdMarketCreator", () => {
 
     await waitFor(() => expect(document.querySelector<HTMLElement>(
       "[data-aida-playbook-panel] [role=status]"
-    )?.textContent).toContain("Attention move locked to the selected item"));
+  )?.textContent).toContain("Attention technique locked to the selected item"));
     const response = await parsed(api, "state-selected-product", "getState", null);
     if (!response.ok) throw new Error(JSON.stringify(response.error));
     const state = CampaignDocumentSchema.parse(response.payload);
@@ -2661,7 +2690,7 @@ describe("window.AdMarketCreator", () => {
 
     activateStudioTool("aida");
     const idea = getByRole<HTMLTextAreaElement>(document.body, "textbox", {
-      name: "Your Attention move"
+      name: "Your Attention technique"
     });
     fireEvent.input(idea, {
       target: { value: "Use the latest proof as the opening focal point." }
@@ -2686,7 +2715,7 @@ describe("window.AdMarketCreator", () => {
     fireEvent.click(getByRole(document.body, "button", { name: "Lock in Attention" }));
     await waitFor(() => expect(document.querySelector<HTMLElement>(
       "[data-aida-playbook-panel] [role=status]"
-    )?.textContent).toContain("Select the item"));
+    )?.textContent).toContain("Select the item that carries this AIDA choice first."));
     const afterDeselect = await parsed(api, "deselected-state", "getState", null);
     if (!afterDeselect.ok) throw new Error(JSON.stringify(afterDeselect.error));
     expect(CampaignDocumentSchema.parse(afterDeselect.payload).evidence.attention)
@@ -2701,7 +2730,7 @@ describe("window.AdMarketCreator", () => {
     activateStudioTool("aida");
 
     const idea = getByRole<HTMLTextAreaElement>(document.body, "textbox", {
-      name: "Your Attention move"
+      name: "Your Attention technique"
     });
     fireEvent.input(idea, {
       target: { value: "Make the opening image impossible to ignore." }
@@ -2710,7 +2739,7 @@ describe("window.AdMarketCreator", () => {
 
     await waitFor(() => expect(document.querySelector<HTMLElement>(
       "[data-aida-playbook-panel] [role=status]"
-    )?.textContent).toContain("Select the item"));
+    )?.textContent).toContain("Select the item that carries this AIDA choice first."));
     const response = await parsed(api, "state-aida-no-selection", "getState", null);
     if (!response.ok) throw new Error(JSON.stringify(response.error));
     const state = CampaignDocumentSchema.parse(response.payload);

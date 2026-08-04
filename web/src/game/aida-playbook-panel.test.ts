@@ -17,21 +17,22 @@ describe("AidaPlaybookPanel", () => {
       name: "Attention: use one element to attract attention immediately."
     }))
       .toBeTruthy();
-    expect(getAllByRole(host, "button", { name: /Try move:/ })).toHaveLength(5);
+    expect(getByRole(host, "group", { name: "Attention techniques" })).toBeTruthy();
+    expect(getAllByRole(host, "button", { name: /Try technique:/ })).toHaveLength(5);
     expect(host.textContent)
       .toContain("Select the item that delivers it");
     expect(host.textContent)
       .toContain("Each technique states how a visible choice affects the audience.");
     expect(host.textContent).not.toMatch(/\b(?:assignment|unit|task)\b/i);
 
-    fireEvent.click(getByRole(host, "button", { name: /Try move: Pattern break/ }));
-    const idea = getByRole<HTMLTextAreaElement>(host, "textbox", { name: "Your Attention move" });
+    fireEvent.click(getByRole(host, "button", { name: /Try technique: Pattern break/ }));
+    const idea = getByRole<HTMLTextAreaElement>(host, "textbox", { name: "Your Attention technique" });
     expect(idea.value).toContain("disrupts the visual pattern");
     fireEvent.input(idea, {
       target: { value: "Open with one tiny bottle in a field of oversized circles." }
     });
     fireEvent.click(getByRole(host, "button", { name: "Show five more techniques" }));
-    expect(getAllByRole(host, "button", { name: /Try move:/ })).toHaveLength(10);
+    expect(getAllByRole(host, "button", { name: /Try technique:/ })).toHaveLength(10);
     expect(idea.value).toBe("Open with one tiny bottle in a field of oversized circles.");
     fireEvent.click(getByRole(host, "button", { name: "Lock in Attention" }));
 
@@ -40,7 +41,7 @@ describe("AidaPlaybookPanel", () => {
       "Open with one tiny bottle in a field of oversized circles."
     ));
     expect(getByRole(host, "status").textContent)
-      .toBe("Attention move locked to the selected item. Next: Interest.");
+      .toBe("Attention technique locked to the selected item. Next: Interest.");
   });
 
   it("sends the pair back to the game after the Action move completes AIDA", async () => {
@@ -57,13 +58,13 @@ describe("AidaPlaybookPanel", () => {
       }
     });
 
-    fireEvent.input(getByRole(host, "textbox", { name: "Your Action move" }), {
+    fireEvent.input(getByRole(host, "textbox", { name: "Your Action technique" }), {
       target: { value: "Try it after school." }
     });
     fireEvent.click(getByRole(host, "button", { name: "Lock in Action" }));
 
     await vi.waitFor(() => expect(getByRole(host, "status").textContent)
-      .toBe("Action move locked to the selected item. AIDA is complete. Return to the game."));
+      .toBe("Action technique locked to the selected item. AIDA is complete. Return to the game."));
   });
 
   it("restores each saved stage independently", () => {
@@ -80,7 +81,7 @@ describe("AidaPlaybookPanel", () => {
       }
     });
 
-    expect(getByRole<HTMLTextAreaElement>(host, "textbox", { name: "Your Desire move" }).value)
+    expect(getByRole<HTMLTextAreaElement>(host, "textbox", { name: "Your Desire technique" }).value)
       .toBe("Make the spare hour feel like an escape.");
     expect(getByRole(host, "heading", {
       name: "Desire: connect a product feature to an audience need or preference."

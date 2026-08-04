@@ -3,17 +3,23 @@ import { createStudioToolDrawer } from "./studio-tool-drawer";
 
 function createFixture() {
   document.body.innerHTML = `
-    <section data-studio-drawer>
-      <div role="tablist" aria-label="Studio tools">
-        <button data-studio-tool="product">Product</button>
-        <button data-studio-tool="assets">Assets</button>
-        <button data-studio-tool="words">Words</button>
-      </div>
-      <section data-studio-panel="product"><input value="kept" /></section>
-      <section data-studio-panel="assets" hidden><div style="height: 100px"></div></section>
-      <section data-studio-panel="words" hidden></section>
+    <section data-studio-root>
+      <section data-studio-workspace>
+        <div role="tablist" aria-label="Studio tools">
+          <button data-studio-tool="product">Product</button>
+          <button data-studio-tool="assets">Assets</button>
+          <button data-studio-tool="words">Words</button>
+        </div>
+        <section id="studio-browse-pane" data-studio-drawer>
+          <button type="button" data-studio-drawer-toggle aria-controls="studio-browse-pane" aria-expanded="true">Hide tools</button>
+          <section data-studio-panel="product"><input value="kept" /></section>
+          <section data-studio-panel="assets" hidden><div style="height: 100px"></div></section>
+          <section data-studio-panel="words" hidden></section>
+        </section>
+        <div data-studio-separator></div>
+      </section>
     </section>`;
-  return document.querySelector<HTMLElement>("[data-studio-drawer]")!;
+  return document.querySelector<HTMLElement>("[data-studio-root]")!;
 }
 
 describe("createStudioToolDrawer", () => {
@@ -82,6 +88,50 @@ describe("createStudioToolDrawer", () => {
     expect(input.value).toBe("still here");
     expect(root.dataset.studioDrawerCollapsed).toBeUndefined();
     expect(root.dataset.studioDrawerOpen).toBeUndefined();
+  });
+
+  it("hides tools with the click control and reopens the active tool without resetting its input", () => {
+    const root = createFixture();
+    const drawer = createStudioToolDrawer(root);
+    const drawerPane = root.querySelector<HTMLElement>("[data-studio-drawer]")!;
+    const rail = root.querySelector<HTMLElement>('[role="tablist"]')!;
+    const separator = root.querySelector<HTMLElement>("[data-studio-separator]")!;
+    const hideTools = root.querySelector<HTMLButtonElement>("[data-studio-drawer-toggle]")!;
+    const product = root.querySelector<HTMLButtonElement>('[data-studio-tool="product"]')!;
+    const productInput = root.querySelector<HTMLInputElement>('[data-studio-panel="product"] input')!;
+    productInput.value = "kept after hiding";
+
+    hideTools.click();
+
+    expect(root.hasAttribute("data-studio-drawer-collapsed")).toBe(true);
+    expect(drawerPane.hidden).toBe(true);
+    expect(separator.hidden).toBe(true);
+    expect(rail.hidden).toBe(false);
+    expect(hideTools.getAttribute("aria-expanded")).toBe("false");
+    expect(drawer.current()).toBe("product");
+    expect(document.activeElement).toBe(product);
+
+    product.click();
+
+    expect(root.dataset.studioDrawerCollapsed).toBeUndefined();
+    expect(drawerPane.hidden).toBe(false);
+    expect(separator.hidden).toBe(false);
+    expect(hideTools.getAttribute("aria-expanded")).toBe("true");
+    expect(productInput.value).toBe("kept after hiding");
+    expect(document.activeElement).toBe(product);
+  });
+
+  it("reopens the clicked rail tool after tools are hidden", () => {
+    const root = createFixture();
+    const drawer = createStudioToolDrawer(root);
+    root.querySelector<HTMLButtonElement>("[data-studio-drawer-toggle]")!.click();
+
+    root.querySelector<HTMLButtonElement>('[data-studio-tool="assets"]')!.click();
+
+    expect(root.dataset.studioDrawerCollapsed).toBeUndefined();
+    expect(drawer.current()).toBe("assets");
+    expect(root.querySelector<HTMLElement>('[data-studio-panel="assets"]')!.hidden).toBe(false);
+    expect(document.activeElement).toBe(root.querySelector('[data-studio-tool="assets"]'));
   });
 
   it("ignores hidden or disabled rail tools without making them available", () => {

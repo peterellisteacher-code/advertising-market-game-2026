@@ -253,6 +253,7 @@ describe("LogoLabPanel", () => {
     chooser.value = "logo-1";
     fireEvent.change(chooser);
     const details = host.querySelector<HTMLDetailsElement>("details")!;
+    expect(details.querySelector("summary")?.textContent).toBe("More logo options");
     details.open = true;
 
     for (const [index, name] of [

@@ -495,7 +495,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
 
   attachAidaPlaybookPanel(panel: AidaPlaybookPanel): void {
     if (this.#aidaPlaybookPanel !== null && this.#aidaPlaybookPanel !== panel) {
-      throw new Error("AIDA move deck is already attached");
+      throw new Error("AIDA techniques panel is already attached");
     }
     this.#aidaPlaybookPanel = panel;
     this.#refreshAidaPlaybook();
@@ -593,7 +593,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     if (runtime === null) throw new Error("Campaign creator is not open");
     const selectedObjectId = runtime.adapter.getSelectedObjectId();
     if (selectedObjectId === null) {
-      throw new Error("Select the item that carries this AIDA move first.");
+      throw new Error("Select the item that carries this AIDA choice first.");
     }
     const commit = async (): Promise<void> => {
       const current = this.#snapshot();
@@ -2021,6 +2021,15 @@ const root = document.querySelector<HTMLElement>("#creator-root");
 if (!root) throw new Error("Missing #creator-root");
 
 const shell = createEditorShell(root);
+const setTaskBarCollapsed = (collapsed: boolean): void => {
+  shell.overlay.toggleAttribute("data-task-bar-collapsed", collapsed);
+  shell.taskBar.hidden = collapsed;
+  shell.taskBarToggle.textContent = collapsed ? "Show task bar" : "Hide task bar";
+  shell.taskBarToggle.setAttribute("aria-expanded", String(!collapsed));
+};
+shell.taskBarToggle.addEventListener("click", () => {
+  setTaskBarCollapsed(!shell.taskBar.hidden);
+});
 registerReleaseServiceWorker({
   onUpdateReady: () => {
     shell.saveStatus.textContent = "Update ready";

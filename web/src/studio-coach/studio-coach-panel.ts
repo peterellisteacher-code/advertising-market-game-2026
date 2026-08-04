@@ -52,7 +52,7 @@ export class StudioCoachPanel {
     root.className = "studio-coach";
     const progress = element("p", "Two checks for this ad");
     progress.className = "studio-coach__progress";
-    const rule = element("p", "Check 1 gives one visual move. Check 2 only compares your revision.");
+    const rule = element("p", "Check 1 gives one design change. Check 2 only compares your revision.");
     rule.className = "studio-coach__rule";
     root.append(progress, rule);
 
@@ -146,7 +146,7 @@ export class StudioCoachPanel {
     const article = element("article");
     article.className = "studio-coach__feedback";
     article.setAttribute("aria-label", "Studio Coach advice");
-    article.append(element("h3", "One move to try"));
+    article.append(element("h3", "One design change to try"));
     article.append(this.#fact("What I can see", response.observation));
     article.append(this.#fact("Why it matters", response.effect));
     article.append(this.#fact("Change", response.nextMove));

@@ -317,7 +317,7 @@ export class LogoLabPanel {
     extras.open = this.#detailsOpen;
     extras.addEventListener("toggle", () => { this.#detailsOpen = extras.open; });
     const summary = document.createElement("summary");
-    summary.textContent = "More logo moves";
+    summary.textContent = "More logo options";
     const typeface = document.createElement("select");
     for (const value of LOGO_TYPEFACES) typeface.append(option(value, value));
     typeface.value = this.#typeface;

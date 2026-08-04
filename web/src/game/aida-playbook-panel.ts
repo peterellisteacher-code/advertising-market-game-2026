@@ -57,18 +57,18 @@ export class AidaPlaybookPanel {
     deckLabel.textContent = "Choose a technique or write your own. Each technique states how a visible choice affects the audience. Select the item that delivers it.";
     const deck = element("div", "aida-playbook__deck");
     deck.setAttribute("role", "group");
-    deck.setAttribute("aria-label", `${definition.label} move deck`);
+    deck.setAttribute("aria-label", `${definition.label} techniques`);
 
     const idea = element("textarea");
     idea.rows = 4;
     idea.maxLength = 280;
     idea.value = this.#state.plan[definition.id];
-    idea.setAttribute("aria-label", `Your ${definition.label} move`);
+    idea.setAttribute("aria-label", `Your ${definition.label} technique`);
 
     const appendMove = (candidate: (typeof definition.moves)[number]): void => {
       const card = element("button", "aida-playbook__move");
       card.type = "button";
-      card.setAttribute("aria-label", `Try move: ${candidate.label}`);
+      card.setAttribute("aria-label", `Try technique: ${candidate.label}`);
       const strong = element("strong");
       strong.textContent = candidate.label;
       const clue = element("span");
@@ -94,7 +94,7 @@ export class AidaPlaybookPanel {
 
     const label = element("label", "aida-playbook__idea");
     const labelText = element("span");
-    labelText.textContent = `Your ${definition.label} move`;
+    labelText.textContent = `Your ${definition.label} technique`;
     label.append(labelText, idea);
     const status = element("p", "aida-playbook__status");
     status.setAttribute("role", "status");
@@ -109,7 +109,7 @@ export class AidaPlaybookPanel {
       if (!value || save.disabled) return;
       const operation = ++this.#operation;
       save.disabled = true;
-      status.textContent = `Locking in the ${definition.label} move…`;
+      status.textContent = `Locking in the ${definition.label} technique…`;
       try {
         await this.onCommit(definition.id, value);
         if (operation !== this.#operation) return;
@@ -118,8 +118,8 @@ export class AidaPlaybookPanel {
           plan: { ...this.#state.plan, [definition.id]: value }
         };
         status.textContent = definition.id === "action"
-          ? "Action move locked to the selected item. AIDA is complete. Return to the game."
-          : `${definition.label} move locked to the selected item. Next: ${nextAidaStage[definition.id]}.`;
+          ? "Action technique locked to the selected item. AIDA is complete. Return to the game."
+          : `${definition.label} technique locked to the selected item. Next: ${nextAidaStage[definition.id]}.`;
       } catch (error) {
         if (operation !== this.#operation) return;
       status.textContent = error instanceof Error ? error.message : "Save failed.";

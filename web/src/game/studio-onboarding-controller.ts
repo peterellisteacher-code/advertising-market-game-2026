@@ -91,9 +91,23 @@ export class StudioOnboardingController {
   };
   readonly #onKeydown = (event: KeyboardEvent): void => {
     if (event.key === "Escape") { event.preventDefault(); this.#closeTour(true); return; }
+    if (event.key === "Tab") {
+      const controls = this.#visibleControls();
+      const currentIndex = controls.indexOf(this.#dialog.ownerDocument.activeElement as HTMLButtonElement);
+      const nextIndex = event.shiftKey
+        ? (currentIndex <= 0 ? controls.length - 1 : currentIndex - 1)
+        : (currentIndex + 1) % controls.length;
+      event.preventDefault();
+      controls[nextIndex]?.focus();
+      return;
+    }
     if (event.key === "ArrowLeft") { event.preventDefault(); this.#show(this.#index - 1); }
     if (event.key === "ArrowRight") { event.preventDefault(); this.#onNext(); }
   };
+
+  #visibleControls(): HTMLButtonElement[] {
+    return [this.#close, this.#previous, this.#next].filter((control) => !control.hidden);
+  }
 
   #show(index: number): void {
     this.#index = Math.max(0, Math.min(index, PAGES.length - 1));

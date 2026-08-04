@@ -57,4 +57,44 @@ describe("StudioOnboardingController", () => {
     expect(getByRole(root, "dialog", { name: "Studio tour" }).textContent)
       .toContain("Page 1 of 4 · Brief");
   });
+
+  it("keeps a required tour open until completion and cycles focus through its visible controls", () => {
+    document.body.innerHTML = '<div id="creator-root"></div>';
+    const root = document.querySelector<HTMLElement>("#creator-root")!;
+    const shell = createEditorShell(root);
+    const acknowledge = vi.fn();
+    const controller = new StudioOnboardingController(root, shell.overlay, acknowledge, vi.fn());
+
+    controller.setCampaign(campaign());
+
+    const dialog = getByRole(root, "dialog", { name: "Studio tour" });
+    const close = getByRole(dialog, "button", { name: "Close" });
+    const next = getByRole(dialog, "button", { name: "Next" });
+    close.focus();
+    fireEvent.keyDown(close, { key: "Tab" });
+    expect(document.activeElement).toBe(next);
+    fireEvent.keyDown(next, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(close);
+
+    fireEvent.click(close);
+    expect(acknowledge).not.toHaveBeenCalled();
+    expect(root.querySelector<HTMLElement>("[data-studio-onboarding-layer]")!.hidden).toBe(true);
+
+    fireEvent.click(getByRole(root, "button", { name: "Studio tour" }));
+    expect(dialog.textContent).toContain("Page 1 of 4 · Brief");
+    expect(acknowledge).not.toHaveBeenCalled();
+
+    fireEvent.click(next);
+    const previous = getByRole(dialog, "button", { name: "Previous" });
+    close.focus();
+    fireEvent.keyDown(close, { key: "Tab" });
+    expect(document.activeElement).toBe(previous);
+    fireEvent.keyDown(previous, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(close);
+    next.focus();
+    fireEvent.keyDown(next, { key: "Tab" });
+    expect(document.activeElement).toBe(close);
+    fireEvent.keyDown(close, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(next);
+  });
 });

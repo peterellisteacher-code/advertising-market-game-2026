@@ -1625,7 +1625,7 @@ func _readiness_clue_for(phase: String, document: Dictionary) -> String:
         if not _is_nonblank_string(product.get("name")):
             return "Next: add a product name."
         if not _is_nonblank_string(brief.get("targetAudienceId")):
-            return "Next: choose an audience signal."
+            return "Next: choose an audience brief."
         var gameplay := _dictionary_child(document, "gameplay")
         var pair := _dictionary_child(gameplay, "pair")
         if int(pair.get("handoffCount", 0)) < 1:

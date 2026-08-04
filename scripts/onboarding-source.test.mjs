@@ -350,7 +350,7 @@ test("run screen reveals one concrete next requirement at a time", () => {
   for (const instruction of [
     "Next: build a product in the studio.",
     "Next: add a product name.",
-    "Next: choose an audience signal.",
+    "Next: choose an audience brief.",
     "Next: swap roles once.",
     "Next: link one choice to Attention.",
     "Next: add a price.",
@@ -415,6 +415,11 @@ test("Godot advertising copy reuses AIDA stage and advertisement terminology", (
       source,
       /\bbuild a campaign\b/i,
       `${sourceName} must name the advertisement students build`
+    );
+    assert.doesNotMatch(
+      source,
+      /\baudience signal\b/i,
+      `${sourceName} must use the established audience brief term`
     );
   }
 });

@@ -640,7 +640,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
 theme_override_font_sizes/font_size = 18
-text = "Read your audience signal. Shape a product. Give the product a name."
+text = "Read your audience brief. Shape a product. Give the product a name."
 autowrap_mode = 2
 
 [node name="FinalReview" type="PanelContainer" parent="MainMargin/GameInput/RunPanel/RunContent" unique_id=170385383]

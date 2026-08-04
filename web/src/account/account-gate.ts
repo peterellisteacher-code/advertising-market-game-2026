@@ -409,9 +409,11 @@ export class AccountAccessController {
       this.#reload();
       return;
     }
-    this.#renderLogin(
-      "Private storage did not open, so you were signed out and returned to the start. Log in again or create a pair login."
-    );
+    this.#renderLogin(this.#gameStartFailed
+      ? "The game did not start, so you were signed out and returned to the start. " +
+        "Log in again or create a pair login."
+      : "Private storage did not open, so you were signed out and returned to the start. " +
+        "Log in again or create a pair login.");
   }
 
   #renderStatus(username: string): void {

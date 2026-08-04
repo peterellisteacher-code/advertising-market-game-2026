@@ -213,6 +213,10 @@ describe("AccountAccessController", () => {
       name: "Log in"
     })).toBeTruthy());
     expect(onSignedOut).toHaveBeenCalledWith(false);
+    expect(getByRole(harness.gateRoot, "alert").textContent).toBe(
+      "The game did not start, so you were signed out and returned to the start. " +
+      "Log in again or create a pair login."
+    );
     expect(getByRole(harness.gateRoot, "button", {
       name: "Create a pair login"
     })).toBeTruthy();

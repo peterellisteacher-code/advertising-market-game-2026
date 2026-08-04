@@ -51,6 +51,24 @@ describe("Fabric canvas layer styling", () => {
     );
   });
 
+  it("keeps the Studio tour as a bounded, keyboard-friendly overlay", () => {
+    expect(css).toMatch(
+      /\.creator__studio-onboarding-layer\s*\{[^}]*position:\s*fixed[^}]*inset:\s*0[^}]*display:\s*grid[^}]*place-items:\s*center[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator__studio-onboarding\s*\{[^}]*width:\s*min\(42rem,\s*100%\)[^}]*max-height:[^}]*overflow:\s*auto[^}]*\}/i
+    );
+  });
+
+  it("dims the Studio behind a single raised tour target", () => {
+    expect(css).toMatch(
+      /\.creator__studio-onboarding-spotlight\s*\{[^}]*position:\s*fixed[^}]*border:[^}]*box-shadow:\s*0\s+0\s+0\s+100vmax\s+rgb\(10\s+22\s+36\s*\/\s*\.76\)[^}]*pointer-events:\s*none[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator__studio-onboarding\s*\{[^}]*position:\s*relative[^}]*z-index:\s*1[^}]*\}/i
+    );
+  });
+
   it("has no floating or absolute drawer-collapse control", () => {
     expect(css).not.toMatch(/creator__drawer-collapse/i);
     expect(css).toMatch(

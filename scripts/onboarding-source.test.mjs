@@ -1,6 +1,18 @@
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import test from "node:test";
 import assert from "node:assert/strict";
+
+const readBinaryOrEmpty = async (url) => {
+  try {
+    return await readFile(url);
+  } catch (error) {
+    if (error && typeof error === "object" && error.code === "ENOENT") {
+      return Buffer.alloc(0);
+    }
+    throw error;
+  }
+};
 
 const [
   mainScript,
@@ -18,7 +30,12 @@ const [
   missionPanelScene,
   missionCatalogScript,
   agencyWorldScript,
-  agencyWorldScene
+  agencyWorldScene,
+  agencyAssetSources,
+  onboardingBriefAsset,
+  onboardingBuildAsset,
+  onboardingApprovalAsset,
+  obsoletePitchAsset
 ] = await Promise.all([
   readFile(new URL("../godot/src/main/main.gd", import.meta.url), "utf8"),
   readFile(new URL("../godot/src/main/Main.tscn", import.meta.url), "utf8"),
@@ -35,15 +52,98 @@ const [
   readFile(new URL("../godot/src/agency/missions/AgencyMissionPanel.tscn", import.meta.url), "utf8"),
   readFile(new URL("../godot/src/agency/agency_mission_catalog.gd", import.meta.url), "utf8"),
   readFile(new URL("../godot/src/agency/agency_world.gd", import.meta.url), "utf8"),
-  readFile(new URL("../godot/src/agency/AgencyWorld.tscn", import.meta.url), "utf8")
+  readFile(new URL("../godot/src/agency/AgencyWorld.tscn", import.meta.url), "utf8"),
+  readFile(new URL("../godot/assets/agency/ASSET-SOURCES.md", import.meta.url), "utf8"),
+  readBinaryOrEmpty(new URL("../godot/assets/agency/onboarding-brief.png", import.meta.url)),
+  readBinaryOrEmpty(new URL("../godot/assets/agency/onboarding-build.png", import.meta.url)),
+  readBinaryOrEmpty(new URL("../godot/assets/agency/onboarding-approval.png", import.meta.url)),
+  readBinaryOrEmpty(new URL("../godot/assets/agency/onboarding-pitch.png", import.meta.url))
 ]);
+
+const sha256 = (contents) => createHash("sha256").update(contents).digest("hex");
+
+test("onboarding screenshots contain PNG bytes, not only PNG filenames", () => {
+  const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  for (const [assetName, asset] of [
+    ["onboarding-brief.png", onboardingBriefAsset],
+    ["onboarding-build.png", onboardingBuildAsset],
+    ["onboarding-approval.png", onboardingApprovalAsset]
+  ]) {
+    assert.ok(
+      asset.subarray(0, pngSignature.length).equals(pngSignature),
+      `${assetName} must use the PNG file format`
+    );
+  }
+});
+
+test("first-time agency orientation explains the advertising task before controls", () => {
+  for (const copy of [
+    "You and your partner will make and pitch one ad.",
+    "Read the brief. Complete seven short tasks. Build one ad. Pitch it.",
+    "Walk near a room, then click Start task. E, Space or Enter also works.",
+    "Make an ad that gives the audience a clear reason to act.",
+    "Practise choosing advertising techniques and explaining their effect.",
+    "Each required task prepares the ad for the final pitch."
+  ]) {
+    assert.ok(agencyGuideScript.includes(copy), `missing opening promise: ${copy}`);
+  }
+  for (const authoredDefault of [
+    "You and your partner will make and pitch one ad.",
+    "Read the brief. Complete seven short tasks. Build one ad. Pitch it.",
+    "Each required task prepares the ad for the final pitch."
+  ]) {
+    assert.ok(
+      agencyGuideScene.includes(`text = "${authoredDefault}"`),
+      `missing quick-start default: ${authoredDefault}`
+    );
+  }
+  assert.doesNotMatch(agencyGuideScene, /text = "EARN"/);
+  assert.match(agencyGuideScript, /const ORIENTATION_STEPS := \[[\s\S]*?"overview": true/);
+  assert.ok(
+    agencyGuideScript.indexOf('"overview": true') < agencyGuideScript.indexOf('"title": "Move to the first task"'),
+    "the whole-game overview must precede movement and control instruction"
+  );
+  const orientationBlock = agencyGuideScript.match(
+    /const ORIENTATION_STEPS := \[[\s\S]*?\n\]/
+  )?.[0] ?? "";
+  assert.doesNotMatch(orientationBlock, /\b(?:mission|approval|tool)s?\b|\badvertisement\b/i);
+});
+
+test("agency orientation uses truthful, cropped project screenshots without inventing a pitch capture", () => {
+  const expectedAssets = new Map([
+    ["onboarding-brief.png", "fc8031ddc385f1a0408987a4ff11a653ba131923cacc8d979abf0108fc81e586"],
+    ["onboarding-build.png", "a4a9c8aad920f106d62dd37029733f8b91f01fd6c22350f2ed66489713602ada"],
+    ["onboarding-approval.png", "689a663f12ca20f052a505521da450eb47f51ff2ea0354866b04489857a787a9"]
+  ]);
+  const actualAssets = new Map([
+    ["onboarding-brief.png", sha256(onboardingBriefAsset)],
+    ["onboarding-build.png", sha256(onboardingBuildAsset)],
+    ["onboarding-approval.png", sha256(onboardingApprovalAsset)]
+  ]);
+  assert.deepEqual(actualAssets, expectedAssets);
+  assert.equal(obsoletePitchAsset.length, 0, "mission-complete capture must not remain named as Pitch");
+  for (const [assetName, expectedHash] of expectedAssets) {
+    assert.ok(agencyGuideScene.includes(`res://assets/agency/${assetName}`));
+    assert.ok(agencyAssetSources.includes(assetName));
+    assert.ok(agencyAssetSources.toLowerCase().includes(expectedHash));
+  }
+  for (const label of ["Brief", "Build", "Brief complete"]) {
+    assert.ok(agencyGuideScene.includes(`text = "${label}"`), `missing screenshot label: ${label}`);
+  }
+  assert.doesNotMatch(agencyGuideScene, /text = "(?:Pitch|Earn approval and pitch)"/);
+  assert.equal((agencyGuideScene.match(/region = Rect2\(0, 44, 1280, 756\)/g) ?? []).length, 3);
+  assert.ok(agencyAssetSources.includes("Pitch screenshot replacement: **OPEN**"));
+  assert.match(agencyAssetSources, /must show the pair's\s+advertisement presented in the pitch theatre/);
+});
 
 test("agency quick start presents one action at a time and can be resumed", () => {
   for (const nodeName of [
+    "OrientationOverview",
     "OrientationAction",
     "OrientationItemOneLabel",
     "OrientationItemTwoLabel",
     "OrientationItemThreeLabel",
+    "OrientationPrevious",
     "MinimiseOrientation",
     "ResumeOrientation"
   ]) {
@@ -51,6 +151,9 @@ test("agency quick start presents one action at a time and can be resumed", () =
   }
   assert.match(agencyGuideScript, /func minimise_orientation\(\) -> void:/);
   assert.match(agencyGuideScript, /func resume_orientation\(\) -> void:/);
+  assert.match(agencyGuideScript, /func previous_orientation\(\) -> void:/);
+  assert.match(agencyGuideScript, /_orientation_step = maxi\(0, _orientation_step - 1\)/);
+  assert.match(agencyGuideScript, /Quick start %d of %d/);
   assert.match(
     agencyGuideScript,
     /func minimise_orientation\(\) -> void:[\s\S]*?set_tucked\(true\)[\s\S]*?_set_orientation_visible\(false\)/,
@@ -71,10 +174,11 @@ test("agency quick start keeps its actions inside a 1280 by 800 game view", () =
   const itemsBlock = agencyGuideScene.match(
     /\[node name="OrientationItems"[\s\S]*?(?=\n\[node name="OrientationItemOne")/
   )?.[0] ?? "";
-  assert.match(panelBlock, /custom_minimum_size = Vector2\(860, 520\)/);
-  assert.match(panelBlock, /offset_top = -260\.0/);
-  assert.match(panelBlock, /offset_bottom = 260\.0/);
+  assert.match(panelBlock, /custom_minimum_size = Vector2\(1120, 680\)/);
+  assert.match(panelBlock, /offset_top = -340\.0/);
+  assert.match(panelBlock, /offset_bottom = 340\.0/);
   assert.match(itemsBlock, /size_flags_vertical = 1/);
+  assert.doesNotMatch(panelBlock, /ScrollContainer/);
 });
 
 test("agency floor renders above the main shell background", () => {
@@ -106,7 +210,7 @@ test("agency HUD and station card can be tucked without hiding the next action",
     "compact HUD must shrink back to its viewport width after expanded children are hidden"
   );
   assert.ok(agencyHudScene.includes('name="HudTuckToggle"'));
-  assert.ok(agencyHudScene.includes('text = "Show campaign details"'));
+  assert.ok(agencyHudScene.includes('text = "Show work details"'));
   for (const nodeName of [
     "StationDetailsToggle",
     "StationPanelTuck",
@@ -121,6 +225,30 @@ test("agency HUD and station card can be tucked without hiding the next action",
   assert.match(
     agencyWorldScript,
     /func _set_station_details_visible\(visible: bool\) -> void:/
+  );
+});
+
+test("compact agency HUD keeps readable, high-contrast actions inside the laptop width", () => {
+  const fontSizes = [...agencyHudScene.matchAll(/theme_override_font_sizes\/font_size = (\d+)/g)]
+    .map((match) => Number.parseInt(match[1], 10));
+  assert.ok(fontSizes.length >= 10, "expected explicit type sizes across the HUD");
+  assert.ok(fontSizes.every((size) => size >= 18), `HUD has undersized text: ${fontSizes.join(", ")}`);
+
+  const nodeBlock = (name) => agencyHudScene.match(
+    new RegExp(`\\[node name="${name}"[\\s\\S]*?(?=\\n\\[node |\\s*$)`)
+  )?.[0] ?? "";
+  for (const name of ["HudGoToObjective", "HudGuideButton"]) {
+    const block = nodeBlock(name);
+    assert.match(block, /theme_override_colors\/font_color = Color\(0\.047, 0\.086, 0\.145, 1\)/);
+    assert.match(block, /theme_override_colors\/font_hover_color = Color\(0\.047, 0\.086, 0\.145, 1\)/);
+    assert.match(block, /theme_override_colors\/font_pressed_color = Color\(0\.047, 0\.086, 0\.145, 1\)/);
+  }
+  assert.match(nodeBlock("HudGoToObjective"), /custom_minimum_size = Vector2\(176, 60\)/);
+  assert.match(agencyHudScript, /var _compact: bool = true/);
+  assert.match(agencyHudScript, /set_compact\(true\)/);
+  assert.match(
+    agencyWorldScene,
+    /name="AgencyHud"[\s\S]*?offset_left = 16\.0[\s\S]*?offset_right = 1264\.0[\s\S]*?offset_bottom = 108\.0/
   );
 });
 
@@ -143,7 +271,7 @@ test("agency mission keeps evidence and a direct role handover beside clickable 
   assert.ok(missionPanelScript.includes("Strategist decides audience, purpose, product and message"));
   assert.ok(missionPanelScript.includes("Art Director decides visual design and execution"));
   assert.ok(missionPanelScript.includes("Hide audience brief"));
-  assert.ok(missionPanelScript.includes("Hide mission reference"));
+  assert.ok(missionPanelScript.includes("Hide task reference"));
   assert.match(missionPanelScript, /func show_handoff_error\(\) -> void:/);
   assert.doesNotMatch(
     missionPanelScript,
@@ -155,6 +283,7 @@ test("agency mission keeps evidence and a direct role handover beside clickable 
 test("game shell uses the full 16:10 school MacBook viewport", () => {
   assert.match(projectSettings, /window\/size\/viewport_width=1280/);
   assert.match(projectSettings, /window\/size\/viewport_height=800/);
+  assert.match(projectSettings, /window\/stretch\/aspect="expand"/);
   assert.match(mainScene, /name="MainMargin"[\s\S]*?offset_top = 96\.0[\s\S]*?offset_bottom = -24\.0/);
 });
 
@@ -221,7 +350,7 @@ test("run screen reveals one concrete next requirement at a time", () => {
   for (const instruction of [
     "Next: build a product in the studio.",
     "Next: add a product name.",
-    "Next: choose an audience signal.",
+    "Next: choose an audience brief.",
     "Next: swap roles once.",
     "Next: link one choice to Attention.",
     "Next: add a price.",
@@ -236,7 +365,7 @@ test("run screen reveals one concrete next requirement at a time", () => {
 
 test("instructions and final review remain explicit in the game shell", () => {
   assert.match(mainScene, /name="ReviewInstructions"[\s\S]*?text = "Review all instructions"/);
-  assert.match(mainScene, /name="InstructionsDialog"[\s\S]*?title = "Advertising campaign instructions"/);
+  assert.match(mainScene, /name="InstructionsDialog"[\s\S]*?title = "Advertisement instructions"/);
   for (const text of [
     "Audience and product",
     "Product and advertisement",
@@ -268,6 +397,30 @@ test("instructions and final review remain explicit in the game shell", () => {
     assert.match(review, /theme_override_colors\/font_color = Color\(0\.0901961, 0\.129412, 0\.168627, 1\)/);
     assert.match(review, /theme_override_colors\/font_pressed_color = Color\(0\.0901961, 0\.129412, 0\.168627, 1\)/);
     assert.match(review, /theme_override_colors\/font_hover_color = Color\(0\.0901961, 0\.129412, 0\.168627, 1\)/);
+  }
+});
+
+test("Godot advertising copy reuses AIDA stage and advertisement terminology", () => {
+  for (const [sourceName, source] of [
+    ["agency mission catalogue", missionCatalogScript],
+    ["main script", mainScript],
+    ["main scene", mainScene]
+  ]) {
+    assert.doesNotMatch(
+      source,
+      /\bAIDA moves?\b/i,
+      `${sourceName} must call Attention, Interest, Desire and Action AIDA stages`
+    );
+    assert.doesNotMatch(
+      source,
+      /\bbuild a campaign\b/i,
+      `${sourceName} must name the advertisement students build`
+    );
+    assert.doesNotMatch(
+      source,
+      /\baudience signal\b/i,
+      `${sourceName} must use the established audience brief term`
+    );
   }
 });
 

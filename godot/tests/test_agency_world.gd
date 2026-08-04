@@ -27,6 +27,7 @@ func run() -> bool:
 	guide.advance_orientation()
 	guide.advance_orientation()
 	guide.advance_orientation()
+	guide.advance_orientation()
 	assert(not orientation.visible)
 	assert(not guide_panel.visible)
 	assert(not guide.orientation_required())
@@ -65,8 +66,14 @@ func run() -> bool:
 	assert(agency_hud != null)
 	assert(guide != null)
 	assert(not guide.get_node("GuideTab").visible)
-	assert(agency_hud.get_node("HudMargin/HudRow/HudGuideButton").focus_mode == Control.FOCUS_ALL)
-	assert((agency_hud.get_node("HudMargin/HudRow/TravelBlock/HudDirectTravel") as OptionButton).item_count == 9)
+	var hud_guide_button := (
+		agency_hud.get_node("HudMargin/HudStack/PrimaryRow/HudGuideButton") as Button
+	)
+	var hud_travel_menu := agency_hud.get_node(
+		"HudMargin/HudStack/ExpandedDetails/TravelBlock/HudDirectTravel"
+	) as OptionButton
+	assert(hud_guide_button.focus_mode == Control.FOCUS_ALL)
+	assert(hud_travel_menu.item_count == 9)
 	assert(world.get_node("HUD/HUDRoot/ObjectiveBar").visible == false)
 	world.free()
 	return true
@@ -80,10 +87,10 @@ func _assert_station_card_can_be_tucked(world: Node, progress: RefCounted) -> vo
 	assert(station_panel.visible)
 	assert(not station_tab.visible)
 	assert(not details.visible)
-	assert(details_toggle.text == "Show station details")
+	assert(details_toggle.text == "Show room details")
 	details_toggle.pressed.emit()
 	assert(details.visible)
-	assert(details_toggle.text == "Hide station details")
+	assert(details_toggle.text == "Hide room details")
 	details_toggle.pressed.emit()
 	assert(not details.visible)
 	var station_before := world.call("current_station_id") as String

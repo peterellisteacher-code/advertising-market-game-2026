@@ -19,41 +19,46 @@ const SECTION_INDEX := {
 const ORIENTATION_ITEM_SUFFIXES: Array[String] = ["One", "Two", "Three"]
 const ORIENTATION_STEPS := [
 	{
-		"title": "Make one advertisement for one client",
-		"action": "Build one advertisement that suits the audience in the client brief.",
+		"overview": true,
+		"title": "You and your partner will make and pitch one ad.",
+		"action": "Read the brief. Complete seven short tasks. Build one ad. Pitch it.",
 		"items": [
 			{
-				"label": "START",
-				"text": "Read the client brief so you know who the advertisement must persuade.",
+				"label": "MAKE",
+				"text": "Make an ad that gives the audience a clear reason to act.",
 			},
 			{
-				"label": "FINISH",
-				"text": "Complete the required missions, build the advertisement, then present it.",
+				"label": "PRACTISE",
+				"text": "Practise choosing advertising techniques and explaining their effect.",
+			},
+			{
+				"label": "EARN",
+				"text": "Each required task prepares the ad for the final pitch.",
 			},
 		],
-		"button": "Show me where to start",
+		"button": "How do we start?",
 	},
 	{
-		"title": "Go to Client Briefing",
-		"action": "Move there, then open the first task.",
+		"title": "Move to the first task",
+		"action": "Go to Client Briefing, then open the first task.",
 		"items": [
 			{
 				"label": "MOVE",
 				"text": "Use WASD or arrow keys.",
 			},
 			{
-				"label": "USE A STATION",
-				"text": "Press E, Space or Enter when the station prompt appears.",
+				"label": "USE A ROOM",
+				"text": "Walk near a room, then click Start task. E, Space or Enter also works.",
 			},
 			{
 				"label": "TRACKPAD",
 				"text": "You can click every menu, button and answer.",
 			},
 		],
-		"button": "Show the pair roles",
+		"button": "Who leads each choice?",
 	},
 	{
-		"title": "Know who leads each decision",
+		"title": "Share the decisions",
 		"action": "The lead role makes the first recommendation. Both partners discuss the decision.",
 		"items": [
 			{
@@ -67,6 +72,25 @@ const ORIENTATION_STEPS := [
 			{
 				"label": "BOTH PARTNERS",
 				"text": "Have the same controls and access. The roles divide responsibility, not permissions.",
+			},
+		],
+		"button": "Why complete each task?",
+	},
+	{
+		"title": "Begin the work",
+		"action": "Start at Client Briefing. Every required task moves your ad towards the final pitch.",
+		"items": [
+			{
+				"label": "READ",
+				"text": "Read the audience brief before making ad choices.",
+			},
+			{
+				"label": "BUILD",
+				"text": "Apply each completed task when you create the ad.",
+			},
+			{
+				"label": "PITCH",
+				"text": "Explain how your choices persuade the client audience.",
 			},
 		],
 		"button": "Go to Client Briefing",
@@ -99,9 +123,9 @@ func configure(progress: AdMarketAgencyProgress, catalog: Variant) -> void:
 
 func show_objective(objective: Dictionary) -> void:
 	_objective = objective.duplicate(true)
-	_set_label_text("%CurrentObjective", String(objective.get("title", "Current objective")))
-	_set_label_text("%ObjectiveAction", "Action: %s" % String(objective.get("action", "Read the objective and choose the next useful station.")))
-	_set_label_text("%ObjectiveReason", "Reason: %s" % String(objective.get("reason", "This decision supplies evidence for the next campaign choice.")))
+	_set_label_text("%CurrentObjective", String(objective.get("title", "Next task")))
+	_set_label_text("%ObjectiveAction", "Action: %s" % String(objective.get("action", "Read the task and choose the next useful room.")))
+	_set_label_text("%ObjectiveReason", "Reason: %s" % String(objective.get("reason", "This decision supplies evidence for the next advertisement choice.")))
 	var owner_role := String(objective.get("ownerRole", "strategist"))
 	_set_label_text("%ObjectiveOwner", "%s leads this decision." % _role_title(owner_role))
 	_set_label_text(
@@ -110,9 +134,9 @@ func show_objective(objective: Dictionary) -> void:
 	)
 
 func set_progress(required_done: int, required_total: int, optional_done: int) -> void:
-	_set_label_text("%RequiredProgress", "%d of %d required missions complete" % [required_done, required_total])
-	_set_label_text("%OptionalProgress", "%d optional contracts complete" % optional_done)
-	var readiness := "Ready for the final pitch" if required_total > 0 and required_done >= required_total else "Final pitch unlocks after every required mission"
+	_set_label_text("%RequiredProgress", "%d of %d required tasks complete" % [required_done, required_total])
+	_set_label_text("%OptionalProgress", "%d optional practice activities complete" % optional_done)
+	var readiness := "Ready for the final pitch" if required_total > 0 and required_done >= required_total else "Final pitch unlocks after every required task"
 	_set_label_text("%PitchReadiness", readiness)
 
 func open_guide(section: String = "objective") -> void:
@@ -210,6 +234,12 @@ func advance_orientation() -> void:
 		return
 	_update_orientation()
 
+func previous_orientation() -> void:
+	if not orientation_required():
+		return
+	_orientation_step = maxi(0, _orientation_step - 1)
+	_update_orientation()
+
 func _set_orientation_visible(is_visible: bool) -> void:
 	var layer := get_node_or_null("%OrientationLayer") as Control
 	var panel := get_node_or_null("%OrientationPanel") as Control
@@ -238,6 +268,7 @@ func _connect_controls() -> void:
 	_connect_button("%GuideTab", _on_guide_tab_pressed)
 	_connect_button("%CloseGuide", _on_close_guide_pressed)
 	_connect_button("%GoToObjective", _on_go_to_objective_pressed)
+	_connect_button("%OrientationPrevious", _on_orientation_previous_pressed)
 	_connect_button("%OrientationNext", _on_orientation_next_pressed)
 	_connect_button("%MinimiseOrientation", _on_minimise_orientation_pressed)
 	_connect_button("%ResumeOrientation", _on_resume_orientation_pressed)
@@ -321,6 +352,9 @@ func _update_orientation() -> void:
 	_set_label_text("%OrientationStep", "Quick start %d of %d" % [_orientation_step + 1, ORIENTATION_STEPS.size()])
 	_set_label_text("%OrientationTitle", String(step.get("title", "Quick start")))
 	_set_label_text("%OrientationAction", String(step.get("action", "Choose the next action.")))
+	var overview := get_node_or_null("%OrientationOverview") as Control
+	if overview != null:
+		overview.visible = bool(step.get("overview", false))
 	var items: Array = step.get("items", [])
 	for item_index in ORIENTATION_ITEM_SUFFIXES.size():
 		var suffix := ORIENTATION_ITEM_SUFFIXES[item_index]
@@ -331,6 +365,9 @@ func _update_orientation() -> void:
 		_set_label_text("%OrientationItem" + suffix + "Label", String(item.get("label", "")))
 		_set_label_text("%OrientationItem" + suffix + "Text", String(item.get("text", "")))
 	var next_button := get_node_or_null("%OrientationNext") as Button
+	var previous_button := get_node_or_null("%OrientationPrevious") as Button
+	if previous_button != null:
+		previous_button.visible = _orientation_step > 0
 	if next_button != null:
 		next_button.text = String(step.get("button", "Continue"))
 		if next_button.is_inside_tree():
@@ -348,6 +385,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		var orientation := get_node_or_null("%OrientationPanel") as Control
 		if orientation != null and orientation.visible:
+			minimise_orientation()
 			get_viewport().set_input_as_handled()
 			return
 		var panel := get_node_or_null("%GuidePanel") as Control
@@ -366,6 +404,9 @@ func _on_go_to_objective_pressed() -> void:
 
 func _on_orientation_next_pressed() -> void:
 	advance_orientation()
+
+func _on_orientation_previous_pressed() -> void:
+	previous_orientation()
 
 func _on_minimise_orientation_pressed() -> void:
 	minimise_orientation()

@@ -27,11 +27,11 @@ function expectRecursivelyFrozen(value: unknown): void {
 }
 
 describe("student copy", () => {
-  it("contains no banned whole words or assessment framing in any student-facing string", () => {
+  it("contains no undefined interface jargon or assessment framing in any student-facing string", () => {
     const strings = collectStrings([STUDENT_COPY, AUDIENCE_BRIEFS, CREATOR_STAGES]);
     expect(strings.length).toBeGreaterThan(0);
     for (const value of strings) {
-      expect(value).not.toMatch(/\b(?:assignment|unit|task)\b/i);
+      expect(value).not.toMatch(/\b(?:assignment|unit|canvas)\b/i);
       expect(value).not.toMatch(/\b(?:assessment|criteria|grade|mark|rubric|quiz|score|points)\b/i);
     }
   });
@@ -61,10 +61,10 @@ describe("student copy", () => {
     expect(STUDENT_COPY.labels).toMatchObject({
       gameTitle: expect.any(String),
       audienceBrief: expect.any(String),
-      audienceSignal: "Audience signal",
+    audienceSignal: "Audience brief",
       roundProgress: "Pair progress",
       pairPlay: "Pair play",
-      canvasWords: "Canvas words",
+      canvasWords: "Advertisement words",
       roundZeroTools: "Pair tools",
       context: "Context",
       need: "Need",
@@ -91,8 +91,8 @@ describe("student copy", () => {
       progressOne: "1 visible change",
       progressManySuffix: "visible changes",
       bothRolesContributed: "Both roles contributed.",
-      artDirectorRecorded: "Art Director: visible canvas change recorded.",
-      artDirectorMissing: "Art Director: visible canvas change not yet recorded.",
+      artDirectorRecorded: "Art Director: visible advertisement edit recorded.",
+      artDirectorMissing: "Art Director: visible advertisement edit not yet recorded.",
       strategistRecorded: "Strategist: message or strategy change recorded.",
       strategistMissing: "Strategist: message or strategy change not yet recorded.",
       rolesSwapped: "Roles have been swapped once.",
@@ -101,15 +101,15 @@ describe("student copy", () => {
       addWords: "Add words to ad",
       productWords: "Put words on selected product",
       productWordsHint: "Select the product first. On supported products, the words appear on a curved label and the original text remains editable.",
-      blankWords: "Type some canvas words first.",
-      audienceChanged: "Audience signal changed.",
-      wordsAdded: "Words added to the canvas.",
+      blankWords: "Type advertisement words first.",
+    audienceChanged: "Audience brief changed.",
+      wordsAdded: "Words added to the advertisement.",
       productWordsAdded: "Words added to the selected product.",
       productWordsUpdated: "Words updated on the selected product.",
       productWordsNeedSelection: "Select a product with a label area first.",
       undoUnavailable: "Nothing to undo.",
       redoUnavailable: "Nothing to redo.",
-      operationFailed: "That move did not work. Try again."
+      operationFailed: "That action did not work. Try again."
     });
     expect(STUDENT_COPY.roundZero).not.toHaveProperty("bothRolesReady");
     expect(STUDENT_COPY.readiness).toMatchObject({

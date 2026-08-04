@@ -48,9 +48,9 @@ const STATION_DATA := {
 		"title": "Agency reception",
 		"ownerRole": "strategist",
 		"position": Vector2(318.0, 318.0),
-		"ownerAction": "Check the campaign goal and decide which room the pair needs next.",
-		"holdingAction": "Keep the saved campaign and pair login visible before the pair moves on.",
-		"sharedEvidence": "Both partners can state the current objective and the next useful station.",
+		"ownerAction": "Check the goal and decide which room the pair needs next.",
+		"holdingAction": "Keep the saved advertisement and pair login visible before the pair moves on.",
+		"sharedEvidence": "Both partners can state the next task and the next useful room.",
 	},
 	"client-briefing": {
 		"id": "client-briefing",
@@ -68,7 +68,7 @@ const STATION_DATA := {
 		"position": Vector2(640.0, 320.0),
 		"ownerAction": "Choose the message, claim and persuasive sequence that best serve the audience purpose.",
 		"holdingAction": "Test whether the visual plan makes that message easier to notice and understand.",
-		"sharedEvidence": "Both partners can connect the campaign decision to a specific audience effect.",
+		"sharedEvidence": "Both partners can connect the advertisement decision to a specific audience effect.",
 	},
 	"art-studio": {
 		"id": "art-studio",
@@ -93,8 +93,8 @@ const STATION_DATA := {
 		"title": "Production studio",
 		"ownerRole": "art-director",
 		"position": Vector2(178.0, 706.0),
-		"ownerAction": "Refine image framing, object placement and finish so the campaign looks deliberate.",
-		"holdingAction": "Check every production choice against the campaign claim and audience purpose.",
+		"ownerAction": "Refine image framing, object placement and finish so the advertisement looks deliberate.",
+		"holdingAction": "Check every production choice against the advertisement claim and audience purpose.",
 		"sharedEvidence": "Both partners can identify what the final framing includes, excludes and makes salient.",
 	},
 	"media-desk": {
@@ -113,16 +113,16 @@ const STATION_DATA := {
 		"position": Vector2(982.0, 518.0),
 		"ownerAction": "Choose restrained music and sound cues that support attention without obscuring the message.",
 		"holdingAction": "Check that every cue reinforces the intended tone and audience response.",
-		"sharedEvidence": "Both partners can explain what the sound adds and confirm that the campaign still works with audio muted.",
+		"sharedEvidence": "Both partners can explain what the sound adds and confirm that the advertisement still works with audio muted.",
 	},
 	"pitch-theatre": {
 		"id": "pitch-theatre",
 		"title": "Pitch theatre",
 		"ownerRole": "strategist",
 		"position": Vector2(1012.0, 708.0),
-		"ownerAction": "Present the audience problem, campaign decision and evidence in a clear sequence.",
+		"ownerAction": "Present the audience problem, advertisement decision and evidence in a clear sequence.",
 		"holdingAction": "Control the visual reveal and make the finished advertisement easy to see.",
-		"sharedEvidence": "Both partners can defend how the finished campaign is likely to influence its intended audience.",
+		"sharedEvidence": "Both partners can defend how the finished advertisement is likely to influence its intended audience.",
 	},
 }
 const OBJECTIVE_STATIONS := {
@@ -249,10 +249,10 @@ func accessibility_state() -> Dictionary:
 	var required_total := MissionCatalog.required_missions().size()
 	var optional_done := 0 if _progress == null else _progress.completed_sidequest_ids.size()
 	return {
-		"eyebrow": "AGENCY CAMPAIGN",
+		"eyebrow": "ADVERTISEMENT WORK",
 		"heading": "Create and pitch one persuasive advertisement for the audience in the client brief.",
 		"currentInstruction": (
-			"Current objective: %s. Current station: %s. Active role: %s. %s"
+			"Next task: %s. Current room: %s. Active role: %s. %s"
 			% [
 				String(objective.get("title", objective_id.capitalize())),
 				String(station.get("title", "Agency reception")),
@@ -261,7 +261,7 @@ func accessibility_state() -> Dictionary:
 			]
 		),
 		"completionStatus": (
-			"%d of %d required missions complete; %d optional contracts complete."
+			"%d of %d required tasks complete; %d optional practice activities complete."
 			% [required_done, required_total, optional_done]
 		),
 	}
@@ -426,17 +426,17 @@ func _update_station_state() -> void:
 	var responsibilities := get_node_or_null("%StationResponsibilities") as Label
 	var action_button := get_node_or_null("%StationActionButton") as Button
 	if title_label != null:
-		title_label.text = String(record.get("title", "Agency station"))
+		title_label.text = String(record.get("title", "Agency room"))
 	if responsibilities != null:
 		var station_node := _station_node(_current_station_id)
 		responsibilities.text = station_node.responsibility_summary() if station_node != null else ""
 	if action_button != null:
 		var next_mission := _next_mission_for_station(_current_station_id)
 		if next_mission.is_empty():
-			action_button.text = "No open work at %s" % String(record.get("title", "this station"))
+			action_button.text = "No open work at %s" % String(record.get("title", "this room"))
 			action_button.disabled = true
 		else:
-			var action_prefix := "Start mission" if bool(next_mission.get("required", true)) else "Optional contract"
+			var action_prefix := "Start task" if bool(next_mission.get("required", true)) else "Optional practice"
 			action_button.text = "%s: %s" % [action_prefix, String(next_mission.get("title", "Agency task"))]
 			action_button.disabled = false
 	var menu := get_node_or_null("%DirectTravel") as OptionButton
@@ -457,7 +457,7 @@ func _set_station_details_visible(visible: bool) -> void:
 		responsibilities.visible = visible
 	var button := get_node_or_null("%StationDetailsToggle") as Button
 	if button != null:
-		button.text = "Hide station details" if visible else "Show station details"
+		button.text = "Hide room details" if visible else "Show room details"
 
 func _set_station_panel_tucked(tucked: bool) -> void:
 	_station_panel_tucked = tucked

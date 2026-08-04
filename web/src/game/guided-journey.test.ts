@@ -82,7 +82,13 @@ describe("evaluateGuidedJourney", () => {
 
   it("advances through each persisted studio completion condition", () => {
     const document = campaign();
-    expect(evaluateGuidedJourney(document).current.id).toBe("starter-product");
+    expect(evaluateGuidedJourney(document)).toMatchObject({
+      progressLabel: "Build · Task 1 of 3",
+      current: {
+        id: "starter-product",
+        now: "Choose one starter product."
+      }
+    });
 
     placeProduct(document);
     expect(evaluateGuidedJourney(document).current.id).toBe("product-edit");
@@ -321,6 +327,7 @@ describe("evaluateGuidedJourney", () => {
       }
     }
     expect(JSON.stringify(steps)).not.toContain("Follow the highlighted tool step");
+    expect(JSON.stringify(steps)).not.toMatch(/(?:next )?canvas change/i);
   });
 
   it("maps every ordinary and transition step to the complete premise set", () => {

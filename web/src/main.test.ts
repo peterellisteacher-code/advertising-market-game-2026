@@ -1280,7 +1280,12 @@ describe("window.AdMarketCreator", () => {
     expect(Reflect.has(window, "AdMarketAccount")).toBe(false);
     expect(Reflect.ownKeys((window as Window & {
       AdMarketGameAccess: { requireAccess(): Promise<void> };
-    }).AdMarketGameAccess)).toEqual(["requireAccess"]);
+    }).AdMarketGameAccess)).toEqual([
+      "requireAccess",
+      "reportStartupProgress",
+      "reportStartupReady",
+      "reportStartupFailure"
+    ]);
     expect(Reflect.has(window, "AdMarketCreator")).toBe(false);
     expect(fetchSpy).toHaveBeenCalledTimes(3);
   });
@@ -1343,6 +1348,53 @@ describe("window.AdMarketCreator", () => {
     expect(Reflect.has(window, "AdMarketAccount")).toBe(true);
   });
 
+  it("keeps visible engine progress above the canvas and exposes startup recovery", async () => {
+    document.body.innerHTML = `
+      <div id="account-gate-root"></div>
+      <section id="account-session-root" hidden></section>
+      <main aria-label="Advertising Market Game" hidden inert aria-hidden="true">
+        <canvas id="canvas" tabindex="-1"></canvas>
+        <section id="game-startup-status" aria-label="Game startup" role="status">
+          <strong data-game-startup-heading>Loading Ad Market</strong>
+          <span data-game-startup-message>Preparing the game…</span>
+        </section>
+      </main>
+      <div id="creator-root" hidden></div>`;
+
+    await import("./main");
+    const gameAccess = (window as Window & {
+      AdMarketGameAccess: {
+        requireAccess(): Promise<void>;
+        reportStartupProgress(percent: number): void;
+        reportStartupReady(): void;
+        reportStartupFailure(reason: "timeout" | "engine"): void;
+      };
+    }).AdMarketGameAccess;
+
+    expect(Reflect.ownKeys(gameAccess)).toEqual([
+      "requireAccess",
+      "reportStartupProgress",
+      "reportStartupReady",
+      "reportStartupFailure"
+    ]);
+    gameAccess.reportStartupProgress(37);
+    expect(document.querySelector("[data-game-startup-message]")?.textContent)
+      .toBe("Loading game… 37%");
+    expect(document.querySelector<HTMLElement>("#game-startup-status")?.hidden)
+      .toBe(false);
+
+    gameAccess.reportStartupReady();
+    expect(document.querySelector<HTMLElement>("#game-startup-status")?.hidden)
+      .toBe(true);
+
+    gameAccess.reportStartupFailure("engine");
+    expect(getByRole(document.body, "heading", {
+      name: "The game could not start"
+    })).toBeTruthy();
+    expect(getByRole(document.body, "button", { name: "Return to sign in" }))
+      .toBeTruthy();
+  });
+
   it("reconciles a teacher reset before activating the pair's private storage", async () => {
     document.body.innerHTML = `
       <div id="account-gate-root"></div>
@@ -1390,7 +1442,12 @@ describe("window.AdMarketCreator", () => {
       AdMarketGameAccess: { requireAccess(): Promise<void> };
     }).AdMarketGameAccess;
     expect(Object.isFrozen(gameAccess)).toBe(true);
-    expect(Reflect.ownKeys(gameAccess)).toEqual(["requireAccess"]);
+    expect(Reflect.ownKeys(gameAccess)).toEqual([
+      "requireAccess",
+      "reportStartupProgress",
+      "reportStartupReady",
+      "reportStartupFailure"
+    ]);
     expect(fetchSpy).not.toHaveBeenCalled();
     await gameAccess.requireAccess();
     expect(fetchSpy).toHaveBeenCalledTimes(2);
@@ -1730,7 +1787,7 @@ describe("window.AdMarketCreator", () => {
     expect(document.querySelector("main")?.getAttribute("aria-hidden")).toBe("true");
     expect(document.querySelector<HTMLElement>("main")?.inert).toBe(true);
     expect(document.querySelector("#creator-root")?.hasAttribute("hidden")).toBe(false);
-    expect(document.activeElement).toBe(getByRole(document.body, "region", { name: "Campaign canvas" }));
+    expect(document.activeElement).toBe(getByRole(document.body, "region", { name: "Advertisement area" }));
 
     const state = await parsed(api, "state", "getState", null);
     const saved = await parsed(api, "save", "save", null);
@@ -1771,6 +1828,35 @@ describe("window.AdMarketCreator", () => {
       documentId: blankDocument.documentId,
       revision: 0
     }));
+  }, 20_000);
+
+  it("hides and restores the task bar from the Studio header without resetting its brief", async () => {
+    await import("./main");
+    const api = (window as Window & { AdMarketCreator: CreatorPublicApi }).AdMarketCreator;
+    expect(await parsed(api, "open-task-bar", "open", blankDocument)).toMatchObject({ ok: true });
+
+    const creator = document.querySelector<HTMLElement>(".creator")!;
+    const taskBar = getByRole<HTMLElement>(document.body, "region", { name: "Pair play" });
+    const toggle = getByRole<HTMLButtonElement>(document.body, "button", { name: "Hide task bar" });
+    const audienceBrief = getByRole<HTMLSelectElement>(document.body, "combobox", {
+      name: "Audience brief"
+    });
+    audienceBrief.value = "weekend-neighbours";
+
+    fireEvent.click(toggle);
+
+    expect(creator.hasAttribute("data-task-bar-collapsed")).toBe(true);
+    expect(taskBar.hidden).toBe(true);
+    expect(toggle.textContent).toBe("Show task bar");
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.click(toggle);
+
+    expect(creator.dataset.taskBarCollapsed).toBeUndefined();
+    expect(taskBar.hidden).toBe(false);
+    expect(toggle.textContent).toBe("Hide task bar");
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(audienceBrief.value).toBe("weekend-neighbours");
   }, 20_000);
 
   it("resizes the studio panes without changing serialized canvas state", async () => {
@@ -1850,7 +1936,7 @@ describe("window.AdMarketCreator", () => {
     expect(await parsed(api, "open-resize-observer", "open", blankDocument))
       .toMatchObject({ ok: true });
     const canvasRegion = getByRole<HTMLElement>(document.body, "region", {
-      name: "Campaign canvas"
+      name: "Advertisement area"
     });
     const canvasObserver = observers.find(({ targets }) => targets.includes(canvasRegion));
     if (!canvasObserver) throw new Error("Canvas ResizeObserver was not installed");
@@ -2000,7 +2086,7 @@ describe("window.AdMarketCreator", () => {
     expect(await parsed(api, "open-guided", "open", source)).toMatchObject({ ok: true });
 
     const guide = getByRole(document.body, "region", { name: "Current instruction" });
-    expect(guide.textContent).toContain("Step 8 of 19");
+    expect(guide.textContent).toContain("Message · Task 1 of 4");
     expect(guide.textContent).toContain("Attention");
     expect(document.querySelector<HTMLButtonElement>("[data-slot=interest]")!.disabled)
       .toBe(true);
@@ -2010,12 +2096,12 @@ describe("window.AdMarketCreator", () => {
 
     runtime.selectedObjectId = "placed-product";
     const idea = getByRole<HTMLTextAreaElement>(document.body, "textbox", {
-      name: "Your Attention move"
+      name: "Your Attention technique"
     });
     fireEvent.input(idea, { target: { value: "Use a close product image as the focal point." } });
     fireEvent.click(getByRole(document.body, "button", { name: "Lock in Attention" }));
 
-    await waitFor(() => expect(guide.textContent).toContain("Step 9 of 19"));
+    await waitFor(() => expect(guide.textContent).toContain("Message · Task 2 of 4"));
     expect(guide.textContent).toContain("Interest");
     expect(document.querySelector<HTMLButtonElement>("[data-slot=attention]")!.disabled)
       .toBe(false);
@@ -2071,7 +2157,7 @@ describe("window.AdMarketCreator", () => {
     expect(document.activeElement).toBe(productName);
   });
 
-  it("requires the role guide once and persists acknowledgement before work begins", async () => {
+  it("requires the Studio tour once and persists acknowledgement before work begins", async () => {
     const firstEntry = createBlankCampaignDocument({
       documentId: "first-role-guide",
       sessionId: "first-role-guide-session",
@@ -2082,26 +2168,27 @@ describe("window.AdMarketCreator", () => {
 
     expect(await parsed(api, "open-first-role-guide", "open", firstEntry))
       .toMatchObject({ ok: true });
-    const dialog = getByRole(document.body, "dialog", { name: "Partner role guide" });
-    expect(dialog.textContent).toContain("The roles do not unlock different buttons.");
-    expect(dialog.textContent).toContain("The Art Director is the active role first.");
+    const dialog = getByRole(document.body, "dialog", { name: "Studio tour" });
+    expect(dialog.textContent).toContain("Page 1 of 4 · Brief");
+    expect(dialog.textContent).toContain("Teenagers. One-hour window between school dismissal and home arrival.");
     fireEvent.keyDown(dialog, { key: "Escape" });
-    expect(dialog.closest<HTMLElement>("[data-role-guide-layer]")?.hidden).toBe(false);
+    expect(dialog.closest<HTMLElement>("[data-studio-onboarding-layer]")?.hidden).toBe(true);
 
-    fireEvent.click(getByRole(dialog, "button", { name: "Begin work" }));
+    fireEvent.click(getByRole(document.body, "button", { name: "Studio tour" }));
+    fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
+    fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
+    fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
+    fireEvent.click(getByRole(dialog, "button", { name: "Start with a product" }));
     const state = await parsed(api, "role-guide-state", "getState", null);
     expect(state.payload).toMatchObject({
       gameplay: { pair: { roleGuideAcknowledged: true } }
     });
-    expect(document.activeElement).toBe(
-      document.querySelector<HTMLButtonElement>("[data-guide-open-tool]")
-    );
 
     expect(await parsed(api, "close-first-role-guide", "close", null))
       .toMatchObject({ ok: true });
     expect(await parsed(api, "reopen-first-role-guide", "open", state.payload))
       .toMatchObject({ ok: true });
-    expect(document.querySelector<HTMLElement>("[data-role-guide-layer]")?.hidden).toBe(true);
+    expect(document.querySelector<HTMLElement>("[data-studio-onboarding-layer]")?.hidden).toBe(true);
   });
 
   it("makes keyboard canvas movement one undoable document change", async () => {
@@ -2128,7 +2215,7 @@ describe("window.AdMarketCreator", () => {
       .toMatchObject({ ok: true });
     runtime.selectedObjectId = "keyboard-heading";
 
-    const canvasRegion = getByRole(document.body, "region", { name: "Campaign canvas" });
+    const canvasRegion = getByRole(document.body, "region", { name: "Advertisement area" });
     expect(canvasRegion.getAttribute("tabindex")).toBe("0");
     fireEvent.keyDown(canvasRegion, { key: "ArrowRight" });
 
@@ -2260,7 +2347,7 @@ describe("window.AdMarketCreator", () => {
     });
 
     fireEvent.click(getByRole(fillPanel, "button", { name: "Fill section" }));
-    fireEvent.click(getByRole(document.body, "region", { name: "Campaign canvas" }), {
+    fireEvent.click(getByRole(document.body, "region", { name: "Advertisement area" }), {
       clientX: 300,
       clientY: 240
     });
@@ -2283,7 +2370,7 @@ describe("window.AdMarketCreator", () => {
     expect(currentObjects()[0]!.rasterSectionFillRecipes).toEqual([]);
 
     fireEvent.click(getByRole(fillPanel, "button", { name: "Fill section" }));
-    fireEvent.click(getByRole(document.body, "region", { name: "Campaign canvas" }), {
+    fireEvent.click(getByRole(document.body, "region", { name: "Advertisement area" }), {
       clientX: 300,
       clientY: 240
     });
@@ -2345,7 +2432,7 @@ describe("window.AdMarketCreator", () => {
     expect(await parsed(api, "open-history-autosave", "open", documentWithText))
       .toMatchObject({ ok: true });
     runtime.selectedObjectId = "practice-history-heading";
-    const canvasRegion = getByRole(document.body, "region", { name: "Campaign canvas" });
+    const canvasRegion = getByRole(document.body, "region", { name: "Advertisement area" });
 
     fireEvent.keyDown(canvasRegion, { key: "ArrowRight" });
     await waitFor(() => expect(currentObjects()[0]).toMatchObject({ left: 105 }));
@@ -2402,7 +2489,7 @@ describe("window.AdMarketCreator", () => {
     expect(await parsed(api, "open-queued-history-autosave", "open", documentWithText))
       .toMatchObject({ ok: true });
     runtime.selectedObjectId = "queued-practice-history-heading";
-    const canvasRegion = getByRole(document.body, "region", { name: "Campaign canvas" });
+    const canvasRegion = getByRole(document.body, "region", { name: "Advertisement area" });
     const undo = getByRole(document.body, "button", { name: "Undo" });
 
     for (const [requestId, revision] of [
@@ -2504,7 +2591,7 @@ describe("window.AdMarketCreator", () => {
     activateStudioTool("aida");
 
     const idea = getByRole<HTMLTextAreaElement>(document.body, "textbox", {
-      name: "Your Attention move"
+      name: "Your Attention technique"
     });
     fireEvent.input(idea, {
       target: { value: "Lead with one bold promise that breaks the pattern." }
@@ -2513,7 +2600,7 @@ describe("window.AdMarketCreator", () => {
 
     await waitFor(() => expect(document.querySelector<HTMLElement>(
       "[data-aida-playbook-panel] [role=status]"
-    )?.textContent).toContain("Attention move locked to the selected canvas piece"));
+  )?.textContent).toContain("Attention technique locked to the selected item"));
     const response = await parsed(api, "state-aida-evidence", "getState", null);
     if (!response.ok) throw new Error(JSON.stringify(response.error));
     const state = CampaignDocumentSchema.parse(response.payload);
@@ -2546,7 +2633,7 @@ describe("window.AdMarketCreator", () => {
 
     expect(runtime.selectedObjectId).toBe("placed-product");
     const idea = getByRole<HTMLTextAreaElement>(document.body, "textbox", {
-      name: "Your Attention move"
+      name: "Your Attention technique"
     });
     fireEvent.input(idea, {
       target: { value: "Use the product close-up as the first focal point." }
@@ -2555,7 +2642,7 @@ describe("window.AdMarketCreator", () => {
 
     await waitFor(() => expect(document.querySelector<HTMLElement>(
       "[data-aida-playbook-panel] [role=status]"
-    )?.textContent).toContain("Attention move locked to the selected canvas piece"));
+  )?.textContent).toContain("Attention technique locked to the selected item"));
     const response = await parsed(api, "state-selected-product", "getState", null);
     if (!response.ok) throw new Error(JSON.stringify(response.error));
     const state = CampaignDocumentSchema.parse(response.payload);
@@ -2593,7 +2680,7 @@ describe("window.AdMarketCreator", () => {
     expect(document.querySelector('[data-canvas-zoom-status]')?.textContent)
       .toBe("Selected: Latest proof");
 
-    fireEvent.click(getByRole(document.body, "button", { name: "Open canvas layers" }));
+    fireEvent.click(getByRole(document.body, "button", { name: "Open item list" }));
     expect(document.querySelector<HTMLElement>(
       'li[data-object-id="latest-proof"]'
     )?.hasAttribute("data-selected")).toBe(true);
@@ -2603,7 +2690,7 @@ describe("window.AdMarketCreator", () => {
 
     activateStudioTool("aida");
     const idea = getByRole<HTMLTextAreaElement>(document.body, "textbox", {
-      name: "Your Attention move"
+      name: "Your Attention technique"
     });
     fireEvent.input(idea, {
       target: { value: "Use the latest proof as the opening focal point." }
@@ -2628,7 +2715,7 @@ describe("window.AdMarketCreator", () => {
     fireEvent.click(getByRole(document.body, "button", { name: "Lock in Attention" }));
     await waitFor(() => expect(document.querySelector<HTMLElement>(
       "[data-aida-playbook-panel] [role=status]"
-    )?.textContent).toContain("Select the canvas piece"));
+    )?.textContent).toContain("Select the item that carries this AIDA choice first."));
     const afterDeselect = await parsed(api, "deselected-state", "getState", null);
     if (!afterDeselect.ok) throw new Error(JSON.stringify(afterDeselect.error));
     expect(CampaignDocumentSchema.parse(afterDeselect.payload).evidence.attention)
@@ -2643,7 +2730,7 @@ describe("window.AdMarketCreator", () => {
     activateStudioTool("aida");
 
     const idea = getByRole<HTMLTextAreaElement>(document.body, "textbox", {
-      name: "Your Attention move"
+      name: "Your Attention technique"
     });
     fireEvent.input(idea, {
       target: { value: "Make the opening image impossible to ignore." }
@@ -2652,7 +2739,7 @@ describe("window.AdMarketCreator", () => {
 
     await waitFor(() => expect(document.querySelector<HTMLElement>(
       "[data-aida-playbook-panel] [role=status]"
-    )?.textContent).toContain("Select the canvas piece"));
+    )?.textContent).toContain("Select the item that carries this AIDA choice first."));
     const response = await parsed(api, "state-aida-no-selection", "getState", null);
     if (!response.ok) throw new Error(JSON.stringify(response.error));
     const state = CampaignDocumentSchema.parse(response.payload);
@@ -2918,7 +3005,7 @@ describe("window.AdMarketCreator", () => {
     activateStudioTool("words");
 
     const words = getByRole<HTMLInputElement>(document.body, "textbox", {
-      name: "Canvas words"
+      name: "Advertisement words"
     });
     fireEvent.input(words, { target: { value: "Make room for adventure" } });
     fireEvent.click(getByRole(document.body, "button", { name: "Add words to ad" }));
@@ -2932,7 +3019,7 @@ describe("window.AdMarketCreator", () => {
       ]);
       expect(getByRole(document.body, "status", { name: "Pair progress" }).textContent)
         .toBe(
-          "Art Director: visible canvas change recorded. " +
+          "Art Director: visible advertisement edit recorded. " +
           "Strategist: message or strategy change not yet recorded. " +
           "Roles have not been swapped yet."
         );
@@ -2947,7 +3034,7 @@ describe("window.AdMarketCreator", () => {
       expect(currentObjects()).toHaveLength(2);
       expect(getByRole(document.body, "status", { name: "Pair progress" }).textContent)
         .toBe(
-          "Art Director: visible canvas change recorded. " +
+          "Art Director: visible advertisement edit recorded. " +
           "Strategist: message or strategy change recorded. " +
           "Roles have been swapped once."
         );
@@ -3510,7 +3597,7 @@ describe("window.AdMarketCreator", () => {
     expect(document.activeElement).toBe(getByRole(document.body, "radio", { name: /Flat lid/ }));
     expect(document.querySelector<HTMLElement>("[data-product-builder-panel]")?.textContent)
       .not.toContain("$");
-    const emptyCanvas = getByRole<HTMLElement>(document.body, "status", { name: "Empty canvas" });
+    const emptyCanvas = getByRole<HTMLElement>(document.body, "status", { name: "Empty advertisement" });
     expect(emptyCanvas.hidden).toBe(false);
     fireEvent.click(getByRole(document.body, "button", { name: "Place product on ad" }));
     await waitFor(() => expect(emptyCanvas.hidden).toBe(true));
@@ -3537,7 +3624,7 @@ describe("window.AdMarketCreator", () => {
     });
     activateStudioTool("words");
     const productWords = getByRole<HTMLInputElement>(document.body, "textbox", {
-      name: "Canvas words"
+      name: "Advertisement words"
     });
     fireEvent.input(productWords, { target: { value: "Refill. Roam. Repeat." } });
     fireEvent.click(getByRole(document.body, "button", {
@@ -3745,7 +3832,7 @@ describe("window.AdMarketCreator", () => {
     ] as const;
     for (const [recipe, words, symbol] of recipes) {
       const chooser = getByRole<HTMLSelectElement>(document.body, "combobox", {
-        name: "Logo on canvas"
+        name: "Logo in the advertisement"
       });
       chooser.value = "";
       fireEvent.change(chooser);
@@ -3771,7 +3858,7 @@ describe("window.AdMarketCreator", () => {
       .filter(({ elementKind }) => elementKind === "logo-mark")
       .at(-1)!;
     const finalLogoLeft = Number(finalLogo.left);
-    const canvasRegion = getByRole(document.body, "region", { name: "Campaign canvas" });
+    const canvasRegion = getByRole(document.body, "region", { name: "Advertisement area" });
     fireEvent.keyDown(canvasRegion, { key: "ArrowRight" });
     await waitFor(() => expect(currentObjects()
       .find(({ objectId }) => objectId === finalLogo.objectId)?.left).toBe(finalLogoLeft + 5));
@@ -3841,7 +3928,7 @@ describe("window.AdMarketCreator", () => {
     expect(afterReload).toEqual(beforeSave);
     activateStudioTool("logo");
     expect(getByRole<HTMLSelectElement>(document.body, "combobox", {
-      name: "Logo on canvas"
+      name: "Logo in the advertisement"
     }).options).toHaveLength(5);
 
     expect(await parsed(api, "publish-logo-lab", "publish", null)).toMatchObject({
@@ -3903,7 +3990,7 @@ describe("window.AdMarketCreator", () => {
     const objectName = getByRole<HTMLInputElement>(imageLab, "textbox", { name: "Object idea" });
     objectName.value = "curved reusable bottle";
     fireEvent.click(getByRole(imageLab, "button", { name: "Forge object" }));
-    await waitFor(() => expect(imageLab.textContent).toContain("Your new object is on the canvas."));
+    await waitFor(() => expect(imageLab.textContent).toContain("Your new object is in the advertisement."));
 
     const state = await parsed(api, "state-image-lab", "getState", null);
     expect(state.payload).toMatchObject({

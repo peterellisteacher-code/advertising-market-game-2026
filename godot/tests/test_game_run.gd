@@ -169,12 +169,12 @@ func _medal_market_rejects_unsafe_or_duplicate_awards() -> bool:
 	assert(not game.purchase("campaign-a", "team-a", 3200))
 	assert(game.last_error == "This market awards medals instead of purchases")
 	assert(not game.award("own-campaign", "team-7", "gold"))
-	assert(game.last_error == "You cannot award your own campaign")
+	assert(game.last_error == "You cannot award your own advertisement")
 	assert(not game.award("campaign-a", "team-a", "platinum"))
 	assert(game.last_error == "Choose Gold, Silver or Bronze")
 	assert(game.award("campaign-a", "team-a", "gold"))
 	assert(not game.award("campaign-a", "team-a", "silver"))
-	assert(game.last_error == "Each medal must go to a different campaign")
+	assert(game.last_error == "Each medal must go to a different advertisement")
 	assert(game.award("campaign-b", "team-b", "gold"))
 	assert(game.awards() == [{
 		"campaignId": "campaign-b",

@@ -32,7 +32,7 @@ const LEVEL_COPY := {
     },
     "sell": {
         "eyebrow": "LEVEL 2 // SELL IT",
-        "heading": "Apply the four AIDA moves — Attention, Interest, Desire, Action — to the Level 1 product.",
+        "heading": "Apply the four AIDA stages — Attention, Interest, Desire, Action — to the Level 1 product.",
         "clue": "Capture Attention, hold Interest, build Desire, then state the next Action."
     },
     "irresistible": {
@@ -160,9 +160,9 @@ func _process(_delta: float) -> void:
     elif agency_world != null and agency_world.visible:
         var agency_accessibility: Dictionary = agency_world.accessibility_state()
         _accessibility_mirror.update(
-            String(agency_accessibility.get("eyebrow", "AGENCY CAMPAIGN")),
+            String(agency_accessibility.get("eyebrow", "ADVERTISEMENT WORK")),
             String(agency_accessibility.get("heading", "Create and pitch one persuasive advertisement.")),
-            String(agency_accessibility.get("currentInstruction", "Follow the current objective in the agency guide.")),
+            String(agency_accessibility.get("currentInstruction", "Follow the next task in the agency guide.")),
             String(agency_accessibility.get("completionStatus", status.text)),
             _focused_control_label(),
             keyboard_hint.text
@@ -309,7 +309,7 @@ func _on_agency_station_requested(station_id: String) -> void:
     agency_audio.play_ambience("office")
     var result: Dictionary = _agency_campaign.open_station(station_id)
     if not bool(result.get("allowed", false)):
-        status.text = String(result.get("reason", "That station is not available yet."))
+        status.text = String(result.get("reason", "That room is not available yet."))
 
 func _on_agency_role_handoff_requested(role: String) -> void:
     agency_audio.confirm_user_gesture()
@@ -512,7 +512,7 @@ func _on_practice_request_succeeded(request_id: String, method: String, payload:
         _practice_ready = true
         _queued_practice_pitch.clear()
         _render_level()
-        status.text = "Campaign progress saved on this computer."
+        status.text = "Advertisement progress saved on this computer."
         return
     if not _apply_practice_recovery(recovery):
         _practice_failure(context)
@@ -599,7 +599,7 @@ func _practice_failure(context: String) -> void:
         _suspend_agency_progress_persistence = true
         _render_level()
         _suspend_agency_progress_persistence = false
-        status.text = "Campaign progress could not be saved. Your current screen is unchanged."
+        status.text = "Advertisement progress could not be saved. Your current screen is unchanged."
     else:
         _render_level()
         status.text = "Save failed. No state change. Retry."
@@ -840,7 +840,7 @@ func _begin_resumed_team(wrapper: Dictionary) -> void:
     market_screen.hide()
     launch_button.disabled = true
     _startup_state = "team-hydrating"
-    status.text = "Restoring this pair's live campaign."
+    status.text = "Restoring this pair's live advertisement."
     if creator_host.load_latest(String(canonical_document.get("documentId"))).is_empty():
         _fail_live_hydration()
 
@@ -875,7 +875,7 @@ func _fail_live_hydration() -> void:
     lobby_panel.show()
     run_panel.hide()
     market_screen.hide()
-    status.text = "Live room restored. The saved campaign could not be verified. Progress is unchanged."
+    status.text = "Live room restored. The saved advertisement could not be verified. Progress is unchanged."
 
 func _team_room_context(wrapper: Dictionary) -> Dictionary:
     var snapshot_value: Variant = wrapper.get("snapshot")
@@ -1011,7 +1011,7 @@ func _on_market_campaign_published(_result: Dictionary) -> void:
     market_screen.call("show_publication_waiting")
     if _pitch_waiting_for_market:
         market_screen.hide()
-    status.text = "Campaign delivered. Finish the client pitch when your pair is ready."
+    status.text = "Advertisement delivered. Finish the client pitch when your pair is ready."
     _complete_pitch_when_ready()
 
 func _reopen_returned_campaign() -> void:
@@ -1019,16 +1019,16 @@ func _reopen_returned_campaign() -> void:
         return
     _reset_pitch_state()
     if _startup_state == "team-hydrating":
-        status.text = "Restoring this pair's saved live campaign. The studio will reopen when the restore is complete."
+        status.text = "Restoring this pair's saved live advertisement. The studio will reopen when the restore is complete."
         return
     enter_market.hide()
     market_screen.hide()
     run_panel.show()
     _render_level()
-    status.text = "Reopening the studio. The host note is loaded with the campaign."
+    status.text = "Reopening the studio. The host note is loaded with the advertisement."
     _set_campaign_stage_for_phase()
     if creator_host.open_creator(_campaign_document).is_empty():
-        status.text = "The saved campaign could not be reopened. Try again."
+        status.text = "The saved advertisement could not be reopened. Try again."
         market_screen.show()
 
 func _show_market_diagnostic(_message: String) -> void:
@@ -1073,7 +1073,7 @@ func _on_creator_opened() -> void:
             publish_campaign.disabled = false
             status.text = "The market card could not be built. Try again."
         return
-    status.text = "Campaign Creator open. Game input paused."
+    status.text = "Advertisement editor open. Game input paused."
 
 func _on_creator_closed() -> void:
     if agency_world != null and agency_world.visible:
@@ -1107,15 +1107,15 @@ func _on_creator_state_received(document: Dictionary) -> void:
     if _room_role.is_empty() and not _practice_recovery.is_empty():
         _pending_creator_document = document.duplicate(true)
         if _practice_pending_method.is_empty():
-            status.text = "Checking the saved campaign."
+            status.text = "Checking the saved advertisement."
             _issue_practice_resume("creator-refresh")
         return
     if _room_role == "team":
         if not _live_document_identity_matches(document):
-            status.text = "A campaign for another live pair was ignored. Your saved progress was kept untouched."
+            status.text = "An advertisement for another live pair was ignored. Your saved progress was kept untouched."
             return
         if int(document.get("revision", -1)) < int(_campaign_document.get("revision", 0)):
-            status.text = "An older campaign save was ignored. Your latest live progress is still safe."
+            status.text = "An older advertisement save was ignored. Your latest live progress is still safe."
             return
     _campaign_document = document.duplicate(true)
     if _agency_campaign != null:
@@ -1238,11 +1238,11 @@ func _publish_campaign() -> void:
     if creator_host.creator_is_open:
         _on_creator_opened()
         return
-    status.text = "Reopening your saved campaign for the final market card."
+    status.text = "Reopening your saved advertisement for the final market card."
     if creator_host.open_creator(_campaign_document).is_empty():
         _publish_after_open = false
         publish_campaign.disabled = false
-        status.text = "The saved campaign could not be reopened. Try again."
+        status.text = "The saved advertisement could not be reopened. Try again."
 
 func _on_creator_published(publication: Dictionary) -> void:
     _publish_after_open = false
@@ -1254,7 +1254,7 @@ func _on_creator_published(publication: Dictionary) -> void:
     )
     if not pitch_theatre.present(publication, progress, agency_world.reduced_motion_enabled):
         publish_campaign.disabled = false
-        status.text = "The finished campaign image could not be prepared. Return to the studio and publish it again."
+        status.text = "The finished advertisement image could not be prepared. Return to the studio and publish it again."
         return
     _published_campaign = publication.duplicate(true)
     if _agency_campaign != null:
@@ -1266,7 +1266,7 @@ func _on_creator_published(publication: Dictionary) -> void:
     creator_host.close_creator()
     if _room_role == "team":
         _live_publication_pending = true
-        status.text = "Sending the finished campaign to the host while your pair presents it to the client."
+        status.text = "Sending the finished advertisement to the host while your pair presents it to the client."
         if market_host.publish_campaign(publication).is_empty():
             _cancel_pitch_after_market_failure(
                 "The market card could not be sent. Check the room connection, then try again."
@@ -1324,8 +1324,8 @@ func _on_pitch_finished() -> void:
         var finish_button := pitch_theatre.get_node_or_null("%EnterMarket") as Button
         if finish_button != null:
             finish_button.disabled = true
-            finish_button.text = "Delivering campaign..."
-        status.text = "The pitch is complete. Waiting for the campaign to reach the host."
+            finish_button.text = "Delivering advertisement..."
+        status.text = "The pitch is complete. Waiting for the advertisement to reach the host."
     _complete_pitch_when_ready()
 
 func _on_pitch_setting_changed(_setting_id: String) -> void:
@@ -1355,7 +1355,7 @@ func _cancel_pitch_after_market_failure(message: String) -> void:
     status.text = message
     _set_campaign_stage_for_phase()
     if creator_host.open_creator(_campaign_document).is_empty():
-        status.text = "%s The saved campaign could not be reopened; select Build market card to try again." % message
+        status.text = "%s The saved advertisement could not be reopened; select Build market card to try again." % message
 
 func _reset_pitch_state() -> void:
     _pitch_finished = false
@@ -1563,9 +1563,9 @@ func _locked_level_status() -> String:
 
 func _saved_campaign_status() -> String:
     return (
-        "Campaign saved. Lock Level 3 to open the final check."
+        "Advertisement saved. Lock Level 3 to open the final check."
         if _game_run.phase == "irresistible"
-        else "Campaign saved for the next level."
+        else "Advertisement saved for the next level."
     )
 
 func _show_diagnostic(message: String) -> void:
@@ -1613,7 +1613,7 @@ func _level_completion_clue() -> String:
         and _game_run.phase in ["invent", "sell", "irresistible"]
         and not _agency_campaign.missions_complete_for_level(_game_run.phase)
     ):
-        return "Next: complete this level's required agency missions. Follow the current objective in the agency guide."
+        return "Next: complete this level's required agency tasks. Follow the next task in the agency guide."
     return ""
 
 func _readiness_clue_for(phase: String, document: Dictionary) -> String:
@@ -1625,7 +1625,7 @@ func _readiness_clue_for(phase: String, document: Dictionary) -> String:
         if not _is_nonblank_string(product.get("name")):
             return "Next: add a product name."
         if not _is_nonblank_string(brief.get("targetAudienceId")):
-            return "Next: choose an audience signal."
+            return "Next: choose an audience brief."
         var gameplay := _dictionary_child(document, "gameplay")
         var pair := _dictionary_child(gameplay, "pair")
         if int(pair.get("handoffCount", 0)) < 1:

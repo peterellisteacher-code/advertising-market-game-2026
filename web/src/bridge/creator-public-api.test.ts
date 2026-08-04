@@ -334,7 +334,7 @@ describe("AdMarketCreator public API", () => {
       },
       {
         raw: "interest evidence is required for publication",
-        expected: "Select and lock canvas evidence for Interest before publishing."
+        expected: "Select and lock advertisement evidence for Interest before publishing."
       }
     ];
 

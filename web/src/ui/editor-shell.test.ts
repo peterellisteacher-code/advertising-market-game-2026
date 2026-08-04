@@ -1,4 +1,4 @@
-import { getByLabelText, getByRole, getAllByRole } from "@testing-library/dom";
+import { fireEvent, getByLabelText, getByRole, getAllByRole } from "@testing-library/dom";
 import { describe, expect, it } from "vitest";
 import { createEditorShell } from "./editor-shell";
 
@@ -44,7 +44,7 @@ describe("createEditorShell", () => {
     expect(root.querySelector<HTMLElement>('[data-studio-panel="product"]')?.hidden)
       .toBe(false);
     expect(getByRole(root, "region", { name: "Product builder" })).toBeTruthy();
-    const launchPath = getByRole(root, "note", { name: "Launch path" });
+    const launchPath = getByRole(root, "note", { name: "Build order" });
     expect([...launchPath.querySelectorAll("strong")].map((step) => step.textContent))
       .toEqual(["Build", "Place", "Design"]);
     expect(shell.productBuilderPanel.dataset.productBuilderPanel).toBe("");
@@ -52,7 +52,7 @@ describe("createEditorShell", () => {
     expect(shell.moneyCheckPanel.dataset.moneyCheckPanel).toBe("");
     expect(root.querySelector('[data-studio-panel="route"][aria-label="Market Route"]')).toBeTruthy();
     expect(shell.marketRoutePanel.dataset.marketRoutePanel).toBe("");
-    expect(root.querySelector('[data-studio-panel="aida"][aria-label="AIDA move deck"]')).toBeTruthy();
+    expect(root.querySelector('[data-studio-panel="aida"][aria-label="AIDA techniques"]')).toBeTruthy();
     expect(shell.aidaPlaybookPanel.dataset.aidaPlaybookPanel).toBe("");
     expect(root.querySelector('[data-studio-panel="coach"][aria-label="Studio Coach"]')).toBeTruthy();
     expect(shell.studioCoachPanel.dataset.studioCoachPanel).toBe("");
@@ -67,8 +67,9 @@ describe("createEditorShell", () => {
     expect(shell.libraryColour).toBe(pieceColour);
     expect(shell.libraryResults.dataset.libraryResults).toBe("");
     expect(shell.libraryStatus.getAttribute("role")).toBe("status");
-    expect(root.querySelector('[data-studio-collapse]')).toBeNull();
-    expect(root.textContent).not.toContain("Hide library");
+    const hideTools = getByRole<HTMLButtonElement>(root, "button", { name: "Hide tools" });
+    expect(hideTools.getAttribute("aria-controls")).toBe("studio-browse-pane");
+    expect(hideTools.getAttribute("aria-expanded")).toBe("true");
     const separator = getByRole<HTMLElement>(root, "separator", {
       name: "Resize the library and design areas"
     });
@@ -113,7 +114,7 @@ describe("createEditorShell", () => {
     const lockedActions = root.querySelector<HTMLElement>("[data-locked-actions-status]")!;
     expect(lockedActions.id).toBe("studio-locked-actions-status");
     expect(lockedActions.hidden).toBe(true);
-    expect(getByRole(root, "region", { name: "Campaign canvas" }).getAttribute("tabindex")).toBe("0");
+    expect(getByRole(root, "region", { name: "Advertisement area" }).getAttribute("tabindex")).toBe("0");
     const sizeControls = getByRole(root, "group", { name: "Selected product or image size" });
     expect(getByRole(sizeControls, "button", { name: "Make selected product or image smaller" }))
       .toBeTruthy();
@@ -133,8 +134,8 @@ describe("createEditorShell", () => {
     expect(shell.deleteSelected).toBe(deleteSelected);
     expect(shell.deleteStatus.id).toBe("canvas-delete-status");
     expect(getByRole(sizeControls, "status").textContent).toBe("Select a product or image");
-    expect(getByRole(root, "status", { name: "Empty canvas" }).textContent)
-      .toContain("Canvas empty");
+    expect(getByRole(root, "status", { name: "Empty advertisement" }).textContent)
+      .toContain("Advertisement empty");
     expect(shell.canvasEmptyState.hidden).toBe(false);
     expect(getByRole(root, "region", { name: "Pair play" })).toBeTruthy();
     expect(getByRole(root, "status", { name: "Pair progress" })).toBeTruthy();
@@ -168,29 +169,22 @@ describe("createEditorShell", () => {
     expect(roleGuideLayer.textContent).toContain(
       "The roles do not unlock different buttons."
     );
-    expect(getByRole(root, "combobox", { name: "Audience signal" })).toBeTruthy();
+    expect(getByRole(root, "combobox", { name: "Audience brief" })).toBeTruthy();
     const audienceBrief = root.querySelector<HTMLElement>(
       '#studio-full-brief[aria-label="Audience brief"]'
     )!;
     expect(audienceBrief).toBeTruthy();
-    expect(audienceBrief.textContent).toContain(
-      "Context is the situation the audience is in."
-    );
-    expect(audienceBrief.textContent).toContain(
-      "Need is the problem the product should help solve."
-    );
-    expect(audienceBrief.textContent).toContain(
-      "Values are the ideas or qualities that matter to this audience."
-    );
-    expect(audienceBrief.textContent).toContain(
-      "Intended audience response is what the advertisement should encourage the audience to think, feel or do."
-    );
+    expect(audienceBrief.textContent).not.toContain("Context is the situation the audience is in.");
+    expect(audienceBrief.querySelectorAll("[data-brief-help]")).toHaveLength(4);
     expect(getByRole(root, "button", { name: "Open full brief" }).getAttribute("aria-expanded"))
       .toBe("false");
+    const taskBarToggle = getByRole<HTMLButtonElement>(root, "button", { name: "Hide task bar" });
+    expect(taskBarToggle.getAttribute("aria-controls")).toBe("studio-task-bar");
+    expect(taskBarToggle.getAttribute("aria-expanded")).toBe("true");
     expect(root.querySelector('[data-studio-panel="words"][aria-label="Pair tools"]')).toBeTruthy();
     expect(root.querySelector('[data-studio-panel="logo"][aria-label="Logo Lab"]')).toBeTruthy();
     expect(shell.logoLabPanel.dataset.logoLabPanel).toBe("");
-    expect(getByRole<HTMLInputElement>(root, "textbox", { name: "Canvas words", hidden: true }).placeholder)
+    expect(getByRole<HTMLInputElement>(root, "textbox", { name: "Advertisement words", hidden: true }).placeholder)
       .toBe("Try Make room for adventure");
     expect(getByRole(root, "button", { name: "Add words to ad", hidden: true }))
       .toBe(shell.addWords);
@@ -198,8 +192,8 @@ describe("createEditorShell", () => {
       .toBe(shell.productWords);
     expect(root.querySelector('[data-studio-panel="words"]')?.textContent)
       .toContain("On supported products, the words appear on a curved label and the original text remains editable.");
-    expect(root.querySelector('.creator__layers[aria-label="Canvas layers"]')).toBeTruthy();
-    expect(getByRole(root, "button", { name: "Open canvas layers", hidden: true })).toBeTruthy();
+    expect(root.querySelector('.creator__layers[aria-label="Item list"]')).toBeTruthy();
+    expect(getByRole(root, "button", { name: "Open item list", hidden: true })).toBeTruthy();
     expect(root.querySelector('.creator__inspector[aria-label="Selected element"]')).toBeTruthy();
     expect(shell.inspector.hidden).toBe(true);
     const sectionFill = root.querySelector<HTMLElement>(
@@ -207,7 +201,7 @@ describe("createEditorShell", () => {
     )!;
     expect(sectionFill).toBe(shell.sectionFillPanel);
     expect(shell.sectionFillPanel.hidden).toBe(true);
-    expect(getByRole(root, "group", { name: "AIDA steps", hidden: true })).toBeTruthy();
+    expect(getByRole(root, "group", { name: "AIDA stages", hidden: true })).toBeTruthy();
     expect(getAllByRole(root, "button", { hidden: true })
       .filter((button) => button.hasAttribute("data-slot"))
       .map((button) => button.textContent)).toEqual([
@@ -220,7 +214,7 @@ describe("createEditorShell", () => {
     expect(shell.saveStatus.textContent).toBe("");
     expect(shell.undo.dataset.command).toBe("undo");
     expect(shell.redo.dataset.command).toBe("redo");
-    expect(root.textContent).not.toMatch(/\b(?:assignment|unit|task)\b/i);
+    expect(root.textContent).not.toMatch(/\b(?:assignment|unit|canvas)\b/i);
   });
 
   it("opens and closes the full brief without adding a floating drawer control", () => {
@@ -242,5 +236,36 @@ describe("createEditorShell", () => {
     expect(creator.dataset.briefOpen).toBeUndefined();
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
     expect(document.activeElement).toBe(toggle);
+  });
+
+  it("opens each brief definition on demand and returns focus when it closes", () => {
+    document.body.innerHTML = '<div id="creator-root"></div>';
+    const root = document.querySelector<HTMLElement>("#creator-root")!;
+    createEditorShell(root);
+    getByRole<HTMLButtonElement>(root, "button", { name: "Open full brief" }).click();
+
+    const definitions = [
+      ["What does Context mean?", "Context is the situation the audience is in."],
+      ["What does Need mean?", "Need is the problem the product should help solve."],
+      ["What does Values mean?", "Values are the ideas or qualities that matter to this audience."],
+      ["What does Intended audience response mean?", "Intended audience response is what the advertisement should encourage the audience to think, feel or do."]
+    ] as const;
+    for (const [label, definition] of definitions) {
+      const help = getByRole<HTMLButtonElement>(root, "button", { name: label });
+      fireEvent.click(help);
+      const card = root.querySelector<HTMLElement>("[data-brief-help-card]")!;
+      expect(card.textContent).toContain(definition);
+      expect(root.querySelectorAll("[data-brief-help-card]")).toHaveLength(1);
+      const close = getByRole<HTMLButtonElement>(card, "button", { name: "Close" });
+      fireEvent.keyDown(card, { key: "Escape" });
+      expect(root.querySelector("[data-brief-help-card]")).toBeNull();
+      expect(document.activeElement).toBe(help);
+      fireEvent.click(help);
+      fireEvent.click(getByRole<HTMLButtonElement>(
+        root.querySelector<HTMLElement>("[data-brief-help-card]")!, "button", { name: "Close" }
+      ));
+      expect(root.querySelector("[data-brief-help-card]")).toBeNull();
+      expect(document.activeElement).toBe(help);
+    }
   });
 });

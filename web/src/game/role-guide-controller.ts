@@ -6,15 +6,15 @@ export const ROLE_GUIDE = Object.freeze({
   sameButtons:
     "The roles do not unlock different buttons.",
   activeTurn:
-    "The partner in the active role should use the keyboard or trackpad for the next canvas change.",
+    "The partner in the active role should use the keyboard or trackpad for the next advertisement edit.",
   recordedRole:
-    "The site labels each canvas change with the role that is active.",
+    "The site records each advertisement edit with the role that is active.",
   physicalUser:
     "It does not block tools or identify which person physically touched the device.",
   swapEffect:
-    "Swap roles changes the active responsibility and the role recorded for later canvas changes.",
+    "Swap roles changes the active responsibility and the role recorded for later advertisement edits.",
   retainedWork:
-    "Earlier work and recorded contributions stay in the campaign.",
+  "Earlier work and recorded contributions stay saved.",
   artDirector: Object.freeze({
     label: "Art Director",
     responsibilities:
@@ -52,7 +52,8 @@ export class RoleGuideController {
     root: ParentNode,
     private readonly protectedSurface: HTMLElement,
     private readonly acknowledge: () => void,
-    private readonly focusCurrentAction: () => void
+    private readonly focusCurrentAction: () => void,
+    private readonly autoOpen = true
   ) {
     this.#layer = required(root, "[data-role-guide-layer]");
     this.#dialog = required(root, "[data-role-guide-dialog]");
@@ -76,7 +77,7 @@ export class RoleGuideController {
       ? ROLE_GUIDE.artDirector.label
       : ROLE_GUIDE.strategist.label;
     this.#assignment.textContent = `The ${startingRole} is the active role first.`;
-    if (!document.gameplay.pair.roleGuideAcknowledged) {
+    if (this.autoOpen && !document.gameplay.pair.roleGuideAcknowledged) {
       this.#open(true);
     }
   }

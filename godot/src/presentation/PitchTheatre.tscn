@@ -189,20 +189,20 @@ theme_override_constants/separation = 2
 layout_mode = 2
 theme_override_colors/font_color = Color(0.153, 0.776, 0.82, 1)
 theme_override_font_sizes/font_size = 14
-text = "CLIENT PRESENTATION · FINAL CAMPAIGN"
+text = "CLIENT PRESENTATION · FINAL ADVERTISEMENT"
 
 [node name="PitchHeading" type="Label" parent="PitchMargin/PitchContent/PitchHeader" unique_id=927159395]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.965, 0.929, 0.839, 1)
 theme_override_font_sizes/font_size = 30
-text = "Presenting the finished campaign"
+text = "Presenting the finished advertisement"
 
 [node name="PitchIntro" type="Label" parent="PitchMargin/PitchContent/PitchHeader" unique_id=1987986656]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
 theme_override_font_sizes/font_size = 16
-text = "The client sees the exact advertisement your pair created. Choose how to frame its presentation, then use the evidence cards to explain why the campaign should persuade its audience."
+text = "The client sees the exact advertisement your pair created. Choose how to frame its presentation, then use the evidence cards to explain why the advertisement should persuade its audience."
 autowrap_mode = 2
 
 [node name="PitchBody" type="HBoxContainer" parent="PitchMargin/PitchContent" unique_id=83547427]
@@ -231,7 +231,7 @@ theme_override_constants/separation = 10
 layout_mode = 2
 theme_override_colors/font_color = Color(0.965, 0.741, 0.247, 1)
 theme_override_font_sizes/font_size = 20
-text = "Choose how the campaign is displayed"
+text = "Choose how the advertisement is displayed"
 autowrap_mode = 2
 
 [node name="PresentationStage" type="Control" parent="PitchMargin/PitchContent/PitchBody/PresentationCard/PresentationMargin/PresentationContent" unique_id=1957415239]
@@ -340,7 +340,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
 theme_override_font_sizes/font_size = 14
-text = "The client response will appear here after the campaign is loaded."
+text = "The client response will appear here after the advertisement is loaded."
 autowrap_mode = 2
 
 [node name="EvidenceDivider" type="HSeparator" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=732149038]
@@ -357,7 +357,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
 theme_override_font_sizes/font_size = 14
-text = "Audience fit — Complete the related mission before the pitch."
+text = "Audience fit — Complete the related task before the pitch."
 autowrap_mode = 2
 
 [node name="EvidenceValue" type="Label" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=100200875]
@@ -365,7 +365,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
 theme_override_font_sizes/font_size = 14
-text = "Product value — Complete the related mission before the pitch."
+text = "Product value — Complete the related task before the pitch."
 autowrap_mode = 2
 
 [node name="EvidenceAida" type="Label" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=2128314404]
@@ -373,7 +373,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
 theme_override_font_sizes/font_size = 14
-text = "AIDA — Complete the related mission before the pitch."
+text = "AIDA — Complete the related task before the pitch."
 autowrap_mode = 2
 
 [node name="EvidenceHierarchy" type="Label" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=496410005]
@@ -381,7 +381,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
 theme_override_font_sizes/font_size = 14
-text = "Visual hierarchy — Complete the related mission before the pitch."
+text = "Visual hierarchy — Complete the related task before the pitch."
 autowrap_mode = 2
 
 [node name="EvidenceClaim" type="Label" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=2064350234]
@@ -389,7 +389,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
 theme_override_font_sizes/font_size = 14
-text = "Supportable claim — Complete the related mission before the pitch."
+text = "Supportable claim — Complete the related task before the pitch."
 autowrap_mode = 2
 
 [node name="PortfolioStamps" type="Label" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=779439385]
@@ -397,7 +397,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.965, 0.741, 0.247, 1)
 theme_override_font_sizes/font_size = 13
-text = "Portfolio stamps: none yet. Optional contracts add stamps but never block the pitch."
+text = "Optional practice: none completed. It never blocks the pitch."
 autowrap_mode = 2
 
 [node name="PitchControlsCard" type="PanelContainer" parent="PitchMargin/PitchContent" unique_id=1417339713]

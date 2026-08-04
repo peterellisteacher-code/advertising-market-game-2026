@@ -74,9 +74,9 @@ func _agency_world_replaces_the_run_panel_and_coordinates_roles() -> bool:
 	shell.call("_process", 0.0)
 	var mirror := shell.get("_accessibility_mirror") as RefCounted
 	var accessibility: Dictionary = JSON.parse_string(String(mirror.get("_last_payload")))
-	assert(accessibility.get("eyebrow") == "AGENCY CAMPAIGN")
+	assert(accessibility.get("eyebrow") == "ADVERTISEMENT WORK")
 	assert(String(accessibility.get("heading")).contains("Create and pitch one persuasive advertisement"))
-	assert(String(accessibility.get("currentInstruction")).contains("Current objective:"))
+	assert(String(accessibility.get("currentInstruction")).contains("Next task:"))
 	assert(String(accessibility.get("currentInstruction")).contains("Active role:"))
 	assert(not String(mirror.get("_last_payload")).contains("LIVE MARKET"))
 	var pair := agency.get_node("%AgencyPair") as AdMarketAgencyPair
@@ -174,7 +174,7 @@ func _practice_start_and_lock_wait_for_storage_ack() -> bool:
 	var refresh_id := "practice-4"
 	assert(practice_fake.request_for(refresh_id).get("method") == "resume")
 	assert(shell.get("_campaign_document") == prior_document)
-	assert(shell.get_node("%Status").text == "Checking the saved campaign.")
+	assert(shell.get_node("%Status").text == "Checking the saved advertisement.")
 	var ready_pitch := AdMarketAgencyProgress.from_legacy_pitch("sell", [])
 	ready_pitch["activeRole"] = "strategist"
 	ready_pitch["handoffCount"] = 1
@@ -589,7 +589,7 @@ func _instructions_remain_available_as_a_complete_reference() -> bool:
 	assert(role_guide.pressed.is_connected(Callable(shell, "_show_role_guide")))
 	assert(not instructions_dialog.visible)
 	assert(not role_dialog.visible)
-	assert(instructions_dialog.title == "Advertising campaign instructions")
+	assert(instructions_dialog.title == "Advertisement instructions")
 	assert(role_dialog.title == "Pair role guide")
 	assert(instructions_text.focus_mode == Control.FOCUS_ALL)
 	for section in [
@@ -697,7 +697,7 @@ func _campaign_moves_gate_each_level() -> bool:
 	for case in [
 		{"document": _with_product_name(invent_ready, "   "), "expected": "Next: add a product name."},
 		{"document": _with_product_build(invent_ready, null), "expected": "Next: build a product in the studio."},
-		{"document": _with_audience(invent_ready, "   "), "expected": "Next: choose an audience signal."}
+		{"document": _with_audience(invent_ready, "   "), "expected": "Next: choose an audience brief."}
 	]:
 		var invent_incomplete_document: Dictionary = case.get("document")
 		var expected_invent_clue: String = case.get("expected")
@@ -1258,7 +1258,7 @@ func _complete_required_missions(shell: Control, mission_ids: Array) -> void:
 		assert(run.agency_progress().completed_mission_ids.has(mission_id))
 
 func _agency_mission_gate_clue() -> String:
-	return "Next: complete this level's required agency missions. Follow the current objective in the agency guide."
+	return "Next: complete this level's required agency tasks. Follow the next task in the agency guide."
 
 func _sell_ready_document(document: Dictionary) -> Dictionary:
 	var ready := document.duplicate(true)

@@ -45,7 +45,7 @@ theme_override_colors/font_shadow_color = Color(0.0627451, 0.10980392, 0.2117647
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
 theme_override_font_sizes/font_size = 15
-text = "Agency station"
+text = "Agency room"
 
 [node name="OwnerRoleBadge" type="Label" parent="." unique_id=2081638784]
 unique_name_in_owner = true

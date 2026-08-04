@@ -100,7 +100,7 @@ describe("LogoLabPanel", () => {
     expect(getByLabelText(host, "Search symbols")).toBeInstanceOf(HTMLInputElement);
     expect(getByLabelText(host, "Main colour")).toBeInstanceOf(HTMLInputElement);
     expect(getByLabelText(host, "Second colour")).toBeInstanceOf(HTMLInputElement);
-    expect(getByLabelText(host, "Logo on canvas")).toBeInstanceOf(HTMLSelectElement);
+    expect(getByLabelText(host, "Logo in the advertisement")).toBeInstanceOf(HTMLSelectElement);
     expect(host.querySelectorAll("button[data-logo-icon-id]")).toHaveLength(40);
     expect([...host.querySelectorAll("button[data-logo-icon-id]")]
       .every((button) => button.getAttribute("aria-pressed") === "false")).toBe(true);
@@ -224,7 +224,7 @@ describe("LogoLabPanel", () => {
     await waitFor(() => expect(getByRole(host, "button", { name: "Update logo" })).toBeTruthy());
     const addedDesign = onAdd.mock.calls[0]![0];
     panel.setMarks([Object.freeze({ id: "logo-1", design: addedDesign })]);
-    expect(getByLabelText<HTMLSelectElement>(host, "Logo on canvas").value).toBe("logo-1");
+    expect(getByLabelText<HTMLSelectElement>(host, "Logo in the advertisement").value).toBe("logo-1");
     expect(getByRole(host, "button", { name: "Update logo" })).toBeTruthy();
     expect(announce).toHaveBeenCalledWith("Nova Pet logo added", "polite");
 
@@ -249,10 +249,11 @@ describe("LogoLabPanel", () => {
     ) => undefined);
     const { host, panel } = setup({ onReplace });
     panel.setMarks([existingMark()]);
-    const chooser = getByLabelText<HTMLSelectElement>(host, "Logo on canvas");
+    const chooser = getByLabelText<HTMLSelectElement>(host, "Logo in the advertisement");
     chooser.value = "logo-1";
     fireEvent.change(chooser);
     const details = host.querySelector<HTMLDetailsElement>("details")!;
+    expect(details.querySelector("summary")?.textContent).toBe("More logo options");
     details.open = true;
 
     for (const [index, name] of [
@@ -279,7 +280,7 @@ describe("LogoLabPanel", () => {
       id: "logo-missing",
       design: createLogoMarkDesign({ ...existingMark().design, iconId: "missing-symbol" })
     })]);
-    const chooser = getByLabelText<HTMLSelectElement>(host, "Logo on canvas");
+    const chooser = getByLabelText<HTMLSelectElement>(host, "Logo in the advertisement");
     chooser.value = "logo-missing";
     fireEvent.change(chooser);
 

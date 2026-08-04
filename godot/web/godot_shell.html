@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-AU">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,13 +7,60 @@
     <title>$GODOT_PROJECT_NAME</title>
     $GODOT_HEAD_INCLUDE
     <link rel="stylesheet" href="./studio/studio.css">
+    <style>
+      :root {
+        --space-2: .65rem;
+        --space-3: .85rem;
+      }
+      html {
+        width: 100%;
+        height: 100%;
+      }
+      body {
+        min-height: 100vh;
+        min-height: 100dvh;
+        margin: 0;
+      }
+      body:not(:has([data-admarket-route="teacher-dashboard"])) {
+        width: 100%;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+      }
+      .game-skip-link {
+        position: fixed;
+        top: .75rem;
+        left: .75rem;
+        z-index: 500;
+        padding: var(--space-2) var(--space-3);
+        border: 3px solid #172033;
+        border-radius: .5rem;
+        background: #fffaf2;
+        color: #07536f;
+        font: 900 1rem/1.2 "Trebuchet MS", "Aptos", "Segoe UI", sans-serif;
+        transform: translateY(calc(-100% - 1.5rem));
+      }
+      .game-skip-link:focus {
+        transform: none;
+      }
+    </style>
   </head>
   <body>
     <div id="account-gate-root"></div>
     <section id="account-session-root" hidden></section>
     <main aria-label="Advertising Market Game" hidden inert aria-hidden="true">
+      <a class="game-skip-link" href="#canvas">Skip to game controls</a>
       <canvas id="canvas" tabindex="-1" aria-label="Advertising Market Game canvas">Your browser does not support the canvas element.</canvas>
-      <p id="status" role="status" aria-live="polite">Loading game…</p>
+      <section
+        id="game-startup-status"
+        class="game-startup-status"
+        role="status"
+        aria-live="polite"
+        aria-label="Game startup"
+      >
+        <strong data-game-startup-heading>Loading Ad Market</strong>
+        <span data-game-startup-message>Preparing the game…</span>
+      </section>
       <section id="game-a11y" class="sr-only" aria-live="polite" aria-atomic="true">
         <p id="game-a11y-eyebrow"></p>
         <h1 id="game-a11y-heading"></h1>
@@ -41,19 +88,44 @@
           return true;
         }
       });
+      class GameStartupTimeoutError extends Error {}
+
+      function withStartupTimeout(startup, timeoutMs) {
+        return new Promise((resolve, reject) => {
+          const timeout = window.setTimeout(
+            () => reject(new GameStartupTimeoutError("Game startup timed out")),
+            timeoutMs
+          );
+          Promise.resolve(startup).then(
+            (value) => {
+              window.clearTimeout(timeout);
+              resolve(value);
+            },
+            (error) => {
+              window.clearTimeout(timeout);
+              reject(error);
+            }
+          );
+        });
+      }
+
       const engine = new Engine($GODOT_CONFIG);
-      window.AdMarketGameAccess.requireAccess().then(() => engine.startGame({
+      window.AdMarketGameAccess.requireAccess().then(() => withStartupTimeout(engine.startGame({
         onProgress(current, total) {
-          const status = document.querySelector("#status");
-          if (status && total > 0) status.textContent = `Loading game… ${Math.round(current / total * 100)}%`;
+          if (total > 0) {
+            window.AdMarketGameAccess.reportStartupProgress(current / total * 100);
+          }
         }
-      })).then(() => {
-        const status = document.querySelector("#status");
-        if (status) status.textContent = "Game ready";
+      }), 45_000)).then(() => {
+        window.AdMarketGameAccess.reportStartupReady();
       }).catch((error) => {
-        const status = document.querySelector("#status");
-        if (status) status.textContent = "The game could not start. Reload the page and try again.";
-        console.error(error);
+        const reason = error instanceof GameStartupTimeoutError ? "timeout" : "engine";
+        if (reason === "timeout") {
+          window.AdMarketGameAccess.reportStartupFailure("timeout");
+        } else {
+          window.AdMarketGameAccess.reportStartupFailure("engine");
+        }
+        console.error("[AdMarket game startup failed]", { reason });
       });
     </script>
   </body>

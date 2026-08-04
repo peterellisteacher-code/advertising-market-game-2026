@@ -10,6 +10,14 @@ const godotBridgeDocuments = [
   "godot/tests/test_creator_host.gd"
 ];
 
+test("game run keeps one indentation style after student-copy edits", async () => {
+  const gameRun = await readFile(
+    new URL("godot/src/game/game_run.gd", root),
+    "utf8"
+  );
+  assert.doesNotMatch(gameRun, /^\t/m, "game_run.gd uses spaces and must not mix tab indentation");
+});
+
 test("every Godot bridge document uses the canonical 1600 by 900 canvas", async () => {
   const sources = await Promise.all(godotBridgeDocuments.map(async (path) => ({
     path,
@@ -97,8 +105,9 @@ test("the Godot shell mirrors current instructions semantically without pretendi
   assert.match(shell, /\.textContent\s*=/);
   assert.doesNotMatch(shell, /game-a11y[^]*?\.innerHTML\s*=/);
   assert.doesNotMatch(shell, /status\.textContent\s*=\s*`Unable to start:\s*\$\{error\.message\}`/);
-  assert.match(shell, /status\.textContent\s*=\s*"The game could not start\. Reload the page and try again\."/);
-  assert.match(shell, /console\.error\(error\)/);
+  assert.match(shell, /AdMarketGameAccess\.reportStartupFailure\("timeout"\)/);
+  assert.match(shell, /AdMarketGameAccess\.reportStartupFailure\("engine"\)/);
+  assert.match(shell, /console\.error\("\[AdMarket game startup failed\]", \{ reason \}\)/);
   assert.match(main, /GameAccessibilityMirror\.new\(\)/);
   assert.match(main, /func _process\(_delta: float\) -> void:/);
   assert.match(
@@ -118,6 +127,24 @@ test("the Godot shell mirrors current instructions semantically without pretendi
     assert.match(block, /theme_override_styles\/focus = SubResource\("[^"]+"\)/);
   }
   assert.doesNotMatch(scene, /\[node name="(?:InventChip|SellChip|IrresistibleChip)" type="Button"/);
+});
+
+test("the deployed game shell locks gameplay to the viewport without trapping the teacher dashboard", async () => {
+  const shell = await readFile(
+    new URL("godot/web/godot_shell.html", root),
+    "utf8"
+  );
+
+  assert.match(shell, /<html lang="en-AU">/);
+  assert.match(shell, /body:not\(:has\(\[data-admarket-route="teacher-dashboard"\]\)\)/);
+  assert.match(shell, /height:\s*100dvh/);
+  assert.match(shell, /overflow:\s*hidden/);
+  assert.match(shell, /class="game-skip-link"[^>]*href="#canvas"/);
+  assert.match(shell, /--space-2:\s*\.65rem/);
+  assert.match(shell, /--space-3:\s*\.85rem/);
+  assert.match(shell, /padding:\s*var\(--space-2\) var\(--space-3\)/);
+  assert.doesNotMatch(shell, /--game-skip-link-padding/);
+  assert.match(shell, /\.game-skip-link:focus/);
 });
 
 test("room join failures keep their typed code until Main chooses student copy", async () => {

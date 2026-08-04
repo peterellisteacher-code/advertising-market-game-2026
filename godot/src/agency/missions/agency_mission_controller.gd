@@ -63,7 +63,7 @@ func open_mission(mission_id: String, active_role: String) -> Dictionary:
 		return {
 			"opened": false,
 			"allowed": false,
-			"reason": "That agency mission is unavailable."
+			"reason": "That agency task is unavailable."
 		}
 	_record = record
 	_mission_id = mission_id
@@ -304,10 +304,10 @@ func _application_objective() -> String:
 
 func _progress_error() -> String:
 	if not is_instance_valid(_progress):
-		return "Campaign progress is unavailable."
+		return "Work progress is unavailable."
 	var message := String(_progress.get("last_error"))
 	if message.is_empty():
-		return "Campaign progress could not record this evidence."
+		return "Work progress could not record this evidence."
 	return message
 
 func _show_choice() -> void:

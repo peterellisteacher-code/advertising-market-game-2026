@@ -101,7 +101,7 @@ export const MARKET_ZONES: readonly MarketZoneDefinition[] = immutableCatalogue(
     label: "Destination Spotlight",
     scale: "One destination",
     geolocation: "Starfall Coast",
-    clue: "Uses one location as the campaign's central subject."
+      clue: "Uses one location as the advertisement's central subject."
   }
 ]);
 

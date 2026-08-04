@@ -366,7 +366,7 @@ func _render_team(state: Dictionary) -> void:
     student_reveal_copy.text = (
         "Your Gold, Silver and Bronze choices are locked. The host will reveal the market podium."
         if medal_mode
-        else "Practice round complete. You backed two different stalls and spent your market wallet. In a live room, the host reveals which campaign earned the most."
+        else "Practice round complete. You backed two different stalls and spent your market wallet. In a live room, the host reveals which advertisement earned the most."
         if _practice_mode
         else "Market reveal is on the host display."
     )
@@ -895,7 +895,7 @@ func _review_campaign(
             note_input.grab_focus()
             return
         note = trimmed_note
-    network_status.text = "Campaign desk updating…"
+    network_status.text = "Advertisement desk updating…"
     market_host.call("review_campaign", campaign_id, submission_version, status, note)
 
 func _submission_version_for_campaign(campaign_id: String) -> int:
@@ -1203,7 +1203,7 @@ func _format_currency(cents: int) -> String:
 
 func _phase_copy(phase: String) -> String:
     if phase == "building":
-        return "Campaigns are being built and reviewed."
+        return "Advertisements are being built and reviewed."
     if phase == "market":
         return "The market gallery is open for awards."
     if phase == "reveal":

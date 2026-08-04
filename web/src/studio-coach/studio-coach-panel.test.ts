@@ -42,7 +42,7 @@ describe("StudioCoachPanel", () => {
     new StudioCoachPanel(host, port);
 
     expect(host.textContent).toContain("Two checks for this ad");
-    expect(host.textContent).toContain("Check 1 gives one visual move");
+    expect(host.textContent).toContain("Check 1 gives one design change");
     expect(getByRole(host, "button", { name: "Check this technique (1 of 2)" })).toBeTruthy();
     expect(getByRole(host, "button", { name: "Check the whole ad (1 of 2)" })).toBeTruthy();
     expect(getByLabelText(host, "Technique to check")).toBeTruthy();
@@ -87,6 +87,7 @@ describe("StudioCoachPanel", () => {
     });
 
     expect(host.textContent).toContain("Angle the existing line towards the product");
+    expect(host.textContent).toContain("One design change to try");
     const revision = getByRole<HTMLButtonElement>(host, "button", { name: "Check my revision (2 of 2)" });
     expect(revision.disabled).toBe(true);
 

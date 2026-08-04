@@ -118,7 +118,7 @@ describe("CanvasAccessibilityController", () => {
     fireEvent.click(harness.toggle);
 
     expect(harness.toggle.getAttribute("aria-expanded")).toBe("true");
-    expect(harness.toggle.getAttribute("aria-label")).toBe("Close canvas layers");
+    expect(harness.toggle.getAttribute("aria-label")).toBe("Close item list");
     expect([...harness.host.querySelectorAll(".creator__layer-name")].map((node) => node.textContent))
       .toEqual(["Sale heading", "Blue background"]);
     fireEvent.click(getByRole(harness.host, "button", { name: "Select Blue background" }));

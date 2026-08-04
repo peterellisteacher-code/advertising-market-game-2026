@@ -95,7 +95,7 @@ function aidaStep(
     title,
     now: `Complete ${title} by applying one visible technique and recording its explanation.`,
     why,
-    done: `The ${title} explanation and its visible canvas evidence are recorded.`,
+    done: `The ${title} explanation and its visible advertisement evidence are recorded.`,
     next,
     tool: "aida",
     claimIds: Object.freeze([...claimIds]),
@@ -111,7 +111,7 @@ const DEFINITIONS: readonly GuidedJourneyDefinition[] = Object.freeze([
     stage: "invent",
     title: "Sign in",
     now: "Sign in with the pair username and password supplied by the teacher.",
-    why: "Signing in opens the saved campaign before the Audience brief.",
+    why: "Signing in opens your saved work before the audience brief.",
     done: "The pair name appears in the account status.",
     next: "Read the Audience brief.",
     tool: "account",
@@ -150,9 +150,9 @@ const DEFINITIONS: readonly GuidedJourneyDefinition[] = Object.freeze([
     id: "starter-product",
     stage: "invent",
     title: "Starter product",
-    now: "Place one starter product on the canvas.",
+    now: "Choose one starter product.",
     why: "The Starter product supplies a workable object for the Product edit.",
-    done: "One product appears on the canvas.",
+    done: "One product appears in the advertisement.",
     next: "Complete the Product edit.",
     tool: "product",
     claimIds: claimIds("P5", "P6"),
@@ -308,8 +308,8 @@ const DEFINITIONS: readonly GuidedJourneyDefinition[] = Object.freeze([
     stage: "publish-check",
     title: "Market entry",
     now: "Select Enter market.",
-    why: "Market entry makes the completed campaign available before Scoring.",
-    done: "The campaign appears in the market.",
+    why: "Entering the market makes the finished advertisement available for scoring.",
+    done: "The advertisement appears in the market.",
     next: "Begin Scoring.",
     tool: "game",
     claimIds: claimIds("P23"),
@@ -436,9 +436,20 @@ export function evaluateGuidedJourney(
     STAGE_INDEX[nextStep.stage] > STAGE_INDEX[document.gameplay.stage];
   const transition = LEVEL_TRANSITIONS[document.gameplay.stage];
   const current = transitionRequired ? transition.step : nextStep;
+  const studioStepIds: Readonly<Record<CampaignGameplayStage, readonly GuidedJourneyStepId[]>> = {
+    invent: ["starter-product", "product-edit", "product-name"],
+    sell: ["attention", "interest", "desire", "action"],
+    irresistible: ["price-position", "visible-price", "market-route", "proof-point"],
+    "publish-check": ["final-review", "market-entry", "scoring", "sign-out"]
+  };
+  const phaseSteps = steps.filter((step) => studioStepIds[current.stage].includes(step.id));
+  const localIndex = phaseSteps.findIndex((step) => step.id === current.id);
+  const phaseLabel = current.stage === "invent" ? "Build" :
+    current.stage === "sell" ? "Message" :
+      current.stage === "irresistible" ? "Offer" : "Pitch";
   const progressLabel = transitionRequired
     ? transition.progressLabel
-    : `Step ${currentIndex + 1} of ${steps.length}`;
+    : `${phaseLabel} · Task ${Math.max(1, localIndex + 1)} of ${phaseSteps.length}`;
 
   return Object.freeze({
     steps,

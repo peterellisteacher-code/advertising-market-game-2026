@@ -110,7 +110,7 @@ export function extractGodotSourceLiterals(source, pathName = "source.gd") {
   const entries = [];
   const lines = source.split(/\r?\n/);
   lines.forEach((line, index) => {
-    if (/\b(?:preload|load|emit_signal|get_node|connect)\s*\(/.test(line)) return;
+    if (/\b(?:preload|load|emit_signal|get_node(?:_or_null)?|connect)\s*\(/.test(line)) return;
     for (const match of line.matchAll(/"((?:\\.|[^"\\])*)"/g)) {
       const text = decodeQuoted(match[1]).replace(/\s+/g, " ").trim();
       if (looksStudentFacing(text)) entries.push({ path: pathName, line: index + 1, text });
@@ -252,9 +252,12 @@ export const STUDENT_COPY_JSON_SOURCES = Object.freeze([
 export const STUDENT_COPY_SOURCE_PATHS = Object.freeze([
   ...STUDENT_COPY_JSON_SOURCES.map(({ path: sourcePath }) => sourcePath),
   "godot/src/agency/AgencyWorld.tscn",
+  "godot/src/agency/agency_campaign_controller.gd",
+  "godot/src/agency/agency_mission_catalog.gd",
   "godot/src/agency/agency_progress.gd",
   "godot/src/agency/agency_world.gd",
   "godot/src/agency/missions/AgencyMissionPanel.tscn",
+  "godot/src/agency/missions/agency_mission_controller.gd",
   "godot/src/agency/missions/agency_mission_panel.gd",
   "godot/src/agency/player/AgencyPair.tscn",
   "godot/src/agency/stations/AgencyStation.tscn",
@@ -263,6 +266,7 @@ export const STUDENT_COPY_SOURCE_PATHS = Object.freeze([
   "godot/src/agency/ui/AgencyHud.tscn",
   "godot/src/agency/ui/agency_guide_drawer.gd",
   "godot/src/agency/ui/agency_hud.gd",
+  "godot/src/game/game_run.gd",
   "godot/src/main/main.gd",
   "godot/src/main/Main.tscn",
   "godot/src/market/ui/market_screen.gd",
@@ -289,6 +293,7 @@ export const STUDENT_COPY_SOURCE_PATHS = Object.freeze([
   "web/src/game/market-route.ts",
   "web/src/game/pair-game-controller.ts",
   "web/src/game/role-guide-controller.ts",
+  "web/src/game/studio-onboarding-controller.ts",
   "web/src/game/student-copy.ts",
   "web/src/history/fabric-history-bindings.ts",
   "web/src/logo-lab/logo-lab-panel.ts",

@@ -25,10 +25,10 @@ export const STUDENT_COPY = deepFreeze({
   labels: {
     gameTitle: "Advertising Market Game",
     audienceBrief: "Audience brief",
-    audienceSignal: "Audience signal",
+    audienceSignal: "Audience brief",
     roundProgress: "Pair progress",
     pairPlay: "Pair play",
-    canvasWords: "Canvas words",
+    canvasWords: "Advertisement words",
     roundZeroTools: "Pair tools",
     context: "Context",
     need: "Need",
@@ -98,8 +98,8 @@ export const STUDENT_COPY = deepFreeze({
       },
       strategist: {
         label: "Strategist",
-        productiveAction: "Link one canvas choice to the next AIDA step.",
-        holdingAction: "Check the next AIDA step. Prepare one message suggestion."
+        productiveAction: "Link one advertisement choice to the next AIDA stage.",
+        holdingAction: "Check the next AIDA stage. Prepare one message suggestion."
       }
     },
     irresistible: {
@@ -150,8 +150,8 @@ export const STUDENT_COPY = deepFreeze({
     progressOne: "1 visible change",
     progressManySuffix: "visible changes",
     bothRolesContributed: "Both roles contributed.",
-    artDirectorRecorded: "Art Director: visible canvas change recorded.",
-    artDirectorMissing: "Art Director: visible canvas change not yet recorded.",
+    artDirectorRecorded: "Art Director: visible advertisement edit recorded.",
+    artDirectorMissing: "Art Director: visible advertisement edit not yet recorded.",
     strategistRecorded: "Strategist: message or strategy change recorded.",
     strategistMissing: "Strategist: message or strategy change not yet recorded.",
     rolesSwapped: "Roles have been swapped once.",
@@ -160,15 +160,15 @@ export const STUDENT_COPY = deepFreeze({
     addWords: "Add words to ad",
     productWords: "Put words on selected product",
     productWordsHint: "Select the product first. On supported products, the words appear on a curved label and the original text remains editable.",
-    blankWords: "Type some canvas words first.",
-    audienceChanged: "Audience signal changed.",
-    wordsAdded: "Words added to the canvas.",
+    blankWords: "Type advertisement words first.",
+    audienceChanged: "Audience brief changed.",
+    wordsAdded: "Words added to the advertisement.",
     productWordsAdded: "Words added to the selected product.",
     productWordsUpdated: "Words updated on the selected product.",
     productWordsNeedSelection: "Select a product with a label area first.",
     undoUnavailable: "Nothing to undo.",
     redoUnavailable: "Nothing to redo.",
-    operationFailed: "That move did not work. Try again."
+    operationFailed: "That action did not work. Try again."
   },
   release: {
     updateReady: "A game update is ready. Save your work, then reopen the game."
@@ -183,7 +183,7 @@ export const STUDENT_COPY = deepFreeze({
     SESSION_EXPIRED: "This market session has ended. Rejoin the room to continue."
   },
   readiness: {
-    ready: "The campaign is ready for preview.",
+    ready: "The advertisement is ready for preview.",
     notReady: "Finish the remaining items before preview.",
     missing: {
       "audience-brief": "Choose an audience brief.",

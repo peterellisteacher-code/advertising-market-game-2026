@@ -380,8 +380,17 @@ test("routed Godot shell anchors nested-route assets and uses route-neutral acce
   <section id="account-session-root"></section>
   <script src="./index.js"></script>
   <script>
+    const withStartupTimeout = (startup) => startup;
     const engine = new Engine({});
-    window.AdMarketAccount.requireAccess().then(() => engine.startGame());
+    window.AdMarketAccount.requireAccess()
+      .then(() => withStartupTimeout(engine.startGame()))
+      .catch((error) => {
+        if (error.name === "TimeoutError") {
+          window.AdMarketGameAccess.reportStartupFailure("timeout");
+        } else {
+          window.AdMarketGameAccess.reportStartupFailure("engine");
+        }
+      });
   </script>
 </body></html>`;
 
@@ -410,6 +419,12 @@ test("deployed Godot shell blocks game focus and awaits mandatory routed access"
   assert.doesNotThrow(() => assertAccountGatedGodotShell(shell));
   assert.equal(shell.match(/<base href="\/">/g)?.length, 1);
   assert.match(shell, /window\.AdMarketGameAccess\.requireAccess\(\)/);
+  assert.match(shell, /id="game-startup-status"/);
+  assert.match(shell, /45_000/);
+  assert.match(shell, /reportStartupProgress/);
+  assert.match(shell, /reportStartupReady/);
+  assert.match(shell, /reportStartupFailure\("timeout"\)/);
+  assert.match(shell, /reportStartupFailure\("engine"\)/);
   assert.doesNotMatch(shell, /window\.AdMarketAccount\.requireAccess\(\)/);
   assert.throws(() => assertAccountGatedGodotShell(`
     <main aria-label="Advertising Market Game"><canvas id="canvas" tabindex="0"></canvas></main>

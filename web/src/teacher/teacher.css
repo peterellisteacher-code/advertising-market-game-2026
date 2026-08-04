@@ -25,31 +25,45 @@ body:has([data-admarket-route="teacher-playtest"]) {
 }
 
 .teacher-playtest-strip {
-  position: relative;
+  position: fixed;
+  top: 120px;
+  right: 12px;
   z-index: 300;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
-  height: 44px;
+  width: fit-content;
+  max-width: min(32rem, calc(100vw - 24px));
+  min-height: 44px;
   box-sizing: border-box;
-  border-bottom: 1px solid var(--teacher-line);
-  padding: 4px 16px;
+  border: 1px solid var(--teacher-line);
+  border-radius: 10px;
+  padding: 4px 8px 4px 12px;
   background: var(--teacher-paper);
   box-shadow: 0 4px 16px rgb(20 32 51 / 12%);
 }
 
 .teacher-playtest-strip[data-expanded="true"] {
-  height: 66px;
+  width: min(30rem, calc(100vw - 24px));
   padding-block: 10px;
 }
 
 .teacher-playtest-strip > span {
+  display: none;
   color: var(--teacher-muted);
+}
+
+.teacher-playtest-strip[data-expanded="true"] > span {
+  display: inline;
 }
 
 .teacher-playtest-strip__actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 10px;
+  width: 100%;
   margin-left: auto;
 }
 
@@ -78,12 +92,8 @@ body:has([data-admarket-route="teacher-playtest"]) {
 }
 
 body:has([data-admarket-route="teacher-playtest"]) #creator-root {
-  top: 44px;
+  top: 0;
   bottom: 0;
-}
-
-body:has(.teacher-playtest-strip[data-expanded="true"]) #creator-root {
-  top: 66px;
 }
 
 .teacher-page {

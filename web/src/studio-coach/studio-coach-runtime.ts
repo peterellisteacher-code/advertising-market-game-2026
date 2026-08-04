@@ -598,7 +598,7 @@ export class StudioCoachRuntime {
 
   #assertCurrent(controller: AbortController): void {
     controller.signal.throwIfAborted();
-    if (this.#operation !== controller) throw new DOMException("Studio Coach campaign changed", "AbortError");
+    if (this.#operation !== controller) throw new DOMException("Studio Coach work changed", "AbortError");
   }
 
   #finish(controller: AbortController): void {

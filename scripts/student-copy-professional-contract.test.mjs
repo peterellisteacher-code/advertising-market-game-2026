@@ -45,3 +45,45 @@ test("student copy uses direct factual wording without obsolete promotional phra
     "student copy must not use showcase as an AI-style verb"
   );
 });
+
+test("the web game uses advertisement language instead of campaign or canvas aliases", async () => {
+  const corpus = await buildStudentCopyCorpus(ROOT);
+  const webGameCopy = corpus
+    .filter(({ path: sourcePath }) => sourcePath.startsWith("web/"))
+    .filter(({ path: sourcePath }) => !sourcePath.includes("/account/"));
+
+  assert.deepEqual(
+    webGameCopy
+      .filter(({ text }) => /\b(?:campaign|canvas)\b/iu.test(text))
+      .map(({ path: sourcePath, line, text }) => `${sourcePath}:${line}: ${text}`),
+    [],
+    "student-facing web copy must call the work an advertisement, not alternate with campaign or canvas"
+  );
+});
+
+test("authored Godot copy uses advertising terms instead of game-system vocabulary", async () => {
+  const corpus = (await buildStudentCopyCorpus(ROOT)).filter(
+    ({ audience, path: sourcePath }) => audience === "student" && sourcePath.startsWith("godot/")
+  );
+  const bannedTerms = [
+    [/\bcampaign goals?\b/i, "use goal"],
+    [/\b(?:current )?objectives?\b/i, "use next task or task"],
+    [/\bstations?\b/i, "use room"],
+    [/\boptional contracts?\b/i, "use optional practice"],
+    [/\bmissions?\b/i, "use task"],
+    [/\bapprovals?\b/i, "use complete where applicable"],
+    [/\b(?:brief|colour system|framing desk|aida sequence) approved\b/i, "use complete"],
+    [/\bcampaigns?\b/i, "use advertisement or work for what students make or save"]
+  ];
+  const violations = [];
+
+  for (const entry of corpus) {
+    for (const [pattern, replacement] of bannedTerms) {
+      if (pattern.test(entry.text)) {
+        violations.push(`${entry.path}:${entry.line ?? entry.pointer}: ${entry.text} (${replacement})`);
+      }
+    }
+  }
+
+  assert.deepEqual(violations, []);
+});

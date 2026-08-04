@@ -39,6 +39,7 @@ test("extractGodotSourceLiterals keeps student copy but skips node paths and sig
     @onready var prompt: Label = $Layout/Prompt
     prompt.text = "Choose one product to begin."
     emit_signal("market_ready")
+    get_node_or_null("Stations/%s" % station_name)
     _set_status("Saved on this MacBook.")
   `;
 

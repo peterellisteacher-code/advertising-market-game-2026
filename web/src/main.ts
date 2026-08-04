@@ -181,6 +181,7 @@ import {
 } from "./game/creator-level-access";
 import { GuidedJourneyController } from "./game/guided-journey-controller";
 import { RoleGuideController } from "./game/role-guide-controller";
+import { StudioOnboardingController } from "./game/studio-onboarding-controller";
 import { SectionFillController } from "./tools/section-fill-controller";
 
 const RETURN_TO_GAME_EVENT = "ad-market-creator:return-to-game";
@@ -275,6 +276,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #productKitPanel: ProductKitPanel | null = null;
   #guidedJourney: GuidedJourneyController | null = null;
   #roleGuide: RoleGuideController | null = null;
+  #studioOnboarding: StudioOnboardingController | null = null;
   #aidaStage: AidaStage = "attention";
   #rasterPricing: RasterPricingIndex | null = null;
   #productKitBundle: LoadedProductKitBundle | null = null;
@@ -382,7 +384,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   queueCataloguePlacement(asset: CatalogAssetV1, bodyColour?: string): void {
     if (this.#sectionFillPreviewActive) {
       this.shell.assertive.textContent =
-        "Apply or cancel the fill preview before changing the canvas.";
+        "Apply or cancel the fill preview before changing the advertisement.";
       return;
     }
     if (asset.delivery === "offline" && !this.#rasterPricing?.byAssetId.has(asset.id)) {
@@ -435,7 +437,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   queueProductKitPlacement(request: ProductKitCompositionRequest): void {
     if (this.#sectionFillPreviewActive) {
       this.shell.assertive.textContent =
-        "Apply or cancel the fill preview before changing the canvas.";
+        "Apply or cancel the fill preview before changing the advertisement.";
       return;
     }
     if (this.#productKitBundle === null) {
@@ -493,7 +495,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
 
   attachAidaPlaybookPanel(panel: AidaPlaybookPanel): void {
     if (this.#aidaPlaybookPanel !== null && this.#aidaPlaybookPanel !== panel) {
-      throw new Error("AIDA move deck is already attached");
+      throw new Error("AIDA techniques panel is already attached");
     }
     this.#aidaPlaybookPanel = panel;
     this.#refreshAidaPlaybook();
@@ -513,6 +515,14 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     }
     this.#roleGuide = controller;
     this.#refreshRoleGuide();
+  }
+
+  attachStudioOnboarding(controller: StudioOnboardingController): void {
+    if (this.#studioOnboarding !== null && this.#studioOnboarding !== controller) {
+      throw new Error("Studio onboarding is already attached");
+    }
+    this.#studioOnboarding = controller;
+    this.#refreshStudioOnboarding();
   }
 
   showMessage(message: string): void {
@@ -583,7 +593,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     if (runtime === null) throw new Error("Campaign creator is not open");
     const selectedObjectId = runtime.adapter.getSelectedObjectId();
     if (selectedObjectId === null) {
-      throw new Error("Select the canvas piece that carries this AIDA move first.");
+      throw new Error("Select the item that carries this AIDA choice first.");
     }
     const commit = async (): Promise<void> => {
       const current = this.#snapshot();
@@ -976,6 +986,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       this.#setOpen(true);
       this.#refreshGuidedJourney();
       this.#refreshRoleGuide();
+      this.#refreshStudioOnboarding();
     } catch (error) {
       this.#pairGame?.close();
       this.#destroyCanvasAccessibility();
@@ -1006,6 +1017,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       this.#document = null;
       this.#guidedJourney?.setCampaign(null);
       this.#roleGuide?.setCampaign(null);
+      this.#studioOnboarding?.setCampaign(null);
       this.#refreshMoneyCheck();
       this.#refreshMarketRoute();
       this.#refreshAidaPlaybook();
@@ -1183,7 +1195,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       throw new Error("Campaign creator is not open");
     }
     const summary = runtime.adapter.listObjectSummaries().find(({ id }) => id === action.id);
-    if (!summary) throw new Error("That canvas layer is no longer available");
+    if (!summary) throw new Error("That item is no longer available");
     if (action.type === "remove") {
       await this.#removeCanvasObject(action.id, runtime);
       return;
@@ -1314,14 +1326,14 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       try {
         operation();
       } catch (error) {
-        cleanupError ??= error instanceof Error ? error : new Error("Campaign creator cleanup failed.");
+      cleanupError ??= error instanceof Error ? error : new Error("Studio cleanup failed.");
       }
     };
     const attemptAsync = async (operation: () => Promise<void>): Promise<void> => {
       try {
         await operation();
       } catch (error) {
-        cleanupError ??= error instanceof Error ? error : new Error("Campaign creator cleanup failed.");
+      cleanupError ??= error instanceof Error ? error : new Error("Studio cleanup failed.");
       }
     };
     attempt(() => {
@@ -1380,6 +1392,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     attempt(() => this.#logoLab?.setMarks([]));
     attempt(() => this.#guidedJourney?.setCampaign(null));
     attempt(() => this.#roleGuide?.setCampaign(null));
+    attempt(() => this.#studioOnboarding?.setCampaign(null));
     attempt(() => this.#setOpen(false));
     attempt(() => this.gameCanvas?.focus({ preventScroll: true }));
     if (cleanupError !== null) throw cleanupError;
@@ -1599,6 +1612,16 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#roleGuide.setCampaign(document);
   }
 
+  #refreshStudioOnboarding(): void {
+    if (this.#studioOnboarding === null) return;
+    if (this.#document === null) {
+      this.#studioOnboarding.setCampaign(null);
+      return;
+    }
+    const document = this.#runtime === null ? this.#document : this.#snapshot();
+    this.#studioOnboarding.setCampaign(document);
+  }
+
   #refreshMarketRoute(feedback?: MarketRouteFeedback | null): void {
     if (!this.#marketRoutePanel) return;
     const document = this.#document;
@@ -1808,7 +1831,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
         ? object.accessibleName.trim()
         : "";
       this.shell.zoomStatus.textContent =
-        `Selected: ${accessibleName || "Canvas layer"}`;
+        `Selected: ${accessibleName || "Item"}`;
     });
     void this.#sectionFill.setSelection(runtime.adapter.getSelectedObjectId())
       .catch((error: unknown) => {
@@ -1832,7 +1855,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
 
   #assertCanvasMutationAvailable(): void {
     if (this.#sectionFillPreviewActive) {
-      throw new Error("Apply or cancel the fill preview before changing the canvas.");
+      throw new Error("Apply or cancel the fill preview before changing the advertisement.");
     }
   }
 }
@@ -1845,14 +1868,45 @@ declare global {
     AdMarketAccount: AccountBootstrapPublicApi;
     AdMarketGameAccess: {
       requireAccess(): Promise<void>;
+      reportStartupProgress(percent: number): void;
+      reportStartupReady(): void;
+      reportStartupFailure(reason: "timeout" | "engine"): void;
     };
   }
 }
 
 const unavailableGameAccess = new Promise<void>(() => undefined);
 let requireGameAccess = (): Promise<void> => unavailableGameAccess;
+let reportGameStartupFailure = (reason: "timeout" | "engine"): void => {
+  const status = document.querySelector<HTMLElement>("#game-startup-status");
+  const heading = status?.querySelector<HTMLElement>("[data-game-startup-heading]");
+  const message = status?.querySelector<HTMLElement>("[data-game-startup-message]");
+  if (heading !== undefined && heading !== null) heading.textContent = "The game could not start";
+  if (message !== undefined && message !== null) {
+    message.textContent = reason === "timeout"
+      ? "Loading took too long. Reload this page to try again."
+      : "The game stopped while loading. Reload this page to try again.";
+  }
+  if (status !== null) status.hidden = false;
+};
 window.AdMarketGameAccess = Object.freeze({
-  requireAccess: () => requireGameAccess()
+  requireAccess: () => requireGameAccess(),
+  reportStartupProgress: (percent: number) => {
+    const status = document.querySelector<HTMLElement>("#game-startup-status");
+    const message = status?.querySelector<HTMLElement>("[data-game-startup-message]");
+    const safePercent = Math.min(100, Math.max(0, Math.round(percent)));
+    if (message !== undefined && message !== null) {
+      message.textContent = `Loading game… ${safePercent}%`;
+    }
+    if (status !== null) status.hidden = false;
+  },
+  reportStartupReady: () => {
+    const status = document.querySelector<HTMLElement>("#game-startup-status");
+    if (status !== null) status.hidden = true;
+  },
+  reportStartupFailure: (reason: "timeout" | "engine") => {
+    reportGameStartupFailure(reason);
+  }
 });
 
 function renderRouteBoundary(
@@ -1967,6 +2021,15 @@ const root = document.querySelector<HTMLElement>("#creator-root");
 if (!root) throw new Error("Missing #creator-root");
 
 const shell = createEditorShell(root);
+const setTaskBarCollapsed = (collapsed: boolean): void => {
+  shell.overlay.toggleAttribute("data-task-bar-collapsed", collapsed);
+  shell.taskBar.hidden = collapsed;
+  shell.taskBarToggle.textContent = collapsed ? "Show task bar" : "Hide task bar";
+  shell.taskBarToggle.setAttribute("aria-expanded", String(!collapsed));
+};
+shell.taskBarToggle.addEventListener("click", () => {
+  setTaskBarCollapsed(!shell.taskBar.hidden);
+});
 registerReleaseServiceWorker({
   onUpdateReady: () => {
     shell.saveStatus.textContent = "Update ready";
@@ -2184,6 +2247,9 @@ if (mode.kind === "student") {
       }
     }
   });
+  reportGameStartupFailure = (reason) => {
+    accountController?.reportGameStartFailure(reason);
+  };
   window.AdMarketAccount = createAccountBootstrap(accountController);
 }
 const handler = new BrowserCreatorHandler(
@@ -2273,7 +2339,7 @@ const guidedJourney = new GuidedJourneyController(shell.overlay, (step) => {
 handler.attachGuidedJourney(guidedJourney);
 const runCanvasSizeAction = (operation: () => Promise<void>): void => {
   void operation().catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : "Canvas size could not be changed";
+    const message = error instanceof Error ? error.message : "Selected item size could not be changed";
     shell.zoomStatus.textContent = message;
     shell.assertive.textContent = message;
   });
@@ -2340,9 +2406,23 @@ const roleGuide = new RoleGuideController(
     pairGame.acknowledgeRoleGuide();
     handler.schedulePracticeAutosave();
   },
-  () => shell.overlay.querySelector<HTMLButtonElement>("[data-guide-open-tool]")?.focus()
+  () => shell.overlay.querySelector<HTMLButtonElement>("[data-guide-open-tool]")?.focus(),
+  false
 );
 handler.attachRoleGuide(roleGuide);
+const studioOnboarding = new StudioOnboardingController(
+  root,
+  shell.overlay,
+  () => {
+    pairGame.acknowledgeRoleGuide();
+    handler.schedulePracticeAutosave();
+  },
+  () => {
+    studioTools.select("product");
+    shell.productBuilderPanel.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
+  }
+);
+handler.attachStudioOnboarding(studioOnboarding);
 const imageLabRuntime = new ImageLabRuntime({
   client: new ImageLabClient(),
   exportDesign: (pair) => handler.exportDesignDataUrl(pair),

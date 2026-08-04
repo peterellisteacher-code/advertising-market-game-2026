@@ -34,7 +34,7 @@ func begin(alias: String, next_session_id: String, next_team_id: String) -> bool
         return _fail("Session and team IDs must be safe non-empty values")
     var next_agency: RefCounted = AgencyProgress.new()
     if not next_agency.begin():
-        return _fail("The agency campaign could not start")
+        return _fail("The agency work could not start")
     team_alias = alias
     session_id = next_session_id
     team_id = next_team_id
@@ -209,9 +209,9 @@ func award(campaign_id: String, seller_team_id: String, medal: String) -> bool:
     if market_mode != "medals":
         return _fail("This saved market uses purchases instead of medals")
     if not _safe_id(campaign_id) or not _safe_id(seller_team_id):
-        return _fail("Campaign and seller IDs must be safe non-empty values")
+        return _fail("Advertisement and seller IDs must be safe non-empty values")
     if seller_team_id == team_id:
-        return _fail("You cannot award your own campaign")
+        return _fail("You cannot award your own advertisement")
     if not MEDALS.has(medal):
         return _fail("Choose Gold, Silver or Bronze")
     for existing_medal in MEDALS:
@@ -219,7 +219,7 @@ func award(campaign_id: String, seller_team_id: String, medal: String) -> bool:
             continue
         var existing: Dictionary = _awards.get(existing_medal)
         if str(existing.get("campaignId")) == campaign_id:
-            return _fail("Each medal must go to a different campaign")
+            return _fail("Each medal must go to a different advertisement")
     _awards[medal] = {
         "campaignId": campaign_id,
         "sellerTeamId": seller_team_id,

@@ -34,6 +34,7 @@ function mount(client: AccountSessionClient, callbacks: {
   onSignedOut?: (explicit: boolean) => void | Promise<void>;
   signupClient?: AccountSignupClient;
   reload?: () => void;
+  retryGame?: () => void;
 } = {}) {
   document.body.innerHTML = `
     <div id="account-gate-root"></div>
@@ -54,6 +55,7 @@ function mount(client: AccountSessionClient, callbacks: {
     gameCanvas: canvas,
     creatorRoot,
     reload,
+    ...(callbacks.retryGame === undefined ? {} : { retryGame: callbacks.retryGame }),
     ...(callbacks.signupClient === undefined ? {} : { signupClient: callbacks.signupClient }),
     ...(callbacks.onSession === undefined ? {} : { onSession: callbacks.onSession }),
     ...(callbacks.onSignedOut === undefined ? {} : { onSignedOut: callbacks.onSignedOut })
@@ -173,6 +175,51 @@ describe("AccountAccessController", () => {
     expect(harness.gameSurface.inert).toBe(true);
     expect(harness.creatorRoot.hidden).toBe(true);
     expect(harness.creatorRoot.inert).toBe(true);
+  });
+
+  it("turns a stalled game start into a usable recovery screen", async () => {
+    const client: AccountSessionClient = {
+      session: vi.fn().mockResolvedValue(authenticatedSession()),
+      login: vi.fn(),
+      logout: vi.fn().mockResolvedValue(undefined)
+    };
+    const signupClient: AccountSignupClient = {
+      signup: vi.fn()
+    };
+    const retryGame = vi.fn();
+    const onSignedOut = vi.fn().mockResolvedValue(undefined);
+    const harness = mount(client, { onSignedOut, retryGame, signupClient });
+    await harness.controller.requireAccess();
+
+    harness.controller.reportGameStartFailure("timeout");
+
+    expect(getByRole(harness.gateRoot, "heading", {
+      name: "The game could not start"
+    })).toBeTruthy();
+    expect(harness.gateRoot.textContent).toContain("took too long");
+    expect(harness.gameSurface.hidden).toBe(true);
+    expect(harness.creatorRoot.inert).toBe(true);
+
+    fireEvent.click(getByRole(harness.gateRoot, "button", {
+      name: "Try loading again"
+    }));
+    expect(retryGame).toHaveBeenCalledOnce();
+
+    fireEvent.click(getByRole(harness.gateRoot, "button", {
+      name: "Return to sign in"
+    }));
+    await waitFor(() => expect(client.logout).toHaveBeenCalledOnce());
+    await waitFor(() => expect(getByRole(harness.gateRoot, "form", {
+      name: "Log in"
+    })).toBeTruthy());
+    expect(onSignedOut).toHaveBeenCalledWith(false);
+    expect(getByRole(harness.gateRoot, "alert").textContent).toBe(
+      "The game did not start, so you were signed out and returned to the start. " +
+      "Log in again or create a pair login."
+    );
+    expect(getByRole(harness.gateRoot, "button", {
+      name: "Create a pair login"
+    })).toBeTruthy();
   });
 
   it("keeps the game unfocusable and offers pair login without teacher controls", async () => {

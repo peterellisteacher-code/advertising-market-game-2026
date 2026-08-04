@@ -98,7 +98,7 @@ describe("ProductBuilderPanel", () => {
     const colour = getByLabelText<HTMLInputElement>(host, "Front art colour");
     colour.value = "#f2385a";
     fireEvent.input(colour);
-    fireEvent.click(getByRole(host, "button", { name: "Drop it on the canvas" }));
+    fireEvent.click(getByRole(host, "button", { name: "Add it to the advertisement" }));
 
     expect(onPlace).toHaveBeenCalledOnce();
     expect(onPlace).toHaveBeenCalledWith(
@@ -141,7 +141,7 @@ describe("ProductBuilderPanel", () => {
 
     expect(getByRole(host, "status").textContent).toBe("Product maker unavailable");
     expect(getByRole<HTMLButtonElement>(host, "button", {
-      name: "Drop it on the canvas"
+      name: "Add it to the advertisement"
     }).disabled).toBe(true);
   });
 });

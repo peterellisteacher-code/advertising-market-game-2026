@@ -1,6 +1,21 @@
 [gd_scene format=3 uid="uid://y0p8byuynib7"]
 
 [ext_resource type="Script" uid="uid://c5ttupvkmue84" path="res://src/agency/ui/agency_guide_drawer.gd" id="1_3sbd4"]
+[ext_resource type="Texture2D" path="res://assets/agency/onboarding-brief.png" id="2_brief"]
+[ext_resource type="Texture2D" path="res://assets/agency/onboarding-build.png" id="3_build"]
+[ext_resource type="Texture2D" path="res://assets/agency/onboarding-approval.png" id="4_approval"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_brief"]
+atlas = ExtResource("2_brief")
+region = Rect2(0, 44, 1280, 756)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_build"]
+atlas = ExtResource("3_build")
+region = Rect2(0, 44, 1280, 756)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_approval"]
+atlas = ExtResource("4_approval")
+region = Rect2(0, 44, 1280, 756)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3sbd4"]
 bg_color = Color(0.035, 0.11, 0.17, 0.98)
@@ -310,7 +325,7 @@ custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 16
-text = "Understand the audience, choose and shape a product, create the advertisement, practise advertising techniques, choose media space, and present the finished campaign."
+text = "Understand the audience, choose and shape a product, create the advertisement, practise advertising techniques, choose media space, and present the finished advertisement."
 autowrap_mode = 2
 
 [node name="Current objective" type="VBoxContainer" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=1968546141]
@@ -380,7 +395,7 @@ theme_override_font_sizes/font_size = 16
 theme_override_styles/normal = SubResource("StyleBoxFlat_kr5my")
 theme_override_styles/hover = SubResource("StyleBoxFlat_wtb38")
 theme_override_styles/focus = SubResource("StyleBoxFlat_3ngad")
-text = "Go to this objective"
+text = "Go to this task"
 
 [node name="Controls" type="VBoxContainer" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=1869904611]
 visible = false
@@ -462,7 +477,7 @@ custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 15
-text = "Both partners can use every control and station. The roles divide responsibility; they do not unlock different tools. The named lead makes the first recommendation, and the other partner checks it against the brief. Press H whenever the other partner takes the lead."
+text = "Both partners can use every control and room. The roles divide responsibility; they do not unlock different controls. The named lead makes the first recommendation, and the other partner checks it against the brief. Press H whenever the other partner takes the lead."
 autowrap_mode = 2
 
 [node name="Progress" type="VBoxContainer" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=159230697]
@@ -477,7 +492,7 @@ metadata/_tab_index = 4
 modulate = Color(0.18, 0.84, 0.9, 1)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "Campaign progress"
+text = "Work progress"
 
 [node name="RequiredProgress" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Progress" unique_id=1788007006]
 unique_name_in_owner = true
@@ -511,7 +526,7 @@ custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 15
-text = "Required work prepares the campaign pitch. Optional practice strengthens technique evidence but never blocks completion."
+text = "Required work prepares the final pitch. Optional practice strengthens technique evidence but never blocks completion."
 autowrap_mode = 2
 
 [node name="AudioSettings" type="Button" parent="GuidePanel/GuideMargin/GuideContent" unique_id=895054001]
@@ -537,7 +552,7 @@ text = "Sound settings"
 
 [node name="AudioSettingsHelp" type="Label" parent="GuidePanel/GuideMargin/GuideContent/AudioSettingsPanel" unique_id=1500330926]
 layout_mode = 2
-text = "Choose what you want to hear. These settings are saved with this campaign."
+text = "Choose what you want to hear. These settings are saved with this advertisement."
 autowrap_mode = 2
 
 [node name="AudioEnabled" type="CheckButton" parent="GuidePanel/GuideMargin/GuideContent/AudioSettingsPanel" unique_id=1169438716]
@@ -593,120 +608,190 @@ color = Color(0.015, 0.035, 0.065, 0.9)
 [node name="OrientationPanel" type="PanelContainer" parent="OrientationLayer" unique_id=114488140]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(860, 520)
+custom_minimum_size = Vector2(1120, 680)
 layout_mode = 0
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -430.0
-offset_top = -260.0
-offset_right = 430.0
-offset_bottom = 260.0
+offset_left = -560.0
+offset_top = -340.0
+offset_right = 560.0
+offset_bottom = 340.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_02wlv")
 
 [node name="OrientationMargin" type="MarginContainer" parent="OrientationLayer/OrientationPanel" unique_id=2007986274]
 layout_mode = 2
-theme_override_constants/margin_left = 40
-theme_override_constants/margin_top = 28
-theme_override_constants/margin_right = 40
-theme_override_constants/margin_bottom = 28
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 24
 
 [node name="OrientationContent" type="VBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin" unique_id=87905815]
-custom_minimum_size = Vector2(720, 408)
+custom_minimum_size = Vector2(1056, 632)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 12
+theme_override_constants/separation = 8
 
 [node name="OrientationStep" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=1870832680]
 unique_name_in_owner = true
 modulate = Color(0.18, 0.84, 0.9, 1)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 16
-text = "STEP 1 OF 3"
+theme_override_font_sizes/font_size = 18
+text = "QUICK START 1 OF 4"
 
 [node name="OrientationTitle" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=777688689]
 unique_name_in_owner = true
 modulate = Color(0.97, 0.98, 1, 1)
-custom_minimum_size = Vector2(720, 0)
+custom_minimum_size = Vector2(1056, 0)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 28
-text = "Meet the client"
+theme_override_font_sizes/font_size = 30
+text = "You and your partner will make and pitch one ad."
 
 [node name="OrientationAction" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=747531041]
 unique_name_in_owner = true
 modulate = Color(0.88, 0.92, 0.97, 1)
-custom_minimum_size = Vector2(720, 0)
+custom_minimum_size = Vector2(1056, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 20
-text = "Build one advertisement that suits the audience in the client brief."
+text = "Read the brief. Complete seven short tasks. Build one ad. Pitch it."
 autowrap_mode = 2
+
+[node name="OrientationOverview" type="HBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=2026080314]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(1056, 210)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="BriefCard" type="VBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationOverview" unique_id=2026080315]
+custom_minimum_size = Vector2(344, 210)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="BriefImage" type="TextureRect" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationOverview/BriefCard" unique_id=2026080316]
+custom_minimum_size = Vector2(344, 180)
+layout_mode = 2
+texture = SubResource("AtlasTexture_brief")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="BriefLabel" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationOverview/BriefCard" unique_id=2026080317]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Brief"
+horizontal_alignment = 1
+
+[node name="BuildCard" type="VBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationOverview" unique_id=2026080318]
+custom_minimum_size = Vector2(344, 210)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="BuildImage" type="TextureRect" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationOverview/BuildCard" unique_id=2026080319]
+custom_minimum_size = Vector2(344, 180)
+layout_mode = 2
+texture = SubResource("AtlasTexture_build")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="BuildLabel" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationOverview/BuildCard" unique_id=2026080320]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Build"
+horizontal_alignment = 1
+
+[node name="ApprovalCard" type="VBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationOverview" unique_id=2026080321]
+custom_minimum_size = Vector2(344, 210)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="ApprovalImage" type="TextureRect" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationOverview/ApprovalCard" unique_id=2026080322]
+custom_minimum_size = Vector2(344, 180)
+layout_mode = 2
+texture = SubResource("AtlasTexture_approval")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ApprovalLabel" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationOverview/ApprovalCard" unique_id=2026080323]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Brief complete"
+horizontal_alignment = 1
 
 [node name="OrientationItems" type="VBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=1840799099]
 layout_mode = 2
 size_flags_vertical = 1
-theme_override_constants/separation = 12
+theme_override_constants/separation = 6
 
-[node name="OrientationItemOne" type="VBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems" unique_id=2026080302]
+[node name="OrientationItemOne" type="HBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems" unique_id=2026080302]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 12
 
 [node name="OrientationItemOneLabel" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems/OrientationItemOne" unique_id=2026080303]
 unique_name_in_owner = true
 modulate = Color(0.18, 0.84, 0.9, 1)
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
-text = "START"
+custom_minimum_size = Vector2(150, 0)
+theme_override_font_sizes/font_size = 18
+text = "MAKE"
 
 [node name="OrientationItemOneText" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems/OrientationItemOne" unique_id=2026080304]
 unique_name_in_owner = true
 modulate = Color(0.92, 0.95, 0.98, 1)
 layout_mode = 2
-theme_override_font_sizes/font_size = 17
-text = "Read the client brief so you know who the advertisement must persuade."
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "Make an ad that gives the audience a clear reason to act."
 autowrap_mode = 2
 
-[node name="OrientationItemTwo" type="VBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems" unique_id=2026080305]
+[node name="OrientationItemTwo" type="HBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems" unique_id=2026080305]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 12
 
 [node name="OrientationItemTwoLabel" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems/OrientationItemTwo" unique_id=2026080306]
 unique_name_in_owner = true
 modulate = Color(0.18, 0.84, 0.9, 1)
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
-text = "FINISH"
+custom_minimum_size = Vector2(150, 0)
+theme_override_font_sizes/font_size = 18
+text = "PRACTISE"
 
 [node name="OrientationItemTwoText" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems/OrientationItemTwo" unique_id=2026080307]
 unique_name_in_owner = true
 modulate = Color(0.92, 0.95, 0.98, 1)
 layout_mode = 2
-theme_override_font_sizes/font_size = 17
-text = "Complete the required missions, build the advertisement, then present it."
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "Practise choosing advertising techniques and explaining their effect."
 autowrap_mode = 2
 
-[node name="OrientationItemThree" type="VBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems" unique_id=2026080308]
+[node name="OrientationItemThree" type="HBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems" unique_id=2026080308]
 unique_name_in_owner = true
-visible = false
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 12
 
 [node name="OrientationItemThreeLabel" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems/OrientationItemThree" unique_id=2026080309]
 unique_name_in_owner = true
 modulate = Color(0.18, 0.84, 0.9, 1)
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
+custom_minimum_size = Vector2(150, 0)
+theme_override_font_sizes/font_size = 18
+text = "PREPARE"
 
 [node name="OrientationItemThreeText" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems/OrientationItemThree" unique_id=2026080310]
 unique_name_in_owner = true
 modulate = Color(0.92, 0.95, 0.98, 1)
 layout_mode = 2
-theme_override_font_sizes/font_size = 17
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "Each required task prepares the ad for the final pitch."
 autowrap_mode = 2
 
 [node name="OrientationActions" type="HBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=2026080311]
@@ -715,16 +800,26 @@ theme_override_constants/separation = 12
 
 [node name="MinimiseOrientation" type="Button" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationActions" unique_id=2026080312]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(220, 48)
+custom_minimum_size = Vector2(220, 52)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_3sbd4")
 theme_override_styles/hover = SubResource("StyleBoxFlat_k5agm")
 text = "Minimise quick start"
 
+[node name="OrientationPrevious" type="Button" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationActions" unique_id=2026080324]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(150, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_3sbd4")
+theme_override_styles/hover = SubResource("StyleBoxFlat_k5agm")
+text = "Previous"
+
 [node name="OrientationNext" type="Button" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationActions" unique_id=516664550]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18

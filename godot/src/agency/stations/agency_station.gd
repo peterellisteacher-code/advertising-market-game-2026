@@ -9,7 +9,7 @@ const VALID_ROLES := ["art-director", "strategist"]
 @export var room_title: String = "Reception"
 @export var owner_role: String = "strategist"
 @export_multiline var owner_action: String = "Read the client request and identify the decision the audience needs to make."
-@export_multiline var partner_holding_action: String = "Listen for missing audience details and keep the campaign goal visible."
+@export_multiline var partner_holding_action: String = "Listen for missing audience details and keep the goal visible."
 @export_multiline var shared_evidence: String = "Both partners can explain who the advertisement is for and what response it should produce."
 
 var pair_in_range: bool = false

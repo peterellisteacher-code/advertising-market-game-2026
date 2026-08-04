@@ -42,7 +42,7 @@ describe("TeacherPlaytestController", () => {
     );
   });
 
-  it("keeps the persistent teacher controls above the fixed studio surface", async () => {
+  it("keeps teacher controls fixed above the game without reserving layout height", async () => {
     const style = document.createElement("style");
     style.textContent = [
       readFileSync(
@@ -76,11 +76,13 @@ describe("TeacherPlaytestController", () => {
       const strip = getByRole(root, "banner", { name: "Teacher playtest" });
       const stripStyle = getComputedStyle(strip);
       const creatorStyle = getComputedStyle(creatorRoot);
-      expect(stripStyle.position).toBe("relative");
+      expect(stripStyle.position).toBe("fixed");
+      expect(stripStyle.top).toBe("120px");
+      expect(stripStyle.right).toBe("12px");
       expect(Number.parseInt(stripStyle.zIndex, 10)).toBeGreaterThan(
         Number.parseInt(creatorStyle.zIndex, 10)
       );
-      expect(creatorStyle.top).toBe("44px");
+      expect(creatorStyle.top).toBe("0px");
       expect(creatorStyle.bottom).toBe("0px");
     } finally {
       style.remove();
@@ -122,6 +124,33 @@ describe("TeacherPlaytestController", () => {
     expect(strip.dataset.expanded).toBe("false");
     expect(toggle.textContent).toBe("Show teacher controls");
     expect(actions?.hidden).toBe(true);
+  });
+
+  it("tucks expanded teacher controls with Escape and restores toggle focus", async () => {
+    const root = createRoot();
+    const controller = new TeacherPlaytestController({
+      root,
+      sessionClient: {
+        session: async () => ({ authenticated: true })
+      },
+      playtestClient: { reset: vi.fn() },
+      startGame: vi.fn(),
+      resetLocalState: vi.fn(),
+      openFirstScreen: vi.fn()
+    });
+    await controller.mount();
+
+    const strip = getByRole(root, "banner", { name: "Teacher playtest" });
+    const toggle = getByRole(root, "button", { name: "Show teacher controls" });
+    fireEvent.click(toggle);
+    getByRole(root, "button", { name: "Return to teacher dashboard" }).focus();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(strip.dataset.expanded).toBe("false");
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(toggle.textContent).toBe("Show teacher controls");
+    expect(document.activeElement).toBe(toggle);
   });
 
   it("checks the independent teacher session before starting the complete game", async () => {
@@ -221,7 +250,7 @@ describe("TeacherPlaytestController", () => {
     expect(
       getByRole(root, "dialog", { name: "Factory reset teacher playtest" }).textContent
     ).toContain(
-      "saved campaign progress and campaign assets from cloud storage and this browser"
+      "saved progress and assets from cloud storage and this browser"
     );
     fireEvent.click(getByRole(root, "button", { name: "Cancel" }));
 

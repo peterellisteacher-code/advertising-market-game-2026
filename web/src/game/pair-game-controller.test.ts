@@ -98,7 +98,7 @@ function createPairGameView(): { root: HTMLElement; view: PairGameView } {
         <p data-partner-role-action></p>
         <p role="status" aria-label="Pair progress" data-round-progress></p>
         <button type="button" data-swap-roles>Swap roles</button>
-        <label>Audience signal <select data-audience-signal></select></label>
+      <label>Audience brief <select data-audience-signal></select></label>
         <section role="region" aria-label="Audience brief">
           <p data-audience-context></p>
           <p data-audience-need></p>
@@ -107,7 +107,7 @@ function createPairGameView(): { root: HTMLElement; view: PairGameView } {
         </section>
       </section>
       <section role="region" aria-label="Pair tools">
-        <label>Canvas words <input data-canvas-words></label>
+    <label>Advertisement words <input data-canvas-words></label>
         <button type="button" data-add-words>Add words to ad</button>
         <button type="button" data-add-product-words>Put words on selected product</button>
         <button type="button" data-command="undo">Undo</button>
@@ -163,7 +163,7 @@ describe("PairGameController", () => {
     expect(port.briefIds).toEqual([AUDIENCE_BRIEFS[0].id]);
     expect(getByRole(root, "heading", { name: "Art Director" })).toBeTruthy();
     const audienceSignal = getByRole<HTMLSelectElement>(root, "combobox", {
-      name: "Audience signal"
+      name: "Audience brief"
     });
     expect(audienceSignal.options).toHaveLength(AUDIENCE_BRIEFS.length);
     expect(audienceSignal.value).toBe(AUDIENCE_BRIEFS[0].id);
@@ -177,7 +177,7 @@ describe("PairGameController", () => {
     expect(view.partnerRoleAction.textContent)
       .toBe("Read the audience need. Prepare a product name and one useful benefit.");
     expect(view.roundProgress.textContent).toContain(
-      "Art Director: visible canvas change not yet recorded."
+      "Art Director: visible advertisement edit not yet recorded."
     );
     expect(view.roundProgress.textContent).toContain(
       "Strategist: message or strategy change not yet recorded."
@@ -192,14 +192,14 @@ describe("PairGameController", () => {
     const controller = new PairGameController(view, port);
     await controller.open(campaign);
 
-    fireEvent.input(getByRole(root, "textbox", { name: "Canvas words" }), {
+    fireEvent.input(getByRole(root, "textbox", { name: "Advertisement words" }), {
       target: { value: "Make room for adventure" }
     });
     fireEvent.click(getByRole(root, "button", { name: "Add words to ad" }));
 
     await waitFor(() => {
       expect(port.addedText).toEqual(["Make room for adventure"]);
-      expect(root.textContent).toContain("Art Director: visible canvas change recorded.");
+      expect(root.textContent).toContain("Art Director: visible advertisement edit recorded.");
       expect(view.activeRoleAction.textContent).toBe(
         "Complete the current visual choice. Then choose Swap roles. The Strategist leads the next message decision."
       );
@@ -252,7 +252,7 @@ describe("PairGameController", () => {
     expect(view.activeRoleAction.textContent)
       .toBe("Choose one visual technique. Use it to direct the audience's attention.");
     expect(view.partnerRoleAction.textContent)
-      .toBe("Check the next AIDA step. Prepare one message suggestion.");
+      .toBe("Check the next AIDA stage. Prepare one message suggestion.");
 
     campaign.gameplay.stage = "irresistible";
     await controller.open(campaign);
@@ -332,7 +332,7 @@ describe("PairGameController", () => {
     await controller.open(campaign);
     const selectedBrief = AUDIENCE_BRIEFS[1];
 
-    fireEvent.change(getByRole(root, "combobox", { name: "Audience signal" }), {
+    fireEvent.change(getByRole(root, "combobox", { name: "Audience brief" }), {
       target: { value: selectedBrief.id }
     });
 
@@ -345,11 +345,11 @@ describe("PairGameController", () => {
     expect(root.textContent).toContain(selectedBrief.values.join(", "));
     expect(root.textContent).toContain(selectedBrief.intendedEffect);
 
-    fireEvent.input(getByRole(root, "textbox", { name: "Canvas words" }), {
+    fireEvent.input(getByRole(root, "textbox", { name: "Advertisement words" }), {
       target: { value: "   " }
     });
     fireEvent.click(getByRole(root, "button", { name: "Add words to ad" }));
-    expect(view.assertive.textContent).toBe("Type some canvas words first.");
+    expect(view.assertive.textContent).toBe("Type advertisement words first.");
     expect(port.addedText).toEqual([]);
 
     fireEvent.click(getByRole(root, "button", { name: "Undo" }));
@@ -369,7 +369,7 @@ describe("PairGameController", () => {
     controller.dispose();
 
     fireEvent.click(getByRole(root, "button", { name: "Swap roles" }));
-    fireEvent.input(getByRole(root, "textbox", { name: "Canvas words" }), {
+    fireEvent.input(getByRole(root, "textbox", { name: "Advertisement words" }), {
       target: { value: "No longer active" }
     });
     fireEvent.click(getByRole(root, "button", { name: "Add words to ad" }));
@@ -388,7 +388,7 @@ describe("PairGameController", () => {
     const { root, view } = createPairGameView();
     const controller = new PairGameController(view, port);
     await controller.open(campaign);
-    const words = getByRole<HTMLInputElement>(root, "textbox", { name: "Canvas words" });
+    const words = getByRole<HTMLInputElement>(root, "textbox", { name: "Advertisement words" });
 
     fireEvent.input(words, { target: { value: "Keeps drinks warm longer" } });
     fireEvent.click(getByRole(root, "button", { name: "Put words on selected product" }));
@@ -415,15 +415,15 @@ describe("PairGameController", () => {
     await controller.open(campaign);
     port.audienceError = new Error("Internal assignment record failed");
 
-    fireEvent.change(getByRole(root, "combobox", { name: "Audience signal" }), {
+    fireEvent.change(getByRole(root, "combobox", { name: "Audience brief" }), {
       target: { value: AUDIENCE_BRIEFS[1].id }
     });
 
     await waitFor(() => {
-      expect(view.assertive.textContent).toBe("That move did not work. Try again.");
+    expect(view.assertive.textContent).toBe("That action did not work. Try again.");
     });
     expect(root.textContent).not.toContain("Internal assignment record failed");
-    expect(getByRole<HTMLSelectElement>(root, "combobox", { name: "Audience signal" }).value)
+    expect(getByRole<HTMLSelectElement>(root, "combobox", { name: "Audience brief" }).value)
       .toBe(AUDIENCE_BRIEFS[0].id);
   });
 });

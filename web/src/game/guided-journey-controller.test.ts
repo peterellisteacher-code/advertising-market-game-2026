@@ -67,10 +67,10 @@ describe("GuidedJourneyController", () => {
     controller.setCampaign(campaign());
 
     const guide = getByRole(root, "region", { name: "Current instruction" });
-    expect(guide.textContent).toContain("Step 4 of 19");
-    expect(guide.textContent).toContain("Place one starter product");
+    expect(guide.textContent).toContain("Build · Task 1 of 3");
+    expect(guide.textContent).toContain("Choose one starter product");
     expect(guide.textContent?.toLowerCase()).toContain("product edit");
-    expect(guide.textContent).toContain("appears on the canvas");
+    expect(guide.textContent).toContain("appears in the advertisement");
     fireEvent.click(getByRole(guide, "button", { name: "Open Build" }));
     expect(openStep).toHaveBeenCalledOnce();
     expect(openStep.mock.calls[0]![0]).toMatchObject({
@@ -116,7 +116,7 @@ describe("GuidedJourneyController", () => {
     expect(methods.textContent).not.toMatch(/\bcode\b/i);
   });
 
-  it("keeps the complete instruction argument available from both review buttons", () => {
+  it("navigates the six-page reference manual with labelled controls and cleans up listeners", () => {
     const { root, controller } = setup();
     controller.setCampaign(campaign());
     const dialog = root.querySelector<HTMLElement>("[data-guide-dialog]")!;
@@ -127,46 +127,21 @@ describe("GuidedJourneyController", () => {
     expect(getByRole(root, "dialog", { name: "How to use this site" }))
       .toBe(dialog);
     expect(dialog.hidden).toBe(false);
-    expect([...dialog.querySelectorAll<HTMLElement>("[data-instruction-claim-id]")]
-      .map(({ dataset }) => dataset.instructionClaimId)).toEqual([
-        "P1", "P2", "P3", "ICA",
-        "P5", "P6", "P7", "P8", "ICB",
-        "P10", "P11", "P12", "P13", "ICC",
-        "P15", "P16", "P17", "P18", "ICD",
-        "P20", "P21", "P22", "P23", "P24", "C"
-      ]);
-    expect([...dialog.querySelectorAll("h3")].map(({ textContent }) => textContent))
-      .toEqual([
-        "A. Establish a shared audience purpose",
-        "B. Turn the audience purpose into a product",
-        "C. Turn the product into an advertisement",
-        "D. Turn the advertisement into a credible offer",
-        "E. Turn the offer into a completed market entry"
-      ]);
-    expect(dialog.textContent).toContain(
-      "You and one partner are creating one fictional product and one advertisement for a supplied audience."
-    );
-    expect(dialog.textContent).toContain(
-      "A premise is a reason. An intermediate conclusion is what a group of reasons supports."
-    );
-    expect(dialog.textContent).toContain(
-      "You do not need to memorise those terms."
-    );
-    expect(dialog.textContent).toContain(
-      "Both partners can use the same tools that are unlocked for the current level."
-    );
-    expect(dialog.textContent).toContain(
-      "Context is the situation the audience is in."
-    );
-    expect(dialog.textContent).toContain(
-      "This section answers two basic questions: who are you trying to persuade, and which partner is responsible for the next kind of decision?"
-    );
-    expect(dialog.textContent).toContain(
-      "A proof point is a specific fact, feature or demonstration, not another slogan."
-    );
-    expect(dialog.textContent).toContain(
-      "Scoring means rating the other advertisements, not your own, before awarding medals."
-    );
+    expect(dialog.textContent).toContain("Page 1 of 6 · Goal");
+    expect(dialog.querySelector<HTMLButtonElement>("[data-guide-previous]")!.hidden).toBe(true);
+    const previous = dialog.querySelector<HTMLButtonElement>("[data-guide-previous]")!;
+    const next = dialog.querySelector<HTMLButtonElement>("[data-guide-next]")!;
+    expect(dialog.querySelectorAll("[data-guide-manual-page]:not([hidden])")).toHaveLength(1);
+    fireEvent.click(next);
+    expect(dialog.textContent).toContain("Page 2 of 6 · Brief");
+    expect(previous.hidden).toBe(false);
+    expect(dialog.querySelectorAll("[data-guide-manual-page]:not([hidden])")).toHaveLength(1);
+    fireEvent.click(previous);
+    expect(dialog.textContent).toContain("Page 1 of 6 · Goal");
+    for (let page = 1; page <= 6; page += 1) fireEvent.click(next);
+    expect(dialog.textContent).toContain("Page 6 of 6 · Pitch");
+    expect(next.hidden).toBe(true);
+    expect(dialog.querySelectorAll("[data-guide-manual-page]:not([hidden])")).toHaveLength(1);
     expect(document.activeElement).toBe(
       getByRole(dialog, "button", { name: "Close guide" })
     );
@@ -176,8 +151,8 @@ describe("GuidedJourneyController", () => {
 
     const close = getByRole<HTMLButtonElement>(dialog, "button", { name: "Close guide" });
     fireEvent.keyDown(close, { key: "Tab" });
-    expect(document.activeElement).toBe(close);
-    fireEvent.keyDown(close, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(previous);
+    fireEvent.keyDown(previous, { key: "Tab", shiftKey: true });
     expect(document.activeElement).toBe(close);
 
     fireEvent.keyDown(dialog, { key: "Escape" });
@@ -188,6 +163,9 @@ describe("GuidedJourneyController", () => {
 
     fireEvent.click(reviewButtons[1]!);
     expect(dialog.hidden).toBe(false);
+    controller.destroy();
+    fireEvent.click(next);
+    expect(dialog.hidden).toBe(true);
   });
 
   it("unlocks AIDA checklist stages one at a time while preserving completed stages", () => {
@@ -241,7 +219,7 @@ describe("GuidedJourneyController", () => {
     const lockStatus = root.querySelector<HTMLElement>("[data-locked-actions-status]")!;
     expect(lockStatus.hidden).toBe(false);
     expect(lockStatus.textContent)
-      .toContain("Route: Set the product price and make it visible on the canvas first.");
+      .toContain("Route: Set the product price and make it visible in the advertisement first.");
     expect(route.getAttribute("aria-describedby")).toBe(lockStatus.id);
     expect(route.getAttribute("title")).toBeNull();
 

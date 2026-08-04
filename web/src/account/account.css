@@ -3,6 +3,34 @@
   display: none !important;
 }
 
+#game-startup-status[hidden] {
+  display: none !important;
+}
+
+.game-startup-status {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-content: center;
+  gap: .65rem;
+  padding: 2rem;
+  background: #fffaf2;
+  color: #172033;
+  text-align: center;
+  font-family: "Trebuchet MS", "Aptos", "Segoe UI", sans-serif;
+}
+
+.game-startup-status strong {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 1.05;
+}
+
+.game-startup-status span {
+  color: #3d4c64;
+  font-size: clamp(1rem, 2vw, 1.3rem);
+}
+
 .account-access,
 .account-access *,
 .account-session,

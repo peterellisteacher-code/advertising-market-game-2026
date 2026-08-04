@@ -400,6 +400,25 @@ test("instructions and final review remain explicit in the game shell", () => {
   }
 });
 
+test("Godot advertising copy reuses AIDA stage and advertisement terminology", () => {
+  for (const [sourceName, source] of [
+    ["agency mission catalogue", missionCatalogScript],
+    ["main script", mainScript],
+    ["main scene", mainScene]
+  ]) {
+    assert.doesNotMatch(
+      source,
+      /\bAIDA moves?\b/i,
+      `${sourceName} must call Attention, Interest, Desire and Action AIDA stages`
+    );
+    assert.doesNotMatch(
+      source,
+      /\bbuild a campaign\b/i,
+      `${sourceName} must name the advertisement students build`
+    );
+  }
+});
+
 test("the full linked argument and role guide remain available throughout pair play", () => {
   assert.match(mainScene, /name="ReviewInstructions"[\s\S]*?text = "Review all instructions"/);
   assert.match(mainScene, /name="RoleGuide"[\s\S]*?text = "Role guide"/);

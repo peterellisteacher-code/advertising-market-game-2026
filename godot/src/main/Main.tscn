@@ -363,7 +363,7 @@ theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
 theme_override_font_sizes/font_size = 18
 text = "Three levels.
 Level 1: invent a product. Choose its audience.
-Level 2: build a campaign using the four AIDA moves.
+Level 2: build the advertisement using the four AIDA stages.
 Level 3: set a price. Choose where to advertise. Select the strongest features. Finish the design.
 After all three levels: enter the live class market. Spend a fixed budget on products made by other teams."
 autowrap_mode = 2

@@ -32,7 +32,7 @@ const LEVEL_COPY := {
     },
     "sell": {
         "eyebrow": "LEVEL 2 // SELL IT",
-        "heading": "Apply the four AIDA moves — Attention, Interest, Desire, Action — to the Level 1 product.",
+        "heading": "Apply the four AIDA stages — Attention, Interest, Desire, Action — to the Level 1 product.",
         "clue": "Capture Attention, hold Interest, build Desire, then state the next Action."
     },
     "irresistible": {

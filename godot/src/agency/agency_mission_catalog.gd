@@ -193,9 +193,9 @@ const REQUIRED_MISSION_RECORDS := [
         "stationId": "strategy-room",
         "ownerRole": "strategist",
         "title": "Turn attention into a reason to act",
-        "goal": "Order the four AIDA moves so each one gives the audience a reason to continue to the next.",
+        "goal": "Order the four AIDA stages so each one gives the audience a reason to continue to the next.",
         "instruction": "Choose the sequence in which Attention introduces the subject, Interest explains relevance, Desire develops value and Action states the next step.",
-        "holdingAction": "The Art Director identifies the visual element that will carry each AIDA move and checks that all four moves do not compete at the same scale.",
+        "holdingAction": "The Art Director identifies the visual element that will carry each AIDA stage and checks that all four stages do not compete at the same scale.",
         "choices": [
             {
                 "id": "aida-complete",
@@ -220,7 +220,7 @@ const REQUIRED_MISSION_RECORDS := [
         ],
         "correctChoiceId": "aida-complete",
         "effectExplanation": "AIDA creates a cumulative audience journey rather than four unrelated labels placed on an advertisement.",
-        "transferPrompt": "Write one sentence for each AIDA move in your advertisement and explain how the audience can move from one to the next.",
+        "transferPrompt": "Write one sentence for each AIDA stage in your advertisement and explain how the audience can move from one to the next.",
         "reward": "AIDA sequence complete",
         "required": true
     },
@@ -490,7 +490,7 @@ const OBJECTIVE_RECORDS := {
         "action": "Build an AIDA sequence that moves from first attention to one feasible audience action.",
         "reason": "The advertisement must give the audience a cumulative reason to continue and act.",
         "ownerRole": "strategist",
-        "holdingAction": "The Art Director assigns a distinct visual level to each AIDA move."
+        "holdingAction": "The Art Director assigns a distinct visual level to each AIDA stage."
     },
     "set-campaign-tone": {
         "id": "set-campaign-tone",

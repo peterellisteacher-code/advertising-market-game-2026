@@ -27,6 +27,7 @@ func run() -> bool:
 	guide.advance_orientation()
 	guide.advance_orientation()
 	guide.advance_orientation()
+	guide.advance_orientation()
 	assert(not orientation.visible)
 	assert(not guide_panel.visible)
 	assert(not guide.orientation_required())

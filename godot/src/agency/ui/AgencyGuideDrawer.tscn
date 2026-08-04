@@ -3,18 +3,18 @@
 [ext_resource type="Script" uid="uid://c5ttupvkmue84" path="res://src/agency/ui/agency_guide_drawer.gd" id="1_3sbd4"]
 [ext_resource type="Texture2D" path="res://assets/agency/onboarding-brief.png" id="2_brief"]
 [ext_resource type="Texture2D" path="res://assets/agency/onboarding-build.png" id="3_build"]
-[ext_resource type="Texture2D" path="res://assets/agency/onboarding-pitch.png" id="4_pitch"]
+[ext_resource type="Texture2D" path="res://assets/agency/onboarding-approval.png" id="4_approval"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_brief"]
 atlas = ExtResource("2_brief")
-region = Rect2(0, 44, 1440, 856)
+region = Rect2(0, 44, 1280, 756)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_build"]
 atlas = ExtResource("3_build")
-region = Rect2(0, 44, 1440, 856)
+region = Rect2(0, 44, 1280, 756)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_pitch"]
-atlas = ExtResource("4_pitch")
+[sub_resource type="AtlasTexture" id="AtlasTexture_approval"]
+atlas = ExtResource("4_approval")
 region = Rect2(0, 44, 1280, 756)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3sbd4"]
@@ -704,23 +704,23 @@ theme_override_font_sizes/font_size = 18
 text = "Build"
 horizontal_alignment = 1
 
-[node name="PitchCard" type="VBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationOverview" unique_id=2026080321]
+[node name="ApprovalCard" type="VBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationOverview" unique_id=2026080321]
 custom_minimum_size = Vector2(344, 210)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 4
 
-[node name="PitchImage" type="TextureRect" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationOverview/PitchCard" unique_id=2026080322]
+[node name="ApprovalImage" type="TextureRect" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationOverview/ApprovalCard" unique_id=2026080322]
 custom_minimum_size = Vector2(344, 180)
 layout_mode = 2
-texture = SubResource("AtlasTexture_pitch")
+texture = SubResource("AtlasTexture_approval")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="PitchLabel" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationOverview/PitchCard" unique_id=2026080323]
+[node name="ApprovalLabel" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationOverview/ApprovalCard" unique_id=2026080323]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "Earn approval and pitch"
+text = "Brief approved"
 horizontal_alignment = 1
 
 [node name="OrientationItems" type="VBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=1840799099]

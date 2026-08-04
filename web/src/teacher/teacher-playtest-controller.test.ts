@@ -77,7 +77,7 @@ describe("TeacherPlaytestController", () => {
       const stripStyle = getComputedStyle(strip);
       const creatorStyle = getComputedStyle(creatorRoot);
       expect(stripStyle.position).toBe("fixed");
-      expect(stripStyle.top).toBe("12px");
+      expect(stripStyle.top).toBe("120px");
       expect(stripStyle.right).toBe("12px");
       expect(Number.parseInt(stripStyle.zIndex, 10)).toBeGreaterThan(
         Number.parseInt(creatorStyle.zIndex, 10)

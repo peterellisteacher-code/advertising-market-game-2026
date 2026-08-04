@@ -12,31 +12,41 @@ readable third-party advertising copy.
 These three PNGs are unchanged project-owned QA captures of the verified Godot
 web export, copied on 4 August 2026. The onboarding scene uses an `AtlasTexture`
 to omit the 44-pixel teacher-test strip at the top; the source PNG pixels were
-not edited, resized, recoloured or regenerated.
+not edited, resized, recoloured or regenerated. Each label describes only the
+state visible in its screenshot.
 
 ### `onboarding-brief.png`
 
-- Source: `C:\Godot Projects\Advertising Market Game QA\terra-audit-20260804\parent-harness-1440-world.png`
-- Dimensions: 1440 x 900 pixels
-- Scene crop: `Rect2(0, 44, 1440, 856)`
-- SHA-256: `6480786817492ef5dde7aac61dae93f1f4d2236346d65a8883fdff53ea0f8db9`
+- Source: `C:\Godot Projects\Advertising Market Game QA\terra-audit-20260804\parent-harness-1280-client-briefing.png`
+- Dimensions: 1280 x 800 pixels
+- Scene crop: `Rect2(0, 44, 1280, 756)`
+- SHA-256: `057444a7842267822c6ef555be95108b3c9fbd20b95ad1468288718bb57f73d5`
 - Teaching use: labels the first whole-campaign stage, **Brief**
 
 ### `onboarding-build.png`
 
-- Source: `C:\Godot Projects\Advertising Market Game QA\terra-audit-20260804\parent-harness-1440-product-placed.png`
-- Dimensions: 1440 x 900 pixels
-- Scene crop: `Rect2(0, 44, 1440, 856)`
-- SHA-256: `dda3d2d949c28f4bb4f250241b1661c13619aa23586b21709adc364776d0f985`
-- Teaching use: labels the second whole-campaign stage, **Build**
+- Source: `C:\Godot Projects\Advertising Market Game QA\run-30822342945\mission-art-studio-1280x800.png`
+- Dimensions: 1280 x 800 pixels
+- Scene crop: `Rect2(0, 44, 1280, 756)`
+- SHA-256: `c286eeae55797ea494c69bcec056ee6de56011509d059ec4d3b967232a3f9671`
+- Teaching use: labels the current art-direction decision as part of **Build**;
+  this replaces the obsolete Studio capture containing `Step 5 of 19` and
+  `visible canvas change` copy
 
-### `onboarding-pitch.png`
+### `onboarding-approval.png`
 
 - Source: `C:\Godot Projects\Advertising Market Game QA\terra-audit-20260804\parent-harness-1280-mission-complete.png`
 - Dimensions: 1280 x 800 pixels
 - Scene crop: `Rect2(0, 44, 1280, 756)`
 - SHA-256: `a882205068632396a982f9cdb620f326055d4099b32841e554093a14df4c4141`
-- Teaching use: labels the final whole-campaign stage, **Earn approval and pitch**
+- Teaching use: labels only the visible **Brief approved** state; this is not
+  represented as a pitch
+
+Pitch screenshot replacement: **OPEN**. A truthful replacement must be a
+current web-export capture at 1280 x 800 or 1440 x 900, must show the pair's
+advertisement presented in the pitch theatre, and must be captured before any
+mission-complete or approval modal obscures that evidence. No such capture was
+present in `C:\Godot Projects\Advertising Market Game QA` on 4 August 2026.
 
 ## `agency-floor.png`
 

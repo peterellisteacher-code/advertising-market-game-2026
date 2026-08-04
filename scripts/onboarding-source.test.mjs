@@ -34,7 +34,8 @@ const [
   agencyAssetSources,
   onboardingBriefAsset,
   onboardingBuildAsset,
-  onboardingPitchAsset
+  onboardingApprovalAsset,
+  obsoletePitchAsset
 ] = await Promise.all([
   readFile(new URL("../godot/src/main/main.gd", import.meta.url), "utf8"),
   readFile(new URL("../godot/src/main/Main.tscn", import.meta.url), "utf8"),
@@ -55,6 +56,7 @@ const [
   readFile(new URL("../godot/assets/agency/ASSET-SOURCES.md", import.meta.url), "utf8"),
   readBinaryOrEmpty(new URL("../godot/assets/agency/onboarding-brief.png", import.meta.url)),
   readBinaryOrEmpty(new URL("../godot/assets/agency/onboarding-build.png", import.meta.url)),
+  readBinaryOrEmpty(new URL("../godot/assets/agency/onboarding-approval.png", import.meta.url)),
   readBinaryOrEmpty(new URL("../godot/assets/agency/onboarding-pitch.png", import.meta.url))
 ]);
 
@@ -77,33 +79,31 @@ test("first-time agency orientation explains the whole campaign before controls"
   );
 });
 
-test("agency orientation uses three unchanged, cropped project screenshots", () => {
+test("agency orientation uses truthful, cropped project screenshots without inventing a pitch capture", () => {
   const expectedAssets = new Map([
-    ["onboarding-brief.png", "6480786817492ef5dde7aac61dae93f1f4d2236346d65a8883fdff53ea0f8db9"],
-    ["onboarding-build.png", "dda3d2d949c28f4bb4f250241b1661c13619aa23586b21709adc364776d0f985"],
-    ["onboarding-pitch.png", "a882205068632396a982f9cdb620f326055d4099b32841e554093a14df4c4141"]
+    ["onboarding-brief.png", "057444a7842267822c6ef555be95108b3c9fbd20b95ad1468288718bb57f73d5"],
+    ["onboarding-build.png", "c286eeae55797ea494c69bcec056ee6de56011509d059ec4d3b967232a3f9671"],
+    ["onboarding-approval.png", "a882205068632396a982f9cdb620f326055d4099b32841e554093a14df4c4141"]
   ]);
   const actualAssets = new Map([
     ["onboarding-brief.png", sha256(onboardingBriefAsset)],
     ["onboarding-build.png", sha256(onboardingBuildAsset)],
-    ["onboarding-pitch.png", sha256(onboardingPitchAsset)]
+    ["onboarding-approval.png", sha256(onboardingApprovalAsset)]
   ]);
   assert.deepEqual(actualAssets, expectedAssets);
+  assert.equal(obsoletePitchAsset.length, 0, "mission-complete capture must not remain named as Pitch");
   for (const [assetName, expectedHash] of expectedAssets) {
     assert.ok(agencyGuideScene.includes(`res://assets/agency/${assetName}`));
     assert.ok(agencyAssetSources.includes(assetName));
     assert.ok(agencyAssetSources.toLowerCase().includes(expectedHash));
   }
-  for (const label of ["Brief", "Build", "Earn approval and pitch"]) {
+  for (const label of ["Brief", "Build", "Brief approved"]) {
     assert.ok(agencyGuideScene.includes(`text = "${label}"`), `missing screenshot label: ${label}`);
   }
-  for (const region of [
-    "region = Rect2(0, 44, 1440, 856)",
-    "region = Rect2(0, 44, 1280, 756)"
-  ]) {
-    assert.ok(agencyGuideScene.includes(region), `missing compositional crop: ${region}`);
-  }
-  assert.equal((agencyGuideScene.match(/region = Rect2\(0, 44, 1440, 856\)/g) ?? []).length, 2);
+  assert.doesNotMatch(agencyGuideScene, /text = "(?:Pitch|Earn approval and pitch)"/);
+  assert.equal((agencyGuideScene.match(/region = Rect2\(0, 44, 1280, 756\)/g) ?? []).length, 3);
+  assert.ok(agencyAssetSources.includes("Pitch screenshot replacement: **OPEN**"));
+  assert.match(agencyAssetSources, /must show the pair's\s+advertisement presented in the pitch theatre/);
 });
 
 test("agency quick start presents one action at a time and can be resumed", () => {

@@ -174,7 +174,7 @@ func _practice_start_and_lock_wait_for_storage_ack() -> bool:
 	var refresh_id := "practice-4"
 	assert(practice_fake.request_for(refresh_id).get("method") == "resume")
 	assert(shell.get("_campaign_document") == prior_document)
-	assert(shell.get_node("%Status").text == "Checking the saved campaign.")
+	assert(shell.get_node("%Status").text == "Checking the saved advertisement.")
 	var ready_pitch := AdMarketAgencyProgress.from_legacy_pitch("sell", [])
 	ready_pitch["activeRole"] = "strategist"
 	ready_pitch["handoffCount"] = 1
@@ -697,7 +697,7 @@ func _campaign_moves_gate_each_level() -> bool:
 	for case in [
 		{"document": _with_product_name(invent_ready, "   "), "expected": "Next: add a product name."},
 		{"document": _with_product_build(invent_ready, null), "expected": "Next: build a product in the studio."},
-		{"document": _with_audience(invent_ready, "   "), "expected": "Next: choose an audience signal."}
+		{"document": _with_audience(invent_ready, "   "), "expected": "Next: choose an audience brief."}
 	]:
 		var invent_incomplete_document: Dictionary = case.get("document")
 		var expected_invent_clue: String = case.get("expected")

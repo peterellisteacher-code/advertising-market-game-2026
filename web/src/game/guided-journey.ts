@@ -95,7 +95,7 @@ function aidaStep(
     title,
     now: `Complete ${title} by applying one visible technique and recording its explanation.`,
     why,
-    done: `The ${title} explanation and its visible canvas evidence are recorded.`,
+    done: `The ${title} explanation and its visible advertisement evidence are recorded.`,
     next,
     tool: "aida",
     claimIds: Object.freeze([...claimIds]),
@@ -449,7 +449,7 @@ export function evaluateGuidedJourney(
       current.stage === "irresistible" ? "Offer" : "Pitch";
   const progressLabel = transitionRequired
     ? transition.progressLabel
-    : `${phaseLabel} · Step ${Math.max(1, localIndex + 1)} of ${phaseSteps.length}`;
+    : `${phaseLabel} · Task ${Math.max(1, localIndex + 1)} of ${phaseSteps.length}`;
 
   return Object.freeze({
     steps,

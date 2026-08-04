@@ -133,8 +133,8 @@ describe("createEditorShell", () => {
     expect(shell.deleteSelected).toBe(deleteSelected);
     expect(shell.deleteStatus.id).toBe("canvas-delete-status");
     expect(getByRole(sizeControls, "status").textContent).toBe("Select a product or image");
-    expect(getByRole(root, "status", { name: "Empty canvas" }).textContent)
-      .toContain("Canvas empty");
+    expect(getByRole(root, "status", { name: "Empty advertisement" }).textContent)
+      .toContain("Advertisement empty");
     expect(shell.canvasEmptyState.hidden).toBe(false);
     expect(getByRole(root, "region", { name: "Pair play" })).toBeTruthy();
     expect(getByRole(root, "status", { name: "Pair progress" })).toBeTruthy();
@@ -180,7 +180,7 @@ describe("createEditorShell", () => {
     expect(root.querySelector('[data-studio-panel="words"][aria-label="Pair tools"]')).toBeTruthy();
     expect(root.querySelector('[data-studio-panel="logo"][aria-label="Logo Lab"]')).toBeTruthy();
     expect(shell.logoLabPanel.dataset.logoLabPanel).toBe("");
-    expect(getByRole<HTMLInputElement>(root, "textbox", { name: "Canvas words", hidden: true }).placeholder)
+    expect(getByRole<HTMLInputElement>(root, "textbox", { name: "Advertisement words", hidden: true }).placeholder)
       .toBe("Try Make room for adventure");
     expect(getByRole(root, "button", { name: "Add words to ad", hidden: true }))
       .toBe(shell.addWords);
@@ -188,8 +188,8 @@ describe("createEditorShell", () => {
       .toBe(shell.productWords);
     expect(root.querySelector('[data-studio-panel="words"]')?.textContent)
       .toContain("On supported products, the words appear on a curved label and the original text remains editable.");
-    expect(root.querySelector('.creator__layers[aria-label="Canvas layers"]')).toBeTruthy();
-    expect(getByRole(root, "button", { name: "Open canvas layers", hidden: true })).toBeTruthy();
+    expect(root.querySelector('.creator__layers[aria-label="Item list"]')).toBeTruthy();
+    expect(getByRole(root, "button", { name: "Open item list", hidden: true })).toBeTruthy();
     expect(root.querySelector('.creator__inspector[aria-label="Selected element"]')).toBeTruthy();
     expect(shell.inspector.hidden).toBe(true);
     const sectionFill = root.querySelector<HTMLElement>(
@@ -197,7 +197,7 @@ describe("createEditorShell", () => {
     )!;
     expect(sectionFill).toBe(shell.sectionFillPanel);
     expect(shell.sectionFillPanel.hidden).toBe(true);
-    expect(getByRole(root, "group", { name: "AIDA steps", hidden: true })).toBeTruthy();
+    expect(getByRole(root, "group", { name: "AIDA stages", hidden: true })).toBeTruthy();
     expect(getAllByRole(root, "button", { hidden: true })
       .filter((button) => button.hasAttribute("data-slot"))
       .map((button) => button.textContent)).toEqual([
@@ -210,7 +210,7 @@ describe("createEditorShell", () => {
     expect(shell.saveStatus.textContent).toBe("");
     expect(shell.undo.dataset.command).toBe("undo");
     expect(shell.redo.dataset.command).toBe("redo");
-    expect(root.textContent).not.toMatch(/\b(?:assignment|unit|task)\b/i);
+    expect(root.textContent).not.toMatch(/\b(?:assignment|unit|canvas)\b/i);
   });
 
   it("opens and closes the full brief without adding a floating drawer control", () => {

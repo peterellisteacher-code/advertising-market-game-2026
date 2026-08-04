@@ -28,7 +28,7 @@ export const STUDENT_COPY = deepFreeze({
     audienceSignal: "Audience signal",
     roundProgress: "Pair progress",
     pairPlay: "Pair play",
-    canvasWords: "Canvas words",
+    canvasWords: "Advertisement words",
     roundZeroTools: "Pair tools",
     context: "Context",
     need: "Need",
@@ -98,8 +98,8 @@ export const STUDENT_COPY = deepFreeze({
       },
       strategist: {
         label: "Strategist",
-        productiveAction: "Link one canvas choice to the next AIDA step.",
-        holdingAction: "Check the next AIDA step. Prepare one message suggestion."
+        productiveAction: "Link one advertisement choice to the next AIDA stage.",
+        holdingAction: "Check the next AIDA stage. Prepare one message suggestion."
       }
     },
     irresistible: {
@@ -160,9 +160,9 @@ export const STUDENT_COPY = deepFreeze({
     addWords: "Add words to ad",
     productWords: "Put words on selected product",
     productWordsHint: "Select the product first. On supported products, the words appear on a curved label and the original text remains editable.",
-    blankWords: "Type some canvas words first.",
+    blankWords: "Type advertisement words first.",
     audienceChanged: "Audience signal changed.",
-    wordsAdded: "Words added to the canvas.",
+    wordsAdded: "Words added to the advertisement.",
     productWordsAdded: "Words added to the selected product.",
     productWordsUpdated: "Words updated on the selected product.",
     productWordsNeedSelection: "Select a product with a label area first.",

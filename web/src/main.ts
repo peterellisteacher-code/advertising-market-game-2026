@@ -384,7 +384,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   queueCataloguePlacement(asset: CatalogAssetV1, bodyColour?: string): void {
     if (this.#sectionFillPreviewActive) {
       this.shell.assertive.textContent =
-        "Apply or cancel the fill preview before changing the canvas.";
+        "Apply or cancel the fill preview before changing the advertisement.";
       return;
     }
     if (asset.delivery === "offline" && !this.#rasterPricing?.byAssetId.has(asset.id)) {
@@ -437,7 +437,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   queueProductKitPlacement(request: ProductKitCompositionRequest): void {
     if (this.#sectionFillPreviewActive) {
       this.shell.assertive.textContent =
-        "Apply or cancel the fill preview before changing the canvas.";
+        "Apply or cancel the fill preview before changing the advertisement.";
       return;
     }
     if (this.#productKitBundle === null) {
@@ -593,7 +593,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     if (runtime === null) throw new Error("Campaign creator is not open");
     const selectedObjectId = runtime.adapter.getSelectedObjectId();
     if (selectedObjectId === null) {
-      throw new Error("Select the canvas piece that carries this AIDA move first.");
+      throw new Error("Select the item that carries this AIDA move first.");
     }
     const commit = async (): Promise<void> => {
       const current = this.#snapshot();
@@ -1195,7 +1195,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       throw new Error("Campaign creator is not open");
     }
     const summary = runtime.adapter.listObjectSummaries().find(({ id }) => id === action.id);
-    if (!summary) throw new Error("That canvas layer is no longer available");
+    if (!summary) throw new Error("That item is no longer available");
     if (action.type === "remove") {
       await this.#removeCanvasObject(action.id, runtime);
       return;
@@ -1831,7 +1831,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
         ? object.accessibleName.trim()
         : "";
       this.shell.zoomStatus.textContent =
-        `Selected: ${accessibleName || "Canvas layer"}`;
+        `Selected: ${accessibleName || "Item"}`;
     });
     void this.#sectionFill.setSelection(runtime.adapter.getSelectedObjectId())
       .catch((error: unknown) => {
@@ -1855,7 +1855,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
 
   #assertCanvasMutationAvailable(): void {
     if (this.#sectionFillPreviewActive) {
-      throw new Error("Apply or cancel the fill preview before changing the canvas.");
+      throw new Error("Apply or cancel the fill preview before changing the advertisement.");
     }
   }
 }
@@ -2330,7 +2330,7 @@ const guidedJourney = new GuidedJourneyController(shell.overlay, (step) => {
 handler.attachGuidedJourney(guidedJourney);
 const runCanvasSizeAction = (operation: () => Promise<void>): void => {
   void operation().catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : "Canvas size could not be changed";
+    const message = error instanceof Error ? error.message : "Selected item size could not be changed";
     shell.zoomStatus.textContent = message;
     shell.assertive.textContent = message;
   });

@@ -63,7 +63,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           </label>
           <button type="button" class="creator__brief-toggle" aria-expanded="false" aria-controls="studio-full-brief" data-brief-toggle>Open full brief</button>
         </div>
-        <nav class="creator__checklist" role="group" aria-label="AIDA steps" data-creator-checklist>
+        <nav class="creator__checklist" role="group" aria-label="AIDA stages" data-creator-checklist>
           ${CHECKLIST_STEPS.map((label, index) => `<button type="button" aria-pressed="${index === 0}" data-slot="${label.toLowerCase()}">${label}</button>`).join("")}
         </nav>
         <div class="creator__role-card">
@@ -128,7 +128,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         </nav>
         <aside class="creator__library creator__tool-drawer" id="studio-browse-pane" aria-label="Studio drawer" data-studio-drawer>
           <section class="creator__guide" role="region" aria-label="Current instruction" data-guide>
-            <p class="creator__guide-progress" data-guide-progress>Step 1 of 11</p>
+            <p class="creator__guide-progress" data-guide-progress>Task 1 of 11</p>
             <h2 data-guide-title>Audience evidence</h2>
             <dl>
               <div><dt>Now</dt><dd data-guide-now></dd></div>
@@ -152,7 +152,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
             <h2>Build your product</h2>
             <div data-product-builder-panel>
               <p role="status">Product maker loading</p>
-              <button type="button" disabled>Drop it on the canvas</button>
+              <button type="button" disabled>Add it to the advertisement</button>
             </div>
             <aside class="creator__launch-path" role="note" aria-label="Launch path">
               <p>LAUNCH PATH</p>
@@ -233,15 +233,15 @@ export function createEditorShell(root: HTMLElement): EditorShell {
             <button type="button" data-canvas-zoom="out" aria-label="Make selected product or image smaller" title="Make selected product or image smaller">−</button>
             <button type="button" data-canvas-zoom="fill" aria-label="Fill ad with selected image" title="Fill the ad, then drag the image to choose the crop">Fill ad</button>
             <button type="button" data-canvas-zoom="in" aria-label="Make selected product or image larger" title="Make selected product or image larger">+</button>
-            <button type="button" data-canvas-layers aria-label="Open canvas layers">Layers</button>
+            <button type="button" data-canvas-layers aria-label="Open item list">Items</button>
             <span role="status" data-canvas-zoom-status>Select a product or image</span>
             <button type="button" data-canvas-delete aria-describedby="canvas-delete-status" disabled>Delete selected item</button>
             <span id="canvas-delete-status" data-canvas-delete-status>Select an item to delete</span>
           </div>
-          <div class="creator__canvas-empty" role="status" aria-label="Empty canvas" data-canvas-empty-state>
+          <div class="creator__canvas-empty" role="status" aria-label="Empty advertisement" data-canvas-empty-state>
             <div class="creator__canvas-empty-card">
               <span class="creator__canvas-empty-mark" aria-hidden="true">✦</span>
-              <strong>Canvas empty</strong>
+              <strong>Advertisement empty</strong>
               <span>Build a product. Then choose <b>Place product on ad</b>.</span>
             </div>
           </div>
@@ -250,7 +250,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         <aside class="creator__inspector" role="region" aria-label="Selected element" hidden></aside>
         <aside class="creator__section-fill" role="region" aria-label="Selected item fill"
           data-section-fill-panel hidden></aside>
-        <aside class="creator__layers" id="canvas-layers-panel" role="region" aria-label="Canvas layers" hidden></aside>
+        <aside class="creator__layers" id="canvas-layers-panel" role="region" aria-label="Item list" hidden></aside>
       </div>
       <div class="creator__instruction-dialog" role="dialog" aria-modal="true"
         aria-label="How to use this site"

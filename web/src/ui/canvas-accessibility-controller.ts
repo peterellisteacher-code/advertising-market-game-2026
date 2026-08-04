@@ -104,7 +104,7 @@ export class CanvasAccessibilityController {
     else if (key === "escape") {
       event.preventDefault();
       this.#port.setSelected(null);
-      this.#announce("Canvas selection cleared.", "polite");
+      this.#announce("Advertisement selection cleared.", "polite");
       return;
     }
     if (action === null) return;
@@ -167,9 +167,9 @@ export class CanvasAccessibilityController {
     this.#toggle.setAttribute("aria-expanded", String(this.#open));
     this.#toggle.setAttribute(
       "aria-label",
-      this.#open ? "Close canvas layers" : "Open canvas layers"
+      this.#open ? "Close item list" : "Open item list"
     );
-    this.#toggle.textContent = this.#open ? "Close layers" : "Layers";
+    this.#toggle.textContent = this.#open ? "Close items" : "Items";
   }
 
   #render(): void {
@@ -185,7 +185,7 @@ export class CanvasAccessibilityController {
     const selectedId = this.#port.getSelectedObjectId();
     this.#renderDeleteState(selectedId, summaries);
     const heading = document.createElement("h2");
-    heading.textContent = "Canvas layers";
+    heading.textContent = "Item list";
     const help = document.createElement("p");
     help.className = "creator__layers-help";
     help.textContent = "Choose a layer. Arrow keys move a selected item by 5 pixels; hold Shift for 25.";
@@ -284,7 +284,7 @@ export class CanvasAccessibilityController {
     const shortcuts = document.createElement("p");
     shortcuts.textContent = selected
       ? "Shortcuts: + or − resizes; [ or ] changes layer order; H hides; L locks; Delete removes."
-      : "Select a visible layer to use canvas shortcuts.";
+      : "Select a visible item to use item-list shortcuts.";
     inspector.append(inspectorHeading, shortcuts);
     this.#host.replaceChildren(heading, help, list, inspector);
     if (focus?.objectId && focus.action) {

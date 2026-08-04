@@ -67,7 +67,7 @@ describe("GuidedJourneyController", () => {
     controller.setCampaign(campaign());
 
     const guide = getByRole(root, "region", { name: "Current instruction" });
-    expect(guide.textContent).toContain("Build · Step 1 of 3");
+    expect(guide.textContent).toContain("Build · Task 1 of 3");
     expect(guide.textContent).toContain("Choose one starter product");
     expect(guide.textContent?.toLowerCase()).toContain("product edit");
     expect(guide.textContent).toContain("appears in the advertisement");
@@ -219,7 +219,7 @@ describe("GuidedJourneyController", () => {
     const lockStatus = root.querySelector<HTMLElement>("[data-locked-actions-status]")!;
     expect(lockStatus.hidden).toBe(false);
     expect(lockStatus.textContent)
-      .toContain("Route: Set the product price and make it visible on the canvas first.");
+      .toContain("Route: Set the product price and make it visible in the advertisement first.");
     expect(route.getAttribute("aria-describedby")).toBe(lockStatus.id);
     expect(route.getAttribute("title")).toBeNull();
 

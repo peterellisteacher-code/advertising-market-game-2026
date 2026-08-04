@@ -262,7 +262,7 @@ export class ImageLabPanel {
       ? this.#status.object
       : { remaining: 0, reserved: 0 };
     const guidance = document.createElement("p");
-    guidance.textContent = "Invent one new object. Decorate it on the canvas.";
+    guidance.textContent = "Invent one new object. Decorate it in the advertisement.";
     section.append(heading, guidance);
     if (allowance.reserved > 0) {
       const reserved = document.createElement("p");
@@ -370,7 +370,7 @@ export class ImageLabPanel {
     await this.#run({
       operation: "object",
       busyMessage: "Creating your object…",
-      doneMessage: "Your new object is on the canvas.",
+      doneMessage: "Your new object is in the advertisement.",
       work: (signal) => this.actions.forgeObject(input, signal)
     });
   }
@@ -392,7 +392,7 @@ export class ImageLabPanel {
     await this.#run({
       operation: "realise",
       busyMessage: "Creating your product image…",
-      doneMessage: "Your product image is on the canvas.",
+      doneMessage: "Your product image is in the advertisement.",
       work: (signal) => this.actions.makeReal(input, signal)
     });
   }

@@ -150,7 +150,7 @@ describe("ImageLabPanel", () => {
       removeWhiteBackground: true
     }, expect.any(AbortSignal)));
     await waitFor(() =>
-      expect(getByRole(host, "status").textContent).toContain("Your new object is on the canvas."));
+    expect(getByRole(host, "status").textContent).toContain("Your new object is in the advertisement."));
     expect(host.textContent).toContain("Object Forge: 1 use available");
   });
 
@@ -209,7 +209,7 @@ describe("ImageLabPanel", () => {
     await waitFor(() => expect(forgeObject).toHaveBeenCalledTimes(2));
     expect(forgeObject.mock.calls[1]?.[0]).toEqual(forgeObject.mock.calls[0]?.[0]);
     await waitFor(() =>
-      expect(getByRole(host, "status").textContent).toContain("Your new object is on the canvas."));
+    expect(getByRole(host, "status").textContent).toContain("Your new object is in the advertisement."));
   });
 
   it("contains no schoolwork framing", async () => {

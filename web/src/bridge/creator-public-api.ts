@@ -113,7 +113,7 @@ function publicationFailure(error: unknown): { code: string; message: string } {
       aidaEvidence[1].slice(1).toLowerCase();
     return {
       code: "PUBLICATION_REQUIREMENT",
-      message: `Select and lock canvas evidence for ${stage} before publishing.`
+      message: `Select and lock advertisement evidence for ${stage} before publishing.`
     };
   }
   return {

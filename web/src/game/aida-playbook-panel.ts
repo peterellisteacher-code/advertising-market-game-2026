@@ -54,7 +54,7 @@ export class AidaPlaybookPanel {
     const purpose = element("p", "aida-playbook__purpose");
     purpose.textContent = definition.purpose;
     const deckLabel = element("p", "aida-playbook__deck-label");
-    deckLabel.textContent = "Choose a technique or write your own. Each technique states how a visible choice affects the audience. Select the canvas piece that delivers it.";
+    deckLabel.textContent = "Choose a technique or write your own. Each technique states how a visible choice affects the audience. Select the item that delivers it.";
     const deck = element("div", "aida-playbook__deck");
     deck.setAttribute("role", "group");
     deck.setAttribute("aria-label", `${definition.label} move deck`);
@@ -118,8 +118,8 @@ export class AidaPlaybookPanel {
           plan: { ...this.#state.plan, [definition.id]: value }
         };
         status.textContent = definition.id === "action"
-          ? "Action move locked to the selected canvas piece. AIDA is complete. Return to the game."
-          : `${definition.label} move locked to the selected canvas piece. Next: ${nextAidaStage[definition.id]}.`;
+          ? "Action move locked to the selected item. AIDA is complete. Return to the game."
+          : `${definition.label} move locked to the selected item. Next: ${nextAidaStage[definition.id]}.`;
       } catch (error) {
         if (operation !== this.#operation) return;
       status.textContent = error instanceof Error ? error.message : "Save failed.";

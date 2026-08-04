@@ -123,7 +123,7 @@ export class ProductBuilderPanel {
       ? `${this.#remainingLooks().toLocaleString("en-AU")} looks remaining`
       : "Product maker unavailable";
 
-    const add = button("Drop it on the canvas");
+    const add = button("Add it to the advertisement");
     add.className = "product-maker__add";
     const selected = this.#resolved();
     add.disabled = selected === null;

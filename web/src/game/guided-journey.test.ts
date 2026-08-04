@@ -83,7 +83,7 @@ describe("evaluateGuidedJourney", () => {
   it("advances through each persisted studio completion condition", () => {
     const document = campaign();
     expect(evaluateGuidedJourney(document)).toMatchObject({
-      progressLabel: "Build · Step 1 of 3",
+      progressLabel: "Build · Task 1 of 3",
       current: {
         id: "starter-product",
         now: "Choose one starter product."

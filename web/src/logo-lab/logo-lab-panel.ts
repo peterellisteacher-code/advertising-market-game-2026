@@ -201,7 +201,7 @@ export class LogoLabPanel {
       this.#message = this.#readinessMessage();
       this.#draw({ kind: "chooser" });
     });
-    const chooserLabel = label("Logo on canvas", chooser);
+    const chooserLabel = label("Logo in the advertisement", chooser);
     chooserLabel.className = "logo-lab__chooser";
 
     const controls = document.createElement("div");
@@ -406,7 +406,7 @@ export class LogoLabPanel {
     if (missing.length === 2) return "Add words and choose a symbol";
     if (missing[0] === "words") return "Add words";
     if (missing[0] === "symbol") return "Choose a symbol";
-    return "Ready for the canvas";
+    return "Ready for the advertisement";
   }
 
   #syncStatusAndActions(root: HTMLElement): void {

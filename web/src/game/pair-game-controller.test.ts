@@ -107,7 +107,7 @@ function createPairGameView(): { root: HTMLElement; view: PairGameView } {
         </section>
       </section>
       <section role="region" aria-label="Pair tools">
-        <label>Canvas words <input data-canvas-words></label>
+    <label>Advertisement words <input data-canvas-words></label>
         <button type="button" data-add-words>Add words to ad</button>
         <button type="button" data-add-product-words>Put words on selected product</button>
         <button type="button" data-command="undo">Undo</button>
@@ -192,7 +192,7 @@ describe("PairGameController", () => {
     const controller = new PairGameController(view, port);
     await controller.open(campaign);
 
-    fireEvent.input(getByRole(root, "textbox", { name: "Canvas words" }), {
+    fireEvent.input(getByRole(root, "textbox", { name: "Advertisement words" }), {
       target: { value: "Make room for adventure" }
     });
     fireEvent.click(getByRole(root, "button", { name: "Add words to ad" }));
@@ -252,7 +252,7 @@ describe("PairGameController", () => {
     expect(view.activeRoleAction.textContent)
       .toBe("Choose one visual technique. Use it to direct the audience's attention.");
     expect(view.partnerRoleAction.textContent)
-      .toBe("Check the next AIDA step. Prepare one message suggestion.");
+      .toBe("Check the next AIDA stage. Prepare one message suggestion.");
 
     campaign.gameplay.stage = "irresistible";
     await controller.open(campaign);
@@ -345,11 +345,11 @@ describe("PairGameController", () => {
     expect(root.textContent).toContain(selectedBrief.values.join(", "));
     expect(root.textContent).toContain(selectedBrief.intendedEffect);
 
-    fireEvent.input(getByRole(root, "textbox", { name: "Canvas words" }), {
+    fireEvent.input(getByRole(root, "textbox", { name: "Advertisement words" }), {
       target: { value: "   " }
     });
     fireEvent.click(getByRole(root, "button", { name: "Add words to ad" }));
-    expect(view.assertive.textContent).toBe("Type some canvas words first.");
+    expect(view.assertive.textContent).toBe("Type advertisement words first.");
     expect(port.addedText).toEqual([]);
 
     fireEvent.click(getByRole(root, "button", { name: "Undo" }));
@@ -369,7 +369,7 @@ describe("PairGameController", () => {
     controller.dispose();
 
     fireEvent.click(getByRole(root, "button", { name: "Swap roles" }));
-    fireEvent.input(getByRole(root, "textbox", { name: "Canvas words" }), {
+    fireEvent.input(getByRole(root, "textbox", { name: "Advertisement words" }), {
       target: { value: "No longer active" }
     });
     fireEvent.click(getByRole(root, "button", { name: "Add words to ad" }));
@@ -388,7 +388,7 @@ describe("PairGameController", () => {
     const { root, view } = createPairGameView();
     const controller = new PairGameController(view, port);
     await controller.open(campaign);
-    const words = getByRole<HTMLInputElement>(root, "textbox", { name: "Canvas words" });
+    const words = getByRole<HTMLInputElement>(root, "textbox", { name: "Advertisement words" });
 
     fireEvent.input(words, { target: { value: "Keeps drinks warm longer" } });
     fireEvent.click(getByRole(root, "button", { name: "Put words on selected product" }));

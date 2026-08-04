@@ -184,7 +184,7 @@ export class GuidedJourneyController {
     setAvailability(
       routeTool,
       !routeAllowed,
-      "Set the product price and make it visible on the canvas first."
+        "Set the product price and make it visible in the advertisement first."
     );
 
     this.#lockStatus.textContent = unavailable
@@ -203,7 +203,7 @@ export class GuidedJourneyController {
       ["Roles", "The Art Director leads appearance choices. The Strategist leads audience, message, evidence and offer choices. Both can use every available control."],
       ["Build", "Choose a product, then move, resize, recolour, add or remove an item in the advertisement when the next instruction asks for it."],
       ["Message", "Use Attention, Interest, Desire and Action one at a time. Explain how each visible choice helps the audience."],
-      ["Pitch", "Complete the required missions, present the advertisement and explain how its product, message, price and proof fit the audience."]
+      ["Pitch", "Complete the required tasks, present the advertisement and explain how its product, message, price and proof fit the audience."]
     ] as const;
     this.#reference.replaceChildren(...pages.map(([title, copy], index) => {
       const section = document.createElement("section");

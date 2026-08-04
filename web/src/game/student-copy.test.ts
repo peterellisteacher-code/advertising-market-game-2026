@@ -27,11 +27,11 @@ function expectRecursivelyFrozen(value: unknown): void {
 }
 
 describe("student copy", () => {
-  it("contains no banned whole words or assessment framing in any student-facing string", () => {
+  it("contains no undefined interface jargon or assessment framing in any student-facing string", () => {
     const strings = collectStrings([STUDENT_COPY, AUDIENCE_BRIEFS, CREATOR_STAGES]);
     expect(strings.length).toBeGreaterThan(0);
     for (const value of strings) {
-      expect(value).not.toMatch(/\b(?:assignment|unit|task)\b/i);
+      expect(value).not.toMatch(/\b(?:assignment|unit|canvas)\b/i);
       expect(value).not.toMatch(/\b(?:assessment|criteria|grade|mark|rubric|quiz|score|points)\b/i);
     }
   });
@@ -64,7 +64,7 @@ describe("student copy", () => {
       audienceSignal: "Audience signal",
       roundProgress: "Pair progress",
       pairPlay: "Pair play",
-      canvasWords: "Canvas words",
+      canvasWords: "Advertisement words",
       roundZeroTools: "Pair tools",
       context: "Context",
       need: "Need",
@@ -101,9 +101,9 @@ describe("student copy", () => {
       addWords: "Add words to ad",
       productWords: "Put words on selected product",
       productWordsHint: "Select the product first. On supported products, the words appear on a curved label and the original text remains editable.",
-      blankWords: "Type some canvas words first.",
+      blankWords: "Type advertisement words first.",
       audienceChanged: "Audience signal changed.",
-      wordsAdded: "Words added to the canvas.",
+      wordsAdded: "Words added to the advertisement.",
       productWordsAdded: "Words added to the selected product.",
       productWordsUpdated: "Words updated on the selected product.",
       productWordsNeedSelection: "Select a product with a label area first.",

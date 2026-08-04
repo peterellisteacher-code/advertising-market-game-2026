@@ -19,7 +19,7 @@ describe("AidaPlaybookPanel", () => {
       .toBeTruthy();
     expect(getAllByRole(host, "button", { name: /Try move:/ })).toHaveLength(5);
     expect(host.textContent)
-      .toContain("Select the canvas piece that delivers it");
+      .toContain("Select the item that delivers it");
     expect(host.textContent)
       .toContain("Each technique states how a visible choice affects the audience.");
     expect(host.textContent).not.toMatch(/\b(?:assignment|unit|task)\b/i);
@@ -40,7 +40,7 @@ describe("AidaPlaybookPanel", () => {
       "Open with one tiny bottle in a field of oversized circles."
     ));
     expect(getByRole(host, "status").textContent)
-      .toBe("Attention move locked to the selected canvas piece. Next: Interest.");
+      .toBe("Attention move locked to the selected item. Next: Interest.");
   });
 
   it("sends the pair back to the game after the Action move completes AIDA", async () => {
@@ -63,7 +63,7 @@ describe("AidaPlaybookPanel", () => {
     fireEvent.click(getByRole(host, "button", { name: "Lock in Action" }));
 
     await vi.waitFor(() => expect(getByRole(host, "status").textContent)
-      .toBe("Action move locked to the selected canvas piece. AIDA is complete. Return to the game."));
+      .toBe("Action move locked to the selected item. AIDA is complete. Return to the game."));
   });
 
   it("restores each saved stage independently", () => {

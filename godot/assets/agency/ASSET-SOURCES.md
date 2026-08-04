@@ -7,6 +7,37 @@ not copy the branded advertisements in the teaching source folders. The selected
 images contain no recognisable trademark, commercial logo, real person, or
 readable third-party advertising copy.
 
+## First-run onboarding screenshots
+
+These three PNGs are unchanged project-owned QA captures of the verified Godot
+web export, copied on 4 August 2026. The onboarding scene uses an `AtlasTexture`
+to omit the 44-pixel teacher-test strip at the top; the source PNG pixels were
+not edited, resized, recoloured or regenerated.
+
+### `onboarding-brief.png`
+
+- Source: `C:\Godot Projects\Advertising Market Game QA\terra-audit-20260804\parent-harness-1440-world.png`
+- Dimensions: 1440 x 900 pixels
+- Scene crop: `Rect2(0, 44, 1440, 856)`
+- SHA-256: `6480786817492ef5dde7aac61dae93f1f4d2236346d65a8883fdff53ea0f8db9`
+- Teaching use: labels the first whole-campaign stage, **Brief**
+
+### `onboarding-build.png`
+
+- Source: `C:\Godot Projects\Advertising Market Game QA\terra-audit-20260804\parent-harness-1440-product-placed.png`
+- Dimensions: 1440 x 900 pixels
+- Scene crop: `Rect2(0, 44, 1440, 856)`
+- SHA-256: `dda3d2d949c28f4bb4f250241b1661c13619aa23586b21709adc364776d0f985`
+- Teaching use: labels the second whole-campaign stage, **Build**
+
+### `onboarding-pitch.png`
+
+- Source: `C:\Godot Projects\Advertising Market Game QA\terra-audit-20260804\parent-harness-1280-mission-complete.png`
+- Dimensions: 1280 x 800 pixels
+- Scene crop: `Rect2(0, 44, 1280, 756)`
+- SHA-256: `a882205068632396a982f9cdb620f326055d4099b32841e554093a14df4c4141`
+- Teaching use: labels the final whole-campaign stage, **Earn approval and pitch**
+
 ## `agency-floor.png`
 
 - Tool: OpenAI built-in image generation

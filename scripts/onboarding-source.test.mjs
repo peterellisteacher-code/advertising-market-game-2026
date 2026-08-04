@@ -1,6 +1,18 @@
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import test from "node:test";
 import assert from "node:assert/strict";
+
+const readBinaryOrEmpty = async (url) => {
+  try {
+    return await readFile(url);
+  } catch (error) {
+    if (error && typeof error === "object" && error.code === "ENOENT") {
+      return Buffer.alloc(0);
+    }
+    throw error;
+  }
+};
 
 const [
   mainScript,
@@ -18,7 +30,11 @@ const [
   missionPanelScene,
   missionCatalogScript,
   agencyWorldScript,
-  agencyWorldScene
+  agencyWorldScene,
+  agencyAssetSources,
+  onboardingBriefAsset,
+  onboardingBuildAsset,
+  onboardingPitchAsset
 ] = await Promise.all([
   readFile(new URL("../godot/src/main/main.gd", import.meta.url), "utf8"),
   readFile(new URL("../godot/src/main/Main.tscn", import.meta.url), "utf8"),
@@ -35,15 +51,69 @@ const [
   readFile(new URL("../godot/src/agency/missions/AgencyMissionPanel.tscn", import.meta.url), "utf8"),
   readFile(new URL("../godot/src/agency/agency_mission_catalog.gd", import.meta.url), "utf8"),
   readFile(new URL("../godot/src/agency/agency_world.gd", import.meta.url), "utf8"),
-  readFile(new URL("../godot/src/agency/AgencyWorld.tscn", import.meta.url), "utf8")
+  readFile(new URL("../godot/src/agency/AgencyWorld.tscn", import.meta.url), "utf8"),
+  readFile(new URL("../godot/assets/agency/ASSET-SOURCES.md", import.meta.url), "utf8"),
+  readBinaryOrEmpty(new URL("../godot/assets/agency/onboarding-brief.png", import.meta.url)),
+  readBinaryOrEmpty(new URL("../godot/assets/agency/onboarding-build.png", import.meta.url)),
+  readBinaryOrEmpty(new URL("../godot/assets/agency/onboarding-pitch.png", import.meta.url))
 ]);
+
+const sha256 = (contents) => createHash("sha256").update(contents).digest("hex");
+
+test("first-time agency orientation explains the whole campaign before controls", () => {
+  for (const copy of [
+    "You and your partner run an advertising agency.",
+    "Read the brief. Complete seven short missions. Build one ad. Pitch it.",
+    "Make an ad that gives the audience a clear reason to act.",
+    "Practise choosing advertising techniques and explaining their effect.",
+    "Each required mission earns an approval or tool for the final pitch."
+  ]) {
+    assert.ok(agencyGuideScript.includes(copy), `missing opening promise: ${copy}`);
+  }
+  assert.match(agencyGuideScript, /const ORIENTATION_STEPS := \[[\s\S]*?"overview": true/);
+  assert.ok(
+    agencyGuideScript.indexOf('"overview": true') < agencyGuideScript.indexOf('"title": "Move to the first mission"'),
+    "the whole-game overview must precede movement and control instruction"
+  );
+});
+
+test("agency orientation uses three unchanged, cropped project screenshots", () => {
+  const expectedAssets = new Map([
+    ["onboarding-brief.png", "6480786817492ef5dde7aac61dae93f1f4d2236346d65a8883fdff53ea0f8db9"],
+    ["onboarding-build.png", "dda3d2d949c28f4bb4f250241b1661c13619aa23586b21709adc364776d0f985"],
+    ["onboarding-pitch.png", "a882205068632396a982f9cdb620f326055d4099b32841e554093a14df4c4141"]
+  ]);
+  const actualAssets = new Map([
+    ["onboarding-brief.png", sha256(onboardingBriefAsset)],
+    ["onboarding-build.png", sha256(onboardingBuildAsset)],
+    ["onboarding-pitch.png", sha256(onboardingPitchAsset)]
+  ]);
+  assert.deepEqual(actualAssets, expectedAssets);
+  for (const [assetName, expectedHash] of expectedAssets) {
+    assert.ok(agencyGuideScene.includes(`res://assets/agency/${assetName}`));
+    assert.ok(agencyAssetSources.includes(assetName));
+    assert.ok(agencyAssetSources.toLowerCase().includes(expectedHash));
+  }
+  for (const label of ["Brief", "Build", "Earn approval and pitch"]) {
+    assert.ok(agencyGuideScene.includes(`text = "${label}"`), `missing screenshot label: ${label}`);
+  }
+  for (const region of [
+    "region = Rect2(0, 44, 1440, 856)",
+    "region = Rect2(0, 44, 1280, 756)"
+  ]) {
+    assert.ok(agencyGuideScene.includes(region), `missing compositional crop: ${region}`);
+  }
+  assert.equal((agencyGuideScene.match(/region = Rect2\(0, 44, 1440, 856\)/g) ?? []).length, 2);
+});
 
 test("agency quick start presents one action at a time and can be resumed", () => {
   for (const nodeName of [
+    "OrientationOverview",
     "OrientationAction",
     "OrientationItemOneLabel",
     "OrientationItemTwoLabel",
     "OrientationItemThreeLabel",
+    "OrientationPrevious",
     "MinimiseOrientation",
     "ResumeOrientation"
   ]) {
@@ -51,6 +121,9 @@ test("agency quick start presents one action at a time and can be resumed", () =
   }
   assert.match(agencyGuideScript, /func minimise_orientation\(\) -> void:/);
   assert.match(agencyGuideScript, /func resume_orientation\(\) -> void:/);
+  assert.match(agencyGuideScript, /func previous_orientation\(\) -> void:/);
+  assert.match(agencyGuideScript, /_orientation_step = maxi\(0, _orientation_step - 1\)/);
+  assert.match(agencyGuideScript, /Quick start %d of %d/);
   assert.match(
     agencyGuideScript,
     /func minimise_orientation\(\) -> void:[\s\S]*?set_tucked\(true\)[\s\S]*?_set_orientation_visible\(false\)/,
@@ -71,10 +144,11 @@ test("agency quick start keeps its actions inside a 1280 by 800 game view", () =
   const itemsBlock = agencyGuideScene.match(
     /\[node name="OrientationItems"[\s\S]*?(?=\n\[node name="OrientationItemOne")/
   )?.[0] ?? "";
-  assert.match(panelBlock, /custom_minimum_size = Vector2\(860, 520\)/);
-  assert.match(panelBlock, /offset_top = -260\.0/);
-  assert.match(panelBlock, /offset_bottom = 260\.0/);
+  assert.match(panelBlock, /custom_minimum_size = Vector2\(1120, 680\)/);
+  assert.match(panelBlock, /offset_top = -340\.0/);
+  assert.match(panelBlock, /offset_bottom = 340\.0/);
   assert.match(itemsBlock, /size_flags_vertical = 1/);
+  assert.doesNotMatch(panelBlock, /ScrollContainer/);
 });
 
 test("agency floor renders above the main shell background", () => {
@@ -124,6 +198,30 @@ test("agency HUD and station card can be tucked without hiding the next action",
   );
 });
 
+test("compact agency HUD keeps readable, high-contrast actions inside the laptop width", () => {
+  const fontSizes = [...agencyHudScene.matchAll(/theme_override_font_sizes\/font_size = (\d+)/g)]
+    .map((match) => Number.parseInt(match[1], 10));
+  assert.ok(fontSizes.length >= 10, "expected explicit type sizes across the HUD");
+  assert.ok(fontSizes.every((size) => size >= 18), `HUD has undersized text: ${fontSizes.join(", ")}`);
+
+  const nodeBlock = (name) => agencyHudScene.match(
+    new RegExp(`\\[node name="${name}"[\\s\\S]*?(?=\\n\\[node |\\s*$)`)
+  )?.[0] ?? "";
+  for (const name of ["HudGoToObjective", "HudGuideButton"]) {
+    const block = nodeBlock(name);
+    assert.match(block, /theme_override_colors\/font_color = Color\(0\.047, 0\.086, 0\.145, 1\)/);
+    assert.match(block, /theme_override_colors\/font_hover_color = Color\(0\.047, 0\.086, 0\.145, 1\)/);
+    assert.match(block, /theme_override_colors\/font_pressed_color = Color\(0\.047, 0\.086, 0\.145, 1\)/);
+  }
+  assert.match(nodeBlock("HudGoToObjective"), /custom_minimum_size = Vector2\(176, 60\)/);
+  assert.match(agencyHudScript, /var _compact: bool = true/);
+  assert.match(agencyHudScript, /set_compact\(true\)/);
+  assert.match(
+    agencyWorldScene,
+    /name="AgencyHud"[\s\S]*?offset_left = 16\.0[\s\S]*?offset_right = 1264\.0[\s\S]*?offset_bottom = 108\.0/
+  );
+});
+
 test("agency mission keeps evidence and a direct role handover beside clickable answers", () => {
   assert.ok(missionCatalogScript.includes('"referenceFacts"'));
   for (const nodeName of [
@@ -155,6 +253,7 @@ test("agency mission keeps evidence and a direct role handover beside clickable 
 test("game shell uses the full 16:10 school MacBook viewport", () => {
   assert.match(projectSettings, /window\/size\/viewport_width=1280/);
   assert.match(projectSettings, /window\/size\/viewport_height=800/);
+  assert.match(projectSettings, /window\/stretch\/aspect="expand"/);
   assert.match(mainScene, /name="MainMargin"[\s\S]*?offset_top = 96\.0[\s\S]*?offset_bottom = -24\.0/);
 });
 

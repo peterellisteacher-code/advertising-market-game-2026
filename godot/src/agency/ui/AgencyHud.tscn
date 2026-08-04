@@ -29,130 +29,153 @@ corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
 [node name="AgencyHud" type="PanelContainer" unique_id=603327499]
-custom_minimum_size = Vector2(1248, 124)
+custom_minimum_size = Vector2(1248, 84)
 theme_override_styles/panel = SubResource("StyleBoxFlat_eq85p")
 script = ExtResource("1_4iwib")
 
 [node name="HudMargin" type="MarginContainer" parent="." unique_id=133624020]
 layout_mode = 2
 theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 12
+theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 12
+theme_override_constants/margin_bottom = 8
 
-[node name="HudRow" type="HBoxContainer" parent="HudMargin" unique_id=1274818158]
+[node name="HudStack" type="VBoxContainer" parent="HudMargin" unique_id=1274818158]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PrimaryRow" type="HBoxContainer" parent="HudMargin/HudStack" unique_id=2026080401]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="GoalBlock" type="VBoxContainer" parent="HudMargin/HudRow" unique_id=1684490239]
-custom_minimum_size = Vector2(270, 0)
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="GoalEyebrow" type="Label" parent="HudMargin/HudRow/GoalBlock" unique_id=398231955]
-modulate = Color(0.2, 0.92, 0.91, 1)
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "CAMPAIGN GOAL"
-
-[node name="HudGoal" type="Label" parent="HudMargin/HudRow/GoalBlock" unique_id=1786391910]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(270, 0)
-layout_mode = 2
-theme_override_font_sizes/font_size = 17
-text = "Create and pitch a persuasive advertisement for the client audience."
-autowrap_mode = 2
-max_lines_visible = 3
-
-[node name="GoalDivider" type="VSeparator" parent="HudMargin/HudRow" unique_id=1075320615]
-layout_mode = 2
-
-[node name="ObjectiveBlock" type="VBoxContainer" parent="HudMargin/HudRow" unique_id=763192851]
-custom_minimum_size = Vector2(263, 0)
+[node name="ObjectiveBlock" type="VBoxContainer" parent="HudMargin/HudStack/PrimaryRow" unique_id=763192851]
+custom_minimum_size = Vector2(440, 0)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 4
+theme_override_constants/separation = 2
 
-[node name="ObjectiveEyebrow" type="Label" parent="HudMargin/HudRow/ObjectiveBlock" unique_id=1521779022]
+[node name="ObjectiveEyebrow" type="Label" parent="HudMargin/HudStack/PrimaryRow/ObjectiveBlock" unique_id=1521779022]
 modulate = Color(0.2, 0.92, 0.91, 1)
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "CURRENT OBJECTIVE"
-
-[node name="HudObjective" type="Label" parent="HudMargin/HudRow/ObjectiveBlock" unique_id=933494733]
-unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
+text = "CURRENT OBJECTIVE"
+
+[node name="HudObjective" type="Label" parent="HudMargin/HudStack/PrimaryRow/ObjectiveBlock" unique_id=933494733]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
 text = "Meet the client and read the audience brief"
 autowrap_mode = 2
+max_lines_visible = 2
 
-[node name="HudOwner" type="Label" parent="HudMargin/HudRow/ObjectiveBlock" unique_id=1785870594]
+[node name="HudOwner" type="Label" parent="HudMargin/HudStack/PrimaryRow/ObjectiveBlock" unique_id=1785870594]
 unique_name_in_owner = true
 modulate = Color(0.78, 0.86, 0.92, 1)
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 18
 text = "Strategist leads"
 
-[node name="HudTuckToggle" type="Button" parent="HudMargin/HudRow" unique_id=2026080313]
+[node name="HudTuckToggle" type="Button" parent="HudMargin/HudStack/PrimaryRow" unique_id=2026080313]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(190, 64)
+custom_minimum_size = Vector2(220, 60)
 layout_mode = 2
 size_flags_vertical = 4
+theme_override_font_sizes/font_size = 18
 text = "Show campaign details"
 
-[node name="ProgressBlock" type="VBoxContainer" parent="HudMargin/HudRow" unique_id=279185771]
-custom_minimum_size = Vector2(155, 0)
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="ProgressEyebrow" type="Label" parent="HudMargin/HudRow/ProgressBlock" unique_id=2056293923]
-modulate = Color(0.2, 0.92, 0.91, 1)
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "PROGRESS"
-
-[node name="HudProgress" type="Label" parent="HudMargin/HudRow/ProgressBlock" unique_id=6269288]
+[node name="HudGoToObjective" type="Button" parent="HudMargin/HudStack/PrimaryRow" unique_id=823806934]
 unique_name_in_owner = true
-modulate = Color(0.78, 0.86, 0.92, 1)
-custom_minimum_size = Vector2(155, 0)
-layout_mode = 2
-theme_override_font_sizes/font_size = 14
-text = "0 of 7 required · 0 optional"
-autowrap_mode = 2
-
-[node name="TravelBlock" type="VBoxContainer" parent="HudMargin/HudRow" unique_id=1936735072]
-custom_minimum_size = Vector2(150, 0)
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="TravelEyebrow" type="Label" parent="HudMargin/HudRow/TravelBlock" unique_id=1092269331]
-modulate = Color(0.2, 0.92, 0.91, 1)
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "DIRECT TRAVEL"
-
-[node name="HudDirectTravel" type="OptionButton" parent="HudMargin/HudRow/TravelBlock" unique_id=269607643]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(150, 48)
-layout_mode = 2
-
-[node name="HudGoToObjective" type="Button" parent="HudMargin/HudRow" unique_id=823806934]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(130, 64)
+custom_minimum_size = Vector2(176, 60)
 layout_mode = 2
 size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.047, 0.086, 0.145, 1)
+theme_override_colors/font_hover_color = Color(0.047, 0.086, 0.145, 1)
+theme_override_colors/font_pressed_color = Color(0.047, 0.086, 0.145, 1)
+theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_4iwib")
 text = "Go to objective"
 
-[node name="HudGuideButton" type="Button" parent="HudMargin/HudRow" unique_id=1438983335]
+[node name="HudGuideButton" type="Button" parent="HudMargin/HudStack/PrimaryRow" unique_id=1438983335]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(140, 64)
+custom_minimum_size = Vector2(170, 60)
 layout_mode = 2
 size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.047, 0.086, 0.145, 1)
+theme_override_colors/font_hover_color = Color(0.047, 0.086, 0.145, 1)
+theme_override_colors/font_pressed_color = Color(0.047, 0.086, 0.145, 1)
+theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_w7xqt")
 text = "Open guide · G"
 
-[node name="HudSoundToggle" type="Button" parent="HudMargin/HudRow" unique_id=1687461009]
+[node name="ExpandedDetails" type="HBoxContainer" parent="HudMargin/HudStack" unique_id=2026080402]
 unique_name_in_owner = true
+visible = false
 layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="GoalBlock" type="VBoxContainer" parent="HudMargin/HudStack/ExpandedDetails" unique_id=1684490239]
+custom_minimum_size = Vector2(430, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="GoalEyebrow" type="Label" parent="HudMargin/HudStack/ExpandedDetails/GoalBlock" unique_id=398231955]
+modulate = Color(0.2, 0.92, 0.91, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "CAMPAIGN GOAL"
+
+[node name="HudGoal" type="Label" parent="HudMargin/HudStack/ExpandedDetails/GoalBlock" unique_id=1786391910]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(430, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Create and pitch a persuasive advertisement for the client audience."
+autowrap_mode = 2
+max_lines_visible = 2
+
+[node name="ProgressBlock" type="VBoxContainer" parent="HudMargin/HudStack/ExpandedDetails" unique_id=279185771]
+custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="ProgressEyebrow" type="Label" parent="HudMargin/HudStack/ExpandedDetails/ProgressBlock" unique_id=2056293923]
+modulate = Color(0.2, 0.92, 0.91, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "PROGRESS"
+
+[node name="HudProgress" type="Label" parent="HudMargin/HudStack/ExpandedDetails/ProgressBlock" unique_id=6269288]
+unique_name_in_owner = true
+modulate = Color(0.78, 0.86, 0.92, 1)
+custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "0 of 7 required · 0 optional"
+autowrap_mode = 2
+
+[node name="TravelBlock" type="VBoxContainer" parent="HudMargin/HudStack/ExpandedDetails" unique_id=1936735072]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="TravelEyebrow" type="Label" parent="HudMargin/HudStack/ExpandedDetails/TravelBlock" unique_id=1092269331]
+modulate = Color(0.2, 0.92, 0.91, 1)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "DIRECT TRAVEL"
+
+[node name="HudDirectTravel" type="OptionButton" parent="HudMargin/HudStack/ExpandedDetails/TravelBlock" unique_id=269607643]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+
+[node name="HudSoundToggle" type="Button" parent="HudMargin/HudStack/ExpandedDetails" unique_id=1687461009]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 52)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 18
 text = "Mute sound"

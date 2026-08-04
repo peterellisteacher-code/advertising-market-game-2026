@@ -1047,7 +1047,7 @@ layout_mode = 0
 offset_left = 16.0
 offset_top = 12.0
 offset_right = 1264.0
-offset_bottom = 139.0
+offset_bottom = 108.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_eq85p")
 
 [node name="LegacyHudMargin" type="MarginContainer" parent="HUD/HUDRoot/AgencyHud" unique_id=133624020]

@@ -113,7 +113,7 @@ describe("createEditorShell", () => {
     const lockedActions = root.querySelector<HTMLElement>("[data-locked-actions-status]")!;
     expect(lockedActions.id).toBe("studio-locked-actions-status");
     expect(lockedActions.hidden).toBe(true);
-    expect(getByRole(root, "region", { name: "Campaign canvas" }).getAttribute("tabindex")).toBe("0");
+    expect(getByRole(root, "region", { name: "Advertisement area" }).getAttribute("tabindex")).toBe("0");
     const sizeControls = getByRole(root, "group", { name: "Selected product or image size" });
     expect(getByRole(sizeControls, "button", { name: "Make selected product or image smaller" }))
       .toBeTruthy();

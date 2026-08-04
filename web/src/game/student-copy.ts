@@ -183,7 +183,7 @@ export const STUDENT_COPY = deepFreeze({
     SESSION_EXPIRED: "This market session has ended. Rejoin the room to continue."
   },
   readiness: {
-    ready: "The campaign is ready for preview.",
+    ready: "The advertisement is ready for preview.",
     notReady: "Finish the remaining items before preview.",
     missing: {
       "audience-brief": "Choose an audience brief.",

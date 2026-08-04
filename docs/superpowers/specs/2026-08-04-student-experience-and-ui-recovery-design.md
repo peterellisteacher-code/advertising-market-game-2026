@@ -22,12 +22,22 @@ Students must understand the whole game before they meet its controls, then rece
 ## Information rules
 
 - Live UI uses one instruction, one completion condition and at most two new terms at a time.
+- The recurring game vocabulary is `brief`, `audience`, `product`, `advertisement`, `task` and `pitch`. Reuse those words throughout; do not invent aliases such as `mission`, `objective` or `step` for `task`. Introduce the name of an advertising technique only when students are about to use it.
+- A later stage may introduce at most three necessary terms, and only immediately before students use them. The game must not require students to learn its internal terminology instead of practising advertising.
 - Concrete actions precede abstract terms. No phrase such as `canvas change` appears before students have edited the advertisement.
 - Use `advertisement`, `advertisement area`, `visible design edit`, `move`, `resize`, `recolour`, `add` and `remove` before specialist terms.
 - Vocabulary arrives in this order: audience brief; Context/Need/Values/Intended response; Art Director/Strategist/active role/Swap roles; advertisement/design edit; product/part/place/name/benefit; AIDA one stage at a time; price/market route/proof point.
 - Context, Need, Values and Intended response show the actual brief content directly. Each heading has a small `?` button that opens a short explanation in a dismissible popover.
 - The reference manual is discrete labelled pages with Previous, Next and Close. It is never a long scrolling wall.
+- Opening the guide or glossary pauses work but never counts as a gameplay action or task evidence.
+- Contextual tutorials dim unrelated controls, identify one real control at a time in use order, and ask students to perform the corresponding action before revealing the next control.
 - Every persistent panel, guide and teacher-only control can be tucked away without losing work.
+
+## Pair participation
+
+- Both partners may click or use the keyboard. Keyboard shortcuts are optional equivalents, never the only discoverable route.
+- The active partner performs the current device action. The other partner always receives a short concurrent task: check the brief, propose wording, predict an audience response or test whether the choice meets the stated goal.
+- Role names remain only while they communicate literal responsibility: the Art Director leads appearance; the Strategist leads audience, message, evidence and offer choices. They do not imply different permissions.
 
 ## Layout and accessibility
 
@@ -59,9 +69,10 @@ The opening uses screenshots captured from this project’s own verified web exp
 
 ## Acceptance criteria
 
-- A first-time player can state what they are making, what completes the game, what the seven missions do and what happens at the pitch before entering the agency floor.
+- A first-time player can state what they are making, what completes the game, what the seven tasks do and what happens at the pitch before entering the agency floor.
 - The first Studio screen shows the actual brief, not `Step 4 of 19` and not the full toolset.
 - The Studio mini-tour reveals one region per page and ends at the starter-product control.
+- Each contextual tutorial isolates one real control at a time in the order it will be used; unrelated controls stay visually subdued.
 - Contextual `?` help opens and closes independently for all four brief headings.
 - No live onboarding surface contains `canvas change` or `next canvas change`.
 - Account, engine rejection and engine timeout tests prove a visible route back to sign-in.

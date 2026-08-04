@@ -107,7 +107,7 @@ describe("RoleGuideController", () => {
       "Swap roles changes the active responsibility and the role recorded for later advertisement edits."
     );
     expect(dialog.textContent).toContain(
-      "Earlier work and recorded contributions stay in the campaign."
+      "Earlier work and recorded contributions stay saved."
     );
     expect(shell.overlay.inert).toBe(true);
 

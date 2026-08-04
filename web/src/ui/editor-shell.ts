@@ -42,7 +42,7 @@ const CHECKLIST_STEPS = ["Price", "Attention", "Interest", "Desire", "Action"];
 
 export function createEditorShell(root: HTMLElement): EditorShell {
   root.innerHTML = `
-    <section class="creator" aria-label="Campaign studio">
+      <section class="creator" aria-label="Advertisement studio">
       <header class="creator__topbar">
         <p class="creator__brand"><strong>AD MARKET</strong><span>Studio</span></p>
         <input aria-label="Product name" maxlength="48" placeholder="Name your product">
@@ -227,7 +227,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           Use Left Arrow or Right Arrow to resize. Hold Shift for a larger change.
           Home and End set the limits. Press R or double-click to reset.
         </p>
-        <main class="creator__canvas" id="studio-edit-pane" role="region" aria-label="Campaign canvas" tabindex="0">
+        <main class="creator__canvas" id="studio-edit-pane" role="region" aria-label="Advertisement area" tabindex="0">
           <p class="creator__canvas-label" aria-hidden="true">LIVE AD</p>
           <div class="creator__canvas-size" role="group" aria-label="Selected product or image size">
             <button type="button" data-canvas-zoom="out" aria-label="Make selected product or image smaller" title="Make selected product or image smaller">−</button>

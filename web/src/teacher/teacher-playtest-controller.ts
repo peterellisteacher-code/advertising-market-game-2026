@@ -166,7 +166,7 @@ export class TeacherPlaytestController {
     dialog.setAttribute("aria-labelledby", title.id);
     const explanation = document.createElement("p");
     explanation.textContent =
-      "This removes the teacher playtest's saved campaign progress and campaign assets " +
+      "This removes the teacher playtest's saved progress and assets " +
       "from cloud storage and this browser. Student pair accounts and their work remain unchanged.";
     const form = document.createElement("form");
     form.setAttribute("aria-label", "Confirm teacher playtest factory reset");

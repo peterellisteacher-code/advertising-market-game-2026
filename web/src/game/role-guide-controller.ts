@@ -14,7 +14,7 @@ export const ROLE_GUIDE = Object.freeze({
   swapEffect:
     "Swap roles changes the active responsibility and the role recorded for later advertisement edits.",
   retainedWork:
-    "Earlier work and recorded contributions stay in the campaign.",
+  "Earlier work and recorded contributions stay saved.",
   artDirector: Object.freeze({
     label: "Art Director",
     responsibilities:

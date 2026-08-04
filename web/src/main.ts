@@ -1326,14 +1326,14 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       try {
         operation();
       } catch (error) {
-        cleanupError ??= error instanceof Error ? error : new Error("Campaign creator cleanup failed.");
+      cleanupError ??= error instanceof Error ? error : new Error("Studio cleanup failed.");
       }
     };
     const attemptAsync = async (operation: () => Promise<void>): Promise<void> => {
       try {
         await operation();
       } catch (error) {
-        cleanupError ??= error instanceof Error ? error : new Error("Campaign creator cleanup failed.");
+      cleanupError ??= error instanceof Error ? error : new Error("Studio cleanup failed.");
       }
     };
     attempt(() => {

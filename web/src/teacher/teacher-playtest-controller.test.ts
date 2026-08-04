@@ -250,7 +250,7 @@ describe("TeacherPlaytestController", () => {
     expect(
       getByRole(root, "dialog", { name: "Factory reset teacher playtest" }).textContent
     ).toContain(
-      "saved campaign progress and campaign assets from cloud storage and this browser"
+      "saved progress and assets from cloud storage and this browser"
     );
     fireEvent.click(getByRole(root, "button", { name: "Cancel" }));
 

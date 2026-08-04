@@ -15,11 +15,20 @@ const PAGES = Object.freeze([
   ["first-action", "First action"]
 ] as const);
 
+const TARGET_SELECTORS = Object.freeze([
+  "[data-brief-toggle]",
+  ".creator__role-card",
+  '[data-studio-tool="product"]',
+  "[data-product-builder-panel]"
+] as const);
+
 export class StudioOnboardingController {
   readonly #layer: HTMLElement;
   readonly #dialog: HTMLElement;
+  readonly #spotlight: HTMLElement;
   readonly #position: HTMLElement;
   readonly #pages: readonly HTMLElement[];
+  readonly #targets: readonly HTMLElement[];
   readonly #previous: HTMLButtonElement;
   readonly #next: HTMLButtonElement;
   readonly #close: HTMLButtonElement;
@@ -40,10 +49,12 @@ export class StudioOnboardingController {
   ) {
     this.#layer = required(root, "[data-studio-onboarding-layer]");
     this.#dialog = required(root, "[data-studio-onboarding-dialog]");
+    this.#spotlight = required(root, "[data-studio-onboarding-spotlight]");
     this.#position = required(root, "[data-studio-onboarding-position]");
     this.#pages = Object.freeze(PAGES.map(([id]) =>
       required<HTMLElement>(root, `[data-studio-onboarding-page="${id}"]`)
     ));
+    this.#targets = Object.freeze(TARGET_SELECTORS.map((selector) => required<HTMLElement>(root, selector)));
     this.#previous = required(root, "[data-studio-onboarding-previous]");
     this.#next = required(root, "[data-studio-onboarding-next]");
     this.#close = required(root, "[data-studio-onboarding-close]");
@@ -57,6 +68,7 @@ export class StudioOnboardingController {
     this.#open.addEventListener("click", this.#onOpen);
     this.#briefHelp.forEach((help) => help.addEventListener("click", this.#onBriefHelp));
     this.#dialog.addEventListener("keydown", this.#onKeydown);
+    this.#dialog.ownerDocument.defaultView?.addEventListener("resize", this.#onResize);
   }
 
   setCampaign(document: CampaignDocumentV1 | null): void {
@@ -79,6 +91,7 @@ export class StudioOnboardingController {
     this.#open.removeEventListener("click", this.#onOpen);
     this.#briefHelp.forEach((help) => help.removeEventListener("click", this.#onBriefHelp));
     this.#dialog.removeEventListener("keydown", this.#onKeydown);
+    this.#dialog.ownerDocument.defaultView?.removeEventListener("resize", this.#onResize);
     this.#dismissBriefHelp(false);
     this.#closeTour(false);
   }
@@ -126,6 +139,7 @@ export class StudioOnboardingController {
     event.stopPropagation();
     this.#dismissBriefHelp(true);
   };
+  readonly #onResize = (): void => this.#positionSpotlight();
   readonly #onKeydown = (event: KeyboardEvent): void => {
     if (event.key === "Escape") { event.preventDefault(); this.#closeTour(true); return; }
     if (event.key === "Tab") {
@@ -159,6 +173,22 @@ export class StudioOnboardingController {
     if (restoreFocus) help?.focus();
   }
 
+  #positionSpotlight(): void {
+    if (this.#layer.hidden) return;
+    const target = this.#targets[this.#index]!;
+    const bounds = target.getBoundingClientRect();
+    this.#spotlight.style.left = `${bounds.left}px`;
+    this.#spotlight.style.top = `${bounds.top}px`;
+    this.#spotlight.style.width = `${bounds.width}px`;
+    this.#spotlight.style.height = `${bounds.height}px`;
+    this.#spotlight.hidden = false;
+  }
+
+  #clearSpotlight(): void {
+    this.#targets.forEach((target) => delete target.dataset.studioOnboardingHighlight);
+    this.#spotlight.hidden = true;
+  }
+
   #show(index: number): void {
     this.#dismissBriefHelp(false);
     this.#index = Math.max(0, Math.min(index, PAGES.length - 1));
@@ -166,15 +196,19 @@ export class StudioOnboardingController {
     this.#position.textContent = `Page ${this.#index + 1} of ${PAGES.length} · ${PAGES[this.#index]![1]}`;
     this.#previous.hidden = this.#index === 0;
     this.#next.textContent = this.#index === PAGES.length - 1 ? "Start with a product" : "Next";
+    this.#targets.forEach((target) => delete target.dataset.studioOnboardingHighlight);
+    this.#targets[this.#index]!.dataset.studioOnboardingHighlight = PAGES[this.#index]![0];
     this.#layer.hidden = false;
     this.#dialog.setAttribute("open", "");
     this.protectedSurface.inert = true;
+    this.#positionSpotlight();
     this.#dialog.focus();
   }
 
   #closeTour(restoreFocus: boolean): void {
     const wasOpen = !this.#layer.hidden;
     this.#dismissBriefHelp(false);
+    this.#clearSpotlight();
     this.#layer.hidden = true;
     this.#dialog.removeAttribute("open");
     this.protectedSurface.inert = false;

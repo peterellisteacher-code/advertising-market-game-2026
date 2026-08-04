@@ -19,7 +19,11 @@ describe("StudioOnboardingController", () => {
     const root = document.querySelector<HTMLElement>("#creator-root")!;
     const shell = createEditorShell(root);
     const acknowledge = vi.fn();
-    const focusStarter = vi.fn();
+    shell.productBuilderPanel.innerHTML = '<button type="button">Choose starter product</button>';
+    const starter = getByRole<HTMLButtonElement>(shell.productBuilderPanel, "button", {
+      name: "Choose starter product"
+    });
+    const focusStarter = vi.fn(() => starter.focus());
     const controller = new StudioOnboardingController(root, shell.overlay, acknowledge, focusStarter);
 
     controller.setCampaign(campaign());
@@ -34,14 +38,18 @@ describe("StudioOnboardingController", () => {
 
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
     expect(dialog.textContent).toContain("Page 2 of 4 · Roles");
+    expect(acknowledge).not.toHaveBeenCalled();
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
     expect(dialog.textContent).toContain("Page 3 of 4 · Build area");
+    expect(acknowledge).not.toHaveBeenCalled();
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
     expect(dialog.textContent).toContain("Page 4 of 4 · First action");
+    expect(acknowledge).not.toHaveBeenCalled();
     fireEvent.click(getByRole(dialog, "button", { name: "Start with a product" }));
 
     expect(acknowledge).toHaveBeenCalledOnce();
     expect(focusStarter).toHaveBeenCalledOnce();
+    expect(document.activeElement).toBe(starter);
     expect(shell.overlay.inert).toBe(false);
   });
 
@@ -146,5 +154,44 @@ describe("StudioOnboardingController", () => {
     fireEvent.keyDown(reopenedDefinition, { key: "Escape" });
     expect(dialog.querySelector("[data-studio-onboarding-help-card]")).toBeNull();
     expect(document.activeElement).toBe(help);
+  });
+
+  it("spotlights one real Studio target at a time with click and keyboard page navigation", () => {
+    document.body.innerHTML = '<div id="creator-root"></div>';
+    const root = document.querySelector<HTMLElement>("#creator-root")!;
+    const shell = createEditorShell(root);
+    const acknowledge = vi.fn();
+    const controller = new StudioOnboardingController(root, shell.overlay, acknowledge, vi.fn());
+    const highlighted = () => root.querySelectorAll<HTMLElement>("[data-studio-onboarding-highlight]");
+
+    controller.setCampaign(campaign());
+
+    const dialog = getByRole(root, "dialog", { name: "Studio tour" });
+    expect(shell.overlay.inert).toBe(true);
+    expect(highlighted()).toHaveLength(1);
+    expect(highlighted()[0]).toBe(getByRole(root, "button", { name: "Open full brief" }));
+    expect(highlighted()[0]?.dataset.studioOnboardingHighlight).toBe("brief");
+
+    fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
+    expect(highlighted()).toHaveLength(1);
+    expect(highlighted()[0]).toBe(root.querySelector(".creator__role-card"));
+    expect(highlighted()[0]?.dataset.studioOnboardingHighlight).toBe("roles");
+    expect(acknowledge).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(dialog, { key: "ArrowRight" });
+    expect(highlighted()).toHaveLength(1);
+    expect(highlighted()[0]).toBe(getByRole(root, "tab", { name: "Build" }));
+    expect(highlighted()[0]?.dataset.studioOnboardingHighlight).toBe("build");
+    expect(acknowledge).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(dialog, { key: "ArrowRight" });
+    expect(highlighted()).toHaveLength(1);
+    expect(highlighted()[0]).toBe(shell.productBuilderPanel);
+    expect(highlighted()[0]?.dataset.studioOnboardingHighlight).toBe("first-action");
+    expect(acknowledge).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(dialog, { key: "ArrowLeft" });
+    expect(highlighted()).toHaveLength(1);
+    expect(highlighted()[0]?.dataset.studioOnboardingHighlight).toBe("build");
   });
 });

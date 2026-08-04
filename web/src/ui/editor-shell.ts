@@ -275,6 +275,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
       <p class="sr-only" data-live="assertive" aria-live="assertive"></p>
     </section>
     <div class="creator__studio-onboarding-layer" data-studio-onboarding-layer hidden>
+      <div class="creator__studio-onboarding-spotlight" data-studio-onboarding-spotlight aria-hidden="true" hidden></div>
       <section class="creator__studio-onboarding" role="dialog" aria-modal="true"
         aria-label="Studio tour" data-studio-onboarding-dialog tabindex="-1">
         <p class="creator__eyebrow" data-studio-onboarding-position></p>

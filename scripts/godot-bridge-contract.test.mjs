@@ -10,6 +10,14 @@ const godotBridgeDocuments = [
   "godot/tests/test_creator_host.gd"
 ];
 
+test("game run keeps one indentation style after student-copy edits", async () => {
+  const gameRun = await readFile(
+    new URL("godot/src/game/game_run.gd", root),
+    "utf8"
+  );
+  assert.doesNotMatch(gameRun, /^\t/m, "game_run.gd uses spaces and must not mix tab indentation");
+});
+
 test("every Godot bridge document uses the canonical 1600 by 900 canvas", async () => {
   const sources = await Promise.all(godotBridgeDocuments.map(async (path) => ({
     path,

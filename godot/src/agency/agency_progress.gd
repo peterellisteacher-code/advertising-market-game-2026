@@ -114,21 +114,21 @@ var last_error: String = ""
 
 func begin() -> bool:
     if started:
-        return _fail("The agency campaign has already started")
+        return _fail("The agency work has already started")
     started = true
     return _succeed()
 
 func travel_to(station_id: String) -> bool:
     if not started:
-        return _fail("Start the agency campaign before travelling")
+        return _fail("Start the agency work before travelling")
     if not STATIONS.has(station_id):
-        return _fail("That agency station is unavailable")
+        return _fail("That agency room is unavailable")
     current_station_id = station_id
     return _succeed()
 
 func handoff_to(role: String) -> bool:
     if not started:
-        return _fail("Start the agency campaign before changing roles")
+        return _fail("Start the agency work before changing roles")
     if not ROLES.has(role):
         return _fail("Choose Art Director or Strategist")
     if active_role == role:
@@ -139,13 +139,13 @@ func handoff_to(role: String) -> bool:
 
 func complete_mission(mission_id: String, evidence: Dictionary) -> bool:
     if not started:
-        return _fail("Start the agency campaign before completing a mission")
+        return _fail("Start the agency work before completing a task")
     if not REQUIRED_MISSIONS.has(mission_id):
-        return _fail("That required mission is unavailable")
+        return _fail("That required task is unavailable")
     if completed_mission_ids.has(mission_id):
-        return _fail("That required mission is already complete")
+        return _fail("That required task is already complete")
     if not _valid_evidence_record(evidence):
-        return _fail("Mission evidence must include a decision and an audience effect")
+        return _fail("Task evidence must include a decision and an audience effect")
     completed_mission_ids.append(mission_id)
     evidence_by_mission[mission_id] = evidence.duplicate(true)
     current_objective_id = String(OBJECTIVE_AFTER_MISSION.get(
@@ -156,11 +156,11 @@ func complete_mission(mission_id: String, evidence: Dictionary) -> bool:
 
 func complete_sidequest(sidequest_id: String) -> bool:
     if not started:
-        return _fail("Start the agency campaign before completing an optional contract")
+        return _fail("Start the agency work before completing optional practice")
     if not SIDEQUESTS.has(sidequest_id):
-        return _fail("That optional contract is unavailable")
+        return _fail("That optional practice is unavailable")
     if completed_sidequest_ids.has(sidequest_id):
-        return _fail("That optional contract is already complete")
+        return _fail("That optional practice is already complete")
     completed_sidequest_ids.append(sidequest_id)
     return _succeed()
 

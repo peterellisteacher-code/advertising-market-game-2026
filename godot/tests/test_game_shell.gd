@@ -74,9 +74,9 @@ func _agency_world_replaces_the_run_panel_and_coordinates_roles() -> bool:
 	shell.call("_process", 0.0)
 	var mirror := shell.get("_accessibility_mirror") as RefCounted
 	var accessibility: Dictionary = JSON.parse_string(String(mirror.get("_last_payload")))
-	assert(accessibility.get("eyebrow") == "AGENCY CAMPAIGN")
+	assert(accessibility.get("eyebrow") == "ADVERTISEMENT WORK")
 	assert(String(accessibility.get("heading")).contains("Create and pitch one persuasive advertisement"))
-	assert(String(accessibility.get("currentInstruction")).contains("Current objective:"))
+	assert(String(accessibility.get("currentInstruction")).contains("Next task:"))
 	assert(String(accessibility.get("currentInstruction")).contains("Active role:"))
 	assert(not String(mirror.get("_last_payload")).contains("LIVE MARKET"))
 	var pair := agency.get_node("%AgencyPair") as AdMarketAgencyPair
@@ -589,7 +589,7 @@ func _instructions_remain_available_as_a_complete_reference() -> bool:
 	assert(role_guide.pressed.is_connected(Callable(shell, "_show_role_guide")))
 	assert(not instructions_dialog.visible)
 	assert(not role_dialog.visible)
-	assert(instructions_dialog.title == "Advertising campaign instructions")
+	assert(instructions_dialog.title == "Advertisement instructions")
 	assert(role_dialog.title == "Pair role guide")
 	assert(instructions_text.focus_mode == Control.FOCUS_ALL)
 	for section in [
@@ -1258,7 +1258,7 @@ func _complete_required_missions(shell: Control, mission_ids: Array) -> void:
 		assert(run.agency_progress().completed_mission_ids.has(mission_id))
 
 func _agency_mission_gate_clue() -> String:
-	return "Next: complete this level's required agency missions. Follow the current objective in the agency guide."
+	return "Next: complete this level's required agency tasks. Follow the next task in the agency guide."
 
 func _sell_ready_document(document: Dictionary) -> Dictionary:
 	var ready := document.duplicate(true)

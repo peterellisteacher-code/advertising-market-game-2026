@@ -20,7 +20,7 @@ func _ready() -> void:
 
 func show_objective(objective: Dictionary) -> void:
 	_objective = objective.duplicate(true)
-	_set_label_text("HudMargin/HudStack/PrimaryRow/ObjectiveBlock/HudObjective", String(objective.get("title", "Current objective")))
+	_set_label_text("HudMargin/HudStack/PrimaryRow/ObjectiveBlock/HudObjective", String(objective.get("title", "Next task")))
 	var owner_role := String(objective.get("ownerRole", "strategist"))
 	_set_label_text("HudMargin/HudStack/PrimaryRow/ObjectiveBlock/HudOwner", "%s leads" % ("Art Director" if owner_role == "art-director" else "Strategist"))
 
@@ -73,8 +73,8 @@ func set_compact(compact: bool) -> void:
 	size.y = target_height
 	var button := get_node_or_null("HudMargin/HudStack/PrimaryRow/HudTuckToggle") as Button
 	if button != null:
-		button.text = "Show campaign details" if compact else "Hide campaign details"
-		button.tooltip_text = "Show campaign details" if compact else "Hide campaign details"
+		button.text = "Show work details" if compact else "Hide work details"
+		button.tooltip_text = "Show work details" if compact else "Hide work details"
 
 func is_compact() -> bool:
 	return _compact
@@ -84,7 +84,7 @@ func set_sound_muted(muted: bool) -> void:
 	var button := get_node_or_null("HudMargin/HudStack/ExpandedDetails/HudSoundToggle") as Button
 	if button != null:
 		button.text = "Turn sound on" if muted else "Mute sound"
-		button.tooltip_text = "Turn campaign sound on" if muted else "Mute campaign sound"
+		button.tooltip_text = "Turn advertisement sound on" if muted else "Mute advertisement sound"
 
 func go_to_objective() -> void:
 	var station_id := String(_objective.get("stationId", ""))

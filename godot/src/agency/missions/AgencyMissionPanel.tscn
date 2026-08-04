@@ -92,7 +92,7 @@ size_flags_horizontal = 3
 [node name="MissionBadge" type="Label" parent="Backdrop/Dialog/Margin/Content/Header" unique_id=1102836220]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "AGENCY MISSION"
+text = "AGENCY TASK"
 
 [node name="CloseButton" type="Button" parent="Backdrop/Dialog/Margin/Content/Header" unique_id=1637865031]
 custom_minimum_size = Vector2(120, 48)
@@ -111,7 +111,7 @@ custom_minimum_size = Vector2(800, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.04, 0.09, 0.16, 1)
-text = "Advertising technique mission"
+text = "Advertising technique task"
 autowrap_mode = 3
 
 [node name="Goal" type="Label" parent="Backdrop/Dialog/Margin/Content" unique_id=45463218]
@@ -368,7 +368,7 @@ size_flags_vertical = 3
 [node name="CompletedHeading" type="Label" parent="Backdrop/Dialog/Margin/Content/CompletedStage" unique_id=1863281277]
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0.48, 0.58, 1)
-text = "MISSION COMPLETE"
+text = "TASK COMPLETE"
 
 [node name="RewardCard" type="PanelContainer" parent="Backdrop/Dialog/Margin/Content/CompletedStage" unique_id=664451054]
 custom_minimum_size = Vector2(800, 0)

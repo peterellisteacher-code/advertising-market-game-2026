@@ -58,7 +58,7 @@ theme_override_constants/separation = 2
 modulate = Color(0.2, 0.92, 0.91, 1)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "CURRENT OBJECTIVE"
+text = "NEXT TASK"
 
 [node name="HudObjective" type="Label" parent="HudMargin/HudStack/PrimaryRow/ObjectiveBlock" unique_id=933494733]
 unique_name_in_owner = true
@@ -81,7 +81,7 @@ custom_minimum_size = Vector2(220, 60)
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_font_sizes/font_size = 18
-text = "Show campaign details"
+text = "Show work details"
 
 [node name="HudGoToObjective" type="Button" parent="HudMargin/HudStack/PrimaryRow" unique_id=823806934]
 unique_name_in_owner = true
@@ -93,7 +93,7 @@ theme_override_colors/font_hover_color = Color(0.047, 0.086, 0.145, 1)
 theme_override_colors/font_pressed_color = Color(0.047, 0.086, 0.145, 1)
 theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_4iwib")
-text = "Go to objective"
+text = "Go to task"
 
 [node name="HudGuideButton" type="Button" parent="HudMargin/HudStack/PrimaryRow" unique_id=1438983335]
 unique_name_in_owner = true
@@ -123,7 +123,7 @@ theme_override_constants/separation = 2
 modulate = Color(0.2, 0.92, 0.91, 1)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "CAMPAIGN GOAL"
+text = "GOAL"
 
 [node name="HudGoal" type="Label" parent="HudMargin/HudStack/ExpandedDetails/GoalBlock" unique_id=1786391910]
 unique_name_in_owner = true

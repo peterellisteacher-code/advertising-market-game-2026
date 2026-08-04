@@ -325,7 +325,7 @@ custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 16
-text = "Understand the audience, choose and shape a product, create the advertisement, practise advertising techniques, choose media space, and present the finished campaign."
+text = "Understand the audience, choose and shape a product, create the advertisement, practise advertising techniques, choose media space, and present the finished advertisement."
 autowrap_mode = 2
 
 [node name="Current objective" type="VBoxContainer" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=1968546141]
@@ -395,7 +395,7 @@ theme_override_font_sizes/font_size = 16
 theme_override_styles/normal = SubResource("StyleBoxFlat_kr5my")
 theme_override_styles/hover = SubResource("StyleBoxFlat_wtb38")
 theme_override_styles/focus = SubResource("StyleBoxFlat_3ngad")
-text = "Go to this objective"
+text = "Go to this task"
 
 [node name="Controls" type="VBoxContainer" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=1869904611]
 visible = false
@@ -477,7 +477,7 @@ custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 15
-text = "Both partners can use every control and station. The roles divide responsibility; they do not unlock different tools. The named lead makes the first recommendation, and the other partner checks it against the brief. Press H whenever the other partner takes the lead."
+text = "Both partners can use every control and room. The roles divide responsibility; they do not unlock different controls. The named lead makes the first recommendation, and the other partner checks it against the brief. Press H whenever the other partner takes the lead."
 autowrap_mode = 2
 
 [node name="Progress" type="VBoxContainer" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=159230697]
@@ -492,7 +492,7 @@ metadata/_tab_index = 4
 modulate = Color(0.18, 0.84, 0.9, 1)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "Campaign progress"
+text = "Work progress"
 
 [node name="RequiredProgress" type="Label" parent="GuidePanel/GuideMargin/GuideContent/GuideTabs/Progress" unique_id=1788007006]
 unique_name_in_owner = true
@@ -526,7 +526,7 @@ custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 15
-text = "Required work prepares the campaign pitch. Optional practice strengthens technique evidence but never blocks completion."
+text = "Required work prepares the final pitch. Optional practice strengthens technique evidence but never blocks completion."
 autowrap_mode = 2
 
 [node name="AudioSettings" type="Button" parent="GuidePanel/GuideMargin/GuideContent" unique_id=895054001]
@@ -552,7 +552,7 @@ text = "Sound settings"
 
 [node name="AudioSettingsHelp" type="Label" parent="GuidePanel/GuideMargin/GuideContent/AudioSettingsPanel" unique_id=1500330926]
 layout_mode = 2
-text = "Choose what you want to hear. These settings are saved with this campaign."
+text = "Choose what you want to hear. These settings are saved with this advertisement."
 autowrap_mode = 2
 
 [node name="AudioEnabled" type="CheckButton" parent="GuidePanel/GuideMargin/GuideContent/AudioSettingsPanel" unique_id=1169438716]
@@ -648,7 +648,7 @@ custom_minimum_size = Vector2(1056, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 30
-text = "You and your partner run an advertising agency."
+text = "You and your partner will make and pitch one ad."
 
 [node name="OrientationAction" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=747531041]
 unique_name_in_owner = true
@@ -657,7 +657,7 @@ custom_minimum_size = Vector2(1056, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 20
-text = "Build one advertisement that suits the audience in the client brief."
+text = "Read the brief. Complete seven short tasks. Build one ad. Pitch it."
 autowrap_mode = 2
 
 [node name="OrientationOverview" type="HBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=2026080314]
@@ -720,7 +720,7 @@ stretch_mode = 5
 [node name="ApprovalLabel" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationOverview/ApprovalCard" unique_id=2026080323]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "Brief approved"
+text = "Brief complete"
 horizontal_alignment = 1
 
 [node name="OrientationItems" type="VBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=1840799099]
@@ -783,7 +783,7 @@ modulate = Color(0.18, 0.84, 0.9, 1)
 layout_mode = 2
 custom_minimum_size = Vector2(150, 0)
 theme_override_font_sizes/font_size = 18
-text = "EARN"
+text = "PREPARE"
 
 [node name="OrientationItemThreeText" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems/OrientationItemThree" unique_id=2026080310]
 unique_name_in_owner = true
@@ -791,7 +791,7 @@ modulate = Color(0.92, 0.95, 0.98, 1)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
-text = "Each required mission earns an approval or tool for the final pitch."
+text = "Each required task prepares the ad for the final pitch."
 autowrap_mode = 2
 
 [node name="OrientationActions" type="HBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=2026080311]

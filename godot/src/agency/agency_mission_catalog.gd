@@ -7,7 +7,7 @@ const REQUIRED_MISSION_RECORDS := [
         "stationId": "client-briefing",
         "ownerRole": "strategist",
         "title": "Read the audience before making anything",
-        "goal": "Identify the audience situation, need and values that the campaign must respect.",
+        "goal": "Identify the audience situation, need and values that the advertisement must respect.",
         "instruction": "Compare the four interpretations with the brief, then select the one supported by all of its evidence.",
         "holdingAction": "The Art Director identifies one visual detail that could represent the selected value without relying on a written label.",
         "referenceFacts": {
@@ -41,7 +41,7 @@ const REQUIRED_MISSION_RECORDS := [
         "correctChoiceId": "independence",
         "effectExplanation": "Using the supported situation, need and values gives the audience a coherent reason to recognise the offer as relevant.",
         "transferPrompt": "State the audience need your product will meet and explain how the offer can preserve the audience's independence.",
-        "reward": "Client brief approved",
+        "reward": "Brief complete",
         "required": true
     },
     {
@@ -49,7 +49,7 @@ const REQUIRED_MISSION_RECORDS := [
         "stationId": "art-studio",
         "ownerRole": "art-director",
         "title": "Control what the audience notices first",
-        "goal": "Use size, isolation and colour contrast to make the campaign's most important subject salient.",
+        "goal": "Use size, isolation and colour contrast to make the advertisement's most important subject salient.",
         "instruction": "Choose the treatment that creates the clearest first point of attention without making every element compete.",
         "holdingAction": "The Strategist names the single product benefit that deserves the audience's first attention and checks that the visual emphasis supports it.",
         "choices": [
@@ -85,7 +85,7 @@ const REQUIRED_MISSION_RECORDS := [
         "stationId": "art-studio",
         "ownerRole": "art-director",
         "title": "Build a deliberate reading path",
-        "goal": "Arrange imagery, headline and action so the audience encounters the campaign in a useful sequence.",
+        "goal": "Arrange imagery, headline and action so the audience encounters the advertisement in a useful sequence.",
         "instruction": "Trace each proposed path from the first focal point to the action and choose the one with no visual dead end.",
         "holdingAction": "The Strategist reads the message in the proposed order and checks that each step supplies the information needed for the next one.",
         "choices": [
@@ -111,7 +111,7 @@ const REQUIRED_MISSION_RECORDS := [
             }
         ],
         "correctChoiceId": "product-headline-action",
-        "effectExplanation": "A coherent reading path helps the audience connect the visual subject, campaign meaning and requested action in sequence.",
+        "effectExplanation": "A coherent reading path helps the audience connect the visual subject, advertisement meaning and requested action in sequence.",
         "transferPrompt": "Describe the first, second and third points in your advertisement's reading path and name the line, gaze or placement that connects them.",
         "reward": "Reading-path overlay unlocked",
         "required": true
@@ -121,7 +121,7 @@ const REQUIRED_MISSION_RECORDS := [
         "stationId": "art-studio",
         "ownerRole": "art-director",
         "title": "Use colour to create emphasis and tone",
-        "goal": "Choose a limited colour relationship that makes one action clear while supporting the campaign's intended feeling.",
+        "goal": "Choose a limited colour relationship that makes one action clear while supporting the advertisement's intended feeling.",
         "instruction": "Compare emphasis, legibility and emotional tone; select the palette that performs all three functions.",
         "holdingAction": "The Strategist states the intended audience feeling in one precise word and rejects any palette whose tone conflicts with that feeling.",
         "choices": [
@@ -148,15 +148,15 @@ const REQUIRED_MISSION_RECORDS := [
         ],
         "correctChoiceId": "one-accent-harmony",
         "effectExplanation": "A restrained palette can guide audience attention and establish tone without sacrificing legibility.",
-        "transferPrompt": "Name your supporting colours, your single accent colour and the exact campaign element that will receive that accent.",
-        "reward": "Colour system approved",
+        "transferPrompt": "Name your supporting colours, your single accent colour and the exact advertisement element that will receive that accent.",
+        "reward": "Colour system complete",
         "required": true
     },
     {
         "id": "framing",
         "stationId": "production-studio",
         "ownerRole": "art-director",
-        "title": "Frame the image around the campaign meaning",
+        "title": "Frame the image around the advertisement meaning",
         "goal": "Choose a crop and placement that show useful detail, preserve context and leave deliberate space for the message.",
         "instruction": "Decide what the audience must see to understand use, scale and feeling, then select the frame that preserves those clues.",
         "holdingAction": "The Strategist checks whether the image alone supports the stated product value before reading any headline or caption.",
@@ -185,7 +185,7 @@ const REQUIRED_MISSION_RECORDS := [
         "correctChoiceId": "useful-close-crop",
         "effectExplanation": "Purposeful framing controls which evidence the audience can see and where the written message can be read.",
         "transferPrompt": "State what your image must prove, what will remain inside the crop and where negative space will hold the headline.",
-        "reward": "Framing desk approved",
+        "reward": "Framing desk complete",
         "required": true
     },
     {
@@ -220,17 +220,17 @@ const REQUIRED_MISSION_RECORDS := [
         ],
         "correctChoiceId": "aida-complete",
         "effectExplanation": "AIDA creates a cumulative audience journey rather than four unrelated labels placed on an advertisement.",
-        "transferPrompt": "Write one sentence for each AIDA move in your campaign and explain how the audience can move from one to the next.",
-        "reward": "AIDA sequence approved",
+        "transferPrompt": "Write one sentence for each AIDA move in your advertisement and explain how the audience can move from one to the next.",
+        "reward": "AIDA sequence complete",
         "required": true
     },
     {
         "id": "claim-proof",
         "stationId": "copy-room",
         "ownerRole": "strategist",
-        "title": "Make a claim the campaign can support",
+        "title": "Make a claim the advertisement can support",
         "goal": "Connect a precise audience benefit to visible or stated evidence without making an absolute promise.",
-        "instruction": "Select the claim whose wording is proportionate to the evidence provided by the product feature and campaign image.",
+        "instruction": "Select the claim whose wording is proportionate to the evidence provided by the product feature and advertisement image.",
         "holdingAction": "The Art Director identifies where the supporting feature appears in the image and checks that the evidence is noticeable before the claim is accepted.",
         "choices": [
             {
@@ -241,7 +241,7 @@ const REQUIRED_MISSION_RECORDS := [
             {
                 "id": "absolute-success",
                 "label": "This product guarantees that every student will become successful immediately.",
-                "effect": "The audience is asked to accept an absolute outcome that no product feature or campaign evidence can guarantee."
+                "effect": "The audience is asked to accept an absolute outcome that no product feature or advertisement evidence can guarantee."
             },
             {
                 "id": "empty-superlative",
@@ -256,7 +256,7 @@ const REQUIRED_MISSION_RECORDS := [
         ],
         "correctChoiceId": "qualified-supported",
         "effectExplanation": "A supportable claim gives the audience a credible connection between product evidence and a relevant benefit.",
-        "transferPrompt": "Write your campaign's main claim, name the feature or image detail that supports it and remove any absolute wording the evidence cannot justify.",
+        "transferPrompt": "Write your advertisement's main claim, name the feature or image detail that supports it and remove any absolute wording the evidence cannot justify.",
         "reward": "Claim cleared for publication",
         "required": true
     }
@@ -269,7 +269,7 @@ const SIDEQUEST_RECORDS := [
         "ownerRole": "art-director",
         "title": "Thirty-second layout rescue",
         "goal": "Repair a crowded fictional advertisement by restoring one dominant focal point.",
-        "instruction": "Choose the single change that removes the most competition while preserving the campaign's necessary evidence.",
+        "instruction": "Choose the single change that removes the most competition while preserving the advertisement's necessary evidence.",
         "holdingAction": "The Strategist names the one message that must survive the rescue and checks that the proposed simplification does not remove it.",
         "choices": [
             {
@@ -294,7 +294,7 @@ const SIDEQUEST_RECORDS := [
             }
         ],
         "correctChoiceId": "remove-equal-badges",
-        "effectExplanation": "Removing equal competitors lets the audience identify the campaign subject and action more quickly.",
+        "effectExplanation": "Removing equal competitors lets the audience identify the advertisement subject and action more quickly.",
         "transferPrompt": "Name one nonessential competitor you can remove from your own advertisement without losing evidence.",
         "reward": "Optional portfolio stamp",
         "required": false,
@@ -313,7 +313,7 @@ const SIDEQUEST_RECORDS := [
             {
                 "id": "reserve-accent",
                 "label": "Keep one bright accent for the action and reduce supporting elements to related tones.",
-                "effect": "The audience can locate the action while still receiving a coherent campaign tone."
+                "effect": "The audience can locate the action while still receiving a coherent advertisement tone."
             },
             {
                 "id": "random-muted",
@@ -327,7 +327,7 @@ const SIDEQUEST_RECORDS := [
             },
             {
                 "id": "gradient-everything",
-                "label": "Apply a different bright gradient to every campaign element.",
+                "label": "Apply a different bright gradient to every advertisement element.",
                 "effect": "The audience encounters more visual variation and a weaker hierarchy."
             }
         ],
@@ -384,7 +384,7 @@ const SIDEQUEST_RECORDS := [
         "title": "Headline surgery",
         "goal": "Shorten a weak headline while retaining the product's relevant audience benefit.",
         "instruction": "Select the revision that removes empty evaluation and keeps a precise promise supported by the offer.",
-        "holdingAction": "The Art Director checks that the revised headline can be read at the intended scale without covering campaign evidence.",
+        "holdingAction": "The Art Director checks that the revised headline can be read at the intended scale without covering advertisement evidence.",
         "choices": [
             {
                 "id": "control-your-hour",
@@ -409,7 +409,7 @@ const SIDEQUEST_RECORDS := [
         ],
         "correctChoiceId": "control-your-hour",
         "effectExplanation": "A concise, supportable headline helps the audience recognise relevance before reading detail.",
-        "transferPrompt": "Reduce your own headline to a precise benefit that can be read quickly and supported by the campaign.",
+        "transferPrompt": "Reduce your own headline to a precise benefit that can be read quickly and supported by the advertisement.",
         "reward": "Optional portfolio stamp",
         "required": false,
         "portfolioStamp": "Headline Surgeon",
@@ -421,13 +421,13 @@ const SIDEQUEST_RECORDS := [
         "ownerRole": "strategist",
         "title": "Media format match",
         "goal": "Match message length and visual scale to the conditions in which the audience will encounter the advertisement.",
-        "instruction": "Select the format whose viewing distance, duration and orientation suit the proposed campaign message.",
+        "instruction": "Select the format whose viewing distance, duration and orientation suit the proposed advertisement message.",
         "holdingAction": "The Art Director checks that the main subject remains recognisable at the selected format's scale and shape.",
         "choices": [
             {
                 "id": "billboard-brief",
                 "label": "Billboard for one large subject, a short headline and a simple action seen at distance.",
-                "effect": "The audience can understand the campaign during a brief distant encounter."
+                "effect": "The audience can understand the advertisement during a brief distant encounter."
             },
             {
                 "id": "billboard-essay",
@@ -447,7 +447,7 @@ const SIDEQUEST_RECORDS := [
         ],
         "correctChoiceId": "billboard-brief",
         "effectExplanation": "Matching content to format conditions helps the audience receive the intended message before attention moves elsewhere.",
-        "transferPrompt": "Choose billboard, magazine or vertical screen for your campaign and explain how its viewing conditions affect your composition.",
+        "transferPrompt": "Choose billboard, magazine or vertical screen for your advertisement and explain how its viewing conditions affect your composition.",
         "reward": "Optional portfolio stamp",
         "required": false,
         "portfolioStamp": "Media Planner",
@@ -461,7 +461,7 @@ const OBJECTIVE_RECORDS := {
         "stationId": "client-briefing",
         "title": "Meet the client and read the audience brief",
         "action": "Travel to Client Briefing and identify the audience situation, need and values.",
-        "reason": "Every later decision needs one shared account of who the campaign is for.",
+        "reason": "Every later decision needs one shared account of who the advertisement is for.",
         "ownerRole": "strategist",
         "holdingAction": "The Art Director looks for a visual way to represent the selected audience value."
     },
@@ -469,7 +469,7 @@ const OBJECTIVE_RECORDS := {
         "id": "build-product",
         "stationId": "production-studio",
         "title": "Build a product for the audience need",
-        "action": "Open the production studio and choose or adapt a product that can meet the approved need.",
+        "action": "Open the production studio and choose or adapt a product that can meet the identified need.",
         "reason": "The advertisement needs a specific offer whose value can be shown and explained.",
         "ownerRole": "strategist",
         "holdingAction": "The Art Director checks that the product has a recognisable visual form."
@@ -478,15 +478,15 @@ const OBJECTIVE_RECORDS := {
         "id": "direct-attention",
         "stationId": "art-studio",
         "title": "Decide what the audience will notice first",
-        "action": "Complete the salience mission, then name the first focal point in your advertisement.",
-        "reason": "A deliberate first point prevents every campaign element from competing equally.",
+        "action": "Complete the salience task, then name the first focal point in your advertisement.",
+        "reason": "A deliberate first point prevents every advertisement element from competing equally.",
         "ownerRole": "art-director",
         "holdingAction": "The Strategist names the benefit that deserves the audience's first attention."
     },
     "shape-message": {
         "id": "shape-message",
         "stationId": "strategy-room",
-        "title": "Shape the campaign message",
+        "title": "Shape the advertisement message",
         "action": "Build an AIDA sequence that moves from first attention to one feasible audience action.",
         "reason": "The advertisement must give the audience a cumulative reason to continue and act.",
         "ownerRole": "strategist",
@@ -496,7 +496,7 @@ const OBJECTIVE_RECORDS := {
         "id": "set-campaign-tone",
         "stationId": "art-studio",
         "title": "Set emphasis and tone with colour",
-        "action": "Choose supporting colours and reserve one strong accent for the campaign priority.",
+        "action": "Choose supporting colours and reserve one strong accent for the advertisement priority.",
         "reason": "Colour should guide attention and feeling without weakening legibility.",
         "ownerRole": "art-director",
         "holdingAction": "The Strategist names the intended audience feeling and checks the palette against it."
@@ -515,7 +515,7 @@ const OBJECTIVE_RECORDS := {
         "stationId": "copy-room",
         "title": "Connect the claim to evidence",
         "action": "Write one precise claim and name the product feature or image detail that supports it.",
-        "reason": "A credible campaign links audience benefit to evidence rather than an absolute promise.",
+        "reason": "A credible advertisement links audience benefit to evidence rather than an absolute promise.",
         "ownerRole": "strategist",
         "holdingAction": "The Art Director makes the supporting evidence noticeable in the composition."
     },
@@ -531,7 +531,7 @@ const OBJECTIVE_RECORDS := {
     "prepare-pitch": {
         "id": "prepare-pitch",
         "stationId": "pitch-theatre",
-        "title": "Prepare the campaign pitch",
+        "title": "Prepare the final pitch",
         "action": "Review all required evidence, choose a presentation format and build the final market card.",
         "reason": "The pair must be able to explain how the finished advertisement works for its audience.",
         "ownerRole": "strategist",
@@ -540,11 +540,11 @@ const OBJECTIVE_RECORDS := {
     "present-campaign": {
         "id": "present-campaign",
         "stationId": "pitch-theatre",
-        "title": "Present the finished campaign",
+        "title": "Present the finished advertisement",
         "action": "Show the exact published advertisement and explain its audience, value, AIDA, hierarchy and proof.",
-        "reason": "The pitch makes the pair's decisions visible and prepares the campaign for the class market.",
+        "reason": "The pitch makes the pair's decisions visible and prepares the advertisement for the class market.",
         "ownerRole": "art-director",
-        "holdingAction": "The Strategist supplies the explanation for each piece of campaign evidence."
+        "holdingAction": "The Strategist supplies the explanation for each piece of advertisement evidence."
     }
 }
 

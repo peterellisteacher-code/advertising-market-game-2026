@@ -66,7 +66,7 @@ var _record: Dictionary = {}
 var _choice_ids: Array[String] = ["", "", "", ""]
 var _role_details_visible: bool = false
 var _reference_visible: bool = true
-var _reference_name: String = "mission reference"
+var _reference_name: String = "task reference"
 
 func _ready() -> void:
     _apply_visual_theme()
@@ -169,7 +169,7 @@ func show_completed(record: Dictionary, result: Dictionary) -> void:
     mission_step.text = "Complete"
     var required := bool(result.get("required", true))
     instruction_label.text = "Review the result, then return to the agency."
-    completed_heading.text = "MISSION COMPLETE" if required else "OPTIONAL CONTRACT COMPLETE"
+    completed_heading.text = "TASK COMPLETE" if required else "OPTIONAL PRACTICE COMPLETE"
     if required:
         reward_label.text = "REWARD: %s" % String(result.get("reward"))
     else:
@@ -198,7 +198,7 @@ func close_panel() -> void:
     validation_label.text = ""
 
 func _set_common_text() -> void:
-    mission_badge.text = "OPTIONAL CONTRACT" if not bool(_record.get("required", true)) else "AGENCY MISSION"
+    mission_badge.text = "OPTIONAL PRACTICE" if not bool(_record.get("required", true)) else "AGENCY TASK"
     title_label.text = String(_record.get("title"))
     goal_label.text = "GOAL — %s" % String(_record.get("goal"))
 
@@ -216,7 +216,7 @@ func _show_stage(active_stage: Control) -> void:
 
 func _set_reference_text(record: Dictionary) -> void:
     var facts_value: Variant = record.get("referenceFacts", {})
-    _reference_name = "audience brief" if record.has("referenceFacts") else "mission reference"
+    _reference_name = "audience brief" if record.has("referenceFacts") else "task reference"
     var lines: Array[String] = []
     if typeof(facts_value) == TYPE_DICTIONARY:
         var facts: Dictionary = facts_value
@@ -239,7 +239,7 @@ func _set_reference_text(record: Dictionary) -> void:
             if not text.is_empty():
                 lines.append("%s: %s" % [label, text])
     if lines.is_empty():
-        lines.append("USE THIS: %s" % String(record.get("instruction", record.get("goal", "Check the mission goal."))))
+        lines.append("USE THIS: %s" % String(record.get("instruction", record.get("goal", "Check the task goal."))))
     reference_label.text = "\n".join(lines)
 
 func _set_role_details_visible(is_visible: bool) -> void:
@@ -254,7 +254,7 @@ func _set_reference_visible(is_visible: bool) -> void:
     if _reference_name == "audience brief":
         reference_toggle.text = "Hide audience brief" if is_visible else "Show audience brief"
     else:
-        reference_toggle.text = "Hide mission reference" if is_visible else "Show mission reference"
+        reference_toggle.text = "Hide task reference" if is_visible else "Show task reference"
 
 func _select_choice(index: int) -> void:
     if index < 0 or index >= _choice_ids.size():

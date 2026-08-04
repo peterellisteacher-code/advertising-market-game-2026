@@ -810,7 +810,7 @@ layout_mode = 2
 layout_mode = 2
 theme_override_colors/font_color = Color(0.15686275, 0.7764706, 0.72156864, 1)
 theme_override_font_sizes/font_size = 11
-text = "CAMPAIGN GOAL"
+text = "GOAL"
 
 [node name="GoalLabel" type="Label" parent="HUD/HUDRoot/ObjectiveBar/ObjectiveMargin/ObjectiveRow/GoalBlock" unique_id=609919822]
 unique_name_in_owner = true
@@ -829,7 +829,7 @@ layout_mode = 2
 layout_mode = 2
 theme_override_colors/font_color = Color(0.15686275, 0.7764706, 0.72156864, 1)
 theme_override_font_sizes/font_size = 11
-text = "CURRENT OBJECTIVE"
+text = "NEXT TASK"
 
 [node name="ObjectiveLabel" type="Label" parent="HUD/HUDRoot/ObjectiveBar/ObjectiveMargin/ObjectiveRow/ObjectiveBlock" unique_id=1142278045]
 unique_name_in_owner = true
@@ -913,7 +913,7 @@ text = "H: hand control to partner"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(112, 36)
 layout_mode = 2
-text = "Show station details"
+text = "Show room details"
 
 [node name="StationPanelTuck" type="Button" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent/StationHeader" unique_id=2026080315]
 unique_name_in_owner = true
@@ -928,7 +928,7 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_colors/font_color = Color(0.9098039, 0.9490196, 1, 1)
 theme_override_font_sizes/font_size = 13
-text = "Station responsibilities"
+text = "Room responsibilities"
 autowrap_mode = 2
 
 [node name="StationActionButton" type="Button" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent" unique_id=446819562]
@@ -942,7 +942,7 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_4lioy")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_nyk50")
 theme_override_styles/hover = SubResource("StyleBoxFlat_h0l3y")
 theme_override_styles/focus = SubResource("StyleBoxFlat_4mwv4")
-text = "Work at this station"
+text = "Work in this room"
 
 [node name="StationPanelTab" type="Button" parent="HUD/HUDRoot" unique_id=2026080316]
 unique_name_in_owner = true
@@ -953,7 +953,7 @@ offset_top = 700.0
 offset_right = 780.0
 offset_bottom = 752.0
 theme_override_font_sizes/font_size = 16
-text = "Open station card"
+text = "Open room card"
 
 [node name="HandoffPanel" type="PanelContainer" parent="HUD/HUDRoot" unique_id=409753894]
 unique_name_in_owner = true
@@ -1071,7 +1071,7 @@ theme_override_constants/separation = 4
 modulate = Color(0.2, 0.92, 0.91, 1)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
-text = "CAMPAIGN GOAL"
+text = "GOAL"
 
 [node name="HudGoal" type="Label" parent="HUD/HUDRoot/AgencyHud/LegacyHudMargin/HudRow/GoalBlock" unique_id=1786391910]
 unique_name_in_owner = true
@@ -1093,7 +1093,7 @@ theme_override_constants/separation = 4
 modulate = Color(0.2, 0.92, 0.91, 1)
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
-text = "CURRENT OBJECTIVE"
+text = "NEXT TASK"
 
 [node name="HudObjective" type="Label" parent="HUD/HUDRoot/AgencyHud/LegacyHudMargin/HudRow/ObjectiveBlock" unique_id=933494733]
 unique_name_in_owner = true
@@ -1150,7 +1150,7 @@ custom_minimum_size = Vector2(130, 64)
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_styles/normal = SubResource("StyleBoxFlat_4iwib")
-text = "Go to objective"
+text = "Go to task"
 
 [node name="HudGuideButton" type="Button" parent="HUD/HUDRoot/AgencyHud/LegacyHudMargin/HudRow" unique_id=1438983335]
 unique_name_in_owner = true
@@ -1254,7 +1254,7 @@ autowrap_mode = 2
 [node name="GoalProcess" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Goal" unique_id=206408573]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
-text = "Understand the audience, choose and shape a product, create the advertisement, practise advertising techniques, choose media space, and present the finished campaign."
+text = "Understand the audience, choose and shape a product, create the advertisement, practise advertising techniques, choose media space, and present the finished advertisement."
 autowrap_mode = 2
 
 [node name="Current objective" type="VBoxContainer" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=1968546141]
@@ -1312,7 +1312,7 @@ theme_override_font_sizes/font_size = 16
 theme_override_styles/normal = SubResource("StyleBoxFlat_kr5my")
 theme_override_styles/hover = SubResource("StyleBoxFlat_wtb38")
 theme_override_styles/focus = SubResource("StyleBoxFlat_3ngad")
-text = "Go to this objective"
+text = "Go to this task"
 
 [node name="Controls" type="VBoxContainer" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=1869904611]
 visible = false
@@ -1331,10 +1331,10 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
 text = "Move: WASD or arrow keys.
-Use a station: Space or Enter.
+Use a room: Space or Enter.
 Open this guide: G. Close a panel: Escape.
 Change active role: R or the role button.
-Direct travel: choose a room, then select Go to this objective."
+Direct travel: choose a room, then select Go to this task."
 autowrap_mode = 2
 
 [node name="Roles" type="VBoxContainer" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=155131397]
@@ -1378,7 +1378,7 @@ autowrap_mode = 2
 [node name="RoleTurnOrder" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Roles" unique_id=41760919]
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
-text = "Both partners can use the same tools. The roles do not unlock different buttons. They identify who makes the first recommendation; the partner then checks it against the brief."
+text = "Both partners can use the same controls. The roles do not unlock different buttons. They identify who makes the first recommendation; the partner then checks it against the brief."
 autowrap_mode = 2
 
 [node name="Progress" type="VBoxContainer" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs" unique_id=159230697]
@@ -1391,7 +1391,7 @@ metadata/_tab_index = 4
 modulate = Color(0.18, 0.84, 0.9, 1)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "Campaign progress"
+text = "Work progress"
 
 [node name="RequiredProgress" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Progress" unique_id=1788007006]
 unique_name_in_owner = true
@@ -1417,7 +1417,7 @@ autowrap_mode = 2
 [node name="ProgressExplanation" type="Label" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent/GuideTabs/Progress" unique_id=2144681611]
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
-text = "Required work prepares the campaign pitch. Optional practice strengthens technique evidence but never blocks completion."
+text = "Required work prepares the final pitch. Optional practice strengthens technique evidence but never blocks completion."
 autowrap_mode = 2
 
 [node name="AudioSettings" type="Button" parent="HUD/HUDRoot/AgencyGuideDrawer/LegacyGuidePanel/GuideMargin/GuideContent" unique_id=895054001]

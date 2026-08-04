@@ -19,7 +19,7 @@ const ANIMATION_LABELS := {
 	"reveal": "Fade reveal",
 	"slide": "Slide in",
 	"spotlight": "Spotlight",
-	"sequence": "Campaign sequence",
+	"sequence": "Advertisement sequence",
 }
 const SOUND_IDS := ["camera", "swoosh"]
 const SIDEQUEST_LABELS := {
@@ -81,8 +81,8 @@ func present(
 	var heading: Label = get_node_or_null("%PitchHeading") as Label
 	if heading != null:
 		var metadata: Dictionary = publication.get("metadata", {})
-		var product_name: String = String(metadata.get("productName", "the finished campaign")).strip_edges()
-		heading.text = "Presenting %s" % (product_name if not product_name.is_empty() else "the finished campaign")
+		var product_name: String = String(metadata.get("productName", "the finished advertisement")).strip_edges()
+		heading.text = "Presenting %s" % (product_name if not product_name.is_empty() else "the finished advertisement")
 	var enter_button: Button = get_node_or_null("%EnterMarket") as Button
 	if enter_button != null and enter_button.is_inside_tree():
 		enter_button.grab_focus()
@@ -189,7 +189,7 @@ func _update_evidence() -> void:
 		"%EvidenceAudience",
 		"Audience fit",
 		_has_mission("audience-brief"),
-		"The brief identifies who the campaign must persuade and the response it seeks."
+		"The brief identifies who the advertisement must persuade and the response it seeks."
 	)
 	_set_evidence(
 		"%EvidenceValue",
@@ -223,7 +223,7 @@ func _set_evidence(path: String, title: String, complete: bool, explanation: Str
 	label.text = (
 		"%s — %s" % [title, explanation]
 		if complete
-		else "%s — Complete the related mission before the pitch." % title
+		else "%s — Complete the related task before the pitch." % title
 	)
 
 func _update_client_response() -> void:
@@ -236,12 +236,12 @@ func _update_client_response() -> void:
 			completed += 1
 	if completed == 5:
 		response.text = (
-			"The client can follow the campaign from audience need to persuasive response. "
+			"The client can follow the advertisement from audience need to persuasive response. "
 			+ "The message, visual hierarchy and supportable claim now work together, so the pair can defend why this advertisement should persuade its audience."
 		)
 	elif completed >= 3:
 		response.text = (
-			"The client can see a clear audience and campaign direction. Some evidence still needs to be connected before the pair can defend the whole advertisement."
+			"The client can see a clear audience and advertisement direction. Some evidence still needs to be connected before the pair can defend the whole advertisement."
 		)
 	else:
 		response.text = (
@@ -257,9 +257,9 @@ func _update_portfolio_stamps() -> void:
 		for sidequest_id in _progress.completed_sidequest_ids:
 			stamps.append(String(SIDEQUEST_LABELS.get(sidequest_id, sidequest_id.capitalize())))
 	label.text = (
-		"Portfolio stamps: %s" % ", ".join(stamps)
+		"Optional practice completed: %s" % ", ".join(stamps)
 		if not stamps.is_empty()
-		else "Portfolio stamps: none yet. Optional contracts add stamps but never block the pitch."
+		else "Optional practice: none completed. It never blocks the pitch."
 	)
 
 func _has_mission(mission_id: String) -> bool:

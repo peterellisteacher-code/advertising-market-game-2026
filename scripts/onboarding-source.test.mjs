@@ -76,21 +76,36 @@ test("onboarding screenshots contain PNG bytes, not only PNG filenames", () => {
   }
 });
 
-test("first-time agency orientation explains the whole campaign before controls", () => {
+test("first-time agency orientation explains the advertising task before controls", () => {
   for (const copy of [
-    "You and your partner run an advertising agency.",
-    "Read the brief. Complete seven short missions. Build one ad. Pitch it.",
+    "You and your partner will make and pitch one ad.",
+    "Read the brief. Complete seven short tasks. Build one ad. Pitch it.",
     "Make an ad that gives the audience a clear reason to act.",
     "Practise choosing advertising techniques and explaining their effect.",
-    "Each required mission earns an approval or tool for the final pitch."
+    "Each required task prepares the ad for the final pitch."
   ]) {
     assert.ok(agencyGuideScript.includes(copy), `missing opening promise: ${copy}`);
   }
+  for (const authoredDefault of [
+    "You and your partner will make and pitch one ad.",
+    "Read the brief. Complete seven short tasks. Build one ad. Pitch it.",
+    "Each required task prepares the ad for the final pitch."
+  ]) {
+    assert.ok(
+      agencyGuideScene.includes(`text = "${authoredDefault}"`),
+      `missing quick-start default: ${authoredDefault}`
+    );
+  }
+  assert.doesNotMatch(agencyGuideScene, /text = "EARN"/);
   assert.match(agencyGuideScript, /const ORIENTATION_STEPS := \[[\s\S]*?"overview": true/);
   assert.ok(
-    agencyGuideScript.indexOf('"overview": true') < agencyGuideScript.indexOf('"title": "Move to the first mission"'),
+    agencyGuideScript.indexOf('"overview": true') < agencyGuideScript.indexOf('"title": "Move to the first task"'),
     "the whole-game overview must precede movement and control instruction"
   );
+  const orientationBlock = agencyGuideScript.match(
+    /const ORIENTATION_STEPS := \[[\s\S]*?\n\]/
+  )?.[0] ?? "";
+  assert.doesNotMatch(orientationBlock, /\b(?:mission|approval|tool)s?\b|\badvertisement\b/i);
 });
 
 test("agency orientation uses truthful, cropped project screenshots without inventing a pitch capture", () => {
@@ -111,7 +126,7 @@ test("agency orientation uses truthful, cropped project screenshots without inve
     assert.ok(agencyAssetSources.includes(assetName));
     assert.ok(agencyAssetSources.toLowerCase().includes(expectedHash));
   }
-  for (const label of ["Brief", "Build", "Brief approved"]) {
+  for (const label of ["Brief", "Build", "Brief complete"]) {
     assert.ok(agencyGuideScene.includes(`text = "${label}"`), `missing screenshot label: ${label}`);
   }
   assert.doesNotMatch(agencyGuideScene, /text = "(?:Pitch|Earn approval and pitch)"/);
@@ -194,7 +209,7 @@ test("agency HUD and station card can be tucked without hiding the next action",
     "compact HUD must shrink back to its viewport width after expanded children are hidden"
   );
   assert.ok(agencyHudScene.includes('name="HudTuckToggle"'));
-  assert.ok(agencyHudScene.includes('text = "Show campaign details"'));
+  assert.ok(agencyHudScene.includes('text = "Show work details"'));
   for (const nodeName of [
     "StationDetailsToggle",
     "StationPanelTuck",
@@ -255,7 +270,7 @@ test("agency mission keeps evidence and a direct role handover beside clickable 
   assert.ok(missionPanelScript.includes("Strategist decides audience, purpose, product and message"));
   assert.ok(missionPanelScript.includes("Art Director decides visual design and execution"));
   assert.ok(missionPanelScript.includes("Hide audience brief"));
-  assert.ok(missionPanelScript.includes("Hide mission reference"));
+  assert.ok(missionPanelScript.includes("Hide task reference"));
   assert.match(missionPanelScript, /func show_handoff_error\(\) -> void:/);
   assert.doesNotMatch(
     missionPanelScript,
@@ -349,7 +364,7 @@ test("run screen reveals one concrete next requirement at a time", () => {
 
 test("instructions and final review remain explicit in the game shell", () => {
   assert.match(mainScene, /name="ReviewInstructions"[\s\S]*?text = "Review all instructions"/);
-  assert.match(mainScene, /name="InstructionsDialog"[\s\S]*?title = "Advertising campaign instructions"/);
+  assert.match(mainScene, /name="InstructionsDialog"[\s\S]*?title = "Advertisement instructions"/);
   for (const text of [
     "Audience and product",
     "Product and advertisement",

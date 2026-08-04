@@ -216,9 +216,9 @@ func _panel_exposes_reference_and_direct_handoff() -> bool:
 	var mission_reference_record := record.duplicate(true)
 	mission_reference_record.erase("referenceFacts")
 	panel.call("show_choice", mission_reference_record, "strategist", true)
-	assert(reference_toggle.text == "Hide mission reference")
+	assert(reference_toggle.text == "Hide task reference")
 	reference_toggle.pressed.emit()
-	assert(reference_toggle.text == "Show mission reference")
+	assert(reference_toggle.text == "Show task reference")
 	var role_details := panel.get_node("%s/OwnerCard/HoldingLabel" % content_path) as Label
 	var role_definition := panel.get_node("%s/OwnerCard/RoleDefinitionLabel" % content_path) as Label
 	var role_toggle := panel.get_node("%s/OwnerCard/RoleDetailsToggle" % content_path) as Button

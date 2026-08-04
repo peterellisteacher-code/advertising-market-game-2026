@@ -20,8 +20,8 @@ const ORIENTATION_ITEM_SUFFIXES: Array[String] = ["One", "Two", "Three"]
 const ORIENTATION_STEPS := [
 	{
 		"overview": true,
-		"title": "You and your partner run an advertising agency.",
-		"action": "Read the brief. Complete seven short missions. Build one ad. Pitch it.",
+		"title": "You and your partner will make and pitch one ad.",
+		"action": "Read the brief. Complete seven short tasks. Build one ad. Pitch it.",
 		"items": [
 			{
 				"label": "MAKE",
@@ -33,13 +33,13 @@ const ORIENTATION_STEPS := [
 			},
 			{
 				"label": "EARN",
-				"text": "Each required mission earns an approval or tool for the final pitch.",
+				"text": "Each required task prepares the ad for the final pitch.",
 			},
 		],
 		"button": "How do we start?",
 	},
 	{
-		"title": "Move to the first mission",
+		"title": "Move to the first task",
 		"action": "Go to Client Briefing, then open the first task.",
 		"items": [
 			{
@@ -47,8 +47,8 @@ const ORIENTATION_STEPS := [
 				"text": "Use WASD or arrow keys.",
 			},
 			{
-				"label": "USE A STATION",
-				"text": "Press E, Space or Enter when the station prompt appears.",
+				"label": "USE A ROOM",
+				"text": "Press E, Space or Enter when the room prompt appears.",
 			},
 			{
 				"label": "TRACKPAD",
@@ -74,19 +74,19 @@ const ORIENTATION_STEPS := [
 				"text": "Have the same controls and access. The roles divide responsibility, not permissions.",
 			},
 		],
-		"button": "What does a mission earn?",
+		"button": "Why complete each task?",
 	},
 	{
-		"title": "Begin the campaign",
-		"action": "Start at Client Briefing. Every required mission moves your advertisement towards the final pitch.",
+		"title": "Begin the work",
+		"action": "Start at Client Briefing. Every required task moves your ad towards the final pitch.",
 		"items": [
 			{
 				"label": "READ",
-				"text": "Read the audience brief before making campaign choices.",
+				"text": "Read the audience brief before making ad choices.",
 			},
 			{
 				"label": "BUILD",
-				"text": "Use each approval or tool when you create the advertisement.",
+				"text": "Apply each completed task when you create the ad.",
 			},
 			{
 				"label": "PITCH",
@@ -123,9 +123,9 @@ func configure(progress: AdMarketAgencyProgress, catalog: Variant) -> void:
 
 func show_objective(objective: Dictionary) -> void:
 	_objective = objective.duplicate(true)
-	_set_label_text("%CurrentObjective", String(objective.get("title", "Current objective")))
-	_set_label_text("%ObjectiveAction", "Action: %s" % String(objective.get("action", "Read the objective and choose the next useful station.")))
-	_set_label_text("%ObjectiveReason", "Reason: %s" % String(objective.get("reason", "This decision supplies evidence for the next campaign choice.")))
+	_set_label_text("%CurrentObjective", String(objective.get("title", "Next task")))
+	_set_label_text("%ObjectiveAction", "Action: %s" % String(objective.get("action", "Read the task and choose the next useful room.")))
+	_set_label_text("%ObjectiveReason", "Reason: %s" % String(objective.get("reason", "This decision supplies evidence for the next advertisement choice.")))
 	var owner_role := String(objective.get("ownerRole", "strategist"))
 	_set_label_text("%ObjectiveOwner", "%s leads this decision." % _role_title(owner_role))
 	_set_label_text(
@@ -134,9 +134,9 @@ func show_objective(objective: Dictionary) -> void:
 	)
 
 func set_progress(required_done: int, required_total: int, optional_done: int) -> void:
-	_set_label_text("%RequiredProgress", "%d of %d required missions complete" % [required_done, required_total])
-	_set_label_text("%OptionalProgress", "%d optional contracts complete" % optional_done)
-	var readiness := "Ready for the final pitch" if required_total > 0 and required_done >= required_total else "Final pitch unlocks after every required mission"
+	_set_label_text("%RequiredProgress", "%d of %d required tasks complete" % [required_done, required_total])
+	_set_label_text("%OptionalProgress", "%d optional practice activities complete" % optional_done)
+	var readiness := "Ready for the final pitch" if required_total > 0 and required_done >= required_total else "Final pitch unlocks after every required task"
 	_set_label_text("%PitchReadiness", readiness)
 
 func open_guide(section: String = "objective") -> void:

@@ -55,13 +55,13 @@ func current_objective() -> Dictionary:
 func open_station(station_id: String) -> Dictionary:
 	var objective: Dictionary = current_objective()
 	if _progress == null or objective.is_empty():
-		return {"allowed": false, "reason": "No agency campaign is active."}
+		return {"allowed": false, "reason": "No agency work is active."}
 	var objective_station := String(objective.get("stationId"))
 	var allowed := station_id == "reception" or station_id == objective_station
 	if not allowed:
 		return {
 			"allowed": false,
-			"reason": "The current objective is at %s." % objective_station,
+			"reason": "The next task is in %s." % objective_station,
 			"objective": objective.duplicate(true),
 		}
 	if station_id != "reception":
@@ -128,10 +128,10 @@ func on_publication(publication: Dictionary) -> void:
 
 func request_publish() -> bool:
 	if _progress == null or _progress.current_objective_id != "prepare-pitch":
-		status_changed.emit("Complete the current agency objective before publishing.")
+		status_changed.emit("Complete the current agency task before publishing.")
 		return false
 	if not all_required_missions_complete():
-		status_changed.emit("Complete all seven required technique missions before publishing.")
+		status_changed.emit("Complete all seven required technique tasks before publishing.")
 		return false
 	publish_requested.emit()
 	return true

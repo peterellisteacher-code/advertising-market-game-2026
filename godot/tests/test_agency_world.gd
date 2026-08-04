@@ -80,10 +80,10 @@ func _assert_station_card_can_be_tucked(world: Node, progress: RefCounted) -> vo
 	assert(station_panel.visible)
 	assert(not station_tab.visible)
 	assert(not details.visible)
-	assert(details_toggle.text == "Show station details")
+	assert(details_toggle.text == "Show room details")
 	details_toggle.pressed.emit()
 	assert(details.visible)
-	assert(details_toggle.text == "Hide station details")
+	assert(details_toggle.text == "Hide room details")
 	details_toggle.pressed.emit()
 	assert(not details.visible)
 	var station_before := world.call("current_station_id") as String

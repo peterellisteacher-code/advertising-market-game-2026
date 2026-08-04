@@ -62,6 +62,20 @@ const [
 
 const sha256 = (contents) => createHash("sha256").update(contents).digest("hex");
 
+test("onboarding screenshots contain PNG bytes, not only PNG filenames", () => {
+  const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  for (const [assetName, asset] of [
+    ["onboarding-brief.png", onboardingBriefAsset],
+    ["onboarding-build.png", onboardingBuildAsset],
+    ["onboarding-approval.png", onboardingApprovalAsset]
+  ]) {
+    assert.ok(
+      asset.subarray(0, pngSignature.length).equals(pngSignature),
+      `${assetName} must use the PNG file format`
+    );
+  }
+});
+
 test("first-time agency orientation explains the whole campaign before controls", () => {
   for (const copy of [
     "You and your partner run an advertising agency.",
@@ -81,9 +95,9 @@ test("first-time agency orientation explains the whole campaign before controls"
 
 test("agency orientation uses truthful, cropped project screenshots without inventing a pitch capture", () => {
   const expectedAssets = new Map([
-    ["onboarding-brief.png", "057444a7842267822c6ef555be95108b3c9fbd20b95ad1468288718bb57f73d5"],
-    ["onboarding-build.png", "c286eeae55797ea494c69bcec056ee6de56011509d059ec4d3b967232a3f9671"],
-    ["onboarding-approval.png", "a882205068632396a982f9cdb620f326055d4099b32841e554093a14df4c4141"]
+    ["onboarding-brief.png", "fc8031ddc385f1a0408987a4ff11a653ba131923cacc8d979abf0108fc81e586"],
+    ["onboarding-build.png", "a4a9c8aad920f106d62dd37029733f8b91f01fd6c22350f2ed66489713602ada"],
+    ["onboarding-approval.png", "689a663f12ca20f052a505521da450eb47f51ff2ea0354866b04489857a787a9"]
   ]);
   const actualAssets = new Map([
     ["onboarding-brief.png", sha256(onboardingBriefAsset)],

@@ -9,18 +9,22 @@ readable third-party advertising copy.
 
 ## First-run onboarding screenshots
 
-These three PNGs are unchanged project-owned QA captures of the verified Godot
-web export, copied on 4 August 2026. The onboarding scene uses an `AtlasTexture`
-to omit the 44-pixel teacher-test strip at the top; the source PNG pixels were
-not edited, resized, recoloured or regenerated. Each label describes only the
-state visible in its screenshot.
+These three project-owned QA captures come from the verified Godot web export.
+The QA source files used JPEG/JFIF bytes despite their `.png` names. On 4 August
+2026, their tracked copies were mechanically decoded and stored as real PNGs.
+Decoded RGB checksums match before and after transcoding: no pixels were
+cropped, resized, recoloured, regenerated or generatively edited. The onboarding
+scene uses an `AtlasTexture` to omit the 44-pixel teacher-test strip at the top.
+Each label describes only the state visible in its screenshot.
 
 ### `onboarding-brief.png`
 
 - Source: `C:\Godot Projects\Advertising Market Game QA\terra-audit-20260804\parent-harness-1280-client-briefing.png`
 - Dimensions: 1280 x 800 pixels
 - Scene crop: `Rect2(0, 44, 1280, 756)`
-- SHA-256: `057444a7842267822c6ef555be95108b3c9fbd20b95ad1468288718bb57f73d5`
+- Source capture SHA-256 (JPEG/JFIF bytes): `057444a7842267822c6ef555be95108b3c9fbd20b95ad1468288718bb57f73d5`
+- Tracked PNG SHA-256: `fc8031ddc385f1a0408987a4ff11a653ba131923cacc8d979abf0108fc81e586`
+- Decoded RGB MD5 before and after transcoding: `fe2065429aecb90cb353e644d3f9cb76`
 - Teaching use: labels the first whole-campaign stage, **Brief**
 
 ### `onboarding-build.png`
@@ -28,7 +32,9 @@ state visible in its screenshot.
 - Source: `C:\Godot Projects\Advertising Market Game QA\run-30822342945\mission-art-studio-1280x800.png`
 - Dimensions: 1280 x 800 pixels
 - Scene crop: `Rect2(0, 44, 1280, 756)`
-- SHA-256: `c286eeae55797ea494c69bcec056ee6de56011509d059ec4d3b967232a3f9671`
+- Source capture SHA-256 (JPEG/JFIF bytes): `c286eeae55797ea494c69bcec056ee6de56011509d059ec4d3b967232a3f9671`
+- Tracked PNG SHA-256: `a4a9c8aad920f106d62dd37029733f8b91f01fd6c22350f2ed66489713602ada`
+- Decoded RGB MD5 before and after transcoding: `cb906a88a55e7ce9c32d034e18541254`
 - Teaching use: labels the current art-direction decision as part of **Build**;
   this replaces the obsolete Studio capture containing `Step 5 of 19` and
   `visible canvas change` copy
@@ -38,7 +44,9 @@ state visible in its screenshot.
 - Source: `C:\Godot Projects\Advertising Market Game QA\terra-audit-20260804\parent-harness-1280-mission-complete.png`
 - Dimensions: 1280 x 800 pixels
 - Scene crop: `Rect2(0, 44, 1280, 756)`
-- SHA-256: `a882205068632396a982f9cdb620f326055d4099b32841e554093a14df4c4141`
+- Source capture SHA-256 (JPEG/JFIF bytes): `a882205068632396a982f9cdb620f326055d4099b32841e554093a14df4c4141`
+- Tracked PNG SHA-256: `689a663f12ca20f052a505521da450eb47f51ff2ea0354866b04489857a787a9`
+- Decoded RGB MD5 before and after transcoding: `7d95e59d1e373c0c5b6ae09374900574`
 - Teaching use: labels only the visible **Brief approved** state; this is not
   represented as a pitch
 

@@ -173,18 +173,8 @@ describe("createEditorShell", () => {
       '#studio-full-brief[aria-label="Audience brief"]'
     )!;
     expect(audienceBrief).toBeTruthy();
-    expect(audienceBrief.textContent).toContain(
-      "Context is the situation the audience is in."
-    );
-    expect(audienceBrief.textContent).toContain(
-      "Need is the problem the product should help solve."
-    );
-    expect(audienceBrief.textContent).toContain(
-      "Values are the ideas or qualities that matter to this audience."
-    );
-    expect(audienceBrief.textContent).toContain(
-      "Intended audience response is what the advertisement should encourage the audience to think, feel or do."
-    );
+    expect(audienceBrief.textContent).not.toContain("Context is the situation the audience is in.");
+    expect(audienceBrief.querySelectorAll("[data-brief-help]")).toHaveLength(4);
     expect(getByRole(root, "button", { name: "Open full brief" }).getAttribute("aria-expanded"))
       .toBe("false");
     expect(root.querySelector('[data-studio-panel="words"][aria-label="Pair tools"]')).toBeTruthy();

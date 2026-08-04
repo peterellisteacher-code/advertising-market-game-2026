@@ -181,6 +181,7 @@ import {
 } from "./game/creator-level-access";
 import { GuidedJourneyController } from "./game/guided-journey-controller";
 import { RoleGuideController } from "./game/role-guide-controller";
+import { StudioOnboardingController } from "./game/studio-onboarding-controller";
 import { SectionFillController } from "./tools/section-fill-controller";
 
 const RETURN_TO_GAME_EVENT = "ad-market-creator:return-to-game";
@@ -275,6 +276,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #productKitPanel: ProductKitPanel | null = null;
   #guidedJourney: GuidedJourneyController | null = null;
   #roleGuide: RoleGuideController | null = null;
+  #studioOnboarding: StudioOnboardingController | null = null;
   #aidaStage: AidaStage = "attention";
   #rasterPricing: RasterPricingIndex | null = null;
   #productKitBundle: LoadedProductKitBundle | null = null;
@@ -513,6 +515,14 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     }
     this.#roleGuide = controller;
     this.#refreshRoleGuide();
+  }
+
+  attachStudioOnboarding(controller: StudioOnboardingController): void {
+    if (this.#studioOnboarding !== null && this.#studioOnboarding !== controller) {
+      throw new Error("Studio onboarding is already attached");
+    }
+    this.#studioOnboarding = controller;
+    this.#refreshStudioOnboarding();
   }
 
   showMessage(message: string): void {
@@ -976,6 +986,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       this.#setOpen(true);
       this.#refreshGuidedJourney();
       this.#refreshRoleGuide();
+      this.#refreshStudioOnboarding();
     } catch (error) {
       this.#pairGame?.close();
       this.#destroyCanvasAccessibility();
@@ -1006,6 +1017,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       this.#document = null;
       this.#guidedJourney?.setCampaign(null);
       this.#roleGuide?.setCampaign(null);
+      this.#studioOnboarding?.setCampaign(null);
       this.#refreshMoneyCheck();
       this.#refreshMarketRoute();
       this.#refreshAidaPlaybook();
@@ -1380,6 +1392,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     attempt(() => this.#logoLab?.setMarks([]));
     attempt(() => this.#guidedJourney?.setCampaign(null));
     attempt(() => this.#roleGuide?.setCampaign(null));
+    attempt(() => this.#studioOnboarding?.setCampaign(null));
     attempt(() => this.#setOpen(false));
     attempt(() => this.gameCanvas?.focus({ preventScroll: true }));
     if (cleanupError !== null) throw cleanupError;
@@ -1597,6 +1610,16 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       ? this.#document
       : this.#snapshot();
     this.#roleGuide.setCampaign(document);
+  }
+
+  #refreshStudioOnboarding(): void {
+    if (this.#studioOnboarding === null) return;
+    if (this.#document === null) {
+      this.#studioOnboarding.setCampaign(null);
+      return;
+    }
+    const document = this.#runtime === null ? this.#document : this.#snapshot();
+    this.#studioOnboarding.setCampaign(document);
   }
 
   #refreshMarketRoute(feedback?: MarketRouteFeedback | null): void {
@@ -2374,9 +2397,23 @@ const roleGuide = new RoleGuideController(
     pairGame.acknowledgeRoleGuide();
     handler.schedulePracticeAutosave();
   },
-  () => shell.overlay.querySelector<HTMLButtonElement>("[data-guide-open-tool]")?.focus()
+  () => shell.overlay.querySelector<HTMLButtonElement>("[data-guide-open-tool]")?.focus(),
+  false
 );
 handler.attachRoleGuide(roleGuide);
+const studioOnboarding = new StudioOnboardingController(
+  root,
+  shell.overlay,
+  () => {
+    pairGame.acknowledgeRoleGuide();
+    handler.schedulePracticeAutosave();
+  },
+  () => {
+    studioTools.select("product");
+    shell.productBuilderPanel.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
+  }
+);
+handler.attachStudioOnboarding(studioOnboarding);
 const imageLabRuntime = new ImageLabRuntime({
   client: new ImageLabClient(),
   exportDesign: (pair) => handler.exportDesignDataUrl(pair),

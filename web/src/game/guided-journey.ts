@@ -150,9 +150,9 @@ const DEFINITIONS: readonly GuidedJourneyDefinition[] = Object.freeze([
     id: "starter-product",
     stage: "invent",
     title: "Starter product",
-    now: "Place one starter product on the canvas.",
+    now: "Choose one starter product.",
     why: "The Starter product supplies a workable object for the Product edit.",
-    done: "One product appears on the canvas.",
+    done: "One product appears in the advertisement.",
     next: "Complete the Product edit.",
     tool: "product",
     claimIds: claimIds("P5", "P6"),
@@ -436,9 +436,20 @@ export function evaluateGuidedJourney(
     STAGE_INDEX[nextStep.stage] > STAGE_INDEX[document.gameplay.stage];
   const transition = LEVEL_TRANSITIONS[document.gameplay.stage];
   const current = transitionRequired ? transition.step : nextStep;
+  const studioStepIds: Readonly<Record<CampaignGameplayStage, readonly GuidedJourneyStepId[]>> = {
+    invent: ["starter-product", "product-edit", "product-name"],
+    sell: ["attention", "interest", "desire", "action"],
+    irresistible: ["price-position", "visible-price", "market-route", "proof-point"],
+    "publish-check": ["final-review", "market-entry", "scoring", "sign-out"]
+  };
+  const phaseSteps = steps.filter((step) => studioStepIds[current.stage].includes(step.id));
+  const localIndex = phaseSteps.findIndex((step) => step.id === current.id);
+  const phaseLabel = current.stage === "invent" ? "Build" :
+    current.stage === "sell" ? "Message" :
+      current.stage === "irresistible" ? "Offer" : "Pitch";
   const progressLabel = transitionRequired
     ? transition.progressLabel
-    : `Step ${currentIndex + 1} of ${steps.length}`;
+    : `${phaseLabel} · Step ${Math.max(1, localIndex + 1)} of ${phaseSteps.length}`;
 
   return Object.freeze({
     steps,

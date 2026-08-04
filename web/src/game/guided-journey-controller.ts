@@ -31,10 +31,14 @@ export class GuidedJourneyController {
   readonly #dialog: HTMLElement;
   readonly #close: HTMLButtonElement;
   readonly #reference: HTMLElement;
+  readonly #manualPosition: HTMLElement;
+  readonly #manualPrevious: HTMLButtonElement;
+  readonly #manualNext: HTMLButtonElement;
   readonly #lockStatus: HTMLElement;
   readonly #protectedSurfaces: readonly HTMLElement[];
   #current: GuidedJourneyStep | null = null;
   #returnFocus: HTMLElement | null = null;
+  #manualPage = 0;
 
   constructor(
     private readonly root: HTMLElement,
@@ -57,6 +61,9 @@ export class GuidedJourneyController {
     this.#dialog = required(root, "[data-guide-dialog]");
     this.#close = required(root, "[data-guide-close]");
     this.#reference = required(root, "[data-guide-reference]");
+    this.#manualPosition = required(root, "[data-guide-page-position]");
+    this.#manualPrevious = required(root, "[data-guide-previous]");
+    this.#manualNext = required(root, "[data-guide-next]");
     this.#lockStatus = required(root, "[data-locked-actions-status]");
     const dialogParent = this.#dialog.parentElement;
     if (dialogParent === null) throw new Error("Guided journey dialog has no parent");
@@ -73,6 +80,8 @@ export class GuidedJourneyController {
       button.addEventListener("click", this.#onReview);
     }
     this.#close.addEventListener("click", this.#onClose);
+    this.#manualPrevious.addEventListener("click", () => this.#setManualPage(this.#manualPage - 1));
+    this.#manualNext.addEventListener("click", () => this.#setManualPage(this.#manualPage + 1));
     this.#dialog.addEventListener("keydown", this.#onDialogKeydown);
   }
 
@@ -189,6 +198,27 @@ export class GuidedJourneyController {
   }
 
   #renderReference(): void {
+    const pages = [
+      ["Goal", "Make one persuasive advertisement with a partner, then explain why its choices suit the supplied audience."],
+      ["Brief", "Read Context, Need, Values and Intended audience response before choosing the product or message."],
+      ["Roles", "The Art Director leads appearance choices. The Strategist leads audience, message, evidence and offer choices. Both can use every available control."],
+      ["Build", "Choose a product, then move, resize, recolour, add or remove an item in the advertisement when the next instruction asks for it."],
+      ["Message", "Use Attention, Interest, Desire and Action one at a time. Explain how each visible choice helps the audience."],
+      ["Pitch", "Complete the required missions, present the advertisement and explain how its product, message, price and proof fit the audience."]
+    ] as const;
+    this.#reference.replaceChildren(...pages.map(([title, copy], index) => {
+      const section = document.createElement("section");
+      section.dataset.guideManualPage = String(index);
+      section.hidden = index !== 0;
+      const heading = document.createElement("h3");
+      heading.textContent = title;
+      const paragraph = document.createElement("p");
+      paragraph.textContent = copy;
+      section.append(heading, paragraph);
+      return section;
+    }));
+    this.#setManualPage(0);
+    return;
     const fragment = document.createDocumentFragment();
     const foundations = document.createElement("div");
     foundations.className = "creator__guide-foundations";
@@ -247,7 +277,7 @@ export class GuidedJourneyController {
 
       const conclusion = subargument.claims.find(
         ({ id }) => id === subargument.conclusionId
-      );
+      )!;
       if (conclusion !== undefined) {
         const paragraph = document.createElement("p");
         paragraph.dataset.instructionClaimId = conclusion.id;
@@ -263,6 +293,19 @@ export class GuidedJourneyController {
 
     this.#reference.replaceChildren(fragment);
   }
+
+  #setManualPage(index: number): void {
+    const pages = [...this.#reference.querySelectorAll<HTMLElement>("[data-guide-manual-page]")];
+    this.#manualPage = Math.max(0, Math.min(index, pages.length - 1));
+    pages.forEach((page, pageIndex) => { page.hidden = pageIndex !== this.#manualPage; });
+    const title = pages[this.#manualPage]?.querySelector("h3")?.textContent ?? "Guide";
+    this.#manualPosition.textContent = `Page ${this.#manualPage + 1} of ${pages.length} · ${title}`;
+    this.#manualPrevious.hidden = this.#manualPage === 0;
+    this.#manualNext.hidden = this.#manualPage === pages.length - 1;
+  }
+
+  readonly #onManualPrevious = (): void => this.#setManualPage(this.#manualPage - 1);
+  readonly #onManualNext = (): void => this.#setManualPage(this.#manualPage + 1);
 
   readonly #onOpenTool = (): void => {
     if (this.#current !== null) this.openStep(this.#current);

@@ -63,10 +63,10 @@ describe("RoleGuideController", () => {
       "The Art Director is the active role first."
     );
     expect(dialog.textContent).toContain(
-      "The partner in the active role should use the keyboard or trackpad for the next canvas change."
+      "The partner in the active role should use the keyboard or trackpad for the next advertisement edit."
     );
     expect(dialog.textContent).toContain(
-      "The site labels each canvas change with the role that is active."
+      "The site records each advertisement edit with the role that is active."
     );
     expect(dialog.textContent).toContain(
       "It does not block tools or identify which person physically touched the device."
@@ -104,7 +104,7 @@ describe("RoleGuideController", () => {
     const dialog = getByRole(root, "dialog", { name: "Partner role guide" });
     expect(dialog.textContent).toContain("The Strategist is the active role first.");
     expect(dialog.textContent).toContain(
-      "Swap roles changes the active responsibility and the role recorded for later canvas changes."
+      "Swap roles changes the active responsibility and the role recorded for later advertisement edits."
     );
     expect(dialog.textContent).toContain(
       "Earlier work and recorded contributions stay in the campaign."

@@ -50,6 +50,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         <button type="button" data-command="redo">Redo</button>
         <span class="creator__save-status" role="status" aria-label="Saved progress" data-save-status></span>
         <button type="button" data-guide-review-top>How to use this site</button>
+        <button type="button" data-studio-tour-open>Studio tour</button>
         <button type="button" data-command="return">Return to game</button>
       </header>
       <section class="creator__pair-strip" role="region" aria-label="${STUDENT_COPY.labels.pairPlay}">
@@ -83,30 +84,26 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         <article class="creator__audience-brief" id="studio-full-brief" role="region" aria-label="${STUDENT_COPY.labels.audienceBrief}" hidden>
           <dl>
             <div>
-              <dt>${STUDENT_COPY.labels.context}</dt>
+              <dt>${STUDENT_COPY.labels.context}<button type="button" class="creator__brief-help" aria-label="What does Context mean?" data-brief-help="context">?</button></dt>
               <dd>
-                <span class="creator__brief-definition">${STUDENT_COPY.audienceBriefDefinitions.context}</span>
                 <span data-audience-context></span>
               </dd>
             </div>
             <div>
-              <dt>${STUDENT_COPY.labels.need}</dt>
+              <dt>${STUDENT_COPY.labels.need}<button type="button" class="creator__brief-help" aria-label="What does Need mean?" data-brief-help="need">?</button></dt>
               <dd>
-                <span class="creator__brief-definition">${STUDENT_COPY.audienceBriefDefinitions.need}</span>
                 <span data-audience-need></span>
               </dd>
             </div>
             <div>
-              <dt>${STUDENT_COPY.labels.values}</dt>
+              <dt>${STUDENT_COPY.labels.values}<button type="button" class="creator__brief-help" aria-label="What does Values mean?" data-brief-help="values">?</button></dt>
               <dd>
-                <span class="creator__brief-definition">${STUDENT_COPY.audienceBriefDefinitions.values}</span>
                 <span data-audience-values></span>
               </dd>
             </div>
             <div>
-              <dt>${STUDENT_COPY.labels.intendedEffect}</dt>
+              <dt>${STUDENT_COPY.labels.intendedEffect}<button type="button" class="creator__brief-help" aria-label="What does Intended audience response mean?" data-brief-help="intendedEffect">?</button></dt>
               <dd>
-                <span class="creator__brief-definition">${STUDENT_COPY.audienceBriefDefinitions.intendedEffect}</span>
                 <span data-audience-effect></span>
               </dd>
             </div>
@@ -264,7 +261,12 @@ export function createEditorShell(root: HTMLElement): EditorShell {
               <p class="creator__eyebrow">Complete reference</p>
               <h2 id="advertising-campaign-instructions-title">How to use this site</h2>
             </div>
-            <button type="button" data-guide-close>Close guide</button>
+            <div class="creator__instruction-dialog-actions">
+              <span data-guide-page-position></span>
+              <button type="button" data-guide-previous>Previous</button>
+              <button type="button" data-guide-next>Next</button>
+              <button type="button" data-guide-close>Close guide</button>
+            </div>
           </header>
           <div class="creator__instruction-dialog-body" data-guide-reference></div>
         </div>
@@ -272,6 +274,39 @@ export function createEditorShell(root: HTMLElement): EditorShell {
       <p class="sr-only" data-live="polite" aria-live="polite"></p>
       <p class="sr-only" data-live="assertive" aria-live="assertive"></p>
     </section>
+    <div class="creator__studio-onboarding-layer" data-studio-onboarding-layer hidden>
+      <section class="creator__studio-onboarding" role="dialog" aria-modal="true"
+        aria-label="Studio tour" data-studio-onboarding-dialog tabindex="-1">
+        <p class="creator__eyebrow" data-studio-onboarding-position></p>
+        <div data-studio-onboarding-page="brief">
+          <h2>Read the audience brief</h2>
+          <dl class="creator__onboarding-brief">
+            <div><dt>Context</dt><dd data-onboarding-context></dd></div>
+            <div><dt>Need</dt><dd data-onboarding-need></dd></div>
+            <div><dt>Values</dt><dd data-onboarding-values></dd></div>
+            <div><dt>Intended audience response</dt><dd data-onboarding-effect></dd></div>
+          </dl>
+        </div>
+        <div data-studio-onboarding-page="roles" hidden>
+          <h2>Share the roles</h2>
+          <p>The Art Director leads appearance choices. The Strategist leads audience, message, evidence and offer choices.</p>
+          <p>Both partners can use the same controls. Swap roles changes responsibility, not permissions.</p>
+        </div>
+        <div data-studio-onboarding-page="build" hidden>
+          <h2>Use the Build area</h2>
+          <p>Build lets you choose a starter product for the advertisement. Other tools appear when their next action needs them.</p>
+        </div>
+        <div data-studio-onboarding-page="first-action" hidden>
+          <h2>Choose a starter product</h2>
+          <p>Choose one product. It will appear in the advertisement, ready for your first design edit.</p>
+        </div>
+        <div class="creator__studio-onboarding-actions">
+          <button type="button" data-studio-onboarding-close>Close</button>
+          <button type="button" data-studio-onboarding-previous>Previous</button>
+          <button type="button" data-studio-onboarding-next>Next</button>
+        </div>
+      </section>
+    </div>
     <div class="creator__role-guide-layer" data-role-guide-layer hidden>
       <section class="creator__role-guide" role="dialog" aria-modal="true"
         aria-label="Partner role guide" data-role-guide-dialog tabindex="-1">
@@ -321,6 +356,27 @@ export function createEditorShell(root: HTMLElement): EditorShell {
     if (open) overlay.dataset.briefOpen = "true";
     else delete overlay.dataset.briefOpen;
   });
+  for (const help of root.querySelectorAll<HTMLButtonElement>("[data-brief-help]")) {
+    help.addEventListener("click", () => {
+      const key = help.dataset.briefHelp as keyof typeof STUDENT_COPY.audienceBriefDefinitions;
+      const definition = STUDENT_COPY.audienceBriefDefinitions[key];
+      const previous = root.querySelector<HTMLElement>("[data-brief-help-card]");
+      if (previous !== null) previous.remove();
+      const card = root.ownerDocument.createElement("section");
+      card.className = "creator__brief-help-card";
+      card.dataset.briefHelpCard = "";
+      card.setAttribute("role", "dialog");
+      card.setAttribute("aria-label", `About ${help.closest("dt")?.textContent?.replace("?", "").trim() ?? "this heading"}`);
+      card.innerHTML = `<p>${definition}</p><button type="button">Close</button>`;
+      const close = card.querySelector<HTMLButtonElement>("button")!;
+      close.addEventListener("click", () => { card.remove(); help.focus(); });
+      card.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") { event.preventDefault(); card.remove(); help.focus(); }
+      });
+      help.closest("div")?.append(card);
+      close.focus();
+    });
+  }
 
   return {
     overlay,

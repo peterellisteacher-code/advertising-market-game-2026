@@ -177,7 +177,7 @@ describe("PairGameController", () => {
     expect(view.partnerRoleAction.textContent)
       .toBe("Read the audience need. Prepare a product name and one useful benefit.");
     expect(view.roundProgress.textContent).toContain(
-      "Art Director: visible canvas change not yet recorded."
+      "Art Director: visible advertisement edit not yet recorded."
     );
     expect(view.roundProgress.textContent).toContain(
       "Strategist: message or strategy change not yet recorded."
@@ -199,7 +199,7 @@ describe("PairGameController", () => {
 
     await waitFor(() => {
       expect(port.addedText).toEqual(["Make room for adventure"]);
-      expect(root.textContent).toContain("Art Director: visible canvas change recorded.");
+      expect(root.textContent).toContain("Art Director: visible advertisement edit recorded.");
       expect(view.activeRoleAction.textContent).toBe(
         "Complete the current visual choice. Then choose Swap roles. The Strategist leads the next message decision."
       );

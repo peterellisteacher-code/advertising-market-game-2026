@@ -54,6 +54,10 @@
 .creator__audience-brief dd { margin: 2px 0 0; color: #334155; font-size: .875rem; line-height: 1.35; }
 .creator__brief-definition { display: block; margin-bottom: 3px; color: #52627a; font-size: .875rem; font-weight: 750; }
 .creator__brief-definition + span { display: block; }
+.creator__brief-help { width: 1.5rem; min-height: 1.5rem; margin-left: .35rem; border: 1px solid var(--blue); border-radius: 999px; background: #fff; color: var(--blue); font: inherit; font-weight: 950; line-height: 1; }
+.creator__brief-help-card { position: absolute; z-index: 2; width: min(20rem, calc(100% - 24px)); margin-top: .4rem; padding: .7rem; border: 2px solid var(--ink); border-radius: .5rem; background: #fffdf8; box-shadow: 0 8px 20px rgb(23 32 51 / .2); color: #334155; font-size: .875rem; line-height: 1.35; }
+.creator__brief-help-card p { margin: 0 0 .55rem; }
+.creator__brief-help-card button { min-height: 32px; border: 1px solid var(--blue); border-radius: .35rem; background: #fff; color: var(--blue); font: inherit; font-weight: 900; }
 .creator__workspace { --studio-rail-width: 64px; --studio-browse-percent: 40%; --studio-browse-width: .666667fr; --studio-separator-width: 10px; position: relative; min-width: 0; min-height: 0; display: grid; grid-template-columns: var(--studio-rail-width) minmax(0, var(--studio-browse-width)) var(--studio-separator-width) minmax(0, 1fr); overflow: hidden; }
 .creator__tool-rail { grid-column: 1; grid-row: 1; min-height: 0; padding: 6px 4px; display: grid; grid-auto-rows: minmax(52px, auto); align-content: start; gap: 4px; overflow-x: hidden; overflow-y: auto; border-right: 1px solid #0b506a; background: #0d5f7d; }
 .creator__tool-rail [role="tab"] { min-width: 0; padding: 4px 2px; border: 0; border-radius: 9px; background: transparent; color: #e6f5fa; font: inherit; font-size: .875rem; font-weight: 850; line-height: 1.05; }
@@ -101,6 +105,18 @@
 .creator__instruction-dialog-body li + li { margin-top: 5px; }
 .creator__instruction-dialog-body section > p:last-child { margin: 8px 0 0; }
 .creator__role-guide-layer { position: fixed; inset: 0; z-index: 34; padding: 24px; display: grid; place-items: center; background: rgb(10 22 36 / .76); }
+.creator__studio-onboarding-layer { position: fixed; inset: 0; z-index: 35; padding: 24px; display: grid; place-items: center; background: rgb(10 22 36 / .76); }
+.creator__studio-onboarding { width: min(42rem, 100%); max-height: min(40rem, calc(100vh - 48px)); padding: 22px; overflow: auto; border: 3px solid var(--ink); border-radius: 14px; background: #fffdf8; color: #253249; box-shadow: 8px 8px 0 var(--gold); }
+.creator__studio-onboarding h2 { margin: 2px 0 12px; color: var(--ink); font-size: 1.45rem; }
+.creator__studio-onboarding p { margin: 0; line-height: 1.45; }
+.creator__studio-onboarding p + p { margin-top: .75rem; }
+.creator__onboarding-brief { margin: 0; display: grid; gap: .7rem; }
+.creator__onboarding-brief > div { padding: .65rem .75rem; border-left: 5px solid var(--blue); background: #eef8fa; }
+.creator__onboarding-brief dt { color: var(--blue); font-size: .875rem; font-weight: 950; text-transform: uppercase; }
+.creator__onboarding-brief dd { margin: .2rem 0 0; line-height: 1.4; }
+.creator__studio-onboarding-actions { margin-top: 1.25rem; display: flex; justify-content: flex-end; gap: .5rem; }
+.creator__studio-onboarding-actions button { min-height: 42px; padding: 0 .85rem; border: 2px solid var(--ink); border-radius: .5rem; background: #fff; color: var(--ink); font: inherit; font-weight: 900; }
+.creator__studio-onboarding-actions [data-studio-onboarding-next] { background: var(--blue); color: #fff; }
 .creator__role-guide { width: min(44rem, 100%); max-height: min(44rem, calc(100vh - 48px)); padding: 22px; overflow: auto; border: 3px solid var(--ink); border-radius: 14px; background: #fffdf8; color: #253249; box-shadow: 8px 8px 0 var(--gold); }
 .creator__role-guide > h2 { margin: 2px 0 8px; color: var(--ink); font-size: 1.55rem; }
 .creator__role-guide > p { margin: 0; line-height: 1.45; }

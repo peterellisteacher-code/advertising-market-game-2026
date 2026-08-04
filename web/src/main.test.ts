@@ -2057,7 +2057,7 @@ describe("window.AdMarketCreator", () => {
     expect(await parsed(api, "open-guided", "open", source)).toMatchObject({ ok: true });
 
     const guide = getByRole(document.body, "region", { name: "Current instruction" });
-    expect(guide.textContent).toContain("Step 8 of 19");
+    expect(guide.textContent).toContain("Message · Step 1 of 4");
     expect(guide.textContent).toContain("Attention");
     expect(document.querySelector<HTMLButtonElement>("[data-slot=interest]")!.disabled)
       .toBe(true);
@@ -2072,7 +2072,7 @@ describe("window.AdMarketCreator", () => {
     fireEvent.input(idea, { target: { value: "Use a close product image as the focal point." } });
     fireEvent.click(getByRole(document.body, "button", { name: "Lock in Attention" }));
 
-    await waitFor(() => expect(guide.textContent).toContain("Step 9 of 19"));
+    await waitFor(() => expect(guide.textContent).toContain("Message · Step 2 of 4"));
     expect(guide.textContent).toContain("Interest");
     expect(document.querySelector<HTMLButtonElement>("[data-slot=attention]")!.disabled)
       .toBe(false);
@@ -2128,7 +2128,7 @@ describe("window.AdMarketCreator", () => {
     expect(document.activeElement).toBe(productName);
   });
 
-  it("requires the role guide once and persists acknowledgement before work begins", async () => {
+  it("requires the Studio tour once and persists acknowledgement before work begins", async () => {
     const firstEntry = createBlankCampaignDocument({
       documentId: "first-role-guide",
       sessionId: "first-role-guide-session",
@@ -2139,26 +2139,27 @@ describe("window.AdMarketCreator", () => {
 
     expect(await parsed(api, "open-first-role-guide", "open", firstEntry))
       .toMatchObject({ ok: true });
-    const dialog = getByRole(document.body, "dialog", { name: "Partner role guide" });
-    expect(dialog.textContent).toContain("The roles do not unlock different buttons.");
-    expect(dialog.textContent).toContain("The Art Director is the active role first.");
+    const dialog = getByRole(document.body, "dialog", { name: "Studio tour" });
+    expect(dialog.textContent).toContain("Page 1 of 4 · Brief");
+    expect(dialog.textContent).toContain("Teenagers. One-hour window between school dismissal and home arrival.");
     fireEvent.keyDown(dialog, { key: "Escape" });
-    expect(dialog.closest<HTMLElement>("[data-role-guide-layer]")?.hidden).toBe(false);
+    expect(dialog.closest<HTMLElement>("[data-studio-onboarding-layer]")?.hidden).toBe(true);
 
-    fireEvent.click(getByRole(dialog, "button", { name: "Begin work" }));
+    fireEvent.click(getByRole(document.body, "button", { name: "Studio tour" }));
+    fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
+    fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
+    fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
+    fireEvent.click(getByRole(dialog, "button", { name: "Start with a product" }));
     const state = await parsed(api, "role-guide-state", "getState", null);
     expect(state.payload).toMatchObject({
       gameplay: { pair: { roleGuideAcknowledged: true } }
     });
-    expect(document.activeElement).toBe(
-      document.querySelector<HTMLButtonElement>("[data-guide-open-tool]")
-    );
 
     expect(await parsed(api, "close-first-role-guide", "close", null))
       .toMatchObject({ ok: true });
     expect(await parsed(api, "reopen-first-role-guide", "open", state.payload))
       .toMatchObject({ ok: true });
-    expect(document.querySelector<HTMLElement>("[data-role-guide-layer]")?.hidden).toBe(true);
+    expect(document.querySelector<HTMLElement>("[data-studio-onboarding-layer]")?.hidden).toBe(true);
   });
 
   it("makes keyboard canvas movement one undoable document change", async () => {
@@ -2989,7 +2990,7 @@ describe("window.AdMarketCreator", () => {
       ]);
       expect(getByRole(document.body, "status", { name: "Pair progress" }).textContent)
         .toBe(
-          "Art Director: visible canvas change recorded. " +
+          "Art Director: visible advertisement edit recorded. " +
           "Strategist: message or strategy change not yet recorded. " +
           "Roles have not been swapped yet."
         );
@@ -3004,7 +3005,7 @@ describe("window.AdMarketCreator", () => {
       expect(currentObjects()).toHaveLength(2);
       expect(getByRole(document.body, "status", { name: "Pair progress" }).textContent)
         .toBe(
-          "Art Director: visible canvas change recorded. " +
+          "Art Director: visible advertisement edit recorded. " +
           "Strategist: message or strategy change recorded. " +
           "Roles have been swapped once."
         );

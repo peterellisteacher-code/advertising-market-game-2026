@@ -97,8 +97,9 @@ test("the Godot shell mirrors current instructions semantically without pretendi
   assert.match(shell, /\.textContent\s*=/);
   assert.doesNotMatch(shell, /game-a11y[^]*?\.innerHTML\s*=/);
   assert.doesNotMatch(shell, /status\.textContent\s*=\s*`Unable to start:\s*\$\{error\.message\}`/);
-  assert.match(shell, /status\.textContent\s*=\s*"The game could not start\. Reload the page and try again\."/);
-  assert.match(shell, /console\.error\(error\)/);
+  assert.match(shell, /AdMarketGameAccess\.reportStartupFailure\("timeout"\)/);
+  assert.match(shell, /AdMarketGameAccess\.reportStartupFailure\("engine"\)/);
+  assert.match(shell, /console\.error\("\[AdMarket game startup failed\]", \{ reason \}\)/);
   assert.match(main, /GameAccessibilityMirror\.new\(\)/);
   assert.match(main, /func _process\(_delta: float\) -> void:/);
   assert.match(

@@ -80,6 +80,7 @@ test("first-time agency orientation explains the advertising task before control
   for (const copy of [
     "You and your partner will make and pitch one ad.",
     "Read the brief. Complete seven short tasks. Build one ad. Pitch it.",
+    "Walk near a room, then click Start task. E, Space or Enter also works.",
     "Make an ad that gives the audience a clear reason to act.",
     "Practise choosing advertising techniques and explaining their effect.",
     "Each required task prepares the ad for the final pitch."

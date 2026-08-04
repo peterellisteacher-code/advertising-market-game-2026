@@ -48,7 +48,7 @@ const ORIENTATION_STEPS := [
 			},
 			{
 				"label": "USE A ROOM",
-				"text": "Press E, Space or Enter when the room prompt appears.",
+				"text": "Walk near a room, then click Start task. E, Space or Enter also works.",
 			},
 			{
 				"label": "TRACKPAD",

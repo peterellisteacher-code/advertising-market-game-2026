@@ -114,6 +114,9 @@
 .creator__onboarding-brief > div { padding: .65rem .75rem; border-left: 5px solid var(--blue); background: #eef8fa; }
 .creator__onboarding-brief dt { color: var(--blue); font-size: .875rem; font-weight: 950; text-transform: uppercase; }
 .creator__onboarding-brief dd { margin: .2rem 0 0; line-height: 1.4; }
+.creator__onboarding-brief-help-card { margin-top: .55rem; padding: .65rem; border: 1px solid var(--blue); border-radius: .45rem; background: #fff; color: #334155; font-size: .875rem; line-height: 1.35; }
+.creator__onboarding-brief-help-card p { margin: 0 0 .55rem; }
+.creator__onboarding-brief-help-card button { min-height: 32px; min-width: 32px; border: 1px solid var(--blue); border-radius: .35rem; background: #fff; color: var(--blue); font: inherit; font-weight: 900; }
 .creator__studio-onboarding-actions { margin-top: 1.25rem; display: flex; justify-content: flex-end; gap: .5rem; }
 .creator__studio-onboarding-actions button { min-height: 42px; padding: 0 .85rem; border: 2px solid var(--ink); border-radius: .5rem; background: #fff; color: var(--ink); font: inherit; font-weight: 900; }
 .creator__studio-onboarding-actions [data-studio-onboarding-next] { background: var(--blue); color: #fff; }

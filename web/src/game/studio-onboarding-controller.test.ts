@@ -79,10 +79,17 @@ describe("StudioOnboardingController", () => {
     fireEvent.click(close);
     expect(acknowledge).not.toHaveBeenCalled();
     expect(root.querySelector<HTMLElement>("[data-studio-onboarding-layer]")!.hidden).toBe(true);
+    expect(document.activeElement).toBe(getByRole(root, "button", { name: "Studio tour" }));
 
     fireEvent.click(getByRole(root, "button", { name: "Studio tour" }));
     expect(dialog.textContent).toContain("Page 1 of 4 · Brief");
     expect(acknowledge).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(acknowledge).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(getByRole(root, "button", { name: "Studio tour" }));
+
+    fireEvent.click(getByRole(root, "button", { name: "Studio tour" }));
 
     fireEvent.click(next);
     const previous = getByRole(dialog, "button", { name: "Previous" });
@@ -96,5 +103,48 @@ describe("StudioOnboardingController", () => {
     expect(document.activeElement).toBe(close);
     fireEvent.keyDown(close, { key: "Tab", shiftKey: true });
     expect(document.activeElement).toBe(next);
+  });
+
+  it("offers optional first-page brief definitions without hiding the brief facts", () => {
+    document.body.innerHTML = '<div id="creator-root"></div>';
+    const root = document.querySelector<HTMLElement>("#creator-root")!;
+    const shell = createEditorShell(root);
+    const controller = new StudioOnboardingController(root, shell.overlay, vi.fn(), vi.fn());
+
+    controller.setCampaign(campaign());
+
+    const dialog = getByRole(root, "dialog", { name: "Studio tour" });
+    expect(dialog.textContent).toContain("Teenagers. One-hour window between school dismissal and home arrival.");
+    expect(dialog.textContent).toContain("A method to make the window productive.");
+    expect(getByRole(dialog, "button", { name: "What does Context mean?" })).toBeTruthy();
+    expect(getByRole(dialog, "button", { name: "What does Need mean?" })).toBeTruthy();
+    expect(getByRole(dialog, "button", { name: "What does Values mean?" })).toBeTruthy();
+    const help = getByRole<HTMLButtonElement>(dialog, "button", {
+      name: "What does Intended audience response mean?"
+    });
+
+    fireEvent.click(help);
+    const definition = getByRole(dialog, "dialog", { name: "About Intended audience response" });
+    expect(definition.textContent).toContain(
+      "Intended audience response is what the advertisement should encourage the audience to think, feel or do."
+    );
+    const dismiss = getByRole<HTMLButtonElement>(definition, "button", {
+      name: "Close Intended audience response definition"
+    });
+    expect(dismiss.textContent).toBe("×");
+    expect(document.activeElement).toBe(dismiss);
+
+    fireEvent.click(dismiss);
+    expect(dialog.querySelector("[data-studio-onboarding-help-card]")).toBeNull();
+    expect(document.activeElement).toBe(help);
+
+    fireEvent.click(help);
+    const reopenedDefinition = getByRole(dialog, "dialog", {
+      name: "About Intended audience response"
+    });
+
+    fireEvent.keyDown(reopenedDefinition, { key: "Escape" });
+    expect(dialog.querySelector("[data-studio-onboarding-help-card]")).toBeNull();
+    expect(document.activeElement).toBe(help);
   });
 });

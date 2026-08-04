@@ -281,10 +281,10 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         <div data-studio-onboarding-page="brief">
           <h2>Read the audience brief</h2>
           <dl class="creator__onboarding-brief">
-            <div><dt>Context</dt><dd data-onboarding-context></dd></div>
-            <div><dt>Need</dt><dd data-onboarding-need></dd></div>
-            <div><dt>Values</dt><dd data-onboarding-values></dd></div>
-            <div><dt>Intended audience response</dt><dd data-onboarding-effect></dd></div>
+            <div><dt>Context<button type="button" class="creator__brief-help" aria-label="What does Context mean?" data-studio-onboarding-help="context" data-studio-onboarding-help-label="Context">?</button></dt><dd data-onboarding-context></dd></div>
+            <div><dt>Need<button type="button" class="creator__brief-help" aria-label="What does Need mean?" data-studio-onboarding-help="need" data-studio-onboarding-help-label="Need">?</button></dt><dd data-onboarding-need></dd></div>
+            <div><dt>Values<button type="button" class="creator__brief-help" aria-label="What does Values mean?" data-studio-onboarding-help="values" data-studio-onboarding-help-label="Values">?</button></dt><dd data-onboarding-values></dd></div>
+            <div><dt>Intended audience response<button type="button" class="creator__brief-help" aria-label="What does Intended audience response mean?" data-studio-onboarding-help="intendedEffect" data-studio-onboarding-help-label="Intended audience response">?</button></dt><dd data-onboarding-effect></dd></div>
           </dl>
         </div>
         <div data-studio-onboarding-page="roles" hidden>

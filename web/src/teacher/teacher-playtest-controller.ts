@@ -32,6 +32,7 @@ export class TeacherPlaytestController {
   readonly #openFirstScreen: () => void;
   readonly #navigate: (path: "/teacher") => void;
   readonly #createOperationId: () => string;
+  #teacherControlsAbortController: AbortController | undefined;
 
   constructor(options: TeacherPlaytestControllerOptions) {
     this.#root = options.root;
@@ -46,6 +47,8 @@ export class TeacherPlaytestController {
   }
 
   async mount(): Promise<void> {
+    this.#teacherControlsAbortController?.abort();
+    this.#teacherControlsAbortController = undefined;
     this.#root.dataset.admarketRoute = "teacher-playtest";
     this.#root.replaceChildren();
     const status = document.createElement("p");
@@ -83,6 +86,8 @@ export class TeacherPlaytestController {
   }
 
   #renderBoundary(headingText: string, message: string): void {
+    this.#teacherControlsAbortController?.abort();
+    this.#teacherControlsAbortController = undefined;
     const main = document.createElement("main");
     main.className = "teacher-page teacher-login";
     main.tabIndex = -1;
@@ -98,6 +103,9 @@ export class TeacherPlaytestController {
   }
 
   #renderStrip(): void {
+    this.#teacherControlsAbortController?.abort();
+    const controlsAbortController = new AbortController();
+    this.#teacherControlsAbortController = controlsAbortController;
     const strip = document.createElement("header");
     strip.className = "teacher-playtest-strip";
     strip.dataset.expanded = "false";
@@ -121,15 +129,27 @@ export class TeacherPlaytestController {
     reset.className = "teacher-button--danger";
     reset.addEventListener("click", () => this.#openResetDialog(reset));
     actions.append(dashboard, reset);
-    toggle.addEventListener("click", () => {
-      const expanded = strip.dataset.expanded !== "true";
+    const setExpanded = (expanded: boolean, restoreToggleFocus = false): void => {
       strip.dataset.expanded = String(expanded);
       toggle.textContent = expanded
         ? "Hide teacher controls"
         : "Show teacher controls";
       toggle.setAttribute("aria-expanded", String(expanded));
       actions.hidden = !expanded;
+      if (restoreToggleFocus) toggle.focus();
+    };
+    toggle.addEventListener("click", () => {
+      setExpanded(strip.dataset.expanded !== "true");
     });
+    document.addEventListener("keydown", (event) => {
+      if (
+        event.key !== "Escape" ||
+        strip.dataset.expanded !== "true" ||
+        this.#root.querySelector("dialog[open]") !== null
+      ) return;
+      event.preventDefault();
+      setExpanded(false, true);
+    }, { signal: controlsAbortController.signal });
     strip.append(identity, description, toggle, actions);
     this.#root.replaceChildren(strip);
   }

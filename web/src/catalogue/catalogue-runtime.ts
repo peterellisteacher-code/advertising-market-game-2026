@@ -164,7 +164,8 @@ export class CatalogueRuntime {
     this.options.renderer.render(core);
     const categoryLabel = this.options.categorySelect.selectedOptions[0]?.textContent?.trim();
     const view = selectedLibraryView(this.options.viewSelect);
-    const viewLabel = view === "products" ? "products" : view === "parts" ? "parts" : "pieces";
+    const viewLabel = view === "products" ? "products" : view === "parts" ? "parts" :
+      view === "backgrounds" ? "backgrounds" : "pieces";
     this.options.status.textContent = core.length === 0
       ? "No classroom-pack matches"
       : category && categoryLabel
@@ -180,7 +181,8 @@ export class CatalogueRuntime {
     const generation = ++this.#generation;
     const query = this.options.input.value;
     const core = this.#renderCore();
-    if (this.options.categorySelect.value || !this.options.liveToggle.checked ||
+    if (selectedLibraryView(this.options.viewSelect) === "backgrounds" ||
+      this.options.categorySelect.value || !this.options.liveToggle.checked ||
       Array.from(query.trim()).length < 2) {
       this.#latest = Promise.resolve();
       return this.#latest;
@@ -230,6 +232,10 @@ export class CatalogueRuntime {
 
   #activateView(): void {
     const view = selectedLibraryView(this.options.viewSelect);
+    const backgroundsOnly = view === "backgrounds";
+    this.options.liveToggle.disabled = backgroundsOnly;
+    this.options.input.disabled = backgroundsOnly;
+    if (backgroundsOnly) this.options.input.value = "";
     const active = view === "backgrounds" ? this.#allCore.filter(isAdBackgroundPreset) :
       this.#pricing === null ? [] : filterCatalogueByView(this.#allCore, this.#pricing, view);
     this.#activeCount = active.length;

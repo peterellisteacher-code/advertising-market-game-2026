@@ -13,6 +13,8 @@ func run() -> bool:
 	var tree := Engine.get_main_loop() as SceneTree
 	assert(tree != null)
 	tree.root.add_child(world)
+	await tree.process_frame
+	await tree.physics_frame
 	if not world.is_node_ready():
 		world.call("_ready")
 	var agency_floor := world.get_node("AgencyFloor") as Sprite2D
@@ -280,7 +282,7 @@ func _assert_motion_and_ambient_contract(world: Node) -> void:
 	var pair := world.get_node("%AgencyPair") as AdMarketAgencyPair
 	var ambient := world.get_node("%AgencyAmbientMotion") as Node2D
 	var body_collision := pair.get_node("BodyCollision") as CollisionShape2D
-	var interaction_area := pair.get_node("InteractionRange") as Area2D
+	var interaction_area := pair.get_node("InteractionRadius") as Area2D
 	var art_director := pair.get_node("%ArtDirectorSprite") as AnimatedSprite2D
 	var strategist := pair.get_node("%StrategistSprite") as AnimatedSprite2D
 	var expected_sprite_scale := Vector2(0.13, 0.13)

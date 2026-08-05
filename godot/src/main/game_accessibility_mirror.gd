@@ -1,7 +1,35 @@
 extends RefCounted
 class_name AdMarketGameAccessibilityMirror
 
+signal reduced_motion_changed(enabled: bool)
+
 var _last_payload: String = ""
+var _reduced_motion_enabled: bool = false
+var _reduced_motion_callback: JavaScriptObject
+
+func bind_reduced_motion() -> void:
+    if not OS.has_feature("web"):
+        return
+    var bridge: JavaScriptObject = JavaScriptBridge.get_interface("AdMarketGameA11y")
+    if bridge == null:
+        return
+    _set_reduced_motion_enabled(bool(bridge.reducedMotion()))
+    if _reduced_motion_callback == null:
+        _reduced_motion_callback = JavaScriptBridge.create_callback(
+            func(arguments: Array) -> void:
+                if not arguments.is_empty():
+                    _set_reduced_motion_enabled(bool(arguments[0]))
+        )
+    bridge.watchReducedMotion(_reduced_motion_callback)
+
+func reduced_motion_enabled() -> bool:
+    return _reduced_motion_enabled
+
+func _set_reduced_motion_enabled(enabled: bool) -> void:
+    if enabled == _reduced_motion_enabled:
+        return
+    _reduced_motion_enabled = enabled
+    reduced_motion_changed.emit(enabled)
 
 func update(
     eyebrow: String,

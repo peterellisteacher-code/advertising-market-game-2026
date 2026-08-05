@@ -30,6 +30,7 @@ const RIVAL_ARTWORK_PATHS := [
 const RIVAL_BACKGROUNDS := [Color("#0d3d57"), Color("#23655e"), Color("#43366f"), Color("#6e3c2a")]
 const RIVAL_HORIZONS := [Color("#67c7d0"), Color("#b3e0ad"), Color("#f1bd69"), Color("#f2c77e")]
 const RIVAL_ACCENTS := [Color("#ffb84d"), Color("#f5cf5b"), Color("#e580d0"), Color("#83d7df")]
+const RIVAL_PRODUCT_BOUNDS := Rect2i(140, 54, 360, 218)
 
 var _game_run: RefCounted
 var _alias: String = ""
@@ -205,6 +206,23 @@ func _campaign_by_id(campaign_id: String) -> Dictionary:
             return campaign
     return {}
 
+static func fit_rival_artwork_rect(source_size: Vector2i, bounds: Rect2i) -> Rect2i:
+    if source_size.x <= 0 or source_size.y <= 0 or bounds.size.x <= 0 or bounds.size.y <= 0:
+        return Rect2i(bounds.position, Vector2i.ZERO)
+    var scale := minf(
+        float(bounds.size.x) / float(source_size.x),
+        float(bounds.size.y) / float(source_size.y)
+    )
+    var fitted_size := Vector2i(
+        clampi(roundi(float(source_size.x) * scale), 1, bounds.size.x),
+        clampi(roundi(float(source_size.y) * scale), 1, bounds.size.y)
+    )
+    var inset := Vector2i(
+        int((bounds.size.x - fitted_size.x) / 2),
+        int((bounds.size.y - fitted_size.y) / 2)
+    )
+    return Rect2i(bounds.position + inset, fitted_size)
+
 func _seed_artwork(index: int) -> PackedByteArray:
     var image := Image.create(640, 360, false, Image.FORMAT_RGBA8)
     var background: Color = RIVAL_BACKGROUNDS[index]
@@ -227,13 +245,14 @@ func _seed_artwork(index: int) -> PackedByteArray:
     if product == null or product.is_empty():
         push_error("Practice rival artwork is unavailable")
         return PackedByteArray()
-    var product_size := Vector2i(260, 260)
-    if index == 2:
-        product_size = Vector2i(360, 220)
-    product.resize(product_size.x, product_size.y, Image.INTERPOLATE_LANCZOS)
-    var product_position := Vector2i(
-        int((640 - product_size.x) / 2),
-        int(54 + (218 - product_size.y) / 2)
+    var product_rect := fit_rival_artwork_rect(product.get_size(), RIVAL_PRODUCT_BOUNDS)
+    if product_rect.size == Vector2i.ZERO:
+        push_error("Practice rival artwork has invalid dimensions")
+        return PackedByteArray()
+    product.resize(product_rect.size.x, product_rect.size.y, Image.INTERPOLATE_LANCZOS)
+    image.blend_rect(
+        product,
+        Rect2i(Vector2i.ZERO, product_rect.size),
+        product_rect.position
     )
-    image.blend_rect(product, Rect2i(Vector2i.ZERO, product_size), product_position)
     return image.save_png_to_buffer()

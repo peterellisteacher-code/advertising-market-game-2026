@@ -239,8 +239,11 @@ func _validate_publication(value: Variant, expected_document_id: String) -> Dict
     var encoded: Variant = publication.get("pngBase64")
     if typeof(encoded) != TYPE_STRING or String(encoded).is_empty():
         return {"ok": false, "message": "Published campaign PNG must be non-empty canonical base64"}
-    var png_bytes := Marshalls.base64_to_raw(String(encoded))
-    if png_bytes.is_empty() or Marshalls.raw_to_base64(png_bytes) != String(encoded):
+    var encoded_text := String(encoded)
+    if not _has_valid_base64_syntax(encoded_text):
+        return {"ok": false, "message": "Published campaign PNG must be non-empty canonical base64"}
+    var png_bytes := Marshalls.base64_to_raw(encoded_text)
+    if png_bytes.is_empty() or Marshalls.raw_to_base64(png_bytes) != encoded_text:
         return {"ok": false, "message": "Published campaign PNG must be non-empty canonical base64"}
     if png_bytes.size() < 33:
         return {"ok": false, "message": "Published campaign PNG header is truncated"}
@@ -271,6 +274,29 @@ func _validate_publication(value: Variant, expected_document_id: String) -> Dict
     if typeof(metadata.get("assetReferences")) != TYPE_ARRAY:
         return {"ok": false, "message": "Published campaign assetReferences must be an array"}
     return {"ok": true, "value": publication.duplicate(true)}
+
+func _has_valid_base64_syntax(encoded: String) -> bool:
+    if encoded.length() % 4 != 0:
+        return false
+    var padding_start := encoded.find("=")
+    if padding_start < 0:
+        padding_start = encoded.length()
+    if encoded.length() - padding_start > 2:
+        return false
+    for index in encoded.length():
+        var code := encoded.unicode_at(index)
+        if index >= padding_start:
+            if code != 61:
+                return false
+            continue
+        var is_alphanumeric := (
+            (code >= 65 and code <= 90)
+            or (code >= 97 and code <= 122)
+            or (code >= 48 and code <= 57)
+        )
+        if not is_alphanumeric and code != 43 and code != 47:
+            return false
+    return true
 
 func _read_uint32_be(bytes: PackedByteArray, offset: int) -> int:
     return (int(bytes[offset]) << 24) | (int(bytes[offset + 1]) << 16) | (int(bytes[offset + 2]) << 8) | int(bytes[offset + 3])

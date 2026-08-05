@@ -310,7 +310,8 @@ function runtimeHarness(
   const category = document.createElement("select");
   const view = document.createElement("select");
   for (const [value, label] of [
-    ["products", "Products"], ["parts", "Parts"], ["all", "All pieces"]
+    ["products", "Products"], ["parts", "Parts"], ["backgrounds", "Backgrounds"],
+    ["all", "All pieces"]
   ] as const) {
     const option = document.createElement("option");
     option.value = value;
@@ -503,6 +504,45 @@ describe("CatalogueRuntime", () => {
 
     expect(client.search).not.toHaveBeenCalled();
     expect(harness.renders.at(-1)).toEqual(["sofa"]);
+  });
+
+  it("keeps Backgrounds bounded to the six local designs across a live-search transition", async () => {
+    const pending = deferred<{ status: "online"; records: CatalogAssetV1[] }>();
+    const search = vi.fn().mockReturnValue(pending.promise);
+    const client: LivePhotoClient = { setEnabled: vi.fn(), search };
+    const product = asset("core");
+    const backgrounds = [...AD_BACKGROUND_PRESETS];
+    const harness = runtimeHarness(
+      [product, ...backgrounds],
+      client,
+      0,
+      fixturePricing([product])
+    );
+    harness.input.value = "market";
+    harness.toggle.checked = true;
+    harness.toggle.dispatchEvent(new Event("change"));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(search).toHaveBeenCalledOnce();
+
+    harness.view.value = "backgrounds";
+    harness.view.dispatchEvent(new Event("change"));
+    await harness.runtime.settled();
+
+    expect(harness.toggle.disabled).toBe(true);
+    expect(harness.input.disabled).toBe(true);
+    expect(harness.input.value).toBe("");
+    expect(search).toHaveBeenCalledOnce();
+    expect(new Set(harness.renders.at(-1))).toEqual(new Set(backgrounds.map(({ id }) => id)));
+
+    pending.resolve({ status: "online", records: [asset("remote", "photo")] });
+    await pending.promise;
+    await Promise.resolve();
+    expect(new Set(harness.renders.at(-1))).toEqual(new Set(backgrounds.map(({ id }) => id)));
+
+    harness.view.value = "products";
+    harness.view.dispatchEvent(new Event("change"));
+    expect(harness.toggle.disabled).toBe(false);
+    expect(harness.input.disabled).toBe(false);
   });
 
   it("resets a removed category when the core pack is replaced", () => {

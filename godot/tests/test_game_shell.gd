@@ -9,7 +9,36 @@ const AutoPracticeTransport = preload("res://tests/fakes/auto_practice_transport
 
 var _market_png_cache: String = ""
 
+class FakeAccessibilityMirror:
+	extends RefCounted
+
+	signal reduced_motion_changed(enabled: bool)
+
+	var enabled: bool = false
+	var bind_called: bool = false
+
+	func bind_reduced_motion() -> void:
+		bind_called = true
+
+	func reduced_motion_enabled() -> bool:
+		return enabled
+
+	func set_reduced_motion_enabled(next_enabled: bool) -> void:
+		enabled = next_enabled
+		reduced_motion_changed.emit(enabled)
+
+	func update(
+		_eyebrow: String,
+		_heading: String,
+		_current_instruction: String,
+		_completion_status: String,
+		_focused_control: String,
+		_keyboard_hint: String
+	) -> void:
+		pass
+
 func run() -> bool:
+	assert(_reduced_motion_bridge_drives_game_surfaces())
 	assert(_agency_world_replaces_the_run_panel_and_coordinates_roles())
 	assert(_authored_shell_is_fun_first_and_accessible())
 	assert(_live_room_routes_are_primary_and_accessible())
@@ -24,11 +53,29 @@ func run() -> bool:
 	assert(_late_join_cannot_overwrite_acknowledged_teacher_room())
 	assert(_team_join_starts_the_three_levels_with_a_room_document())
 	assert(_host_defaults_open_a_teacher_dashboard())
-	assert(_campaign_moves_gate_each_level())
+	assert(await _campaign_moves_gate_each_level())
 	assert(_returned_editor_state_is_reopened_verbatim())
-	assert(_closed_studio_reopens_to_publish_and_enters_the_market())
-	assert(_room_publication_waits_for_review_and_reopens_returned_work())
+	assert(await _closed_studio_reopens_to_publish_and_enters_the_market())
+	assert(await _room_publication_waits_for_review_and_reopens_returned_work())
 	assert(_room_errors_are_distinct_and_safe())
+	return true
+
+func _reduced_motion_bridge_drives_game_surfaces() -> bool:
+	var mirror := FakeAccessibilityMirror.new()
+	mirror.enabled = true
+	var shell := _mount_shell(FakeCreatorTransport.new(), null, null, mirror)
+	var agency := shell.get_node("%AgencyWorld") as AdMarketAgencyWorld
+	var theatre := shell.get_node("%PitchTheatre") as AdMarketPitchTheatre
+	var audio := shell.get_node("%AgencyAudio") as AdMarketAgencyAudioManager
+	assert(theatre.get_child_count() == 2, "Main must not duplicate PitchTheatre's scene-owned children.")
+	assert(audio.get_child_count() == 7, "Main must not duplicate AgencyAudio's scene-owned players.")
+	assert(mirror.bind_called, "Main must bind the production reduced-motion source at startup.")
+	assert(agency.reduced_motion_enabled, "Startup reduced motion must reach AgencyWorld.")
+	assert(bool(theatre.get("_reduced_motion")), "Startup reduced motion must reach PitchTheatre.")
+	mirror.set_reduced_motion_enabled(false)
+	assert(not agency.reduced_motion_enabled, "Runtime preference changes must reach AgencyWorld.")
+	assert(not bool(theatre.get("_reduced_motion")), "Runtime preference changes must reach PitchTheatre.")
+	shell.free()
 	return true
 
 func _agency_world_replaces_the_run_panel_and_coordinates_roles() -> bool:
@@ -685,6 +732,7 @@ func _host_defaults_open_a_teacher_dashboard() -> bool:
 func _campaign_moves_gate_each_level() -> bool:
 	var fake := FakeCreatorTransport.new()
 	var shell := _mount_shell(fake)
+	await (Engine.get_main_loop() as SceneTree).process_frame
 	var alias := shell.get_node("%TeamAlias") as LineEdit
 	var start := shell.get_node("%StartRun") as Button
 	var lock := shell.get_node("%LockLevel") as Button
@@ -862,6 +910,7 @@ func _campaign_moves_gate_each_level() -> bool:
 func _closed_studio_reopens_to_publish_and_enters_the_market() -> bool:
 	var fake := FakeCreatorTransport.new()
 	var shell := _mount_shell(fake)
+	await (Engine.get_main_loop() as SceneTree).process_frame
 
 	var alias := shell.get_node("%TeamAlias") as LineEdit
 	var start := shell.get_node("%StartRun") as Button
@@ -1042,6 +1091,7 @@ func _room_publication_waits_for_review_and_reopens_returned_work() -> bool:
 	var creator_fake := FakeCreatorTransport.new()
 	var market_fake := FakeMarketTransport.new()
 	var shell := _mount_shell(creator_fake, market_fake)
+	await (Engine.get_main_loop() as SceneTree).process_frame
 	(shell.get_node("%TeamAlias") as LineEdit).text = "Signal Foxes"
 	(shell.get_node("%RoomCode") as LineEdit).text = "ABC-234"
 	(shell.get_node("%JoinLiveMarket") as Button).pressed.emit()
@@ -1151,10 +1201,13 @@ func _room_errors_are_distinct_and_safe() -> bool:
 func _mount_shell(
 	fake: RefCounted,
 	market_fake: RefCounted = null,
-	practice_fake: RefCounted = null
+	practice_fake: RefCounted = null,
+	accessibility_mirror: RefCounted = null
 ) -> Control:
 	var shell: Control = MainScene.instantiate() as Control
 	shell.creator_transport_override = fake
+	if accessibility_mirror != null:
+		shell.set("_accessibility_mirror", accessibility_mirror)
 	var selected_market: RefCounted = market_fake if market_fake != null else FakeMarketTransport.new()
 	selected_market.set("auto_resume_none", true)
 	shell.market_transport_override = selected_market
@@ -1248,7 +1301,19 @@ func _deliver_saved_creator_state(shell: Control, value: Dictionary) -> Dictiona
 
 func _complete_required_missions(shell: Control, mission_ids: Array) -> void:
 	var run := shell.get("_game_run") as AdMarketGameRun
+	var agency_audio := shell.get_node("%AgencyAudio") as Node
 	assert(run != null)
+	assert(shell.is_inside_tree(), "Mounted game shell must be inside the SceneTree before mission audio.")
+	assert(agency_audio.is_inside_tree(), "AgencyAudio must share the mounted shell lifecycle.")
+	var registered_players := Dictionary(agency_audio.get("_sfx_players"))
+	for cue_id in registered_players:
+		var cue_player := registered_players.get(cue_id) as AudioStreamPlayer
+		assert(cue_player != null, "AgencyAudio must register a node for %s." % cue_id)
+		assert(
+			cue_player.is_inside_tree(),
+			"Registered cue %s is outside the mounted shell: %s" % [cue_id, cue_player.get_path()]
+		)
+		assert(cue_player.is_node_ready(), "Registered cue %s did not finish readiness." % cue_id)
 	for mission_id_value in mission_ids:
 		var mission_id := String(mission_id_value)
 		shell.call("_on_agency_mission_completed", mission_id, {

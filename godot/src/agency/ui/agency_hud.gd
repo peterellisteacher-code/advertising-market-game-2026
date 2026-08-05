@@ -62,6 +62,13 @@ func set_compact(compact: bool) -> void:
 	var details := get_node_or_null("HudMargin/HudStack/ExpandedDetails") as Control
 	if details != null:
 		details.visible = not compact
+	for path in [
+		"HudMargin/HudStack/PrimaryRow/ObjectiveBlock/ObjectiveEyebrow",
+		"HudMargin/HudStack/PrimaryRow/ObjectiveBlock/HudOwner",
+	]:
+		var secondary_label := get_node_or_null(path) as Control
+		if secondary_label != null:
+			secondary_label.visible = not compact
 	var margin := get_node_or_null("HudMargin") as MarginContainer
 	var vertical_margin := 8 if compact else 12
 	if margin != null:

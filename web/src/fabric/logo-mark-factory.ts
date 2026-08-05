@@ -14,6 +14,7 @@ import {
   type LogoMarkDesign
 } from "../logo-lab/logo-mark-model";
 import type { ElementKind } from "../domain/editor-object";
+import { waitForFontReadiness } from "../font-readiness";
 import type { LogoLayer } from "./fabric-custom-properties";
 import type { NewLogoMarkInput } from "./canvas-port";
 import { FABRIC_SELECTION_STYLE } from "./object-factory";
@@ -123,11 +124,7 @@ function wordmarkFor(design: LogoMarkDesign, width: number, fontSize: number): T
 }
 
 export async function waitForLogoTypeface(typeface: string): Promise<void> {
-  try {
-    await document.fonts?.load(`800 48px "${typeface}"`);
-  } catch {
-    // Font loading is an enhancement; Fabric retains a safe local fallback.
-  }
+  await waitForFontReadiness(document.fonts, `800 48px "${typeface}"`);
 }
 
 export class FabricLogoMarkFactory {

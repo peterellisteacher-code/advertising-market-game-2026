@@ -17,6 +17,7 @@ const SECTION_INDEX := {
 	"progress": 4,
 }
 const ORIENTATION_ITEM_SUFFIXES: Array[String] = ["One", "Two", "Three"]
+const ORIENTATION_PANEL_HALF_SIZE := Vector2(560.0, 340.0)
 const ORIENTATION_STEPS := [
 	{
 		"overview": true,
@@ -209,7 +210,10 @@ func resume_orientation() -> void:
 	_update_orientation()
 	var panel := get_node_or_null("%OrientationPanel") as Control
 	if panel != null:
-		panel.reset_size()
+		panel.offset_left = -ORIENTATION_PANEL_HALF_SIZE.x
+		panel.offset_top = -ORIENTATION_PANEL_HALF_SIZE.y
+		panel.offset_right = ORIENTATION_PANEL_HALF_SIZE.x
+		panel.offset_bottom = ORIENTATION_PANEL_HALF_SIZE.y
 	reading_state_changed.emit(true)
 
 func reading_active() -> bool:

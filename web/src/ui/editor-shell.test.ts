@@ -1,8 +1,46 @@
 import { fireEvent, getByLabelText, getByRole, getAllByRole } from "@testing-library/dom";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createEditorShell } from "./editor-shell";
 
 describe("createEditorShell", () => {
+  it("applies one large-text token across creator controls and dialogs", () => {
+    const style = document.createElement("style");
+    style.textContent = readFileSync(
+      join(process.cwd(), "web", "src", "styles", "editor.css"),
+      "utf8"
+    );
+    document.head.append(style);
+    try {
+      document.body.innerHTML = '<div id="creator-root"></div>';
+      const root = document.querySelector<HTMLElement>("#creator-root")!;
+      const shell = createEditorShell(root);
+      const creator = root.querySelector<HTMLElement>(".creator")!;
+
+      creator.dataset.displayText = "large";
+
+      expect(getComputedStyle(creator).getPropertyValue("--creator-chrome-font-size").trim())
+        .toBe("1.125rem");
+      const coveredChrome: Array<[string, HTMLElement]> = [
+        ["task bar", shell.activeRoleAction],
+        ["canvas controls", root.querySelector<HTMLElement>("[data-canvas-zoom-status]")!],
+        ["display panel", shell.displayPanel.querySelector<HTMLElement>("legend")!],
+        ["instruction dialog", root.querySelector<HTMLElement>("[data-guide-dialog] p")!],
+        ["onboarding dialog", root.querySelector<HTMLElement>("[data-studio-onboarding-dialog] p")!],
+        ["role dialog", root.querySelector<HTMLElement>("[data-role-guide-layer] p")!],
+        ["product typeface control", shell.productTypeface]
+      ];
+      expect(coveredChrome.map(([, element]) => element)).not.toContain(null);
+      for (const [surface, element] of coveredChrome) {
+        expect(getComputedStyle(element).fontSize, surface)
+          .toBe("var(--creator-chrome-font-size)");
+      }
+    } finally {
+      style.remove();
+    }
+  });
+
   it("creates a canvas-first studio with one active tool drawer", () => {
     document.body.innerHTML = '<div id="creator-root"></div>';
     const root = document.querySelector<HTMLElement>("#creator-root")!;
@@ -195,6 +233,14 @@ describe("createEditorShell", () => {
       .toBe(shell.addWords);
     expect(getByRole(root, "button", { name: "Put words on selected product", hidden: true }))
       .toBe(shell.productWords);
+    const productTypeface = getByRole<HTMLSelectElement>(root, "combobox", {
+      name: "Curved product typeface",
+      hidden: true
+    });
+    expect(productTypeface).toBe(shell.productTypeface);
+    expect([...productTypeface.options].map(({ value }) => value)).toEqual(expect.arrayContaining([
+      "", "Lilita One", "Bebas Neue", "Russo One"
+    ]));
     expect(root.querySelector('[data-studio-panel="words"]')?.textContent)
       .toContain("On supported products, the words appear on a curved label and the original text remains editable.");
     expect(root.querySelector('.creator__layers[aria-label="Item list"]')).toBeTruthy();

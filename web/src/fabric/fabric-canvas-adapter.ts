@@ -55,6 +55,7 @@ import { FabricLogoMarkFactory } from "./logo-mark-factory";
 import { FabricProductKitCompositor } from "../product-kit/fabric-product-kit-compositor";
 import {
   CURVED_TEXT_PROFILE,
+  isCurvedLabelFontFamily,
   renderCurvedLabel,
   waitForCurvedLabelFont,
   type CurvedLabelFontFamily
@@ -343,7 +344,12 @@ export class FabricCanvasAdapter implements CanvasPort {
     return productShellRegionColours(this.#get(id));
   }
 
-  async setArtworkText(address: ArtworkSurfaceAddress, id: string, value: string): Promise<void> {
+  async setArtworkText(
+    address: ArtworkSurfaceAddress,
+    id: string,
+    value: string,
+    fontFamily?: CurvedLabelFontFamily
+  ): Promise<void> {
     if (!value.trim()) throw new Error("Text must not be empty");
     const { product, surface } = this.#artworkContext(address);
     const object = surface.getObjects().find((candidate) => candidate.objectId === id);
@@ -352,23 +358,28 @@ export class FabricCanvasAdapter implements CanvasPort {
       object.curvedTextProfile === CURVED_TEXT_PROFILE &&
       typeof object.curvedTextSource === "string" &&
       typeof object.curvedTextColour === "string" &&
-      typeof object.curvedTextFontFamily === "string") {
+      typeof object.curvedTextFontFamily === "string" &&
+      isCurvedLabelFontFamily(object.curvedTextFontFamily)) {
       const source = value.replace(/\s+/gu, " ").trim();
-      if (object.curvedTextSource === source) return;
+      if (fontFamily !== undefined && !isCurvedLabelFontFamily(fontFamily)) {
+        throw new Error("Curved label font is not supported");
+      }
+      const selectedFont = fontFamily ?? object.curvedTextFontFamily;
+      if (object.curvedTextSource === source && object.curvedTextFontFamily === selectedFont) return;
       const replaceCurvedLabel = (): void => {
         const rendered = renderCurvedLabel({
           text: source,
           ...(object.curvedTextColour === undefined ? {} : { colour: object.curvedTextColour }),
-          ...(object.curvedTextFontFamily === undefined ? {} : { fontFamily: object.curvedTextFontFamily as CurvedLabelFontFamily })
+          fontFamily: selectedFont
         });
         object.setElement(rendered.canvas, { width: object.width, height: object.height });
-        object.set({ curvedTextSource: source });
+        object.set({ curvedTextSource: source, curvedTextFontFamily: selectedFont });
         object.dirty = true;
         object.setCoords();
         this.#finishArtworkMutation(product, surface);
       };
       if (typeof document !== "undefined" && document.fonts !== undefined) {
-        await waitForCurvedLabelFont(object.curvedTextFontFamily as CurvedLabelFontFamily);
+        await waitForCurvedLabelFont(selectedFont);
         replaceCurvedLabel();
       } else {
         replaceCurvedLabel();

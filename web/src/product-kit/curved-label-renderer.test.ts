@@ -24,6 +24,22 @@ it("safely proceeds when the Font Loading API is unavailable", async () => {
   await expect(waitForCurvedLabelFont("Bebas Neue")).resolves.toBeUndefined();
 });
 
+it("stops waiting when a selected face never settles", async () => {
+  vi.useFakeTimers();
+  try {
+    const load = vi.fn(() => new Promise<FontFace[]>(() => undefined));
+    Object.defineProperty(document, "fonts", { configurable: true, value: { load } });
+    let settled = false;
+    void waitForCurvedLabelFont("Russo One").then(() => { settled = true; });
+
+    await vi.advanceTimersByTimeAsync(3_000);
+
+    expect(settled).toBe(true);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 interface ContextTrace {
   font: string;
   fillStyle: string | CanvasGradient | CanvasPattern;

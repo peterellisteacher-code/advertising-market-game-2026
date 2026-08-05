@@ -1,6 +1,7 @@
 import type { PairGameView } from "../game/pair-game-controller";
 import { ROLE_GUIDE } from "../game/role-guide-controller";
 import { STUDENT_COPY } from "../game/student-copy";
+import { CURVED_LABEL_FONT_FAMILIES } from "../product-kit/curved-label-renderer";
 
 export interface EditorShell extends PairGameView {
   overlay: HTMLElement;
@@ -43,6 +44,9 @@ export interface EditorShell extends PairGameView {
 }
 
 const CHECKLIST_STEPS = ["Price", "Attention", "Interest", "Desire", "Action"];
+const PRODUCT_TYPEFACE_OPTIONS = CURVED_LABEL_FONT_FAMILIES
+  .map((fontFamily) => `<option value="${fontFamily}">${fontFamily}</option>`)
+  .join("");
 
 export function createEditorShell(root: HTMLElement): EditorShell {
   root.innerHTML = `
@@ -193,6 +197,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
             <h2>Words</h2>
             <div class="creator__words-body">
               <label>${STUDENT_COPY.labels.canvasWords}<input data-canvas-words aria-label="${STUDENT_COPY.labels.canvasWords}" placeholder="${STUDENT_COPY.roundZero.textPlaceholder}"></label>
+              <label>Curved product typeface <select data-product-typeface aria-label="Curved product typeface"><option value="">Keep current (Arial for new)</option>${PRODUCT_TYPEFACE_OPTIONS}</select></label>
               <button type="button" data-add-words>${STUDENT_COPY.roundZero.addWords}</button>
               <button type="button" data-add-product-words>${STUDENT_COPY.roundZero.productWords}</button>
               <p class="creator__words-hint">${STUDENT_COPY.roundZero.productWordsHint}</p>
@@ -282,7 +287,6 @@ export function createEditorShell(root: HTMLElement): EditorShell {
       </div>
       <p class="sr-only" data-live="polite" aria-live="polite"></p>
       <p class="sr-only" data-live="assertive" aria-live="assertive"></p>
-    </section>
     <div class="creator__studio-onboarding-layer" data-studio-onboarding-layer hidden>
       <div class="creator__studio-onboarding-spotlight" data-studio-onboarding-spotlight aria-hidden="true" hidden></div>
       <section class="creator__studio-onboarding" role="dialog" aria-modal="true"
@@ -353,7 +357,8 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           <button type="button" data-role-guide-begin>Begin work</button>
         </div>
       </section>
-    </div>`;
+    </div>
+    </section>`;
 
   const briefToggle = root.querySelector<HTMLButtonElement>("[data-brief-toggle]")!;
   const brief = root.querySelector<HTMLElement>("#studio-full-brief")!;
@@ -417,6 +422,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
     audienceValues: root.querySelector('[data-audience-values]')!,
     audienceEffect: root.querySelector('[data-audience-effect]')!,
     canvasWords: root.querySelector('[data-canvas-words]')!,
+    productTypeface: root.querySelector('[data-product-typeface]')!,
     addWords: root.querySelector('[data-add-words]')!,
     productWords: root.querySelector('[data-add-product-words]')!,
     undo: root.querySelector('[data-command="undo"]')!,

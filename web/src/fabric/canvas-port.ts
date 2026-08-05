@@ -4,6 +4,7 @@ import type { LogoIconRecord } from "../logo-lab/logo-icon-catalogue";
 import type { LogoMarkDesign } from "../logo-lab/logo-mark-model";
 import type { FabricProductKitInput } from "../product-kit/fabric-product-kit-compositor";
 import type { ElementKind } from "../domain/editor-object";
+import type { CurvedLabelFontFamily } from "../product-kit/curved-label-renderer";
 
 export type ShapeKind = "rect" | "ellipse" | "triangle" | "line";
 export type StackDirection = "front" | "forward" | "backward" | "back";
@@ -24,6 +25,7 @@ export interface NewTextInput {
   value: string;
   accessibleName: string;
   editable?: boolean;
+  fontFamily?: CurvedLabelFontFamily;
 }
 
 export interface NewShapeInput {
@@ -164,7 +166,12 @@ export interface CanvasPort {
   addArtworkText(address: ArtworkSurfaceAddress, input: NewTextInput): Promise<void>;
   addArtworkShape(address: ArtworkSurfaceAddress, input: NewShapeInput): Promise<void>;
   addArtworkRaster(address: ArtworkSurfaceAddress, input: NewRasterInput): Promise<void>;
-  setArtworkText(address: ArtworkSurfaceAddress, id: string, value: string): void | Promise<void>;
+  setArtworkText(
+    address: ArtworkSurfaceAddress,
+    id: string,
+    value: string,
+    fontFamily?: CurvedLabelFontFamily
+  ): void | Promise<void>;
   removeArtwork(address: ArtworkSurfaceAddress, childId: string): void;
   addProductShell(input: NewProductShellInput): Promise<void>;
   addProductVariant(input: NewProductVariantInput): Promise<void>;

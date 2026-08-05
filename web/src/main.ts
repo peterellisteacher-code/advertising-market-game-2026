@@ -142,6 +142,7 @@ import {
   type RoundZeroPort
 } from "./game/pair-game-controller";
 import type { AudienceBrief } from "./game/audience-briefs";
+import type { CurvedLabelFontFamily } from "./product-kit/curved-label-renderer";
 import { AidaPlaybookPanel } from "./game/aida-playbook-panel";
 import type { AidaStage } from "./game/aida-playbook";
 import {
@@ -1082,7 +1083,8 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 
   async addProductText(
-    value: string
+    value: string,
+    fontFamily?: CurvedLabelFontFamily
   ): Promise<"added" | "updated" | "product-required"> {
     this.#assertCanvasMutationAvailable();
     await this.#placements.flush();
@@ -1098,9 +1100,9 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     const commands = new ObjectCommandService(runtime.adapter);
     await this.#history.transaction(async () => {
       if (existingTextId === null) {
-        await commands.addArtworkText(address, value, "Product label");
+        await commands.addArtworkText(address, value, "Product label", fontFamily);
       } else {
-        await commands.setArtworkText(address, existingTextId, value);
+        await commands.setArtworkText(address, existingTextId, value, fontFamily);
         commands.select(productId);
       }
     });

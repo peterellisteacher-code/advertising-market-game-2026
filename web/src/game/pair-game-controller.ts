@@ -19,6 +19,10 @@ import {
   type PairSession
 } from "./pair-session";
 import { STUDENT_COPY } from "./student-copy";
+import {
+  isCurvedLabelFontFamily,
+  type CurvedLabelFontFamily
+} from "../product-kit/curved-label-renderer";
 
 export interface PairGameView {
   activeRole: HTMLElement;
@@ -33,6 +37,7 @@ export interface PairGameView {
   audienceValues: HTMLElement;
   audienceEffect: HTMLElement;
   canvasWords: HTMLInputElement;
+  productTypeface: HTMLSelectElement;
   addWords: HTMLButtonElement;
   productWords: HTMLButtonElement;
   undo: HTMLButtonElement;
@@ -44,7 +49,10 @@ export interface PairGameView {
 export interface RoundZeroPort {
   setAudienceBrief(brief: AudienceBrief): Promise<CampaignDocumentV1>;
   addText(value: string): Promise<void>;
-  addProductText(value: string): Promise<"added" | "updated" | "product-required">;
+  addProductText(
+    value: string,
+    fontFamily?: CurvedLabelFontFamily
+  ): Promise<"added" | "updated" | "product-required">;
   undo(): Promise<boolean>;
   redo(): Promise<boolean>;
   subscribeCanvasMutations(listener: () => void): () => void;
@@ -252,7 +260,11 @@ export class PairGameController {
     }
     this.#view.assertive.textContent = "";
     this.#enqueue(async () => {
-      const result = await this.#port.addProductText(value);
+      const selectedTypeface = this.#view.productTypeface.value;
+      const fontFamily = isCurvedLabelFontFamily(selectedTypeface)
+        ? selectedTypeface
+        : undefined;
+      const result = await this.#port.addProductText(value, fontFamily);
       if (result === "product-required") {
         this.#view.assertive.textContent = STUDENT_COPY.roundZero.productWordsNeedSelection;
         return;

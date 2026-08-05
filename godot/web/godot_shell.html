@@ -72,6 +72,22 @@
     <script src="./studio/studio.js"></script>
     <script src="$GODOT_URL"></script>
     <script>
+      const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const reducedMotionSubscribers = new Set();
+      const notifyReducedMotion = () => {
+        for (const callback of reducedMotionSubscribers) {
+          try {
+            callback(reducedMotionQuery.matches);
+          } catch {
+            // A stale engine callback must not break the page shell.
+          }
+        }
+      };
+      if (typeof reducedMotionQuery.addEventListener === "function") {
+        reducedMotionQuery.addEventListener("change", notifyReducedMotion);
+      } else {
+        reducedMotionQuery.addListener(notifyReducedMotion);
+      }
       window.AdMarketGameA11y = Object.freeze({
         update(payload) {
           let next;
@@ -85,6 +101,15 @@
             const target = document.querySelector(`#game-a11y-${key}`);
             if (target) target.textContent = typeof next[key] === "string" ? next[key] : "";
           }
+          return true;
+        },
+        reducedMotion() {
+          return reducedMotionQuery.matches;
+        },
+        watchReducedMotion(callback) {
+          if (typeof callback !== "function") return false;
+          reducedMotionSubscribers.add(callback);
+          callback(reducedMotionQuery.matches);
           return true;
         }
       });

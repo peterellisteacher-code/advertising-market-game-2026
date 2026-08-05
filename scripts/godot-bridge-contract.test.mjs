@@ -129,6 +129,24 @@ test("the Godot shell mirrors current instructions semantically without pretendi
   assert.doesNotMatch(scene, /\[node name="(?:InventChip|SellChip|IrresistibleChip)" type="Button"/);
 });
 
+test("the browser reduced-motion preference reaches both Godot motion surfaces", async () => {
+  const [shell, mirror, main] = await Promise.all([
+    readFile(new URL("godot/web/godot_shell.html", root), "utf8"),
+    readFile(new URL("godot/src/main/game_accessibility_mirror.gd", root), "utf8"),
+    readFile(new URL("godot/src/main/main.gd", root), "utf8")
+  ]);
+
+  assert.match(shell, /matchMedia\(["']\(prefers-reduced-motion:\s*reduce\)["']\)/);
+  assert.match(shell, /addEventListener\(["']change["']/);
+  assert.match(shell, /reducedMotion\(\)/);
+  assert.match(shell, /watchReducedMotion\(callback\)/);
+  assert.match(mirror, /JavaScriptBridge\.create_callback/);
+  assert.match(mirror, /bridge\.watchReducedMotion\(_reduced_motion_callback\)/);
+  assert.match(main, /reduced_motion_changed\.connect\(_on_reduced_motion_changed\)/);
+  assert.match(main, /agency_world\.set_reduced_motion_enabled\(enabled\)/);
+  assert.match(main, /pitch_theatre\.set_reduced_motion_enabled\(enabled\)/);
+});
+
 test("the deployed game shell locks gameplay to the viewport without trapping the teacher dashboard", async () => {
   const shell = await readFile(
     new URL("godot/web/godot_shell.html", root),

@@ -284,15 +284,26 @@ func _assert_motion_and_ambient_contract(world: Node) -> void:
 	var art_director := pair.get_node("%ArtDirectorSprite") as AnimatedSprite2D
 	var strategist := pair.get_node("%StrategistSprite") as AnimatedSprite2D
 	var expected_sprite_scale := Vector2(0.13, 0.13)
-	var root_position := pair.position
+	var root_position := Vector2.ZERO
 	var body_position := body_collision.position
 	var interaction_position := interaction_area.position
 	assert(ambient != null)
 	assert(art_director.scale.is_equal_approx(expected_sprite_scale))
 	assert(strategist.scale.is_equal_approx(expected_sprite_scale))
+	assert(world.direct_travel("copy-room"))
+	root_position = pair.position
 	world.set_reduced_motion_enabled(false)
-	assert(world.direct_travel("art-studio"))
+	assert(world.direct_travel("strategy-room"))
 	assert(pair.call("visual_motion_state") == "walking")
+	pair.call("_physics_process", 0.016)
+	assert(pair.call("visual_motion_state") == "walking")
+	assert(pair.facing_direction == "right")
+	assert(art_director.rotation > 0.0)
+	world.call("_begin_direct_travel_leg", pair, Vector2(-59.0, -134.0))
+	pair.call("_physics_process", 0.016)
+	assert(pair.call("visual_motion_state") == "walking")
+	assert(pair.facing_direction == "back")
+	assert(art_director.rotation > 0.0)
 	pair.call("advance_visual_motion", 0.16)
 	assert(pair.position == root_position)
 	assert(body_collision.position == body_position)
@@ -302,10 +313,15 @@ func _assert_motion_and_ambient_contract(world: Node) -> void:
 	assert(pair.call("sprite_transforms_are_neutral") == false)
 	world.call("_finish_direct_travel")
 	assert(pair.call("visual_motion_state") == "idle")
+	assert(not pair.call("is_auto_travelling"))
 	ambient.call("advance_ambient_motion", 0.25)
 	assert(ambient.call("pulse_amount") > 0.0)
+	assert(world.direct_travel("copy-room"))
+	assert(pair.call("is_auto_travelling"))
 	world.set_reduced_motion_enabled(true)
 	assert(pair.call("visual_motion_state") == "idle")
+	assert(not pair.call("is_auto_travelling"))
+	assert(pair.input_enabled)
 	assert(pair.call("sprite_transforms_are_neutral"))
 	assert(art_director.scale.is_equal_approx(expected_sprite_scale))
 	assert(strategist.scale.is_equal_approx(expected_sprite_scale))

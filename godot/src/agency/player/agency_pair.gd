@@ -16,6 +16,7 @@ var station_owner_role: String = "strategist"
 var nearest_station_id: String = "reception"
 var facing_direction: String = "front"
 var _reduced_motion_enabled: bool = false
+var _auto_travelling: bool = false
 var _visual_motion_state: String = "idle"
 var _visual_time: float = 0.0
 var _art_director_base_position := Vector2(-20.0, -5.0)
@@ -36,7 +37,7 @@ func _process(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	if not input_enabled or modal_open:
 		velocity = Vector2.ZERO
-		set_visual_motion_state("idle")
+		set_visual_motion_state("walking" if _auto_travelling and not modal_open else "idle")
 		return
 	var keyboard_vector := Input.get_vector(
 		"move_left",
@@ -74,17 +75,20 @@ func set_input_enabled(enabled: bool) -> void:
 	input_enabled = enabled
 	if not enabled:
 		velocity = Vector2.ZERO
-		set_visual_motion_state("idle")
+		if not _auto_travelling:
+			set_visual_motion_state("idle")
 
 func set_modal_open(open: bool) -> void:
 	modal_open = open
 	if open:
 		velocity = Vector2.ZERO
+		end_auto_travel()
 		set_visual_motion_state("idle")
 
 func set_reduced_motion_enabled(enabled: bool) -> void:
 	_reduced_motion_enabled = enabled
 	if enabled:
+		end_auto_travel()
 		_visual_motion_state = "idle"
 		_visual_time = 0.0
 	_apply_visual_motion()
@@ -95,6 +99,24 @@ func set_visual_motion_state(state: String) -> void:
 
 func visual_motion_state() -> String:
 	return _visual_motion_state
+
+func begin_auto_travel(direction: Vector2) -> void:
+	_auto_travelling = true
+	update_auto_travel_direction(direction)
+
+func update_auto_travel_direction(direction: Vector2) -> void:
+	if direction.is_zero_approx():
+		return
+	_auto_travelling = true
+	_update_facing_direction(direction)
+	set_visual_motion_state("walking")
+
+func end_auto_travel() -> void:
+	_auto_travelling = false
+	set_visual_motion_state("idle")
+
+func is_auto_travelling() -> bool:
+	return _auto_travelling
 
 func advance_visual_motion(delta: float) -> void:
 	if _reduced_motion_enabled:

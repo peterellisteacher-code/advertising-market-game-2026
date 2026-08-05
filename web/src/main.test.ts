@@ -1392,6 +1392,10 @@ describe("window.AdMarketCreator", () => {
     expect(document.querySelector<HTMLElement>("#game-startup-status")?.hidden)
       .toBe(true);
 
+    gameAccess.reportStartupProgress(100);
+    expect(document.querySelector<HTMLElement>("#game-startup-status")?.hidden)
+      .toBe(true);
+
     gameAccess.reportStartupFailure("engine");
     expect(getByRole(document.body, "heading", {
       name: "The game could not start"

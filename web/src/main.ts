@@ -1883,7 +1883,9 @@ declare global {
 
 const unavailableGameAccess = new Promise<void>(() => undefined);
 let requireGameAccess = (): Promise<void> => unavailableGameAccess;
+let gameStartupReady = false;
 let reportGameStartupFailure = (reason: "timeout" | "engine"): void => {
+  gameStartupReady = false;
   const status = document.querySelector<HTMLElement>("#game-startup-status");
   const heading = status?.querySelector<HTMLElement>("[data-game-startup-heading]");
   const message = status?.querySelector<HTMLElement>("[data-game-startup-message]");
@@ -1904,9 +1906,10 @@ window.AdMarketGameAccess = Object.freeze({
     if (message !== undefined && message !== null) {
       message.textContent = `Loading game… ${safePercent}%`;
     }
-    if (status !== null) status.hidden = false;
+    if (status !== null && !gameStartupReady) status.hidden = false;
   },
   reportStartupReady: () => {
+    gameStartupReady = true;
     const status = document.querySelector<HTMLElement>("#game-startup-status");
     if (status !== null) status.hidden = true;
   },

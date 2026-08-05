@@ -217,16 +217,32 @@ async function writeProductBuilderPack(root, {
   return directory;
 }
 
-async function writeExportScaffold(root, creatorRoot = '<div id="creator-root"></div>') {
+async function writeExportScaffold(
+  root,
+  creatorRoot = '<div id="creator-root"></div>',
+  { includeRuntimeStaticAssets = true } = {}
+) {
   const studio = path.join(root, "build", "studio");
   const web = path.join(root, "build", "web");
   await Promise.all([
     mkdir(studio, { recursive: true }),
     mkdir(web, { recursive: true })
   ]);
+  if (includeRuntimeStaticAssets) {
+    await Promise.all([
+      mkdir(path.join(studio, "catalog", "backgrounds"), { recursive: true }),
+      mkdir(path.join(studio, "fonts"), { recursive: true })
+    ]);
+  }
   await Promise.all([
     writeFile(path.join(studio, "studio.js"), "window.AdMarketCreator = {};"),
     writeFile(path.join(studio, "studio.css"), ".creator{}"),
+    ...(includeRuntimeStaticAssets
+      ? [
+          writeFile(path.join(studio, "catalog", "backgrounds", "fixture.svg"), "<svg/>", "utf8"),
+          writeFile(path.join(studio, "fonts", "Fixture-Regular.ttf"), Buffer.from([0, 1, 2]))
+        ]
+      : []),
     writeFile(
       path.join(web, "index.html"),
       `<html><head></head><body>${creatorRoot}<script>window.bootstrap = true;</script><script src="./index.js"></script></body></html>`
@@ -461,6 +477,36 @@ test("assembly writes a deterministic CSP hash for the exact inline bootstrap bo
   assert.equal(
     await readFile(path.join(web, "_headers"), "utf8"),
     expectedCspHeaders("window.bootstrap = false;")
+  );
+});
+
+test("assembly carries Vite runtime-static backgrounds and fonts into the web export", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "admarket-runtime-static-"));
+  const { web } = await writeExportScaffold(root);
+
+  await assembleWebExport({ root, log: () => {} });
+
+  assert.equal(
+    await readFile(path.join(web, "catalog", "backgrounds", "fixture.svg"), "utf8"),
+    "<svg/>"
+  );
+  assert.deepEqual(
+    await readFile(path.join(web, "fonts", "Fixture-Regular.ttf")),
+    Buffer.from([0, 1, 2])
+  );
+});
+
+test("assembly fails closed when Vite runtime-static directories are absent", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "admarket-runtime-static-missing-"));
+  await writeExportScaffold(
+    root,
+    '<div id="creator-root"></div>',
+    { includeRuntimeStaticAssets: false }
+  );
+
+  await assert.rejects(
+    () => assembleWebExport({ root, log: () => {} }),
+    /runtime-static.*(?:backgrounds|fonts)|(?:backgrounds|fonts).*runtime-static/i
   );
 });
 
@@ -1740,22 +1786,11 @@ test("offline-core verification can enforce the production catalogue floor", asy
 
 test("assembly copies and injects the reviewed product shell catalogue", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "admarket-product-shells-"));
-  const studio = path.join(root, "build", "studio");
-  const web = path.join(root, "build", "web");
+  const { web } = await writeExportScaffold(root);
   const shells = path.join(root, "catalog", "generated", "product-shells-v1-reviewed");
   const shellFiles = path.join(shells, "shells", "fixture-can");
+  await mkdir(shellFiles, { recursive: true });
   await Promise.all([
-    mkdir(studio, { recursive: true }),
-    mkdir(web, { recursive: true }),
-    mkdir(shellFiles, { recursive: true })
-  ]);
-  await Promise.all([
-    writeFile(path.join(studio, "studio.js"), "window.AdMarketCreator = {};"),
-    writeFile(path.join(studio, "studio.css"), ".creator{}"),
-    writeFile(path.join(web, "index.html"), '<html><head></head><body><div id="creator-root"></div><script>window.bootstrap = true;</script><script src="./index.js"></script></body></html>'),
-    writeFile(path.join(web, "index.js"), "const local = true;"),
-    writeFile(path.join(web, "index.wasm"), Buffer.from([0])),
-    writeFile(path.join(web, "index.pck"), Buffer.from([1])),
     writeFile(path.join(shellFiles, "authoring.svg"), '<svg xmlns="http://www.w3.org/2000/svg"/>'),
     writeFile(path.join(shellFiles, "preview.svg"), '<svg xmlns="http://www.w3.org/2000/svg"/>'),
     writeFile(path.join(shells, "catalog.json"), JSON.stringify({
@@ -1787,22 +1822,11 @@ test("assembly copies and injects the reviewed product shell catalogue", async (
 
 test("assembly recursively copies the complete optional offline core tree", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "admarket-offline-core-"));
-  const studio = path.join(root, "build", "studio");
-  const web = path.join(root, "build", "web");
+  const { web } = await writeExportScaffold(root);
   const core = path.join(root, "catalog", "generated", "offline-core-v1");
   const catalogueText = "[]\n";
+  await mkdir(path.join(core, "assets", "fixture", "masks"), { recursive: true });
   await Promise.all([
-    mkdir(studio, { recursive: true }),
-    mkdir(web, { recursive: true }),
-    mkdir(path.join(core, "assets", "fixture", "masks"), { recursive: true })
-  ]);
-  await Promise.all([
-    writeFile(path.join(studio, "studio.js"), "window.AdMarketCreator = {};"),
-    writeFile(path.join(studio, "studio.css"), ".creator{}"),
-    writeFile(path.join(web, "index.html"), '<html><head></head><body><div id="creator-root"></div><script>window.bootstrap = true;</script><script src="./index.js"></script></body></html>'),
-    writeFile(path.join(web, "index.js"), "const local = true;"),
-    writeFile(path.join(web, "index.wasm"), Buffer.from([0])),
-    writeFile(path.join(web, "index.pck"), Buffer.from([1])),
     writeFile(path.join(core, "catalog.json"), catalogueText),
     writeFile(path.join(core, "pricing.json"), rasterPricing(catalogueText, [])),
     writeFile(path.join(core, "assets", "fixture", "master.png"), Buffer.from([1, 2, 3])),
@@ -1829,8 +1853,7 @@ test("assembly recursively copies the complete optional offline core tree", asyn
 
 test("assembly rejects an offline core whose catalogue references missing files", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "admarket-invalid-offline-core-"));
-  const studio = path.join(root, "build", "studio");
-  const web = path.join(root, "build", "web");
+  await writeExportScaffold(root);
   const core = path.join(root, "catalog", "generated", "offline-core-v1");
   const catalogueText = JSON.stringify([{
     id: "missing-product",
@@ -1843,18 +1866,8 @@ test("assembly rejects an offline core whose catalogue references missing files"
     },
     masterSha256: "0".repeat(64)
   }]);
+  await mkdir(core, { recursive: true });
   await Promise.all([
-    mkdir(studio, { recursive: true }),
-    mkdir(web, { recursive: true }),
-    mkdir(core, { recursive: true })
-  ]);
-  await Promise.all([
-    writeFile(path.join(studio, "studio.js"), "window.AdMarketCreator = {};"),
-    writeFile(path.join(studio, "studio.css"), ".creator{}"),
-    writeFile(path.join(web, "index.html"), '<html><head></head><body><div id="creator-root"></div><script>window.bootstrap = true;</script><script src="./index.js"></script></body></html>'),
-    writeFile(path.join(web, "index.js"), "const local = true;"),
-    writeFile(path.join(web, "index.wasm"), Buffer.from([0])),
-    writeFile(path.join(web, "index.pck"), Buffer.from([1])),
     writeFile(path.join(core, "catalog.json"), catalogueText),
     writeFile(path.join(core, "pricing.json"), rasterPricing(catalogueText, [
       { assetId: "missing-product", costCents: 2_500, role: "base" }

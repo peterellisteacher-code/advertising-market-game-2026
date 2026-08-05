@@ -58,6 +58,7 @@ const LOGO_ICON_RELATIVE = path.join(
   "logo-icons-v1-reviewed",
   "catalog.json"
 );
+const RUNTIME_STATIC_DIRECTORIES = [path.join("catalog", "backgrounds"), "fonts"];
 
 function isExecutableInlineScript(tag) {
   if (tag.name !== "script" || tag.inertDepth !== 0 ||
@@ -744,6 +745,16 @@ export async function assembleWebExport({
   await Promise.all(["studio.js", "studio.css"].map((name) =>
     writeFile(path.join(outputStudioDir, name), studioAssets.get(name))
   ));
+  for (const relative of RUNTIME_STATIC_DIRECTORIES) {
+    const source = path.join(studioDir, relative);
+    try {
+      await access(source);
+    } catch {
+      throw new Error(`Missing runtime-static directory: ${relative.replaceAll(path.sep, "/")}`);
+    }
+    await copyVerifiedTree(source, path.join(webDir, relative));
+    log(`RUNTIME_STATIC_COPIED ${relative.replaceAll(path.sep, "/")}`);
+  }
   if (assembledHtml !== exportedHtml) await writeFile(indexPath, assembledHtml, "utf8");
   await writeFile(path.join(webDir, "_headers"), makeNetlifyHeaders(inlineScriptBodies[0]), "utf8");
 

@@ -462,9 +462,10 @@ button, input, select { min-height: 44px; }
 @font-face { font-family: "Bebas Neue"; src: url("/fonts/BebasNeue-Regular.ttf") format("truetype"); font-display: swap; }
 @font-face { font-family: "Russo One"; src: url("/fonts/RussoOne-Regular.ttf") format("truetype"); font-display: swap; }
 .creator__topbar { position: relative; }
-.creator__display-panel { position: absolute; z-index: 30; top: calc(100% + 6px); right: 8px; display: grid; gap: .45rem; min-width: 17rem; padding: .7rem; border: 2px solid var(--ink); border-radius: .65rem; background: var(--panel); box-shadow: 0 10px 30px rgb(15 23 42 / .25); }
+.creator__display-panel { position: absolute; z-index: 30; top: calc(100% + 6px); right: 8px; display: grid; gap: .45rem; min-width: 17rem; padding: .7rem; border: 2px solid var(--ink); border-radius: .65rem; background: var(--panel); color: var(--ink); box-shadow: 0 10px 30px rgb(15 23 42 / .25); }
 .creator__display-panel fieldset { margin: 0; display: grid; gap: .25rem; border: 0; padding: 0; }
 .creator__display-panel legend { font-weight: 900; }
+.creator__display-panel button { border-color: var(--ink); background: var(--panel); color: var(--ink); }
 .creator[data-display-text="large"] { --creator-chrome-font-size: 1.125rem; }
 .creator[data-display-text="large"] :is(button, input, select, textarea, output, label, legend, p, a, li, dt, dd, summary, th, td, span:not([aria-hidden="true"])) { font-size: var(--creator-chrome-font-size) !important; }
 .creator[data-display-colours="high-contrast"] { --ink: #000; --panel: #fff; --blue: #003b73; --gold: #ffdf00; }
@@ -476,7 +477,6 @@ button, input, select { min-height: 44px; }
 }
 @media (min-width: 1201px) {
   .creator__assets .creator__asset-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .creator__assets .creator__asset-search, .creator__assets .creator__library-status { grid-column: 1 / -1; }
 }
 @media (min-width: 1201px) and (max-width: 1599px) {
   .creator { grid-template-rows: 52px 120px minmax(0, 1fr); }

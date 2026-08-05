@@ -52,7 +52,7 @@ func run() -> bool:
 	_assert_pair_clears_upper_divider(world, "Reception")
 	_assert_station_labels_are_unique_and_contextual(world, "Reception")
 	_assert_pair_has_single_visual_and_collision_set(world)
-	_assert_role_labels_clear_the_pair(world)
+	_assert_world_travel_and_label_contract(world)
 	var strategy_station := world.get_node("Stations/StrategyRoom") as Area2D
 	strategy_station.position += Vector2(0.0, -28.0)
 	assert(world.direct_travel("strategy-room"))
@@ -86,6 +86,7 @@ func _assert_station_card_can_be_tucked(world: Node, progress: RefCounted) -> vo
 	var tuck := world.get_node("%StationPanelTuck") as Button
 	assert(station_panel.visible)
 	assert(not station_tab.visible)
+
 	assert(not details.visible)
 	assert(details_toggle.text == "Show room details")
 	details_toggle.pressed.emit()
@@ -103,6 +104,57 @@ func _assert_station_card_can_be_tucked(world: Node, progress: RefCounted) -> vo
 	station_tab.pressed.emit()
 	assert(station_panel.visible)
 	assert(not station_tab.visible)
+
+func _assert_world_travel_and_label_contract(world: Node) -> void:
+	var pair := world.get_node("%AgencyPair") as CharacterBody2D
+	var station_records := [
+		["reception", "Reception"],
+		["client-briefing", "ClientBriefing"],
+		["strategy-room", "StrategyRoom"],
+		["art-studio", "ArtStudio"],
+		["copy-room", "CopyRoom"],
+		["production-studio", "ProductionStudio"],
+		["media-desk", "MediaDesk"],
+		["sound-booth", "SoundBooth"],
+		["pitch-theatre", "PitchTheatre"],
+	]
+	for record: Array in station_records:
+		var station_id := String(record[0])
+		var station := world.get_node("Stations/%s" % String(record[1])) as Area2D
+		assert(world.direct_travel(station_id))
+		assert(pair.movement_bounds.has_point(pair.position))
+		assert(pair.position.distance_to(station.position) <= 92.0)
+	assert(world.direct_travel("client-briefing"))
+	assert(pair.position == Vector2(430.0, 460.0))
+	var world_bounds := world.get_node("WorldBounds") as StaticBody2D
+	var client_collision := world.get_node("WorldBounds/ClientBriefingFixture") as CollisionShape2D
+	var client_shape := client_collision.shape as RectangleShape2D
+	var pair_collision := pair.get_node("BodyCollision") as CollisionShape2D
+	var pair_shape := pair_collision.shape as CapsuleShape2D
+	var fixture_bottom := client_collision.global_position.y + client_shape.size.y * 0.5
+	var pair_top := pair_collision.global_position.y - pair_shape.height * 0.5
+	assert(pair_top >= fixture_bottom)
+	assert(not client_collision.disabled)
+	assert((pair.collision_mask & world_bounds.collision_layer) != 0)
+	var motion_parameters := PhysicsTestMotionParameters2D.new()
+	motion_parameters.from = pair.global_transform
+	motion_parameters.motion = Vector2(0.0, -90.0)
+	var motion_result := PhysicsTestMotionResult2D.new()
+	assert(PhysicsServer2D.body_test_motion(pair.get_rid(), motion_parameters, motion_result))
+	assert(motion_result.get_collider_id() == world_bounds.get_instance_id())
+	assert(motion_result.get_travel().y > motion_parameters.motion.y)
+	var client_station := world.get_node("Stations/ClientBriefing") as Area2D
+	assert(pair.position.y > client_station.position.y)
+	var labels := client_station.find_children("*", "Label", true, false)
+	assert(labels.size() == 1)
+	assert(client_station.get_node_or_null("OwnerRoleBadge") == null)
+	assert((labels.front() as Label).get_theme_stylebox("normal") != null)
+	assert(pair.find_children("*", "Label", true, false).is_empty())
+	var tuck := world.get_node("%StationPanelTuck") as Button
+	var tab := world.get_node("%StationPanelTab") as Button
+	tuck.pressed.emit()
+	assert(tab.text == "Open Client briefing")
+	tab.pressed.emit()
 
 func _assert_station_mission_panel_uses_role_and_modal_state(
 	world: Node,
@@ -208,23 +260,17 @@ func _assert_station_labels_are_unique_and_contextual(world: Node, current_stati
 	var stations := world.get_node("Stations")
 	for station in stations.get_children():
 		var labels := station.find_children("*", "Label", true, false)
-		assert(labels.size() == 2)
+		assert(labels.size() == 1)
 		var visible_label_count := 0
 		for label in labels:
 			if (label as Label).visible:
 				visible_label_count += 1
-		assert(visible_label_count == (2 if station.name == current_station_name else 0))
-
-func _assert_role_labels_clear_the_pair(world: Node) -> void:
-	var pair := world.get_node("%AgencyPair") as CharacterBody2D
-	for label in pair.find_children("*", "Label", true, false):
-		assert((label as Label).position.y <= -40.0)
-		assert((label as Label).position.x >= -20.0)
+		assert(visible_label_count == (1 if station.name == current_station_name else 0))
 
 func _assert_pair_has_single_visual_and_collision_set(world: Node) -> void:
 	var pair := world.get_node("%AgencyPair") as CharacterBody2D
 	assert(pair.find_children("*", "AnimatedSprite2D", true, false).size() == 2)
-	assert(pair.find_children("*", "Label", true, false).size() == 2)
+	assert(pair.find_children("*", "Label", true, false).is_empty())
 	assert(pair.find_children("*", "CollisionShape2D", true, false).size() == 2)
 	assert(pair.find_children("*", "Area2D", true, false).size() == 1)
 	assert(pair.find_children("*", "NavigationAgent2D", true, false).size() == 1)

@@ -53,6 +53,7 @@ func run() -> bool:
 	_assert_station_labels_are_unique_and_contextual(world, "Reception")
 	_assert_pair_has_single_visual_and_collision_set(world)
 	_assert_world_travel_and_label_contract(world)
+	_assert_motion_and_ambient_contract(world)
 	var strategy_station := world.get_node("Stations/StrategyRoom") as Area2D
 	strategy_station.position += Vector2(0.0, -28.0)
 	assert(world.direct_travel("strategy-room"))
@@ -274,3 +275,38 @@ func _assert_pair_has_single_visual_and_collision_set(world: Node) -> void:
 	assert(pair.find_children("*", "CollisionShape2D", true, false).size() == 2)
 	assert(pair.find_children("*", "Area2D", true, false).size() == 1)
 	assert(pair.find_children("*", "NavigationAgent2D", true, false).size() == 1)
+
+func _assert_motion_and_ambient_contract(world: Node) -> void:
+	var pair := world.get_node("%AgencyPair") as AdMarketAgencyPair
+	var ambient := world.get_node("%AgencyAmbientMotion") as Node2D
+	var body_collision := pair.get_node("BodyCollision") as CollisionShape2D
+	var interaction_area := pair.get_node("InteractionRange") as Area2D
+	var art_director := pair.get_node("%ArtDirectorSprite") as AnimatedSprite2D
+	var strategist := pair.get_node("%StrategistSprite") as AnimatedSprite2D
+	var expected_sprite_scale := Vector2(0.13, 0.13)
+	var root_position := pair.position
+	var body_position := body_collision.position
+	var interaction_position := interaction_area.position
+	assert(ambient != null)
+	assert(art_director.scale.is_equal_approx(expected_sprite_scale))
+	assert(strategist.scale.is_equal_approx(expected_sprite_scale))
+	world.set_reduced_motion_enabled(false)
+	assert(world.direct_travel("art-studio"))
+	assert(pair.call("visual_motion_state") == "walking")
+	pair.call("advance_visual_motion", 0.16)
+	assert(pair.position == root_position)
+	assert(body_collision.position == body_position)
+	assert(interaction_area.position == interaction_position)
+	assert(art_director.scale.is_equal_approx(expected_sprite_scale))
+	assert(strategist.scale.is_equal_approx(expected_sprite_scale))
+	assert(pair.call("sprite_transforms_are_neutral") == false)
+	world.call("_finish_direct_travel")
+	assert(pair.call("visual_motion_state") == "idle")
+	ambient.call("advance_ambient_motion", 0.25)
+	assert(ambient.call("pulse_amount") > 0.0)
+	world.set_reduced_motion_enabled(true)
+	assert(pair.call("visual_motion_state") == "idle")
+	assert(pair.call("sprite_transforms_are_neutral"))
+	assert(art_director.scale.is_equal_approx(expected_sprite_scale))
+	assert(strategist.scale.is_equal_approx(expected_sprite_scale))
+	assert(ambient.call("pulse_amount") == 0.0)

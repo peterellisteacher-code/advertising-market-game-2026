@@ -52,6 +52,7 @@ func _practice_market_awards_three_medals_and_reveals() -> bool:
     for rival in rivals:
         assert(rival.get("status") == "approved")
         assert(rival.get("price") == 4000)
+    _assert_rival_artwork_compositions(session, rivals, artwork)
 
     var own_key := str(Dictionary(initial.get("campaigns")[0]).get("artworkKey"))
     var rival_key := str(rivals[0].get("artworkKey"))
@@ -99,3 +100,29 @@ func _is_png(value: Variant) -> bool:
         return false
     var image := Image.new()
     return image.load_png_from_buffer(value) == OK
+
+func _assert_rival_artwork_compositions(
+    session: AdMarketLocalMarketSession,
+    rivals: Array[Dictionary],
+    artwork: Dictionary
+) -> void:
+    var signatures: Dictionary = {}
+    for rival in rivals:
+        var artwork_key := str(rival.get("artworkKey"))
+        assert(not session.request_artwork(artwork_key).is_empty())
+        var bytes := artwork.get(artwork_key) as PackedByteArray
+        var image := Image.new()
+        assert(image.load_png_from_buffer(bytes) == OK)
+        assert(image.get_width() == 640)
+        assert(image.get_height() == 360)
+        assert(_distinct_colour_count(image) >= 24)
+        assert(image.get_pixel(320, 180) != image.get_pixel(8, 180))
+        signatures[bytes.sha256_text()] = true
+    assert(signatures.size() == 4)
+
+func _distinct_colour_count(image: Image) -> int:
+    var colours: Dictionary = {}
+    for y in range(24, image.get_height(), 24):
+        for x in range(24, image.get_width(), 24):
+            colours[image.get_pixel(x, y).to_html()] = true
+    return colours.size()

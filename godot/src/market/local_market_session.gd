@@ -21,6 +21,15 @@ const SEED_PRODUCTS := [
     {"name": "SnapCycle", "tagline": "A city bike built for quick changes."},
     {"name": "NightNest", "tagline": "A reading light that makes space feel yours."}
 ]
+const RIVAL_ARTWORK_PATHS := [
+    "res://assets/market/rivals/cooler-master.png",
+    "res://assets/market/rivals/terrarium-master.png",
+    "res://assets/market/rivals/bicycle-master.png",
+    "res://assets/market/rivals/lamp-master.png"
+]
+const RIVAL_BACKGROUNDS := [Color("#0d3d57"), Color("#23655e"), Color("#43366f"), Color("#6e3c2a")]
+const RIVAL_HORIZONS := [Color("#67c7d0"), Color("#b3e0ad"), Color("#f1bd69"), Color("#f2c77e")]
+const RIVAL_ACCENTS := [Color("#ffb84d"), Color("#f5cf5b"), Color("#e580d0"), Color("#83d7df")]
 
 var _game_run: RefCounted
 var _alias: String = ""
@@ -197,30 +206,34 @@ func _campaign_by_id(campaign_id: String) -> Dictionary:
     return {}
 
 func _seed_artwork(index: int) -> PackedByteArray:
-    var backgrounds := [Color("#f4ead6"), Color("#dceee8"), Color("#e6e4f4"), Color("#f7e0d3")]
-    var accents := [Color("#b63a15"), Color("#0b6e99"), Color("#5b4b8a"), Color("#c45a24")]
-    var darks := [Color("#17212b"), Color("#173c3b"), Color("#25213d"), Color("#3d291f")]
     var image := Image.create(640, 360, false, Image.FORMAT_RGBA8)
-    image.fill(backgrounds[index])
-    image.fill_rect(Rect2i(0, 0, 640, 34), accents[index])
-    image.fill_rect(Rect2i(54, 282, 532, 18), darks[index])
-    image.fill_rect(Rect2i(76, 312, 330, 10), accents[index])
-    if index == 0:
-        image.fill_rect(Rect2i(176, 116, 288, 142), Color("#fffaf0"))
-        image.fill_rect(Rect2i(160, 92, 320, 38), darks[index])
-        image.fill_rect(Rect2i(210, 68, 220, 18), accents[index])
-    elif index == 1:
-        image.fill_rect(Rect2i(202, 112, 236, 146), Color("#fffaf0"))
-        image.fill_rect(Rect2i(222, 84, 196, 38), darks[index])
-        image.fill_rect(Rect2i(238, 146, 72, 72), accents[index])
-        image.fill_rect(Rect2i(330, 146, 72, 72), accents[index])
-    elif index == 2:
-        image.fill_rect(Rect2i(154, 164, 332, 48), accents[index])
-        image.fill_rect(Rect2i(244, 110, 152, 54), Color("#fffaf0"))
-        image.fill_rect(Rect2i(204, 222, 64, 36), darks[index])
-        image.fill_rect(Rect2i(372, 222, 64, 36), darks[index])
-    else:
-        image.fill_rect(Rect2i(292, 138, 56, 120), darks[index])
-        image.fill_rect(Rect2i(206, 104, 228, 62), Color("#fffaf0"))
-        image.fill_rect(Rect2i(236, 74, 168, 32), accents[index])
+    var background: Color = RIVAL_BACKGROUNDS[index]
+    var horizon: Color = RIVAL_HORIZONS[index]
+    var accent: Color = RIVAL_ACCENTS[index]
+    for row in range(15):
+        for column in range(20):
+            var ratio := clampf(float(row) / 20.0 + float(column) / 64.0, 0.0, 1.0)
+            image.fill_rect(Rect2i(column * 32, row * 24, 32, 24), background.lerp(horizon, ratio))
+    image.fill_rect(Rect2i(0, 0, 640, 30), Color("#111827"))
+    image.fill_rect(Rect2i(0, 300, 640, 60), Color("#111827"))
+    image.fill_rect(Rect2i(42, 52, 556, 12), accent)
+    image.fill_rect(Rect2i(74, 272, 492, 8), accent)
+    image.fill_rect(Rect2i(86, 82, 468, 174), background.lerp(Color("#f8fafc"), 0.28))
+    var product_texture := ResourceLoader.load(String(RIVAL_ARTWORK_PATHS[index])) as Texture2D
+    if product_texture == null:
+        push_error("Practice rival artwork is unavailable")
+        return PackedByteArray()
+    var product := product_texture.get_image()
+    if product == null or product.is_empty():
+        push_error("Practice rival artwork is unavailable")
+        return PackedByteArray()
+    var product_size := Vector2i(260, 260)
+    if index == 2:
+        product_size = Vector2i(360, 220)
+    product.resize(product_size.x, product_size.y, Image.INTERPOLATE_LANCZOS)
+    var product_position := Vector2i(
+        int((640 - product_size.x) / 2),
+        int(54 + (218 - product_size.y) / 2)
+    )
+    image.blend_rect(product, Rect2i(Vector2i.ZERO, product_size), product_position)
     return image.save_png_to_buffer()

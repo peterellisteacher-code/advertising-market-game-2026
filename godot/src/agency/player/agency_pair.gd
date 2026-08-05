@@ -15,14 +15,28 @@ var active_role: String = "art-director"
 var station_owner_role: String = "strategist"
 var nearest_station_id: String = "reception"
 var facing_direction: String = "front"
+var _reduced_motion_enabled: bool = false
+var _visual_motion_state: String = "idle"
+var _visual_time: float = 0.0
+var _art_director_base_position := Vector2(-20.0, -5.0)
+var _strategist_base_position := Vector2(20.0, 5.0)
+var _art_director_base_scale := Vector2.ONE
+var _strategist_base_scale := Vector2.ONE
+var _sprite_bases_captured: bool = false
 
 func _ready() -> void:
+	_capture_sprite_bases()
 	_apply_sprite_state()
 	_apply_role_emphasis()
+	_apply_visual_motion()
+
+func _process(delta: float) -> void:
+	advance_visual_motion(delta)
 
 func _physics_process(delta: float) -> void:
 	if not input_enabled or modal_open:
 		velocity = Vector2.ZERO
+		set_visual_motion_state("idle")
 		return
 	var keyboard_vector := Input.get_vector(
 		"move_left",
@@ -37,11 +51,15 @@ func _physics_process(delta: float) -> void:
 func move_vector(direction: Vector2, delta: float = 0.0) -> Vector2:
 	if not input_enabled or modal_open:
 		velocity = Vector2.ZERO
+		set_visual_motion_state("idle")
 		return position
 	var normalised := direction.limit_length(1.0)
 	velocity = normalised * movement_speed
 	if not normalised.is_zero_approx():
 		_update_facing_direction(normalised)
+		set_visual_motion_state("walking")
+	else:
+		set_visual_motion_state("idle")
 	if is_inside_tree():
 		move_and_slide()
 	elif delta > 0.0:
@@ -56,11 +74,48 @@ func set_input_enabled(enabled: bool) -> void:
 	input_enabled = enabled
 	if not enabled:
 		velocity = Vector2.ZERO
+		set_visual_motion_state("idle")
 
 func set_modal_open(open: bool) -> void:
 	modal_open = open
 	if open:
 		velocity = Vector2.ZERO
+		set_visual_motion_state("idle")
+
+func set_reduced_motion_enabled(enabled: bool) -> void:
+	_reduced_motion_enabled = enabled
+	if enabled:
+		_visual_motion_state = "idle"
+		_visual_time = 0.0
+	_apply_visual_motion()
+
+func set_visual_motion_state(state: String) -> void:
+	_visual_motion_state = "walking" if state == "walking" and not _reduced_motion_enabled else "idle"
+	_apply_visual_motion()
+
+func visual_motion_state() -> String:
+	return _visual_motion_state
+
+func advance_visual_motion(delta: float) -> void:
+	if _reduced_motion_enabled:
+		_apply_visual_motion()
+		return
+	_visual_time += maxf(delta, 0.0)
+	_apply_visual_motion()
+
+func sprite_transforms_are_neutral() -> bool:
+	var art_director := get_node_or_null("%ArtDirectorSprite") as AnimatedSprite2D
+	var strategist := get_node_or_null("%StrategistSprite") as AnimatedSprite2D
+	return (
+		art_director != null
+		and strategist != null
+		and art_director.position.is_equal_approx(_art_director_base_position)
+		and strategist.position.is_equal_approx(_strategist_base_position)
+		and is_zero_approx(art_director.rotation)
+		and is_zero_approx(strategist.rotation)
+		and art_director.scale.is_equal_approx(_art_director_base_scale)
+		and strategist.scale.is_equal_approx(_strategist_base_scale)
+	)
 
 func set_active_role(role: String) -> bool:
 	if not VALID_ROLES.has(role):
@@ -98,11 +153,53 @@ func _apply_role_emphasis() -> void:
 	var art_director := get_node_or_null("%ArtDirectorSprite") as AnimatedSprite2D
 	var strategist := get_node_or_null("%StrategistSprite") as AnimatedSprite2D
 	var art_is_foremost := station_owner_role == "art-director"
+	_art_director_base_position = Vector2(-20.0, 5.0 if art_is_foremost else -5.0)
+	_strategist_base_position = Vector2(20.0, -5.0 if art_is_foremost else 5.0)
 	if art_director != null:
-		art_director.position = Vector2(-20.0, 5.0 if art_is_foremost else -5.0)
+		art_director.position = _art_director_base_position
 		art_director.z_index = 3 if art_is_foremost else 1
 		art_director.modulate.a = 1.0 if active_role == "art-director" else 0.82
 	if strategist != null:
-		strategist.position = Vector2(20.0, -5.0 if art_is_foremost else 5.0)
+		strategist.position = _strategist_base_position
 		strategist.z_index = 1 if art_is_foremost else 3
 		strategist.modulate.a = 1.0 if active_role == "strategist" else 0.82
+	_apply_visual_motion()
+
+func _apply_visual_motion() -> void:
+	var art_director := get_node_or_null("%ArtDirectorSprite") as AnimatedSprite2D
+	var strategist := get_node_or_null("%StrategistSprite") as AnimatedSprite2D
+	if art_director == null or strategist == null:
+		return
+	_capture_sprite_bases()
+	var bob := 0.0
+	var lean := 0.0
+	if not _reduced_motion_enabled:
+		var frequency := 3.6 if _visual_motion_state == "walking" else 1.8
+		var amplitude := 2.5 if _visual_motion_state == "walking" else 1.0
+		bob = sin(_visual_time * frequency * TAU) * amplitude
+		if _visual_motion_state == "walking":
+			lean = _walking_lean()
+	art_director.position = _art_director_base_position + Vector2(0.0, bob)
+	strategist.position = _strategist_base_position + Vector2(0.0, -bob)
+	art_director.rotation = lean
+	strategist.rotation = lean * 0.78
+	art_director.scale = _art_director_base_scale
+	strategist.scale = _strategist_base_scale
+
+func _capture_sprite_bases() -> void:
+	if _sprite_bases_captured:
+		return
+	var art_director := get_node_or_null("%ArtDirectorSprite") as AnimatedSprite2D
+	var strategist := get_node_or_null("%StrategistSprite") as AnimatedSprite2D
+	if art_director == null or strategist == null:
+		return
+	_art_director_base_scale = art_director.scale
+	_strategist_base_scale = strategist.scale
+	_sprite_bases_captured = true
+
+func _walking_lean() -> float:
+	if facing_direction == "left":
+		return -0.055
+	if facing_direction == "right":
+		return 0.055
+	return 0.018 if facing_direction == "back" else -0.018

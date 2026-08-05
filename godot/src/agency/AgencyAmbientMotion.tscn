@@ -1,0 +1,26 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/agency/agency_ambient_motion.gd" id="1_ambient"]
+
+[node name="AgencyAmbientMotion" type="Node2D"]
+script = ExtResource("1_ambient")
+
+[node name="StatusLightReception" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(0, 0, 14, 0, 14, 5, 0, 5)
+position = Vector2(196, 174)
+color = Color(0.2, 0.92, 0.91, 1)
+
+[node name="StatusLightStrategy" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(0, 0, 14, 0, 14, 5, 0, 5)
+position = Vector2(704, 184)
+color = Color(1, 0.74, 0.22, 1)
+
+[node name="StatusLightProduction" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(0, 0, 14, 0, 14, 5, 0, 5)
+position = Vector2(287, 628)
+color = Color(0.2, 0.92, 0.91, 1)
+
+[node name="StatusLightPitch" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(0, 0, 14, 0, 14, 5, 0, 5)
+position = Vector2(1110, 632)
+color = Color(1, 0.74, 0.22, 1)

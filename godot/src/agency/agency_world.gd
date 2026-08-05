@@ -196,6 +196,12 @@ func set_input_enabled(enabled: bool) -> void:
 
 func set_reduced_motion_enabled(enabled: bool) -> void:
 	reduced_motion_enabled = enabled
+	var pair := _pair()
+	if pair != null:
+		pair.set_reduced_motion_enabled(enabled)
+	var ambient := _ambient_motion()
+	if ambient != null:
+		ambient.set_reduced_motion_enabled(enabled)
 
 func direct_travel(station_id: String) -> bool:
 	if not STATION_DATA.has(station_id):
@@ -211,6 +217,7 @@ func direct_travel(station_id: String) -> bool:
 	if not is_inside_tree() or reduced_motion_enabled:
 		pair.position = target
 		pair.set_nearest_station(station_id)
+		pair.set_visual_motion_state("idle")
 		return true
 	_begin_direct_travel(pair, target)
 	return true
@@ -474,6 +481,7 @@ func _begin_direct_travel(pair: AdMarketAgencyPair, target: Vector2) -> void:
 	if _travel_tween != null and _travel_tween.is_valid():
 		_travel_tween.kill()
 	pair.set_input_enabled(false)
+	pair.set_visual_motion_state("walking")
 	var points: Array[Vector2] = []
 	if pair.position.distance_to(target) > 260.0:
 		points.append(CENTRAL_TRAVEL_POINT)
@@ -489,6 +497,7 @@ func _finish_direct_travel() -> void:
 	if pair != null:
 		pair.set_input_enabled(true)
 		pair.set_nearest_station(_current_station_id)
+		pair.set_visual_motion_state("idle")
 	var action_button := get_node_or_null("%StationActionButton") as Button
 	if action_button != null:
 		action_button.grab_focus()
@@ -756,6 +765,9 @@ func _hud() -> AdMarketAgencyHud:
 
 func _guide() -> AdMarketAgencyGuideDrawer:
 	return get_node_or_null("%AgencyGuideDrawer") as AdMarketAgencyGuideDrawer
+
+func _ambient_motion() -> AdMarketAgencyAmbientMotion:
+	return get_node_or_null("%AgencyAmbientMotion") as AdMarketAgencyAmbientMotion
 
 func _pair() -> AdMarketAgencyPair:
 	return get_node_or_null("%AgencyPair") as AdMarketAgencyPair

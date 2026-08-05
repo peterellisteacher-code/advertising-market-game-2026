@@ -126,12 +126,25 @@ func _assert_world_travel_and_label_contract(world: Node) -> void:
 		assert(pair.position.distance_to(station.position) <= 92.0)
 	assert(world.direct_travel("client-briefing"))
 	assert(pair.position == Vector2(430.0, 460.0))
+	var world_bounds := world.get_node("WorldBounds") as StaticBody2D
 	var client_collision := world.get_node("WorldBounds/ClientBriefingFixture") as CollisionShape2D
 	var client_shape := client_collision.shape as RectangleShape2D
-	var client_local_arrival := client_collision.to_local(pair.global_position)
-	assert(pair.position.y > (world.get_node("Stations/ClientBriefing") as Area2D).position.y)
-	assert(absf(client_local_arrival.x) > client_shape.size.x * 0.5 or absf(client_local_arrival.y) > client_shape.size.y * 0.5)
+	var pair_collision := pair.get_node("BodyCollision") as CollisionShape2D
+	var pair_shape := pair_collision.shape as CapsuleShape2D
+	var fixture_bottom := client_collision.global_position.y + client_shape.size.y * 0.5
+	var pair_top := pair_collision.global_position.y - pair_shape.height * 0.5
+	assert(pair_top >= fixture_bottom)
+	assert(not client_collision.disabled)
+	assert((pair.collision_mask & world_bounds.collision_layer) != 0)
+	var motion_parameters := PhysicsTestMotionParameters2D.new()
+	motion_parameters.from = pair.global_transform
+	motion_parameters.motion = Vector2(0.0, -90.0)
+	var motion_result := PhysicsTestMotionResult2D.new()
+	assert(PhysicsServer2D.body_test_motion(pair.get_rid(), motion_parameters, motion_result))
+	assert(motion_result.get_collider_id() == world_bounds.get_instance_id())
+	assert(motion_result.get_travel().y > motion_parameters.motion.y)
 	var client_station := world.get_node("Stations/ClientBriefing") as Area2D
+	assert(pair.position.y > client_station.position.y)
 	var labels := client_station.find_children("*", "Label", true, false)
 	assert(labels.size() == 1)
 	assert(client_station.get_node_or_null("OwnerRoleBadge") == null)

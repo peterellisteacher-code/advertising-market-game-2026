@@ -6,6 +6,7 @@ import PRODUCT_KIT_SIDECAR from "../../../catalog/generated/offline-core-v1/prod
 import PRODUCT_KIT_PRICING_SIDECAR from
   "../../../catalog/generated/offline-core-v1/product-kit-pricing-v1.json";
 import STUDENT_STARTERS from "../../../catalog/generated/offline-core-v1/student-starters-v1.json";
+import { AD_BACKGROUND_PRESETS } from "../assets/ad-background-presets";
 import {
   createBlankCampaignDocument,
   parseCampaignDocument,
@@ -27,7 +28,8 @@ import type {
   NewShapeInput,
   NewTextInput,
   ObjectTransform,
-  RasterSectionFillRecipe
+  RasterSectionFillRecipe,
+  StackDirection
 } from "../fabric/canvas-port";
 import { campaignSemanticObjectMap } from "../domain/campaign-semantic-objects";
 import { parseProductBuilderCatalogue } from "../product-builder/product-builder-catalogue";
@@ -795,7 +797,16 @@ class PlacementCanvas implements CanvasPort {
   }
   assertCanDuplicate(): void {}
   async duplicate(): Promise<void> {}
-  move(): void {}
+  move(id: string, direction: StackDirection): void {
+    const index = this.objects.findIndex((candidate) => candidate.objectId === id);
+    if (index < 0) throw new Error(`Missing object ${id}`);
+    const [object] = this.objects.splice(index, 1);
+    if (!object) throw new Error(`Missing object ${id}`);
+    if (direction === "back") this.objects.unshift(object);
+    else if (direction === "front") this.objects.push(object);
+    else if (direction === "forward") this.objects.splice(Math.min(index + 1, this.objects.length), 0, object);
+    else this.objects.splice(Math.max(index - 1, 0), 0, object);
+  }
   setLocked(): void {}
   setVisible(): void {}
   getCropSourceSize() { return { width: 1, height: 1 }; }
@@ -1441,6 +1452,44 @@ describe("CataloguePlacementQueue", () => {
       attribution: asset("core").attribution
     }]);
     expect(canvas.artworkAdds).toEqual([]);
+  });
+
+  it("places a background preset as a full-canvas editable raster in an undoable transaction", async () => {
+    const background = AD_BACKGROUND_PRESETS[0]!;
+    const harness = productKitTransactionHarness(false, ["foreground-object"]);
+    const queue = new CataloguePlacementQueue({
+      getDocument: harness.getDocument,
+      getCanvas: async () => harness.canvas,
+      commit: harness.commit,
+      transaction: harness.transaction,
+      createObjectId: () => "background-object"
+    });
+
+    queue.enqueue(background, { bodyColour: "#000000", fullCanvas: true });
+    await queue.flush();
+
+    const placed = harness.canvas.objects[0]!;
+    expect(placed).toMatchObject({
+      type: "image",
+      objectId: "background-object",
+      elementKind: "image",
+      assetId: background.id,
+      left: 800,
+      top: 450,
+      scaleX: 1.5625,
+      scaleY: 1.5625
+    });
+    expect(harness.canvas.objects[1]).toMatchObject({ objectId: "foreground-object" });
+    expect(harness.transaction).toHaveBeenCalledOnce();
+    expect(harness.getHistory().past).toHaveLength(1);
+    expect(stateObjects(harness.getHistory().past[0]!.fabricState)).toEqual([
+      expect.objectContaining({ objectId: "foreground-object" })
+    ]);
+    expect(stateObjects(harness.getHistory().present.fabricState)[0]).toMatchObject({
+      objectId: "background-object",
+      elementKind: "image",
+      assetId: background.id
+    });
   });
 
   it("places a generated raster with durable generation and blob references that rehydrate", async () => {

@@ -664,7 +664,9 @@ export class FabricCanvasAdapter implements CanvasPort {
   }
 
   async getFillableRaster(id: string): Promise<FillableRasterSnapshot | null> {
-    const image = this.#getRaster(id);
+    const object = this.#get(id);
+    if (!(object instanceof FabricImage) || object.elementKind !== "image") return null;
+    const image = object;
     const metadata = this.#sectionFillMetadata(image);
     if (metadata === null) return null;
     const { width, height } = image.getOriginalSize();

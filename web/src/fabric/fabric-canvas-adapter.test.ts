@@ -1521,6 +1521,20 @@ function sectionFillEngine() {
 }
 
 describe("FabricCanvasAdapter raster section fill", () => {
+  it("treats an SVG-backed semantic image group as unavailable for raster section fill", async () => {
+    const canvas = new FakeCanvas();
+    const background = new Group([new Rect({ width: 100, height: 100 })]);
+    background.set({
+      objectId: "background-1",
+      elementKind: "image",
+      accessibleName: "Coral arch"
+    });
+    canvas.objects.push(background);
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+
+    await expect(adapter.getFillableRaster("background-1")).resolves.toBeNull();
+  });
+
   it("previews and cancels byte-exactly without serialising or emitting a mutation", async () => {
     const canvas = new FakeCanvas();
     const image = eligibleRaster();

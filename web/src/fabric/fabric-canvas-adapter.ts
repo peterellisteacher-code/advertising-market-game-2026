@@ -55,7 +55,10 @@ import { FabricLogoMarkFactory } from "./logo-mark-factory";
 import { FabricProductKitCompositor } from "../product-kit/fabric-product-kit-compositor";
 import {
   CURVED_TEXT_PROFILE,
-  renderCurvedLabel
+  isCurvedLabelFontFamily,
+  renderCurvedLabel,
+  waitForCurvedLabelFont,
+  type CurvedLabelFontFamily
 } from "../product-kit/curved-label-renderer";
 import {
   BrowserRasterSectionFillEngine,
@@ -309,7 +312,7 @@ export class FabricCanvasAdapter implements CanvasPort {
       product,
       surface,
       this.#usesCurvedLabel(product)
-        ? this.factory.createCurvedLabel(input)
+        ? await this.factory.createCurvedLabel(input)
         : this.factory.createText(input)
     );
   }
@@ -341,7 +344,12 @@ export class FabricCanvasAdapter implements CanvasPort {
     return productShellRegionColours(this.#get(id));
   }
 
-  setArtworkText(address: ArtworkSurfaceAddress, id: string, value: string): void {
+  async setArtworkText(
+    address: ArtworkSurfaceAddress,
+    id: string,
+    value: string,
+    fontFamily?: CurvedLabelFontFamily
+  ): Promise<void> {
     if (!value.trim()) throw new Error("Text must not be empty");
     const { product, surface } = this.#artworkContext(address);
     const object = surface.getObjects().find((candidate) => candidate.objectId === id);
@@ -350,22 +358,32 @@ export class FabricCanvasAdapter implements CanvasPort {
       object.curvedTextProfile === CURVED_TEXT_PROFILE &&
       typeof object.curvedTextSource === "string" &&
       typeof object.curvedTextColour === "string" &&
-      typeof object.curvedTextFontFamily === "string") {
+      typeof object.curvedTextFontFamily === "string" &&
+      isCurvedLabelFontFamily(object.curvedTextFontFamily)) {
       const source = value.replace(/\s+/gu, " ").trim();
-      if (object.curvedTextSource === source) return;
-      const rendered = renderCurvedLabel({
-        text: source,
-        colour: object.curvedTextColour,
-        fontFamily: object.curvedTextFontFamily
-      });
-      object.setElement(rendered.canvas, {
-        width: object.width,
-        height: object.height
-      });
-      object.set({ curvedTextSource: source });
-      object.dirty = true;
-      object.setCoords();
-      this.#finishArtworkMutation(product, surface);
+      if (fontFamily !== undefined && !isCurvedLabelFontFamily(fontFamily)) {
+        throw new Error("Curved label font is not supported");
+      }
+      const selectedFont = fontFamily ?? object.curvedTextFontFamily;
+      if (object.curvedTextSource === source && object.curvedTextFontFamily === selectedFont) return;
+      const replaceCurvedLabel = (): void => {
+        const rendered = renderCurvedLabel({
+          text: source,
+          ...(object.curvedTextColour === undefined ? {} : { colour: object.curvedTextColour }),
+          fontFamily: selectedFont
+        });
+        object.setElement(rendered.canvas, { width: object.width, height: object.height });
+        object.set({ curvedTextSource: source, curvedTextFontFamily: selectedFont });
+        object.dirty = true;
+        object.setCoords();
+        this.#finishArtworkMutation(product, surface);
+      };
+      if (typeof document !== "undefined" && document.fonts !== undefined) {
+        await waitForCurvedLabelFont(selectedFont);
+        replaceCurvedLabel();
+      } else {
+        replaceCurvedLabel();
+      }
       return;
     }
     if (!(object instanceof Textbox) || object.elementKind !== "text") {
@@ -646,7 +664,9 @@ export class FabricCanvasAdapter implements CanvasPort {
   }
 
   async getFillableRaster(id: string): Promise<FillableRasterSnapshot | null> {
-    const image = this.#getRaster(id);
+    const object = this.#get(id);
+    if (!(object instanceof FabricImage) || object.elementKind !== "image") return null;
+    const image = object;
     const metadata = this.#sectionFillMetadata(image);
     if (metadata === null) return null;
     const { width, height } = image.getOriginalSize();

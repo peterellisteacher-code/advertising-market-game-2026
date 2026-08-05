@@ -20,6 +20,7 @@ import {
 import type {
   NewRasterInput,
   NewProductKitInput,
+  NewTextInput,
   RasterSectionFillRecipe
 } from "./fabric/canvas-port";
 import { AUDIENCE_BRIEFS } from "./game/audience-briefs";
@@ -198,7 +199,7 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
 
     async addArtworkText(
       address: { productId: string; slotId: string },
-      input: { id: string; value: string; accessibleName: string }
+      input: NewTextInput
     ): Promise<void> {
       const { product, surface } = this.artworkSurface(address);
       const curved = product.productKitId === "pk1-tumbler-kit";
@@ -211,7 +212,7 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
             curvedTextSource: input.value,
             curvedTextProfile: "cylinder-front",
             curvedTextColour: "#111827",
-            curvedTextFontFamily: "Arial",
+            curvedTextFontFamily: input.fontFamily ?? "Arial",
             src: "data:image/png;base64,iVBORw0KGgo="
           }
         : {
@@ -231,13 +232,17 @@ vi.mock("./fabric/fabric-canvas-adapter", () => ({
     setArtworkText(
       address: { productId: string; slotId: string },
       id: string,
-      value: string
+      value: string,
+      fontFamily?: NewTextInput["fontFamily"]
     ): void {
       const { surface } = this.artworkSurface(address);
       const text = (surface.objects as Array<Record<string, unknown>>)
         .find((candidate) => candidate.objectId === id && candidate.elementKind === "text");
       if (!text) throw new Error(`Missing artwork text ${id}`);
-      if (text.curvedTextProfile === "cylinder-front") text.curvedTextSource = value;
+      if (text.curvedTextProfile === "cylinder-front") {
+        text.curvedTextSource = value;
+        if (fontFamily !== undefined) text.curvedTextFontFamily = fontFamily;
+      }
       else text.text = value;
       runtime.listeners.forEach((listener) => listener({
         type: "modified",
@@ -1384,6 +1389,10 @@ describe("window.AdMarketCreator", () => {
       .toBe(false);
 
     gameAccess.reportStartupReady();
+    expect(document.querySelector<HTMLElement>("#game-startup-status")?.hidden)
+      .toBe(true);
+
+    gameAccess.reportStartupProgress(100);
     expect(document.querySelector<HTMLElement>("#game-startup-status")?.hidden)
       .toBe(true);
 
@@ -3626,6 +3635,10 @@ describe("window.AdMarketCreator", () => {
     const productWords = getByRole<HTMLInputElement>(document.body, "textbox", {
       name: "Advertisement words"
     });
+    const productTypeface = getByRole<HTMLSelectElement>(document.body, "combobox", {
+      name: "Curved product typeface"
+    });
+    fireEvent.change(productTypeface, { target: { value: "Russo One" } });
     fireEvent.input(productWords, { target: { value: "Refill. Roam. Repeat." } });
     fireEvent.click(getByRole(document.body, "button", {
       name: "Put words on selected product"
@@ -3637,7 +3650,8 @@ describe("window.AdMarketCreator", () => {
       expect(artworkSlot?.objects).toEqual(expect.arrayContaining([
         expect.objectContaining({
           elementKind: "text",
-          curvedTextSource: "Refill. Roam. Repeat."
+          curvedTextSource: "Refill. Roam. Repeat.",
+          curvedTextFontFamily: "Russo One"
         })
       ]));
     });
@@ -3652,7 +3666,10 @@ describe("window.AdMarketCreator", () => {
       const labels = (artworkSlot?.objects as Array<Record<string, unknown>>)
         .filter(({ elementKind }) => elementKind === "text");
       expect(labels).toEqual([
-        expect.objectContaining({ curvedTextSource: "Warm drinks. Less waste." })
+        expect.objectContaining({
+          curvedTextSource: "Warm drinks. Less waste.",
+          curvedTextFontFamily: "Russo One"
+        })
       ]);
     });
     fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));

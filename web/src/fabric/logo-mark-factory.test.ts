@@ -1,5 +1,5 @@
 import { Group, Textbox } from "fabric";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { LogoIconRecord } from "../logo-lab/logo-icon-catalogue";
 import { createBlankCampaignDocument, parseCampaignDocument } from "../domain/campaign-document";
 import {
@@ -8,7 +8,7 @@ import {
   type LogoRecipeId
 } from "../logo-lab/logo-mark-model";
 import { FABRIC_CONTROL_SIZE } from "./object-factory";
-import { FabricLogoMarkFactory } from "./logo-mark-factory";
+import { FabricLogoMarkFactory, waitForLogoTypeface } from "./logo-mark-factory";
 
 const icon: LogoIconRecord = Object.freeze({
   id: "paw",
@@ -33,6 +33,22 @@ function design(recipe: LogoRecipeId) {
 }
 
 describe("FabricLogoMarkFactory", () => {
+  it("stops waiting when a bundled typeface never settles", async () => {
+    vi.useFakeTimers();
+    try {
+      const load = vi.fn(() => new Promise<FontFace[]>(() => undefined));
+      Object.defineProperty(document, "fonts", { configurable: true, value: { load } });
+      let settled = false;
+      void waitForLogoTypeface("Lilita One").then(() => { settled = true; });
+
+      await vi.advanceTimersByTimeAsync(3_000);
+
+      expect(settled).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it.each(LOGO_RECIPES)("creates an editable semantic $label group", async ({ id: recipe }) => {
     const factory = new FabricLogoMarkFactory();
 

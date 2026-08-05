@@ -10,7 +10,10 @@ import {
 import { CREATOR_CONFIG } from "../config";
 import type { EditorObjectMeta } from "../domain/editor-object";
 import {
+  hasCurvedLabelFontLoadingApi,
+  isCurvedLabelFontFamily,
   renderCurvedLabel,
+  waitForCurvedLabelFont,
   type CurvedLabelFontFamily
 } from "../product-kit/curved-label-renderer";
 import type { NewRasterInput, NewShapeInput, NewTextInput } from "./canvas-port";
@@ -174,11 +177,15 @@ export class FabricObjectFactory {
     });
   }
 
-  createCurvedLabel(
+  async createCurvedLabel(
     input: NewTextInput,
-    colour = "#111827",
-    fontFamily: CurvedLabelFontFamily = "Arial"
-  ): FabricImage {
+    colour = "#111827"
+  ): Promise<FabricImage> {
+    const fontFamily = input.fontFamily ?? "Arial";
+    if (!isCurvedLabelFontFamily(fontFamily)) {
+      throw new Error("Curved label font is not supported");
+    }
+    if (hasCurvedLabelFontLoadingApi()) await waitForCurvedLabelFont(fontFamily);
     const rendered = renderCurvedLabel({
       text: input.value,
       colour,

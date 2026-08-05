@@ -11,6 +11,7 @@ import type {
   ShapeKind,
   StackDirection
 } from "./canvas-port";
+import type { CurvedLabelFontFamily } from "../product-kit/curved-label-renderer";
 
 export interface AddShapeCommand {
   kind: ShapeKind;
@@ -133,7 +134,8 @@ export class ObjectCommandService {
   async addArtworkText(
     address: ArtworkSurfaceAddress,
     value: string,
-    accessibleName = value
+    accessibleName = value,
+    fontFamily?: CurvedLabelFontFamily
   ): Promise<string> {
     const target = this.#artworkAddress(address);
     const text = value.trim();
@@ -142,7 +144,8 @@ export class ObjectCommandService {
     await this.port.addArtworkText(target, {
       id,
       value: text,
-      accessibleName: this.#required(accessibleName, "accessible name")
+      accessibleName: this.#required(accessibleName, "accessible name"),
+      ...(fontFamily === undefined ? {} : { fontFamily })
     });
     this.port.setSelected(target.productId);
     return id;
@@ -185,15 +188,17 @@ export class ObjectCommandService {
     return id;
   }
 
-  setArtworkText(
+  async setArtworkText(
     address: ArtworkSurfaceAddress,
     id: string,
-    value: string
-  ): void {
-    this.port.setArtworkText(
+    value: string,
+    fontFamily?: CurvedLabelFontFamily
+  ): Promise<void> {
+    await this.port.setArtworkText(
       this.#artworkAddress(address),
       this.#required(id, "artwork object id"),
-      this.#required(value, "text")
+      this.#required(value, "text"),
+      fontFamily
     );
   }
 

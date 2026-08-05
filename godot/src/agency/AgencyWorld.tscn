@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://3m1m5tio6u0p" path="res://src/agency/ui/AgencyHud.tscn" id="5_xifuf"]
 [ext_resource type="PackedScene" uid="uid://ok8vov7n8f45" path="res://src/agency/player/AgencyPair.tscn" id="6_45h1l"]
 [ext_resource type="PackedScene" uid="uid://y0p8byuynib7" path="res://src/agency/ui/AgencyGuideDrawer.tscn" id="7_ukfyu"]
+[ext_resource type="PackedScene" path="res://src/agency/AgencyAmbientMotion.tscn" id="8_ambient"]
 [ext_resource type="PackedScene" uid="uid://dmdn0nl418hup" path="res://src/agency/missions/AgencyMissionPanel.tscn" id="9_t5o2e"]
 [ext_resource type="Script" uid="uid://dt5d3rtsxgwyr" path="res://src/agency/missions/agency_mission_controller.gd" id="11_dufgl"]
 
@@ -680,6 +681,10 @@ texture_filter = 1
 position = Vector2(640, 440)
 scale = Vector2(0.76555, 0.76514)
 texture = ExtResource("2_xifuf")
+
+[node name="AgencyAmbientMotion" parent="." unique_id=2026080501 instance=ExtResource("8_ambient")]
+unique_name_in_owner = true
+z_index = 5
 
 [node name="WorldCamera" type="Camera2D" parent="." unique_id=1679722303]
 position = Vector2(640, 400)

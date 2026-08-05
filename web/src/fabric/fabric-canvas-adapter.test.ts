@@ -768,7 +768,8 @@ describe("FabricCanvasAdapter persistence", () => {
     await adapter.addArtworkText(target, {
       id: "curved-label-1",
       value: "Refill. Roam. Repeat.",
-      accessibleName: "Tumbler label"
+      accessibleName: "Tumbler label",
+      fontFamily: "Russo One"
     });
     expect(adapter.firstArtworkTextId(target)).toBe("curved-label-1");
 
@@ -780,7 +781,7 @@ describe("FabricCanvasAdapter persistence", () => {
       curvedTextSource: "Refill. Roam. Repeat.",
       curvedTextProfile: "cylinder-front",
       curvedTextColour: "#111827",
-      curvedTextFontFamily: "Arial"
+      curvedTextFontFamily: "Russo One"
     });
     expect((curved as FabricImage).getOriginalSize()).toEqual({ width: 1_024, height: 512 });
     expect((curved as FabricImage).getScaledWidth()).toBeLessThanOrEqual(surface.width * 0.82 + 0.001);
@@ -789,18 +790,32 @@ describe("FabricCanvasAdapter persistence", () => {
     const firstScale = { x: curved!.scaleX, y: curved!.scaleY };
     const firstCentre = curved!.getCenterPoint();
 
-    adapter.setArtworkText(target, "curved-label-1", "Warm drinks. Less waste.");
+    await adapter.setArtworkText(target, "curved-label-1", "Warm drinks. Less waste.");
 
     expect((curved as FabricImage).getElement()).not.toBe(firstElement);
     expect(curved).toMatchObject({
       curvedTextSource: "Warm drinks. Less waste.",
+      curvedTextFontFamily: "Russo One",
       scaleX: firstScale.x,
       scaleY: firstScale.y
     });
     expect(curved!.getCenterPoint().x).toBeCloseTo(firstCentre.x, 10);
     expect(curved!.getCenterPoint().y).toBeCloseTo(firstCentre.y, 10);
     expect((curved as FabricImage).getOriginalSize()).toEqual({ width: 1_024, height: 512 });
+    const editedElement = (curved as FabricImage).getElement();
+    await adapter.setArtworkText(
+      target,
+      "curved-label-1",
+      "Warm drinks. Less waste.",
+      "Bebas Neue"
+    );
+    expect((curved as FabricImage).getElement()).not.toBe(editedElement);
+    expect(curved).toMatchObject({
+      curvedTextSource: "Warm drinks. Less waste.",
+      curvedTextFontFamily: "Bebas Neue"
+    });
     expect(mutations).toEqual([
+      { type: "modified", objectId: product.objectId },
       { type: "modified", objectId: product.objectId },
       { type: "modified", objectId: product.objectId }
     ]);
@@ -815,7 +830,8 @@ describe("FabricCanvasAdapter persistence", () => {
       type: "Image",
       src: TINY_PNG,
       curvedTextSource: "Warm drinks. Less waste.",
-      curvedTextProfile: "cylinder-front"
+      curvedTextProfile: "cylinder-front",
+      curvedTextFontFamily: "Bebas Neue"
     });
 
     vi.spyOn(FabricImage, "fromObject").mockImplementation(async (value) => {
@@ -835,11 +851,12 @@ describe("FabricCanvasAdapter persistence", () => {
       .find(({ objectId }) => objectId === "curved-label-1");
     if (!(restoredCurved instanceof FabricImage)) throw new Error("Expected restored curved label");
 
-    restoredAdapter.setArtworkText(target, "curved-label-1", "Refill again.");
+    await restoredAdapter.setArtworkText(target, "curved-label-1", "Refill again.");
 
     expect(restoredCurved).toMatchObject({
       curvedTextSource: "Refill again.",
-      curvedTextProfile: "cylinder-front"
+      curvedTextProfile: "cylinder-front",
+      curvedTextFontFamily: "Bebas Neue"
     });
     expect(restoredCurved.getOriginalSize()).toEqual({ width: 1_024, height: 512 });
   }, 15_000);
@@ -1504,6 +1521,20 @@ function sectionFillEngine() {
 }
 
 describe("FabricCanvasAdapter raster section fill", () => {
+  it("treats an SVG-backed semantic image group as unavailable for raster section fill", async () => {
+    const canvas = new FakeCanvas();
+    const background = new Group([new Rect({ width: 100, height: 100 })]);
+    background.set({
+      objectId: "background-1",
+      elementKind: "image",
+      accessibleName: "Coral arch"
+    });
+    canvas.objects.push(background);
+    const adapter = new FabricCanvasAdapter(canvas as unknown as Canvas);
+
+    await expect(adapter.getFillableRaster("background-1")).resolves.toBeNull();
+  });
+
   it("previews and cancels byte-exactly without serialising or emitting a mutation", async () => {
     const canvas = new FakeCanvas();
     const image = eligibleRaster();

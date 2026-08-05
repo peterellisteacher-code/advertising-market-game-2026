@@ -2,6 +2,10 @@ extends SceneTree
 class_name AdMarketRunTests
 
 func _initialize() -> void:
+    call_deferred("_run_suites")
+
+func _run_suites() -> void:
+    var requested_suite := OS.get_environment("ADMARKET_GODOT_TEST_SUITE")
     for suite_path in [
         "res://tests/test_creator_bridge.gd",
         "res://tests/test_creator_host.gd",
@@ -21,16 +25,30 @@ func _initialize() -> void:
         "res://tests/test_live_resume.gd",
         "res://tests/test_game_shell.gd"
     ]:
+        if not requested_suite.is_empty() and suite_path != requested_suite:
+            continue
         var suite_script := load(suite_path) as Script
         if suite_script == null or not suite_script.can_instantiate():
             push_error("Unable to load Godot seam test suite: %s" % suite_path)
             quit(1)
             return
         var suite: RefCounted = suite_script.new()
-        var passed: Variant = suite.run()
+        var passed: Variant
+        if suite_path in [
+            "res://tests/test_agency_world.gd",
+            "res://tests/test_agency_guidance.gd",
+            "res://tests/test_game_shell.gd"
+        ]:
+            passed = await suite.run()
+        else:
+            passed = suite.run()
         if passed != true:
             push_error("Godot seam test suite did not complete: %s" % suite_path)
             quit(1)
             return
     print("Godot game, Creator bridge, and Market bridge tests passed")
+    if OS.get_environment("ADMARKET_PRINT_ORPHANS") == "1":
+        Node.print_orphan_nodes()
+    await process_frame
+    await process_frame
     quit(0)

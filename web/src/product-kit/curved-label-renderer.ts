@@ -6,11 +6,26 @@ export const CURVED_LABEL_FONT_FAMILIES = Object.freeze([
   "Arial",
   "Georgia",
   "Trebuchet MS",
-  "Verdana"
+  "Verdana",
+  "Lilita One",
+  "Bebas Neue",
+  "Russo One"
 ] as const);
 
 export type CurvedTextProfileId = typeof CURVED_TEXT_PROFILE;
 export type CurvedLabelFontFamily = typeof CURVED_LABEL_FONT_FAMILIES[number];
+
+export function isCurvedLabelFontFamily(value: string): value is CurvedLabelFontFamily {
+  return (CURVED_LABEL_FONT_FAMILIES as readonly string[]).includes(value);
+}
+
+export async function waitForCurvedLabelFont(fontFamily: CurvedLabelFontFamily): Promise<void> {
+  await waitForFontReadiness(document.fonts, `700 48px "${fontFamily}"`);
+}
+
+export function hasCurvedLabelFontLoadingApi(): boolean {
+  return typeof document !== "undefined" && document.fonts !== undefined;
+}
 
 export interface CurvedLabelInput {
   readonly text: string;
@@ -70,7 +85,7 @@ function requiredColour(value: string | undefined): string {
 
 function requiredFont(value: CurvedLabelFontFamily | undefined): CurvedLabelFontFamily {
   const font = value ?? "Arial";
-  if (!(CURVED_LABEL_FONT_FAMILIES as readonly string[]).includes(font)) {
+  if (!isCurvedLabelFontFamily(font)) {
     throw new Error("Curved label font is not supported");
   }
   return font;
@@ -218,3 +233,4 @@ export function renderCurvedLabel(input: CurvedLabelInput): CurvedLabelRender {
     })
   };
 }
+import { waitForFontReadiness } from "../font-readiness";

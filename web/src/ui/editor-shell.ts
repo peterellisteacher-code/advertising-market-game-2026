@@ -1,12 +1,15 @@
 import type { PairGameView } from "../game/pair-game-controller";
 import { ROLE_GUIDE } from "../game/role-guide-controller";
 import { STUDENT_COPY } from "../game/student-copy";
+import { CURVED_LABEL_FONT_FAMILIES } from "../product-kit/curved-label-renderer";
 
 export interface EditorShell extends PairGameView {
   overlay: HTMLElement;
   workspace: HTMLElement;
   taskBar: HTMLElement;
   taskBarToggle: HTMLButtonElement;
+  displayToggle: HTMLButtonElement;
+  displayPanel: HTMLElement;
   library: HTMLElement;
   workspaceSeparator: HTMLElement;
   productBuilder: HTMLElement;
@@ -41,6 +44,9 @@ export interface EditorShell extends PairGameView {
 }
 
 const CHECKLIST_STEPS = ["Price", "Attention", "Interest", "Desire", "Action"];
+const PRODUCT_TYPEFACE_OPTIONS = CURVED_LABEL_FONT_FAMILIES
+  .map((fontFamily) => `<option value="${fontFamily}">${fontFamily}</option>`)
+  .join("");
 
 export function createEditorShell(root: HTMLElement): EditorShell {
   root.innerHTML = `
@@ -53,8 +59,10 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         <span class="creator__save-status" role="status" aria-label="Saved progress" data-save-status></span>
         <button type="button" data-guide-review-top>How to use this site</button>
         <button type="button" data-studio-tour-open>Studio tour</button>
+        <button type="button" data-display-toggle aria-controls="studio-display-panel" aria-expanded="false">Display</button>
         <button type="button" data-task-bar-toggle aria-controls="studio-task-bar" aria-expanded="true">Hide task bar</button>
         <button type="button" data-command="return">Return to game</button>
+        <section class="creator__display-panel" id="studio-display-panel" aria-label="Display preferences" hidden data-display-panel><fieldset><legend>Interface text</legend><label><input type="radio" name="display-text" value="standard" checked> Standard</label><label><input type="radio" name="display-text" value="large"> Large</label></fieldset><fieldset><legend>Interface colours</legend><label><input type="radio" name="display-colours" value="standard" checked> Standard</label><label><input type="radio" name="display-colours" value="high-contrast"> High contrast</label></fieldset><button type="button" data-display-close>Close display preferences</button></section>
       </header>
       <section class="creator__pair-strip" id="studio-task-bar" role="region" aria-label="${STUDENT_COPY.labels.pairPlay}">
         <div class="creator__level-chip">
@@ -174,6 +182,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
               <label class="creator__library-view">Library view <select aria-label="Library view" data-library-view>
                 <option value="products" selected>Products</option>
                 <option value="parts">Parts</option>
+                <option value="backgrounds">Backgrounds</option>
                 <option value="all">All pieces</option>
               </select></label>
               <label class="creator__asset-search">Search assets <input type="search" aria-label="Search assets" placeholder="Try running shoe, tent or pet shop"></label>
@@ -188,6 +197,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
             <h2>Words</h2>
             <div class="creator__words-body">
               <label>${STUDENT_COPY.labels.canvasWords}<input data-canvas-words aria-label="${STUDENT_COPY.labels.canvasWords}" placeholder="${STUDENT_COPY.roundZero.textPlaceholder}"></label>
+              <label>Curved product typeface <select data-product-typeface aria-label="Curved product typeface"><option value="">Keep current (Arial for new)</option>${PRODUCT_TYPEFACE_OPTIONS}</select></label>
               <button type="button" data-add-words>${STUDENT_COPY.roundZero.addWords}</button>
               <button type="button" data-add-product-words>${STUDENT_COPY.roundZero.productWords}</button>
               <p class="creator__words-hint">${STUDENT_COPY.roundZero.productWordsHint}</p>
@@ -277,7 +287,6 @@ export function createEditorShell(root: HTMLElement): EditorShell {
       </div>
       <p class="sr-only" data-live="polite" aria-live="polite"></p>
       <p class="sr-only" data-live="assertive" aria-live="assertive"></p>
-    </section>
     <div class="creator__studio-onboarding-layer" data-studio-onboarding-layer hidden>
       <div class="creator__studio-onboarding-spotlight" data-studio-onboarding-spotlight aria-hidden="true" hidden></div>
       <section class="creator__studio-onboarding" role="dialog" aria-modal="true"
@@ -348,7 +357,8 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           <button type="button" data-role-guide-begin>Begin work</button>
         </div>
       </section>
-    </div>`;
+    </div>
+    </section>`;
 
   const briefToggle = root.querySelector<HTMLButtonElement>("[data-brief-toggle]")!;
   const brief = root.querySelector<HTMLElement>("#studio-full-brief")!;
@@ -388,6 +398,8 @@ export function createEditorShell(root: HTMLElement): EditorShell {
     workspace: root.querySelector(".creator__workspace")!,
     taskBar: root.querySelector("#studio-task-bar")!,
     taskBarToggle: root.querySelector("[data-task-bar-toggle]")!,
+    displayToggle: root.querySelector("[data-display-toggle]")!,
+    displayPanel: root.querySelector("[data-display-panel]")!,
     library: root.querySelector(".creator__library")!,
     workspaceSeparator: root.querySelector("[data-studio-separator]")!,
     productBuilder: root.querySelector(".creator__product-builder")!,
@@ -410,6 +422,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
     audienceValues: root.querySelector('[data-audience-values]')!,
     audienceEffect: root.querySelector('[data-audience-effect]')!,
     canvasWords: root.querySelector('[data-canvas-words]')!,
+    productTypeface: root.querySelector('[data-product-typeface]')!,
     addWords: root.querySelector('[data-add-words]')!,
     productWords: root.querySelector('[data-add-product-words]')!,
     undo: root.querySelector('[data-command="undo"]')!,

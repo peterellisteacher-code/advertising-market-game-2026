@@ -144,6 +144,7 @@ var reduced_motion_enabled: bool = false
 var _progress: AdMarketAgencyProgress
 var _current_station_id: String = "reception"
 var _travel_tween: Tween
+var _travel_target: Vector2
 var _station_details_visible: bool = false
 var _station_panel_tucked: bool = false
 
@@ -196,6 +197,17 @@ func set_input_enabled(enabled: bool) -> void:
 
 func set_reduced_motion_enabled(enabled: bool) -> void:
 	reduced_motion_enabled = enabled
+	var pair := _pair()
+	if enabled:
+		var had_direct_travel := _travel_tween != null or (pair != null and pair.is_auto_travelling())
+		_cancel_direct_travel(true)
+		if had_direct_travel and pair != null and not pair.modal_open:
+			pair.set_input_enabled(true)
+	if pair != null:
+		pair.set_reduced_motion_enabled(enabled)
+	var ambient := _ambient_motion()
+	if ambient != null:
+		ambient.set_reduced_motion_enabled(enabled)
 
 func direct_travel(station_id: String) -> bool:
 	if not STATION_DATA.has(station_id):
@@ -209,8 +221,13 @@ func direct_travel(station_id: String) -> bool:
 		return true
 	var target := _station_arrival_position(station_id)
 	if not is_inside_tree() or reduced_motion_enabled:
+		var had_direct_travel := _travel_tween != null or pair.is_auto_travelling()
+		_cancel_direct_travel()
 		pair.position = target
 		pair.set_nearest_station(station_id)
+		pair.end_auto_travel()
+		if had_direct_travel and not pair.modal_open:
+			pair.set_input_enabled(true)
 		return true
 	_begin_direct_travel(pair, target)
 	return true
@@ -471,24 +488,36 @@ func _set_station_panel_tucked(tucked: bool) -> void:
 		tab.visible = tucked
 
 func _begin_direct_travel(pair: AdMarketAgencyPair, target: Vector2) -> void:
-	if _travel_tween != null and _travel_tween.is_valid():
-		_travel_tween.kill()
+	_cancel_direct_travel()
+	_travel_target = target
+	var departure := pair.position
 	pair.set_input_enabled(false)
 	var points: Array[Vector2] = []
-	if pair.position.distance_to(target) > 260.0:
+	if departure.distance_to(target) > 260.0:
 		points.append(CENTRAL_TRAVEL_POINT)
 	points.append(target)
+	pair.begin_auto_travel(points.front() - departure)
 	_travel_tween = get_tree().create_tween()
 	for point in points:
-		var duration := clampf(pair.position.distance_to(point) / 1200.0, 0.12, 0.34)
+		var direction := point - departure
+		if point != points.front():
+			_travel_tween.tween_callback(_begin_direct_travel_leg.bind(pair, direction))
+		var duration := clampf(departure.distance_to(point) / 1200.0, 0.12, 0.34)
 		_travel_tween.tween_property(pair, "position", point, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+		departure = point
 	_travel_tween.finished.connect(_finish_direct_travel)
+
+func _begin_direct_travel_leg(pair: AdMarketAgencyPair, direction: Vector2) -> void:
+	pair.update_auto_travel_direction(direction)
 
 func _finish_direct_travel() -> void:
 	var pair := _pair()
 	if pair != null:
 		pair.set_input_enabled(true)
 		pair.set_nearest_station(_current_station_id)
+		pair.end_auto_travel()
+	_travel_tween = null
+	_travel_target = Vector2.ZERO
 	var action_button := get_node_or_null("%StationActionButton") as Button
 	if action_button != null:
 		action_button.grab_focus()
@@ -648,6 +677,8 @@ func _show_orientation_if_required() -> void:
 	_set_guidance_modal(true)
 
 func _set_guidance_modal(is_open: bool) -> void:
+	if is_open:
+		_cancel_direct_travel()
 	var pair := _pair()
 	if pair == null:
 		return
@@ -655,6 +686,7 @@ func _set_guidance_modal(is_open: bool) -> void:
 	pair.set_input_enabled(not is_open)
 
 func _show_handoff_dialog() -> void:
+	_cancel_direct_travel()
 	var panel := get_node_or_null("%HandoffPanel") as Control
 	var explanation := get_node_or_null("%HandoffExplanation") as Label
 	if panel == null:
@@ -702,6 +734,18 @@ func _hide_handoff_dialog() -> void:
 	var action_button := get_node_or_null("%StationActionButton") as Button
 	if action_button != null and action_button.is_inside_tree():
 		action_button.grab_focus()
+
+func _cancel_direct_travel(teleport_to_target: bool = false) -> void:
+	if _travel_tween != null and _travel_tween.is_valid():
+		_travel_tween.kill()
+	_travel_tween = null
+	var pair := _pair()
+	if pair != null:
+		if teleport_to_target and not _travel_target.is_zero_approx():
+			pair.position = _travel_target
+			pair.set_nearest_station(_current_station_id)
+		pair.end_auto_travel()
+	_travel_target = Vector2.ZERO
 
 func _nearest_station_id(from_position: Vector2) -> String:
 	var nearest_id := ""
@@ -756,6 +800,9 @@ func _hud() -> AdMarketAgencyHud:
 
 func _guide() -> AdMarketAgencyGuideDrawer:
 	return get_node_or_null("%AgencyGuideDrawer") as AdMarketAgencyGuideDrawer
+
+func _ambient_motion() -> AdMarketAgencyAmbientMotion:
+	return get_node_or_null("%AgencyAmbientMotion") as AdMarketAgencyAmbientMotion
 
 func _pair() -> AdMarketAgencyPair:
 	return get_node_or_null("%AgencyPair") as AdMarketAgencyPair

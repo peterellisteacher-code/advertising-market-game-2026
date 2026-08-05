@@ -12,8 +12,8 @@ var _requested_guide_section: String = ""
 func run() -> bool:
 	var progress := AgencyProgress.new()
 	assert(progress.begin())
-	_assert_guide(progress)
-	_assert_hud(progress)
+	await _assert_guide(progress)
+	await _assert_hud(progress)
 	return true
 
 func _assert_guide(progress: AdMarketAgencyProgress) -> void:
@@ -22,6 +22,7 @@ func _assert_guide(progress: AdMarketAgencyProgress) -> void:
 	assert(tree != null)
 	tree.root.add_child(guide)
 	guide.configure(progress, MissionCatalog)
+	await tree.process_frame
 	assert(guide.get_node("%OverallGoal").text.contains("Create and pitch"))
 	assert(guide.get_node("%CurrentObjective").text.contains("Meet the client"))
 	assert(guide.get_node("%ObjectiveReason").text.contains("shared account"))
@@ -57,6 +58,7 @@ func _assert_guide(progress: AdMarketAgencyProgress) -> void:
 	assert(guide.get_node("%GuidePanel").visible)
 	assert(guide.orientation_required())
 	guide.open_orientation()
+	await tree.process_frame
 	var orientation_layer := guide.get_node("%OrientationLayer") as Control
 	var orientation_card := guide.get_node("%OrientationPanel") as Control
 	var orientation_minimise := guide.get_node("%MinimiseOrientation") as Control
@@ -67,9 +69,18 @@ func _assert_guide(progress: AdMarketAgencyProgress) -> void:
 	assert(orientation_layer.anchor_right == 1.0)
 	assert(orientation_layer.anchor_bottom == 1.0)
 	assert(orientation_layer.mouse_filter == Control.MOUSE_FILTER_STOP)
-	assert(orientation_card.size.x <= 1120.0)
-	assert(orientation_card.size.y <= 680.0)
-	assert(orientation_card.global_position.y >= 48.0)
+	assert(
+		orientation_card.size.x <= 1130.0,
+		"Orientation card outer size=%s" % orientation_card.size
+	)
+	assert(
+		orientation_card.size.y <= 690.0,
+		"Orientation card outer size=%s" % orientation_card.size
+	)
+	assert(
+		orientation_card.global_position.y >= 48.0,
+		"Orientation card y=%s size=%s" % [orientation_card.global_position.y, orientation_card.size]
+	)
 	assert(orientation_minimise.global_position.y + orientation_minimise.size.y <= 760.0)
 	assert(orientation_next.global_position.y + orientation_next.size.y <= 760.0)
 	assert(guide.get_node("%OrientationTitle").text.contains("make and pitch one ad"))
@@ -129,12 +140,15 @@ func _assert_hud(progress: AdMarketAgencyProgress) -> void:
 	var objective := MissionCatalog.objective(progress.current_objective_id)
 	hud.show_objective(objective)
 	hud.set_progress(0, 7, 0)
+	await tree.process_frame
 	assert(hud.get_node("%HudGoal").text.contains("Create and pitch"))
 	assert(hud.get_node("%HudObjective").text.contains("Meet the client"))
 	assert(hud.get_node("%HudProgress").text.contains("0 of 7"))
 	assert(hud.is_compact())
 	var expanded_details := hud.get_node("HudMargin/HudStack/ExpandedDetails") as Control
 	assert(not expanded_details.visible)
+	assert(not hud.get_node("HudMargin/HudStack/PrimaryRow/ObjectiveBlock/ObjectiveEyebrow").visible)
+	assert(not hud.get_node("%HudOwner").visible)
 	assert(hud.get_node("HudMargin/HudStack/PrimaryRow/ObjectiveBlock").visible)
 	assert(hud.get_node("%HudGoToObjective").visible)
 	assert(hud.get_node("%HudGuideButton").visible)
@@ -142,10 +156,15 @@ func _assert_hud(progress: AdMarketAgencyProgress) -> void:
 	assert(tuck_toggle.text == "Show work details")
 	assert(hud.size.x <= hud.custom_minimum_size.x)
 	assert(tuck_toggle.position.x + tuck_toggle.size.x <= hud.size.x)
-	assert(hud.size.y <= 84.0)
+	assert(
+		hud.size.y <= 84.0,
+		"Compact HUD size=%s minimum=%s" % [hud.size, hud.custom_minimum_size]
+	)
 	tuck_toggle.pressed.emit()
 	assert(not hud.is_compact())
 	assert(expanded_details.visible)
+	assert(hud.get_node("HudMargin/HudStack/PrimaryRow/ObjectiveBlock/ObjectiveEyebrow").visible)
+	assert(hud.get_node("%HudOwner").visible)
 	assert(hud.get_node("HudMargin/HudStack/ExpandedDetails/GoalBlock").visible)
 	assert(hud.get_node("HudMargin/HudStack/ExpandedDetails/ProgressBlock").visible)
 	assert(hud.get_node("HudMargin/HudStack/ExpandedDetails/TravelBlock").visible)

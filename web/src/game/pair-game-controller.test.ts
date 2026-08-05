@@ -5,6 +5,7 @@ import {
   type CampaignDocumentV1
 } from "../domain/campaign-document";
 import { AUDIENCE_BRIEFS, type AudienceBrief } from "./audience-briefs";
+import type { CurvedLabelFontFamily } from "../product-kit/curved-label-renderer";
 import {
   PairGameController,
   type PairGameView,
@@ -15,6 +16,7 @@ class RoundZeroHarness implements RoundZeroPort {
   document: CampaignDocumentV1;
   readonly addedText: string[] = [];
   readonly addedProductText: string[] = [];
+  readonly productTextFonts: Array<CurvedLabelFontFamily | undefined> = [];
   readonly briefIds: string[] = [];
   productTextResult: Awaited<ReturnType<RoundZeroPort["addProductText"]>> = "added";
   undoCount = 0;
@@ -49,9 +51,11 @@ class RoundZeroHarness implements RoundZeroPort {
   }
 
   async addProductText(
-    value: string
+    value: string,
+    fontFamily?: CurvedLabelFontFamily
   ): ReturnType<RoundZeroPort["addProductText"]> {
     this.addedProductText.push(value);
+    this.productTextFonts.push(fontFamily);
     if (this.productTextResult !== "product-required") this.#listener?.();
     return this.productTextResult;
   }
@@ -108,6 +112,10 @@ function createPairGameView(): { root: HTMLElement; view: PairGameView } {
       </section>
       <section role="region" aria-label="Pair tools">
     <label>Advertisement words <input data-canvas-words></label>
+        <label>Curved product typeface <select data-product-typeface>
+          <option value="">Keep current</option>
+          <option value="Russo One">Russo One</option>
+        </select></label>
         <button type="button" data-add-words>Add words to ad</button>
         <button type="button" data-add-product-words>Put words on selected product</button>
         <button type="button" data-command="undo">Undo</button>
@@ -133,6 +141,7 @@ function createPairGameView(): { root: HTMLElement; view: PairGameView } {
       audienceValues: root.querySelector("[data-audience-values]")!,
       audienceEffect: root.querySelector("[data-audience-effect]")!,
       canvasWords: root.querySelector("[data-canvas-words]")!,
+      productTypeface: root.querySelector("[data-product-typeface]")!,
       addWords: root.querySelector("[data-add-words]")!,
       productWords: root.querySelector("[data-add-product-words]")!,
       undo: root.querySelector('[data-command="undo"]')!,
@@ -389,10 +398,15 @@ describe("PairGameController", () => {
     const controller = new PairGameController(view, port);
     await controller.open(campaign);
     const words = getByRole<HTMLInputElement>(root, "textbox", { name: "Advertisement words" });
+    const typeface = getByRole<HTMLSelectElement>(root, "combobox", {
+      name: "Curved product typeface"
+    });
 
+    fireEvent.change(typeface, { target: { value: "Russo One" } });
     fireEvent.input(words, { target: { value: "Keeps drinks warm longer" } });
     fireEvent.click(getByRole(root, "button", { name: "Put words on selected product" }));
     await waitFor(() => expect(port.addedProductText).toEqual(["Keeps drinks warm longer"]));
+    expect(port.productTextFonts).toEqual(["Russo One"]);
     expect(view.polite.textContent).toBe("Words added to the selected product.");
     expect(words.value).toBe("");
 
@@ -403,6 +417,7 @@ describe("PairGameController", () => {
       "Keeps drinks warm longer",
       "Try again"
     ]));
+    expect(port.productTextFonts).toEqual(["Russo One", "Russo One"]);
     expect(view.assertive.textContent).toBe("Select a product with a label area first.");
     expect(words.value).toBe("Try again");
   });

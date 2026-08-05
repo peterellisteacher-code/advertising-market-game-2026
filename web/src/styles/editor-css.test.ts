@@ -253,6 +253,21 @@ describe("Fabric canvas layer styling", () => {
     expect(Math.min(...remSizes)).toBeGreaterThanOrEqual(0.875);
   });
 
+  it("scales creator chrome through one token without styling the Fabric canvases", () => {
+    expect(css).toMatch(
+      /\.creator\s*\{[^}]*--creator-chrome-font-size:\s*1rem[^}]*font-size:\s*var\(--creator-chrome-font-size\)[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator\[data-display-text="large"\]\s*\{[^}]*--creator-chrome-font-size:\s*1\.125rem[^}]*\}/i
+    );
+    const largeTextRules = [...css.matchAll(
+      /\.creator\[data-display-text="large"\][^{]*\{[^}]*\}/gi
+    )].map((match) => match[0]).join("\n");
+    expect(largeTextRules).toMatch(/button/);
+    expect(largeTextRules).toMatch(/dialog|legend|summary/);
+    expect(largeTextRules).not.toMatch(/\bcanvas\b/i);
+  });
+
   it("keeps the upper interaction canvas transparent above the painted lower canvas", () => {
     expect(css).toMatch(
       /\.creator__canvas\s+canvas\.lower-canvas\s*\{[^}]*background:\s*white\b[^}]*\}/i

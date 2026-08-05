@@ -142,6 +142,7 @@ import {
   type RoundZeroPort
 } from "./game/pair-game-controller";
 import type { AudienceBrief } from "./game/audience-briefs";
+import type { CurvedLabelFontFamily } from "./product-kit/curved-label-renderer";
 import { AidaPlaybookPanel } from "./game/aida-playbook-panel";
 import type { AidaStage } from "./game/aida-playbook";
 import {
@@ -167,6 +168,8 @@ import { AccountScopedDraftStore } from "./persistence/account-scoped-draft-stor
 import { LocalPracticeService } from "./persistence/local-practice-service";
 import { SerializedAutosave } from "./persistence/serialized-autosave";
 import { createEditorShell, type EditorShell } from "./ui/editor-shell";
+import { DisplayPreferencesController } from "./ui/display-preferences";
+import { catalogueRecordsWithBackgrounds, isAdBackgroundPreset } from "./assets/ad-background-presets";
 import { registerReleaseServiceWorker } from "./service-worker-registration";
 import { createStudioToolDrawer } from "./ui/studio-tool-drawer";
 import {
@@ -387,11 +390,13 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
         "Apply or cancel the fill preview before changing the advertisement.";
       return;
     }
-    if (asset.delivery === "offline" && !this.#rasterPricing?.byAssetId.has(asset.id)) {
+    if (asset.delivery === "offline" && !isAdBackgroundPreset(asset) && !this.#rasterPricing?.byAssetId.has(asset.id)) {
       this.shell.assertive.textContent = "That product piece is missing its Market Buck clue.";
       return;
     }
-    this.#placements.enqueue(asset, bodyColour === undefined ? undefined : { bodyColour });
+    this.#placements.enqueue(asset, isAdBackgroundPreset(asset)
+      ? { bodyColour: "#000000", fullCanvas: true }
+      : bodyColour === undefined ? undefined : { bodyColour });
   }
 
   setRasterPricing(pricing: RasterPricingIndex): void {
@@ -1078,7 +1083,8 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 
   async addProductText(
-    value: string
+    value: string,
+    fontFamily?: CurvedLabelFontFamily
   ): Promise<"added" | "updated" | "product-required"> {
     this.#assertCanvasMutationAvailable();
     await this.#placements.flush();
@@ -1094,9 +1100,9 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     const commands = new ObjectCommandService(runtime.adapter);
     await this.#history.transaction(async () => {
       if (existingTextId === null) {
-        await commands.addArtworkText(address, value, "Product label");
+        await commands.addArtworkText(address, value, "Product label", fontFamily);
       } else {
-        commands.setArtworkText(address, existingTextId, value);
+        await commands.setArtworkText(address, existingTextId, value, fontFamily);
         commands.select(productId);
       }
     });
@@ -1877,7 +1883,9 @@ declare global {
 
 const unavailableGameAccess = new Promise<void>(() => undefined);
 let requireGameAccess = (): Promise<void> => unavailableGameAccess;
+let gameStartupReady = false;
 let reportGameStartupFailure = (reason: "timeout" | "engine"): void => {
+  gameStartupReady = false;
   const status = document.querySelector<HTMLElement>("#game-startup-status");
   const heading = status?.querySelector<HTMLElement>("[data-game-startup-heading]");
   const message = status?.querySelector<HTMLElement>("[data-game-startup-message]");
@@ -1898,9 +1906,10 @@ window.AdMarketGameAccess = Object.freeze({
     if (message !== undefined && message !== null) {
       message.textContent = `Loading game… ${safePercent}%`;
     }
-    if (status !== null) status.hidden = false;
+    if (status !== null && !gameStartupReady) status.hidden = false;
   },
   reportStartupReady: () => {
+    gameStartupReady = true;
     const status = document.querySelector<HTMLElement>("#game-startup-status");
     if (status !== null) status.hidden = true;
   },
@@ -2053,6 +2062,31 @@ const studioSplitPane = new StudioSplitPane({
   storageKey: mode.kind === "teacher-playtest"
     ? TEACHER_PLAYTEST_STUDIO_SPLIT_STORAGE_KEY
     : STUDENT_STUDIO_SPLIT_STORAGE_KEY
+});
+const displayPreferences = new DisplayPreferencesController(shell.overlay, (() => {
+  try { return window.localStorage; } catch { return null; }
+})(), mode.kind);
+const syncDisplayPanel = (): void => {
+  const value = displayPreferences.value;
+  shell.displayPanel.querySelector<HTMLInputElement>(`input[name="display-text"][value="${value.textSize}"]`)!.checked = true;
+  shell.displayPanel.querySelector<HTMLInputElement>(`input[name="display-colours"][value="${value.colours}"]`)!.checked = true;
+};
+shell.displayToggle.addEventListener("click", () => {
+  const open = shell.displayPanel.hidden;
+  shell.displayPanel.hidden = !open;
+  shell.displayToggle.setAttribute("aria-expanded", String(open));
+  if (open) {
+    syncDisplayPanel();
+    shell.displayPanel.querySelector<HTMLInputElement>('input[name="display-text"]')?.focus();
+  }
+});
+const closeDisplayPanel = (): void => { shell.displayPanel.hidden = true; shell.displayToggle.setAttribute("aria-expanded", "false"); shell.displayToggle.focus(); };
+shell.displayPanel.querySelector<HTMLButtonElement>("[data-display-close]")?.addEventListener("click", closeDisplayPanel);
+shell.displayPanel.addEventListener("keydown", (event) => { if (event.key === "Escape") { event.preventDefault(); closeDisplayPanel(); } });
+shell.displayPanel.addEventListener("change", () => {
+  const textSize = shell.displayPanel.querySelector<HTMLInputElement>('input[name="display-text"]:checked')?.value;
+  const colours = shell.displayPanel.querySelector<HTMLInputElement>('input[name="display-colours"]:checked')?.value;
+  if ((textSize === "standard" || textSize === "large") && (colours === "standard" || colours === "high-contrast")) displayPreferences.update({ textSize, colours });
 });
 shell.overlay.querySelector(".creator__tool-rail")?.addEventListener("click", () => {
   studioSplitPane.selectNarrowPane("browse");
@@ -2507,7 +2541,7 @@ for (const tab of checklistTabs) {
 }
 void loadOfflineCatalogueWithHash(root.dataset.offlineCatalogueUrl).then(async (catalogue) => {
   if (!catalogue) {
-    catalogueRuntime.replaceCore([], null);
+    catalogueRuntime.replaceCore(catalogueRecordsWithBackgrounds([]), null);
     productKitPanel.unavailable();
     return;
   }
@@ -2516,7 +2550,7 @@ void loadOfflineCatalogueWithHash(root.dataset.offlineCatalogueUrl).then(async (
   else productKitPanel.unavailable();
   const pricing = await loadRasterPricing(root.dataset.offlineCatalogueUrl, catalogue);
   if (!pricing) {
-    catalogueRuntime.replaceCore([], null);
+    catalogueRuntime.replaceCore(catalogueRecordsWithBackgrounds(catalogue.records), null);
     if (bundle) {
       productKitPanel.render(bundle);
       handler.refreshProductKitPanel();
@@ -2524,13 +2558,13 @@ void loadOfflineCatalogueWithHash(root.dataset.offlineCatalogueUrl).then(async (
     return;
   }
   handler.setRasterPricing(pricing);
-  catalogueRuntime.replaceCore(catalogue.records, pricing);
+  catalogueRuntime.replaceCore(catalogueRecordsWithBackgrounds(catalogue.records), pricing);
   if (bundle) {
     productKitPanel.render(bundle);
     handler.refreshProductKitPanel();
   }
 }).catch(() => {
-  catalogueRuntime.replaceCore([], null);
+  catalogueRuntime.replaceCore(catalogueRecordsWithBackgrounds([]), null);
   productKitPanel.unavailable();
 });
 const logoIconCatalogueUrl = root.dataset.logoIconCatalogueUrl;

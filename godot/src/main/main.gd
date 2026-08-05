@@ -182,6 +182,9 @@ func _ready() -> void:
     if _ready_wired:
         return
     _ready_wired = true
+    _accessibility_mirror.reduced_motion_changed.connect(_on_reduced_motion_changed)
+    _accessibility_mirror.bind_reduced_motion()
+    _on_reduced_motion_changed(_accessibility_mirror.reduced_motion_enabled())
     _campaign_document = _blank_campaign_document()
     var agency_controller_script: Script = load(AGENCY_CAMPAIGN_CONTROLLER_PATH) as Script
     _agency_campaign = agency_controller_script.new() as AdMarketAgencyCampaignController
@@ -262,6 +265,12 @@ func _ready() -> void:
         _run_progress_store = WebRunProgressStore.new()
     _begin_startup()
     _focus_if_ready(team_alias)
+
+func _on_reduced_motion_changed(enabled: bool) -> void:
+    if agency_world != null:
+        agency_world.set_reduced_motion_enabled(enabled)
+    if pitch_theatre != null:
+        pitch_theatre.set_reduced_motion_enabled(enabled)
 
 func _begin_agency() -> void:
     if _agency_campaign == null:

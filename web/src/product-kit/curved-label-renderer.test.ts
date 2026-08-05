@@ -1,10 +1,44 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CURVED_LABEL_HEIGHT,
+  CURVED_LABEL_FONT_FAMILIES,
   CURVED_LABEL_WIDTH,
   cylindricalLabelX,
+  waitForCurvedLabelFont,
   renderCurvedLabel
 } from "./curved-label-renderer";
+
+it("keeps curved label typography aligned with the bundled logo typefaces", () => {
+  expect(CURVED_LABEL_FONT_FAMILIES).toEqual(expect.arrayContaining(["Lilita One", "Bebas Neue", "Russo One"]));
+});
+
+it("waits for a selected curved-label face when the Font Loading API is available", async () => {
+  const load = vi.fn().mockResolvedValue([]);
+  Object.defineProperty(document, "fonts", { configurable: true, value: { load } });
+  await waitForCurvedLabelFont("Lilita One");
+  expect(load).toHaveBeenCalledWith('700 48px "Lilita One"');
+});
+
+it("safely proceeds when the Font Loading API is unavailable", async () => {
+  Object.defineProperty(document, "fonts", { configurable: true, value: undefined });
+  await expect(waitForCurvedLabelFont("Bebas Neue")).resolves.toBeUndefined();
+});
+
+it("stops waiting when a selected face never settles", async () => {
+  vi.useFakeTimers();
+  try {
+    const load = vi.fn(() => new Promise<FontFace[]>(() => undefined));
+    Object.defineProperty(document, "fonts", { configurable: true, value: { load } });
+    let settled = false;
+    void waitForCurvedLabelFont("Russo One").then(() => { settled = true; });
+
+    await vi.advanceTimersByTimeAsync(3_000);
+
+    expect(settled).toBe(true);
+  } finally {
+    vi.useRealTimers();
+  }
+});
 
 interface ContextTrace {
   font: string;

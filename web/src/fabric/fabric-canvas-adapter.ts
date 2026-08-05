@@ -55,7 +55,9 @@ import { FabricLogoMarkFactory } from "./logo-mark-factory";
 import { FabricProductKitCompositor } from "../product-kit/fabric-product-kit-compositor";
 import {
   CURVED_TEXT_PROFILE,
-  renderCurvedLabel
+  renderCurvedLabel,
+  waitForCurvedLabelFont,
+  type CurvedLabelFontFamily
 } from "../product-kit/curved-label-renderer";
 import {
   BrowserRasterSectionFillEngine,
@@ -309,7 +311,7 @@ export class FabricCanvasAdapter implements CanvasPort {
       product,
       surface,
       this.#usesCurvedLabel(product)
-        ? this.factory.createCurvedLabel(input)
+        ? await this.factory.createCurvedLabel(input)
         : this.factory.createText(input)
     );
   }
@@ -341,7 +343,7 @@ export class FabricCanvasAdapter implements CanvasPort {
     return productShellRegionColours(this.#get(id));
   }
 
-  setArtworkText(address: ArtworkSurfaceAddress, id: string, value: string): void {
+  async setArtworkText(address: ArtworkSurfaceAddress, id: string, value: string): Promise<void> {
     if (!value.trim()) throw new Error("Text must not be empty");
     const { product, surface } = this.#artworkContext(address);
     const object = surface.getObjects().find((candidate) => candidate.objectId === id);
@@ -353,19 +355,24 @@ export class FabricCanvasAdapter implements CanvasPort {
       typeof object.curvedTextFontFamily === "string") {
       const source = value.replace(/\s+/gu, " ").trim();
       if (object.curvedTextSource === source) return;
-      const rendered = renderCurvedLabel({
-        text: source,
-        colour: object.curvedTextColour,
-        fontFamily: object.curvedTextFontFamily
-      });
-      object.setElement(rendered.canvas, {
-        width: object.width,
-        height: object.height
-      });
-      object.set({ curvedTextSource: source });
-      object.dirty = true;
-      object.setCoords();
-      this.#finishArtworkMutation(product, surface);
+      const replaceCurvedLabel = (): void => {
+        const rendered = renderCurvedLabel({
+          text: source,
+          ...(object.curvedTextColour === undefined ? {} : { colour: object.curvedTextColour }),
+          ...(object.curvedTextFontFamily === undefined ? {} : { fontFamily: object.curvedTextFontFamily as CurvedLabelFontFamily })
+        });
+        object.setElement(rendered.canvas, { width: object.width, height: object.height });
+        object.set({ curvedTextSource: source });
+        object.dirty = true;
+        object.setCoords();
+        this.#finishArtworkMutation(product, surface);
+      };
+      if (typeof document !== "undefined" && document.fonts !== undefined) {
+        await waitForCurvedLabelFont(object.curvedTextFontFamily as CurvedLabelFontFamily);
+        replaceCurvedLabel();
+      } else {
+        replaceCurvedLabel();
+      }
       return;
     }
     if (!(object instanceof Textbox) || object.elementKind !== "text") {

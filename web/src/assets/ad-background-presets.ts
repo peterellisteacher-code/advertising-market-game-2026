@@ -25,3 +25,8 @@ export const AD_BACKGROUND_PRESETS: readonly CatalogAssetV1[] = Object.freeze([
 export function isAdBackgroundPreset(asset: CatalogAssetV1): boolean {
   return AD_BACKGROUND_PRESETS.some((candidate) => candidate.id === asset.id);
 }
+
+export function catalogueRecordsWithBackgrounds(core: readonly CatalogAssetV1[]): CatalogAssetV1[] {
+  const backgroundIds = new Set(AD_BACKGROUND_PRESETS.map(({ id }) => id));
+  return [...core.filter(({ id }) => !backgroundIds.has(id)), ...AD_BACKGROUND_PRESETS];
+}

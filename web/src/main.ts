@@ -168,7 +168,7 @@ import { LocalPracticeService } from "./persistence/local-practice-service";
 import { SerializedAutosave } from "./persistence/serialized-autosave";
 import { createEditorShell, type EditorShell } from "./ui/editor-shell";
 import { DisplayPreferencesController } from "./ui/display-preferences";
-import { AD_BACKGROUND_PRESETS, isAdBackgroundPreset } from "./assets/ad-background-presets";
+import { catalogueRecordsWithBackgrounds, isAdBackgroundPreset } from "./assets/ad-background-presets";
 import { registerReleaseServiceWorker } from "./service-worker-registration";
 import { createStudioToolDrawer } from "./ui/studio-tool-drawer";
 import {
@@ -1100,7 +1100,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       if (existingTextId === null) {
         await commands.addArtworkText(address, value, "Product label");
       } else {
-        commands.setArtworkText(address, existingTextId, value);
+        await commands.setArtworkText(address, existingTextId, value);
         commands.select(productId);
       }
     });
@@ -2536,7 +2536,7 @@ for (const tab of checklistTabs) {
 }
 void loadOfflineCatalogueWithHash(root.dataset.offlineCatalogueUrl).then(async (catalogue) => {
   if (!catalogue) {
-    catalogueRuntime.replaceCore([], null);
+    catalogueRuntime.replaceCore(catalogueRecordsWithBackgrounds([]), null);
     productKitPanel.unavailable();
     return;
   }
@@ -2545,7 +2545,7 @@ void loadOfflineCatalogueWithHash(root.dataset.offlineCatalogueUrl).then(async (
   else productKitPanel.unavailable();
   const pricing = await loadRasterPricing(root.dataset.offlineCatalogueUrl, catalogue);
   if (!pricing) {
-    catalogueRuntime.replaceCore([], null);
+    catalogueRuntime.replaceCore(catalogueRecordsWithBackgrounds(catalogue.records), null);
     if (bundle) {
       productKitPanel.render(bundle);
       handler.refreshProductKitPanel();
@@ -2553,13 +2553,13 @@ void loadOfflineCatalogueWithHash(root.dataset.offlineCatalogueUrl).then(async (
     return;
   }
   handler.setRasterPricing(pricing);
-  catalogueRuntime.replaceCore([...catalogue.records, ...AD_BACKGROUND_PRESETS], pricing);
+  catalogueRuntime.replaceCore(catalogueRecordsWithBackgrounds(catalogue.records), pricing);
   if (bundle) {
     productKitPanel.render(bundle);
     handler.refreshProductKitPanel();
   }
 }).catch(() => {
-  catalogueRuntime.replaceCore([], null);
+  catalogueRuntime.replaceCore(catalogueRecordsWithBackgrounds([]), null);
   productKitPanel.unavailable();
 });
 const logoIconCatalogueUrl = root.dataset.logoIconCatalogueUrl;

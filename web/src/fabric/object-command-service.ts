@@ -185,12 +185,12 @@ export class ObjectCommandService {
     return id;
   }
 
-  setArtworkText(
+  async setArtworkText(
     address: ArtworkSurfaceAddress,
     id: string,
     value: string
-  ): void {
-    this.port.setArtworkText(
+  ): Promise<void> {
+    await this.port.setArtworkText(
       this.#artworkAddress(address),
       this.#required(id, "artwork object id"),
       this.#required(value, "text")

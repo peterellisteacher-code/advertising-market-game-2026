@@ -15,6 +15,14 @@ export const CURVED_LABEL_FONT_FAMILIES = Object.freeze([
 export type CurvedTextProfileId = typeof CURVED_TEXT_PROFILE;
 export type CurvedLabelFontFamily = typeof CURVED_LABEL_FONT_FAMILIES[number];
 
+export async function waitForCurvedLabelFont(fontFamily: CurvedLabelFontFamily): Promise<void> {
+  try { await document.fonts?.load(`700 48px "${fontFamily}"`); } catch { /* safe fallback */ }
+}
+
+export function hasCurvedLabelFontLoadingApi(): boolean {
+  return typeof document !== "undefined" && document.fonts !== undefined;
+}
+
 export interface CurvedLabelInput {
   readonly text: string;
   readonly colour?: string;

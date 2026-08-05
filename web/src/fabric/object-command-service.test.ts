@@ -532,7 +532,7 @@ describe("ObjectCommandService", () => {
       sameOriginUrl: `${window.location.origin}/catalog/fruit.png`,
       accessibleName: "Sliced citrus"
     });
-    commands.setArtworkText(target, textId, "Fizz together");
+    await commands.setArtworkText(target, textId, "Fizz together");
 
     expect([textId, shapeId, imageId]).toEqual([
       "art-text-1",
@@ -619,5 +619,21 @@ describe("ObjectCommandService", () => {
 
     expect(() => commands.transform(id, { x: Number.NaN })).toThrow("finite");
     expect(() => commands.transform(id, { scaleX: 0 })).toThrow("greater than zero");
+  });
+
+  it("waits for an asynchronous artwork text mutation before resolving", async () => {
+    const port = new MemoryCanvasPort();
+    let release: () => void = () => undefined;
+    const pending = new Promise<void>((resolve) => { release = resolve; });
+    vi.spyOn(port, "setArtworkText").mockImplementation(() => pending);
+    const commands = new ObjectCommandService(port);
+    let resolved = false;
+    const operation = commands.setArtworkText({ productId: "product-1", slotId: "primary" }, "text-1", "Ready")
+      .then(() => { resolved = true; });
+    await Promise.resolve();
+    expect(resolved).toBe(false);
+    release();
+    await operation;
+    expect(resolved).toBe(true);
   });
 });

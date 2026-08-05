@@ -164,7 +164,7 @@ export interface CanvasPort {
   addArtworkText(address: ArtworkSurfaceAddress, input: NewTextInput): Promise<void>;
   addArtworkShape(address: ArtworkSurfaceAddress, input: NewShapeInput): Promise<void>;
   addArtworkRaster(address: ArtworkSurfaceAddress, input: NewRasterInput): Promise<void>;
-  setArtworkText(address: ArtworkSurfaceAddress, id: string, value: string): void;
+  setArtworkText(address: ArtworkSurfaceAddress, id: string, value: string): void | Promise<void>;
   removeArtwork(address: ArtworkSurfaceAddress, childId: string): void;
   addProductShell(input: NewProductShellInput): Promise<void>;
   addProductVariant(input: NewProductVariantInput): Promise<void>;

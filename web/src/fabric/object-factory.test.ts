@@ -60,7 +60,7 @@ describe("FabricObjectFactory", () => {
     expect(object.toObject()).toMatchObject({ editable: false });
   });
 
-  it("creates curved text as a bounded editable-source raster while ordinary text stays a Textbox", () => {
+  it("creates curved text as a bounded editable-source raster while ordinary text stays a Textbox", async () => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
       font: "",
       fillStyle: "#000000",
@@ -76,7 +76,7 @@ describe("FabricObjectFactory", () => {
     } as unknown as CanvasRenderingContext2D);
 
     const factory = new FabricObjectFactory();
-    const curved = factory.createCurvedLabel({
+    const curved = await factory.createCurvedLabel({
       id: "curved-text-1",
       value: "Refill. Roam. Repeat.",
       accessibleName: "Tumbler label"

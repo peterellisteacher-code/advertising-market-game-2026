@@ -262,3 +262,39 @@ test("agency ambience, music and rewards use the documented CC0 audio cues", asy
     assert.match(provenance, new RegExp(sourceHash));
   }
 });
+
+test("agency world travel keeps every room reachable without redundant role labels", async () => {
+  const [world, worldScene, stationScene, pairScene] = await Promise.all([
+    readFile(new URL("godot/src/agency/agency_world.gd", root), "utf8"),
+    readFile(new URL("godot/src/agency/AgencyWorld.tscn", root), "utf8"),
+    readFile(new URL("godot/src/agency/stations/AgencyStation.tscn", root), "utf8"),
+    readFile(new URL("godot/src/agency/player/AgencyPair.tscn", root), "utf8")
+  ]);
+
+  const stationIds = [
+    "reception",
+    "client-briefing",
+    "strategy-room",
+    "art-studio",
+    "copy-room",
+    "production-studio",
+    "media-desk",
+    "sound-booth",
+    "pitch-theatre"
+  ];
+  const arrivalOffsets = world.match(/const STATION_ARRIVAL_OFFSETS := \{([\s\S]*?)\n\}/)?.[1] ?? "";
+  for (const stationId of stationIds) {
+    assert.match(arrivalOffsets, new RegExp(`"${stationId}":\\s*Vector2\\(`));
+  }
+  assert.match(world, /const NEAR_STATION_DISTANCE := 92\.0/);
+  assert.match(arrivalOffsets, /"client-briefing":\s*Vector2\(0\.0,\s*90\.0\)/);
+  assert.match(worldScene, /\[sub_resource type="RectangleShape2D" id="RectangleShape2D_client_briefing"\]\s*size = Vector2\(112, 118\)/);
+  assert.match(worldScene, /\[node name="ClientBriefingFixture" type="CollisionShape2D" parent="WorldBounds"/);
+
+  assert.match(stationScene, /\[node name="RoomLabel" type="Label" parent="\."/);
+  assert.match(stationScene, /theme_override_styles\/normal = SubResource\("StyleBoxFlat_room_label"\)/);
+  assert.match(stationScene, /theme_override_font_sizes\/font_size = 16/);
+  assert.doesNotMatch(stationScene, /OwnerRoleBadge/);
+  assert.doesNotMatch(pairScene, /(?:ArtDirectorLabel|StrategistLabel)/);
+  assert.match(world, /tab\.text = "Open %s" % String\(record\.get\("title"/);
+});

@@ -143,35 +143,6 @@ animation = &"strategy-front"
 unique_name_in_owner = true
 shape = SubResource("CapsuleShape2D_0lhm0")
 
-[node name="ArtDirectorLabel" type="Label" parent="." unique_id=128549504]
-unique_name_in_owner = true
-z_index = 5
-offset_left = -20.0
-offset_top = -54.0
-offset_right = 129.0
-offset_bottom = -31.0
-theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
-theme_override_colors/font_shadow_color = Color(0.0627451, 0.10980392, 0.21176471, 1)
-theme_override_constants/shadow_offset_x = 2
-theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 14
-text = "ART DIRECTOR ACTIVE"
-
-[node name="StrategistLabel" type="Label" parent="." unique_id=1005256011]
-unique_name_in_owner = true
-visible = false
-z_index = 5
-offset_left = -5.0
-offset_top = -54.0
-offset_right = 126.0
-offset_bottom = -31.0
-theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
-theme_override_colors/font_shadow_color = Color(0.0627451, 0.10980392, 0.21176471, 1)
-theme_override_constants/shadow_offset_x = 2
-theme_override_constants/shadow_offset_y = 2
-theme_override_font_sizes/font_size = 14
-text = "STRATEGIST ACTIVE"
-
 [node name="InteractionRadius" type="Area2D" parent="." unique_id=323640809]
 unique_name_in_owner = true
 collision_layer = 0

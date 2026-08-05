@@ -67,16 +67,11 @@ func _on_body_exited(body: Node) -> void:
 
 func _update_visuals() -> void:
 	var room_label := get_node_or_null("%RoomLabel") as Label
-	var role_badge := get_node_or_null("%OwnerRoleBadge") as Label
 	var glow := get_node_or_null("%Glow") as Polygon2D
 	var icon := get_node_or_null("%InteractionIcon") as Sprite2D
 	if room_label != null:
 		room_label.text = room_title
 		room_label.visible = highlighted
-	if role_badge != null:
-		role_badge.text = "ART DIRECTOR" if owner_role == "art-director" else "STRATEGIST"
-		role_badge.modulate = Color("ff6f61") if owner_role == "art-director" else Color("26c6b8")
-		role_badge.visible = highlighted
 	if glow != null:
 		glow.modulate.a = 0.92 if highlighted else 0.55
 		glow.scale = Vector2.ONE * (1.12 if highlighted else 1.0)

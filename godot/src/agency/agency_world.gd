@@ -33,7 +33,7 @@ const STATION_NODE_NAMES := {
 }
 const STATION_ARRIVAL_OFFSETS := {
 	"reception": Vector2(59.329586, -24.0),
-	"client-briefing": Vector2(-64.0, 0.0),
+	"client-briefing": Vector2(0.0, 90.0),
 	"strategy-room": Vector2(-59.329586, -24.0),
 	"art-studio": Vector2(-64.0, 0.0),
 	"copy-room": Vector2(64.0, 0.0),
@@ -462,10 +462,12 @@ func _set_station_details_visible(visible: bool) -> void:
 func _set_station_panel_tucked(tucked: bool) -> void:
 	_station_panel_tucked = tucked
 	var panel := get_node_or_null("%StationPanel") as Control
-	var tab := get_node_or_null("%StationPanelTab") as Control
+	var tab := get_node_or_null("%StationPanelTab") as Button
 	if panel != null:
 		panel.visible = not tucked
 	if tab != null:
+		var record: Dictionary = STATION_DATA.get(_current_station_id, {})
+		tab.text = "Open %s" % String(record.get("title", "room card"))
 		tab.visible = tucked
 
 func _begin_direct_travel(pair: AdMarketAgencyPair, target: Vector2) -> void:

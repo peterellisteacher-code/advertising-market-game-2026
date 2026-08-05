@@ -97,8 +97,6 @@ func _apply_sprite_state() -> void:
 func _apply_role_emphasis() -> void:
 	var art_director := get_node_or_null("%ArtDirectorSprite") as AnimatedSprite2D
 	var strategist := get_node_or_null("%StrategistSprite") as AnimatedSprite2D
-	var art_label := get_node_or_null("%ArtDirectorLabel") as Label
-	var strategy_label := get_node_or_null("%StrategistLabel") as Label
 	var art_is_foremost := station_owner_role == "art-director"
 	if art_director != null:
 		art_director.position = Vector2(-20.0, 5.0 if art_is_foremost else -5.0)
@@ -108,7 +106,3 @@ func _apply_role_emphasis() -> void:
 		strategist.position = Vector2(20.0, -5.0 if art_is_foremost else 5.0)
 		strategist.z_index = 1 if art_is_foremost else 3
 		strategist.modulate.a = 1.0 if active_role == "strategist" else 0.82
-	if art_label != null:
-		art_label.visible = active_role == "art-director"
-	if strategy_label != null:
-		strategy_label.visible = active_role == "strategist"

@@ -46,6 +46,7 @@ import {
   type ProductKitRuntime
 } from "../product-kit/product-kit-runtime";
 import { snapshotPlainData } from "../product-kit/plain-data";
+import { isAdBackgroundPreset } from "../assets/ad-background-presets";
 
 const LIVE_IMAGE_PATH = /^\/api\/openverse-image\/([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/;
 const LIVE_IMAGE_TIMEOUT_MS = 8_000;
@@ -79,11 +80,12 @@ export interface CatalogueRuntimeOptions {
   liveDebounceMs?: number;
 }
 
-export type CatalogueLibraryView = "products" | "parts" | "all";
+export type CatalogueLibraryView = "products" | "parts" | "backgrounds" | "all";
 
 const rolesForView: Readonly<Record<CatalogueLibraryView, ReadonlySet<RasterPricingRole>>> = {
   products: new Set(["base"]),
   parts: new Set(["part"]),
+  backgrounds: new Set(),
   all: new Set(["base", "part", "media"])
 };
 
@@ -92,6 +94,7 @@ export function filterCatalogueByView(
   pricing: RasterPricingIndex,
   view: CatalogueLibraryView
 ): CatalogAssetV1[] {
+  if (view === "backgrounds") return records.filter(isAdBackgroundPreset);
   const roles = rolesForView[view];
   return records.filter(({ id, delivery }) => {
     if (delivery !== "offline") return false;
@@ -101,7 +104,7 @@ export function filterCatalogueByView(
 }
 
 function selectedLibraryView(select: HTMLSelectElement): CatalogueLibraryView {
-  return select.value === "parts" || select.value === "all" ? select.value : "products";
+  return select.value === "parts" || select.value === "all" || select.value === "backgrounds" ? select.value : "products";
 }
 
 export class CatalogueRuntime {
@@ -226,9 +229,9 @@ export class CatalogueRuntime {
   }
 
   #activateView(): void {
-    const active = this.#pricing === null
-      ? []
-      : filterCatalogueByView(this.#allCore, this.#pricing, selectedLibraryView(this.options.viewSelect));
+    const view = selectedLibraryView(this.options.viewSelect);
+    const active = view === "backgrounds" ? this.#allCore.filter(isAdBackgroundPreset) :
+      this.#pricing === null ? [] : filterCatalogueByView(this.#allCore, this.#pricing, view);
     this.#activeCount = active.length;
     this.#coreIndex = new CatalogueIndex(active);
     this.#replaceCategories(active);
@@ -284,6 +287,7 @@ export interface LocalCatalogueBlob {
 
 export interface CataloguePlacementStyle {
   bodyColour: string;
+  fullCanvas?: boolean;
 }
 
 export type GeneratedImageStage = "object-forge" | "make-it-real";
@@ -917,6 +921,10 @@ export class CataloguePlacementQueue {
         accessibleName: asset.title,
         ...(sectionFill === undefined ? {} : { sectionFill })
       });
+      if (style?.fullCanvas) {
+        fillCanvasWithRaster(canvas, objectId);
+        commands.moveToBack(objectId);
+      }
       const fabricState = commands.serialize();
       const objects = Array.isArray(fabricState.objects)
         ? fabricState.objects as Array<Record<string, unknown>>

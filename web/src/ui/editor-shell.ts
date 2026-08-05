@@ -7,6 +7,8 @@ export interface EditorShell extends PairGameView {
   workspace: HTMLElement;
   taskBar: HTMLElement;
   taskBarToggle: HTMLButtonElement;
+  displayToggle: HTMLButtonElement;
+  displayPanel: HTMLElement;
   library: HTMLElement;
   workspaceSeparator: HTMLElement;
   productBuilder: HTMLElement;
@@ -53,8 +55,10 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         <span class="creator__save-status" role="status" aria-label="Saved progress" data-save-status></span>
         <button type="button" data-guide-review-top>How to use this site</button>
         <button type="button" data-studio-tour-open>Studio tour</button>
+        <button type="button" data-display-toggle aria-controls="studio-display-panel" aria-expanded="false">Display</button>
         <button type="button" data-task-bar-toggle aria-controls="studio-task-bar" aria-expanded="true">Hide task bar</button>
         <button type="button" data-command="return">Return to game</button>
+        <section class="creator__display-panel" id="studio-display-panel" aria-label="Display preferences" hidden data-display-panel><fieldset><legend>Interface text</legend><label><input type="radio" name="display-text" value="standard" checked> Standard</label><label><input type="radio" name="display-text" value="large"> Large</label></fieldset><fieldset><legend>Interface colours</legend><label><input type="radio" name="display-colours" value="standard" checked> Standard</label><label><input type="radio" name="display-colours" value="high-contrast"> High contrast</label></fieldset><button type="button" data-display-close>Close display preferences</button></section>
       </header>
       <section class="creator__pair-strip" id="studio-task-bar" role="region" aria-label="${STUDENT_COPY.labels.pairPlay}">
         <div class="creator__level-chip">
@@ -174,6 +178,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
               <label class="creator__library-view">Library view <select aria-label="Library view" data-library-view>
                 <option value="products" selected>Products</option>
                 <option value="parts">Parts</option>
+                <option value="backgrounds">Backgrounds</option>
                 <option value="all">All pieces</option>
               </select></label>
               <label class="creator__asset-search">Search assets <input type="search" aria-label="Search assets" placeholder="Try running shoe, tent or pet shop"></label>
@@ -388,6 +393,8 @@ export function createEditorShell(root: HTMLElement): EditorShell {
     workspace: root.querySelector(".creator__workspace")!,
     taskBar: root.querySelector("#studio-task-bar")!,
     taskBarToggle: root.querySelector("[data-task-bar-toggle]")!,
+    displayToggle: root.querySelector("[data-display-toggle]")!,
+    displayPanel: root.querySelector("[data-display-panel]")!,
     library: root.querySelector(".creator__library")!,
     workspaceSeparator: root.querySelector("[data-studio-separator]")!,
     productBuilder: root.querySelector(".creator__product-builder")!,

@@ -20,8 +20,13 @@ describe("createEditorShell", () => {
       .toEqual([
         ["products", "Products"],
         ["parts", "Parts"],
+        ["backgrounds", "Backgrounds"],
         ["all", "All pieces"]
       ]);
+    const display = shell.displayToggle;
+    const panel = shell.displayPanel;
+    expect(display.getAttribute("aria-expanded")).toBe("false");
+    expect(panel.hidden).toBe(true);
     expect(libraryView.value).toBe("products");
     expect(shell.libraryView).toBe(libraryView);
     expect(getByRole<HTMLSelectElement>(root, "combobox", { name: "Product category", hidden: true }).value)

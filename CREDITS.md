@@ -19,6 +19,14 @@
 
 ## Classroom assets
 
+The six locally bundled Backgrounds library designs are original Peter Ellis classroom asset-pack artwork and are available under the same `Classroom-session use` permission below.
+
+## Bundled typefaces
+
+- Lilita One Regular — SIL Open Font License 1.1; local approved source. Licence: `web/public/fonts/LilitaOne-OFL.txt`.
+- Bebas Neue Regular — SIL Open Font License 1.1; [google/fonts](https://github.com/google/fonts/tree/main/ofl/bebasneue). Licence: `web/public/fonts/BebasNeue-OFL.txt`.
+- Russo One Regular — SIL Open Font License 1.1; [google/fonts](https://github.com/google/fonts/tree/main/ofl/russoone). Licence: `web/public/fonts/RussoOne-OFL.txt`.
+
 All 2,503 records in the permanent offline catalogue are local project assets
 generated for Peter Ellis's classroom resource. The product shells, editable
 parts and virtual colour-and-material variants are also original project

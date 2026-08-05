@@ -6,7 +6,10 @@ export const CURVED_LABEL_FONT_FAMILIES = Object.freeze([
   "Arial",
   "Georgia",
   "Trebuchet MS",
-  "Verdana"
+  "Verdana",
+  "Lilita One",
+  "Bebas Neue",
+  "Russo One"
 ] as const);
 
 export type CurvedTextProfileId = typeof CURVED_TEXT_PROFILE;

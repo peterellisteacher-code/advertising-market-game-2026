@@ -1,12 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
   LOGO_RECIPES,
+  LOGO_TYPEFACES,
   createLogoMarkDesign,
   remixLogoColours,
   remixLogoSymbol,
   remixLogoType,
   surpriseLogoMark
 } from "./logo-mark-model";
+
+it("admits the bundled display typefaces for editable logo designs", () => {
+  expect(LOGO_TYPEFACES).toEqual(expect.arrayContaining(["Lilita One", "Bebas Neue", "Russo One"]));
+});
 
 function baseDesign() {
   return createLogoMarkDesign({

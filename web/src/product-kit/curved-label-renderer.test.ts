@@ -1,10 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CURVED_LABEL_HEIGHT,
+  CURVED_LABEL_FONT_FAMILIES,
   CURVED_LABEL_WIDTH,
   cylindricalLabelX,
   renderCurvedLabel
 } from "./curved-label-renderer";
+
+it("keeps curved label typography aligned with the bundled logo typefaces", () => {
+  expect(CURVED_LABEL_FONT_FAMILIES).toEqual(expect.arrayContaining(["Lilita One", "Bebas Neue", "Russo One"]));
+});
 
 interface ContextTrace {
   font: string;

@@ -122,10 +122,19 @@ function wordmarkFor(design: LogoMarkDesign, width: number, fontSize: number): T
   });
 }
 
+export async function waitForLogoTypeface(typeface: string): Promise<void> {
+  try {
+    await document.fonts?.load(`800 48px "${typeface}"`);
+  } catch {
+    // Font loading is an enhancement; Fabric retains a safe local fallback.
+  }
+}
+
 export class FabricLogoMarkFactory {
   async create(input: NewLogoMarkInput): Promise<Group> {
     const id = requiredId(input.id);
     const design = createLogoMarkDesign(input.design);
+    await waitForLogoTypeface(design.typeface);
     if (input.icon.id !== design.iconId) {
       throw new Error("Logo icon must match the editable design icon id");
     }

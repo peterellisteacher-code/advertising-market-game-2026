@@ -4,7 +4,7 @@ export type LogoRecipeId =
   | "monogram"
   | "mascot-emblem";
 
-export type LogoTypeface = "Arial" | "Georgia" | "Trebuchet MS" | "Verdana";
+export type LogoTypeface = "Arial" | "Georgia" | "Trebuchet MS" | "Verdana" | "Lilita One" | "Bebas Neue" | "Russo One";
 
 export interface LogoRecipeDefinition {
   readonly id: LogoRecipeId;
@@ -33,7 +33,10 @@ export const LOGO_TYPEFACES: readonly LogoTypeface[] = Object.freeze([
   "Arial",
   "Georgia",
   "Trebuchet MS",
-  "Verdana"
+  "Verdana",
+  "Lilita One",
+  "Bebas Neue",
+  "Russo One"
 ]);
 
 const LOGO_PALETTES: readonly (readonly [string, string])[] = Object.freeze([

@@ -131,13 +131,20 @@ describe("createEditorShell", () => {
       .toBe("studio-edit-pane");
     expect(shell.library.id).toBe("studio-browse-pane");
     expect(shell.canvasRegion.id).toBe("studio-edit-pane");
-    const currentInstruction = getByRole(root, "region", { name: "Current instruction" });
+    const journeyBar = getByRole(root, "region", { name: "Current instruction" });
+    expect(journeyBar).toBeTruthy();
+    expect(journeyBar.querySelector("[data-guide-progress]")).toBeTruthy();
+    expect(journeyBar.querySelector("[data-guide-title]")).toBeTruthy();
+    expect(journeyBar.querySelector("[data-guide-now]")).toBeTruthy();
+    expect(getByRole(journeyBar, "button", { name: "Open Audience evidence" })).toBeTruthy();
+
+    const currentInstruction = getByRole(root, "region", { name: "Current instruction details" });
     expect(currentInstruction).toBeTruthy();
-    expect(["Now", "Why", "Done", "Next"].every((label) =>
+    expect(["Why", "Done", "Next"].every((label) =>
       currentInstruction.textContent?.includes(label)
     )).toBe(true);
     const guideRows = currentInstruction.querySelectorAll("dl > div");
-    expect(guideRows).toHaveLength(4);
+    expect(guideRows).toHaveLength(3);
     expect([...guideRows].every((row) =>
       row.querySelector("dt") !== null && row.querySelector("dd") !== null
     )).toBe(true);

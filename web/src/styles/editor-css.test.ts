@@ -26,13 +26,25 @@ describe("Fabric canvas layer styling", () => {
 
   it("reserves only compact chrome above a canvas-first workspace", () => {
     expect(css).toMatch(
-      /\.creator\s*\{[^}]*grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\)[^}]*\}/i
+      /\.creator\s*\{[^}]*grid-template-rows:\s*auto\s+auto\s+minmax\(0,\s*1fr\)[^}]*\}/i
     );
     expect(css).toMatch(
       /\.creator__workspace\s*\{[^}]*--studio-rail-width:\s*64px[^}]*--studio-browse-percent:\s*40%[^}]*--studio-browse-width:\s*\.666667fr[^}]*grid-template-columns:\s*var\(--studio-rail-width\)\s+minmax\(0,\s*var\(--studio-browse-width\)\)\s+var\(--studio-separator-width\)\s+minmax\(0,\s*1fr\)[^}]*\}/i
     );
     expect(css).toMatch(
       /\.creator__canvas\s+\.canvas-container\s*\{[^}]*width:\s*min\(100%,\s*var\(--studio-canvas-display-width,\s*calc\(\(100vh\s*-\s*[^)]*\)\s*\*\s*16\s*\/\s*9\)\)\)\s*!important[^}]*max-width:\s*1280px[^}]*aspect-ratio:\s*16\s*\/\s*9[^}]*\}/i
+    );
+  });
+
+  it("keeps the journey bar as a slim always-visible strip that hides with the tuck tabs during the tour", () => {
+    expect(css).toMatch(
+      /\.creator__journey-bar\s*\{[^}]*min-height:\s*44px[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator:has\(\[data-studio-onboarding-layer\]:not\(\[hidden\]\)\)\s*\.creator__journey-bar\s*\{[^}]*visibility:\s*hidden[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator__journey-bar-body\s+p\s*\{[^}]*white-space:\s*nowrap[^}]*overflow:\s*hidden[^}]*text-overflow:\s*ellipsis[^}]*\}/i
     );
   });
 

@@ -121,6 +121,14 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         </article>
         </section>
       </div>
+      <section class="creator__journey-bar" role="region" aria-label="Current instruction" data-guide-bar>
+        <p class="creator__guide-progress" data-guide-progress>Task 1 of 11</p>
+        <div class="creator__journey-bar-body">
+          <h2 data-guide-title>Audience evidence</h2>
+          <p data-guide-now></p>
+        </div>
+        <button type="button" class="creator__journey-bar-action" data-guide-open-tool>Open Audience evidence</button>
+      </section>
       <div class="creator__workspace">
         <nav class="creator__tool-rail" role="tablist" aria-label="Studio tools">
           <button type="button" role="tab" aria-selected="true" aria-controls="studio-panel-product" tabindex="0" aria-label="Build" data-glyph="◆" data-studio-tool="product">Build</button>
@@ -138,11 +146,8 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           <button type="button" role="tab" aria-selected="false" aria-controls="studio-edit-pane" tabindex="-1" data-studio-pane-tab="edit">Edit</button>
         </nav>
         <aside class="creator__library creator__tool-drawer" id="studio-browse-pane" aria-label="Studio drawer" data-studio-drawer>
-          <section class="creator__guide" role="region" aria-label="Current instruction" data-guide>
-            <p class="creator__guide-progress" data-guide-progress>Task 1 of 11</p>
-            <h2 data-guide-title>Audience evidence</h2>
+          <section class="creator__guide" role="region" aria-label="Current instruction details" data-guide>
             <dl>
-              <div><dt>Now</dt><dd data-guide-now></dd></div>
               <div><dt>Why</dt><dd data-guide-why></dd></div>
               <div><dt>Done</dt><dd data-guide-done></dd></div>
               <div><dt>Next</dt><dd data-guide-next></dd></div>
@@ -153,7 +158,6 @@ export function createEditorShell(root: HTMLElement): EditorShell {
               <ul data-guide-method-list></ul>
             </details>
             <div class="creator__guide-actions">
-              <button type="button" data-guide-open-tool>Open Audience evidence</button>
               <button type="button" data-guide-review>How to use this site</button>
             </div>
             <p class="creator__guide-locks" id="studio-locked-actions-status"

@@ -2108,8 +2108,8 @@ describe("window.AdMarketCreator", () => {
 
     expect(await parsed(api, "open-guided", "open", source)).toMatchObject({ ok: true });
 
-    // The guide lives inside the tool drawer, which now defaults tucked.
-    activateStudioTool("product");
+    // The journey bar sits outside the tool drawer, so it stays reachable
+    // even though the drawer now defaults tucked.
     const guide = getByRole(document.body, "region", { name: "Current instruction" });
     expect(guide.textContent).toContain("Message · Task 1 of 4");
     expect(guide.textContent).toContain("Attention");
@@ -2137,6 +2137,7 @@ describe("window.AdMarketCreator", () => {
 
     expect(await parsed(api, "close-guided", "close", null)).toMatchObject({ ok: true });
     expect(document.querySelector<HTMLElement>("[data-guide]")!.hidden).toBe(true);
+    expect(document.querySelector<HTMLElement>("[data-guide-bar]")!.hidden).toBe(true);
   });
 
   it("focuses the exact Product name control from its current instruction", async () => {
@@ -2172,8 +2173,8 @@ describe("window.AdMarketCreator", () => {
 
     expect(await parsed(api, "open-product-name-guide", "open", source))
       .toMatchObject({ ok: true });
-    // The guide lives inside the tool drawer, which now defaults tucked.
-    activateStudioTool("product");
+    // The journey bar sits outside the tool drawer, so it stays reachable
+    // even though the drawer now defaults tucked.
     const guide = getByRole(document.body, "region", { name: "Current instruction" });
 
     fireEvent.click(getByRole(guide, "button", { name: "Focus Product name" }));

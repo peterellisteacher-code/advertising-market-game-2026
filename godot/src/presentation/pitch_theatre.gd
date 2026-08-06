@@ -189,32 +189,60 @@ func _update_evidence() -> void:
 		"%EvidenceAudience",
 		"Audience fit",
 		_has_mission("audience-brief"),
-		"The brief identifies who the advertisement must persuade and the response it seeks."
+		_evidence_explanation(
+			["audience-brief"],
+			"The brief identifies who the advertisement must persuade and the response it seeks."
+		)
 	)
 	_set_evidence(
 		"%EvidenceValue",
 		"Product value",
 		_has_mission("claim-proof"),
-		"The product benefit is linked to evidence the pair can defend."
+		_evidence_explanation(
+			["claim-proof"],
+			"The product benefit is linked to evidence the pair can defend."
+		)
 	)
 	_set_evidence(
 		"%EvidenceAida",
 		"AIDA",
 		_has_mission("aida"),
-		"The message moves from attention and interest to desire and action."
+		_evidence_explanation(
+			["aida"],
+			"The message moves from attention and interest to desire and action."
+		)
 	)
 	_set_evidence(
 		"%EvidenceHierarchy",
 		"Visual hierarchy",
 		_has_mission("salience") and _has_mission("reading-path"),
-		"Scale, contrast and placement establish a deliberate order of attention."
+		_evidence_explanation(
+			["salience", "reading-path"],
+			"Scale, contrast and placement establish a deliberate order of attention."
+		)
 	)
 	_set_evidence(
 		"%EvidenceClaim",
 		"Supportable claim",
 		_has_mission("claim-proof"),
-		"The main claim is no stronger than the available product evidence."
+		_evidence_explanation(
+			["claim-proof"],
+			"The main claim is no stronger than the available product evidence."
+		)
 	)
+
+func _evidence_explanation(mission_ids: Array, fallback: String) -> String:
+	if not is_instance_valid(_progress):
+		return fallback
+	var effect_texts: Array[String] = []
+	for mission_id in mission_ids:
+		var evidence: Dictionary = Dictionary(_progress.evidence_by_mission.get(String(mission_id), {}))
+		var effect_text := String(evidence.get("effect", "")).strip_edges()
+		if not effect_text.is_empty():
+			effect_texts.append(effect_text)
+	if effect_texts.is_empty():
+		return fallback
+	return " ".join(effect_texts)
 
 func _set_evidence(path: String, title: String, complete: bool, explanation: String) -> void:
 	var label := get_node_or_null(path) as Label

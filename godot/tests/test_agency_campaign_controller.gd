@@ -9,6 +9,7 @@ func run() -> bool:
 	var controller: RefCounted = controller_script.new()
 	controller.begin_agency(game_run, _campaign_document())
 	assert(controller.current_objective().get("id") == "meet-client")
+	assert((controller.document().get("missionEvidence") as Array).is_empty())
 	assert(not bool(controller.open_station("production-studio").get("allowed")))
 	assert(bool(controller.open_station("client-briefing").get("allowed")))
 	assert(controller.complete_mission("audience-brief", {
@@ -17,6 +18,13 @@ func run() -> bool:
 	}))
 	assert(controller.current_objective().get("stationId") == "art-studio")
 	assert(game_run.agency_progress().completed_mission_ids.has("audience-brief"))
+	var mission_evidence: Array = controller.document().get("missionEvidence")
+	assert(mission_evidence.size() == 1)
+	var evidence_entry: Dictionary = mission_evidence[0]
+	assert(evidence_entry.get("missionId") == "audience-brief")
+	assert(evidence_entry.get("decisionId") == "independence")
+	assert(evidence_entry.get("effectText") == "The offer supports the audience's need to control the hour after school.")
+	assert(evidence_entry.get("title") == "Read the audience before making anything")
 	return true
 
 func _campaign_document() -> Dictionary:

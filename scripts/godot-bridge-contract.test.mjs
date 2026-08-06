@@ -316,3 +316,25 @@ test("agency world travel keeps every room reachable without redundant role labe
   assert.doesNotMatch(pairScene, /(?:ArtDirectorLabel|StrategistLabel)/);
   assert.match(world, /tab\.text = "Open %s" % String\(record\.get\("title"/);
 });
+
+test("missionEvidence parity: the Godot bridge validates it and the web schema declares it optional", async () => {
+  const [campaignDocumentGd, campaignDocumentTs] = await Promise.all([
+    readFile(new URL("godot/src/creator/campaign_document.gd", root), "utf8"),
+    readFile(new URL("web/src/domain/campaign-document.ts", root), "utf8")
+  ]);
+
+  assert.match(campaignDocumentGd, /if document\.has\("missionEvidence"\):/);
+  assert.match(campaignDocumentGd, /static func _valid_mission_evidence\(value: Variant\) -> bool:/);
+  assert.match(campaignDocumentGd, /const MAX_MISSION_EVIDENCE_ENTRIES\s*:=\s*24\b/);
+  assert.match(
+    campaignDocumentGd,
+    /const MISSION_EVIDENCE_KEYS\s*:=\s*\["missionId",\s*"title",\s*"decisionId",\s*"effectText"\]/
+  );
+
+  assert.match(
+    campaignDocumentTs,
+    /const missionEvidenceEntry = z\.object\(\{[\s\S]*?missionId:\s*z\.string\(\)[\s\S]*?title:\s*z\.string\(\)[\s\S]*?decisionId:\s*z\.string\(\)[\s\S]*?effectText:\s*z\.string\(\)[\s\S]*?\}\)\.strict\(\)/
+  );
+  assert.match(campaignDocumentTs, /const missionEvidence = z\.array\(missionEvidenceEntry\)\.max\(24\)/);
+  assert.match(campaignDocumentTs, /missionEvidence:\s*missionEvidence\.optional\(\)/);
+});

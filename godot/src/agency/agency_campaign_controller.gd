@@ -23,6 +23,7 @@ const OBJECTIVE_AFTER_MISSION: Dictionary = {
 	"claim-proof": "polish-campaign",
 }
 const CREATOR_OBJECTIVES: Array[String] = ["build-product", "polish-campaign"]
+const MAX_MISSION_EVIDENCE_ENTRIES := 24
 
 var _run: AdMarketGameRun
 var _progress: AdMarketAgencyProgress
@@ -170,12 +171,38 @@ func all_required_missions_complete() -> bool:
 	return true
 
 func document() -> Dictionary:
-	return _document.duplicate(true)
+	var result: Dictionary = _document.duplicate(true)
+	result["missionEvidence"] = _build_mission_evidence()
+	return result
 
 func _set_context(game_run: AdMarketGameRun, document: Dictionary) -> void:
 	_run = game_run
 	_document = document.duplicate(true)
 	_progress = game_run.agency_progress() as AdMarketAgencyProgress if game_run != null else null
+
+func _build_mission_evidence() -> Array:
+	var entries: Array = []
+	if _progress == null:
+		return entries
+	for mission_id_value in _progress.evidence_by_mission:
+		if entries.size() >= MAX_MISSION_EVIDENCE_ENTRIES:
+			break
+		var mission_id := String(mission_id_value)
+		var mission_record: Dictionary = MissionCatalog.mission(mission_id)
+		if mission_record.is_empty():
+			continue
+		var evidence: Dictionary = Dictionary(_progress.evidence_by_mission.get(mission_id, {}))
+		var decision_id := String(evidence.get("decision", "")).strip_edges()
+		var effect_text := String(evidence.get("effect", "")).strip_edges()
+		if decision_id.is_empty() or effect_text.is_empty():
+			continue
+		entries.append({
+			"missionId": mission_id,
+			"title": String(mission_record.get("title", "")),
+			"decisionId": decision_id,
+			"effectText": effect_text,
+		})
+	return entries
 
 func _reconcile_document_objective() -> void:
 	if _progress == null:

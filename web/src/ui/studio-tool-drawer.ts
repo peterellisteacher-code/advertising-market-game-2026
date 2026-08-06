@@ -1,20 +1,47 @@
+import { readTuckedState, TUCK_SHELL_STORAGE_KEYS, type TuckShellScope } from "./tuck-shell";
+
+/**
+ * The slice of MediaQueryList this module needs. A real MediaQueryList
+ * satisfies this; tests can pass a lighter fake instead.
+ */
+export interface StudioToolDrawerNarrowQuery {
+  readonly matches: boolean;
+  addEventListener(type: "change", listener: () => void): void;
+  removeEventListener(type: "change", listener: () => void): void;
+}
+
+export interface StudioToolDrawerOptions {
+  readonly storage?: Pick<Storage, "getItem" | "setItem"> | null;
+  readonly scope?: TuckShellScope;
+  /**
+   * Matches StudioSplitPane's own narrow-viewport query. Below the
+   * breakpoint the shared library/drawer element's visibility belongs to
+   * StudioSplitPane's Browse/Edit pane tabs (there is no side-by-side space
+   * to reclaim by tucking), so the drawer stops writing to it there.
+   */
+  readonly narrowQuery?: StudioToolDrawerNarrowQuery | null;
+}
+
 export interface StudioToolDrawer {
   select(tool: string): void;
   current(): string;
+  isTucked(): boolean;
   destroy(): void;
 }
 
 const toolSelector = "button[data-studio-tool]";
 const panelSelector = "[data-studio-panel]";
 const drawerSelector = "[data-studio-drawer]";
-const drawerToggleSelector = "[data-studio-drawer-toggle]";
 const separatorSelector = "[data-studio-separator]";
+const DRAWER_STATE_KEY = "drawer";
 
-export function createStudioToolDrawer(root: HTMLElement): StudioToolDrawer {
+export function createStudioToolDrawer(
+  root: HTMLElement,
+  options: StudioToolDrawerOptions = {}
+): StudioToolDrawer {
   const buttons = Array.from(root.querySelectorAll<HTMLButtonElement>(toolSelector));
   const panels = Array.from(root.querySelectorAll<HTMLElement>(panelSelector));
   const drawer = root.querySelector<HTMLElement>(drawerSelector);
-  const drawerToggle = root.querySelector<HTMLButtonElement>(drawerToggleSelector);
   const separator = root.querySelector<HTMLElement>(separatorSelector);
   const matchedButtons = buttons.filter((button) => panels.some(
     (panel) => panel.dataset.studioPanel === button.dataset.studioTool
@@ -30,8 +57,27 @@ export function createStudioToolDrawer(root: HTMLElement): StudioToolDrawer {
     throw new Error("Studio tool drawer needs at least one available tool.");
   }
 
+  const storage = options.storage ?? null;
+  const scope = options.scope ?? "student";
+  const narrowQuery = options.narrowQuery ?? null;
+  const persistedDrawerState = readTuckedState(storage, scope)[DRAWER_STATE_KEY];
+
   let selectedTool = initialButton.dataset.studioTool!;
-  let drawerCollapsed = false;
+  // Tucked by default (single-action screen law): programmatic selection and
+  // direct tool-tab clicks are the only ways in, matching the tuck-shell's
+  // own default-tucked edge panels. A persisted flag from this session wins.
+  let drawerCollapsed = typeof persistedDrawerState === "boolean" ? persistedDrawerState : true;
+
+  const persist = (): void => {
+    if (storage === null) return;
+    try {
+      const next = { ...readTuckedState(storage, scope), [DRAWER_STATE_KEY]: drawerCollapsed };
+      storage.setItem(TUCK_SHELL_STORAGE_KEYS[scope], JSON.stringify(next));
+    } catch {
+      // The session remains usable without persisted drawer state.
+    }
+  };
+
   const emitChange = () => {
     root.dispatchEvent(new CustomEvent("studio-tool-drawer-change", {
       bubbles: true,
@@ -41,13 +87,18 @@ export function createStudioToolDrawer(root: HTMLElement): StudioToolDrawer {
 
   const render = () => {
     root.toggleAttribute("data-studio-drawer-collapsed", drawerCollapsed);
-    if (drawer !== null) drawer.hidden = drawerCollapsed;
-    if (separator !== null) separator.hidden = drawerCollapsed;
-    if (drawerToggle !== null) drawerToggle.setAttribute("aria-expanded", String(!drawerCollapsed));
+    // Below the narrow-viewport breakpoint, StudioSplitPane's Browse/Edit
+    // pane tabs own this element's hidden state instead (see narrowQuery
+    // above); leave it alone so a tucked drawer can't hide the Browse pane.
+    if (narrowQuery?.matches !== true) {
+      if (drawer !== null) drawer.hidden = drawerCollapsed;
+      if (separator !== null) separator.hidden = drawerCollapsed;
+    }
     for (const button of matchedButtons) {
       const selected = button.dataset.studioTool === selectedTool;
       button.setAttribute("aria-selected", String(selected));
       button.tabIndex = selected ? 0 : -1;
+      button.setAttribute("aria-expanded", String(selected && !drawerCollapsed));
     }
     const activePanel = panels.find((panel) => panel.dataset.studioPanel === selectedTool);
     for (const panel of panels) {
@@ -62,13 +113,22 @@ export function createStudioToolDrawer(root: HTMLElement): StudioToolDrawer {
     selectedTool = tool;
     drawerCollapsed = false;
     render();
+    persist();
     if (focus) button.focus();
     if (changed) emitChange();
   };
 
   const onClick = (event: MouseEvent) => {
     const button = event.currentTarget as HTMLButtonElement;
-    select(button.dataset.studioTool!, true);
+    const tool = button.dataset.studioTool!;
+    if (tool === selectedTool) {
+      drawerCollapsed = !drawerCollapsed;
+      render();
+      persist();
+      button.focus();
+      return;
+    }
+    select(tool, true);
   };
 
   const onKeydown = (event: KeyboardEvent) => {
@@ -91,17 +151,21 @@ export function createStudioToolDrawer(root: HTMLElement): StudioToolDrawer {
     select(keyboardButtons[nextIndex]!.dataset.studioTool!, true);
   };
 
-  const onDrawerToggle = () => {
-    drawerCollapsed = !drawerCollapsed;
+  const onDrawerKeydown = (event: KeyboardEvent) => {
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    drawerCollapsed = true;
     render();
-    if (drawerCollapsed) {
-      matchedButtons.find((button) => button.dataset.studioTool === selectedTool)?.focus();
-    }
+    persist();
+    matchedButtons.find((button) => button.dataset.studioTool === selectedTool)?.focus();
   };
 
+  const onNarrowChange = () => render();
+
   for (const button of matchedButtons) button.addEventListener("click", onClick);
-  drawerToggle?.addEventListener("click", onDrawerToggle);
   root.addEventListener("keydown", onKeydown);
+  drawer?.addEventListener("keydown", onDrawerKeydown);
+  narrowQuery?.addEventListener("change", onNarrowChange);
   render();
 
   return {
@@ -111,10 +175,14 @@ export function createStudioToolDrawer(root: HTMLElement): StudioToolDrawer {
     current() {
       return selectedTool;
     },
+    isTucked() {
+      return drawerCollapsed;
+    },
     destroy() {
       for (const button of matchedButtons) button.removeEventListener("click", onClick);
-      drawerToggle?.removeEventListener("click", onDrawerToggle);
       root.removeEventListener("keydown", onKeydown);
+      drawer?.removeEventListener("keydown", onDrawerKeydown);
+      narrowQuery?.removeEventListener("change", onNarrowChange);
     }
   };
 }

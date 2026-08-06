@@ -24,6 +24,7 @@ export interface SectionFillControllerOptions {
   readonly announce: (message: string, priority: AnnouncementPriority) => void;
   readonly mutationControls?: readonly HTMLButtonElement[];
   readonly onPreviewStateChange?: (active: boolean) => void;
+  readonly onVisibilityChange?: (visible: boolean) => void;
 }
 
 type FillPhase = "idle" | "choose-section" | "preview";
@@ -86,6 +87,7 @@ export class SectionFillController {
   readonly #announce: SectionFillControllerOptions["announce"];
   readonly #mutationControls: readonly HTMLButtonElement[];
   readonly #onPreviewStateChange: (active: boolean) => void;
+  readonly #onVisibilityChange: (visible: boolean) => void;
   readonly #handleCanvasClick = (event: MouseEvent): void => {
     if (this.#phase !== "choose-section" || this.#raster === null) return;
     event.preventDefault();
@@ -118,6 +120,7 @@ export class SectionFillController {
     this.#announce = options.announce;
     this.#mutationControls = options.mutationControls ?? [];
     this.#onPreviewStateChange = options.onPreviewStateChange ?? (() => undefined);
+    this.#onVisibilityChange = options.onVisibilityChange ?? (() => undefined);
     this.#canvas.addEventListener("click", this.#handleCanvasClick, true);
     document.addEventListener("keydown", this.#handleKeydown);
     this.#host.hidden = true;
@@ -140,16 +143,19 @@ export class SectionFillController {
     this.#host.replaceChildren();
     if (id === null) {
       this.#host.hidden = true;
+      this.#onVisibilityChange(false);
       return;
     }
     const summary = this.#port.listObjectSummaries().find((candidate) => candidate.id === id);
     if (!summary) {
       this.#host.hidden = true;
+      this.#onVisibilityChange(false);
       return;
     }
     const fillable = await this.#port.getFillableRaster(id);
     if (generation !== this.#generation || this.#selectionId !== id) return;
     this.#host.hidden = false;
+    this.#onVisibilityChange(true);
     if (fillable === null) {
       this.#renderUnavailable(summary);
       return;

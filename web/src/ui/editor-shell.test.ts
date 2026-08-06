@@ -110,9 +110,7 @@ describe("createEditorShell", () => {
     expect(shell.libraryColour).toBe(pieceColour);
     expect(shell.libraryResults.dataset.libraryResults).toBe("");
     expect(shell.libraryStatus.getAttribute("role")).toBe("status");
-    const hideTools = getByRole<HTMLButtonElement>(root, "button", { name: "Hide tools" });
-    expect(hideTools.getAttribute("aria-controls")).toBe("studio-browse-pane");
-    expect(hideTools.getAttribute("aria-expanded")).toBe("true");
+    expect(root.querySelector("[data-studio-drawer-toggle]")).toBeNull();
     const separator = getByRole<HTMLElement>(root, "separator", {
       name: "Resize the library and design areas"
     });

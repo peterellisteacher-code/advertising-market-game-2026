@@ -1176,6 +1176,10 @@ async function parsed(
 function activateStudioTool(tool: "product" | "assets" | "words" | "logo" | "image" | "price" | "aida" | "coach"): void {
   const tab = document.querySelector<HTMLButtonElement>(`[data-studio-tool="${tool}"]`);
   if (!tab) throw new Error(`Missing Studio tool tab: ${tool}`);
+  // Clicking the already-active tab now toggles the drawer tucked (Phase A2);
+  // this helper means "make sure this tool's panel is open", so it is a no-op
+  // when that is already true instead of tucking it back closed.
+  if (tab.getAttribute("aria-selected") === "true" && tab.getAttribute("aria-expanded") === "true") return;
   fireEvent.click(tab);
 }
 
@@ -1899,6 +1903,9 @@ describe("window.AdMarketCreator", () => {
     expect(await parsed(api, "open-split-pane", "open", documentWithCanvasObject))
       .toMatchObject({ ok: true });
     const before = await parsed(api, "state-before-split", "getState", null);
+    // The splitter only exists between two visible panes, so the drawer must
+    // be open (it now defaults tucked) before resizing it.
+    activateStudioTool("product");
     const separator = getByRole<HTMLElement>(document.body, "separator", {
       name: "Resize the library and design areas"
     });
@@ -2101,6 +2108,8 @@ describe("window.AdMarketCreator", () => {
 
     expect(await parsed(api, "open-guided", "open", source)).toMatchObject({ ok: true });
 
+    // The guide lives inside the tool drawer, which now defaults tucked.
+    activateStudioTool("product");
     const guide = getByRole(document.body, "region", { name: "Current instruction" });
     expect(guide.textContent).toContain("Message · Task 1 of 4");
     expect(guide.textContent).toContain("Attention");
@@ -2163,6 +2172,8 @@ describe("window.AdMarketCreator", () => {
 
     expect(await parsed(api, "open-product-name-guide", "open", source))
       .toMatchObject({ ok: true });
+    // The guide lives inside the tool drawer, which now defaults tucked.
+    activateStudioTool("product");
     const guide = getByRole(document.body, "region", { name: "Current instruction" });
 
     fireEvent.click(getByRole(guide, "button", { name: "Focus Product name" }));
@@ -2751,6 +2762,28 @@ describe("window.AdMarketCreator", () => {
     if (!afterDeselect.ok) throw new Error(JSON.stringify(afterDeselect.error));
     expect(CampaignDocumentSchema.parse(afterDeselect.payload).evidence.attention)
       .toEqual(["latest-proof"]);
+  });
+
+  it("keeps the layers panel and the display panel mutually exclusive floating overlays", async () => {
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-overlay-exclusivity", "open", blankDocument))
+      .toMatchObject({ ok: true });
+
+    fireEvent.click(getByRole(document.body, "button", { name: "Open item list" }));
+    const layersPanel = document.querySelector<HTMLElement>(".creator__layers")!;
+    expect(layersPanel.hidden).toBe(false);
+
+    // Display lives in the Menu tuck panel, which defaults tucked (Phase A1).
+    fireEvent.click(document.querySelector<HTMLButtonElement>('[data-tuck-tab="menu"]')!);
+    fireEvent.click(getByRole(document.body, "button", { name: "Display" }));
+    const displayPanel = document.querySelector<HTMLElement>("[data-display-panel]")!;
+    expect(displayPanel.hidden).toBe(false);
+    expect(layersPanel.hidden).toBe(true);
+
+    fireEvent.click(getByRole(document.body, "button", { name: "Open item list" }));
+    expect(layersPanel.hidden).toBe(false);
+    expect(displayPanel.hidden).toBe(true);
   });
 
   it("keeps an AIDA move unlocked until the pair selects canvas proof", async () => {

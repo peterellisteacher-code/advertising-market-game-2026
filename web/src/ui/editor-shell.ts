@@ -138,7 +138,6 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           <button type="button" role="tab" aria-selected="false" aria-controls="studio-edit-pane" tabindex="-1" data-studio-pane-tab="edit">Edit</button>
         </nav>
         <aside class="creator__library creator__tool-drawer" id="studio-browse-pane" aria-label="Studio drawer" data-studio-drawer>
-          <button type="button" class="creator__tool-drawer-toggle" data-studio-drawer-toggle aria-controls="studio-browse-pane" aria-expanded="true">Hide tools</button>
           <section class="creator__guide" role="region" aria-label="Current instruction" data-guide>
             <p class="creator__guide-progress" data-guide-progress>Task 1 of 11</p>
             <h2 data-guide-title>Audience evidence</h2>

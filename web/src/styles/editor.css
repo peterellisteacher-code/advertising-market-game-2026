@@ -69,8 +69,7 @@
 .creator__tool-rail [role="tab"][aria-selected="true"] { background: var(--gold); color: var(--ink); box-shadow: inset 4px 0 var(--coral); }
 .creator__tool-rail [role="tab"][aria-selected="true"]::before { border-color: var(--ink); background: #fff8dd; }
 .creator__pane-tabs { display: none; }
-.creator__tool-drawer { grid-column: 2; grid-row: 1; position: relative; min-width: 0; min-height: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr); overflow: hidden; border-right: 1px solid var(--line); background: var(--paper); }
-.creator__tool-drawer-toggle { justify-self: end; margin: 8px 10px 0; padding: .45rem .65rem; border: 1px solid #477a8b; border-radius: 7px; background: #fff; color: var(--blue); font: inherit; font-size: .875rem; font-weight: 900; }
+.creator__tool-drawer { grid-column: 2; grid-row: 1; position: relative; min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; border-right: 1px solid var(--line); background: var(--paper); }
 .creator__workspace-separator { grid-column: 3; grid-row: 1; position: relative; min-width: 0; min-height: 0; border: 0; background: #d8e4e7; cursor: col-resize; touch-action: none; }
 .creator__workspace-separator::before { content: ""; position: absolute; top: 0; bottom: 0; left: calc(50% - 1px); width: 2px; background: #6e9eaa; }
 .creator__workspace-separator:hover, .creator__workspace-separator:focus-visible { background: #c3dce2; }

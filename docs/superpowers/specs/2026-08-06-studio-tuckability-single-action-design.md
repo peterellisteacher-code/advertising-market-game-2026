@@ -49,9 +49,25 @@ Product name currently appears in the top bar; if the Build panel also owns nami
 - Tour steps that spotlight a tucked surface untuck it for the step and retuck on advance.
 - After the tour, the guided journey (`web/src/game/guided-journey*.ts`) decides which single panel auto-untucks at each step transition; everything else starts tucked.
 
-## Out of scope for this spec (later phases)
+## Phase C design — Godot surfaces
 
-Godot lobby/HUD conformance; sound-booth decision; writer's-statement evidence export; live-market screen conformance. Never touch: account/auth flows, Netlify functions, Image Lab / fal gating, CreatorHost bridge contract, Supabase.
+- **Lobby (Main.tscn `LobbyPanel`)**: stage it. Default state shows ONE primary action (start/continue practice). "Join the class market" (alias + room code) becomes a tuck revealed by its own button; teacher setup stays behind its existing toggle. No competing panels.
+- **AgencyHud**: keep the existing strip + `HudTuckToggle`/`ExpandedDetails` pattern but slim the always-visible row to: objective text, go-to-objective, the expand toggle, guide button. Verify at runtime the strip is one row and nothing else persists over the world.
+- **RunPanel / mission panel**: already single-action (full-panel phases and modal missions) — audit at runtime, no redesign expected.
+- **sound-booth station**: deliberate ambient set dressing, not dead content — it never becomes an objective and the station gate already redirects politely. Leave as is; do not wire missions to it (the task's "multimodal" requirement is met by the oral presentation itself, and no audio pipeline exists in the ad format).
+
+## Phase D design — writer's statement + pitch evidence
+
+The game already captures everything needed; D is assembly, not new authoring:
+
+1. **Bridge mission evidence into the campaign document**: Godot's `agency_progress.gd` holds `evidence_by_mission` ({decision, effect} — the pair's own 30–400 char technique→audience sentences). Add an OPTIONAL `missionEvidence` array ({missionId, title, decisionId, effectText}) to `CampaignDocumentV1` (zod optional — old drafts stay valid, no migration), populated by the Godot side when it opens the creator / publishes; `campaign_document.gd`'s validator passes it through. This is a deliberate, narrow bridge-contract extension — the one exception to "never touch bridge contracts", designed here, not improvised by a builder.
+2. **Writer's-statement view (web)**: reachable from the Menu tuck ("Writer's statement") and offered post-publish. Assembles: audience brief (context/needs/values/intended response), the pair's `strategy.aidaPlan` four lines, `marketRoute.proofPoint`, their mission `effectText` sentences grouped under rubric-aligned headings (audience & purpose / visual choices / language choices / evidence), and the accessible names of the canvas objects they linked as AIDA evidence. Print stylesheet + print button so pairs take paper notes into the 5-minute oral. All student-facing copy in this view goes through the plain-language → claude-scrubber pipeline before ship.
+3. **PitchTheatre**: replace the generic per-mission checklist sentences with the pair's own `effect` text where present (Godot reads its native progress state; fall back to current copy when absent).
+4. Optional, only if trivial: show Studio Coach's last verdict in the statement view when it exists in sessionStorage. Never persisted server-side.
+
+## Out of scope entirely
+
+Live-market screen redesign (the numeric scorecard already scaffolds the class critique; verbal feedback happens in the room). Never touch: account/auth flows, Netlify functions beyond none, Image Lab / fal gating, Supabase.
 
 ## Verification
 

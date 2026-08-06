@@ -2188,6 +2188,14 @@ describe("window.AdMarketCreator", () => {
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
     fireEvent.click(getByRole(dialog, "button", { name: "Start with a product" }));
+    // Closing the tour focuses the Build area: the starter panel's first
+    // enabled control when the catalogue has loaded, its tool tab otherwise
+    // (here no catalogue loads, so the fallback applies).
+    const builderPanel = document.querySelector<HTMLElement>("[data-product-builder-panel]")!;
+    const productTab = document.querySelector<HTMLElement>('[data-studio-tool="product"]');
+    expect(
+      builderPanel.contains(document.activeElement) || document.activeElement === productTab
+    ).toBe(true);
     const state = await parsed(api, "role-guide-state", "getState", null);
     expect(state.payload).toMatchObject({
       gameplay: { pair: { roleGuideAcknowledged: true } }

@@ -34,6 +34,7 @@ export class StudioOnboardingController {
   readonly #close: HTMLButtonElement;
   readonly #open: HTMLButtonElement;
   readonly #briefHelp: readonly HTMLButtonElement[];
+  readonly #protectedSurfaces: readonly HTMLElement[];
   #index = 0;
   #hasCampaign = false;
   #required = false;
@@ -43,11 +44,22 @@ export class StudioOnboardingController {
 
   constructor(
     root: ParentNode,
-    private readonly protectedSurface: HTMLElement,
+    protectedSurface: HTMLElement,
     private readonly acknowledge: () => void,
     private readonly focusStarter: () => void
   ) {
     this.#layer = required(root, "[data-studio-onboarding-layer]");
+    // inert on the shared ancestor would cascade to this layer too, making
+    // the tour's own dialog unreachable to real focus and pointer input;
+    // protect the layer's sibling surfaces instead (guided-journey pattern).
+    this.#protectedSurfaces = Object.freeze(
+      Array.from(protectedSurface.children).filter(
+        (element): element is HTMLElement =>
+          element instanceof HTMLElement &&
+          element !== this.#layer &&
+          !element.contains(this.#layer)
+      )
+    );
     this.#dialog = required(root, "[data-studio-onboarding-dialog]");
     this.#spotlight = required(root, "[data-studio-onboarding-spotlight]");
     this.#position = required(root, "[data-studio-onboarding-position]");
@@ -200,7 +212,7 @@ export class StudioOnboardingController {
     this.#targets[this.#index]!.dataset.studioOnboardingHighlight = PAGES[this.#index]![0];
     this.#layer.hidden = false;
     this.#dialog.setAttribute("open", "");
-    this.protectedSurface.inert = true;
+    for (const surface of this.#protectedSurfaces) surface.inert = true;
     this.#positionSpotlight();
     this.#dialog.focus();
   }
@@ -211,7 +223,7 @@ export class StudioOnboardingController {
     this.#clearSpotlight();
     this.#layer.hidden = true;
     this.#dialog.removeAttribute("open");
-    this.protectedSurface.inert = false;
+    for (const surface of this.#protectedSurfaces) surface.inert = false;
     if (restoreFocus && wasOpen) (this.#returnFocus ?? this.#open).focus();
     this.#returnFocus = null;
   }

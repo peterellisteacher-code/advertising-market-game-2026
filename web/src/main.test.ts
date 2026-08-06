@@ -3091,6 +3091,8 @@ describe("window.AdMarketCreator", () => {
       ]);
       expect(getByRole(document.body, "status", { name: "Pair progress" }).textContent)
         .toBe(
+          "Complete the current visual choice. Then choose Swap roles. " +
+          "The Strategist leads the next message decision. " +
           "Art Director: visible advertisement edit recorded. " +
           "Strategist: message or strategy change not yet recorded. " +
           "Roles have not been swapped yet."
@@ -3110,8 +3112,7 @@ describe("window.AdMarketCreator", () => {
           "Strategist: message or strategy change recorded. " +
           "Roles have been swapped once."
         );
-      expect(document.querySelector("[data-active-role-action]")?.textContent)
-        .toBe("Name the product. Add one clear benefit to the ad.");
+      expect(document.querySelector("[data-active-role-action]")).toBeNull();
     });
 
     fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));

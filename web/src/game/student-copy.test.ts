@@ -36,25 +36,9 @@ describe("student copy", () => {
     }
   });
 
-  it("gives both named roles an explicit productive action and useful holding action", () => {
-    expect(STUDENT_COPY.rolePrompts["art-director"].label).toBe("Art Director");
-    expect(STUDENT_COPY.rolePrompts.strategist.label).toBe("Strategist");
-
-    for (const stage of Object.values(STUDENT_COPY.stageRolePrompts)) {
-      expect(stage["art-director"].label).toBe("Art Director");
-      expect(stage.strategist.label).toBe("Strategist");
-      for (const prompt of Object.values(stage)) {
-        expect(prompt.productiveAction.length).toBeGreaterThan(30);
-        expect(prompt.holdingAction.length).toBeGreaterThan(30);
-        expect(prompt.productiveAction.length).toBeLessThanOrEqual(90);
-        expect(prompt.holdingAction.length).toBeLessThanOrEqual(90);
-      }
-    }
-
-    const startingRoleCopy = Object.values(STUDENT_COPY.rolePrompts)
-      .flatMap((prompt) => [prompt.productiveAction, prompt.holdingAction])
-      .join(" ");
-    expect(startingRoleCopy).not.toMatch(/\b(?:crop|drawing|drawn|recolour|layering|price)\b/i);
+  it("names both roles without standing instruction copy", () => {
+    expect(STUDENT_COPY.rolePrompts["art-director"]).toEqual({ label: "Art Director" });
+    expect(STUDENT_COPY.rolePrompts.strategist).toEqual({ label: "Strategist" });
   });
 
   it("includes play labels, phase labels, handoff copy, and readiness copy", () => {

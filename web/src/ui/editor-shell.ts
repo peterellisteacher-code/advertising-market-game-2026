@@ -77,15 +77,9 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           ${CHECKLIST_STEPS.map((label, index) => `<button type="button" aria-pressed="${index === 0}" data-slot="${label.toLowerCase()}">${label}</button>`).join("")}
         </nav>
         <div class="creator__role-card">
-          <div class="creator__role-turn creator__role-turn--active">
-            <span class="creator__role-label">Now: <strong data-active-role>${STUDENT_COPY.rolePrompts["art-director"].label}</strong></span>
-            <p class="creator__next-action" data-active-role-action>${STUDENT_COPY.rolePrompts["art-director"].productiveAction}</p>
-          </div>
-          <div class="creator__role-turn creator__role-turn--partner">
-            <span class="creator__role-label">Partner: <strong data-partner-role>${STUDENT_COPY.rolePrompts.strategist.label}</strong></span>
-            <p class="creator__partner-action" data-partner-role-action>${STUDENT_COPY.rolePrompts.strategist.holdingAction}</p>
-          </div>
-          <p class="creator__round-progress" role="status" aria-label="${STUDENT_COPY.labels.roundProgress}" data-round-progress>${STUDENT_COPY.roundZero.progressNone}</p>
+          <span class="creator__role-label">Now: <strong data-active-role>${STUDENT_COPY.rolePrompts["art-director"].label}</strong></span>
+          <span class="creator__role-label creator__role-label--partner">Partner: <strong data-partner-role>${STUDENT_COPY.rolePrompts.strategist.label}</strong></span>
+          <p class="sr-only" role="status" aria-label="${STUDENT_COPY.labels.roundProgress}" data-round-progress>${STUDENT_COPY.roundZero.progressNone}</p>
           <div class="creator__role-actions" role="group" aria-label="Partner role controls">
             <button type="button" data-swap-roles>${STUDENT_COPY.handoff.buttonLabel}</button>
             <button type="button" data-role-guide-open>Role guide</button>
@@ -418,9 +412,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
     studioCoachPanel: root.querySelector('[data-studio-coach-panel]')!,
     logoLabPanel: root.querySelector('[data-logo-lab-panel]')!,
     activeRole: root.querySelector('[data-active-role]')!,
-    activeRoleAction: root.querySelector('[data-active-role-action]')!,
     partnerRole: root.querySelector('[data-partner-role]')!,
-    partnerRoleAction: root.querySelector('[data-partner-role-action]')!,
     roundProgress: root.querySelector('[data-round-progress]')!,
     swapRoles: root.querySelector('[data-swap-roles]')!,
     audienceSignal: root.querySelector('[data-audience-signal]')!,

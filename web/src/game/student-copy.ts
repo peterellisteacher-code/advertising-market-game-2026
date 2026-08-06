@@ -65,67 +65,11 @@ export const STUDENT_COPY = deepFreeze({
     recolour: "Recolour",
     layers: "Layers"
   },
+  // Role teaching lives in the Studio tour and the role guide dialog; the
+  // journey bar carries the current task. The strip only names the roles.
   rolePrompts: {
-    "art-director": {
-      label: "Art Director",
-      productiveAction: "Build the product. Place it on the ad, then enlarge it for a clear close-up.",
-      holdingAction: "Check that the product is large, clear and easy to recognise."
-    },
-    strategist: {
-      label: "Strategist",
-      productiveAction: "Name the product. Add one clear benefit to the ad.",
-      holdingAction: "Read the audience need. Prepare a product name and one useful benefit."
-    }
-  },
-  stageRolePrompts: {
-    invent: {
-      "art-director": {
-        label: "Art Director",
-        productiveAction: "Build the product. Place it on the ad, then enlarge it for a clear close-up.",
-        holdingAction: "Check that the product is large, clear and easy to recognise."
-      },
-      strategist: {
-        label: "Strategist",
-        productiveAction: "Name the product. Add one clear benefit to the ad.",
-        holdingAction: "Read the audience need. Prepare a product name and one useful benefit."
-      }
-    },
-    sell: {
-      "art-director": {
-        label: "Art Director",
-        productiveAction: "Choose one visual technique. Use it to direct the audience's attention.",
-        holdingAction: "Check whether the current AIDA choice is clear and easy to notice."
-      },
-      strategist: {
-        label: "Strategist",
-        productiveAction: "Link one advertisement choice to the next AIDA stage.",
-        holdingAction: "Check the next AIDA stage. Prepare one message suggestion."
-      }
-    },
-    irresistible: {
-      "art-director": {
-        label: "Art Director",
-        productiveAction: "Check the image, spacing and text placement. Fix one visual problem.",
-        holdingAction: "Check whether the price and route fit what the ad promises."
-      },
-      strategist: {
-        label: "Strategist",
-        productiveAction: "Choose the audience price position and selling price. Complete one market-route step.",
-        holdingAction: "Check the price and market route against the audience need."
-      }
-    },
-    "publish-check": {
-      "art-director": {
-        label: "Art Director",
-        productiveAction: "Check the finished ad for overlap, weak contrast or unclear focus.",
-        holdingAction: "Check whether every word and image is clear at market-card size."
-      },
-      strategist: {
-        label: "Strategist",
-        productiveAction: "Check the claim, price, audience fit and AIDA links.",
-        holdingAction: "Check that the final claim is clear, credible and linked to the audience."
-      }
-    }
+    "art-director": { label: "Art Director" },
+    strategist: { label: "Strategist" }
   },
   phaseLabels: {
     "round-zero": "PAIR START",

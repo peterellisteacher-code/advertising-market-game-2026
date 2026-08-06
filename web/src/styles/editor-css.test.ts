@@ -48,16 +48,13 @@ describe("Fabric canvas layer styling", () => {
     );
   });
 
-  it("keeps both pair actions visible in compact current and partner rows", () => {
+  it("keeps the role card a compact functional row with no standing copy", () => {
     expect(css).toMatch(
-      /\.creator__next-action\s*\{[^}]*white-space:\s*normal[^}]*\}/i
+      /\.creator__role-card\s*\{[^}]*display:\s*flex[^}]*\}/i
     );
-    expect(css).toMatch(
-      /\.creator__partner-action\s*\{[^}]*white-space:\s*normal[^}]*\}/i
-    );
-    expect(css).toMatch(
-      /\.creator__role-card\s*\{[^}]*grid-template-areas:\s*"active swap"\s*"partner swap"\s*"progress swap"[^}]*\}/i
-    );
+    expect(css).not.toMatch(/\.creator__next-action/i);
+    expect(css).not.toMatch(/\.creator__partner-action/i);
+    expect(css).not.toMatch(/\.creator__round-progress/i);
     expect(css).toMatch(
       /\.creator__audience-brief\s*\{[^}]*top:\s*calc\(100%\s*\+\s*4px\)[^}]*\}/i
     );
@@ -218,9 +215,6 @@ describe("Fabric canvas layer styling", () => {
     );
     expect(css).toMatch(
       /@media\s*\(min-width:\s*1201px\)\s*and\s*\(max-width:\s*1599px\)[\s\S]*?\.creator__role-card\s*\{[^}]*grid-area:\s*role[^}]*\}/i
-    );
-    expect(css).toMatch(
-      /@media\s*\(min-width:\s*1201px\)\s*and\s*\(max-width:\s*1599px\)[\s\S]*?\.creator__role-actions\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*max-content\)[^}]*\}/i
     );
   });
 

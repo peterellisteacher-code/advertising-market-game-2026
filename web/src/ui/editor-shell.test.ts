@@ -23,7 +23,7 @@ describe("createEditorShell", () => {
       expect(getComputedStyle(creator).getPropertyValue("--creator-chrome-font-size").trim())
         .toBe("1.125rem");
       const coveredChrome: Array<[string, HTMLElement]> = [
-        ["task bar", shell.activeRoleAction],
+        ["task bar", shell.activeRole],
         ["canvas controls", root.querySelector<HTMLElement>("[data-canvas-zoom-status]")!],
         ["display panel", shell.displayPanel.querySelector<HTMLElement>("legend")!],
         ["instruction dialog", root.querySelector<HTMLElement>("[data-guide-dialog] p")!],
@@ -186,19 +186,17 @@ describe("createEditorShell", () => {
       .toContain("Advertisement empty");
     expect(shell.canvasEmptyState.hidden).toBe(false);
     expect(getByRole(root, "region", { name: "Pair play" })).toBeTruthy();
-    expect(getByRole(root, "status", { name: "Pair progress" })).toBeTruthy();
-    expect(root.querySelector(".creator__role-card [data-active-role-action]"))
-      .toBe(shell.activeRoleAction);
+    // The pair status is announced, not displayed: role teaching lives in
+    // the tour and role guide, so the strip stays a compact functional row.
+    const pairProgress = getByRole(root, "status", { name: "Pair progress" });
+    expect(pairProgress.classList.contains("sr-only")).toBe(true);
+    expect(root.querySelector(".creator__role-card [data-active-role]"))
+      .toBe(shell.activeRole);
     expect(root.querySelector(".creator__role-card [data-partner-role]"))
       .toBe(shell.partnerRole);
-    expect(root.querySelector(".creator__role-card [data-partner-role-action]"))
-      .toBe(shell.partnerRoleAction);
-    expect(shell.partnerRoleAction.closest("[hidden]")).toBeNull();
-    expect(shell.activeRoleAction.textContent)
-      .toMatch(/build the product/i);
+    expect(root.querySelector("[data-active-role-action]")).toBeNull();
+    expect(root.querySelector("[data-partner-role-action]")).toBeNull();
     expect(shell.partnerRole.textContent).toBe("Strategist");
-    expect(shell.partnerRoleAction.textContent)
-      .toContain("Prepare a product name and one useful benefit");
     expect(getByRole(root, "button", { name: "Swap roles" })).toBeTruthy();
     const roleActions = getByRole(root, "group", { name: "Partner role controls" });
     expect([...roleActions.querySelectorAll("button")].map(({ textContent }) => textContent))

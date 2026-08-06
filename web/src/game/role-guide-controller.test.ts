@@ -71,7 +71,10 @@ describe("RoleGuideController", () => {
     expect(dialog.textContent).toContain(
       "It does not block tools or identify which person physically touched the device."
     );
-    expect(shell.overlay.inert).toBe(true);
+    expect(shell.overlay.inert).not.toBe(true);
+    expect(shell.overlay.querySelector<HTMLElement>(".creator__workspace")!.inert).toBe(true);
+    expect(shell.overlay.querySelector<HTMLElement>(".creator__topbar")!.inert).toBe(true);
+    expect(shell.overlay.querySelector<HTMLElement>("[data-role-guide-layer]")!.inert).not.toBe(true);
     expect(dialog.getAttribute("tabindex")).toBe("-1");
     expect(document.activeElement).toBe(dialog);
 
@@ -85,7 +88,8 @@ describe("RoleGuideController", () => {
     fireEvent.click(getByRole(dialog, "button", { name: "Begin work" }));
     expect(acknowledge).toHaveBeenCalledOnce();
     expect(dialog.closest<HTMLElement>("[data-role-guide-layer]")?.hidden).toBe(true);
-    expect(shell.overlay.inert).toBe(false);
+    expect(shell.overlay.querySelector<HTMLElement>(".creator__workspace")!.inert).toBe(false);
+    expect(shell.overlay.querySelector<HTMLElement>(".creator__topbar")!.inert).toBe(false);
     expect(focusCurrentAction).toHaveBeenCalledOnce();
   });
 
@@ -109,11 +113,15 @@ describe("RoleGuideController", () => {
     expect(dialog.textContent).toContain(
       "Earlier work and recorded contributions stay saved."
     );
-    expect(shell.overlay.inert).toBe(true);
+    expect(shell.overlay.inert).not.toBe(true);
+    expect(shell.overlay.querySelector<HTMLElement>(".creator__workspace")!.inert).toBe(true);
+    expect(shell.overlay.querySelector<HTMLElement>(".creator__topbar")!.inert).toBe(true);
+    expect(shell.overlay.querySelector<HTMLElement>("[data-role-guide-layer]")!.inert).not.toBe(true);
 
     fireEvent.keyDown(dialog, { key: "Escape" });
     expect(layer.hidden).toBe(true);
-    expect(shell.overlay.inert).toBe(false);
+    expect(shell.overlay.querySelector<HTMLElement>(".creator__workspace")!.inert).toBe(false);
+    expect(shell.overlay.querySelector<HTMLElement>(".creator__topbar")!.inert).toBe(false);
     expect(document.activeElement).toBe(opener);
     expect(acknowledge).not.toHaveBeenCalled();
   });

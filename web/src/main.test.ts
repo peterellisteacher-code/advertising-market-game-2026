@@ -1183,6 +1183,10 @@ describe("window.AdMarketCreator", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    // jsdom keeps web storage across tests in this file; each test boots the
+    // app fresh, so persisted tuck/display state must not leak between them.
+    window.sessionStorage.clear();
+    window.localStorage.clear();
     window.history.replaceState(null, "", "/student");
     Object.defineProperty(navigator, "locks", {
       configurable: true,
@@ -1839,32 +1843,35 @@ describe("window.AdMarketCreator", () => {
     }));
   }, 20_000);
 
-  it("hides and restores the task bar from the Studio header without resetting its brief", async () => {
+  it("tucks and untucks the Brief & roles panel from its edge tab without resetting its brief", async () => {
     await import("./main");
     const api = (window as Window & { AdMarketCreator: CreatorPublicApi }).AdMarketCreator;
     expect(await parsed(api, "open-task-bar", "open", blankDocument)).toMatchObject({ ok: true });
 
-    const creator = document.querySelector<HTMLElement>(".creator")!;
+    const tab = getByRole<HTMLButtonElement>(document.body, "button", { name: "Brief & roles" });
+    expect(tab.getAttribute("aria-expanded")).toBe("false");
+    const taskBarBeforeOpen = document.querySelector<HTMLElement>("#studio-task-bar")!;
+    expect(taskBarBeforeOpen.hidden).toBe(true);
+
+    fireEvent.click(tab);
+
+    expect(tab.getAttribute("aria-expanded")).toBe("true");
     const taskBar = getByRole<HTMLElement>(document.body, "region", { name: "Pair play" });
-    const toggle = getByRole<HTMLButtonElement>(document.body, "button", { name: "Hide task bar" });
+    expect(taskBar.hidden).toBe(false);
     const audienceBrief = getByRole<HTMLSelectElement>(document.body, "combobox", {
       name: "Audience brief"
     });
     audienceBrief.value = "weekend-neighbours";
 
-    fireEvent.click(toggle);
+    fireEvent.click(tab);
 
-    expect(creator.hasAttribute("data-task-bar-collapsed")).toBe(true);
     expect(taskBar.hidden).toBe(true);
-    expect(toggle.textContent).toBe("Show task bar");
-    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(tab.getAttribute("aria-expanded")).toBe("false");
 
-    fireEvent.click(toggle);
+    fireEvent.click(tab);
 
-    expect(creator.dataset.taskBarCollapsed).toBeUndefined();
     expect(taskBar.hidden).toBe(false);
-    expect(toggle.textContent).toBe("Hide task bar");
-    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(tab.getAttribute("aria-expanded")).toBe("true");
     expect(audienceBrief.value).toBe("weekend-neighbours");
   }, 20_000);
 
@@ -2157,12 +2164,12 @@ describe("window.AdMarketCreator", () => {
     expect(await parsed(api, "open-product-name-guide", "open", source))
       .toMatchObject({ ok: true });
     const guide = getByRole(document.body, "region", { name: "Current instruction" });
-    const productName = getByRole<HTMLInputElement>(document.body, "textbox", {
-      name: "Product name"
-    });
 
     fireEvent.click(getByRole(guide, "button", { name: "Focus Product name" }));
 
+    const productName = getByRole<HTMLInputElement>(document.body, "textbox", {
+      name: "Product name"
+    });
     expect(document.activeElement).toBe(productName);
   });
 
@@ -2182,12 +2189,27 @@ describe("window.AdMarketCreator", () => {
     expect(dialog.textContent).toContain("Teenagers. One-hour window between school dismissal and home arrival.");
     fireEvent.keyDown(dialog, { key: "Escape" });
     expect(dialog.closest<HTMLElement>("[data-studio-onboarding-layer]")?.hidden).toBe(true);
+    // After a tour close the Menu retucks on a zero timer so the canvas owns
+    // the screen again; focus lands on the Menu tab because the tour's opener
+    // is hidden along with the panel.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const menuPanel = document.querySelector<HTMLElement>("#studio-menu-panel");
+    const menuTab = document.querySelector<HTMLButtonElement>('[data-tuck-tab="menu"]');
+    expect(menuPanel?.hidden).toBe(true);
+    expect(document.activeElement).toBe(menuTab);
 
-    fireEvent.click(getByRole(document.body, "button", { name: "Studio tour" }));
+    fireEvent.click(menuTab!);
+    const reopenTour = getByRole<HTMLButtonElement>(document.body, "button", { name: "Studio tour" });
+    fireEvent.click(reopenTour);
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
     fireEvent.click(getByRole(dialog, "button", { name: "Start with a product" }));
+    // The acknowledge path retucks the Menu too, without stealing focus from
+    // the Build panel the acknowledge handler just focused.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(menuPanel?.hidden).toBe(true);
+    expect(document.activeElement).not.toBe(menuTab);
     const state = await parsed(api, "role-guide-state", "getState", null);
     expect(state.payload).toMatchObject({
       gameplay: { pair: { roleGuideAcknowledged: true } }
@@ -3000,6 +3022,7 @@ describe("window.AdMarketCreator", () => {
     await import("./main");
     const api = window.AdMarketCreator;
     expect(await parsed(api, "open-round-zero", "open", blankDocument)).toMatchObject({ ok: true });
+    fireEvent.click(getByRole(document.body, "button", { name: "Brief & roles" }));
 
     expect(document.querySelector("[data-active-role]")?.textContent).toBe("Art Director");
     expect((await parsed(api, "round-zero-brief", "getState", null)).payload).toMatchObject({
@@ -4305,6 +4328,7 @@ describe("window.AdMarketCreator", () => {
       once: true
     });
 
+    fireEvent.click(getByRole(document.body, "button", { name: "Menu" }));
     getByRole(document.body, "button", { name: "Return to game" }).click();
 
     expect(returnEvents).toHaveLength(1);

@@ -26,7 +26,7 @@ describe("Fabric canvas layer styling", () => {
 
   it("reserves only compact chrome above a canvas-first workspace", () => {
     expect(css).toMatch(
-      /\.creator\s*\{[^}]*grid-template-rows:\s*52px\s+76px\s+minmax\(0,\s*1fr\)[^}]*\}/i
+      /\.creator\s*\{[^}]*grid-template-rows:\s*auto\s+minmax\(0,\s*1fr\)[^}]*\}/i
     );
     expect(css).toMatch(
       /\.creator__workspace\s*\{[^}]*--studio-rail-width:\s*64px[^}]*--studio-browse-percent:\s*40%[^}]*--studio-browse-width:\s*\.666667fr[^}]*grid-template-columns:\s*var\(--studio-rail-width\)\s+minmax\(0,\s*var\(--studio-browse-width\)\)\s+var\(--studio-separator-width\)\s+minmax\(0,\s*1fr\)[^}]*\}/i
@@ -199,7 +199,7 @@ describe("Fabric canvas layer styling", () => {
 
   it("gives the pair roles a full second row on school MacBook widths", () => {
     expect(css).toMatch(
-      /@media\s*\(min-width:\s*1201px\)\s*and\s*\(max-width:\s*1599px\)[\s\S]*?\.creator\s*\{[^}]*grid-template-rows:\s*52px\s+120px\s+minmax\(0,\s*1fr\)[^}]*\}/i
+      /@media\s*\(min-width:\s*1201px\)\s*and\s*\(max-width:\s*1599px\)[\s\S]*?\.creator__pair-strip(?:\s*,\s*\.creator__pair-strip:has\([^)]*\))?\s*\{[^}]*grid-template-rows:\s*44px\s+minmax\(56px,\s*1fr\)[^}]*\}/i
     );
     expect(css).toMatch(
       /@media\s*\(min-width:\s*1201px\)\s*and\s*\(max-width:\s*1599px\)[\s\S]*?\.creator__pair-strip(?:\s*,\s*\.creator__pair-strip:has\([^)]*\))?\s*\{[^}]*grid-template-areas:\s*"level audience checklist"\s*"role role role"[^}]*\}/i
@@ -220,9 +220,6 @@ describe("Fabric canvas layer styling", () => {
 
   it("keeps the complete studio chrome inside a 320-pixel viewport", () => {
     const mobile = css.match(/@media\s*\(max-width:\s*520px\)\s*\{([\s\S]*)\}\s*$/i)?.[1] ?? "";
-    expect(mobile).toMatch(
-      /\.creator\s*\{[^}]*grid-template-rows:\s*auto\s+auto\s+minmax\(0,\s*1fr\)[^}]*\}/i
-    );
     expect(mobile).toMatch(
       /\.creator__topbar\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto\s+auto[^}]*\}/i
     );

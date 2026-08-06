@@ -145,7 +145,7 @@ describe("GuidedJourneyController", () => {
     expect(document.activeElement).toBe(
       getByRole(dialog, "button", { name: "Close guide" })
     );
-    expect(root.querySelector<HTMLElement>(".creator__topbar")!.inert).toBe(true);
+    expect(root.querySelector<HTMLElement>(".creator__tuck-top")!.inert).toBe(true);
     expect(root.querySelector<HTMLElement>(".creator__workspace")!.inert).toBe(true);
     expect(dialog.inert).not.toBe(true);
 
@@ -157,7 +157,7 @@ describe("GuidedJourneyController", () => {
 
     fireEvent.keyDown(dialog, { key: "Escape" });
     expect(dialog.hidden).toBe(true);
-    expect(root.querySelector<HTMLElement>(".creator__topbar")!.inert).toBe(false);
+    expect(root.querySelector<HTMLElement>(".creator__tuck-top")!.inert).toBe(false);
     expect(root.querySelector<HTMLElement>(".creator__workspace")!.inert).toBe(false);
     expect(document.activeElement).toBe(reviewButtons[0]);
 

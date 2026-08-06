@@ -158,7 +158,7 @@ describe("createEditorShell", () => {
     expect(lockedActions.id).toBe("studio-locked-actions-status");
     expect(lockedActions.hidden).toBe(true);
     expect(getByRole(root, "region", { name: "Advertisement area" }).getAttribute("tabindex")).toBe("0");
-    const sizeControls = getByRole(root, "group", { name: "Selected product or image size" });
+    const sizeControls = getByRole(root, "group", { name: "Canvas toolbar" });
     expect(getByRole(sizeControls, "button", { name: "Make selected product or image smaller" }))
       .toBeTruthy();
     expect(getByRole(sizeControls, "button", { name: "Fill ad with selected image" }))
@@ -176,7 +176,7 @@ describe("createEditorShell", () => {
       .toBe("Select an item to delete");
     expect(shell.deleteSelected).toBe(deleteSelected);
     expect(shell.deleteStatus.id).toBe("canvas-delete-status");
-    expect(getByRole(sizeControls, "status").textContent).toBe("Select a product or image");
+    expect(shell.zoomStatus.textContent).toBe("Select a product or image");
     expect(getByRole(root, "status", { name: "Empty advertisement" }).textContent)
       .toContain("Advertisement empty");
     expect(shell.canvasEmptyState.hidden).toBe(false);
@@ -221,9 +221,13 @@ describe("createEditorShell", () => {
     expect(audienceBrief.querySelectorAll("[data-brief-help]")).toHaveLength(4);
     expect(getByRole(root, "button", { name: "Open full brief" }).getAttribute("aria-expanded"))
       .toBe("false");
-    const taskBarToggle = getByRole<HTMLButtonElement>(root, "button", { name: "Hide task bar" });
-    expect(taskBarToggle.getAttribute("aria-controls")).toBe("studio-task-bar");
-    expect(taskBarToggle.getAttribute("aria-expanded")).toBe("true");
+    expect(shell.tuckTabsTop.getAttribute("role")).toBe("group");
+    expect(shell.tuckTabsTop.getAttribute("aria-label")).toBe("Studio menus");
+    expect(shell.tuckTabsTop.children).toHaveLength(0);
+    expect(shell.menuPanel.id).toBe("studio-menu-panel");
+    expect(shell.menuPanel.hidden).toBe(false);
+    expect(shell.taskBar.id).toBe("studio-task-bar");
+    expect(shell.taskBar.hidden).toBe(false);
     expect(root.querySelector('[data-studio-panel="words"][aria-label="Pair tools"]')).toBeTruthy();
     expect(root.querySelector('[data-studio-panel="logo"][aria-label="Logo Lab"]')).toBeTruthy();
     expect(shell.logoLabPanel.dataset.logoLabPanel).toBe("");
@@ -265,6 +269,9 @@ describe("createEditorShell", () => {
     expect(shell.saveStatus.textContent).toBe("");
     expect(shell.undo.dataset.command).toBe("undo");
     expect(shell.redo.dataset.command).toBe("redo");
+    expect(sizeControls.contains(shell.undo)).toBe(true);
+    expect(sizeControls.contains(shell.redo)).toBe(true);
+    expect(sizeControls.contains(shell.saveStatus)).toBe(true);
     expect(root.textContent).not.toMatch(/\b(?:assignment|unit|canvas)\b/i);
   });
 

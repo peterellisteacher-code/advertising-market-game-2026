@@ -45,7 +45,8 @@ export class StudioOnboardingController {
     root: ParentNode,
     private readonly protectedSurface: HTMLElement,
     private readonly acknowledge: () => void,
-    private readonly focusStarter: () => void
+    private readonly focusStarter: () => void,
+    private readonly onPageChange?: (pageId: string | null) => void
   ) {
     this.#layer = required(root, "[data-studio-onboarding-layer]");
     this.#dialog = required(root, "[data-studio-onboarding-dialog]");
@@ -201,6 +202,7 @@ export class StudioOnboardingController {
     this.#layer.hidden = false;
     this.#dialog.setAttribute("open", "");
     this.protectedSurface.inert = true;
+    this.onPageChange?.(PAGES[this.#index]![0]);
     this.#positionSpotlight();
     this.#dialog.focus();
   }
@@ -212,6 +214,7 @@ export class StudioOnboardingController {
     this.#layer.hidden = true;
     this.#dialog.removeAttribute("open");
     this.protectedSurface.inert = false;
+    if (wasOpen) this.onPageChange?.(null);
     if (restoreFocus && wasOpen) (this.#returnFocus ?? this.#open).focus();
     this.#returnFocus = null;
   }

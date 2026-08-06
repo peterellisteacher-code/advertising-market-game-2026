@@ -169,6 +169,7 @@ import { LocalPracticeService } from "./persistence/local-practice-service";
 import { SerializedAutosave } from "./persistence/serialized-autosave";
 import { createEditorShell, type EditorShell } from "./ui/editor-shell";
 import { DisplayPreferencesController } from "./ui/display-preferences";
+import { createTuckShell, type TuckPanelHandle } from "./ui/tuck-shell";
 import { catalogueRecordsWithBackgrounds, isAdBackgroundPreset } from "./assets/ad-background-presets";
 import { registerReleaseServiceWorker } from "./service-worker-registration";
 import { createStudioToolDrawer } from "./ui/studio-tool-drawer";
@@ -2030,14 +2031,30 @@ const root = document.querySelector<HTMLElement>("#creator-root");
 if (!root) throw new Error("Missing #creator-root");
 
 const shell = createEditorShell(root);
-const setTaskBarCollapsed = (collapsed: boolean): void => {
-  shell.overlay.toggleAttribute("data-task-bar-collapsed", collapsed);
-  shell.taskBar.hidden = collapsed;
-  shell.taskBarToggle.textContent = collapsed ? "Show task bar" : "Hide task bar";
-  shell.taskBarToggle.setAttribute("aria-expanded", String(!collapsed));
-};
-shell.taskBarToggle.addEventListener("click", () => {
-  setTaskBarCollapsed(!shell.taskBar.hidden);
+const tuckShell = createTuckShell({
+  // sessionStorage on purpose: tuck layout survives mid-lesson reloads but
+  // every new session starts fully tucked, per the single-action screen law.
+  storage: (() => {
+    try { return window.sessionStorage; } catch { return null; }
+  })(),
+  scope: mode.kind,
+  motionRoot: shell.overlay
+});
+const menuTuck: TuckPanelHandle = tuckShell.register({
+  id: "menu",
+  edge: "top",
+  tabLabel: "Menu",
+  defaultTucked: true,
+  panel: shell.menuPanel,
+  tabStrip: shell.tuckTabsTop
+});
+const briefTuck: TuckPanelHandle = tuckShell.register({
+  id: "brief",
+  edge: "top",
+  tabLabel: "Brief & roles",
+  defaultTucked: true,
+  panel: shell.taskBar,
+  tabStrip: shell.tuckTabsTop
 });
 registerReleaseServiceWorker({
   onUpdateReady: () => {
@@ -2345,10 +2362,12 @@ const guidedJourney = new GuidedJourneyController(shell.overlay, (step) => {
     return;
   }
   if (step.id === "roles") {
+    briefTuck.untuck({ focus: false });
     shell.overlay.querySelector<HTMLButtonElement>("[data-role-guide-open]")?.click();
     return;
   }
   if (step.id === "product-name") {
+    menuTuck.untuck({ focus: false });
     shell.overlay.querySelector<HTMLInputElement>('input[aria-label="Product name"]')?.focus();
     return;
   }
@@ -2358,12 +2377,14 @@ const guidedJourney = new GuidedJourneyController(shell.overlay, (step) => {
     return;
   }
   if (step.id === "audience") {
+    briefTuck.untuck({ focus: false });
     const briefToggle = shell.overlay.querySelector<HTMLButtonElement>("[data-brief-toggle]");
     if (briefToggle?.getAttribute("aria-expanded") !== "true") briefToggle?.click();
     shell.audienceSignal.focus();
     return;
   }
   if (step.id === "pair-contribution") {
+    briefTuck.untuck({ focus: false });
     studioTools.select("product");
     shell.swapRoles.focus();
     return;
@@ -2444,6 +2465,7 @@ const roleGuide = new RoleGuideController(
   false
 );
 handler.attachRoleGuide(roleGuide);
+let tourCloseRetuck: number | null = null;
 const studioOnboarding = new StudioOnboardingController(
   root,
   shell.overlay,
@@ -2454,6 +2476,29 @@ const studioOnboarding = new StudioOnboardingController(
   () => {
     studioTools.select("product");
     shell.productBuilderPanel.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
+  },
+  (pageId) => {
+    // Menu stays untucked for the tour's duration (it houses the tour's own
+    // open control). The controller restores focus synchronously AFTER this
+    // callback, so the close retuck runs on a zero timer; if that focus
+    // restore landed inside the now-hidden Menu, focus moves to the Menu tab.
+    if (pageId === null) {
+      briefTuck.tuck({ focus: false });
+      tourCloseRetuck = window.setTimeout(() => {
+        tourCloseRetuck = null;
+        const focusWasInMenu = shell.menuPanel.contains(document.activeElement);
+        menuTuck.tuck({ focus: false });
+        if (focusWasInMenu) menuTuck.tab.focus();
+      }, 0);
+      return;
+    }
+    if (tourCloseRetuck !== null) {
+      window.clearTimeout(tourCloseRetuck);
+      tourCloseRetuck = null;
+    }
+    menuTuck.untuck({ focus: false });
+    if (pageId === "brief" || pageId === "roles") briefTuck.untuck({ focus: false });
+    else briefTuck.tuck({ focus: false });
   }
 );
 handler.attachStudioOnboarding(studioOnboarding);

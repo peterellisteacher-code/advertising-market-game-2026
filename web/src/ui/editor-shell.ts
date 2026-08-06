@@ -6,8 +6,9 @@ import { CURVED_LABEL_FONT_FAMILIES } from "../product-kit/curved-label-renderer
 export interface EditorShell extends PairGameView {
   overlay: HTMLElement;
   workspace: HTMLElement;
+  tuckTabsTop: HTMLElement;
+  menuPanel: HTMLElement;
   taskBar: HTMLElement;
-  taskBarToggle: HTMLButtonElement;
   displayToggle: HTMLButtonElement;
   displayPanel: HTMLElement;
   library: HTMLElement;
@@ -51,20 +52,18 @@ const PRODUCT_TYPEFACE_OPTIONS = CURVED_LABEL_FONT_FAMILIES
 export function createEditorShell(root: HTMLElement): EditorShell {
   root.innerHTML = `
       <section class="creator" aria-label="Advertisement studio">
-      <header class="creator__topbar">
-        <p class="creator__brand"><strong>AD MARKET</strong><span>Studio</span></p>
-        <input aria-label="Product name" maxlength="48" placeholder="Name your product">
-        <button type="button" data-command="undo">Undo</button>
-        <button type="button" data-command="redo">Redo</button>
-        <span class="creator__save-status" role="status" aria-label="Saved progress" data-save-status></span>
-        <button type="button" data-guide-review-top>How to use this site</button>
-        <button type="button" data-studio-tour-open>Studio tour</button>
-        <button type="button" data-display-toggle aria-controls="studio-display-panel" aria-expanded="false">Display</button>
-        <button type="button" data-task-bar-toggle aria-controls="studio-task-bar" aria-expanded="true">Hide task bar</button>
-        <button type="button" data-command="return">Return to game</button>
-        <section class="creator__display-panel" id="studio-display-panel" aria-label="Display preferences" hidden data-display-panel><fieldset><legend>Interface text</legend><label><input type="radio" name="display-text" value="standard" checked> Standard</label><label><input type="radio" name="display-text" value="large"> Large</label></fieldset><fieldset><legend>Interface colours</legend><label><input type="radio" name="display-colours" value="standard" checked> Standard</label><label><input type="radio" name="display-colours" value="high-contrast"> High contrast</label></fieldset><button type="button" data-display-close>Close display preferences</button></section>
-      </header>
-      <section class="creator__pair-strip" id="studio-task-bar" role="region" aria-label="${STUDENT_COPY.labels.pairPlay}">
+      <div class="creator__tuck-top" data-tuck-top>
+        <div class="creator__tuck-tabs" data-tuck-tabs="top" role="group" aria-label="Studio menus"></div>
+        <header class="creator__topbar" id="studio-menu-panel" role="region" aria-label="Studio menu">
+          <p class="creator__brand"><strong>AD MARKET</strong><span>Studio</span></p>
+          <input aria-label="Product name" maxlength="48" placeholder="Name your product">
+          <button type="button" data-guide-review-top>How to use this site</button>
+          <button type="button" data-studio-tour-open>Studio tour</button>
+          <button type="button" data-display-toggle aria-controls="studio-display-panel" aria-expanded="false">Display</button>
+          <button type="button" data-command="return">Return to game</button>
+          <section class="creator__display-panel" id="studio-display-panel" aria-label="Display preferences" hidden data-display-panel><fieldset><legend>Interface text</legend><label><input type="radio" name="display-text" value="standard" checked> Standard</label><label><input type="radio" name="display-text" value="large"> Large</label></fieldset><fieldset><legend>Interface colours</legend><label><input type="radio" name="display-colours" value="standard" checked> Standard</label><label><input type="radio" name="display-colours" value="high-contrast"> High contrast</label></fieldset><button type="button" data-display-close>Close display preferences</button></section>
+        </header>
+        <section class="creator__pair-strip" id="studio-task-bar" role="region" aria-label="${STUDENT_COPY.labels.pairPlay}">
         <div class="creator__level-chip">
           <span class="creator__eyebrow" data-creator-level-label>${STUDENT_COPY.phaseLabels["round-zero"]}</span>
         </div>
@@ -120,7 +119,8 @@ export function createEditorShell(root: HTMLElement): EditorShell {
             </div>
           </dl>
         </article>
-      </section>
+        </section>
+      </div>
       <div class="creator__workspace">
         <nav class="creator__tool-rail" role="tablist" aria-label="Studio tools">
           <button type="button" role="tab" aria-selected="true" aria-controls="studio-panel-product" tabindex="0" aria-label="Build" data-glyph="◆" data-studio-tool="product">Build</button>
@@ -243,7 +243,10 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         </p>
         <main class="creator__canvas" id="studio-edit-pane" role="region" aria-label="Advertisement area" tabindex="0">
           <p class="creator__canvas-label" aria-hidden="true">LIVE AD</p>
-          <div class="creator__canvas-size" role="group" aria-label="Selected product or image size">
+          <div class="creator__canvas-size" role="group" aria-label="Canvas toolbar">
+            <button type="button" data-command="undo">Undo</button>
+            <button type="button" data-command="redo">Redo</button>
+            <span class="creator__save-status" role="status" aria-label="Saved progress" data-save-status></span>
             <button type="button" data-canvas-zoom="out" aria-label="Make selected product or image smaller" title="Make selected product or image smaller">−</button>
             <button type="button" data-canvas-zoom="fill" aria-label="Fill ad with selected image" title="Fill the ad, then drag the image to choose the crop">Fill ad</button>
             <button type="button" data-canvas-zoom="in" aria-label="Make selected product or image larger" title="Make selected product or image larger">+</button>
@@ -396,8 +399,9 @@ export function createEditorShell(root: HTMLElement): EditorShell {
   return {
     overlay,
     workspace: root.querySelector(".creator__workspace")!,
+    tuckTabsTop: root.querySelector('[data-tuck-tabs="top"]')!,
+    menuPanel: root.querySelector("#studio-menu-panel")!,
     taskBar: root.querySelector("#studio-task-bar")!,
-    taskBarToggle: root.querySelector("[data-task-bar-toggle]")!,
     displayToggle: root.querySelector("[data-display-toggle]")!,
     displayPanel: root.querySelector("[data-display-panel]")!,
     library: root.querySelector(".creator__library")!,

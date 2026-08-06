@@ -2218,10 +2218,16 @@ describe("window.AdMarketCreator", () => {
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
     fireEvent.click(getByRole(dialog, "button", { name: "Start with a product" }));
     // The acknowledge path retucks the Menu too, without stealing focus from
-    // the Build panel the acknowledge handler just focused.
+    // the Build area the acknowledge handler just focused. With a loaded
+    // catalogue that is the starter panel's first enabled choice; here no
+    // catalogue loads, so the fallback is the Build tool tab.
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(menuPanel?.hidden).toBe(true);
-    expect(document.activeElement).not.toBe(menuTab);
+    const builderPanel = document.querySelector<HTMLElement>("[data-product-builder-panel]")!;
+    const productTab = document.querySelector<HTMLElement>('[data-studio-tool="product"]');
+    expect(
+      builderPanel.contains(document.activeElement) || document.activeElement === productTab
+    ).toBe(true);
     const state = await parsed(api, "role-guide-state", "getState", null);
     expect(state.payload).toMatchObject({
       gameplay: { pair: { roleGuideAcknowledged: true } }

@@ -34,7 +34,10 @@ describe("StudioOnboardingController", () => {
     expect(dialog.textContent).toContain("Need");
     expect(dialog.textContent).toContain("A method to make the window productive.");
     expect(dialog.textContent).toContain("Page 1 of 4 · Brief");
-    expect(shell.overlay.inert).toBe(true);
+    expect(shell.overlay.inert).not.toBe(true);
+    expect(shell.overlay.querySelector<HTMLElement>(".creator__workspace")!.inert).toBe(true);
+    expect(shell.overlay.querySelector<HTMLElement>(".creator__tuck-top")!.inert).toBe(true);
+    expect(shell.overlay.querySelector<HTMLElement>("[data-studio-onboarding-layer]")!.inert).not.toBe(true);
 
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
     expect(dialog.textContent).toContain("Page 2 of 4 · Roles");
@@ -50,7 +53,8 @@ describe("StudioOnboardingController", () => {
     expect(acknowledge).toHaveBeenCalledOnce();
     expect(focusStarter).toHaveBeenCalledOnce();
     expect(document.activeElement).toBe(starter);
-    expect(shell.overlay.inert).toBe(false);
+    expect(shell.overlay.querySelector<HTMLElement>(".creator__workspace")!.inert).toBe(false);
+    expect(shell.overlay.querySelector<HTMLElement>(".creator__tuck-top")!.inert).toBe(false);
   });
 
   it("does not force acknowledged campaigns through the tour and allows manual restart", () => {
@@ -167,7 +171,10 @@ describe("StudioOnboardingController", () => {
     controller.setCampaign(campaign());
 
     const dialog = getByRole(root, "dialog", { name: "Studio tour" });
-    expect(shell.overlay.inert).toBe(true);
+    expect(shell.overlay.inert).not.toBe(true);
+    expect(shell.overlay.querySelector<HTMLElement>(".creator__workspace")!.inert).toBe(true);
+    expect(shell.overlay.querySelector<HTMLElement>(".creator__tuck-top")!.inert).toBe(true);
+    expect(shell.overlay.querySelector<HTMLElement>("[data-studio-onboarding-layer]")!.inert).not.toBe(true);
     expect(highlighted()).toHaveLength(1);
     expect(highlighted()[0]).toBe(getByRole(root, "button", { name: "Open full brief" }));
     expect(highlighted()[0]?.dataset.studioOnboardingHighlight).toBe("brief");

@@ -2545,7 +2545,13 @@ const studioOnboarding = new StudioOnboardingController(
   },
   () => {
     studioTools.select("product");
-    shell.productBuilderPanel.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
+    // The starter panel's first action is a radio choice; its only button
+    // stays disabled until a product is picked. Until the catalogue loads
+    // the panel has no focusable content, so fall back to the Build tab.
+    const starter = shell.productBuilderPanel
+      .querySelector<HTMLElement>("input:not(:disabled), button:not(:disabled)")
+      ?? shell.overlay.querySelector<HTMLElement>('[data-studio-tool="product"]');
+    starter?.focus();
   },
   (pageId) => {
     // Menu stays untucked for the tour's duration (it houses the tour's own

@@ -3165,6 +3165,41 @@ describe("window.AdMarketCreator", () => {
     });
   });
 
+  it("opens the writer's statement from the Menu and offers it after publish", async () => {
+    const source = localBlobDocument();
+    source.gameplay.pair.roleGuideAcknowledged = true;
+    source.evidence.attention = ["local-photo"];
+    source.missionEvidence = [{
+      missionId: "salience",
+      title: "Control what the audience notices first",
+      decisionId: "largest-contrast",
+      effectText: "The headline holds the largest contrast so the audience reads the offer first."
+    }];
+    storeDraft(source, [7, 8, 9, 10]);
+    await import("./main");
+    const api = window.AdMarketCreator;
+
+    expect(await parsed(api, "open-statement", "open", source)).toMatchObject({ ok: true });
+    fireEvent.click(document.querySelector<HTMLButtonElement>('[data-tuck-tab="menu"]')!);
+    fireEvent.click(getByRole(document.body, "button", { name: "Writer's statement" }));
+
+    const dialog = getByRole(document.body, "dialog", { name: "Writer's statement" });
+    expect(dialog.textContent).toContain("Visual choices");
+    expect(dialog.textContent).toContain(
+      "The headline holds the largest contrast so the audience reads the offer first."
+    );
+    expect(dialog.textContent).toContain("Attention evidence");
+    expect(dialog.textContent).toContain("Local campaign photo");
+    fireEvent.click(getByRole(dialog, "button", { name: "Close" }));
+
+    expect(await parsed(api, "publish-statement", "publish", null)).toMatchObject({ ok: true });
+    const offer = document.querySelector<HTMLElement>("[data-statement-offer]")!;
+    expect(offer.hidden).toBe(false);
+    fireEvent.click(getByRole(offer, "button", { name: "Open writer's statement" }));
+    expect(getByRole(document.body, "dialog", { name: "Writer's statement" })).toBeTruthy();
+    expect(offer.hidden).toBe(true);
+  });
+
   it("rehydrates the requested exact revision when a newer orphan draft exists", async () => {
     const checkpointRevision = localBlobDocument(3);
     checkpointRevision.product.name = "Checkpoint campaign";

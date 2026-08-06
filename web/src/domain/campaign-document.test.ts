@@ -100,6 +100,77 @@ describe("CampaignDocumentV1", () => {
     expect(() => parseCampaignDocument({ schemaVersion: 1, canvas: { width: 99 } })).toThrow();
   });
 
+  it("loads drafts saved before mission evidence existed", () => {
+    const doc = createBlankCampaignDocument({
+      documentId: "doc-1",
+      sessionId: "local-1",
+      mode: "offline"
+    });
+
+    expect("missionEvidence" in doc).toBe(false);
+    expect(parseCampaignDocument(doc).missionEvidence).toBeUndefined();
+  });
+
+  it("round-trips the pair's mission evidence sentences", () => {
+    const doc = createBlankCampaignDocument({
+      documentId: "doc-1",
+      sessionId: "local-1",
+      mode: "offline"
+    });
+    const missionEvidence = [
+      {
+        missionId: "salience",
+        title: "Control what the audience notices first",
+        decisionId: "largest-contrast",
+        effectText: "Giving the headline the largest contrast makes the audience read the offer before anything else."
+      },
+      {
+        missionId: "claim-proof",
+        title: "Make a claim the advertisement can support",
+        decisionId: "qualified-supported",
+        effectText: "A qualified claim backed by the price comparison gives careful spenders a reason to believe the offer."
+      }
+    ];
+
+    expect(parseCampaignDocument({ ...doc, missionEvidence }).missionEvidence)
+      .toEqual(missionEvidence);
+  });
+
+  it("rejects malformed mission evidence", () => {
+    const doc = createBlankCampaignDocument({
+      documentId: "doc-1",
+      sessionId: "local-1",
+      mode: "offline"
+    });
+    const entry = {
+      missionId: "salience",
+      title: "Control what the audience notices first",
+      decisionId: "largest-contrast",
+      effectText: "Giving the headline the largest contrast makes the audience read the offer first."
+    };
+
+    expect(() => parseCampaignDocument({
+      ...doc,
+      missionEvidence: [entry, { ...entry, decisionId: "small-logo" }]
+    })).toThrow(/unique/i);
+    expect(() => parseCampaignDocument({
+      ...doc,
+      missionEvidence: [{ ...entry, effectText: "" }]
+    })).toThrow();
+    expect(() => parseCampaignDocument({
+      ...doc,
+      missionEvidence: [{ ...entry, effectText: "x".repeat(401) }]
+    })).toThrow();
+    expect(() => parseCampaignDocument({
+      ...doc,
+      missionEvidence: [{ ...entry, coachNotes: "extra" }]
+    })).toThrow();
+    expect(() => parseCampaignDocument({
+      ...doc,
+      missionEvidence: [{ missionId: "salience" }]
+    })).toThrow();
+  });
+
   it("rejects a saved Fabric object without application metadata", () => {
     const doc = createBlankCampaignDocument({
       documentId: "doc-1",

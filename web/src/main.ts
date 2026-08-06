@@ -171,6 +171,7 @@ import { createEditorShell, type EditorShell } from "./ui/editor-shell";
 import { DisplayPreferencesController } from "./ui/display-preferences";
 import { createTuckShell, type TuckPanelHandle } from "./ui/tuck-shell";
 import { createOverlayExclusivity, type OverlayExclusivity } from "./ui/overlay-exclusivity";
+import { createWritersStatementView, type WritersStatementView } from "./ui/writers-statement";
 import { catalogueRecordsWithBackgrounds, isAdBackgroundPreset } from "./assets/ad-background-presets";
 import { registerReleaseServiceWorker } from "./service-worker-registration";
 import { createStudioToolDrawer } from "./ui/studio-tool-drawer";
@@ -289,6 +290,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #editorOpen = false;
   #practiceAutosave: SerializedAutosave<LocalPracticeRecoveryV1> | null = null;
   #practiceSaveMatched = false;
+  readonly #writersStatement: WritersStatementView;
 
   constructor(
     private readonly root: HTMLElement,
@@ -335,6 +337,16 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       close: () => this.#productShellRegions.clear()
     });
     this.#productShellRegions.clear();
+    this.#writersStatement = createWritersStatementView(shell.overlay, {
+      onOpened: () => this.#overlayExclusivity.notifyOpened("writers-statement")
+    });
+    this.#overlayExclusivity.register({
+      id: "writers-statement",
+      isOpen: () => this.#writersStatement.isOpen(),
+      close: () => this.#writersStatement.close({ focus: false })
+    });
+    shell.overlay.querySelector<HTMLButtonElement>("[data-writers-statement-open]")
+      ?.addEventListener("click", () => { this.#openWritersStatement(); });
     this.#placements = new CataloguePlacementQueue({
       getDocument: () => this.#document,
       getCanvas: async () => (await this.#ensureRuntime()).adapter,
@@ -1323,7 +1335,31 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     const document = this.#snapshot();
     const published = new CampaignExporter(runtime.adapter, this.#ownedRasterUrls).publish(document);
     this.#document = document;
+    this.#writersStatement.offerAfterPublish(structuredClone(document));
     return published;
+  }
+
+  #openWritersStatement(): void {
+    const campaign = this.#campaignForWritersStatement();
+    if (campaign === null) {
+      this.shell.polite.textContent = STUDENT_COPY.writersStatement.notOpen;
+      return;
+    }
+    this.#writersStatement.open(campaign);
+  }
+
+  #campaignForWritersStatement(): CampaignDocumentV1 | null {
+    if (this.#document === null) return null;
+    if (this.#editorOpen && this.#runtime !== null) {
+      try {
+        return this.#snapshot();
+      } catch {
+        // The statement is a read-only view; a snapshot that cannot be
+        // re-validated must not block reading the last good document.
+        return structuredClone(this.#document);
+      }
+    }
+    return structuredClone(this.#document);
   }
 
   async close(): Promise<void> {
@@ -1355,6 +1391,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     attempt(() => {
       if (this.#document && this.#runtime) this.#document = this.#snapshot();
     });
+    attempt(() => this.#writersStatement.reset());
     attempt(() => this.#pairGame?.close());
     attempt(() => this.#destroyCanvasAccessibility());
     const history = this.#history;

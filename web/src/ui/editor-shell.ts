@@ -59,6 +59,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           <input aria-label="Product name" maxlength="48" placeholder="Name your product">
           <button type="button" data-guide-review-top>How to use this site</button>
           <button type="button" data-studio-tour-open>Studio tour</button>
+          <button type="button" data-writers-statement-open>${STUDENT_COPY.writersStatement.menuLabel}</button>
           <button type="button" data-display-toggle aria-controls="studio-display-panel" aria-expanded="false">Display</button>
           <button type="button" data-command="return">Return to game</button>
           <section class="creator__display-panel" id="studio-display-panel" aria-label="Display preferences" hidden data-display-panel><fieldset><legend>Interface text</legend><label><input type="radio" name="display-text" value="standard" checked> Standard</label><label><input type="radio" name="display-text" value="large"> Large</label></fieldset><fieldset><legend>Interface colours</legend><label><input type="radio" name="display-colours" value="standard" checked> Standard</label><label><input type="radio" name="display-colours" value="high-contrast"> High contrast</label></fieldset><button type="button" data-display-close>Close display preferences</button></section>
@@ -240,7 +241,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         </p>
         <main class="creator__canvas" id="studio-edit-pane" role="region" aria-label="Advertisement area" tabindex="0">
           <p class="creator__canvas-label" aria-hidden="true">LIVE AD</p>
-          <div class="creator__canvas-size" role="group" aria-label="Canvas toolbar">
+          <div class="creator__canvas-size" role="group" aria-label="Advertisement toolbar">
             <button type="button" data-command="undo">Undo</button>
             <button type="button" data-command="redo">Redo</button>
             <span class="creator__save-status" role="status" aria-label="Saved progress" data-save-status></span>

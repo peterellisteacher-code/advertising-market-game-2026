@@ -78,6 +78,21 @@ describe("Fabric canvas layer styling", () => {
     );
   });
 
+  it("keeps the writer's statement as a bounded overlay that prints alone", () => {
+    expect(css).toMatch(
+      /\.creator__writers-statement\s*\{[^}]*position:\s*fixed[^}]*inset:\s*0[^}]*place-items:\s*center[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator__writers-statement-page\s*\{[^}]*max-height:[^}]*overflow:\s*auto[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /@media print\s*\{[^]*body\[data-writers-statement-open\]\s*\*\s*\{[^}]*visibility:\s*hidden[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /body\[data-writers-statement-open\]\s*\.creator__writers-statement-actions\s*\{[^}]*display:\s*none[^}]*\}/i
+    );
+  });
+
   it("has no floating or absolute drawer-collapse control", () => {
     expect(css).not.toMatch(/creator__drawer-collapse/i);
     expect(css).toMatch(

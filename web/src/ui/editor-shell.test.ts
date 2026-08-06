@@ -163,7 +163,7 @@ describe("createEditorShell", () => {
     expect(lockedActions.id).toBe("studio-locked-actions-status");
     expect(lockedActions.hidden).toBe(true);
     expect(getByRole(root, "region", { name: "Advertisement area" }).getAttribute("tabindex")).toBe("0");
-    const sizeControls = getByRole(root, "group", { name: "Canvas toolbar" });
+    const sizeControls = getByRole(root, "group", { name: "Advertisement toolbar" });
     expect(getByRole(sizeControls, "button", { name: "Make selected product or image smaller" }))
       .toBeTruthy();
     expect(getByRole(sizeControls, "button", { name: "Fill ad with selected image" }))

@@ -117,6 +117,44 @@ export const STUDENT_COPY = deepFreeze({
   release: {
     updateReady: "A game update is ready. Save your work, then reopen the game."
   },
+  writersStatement: {
+    menuLabel: "Writer's statement",
+    title: "Writer's statement",
+    description:
+      "This page lists the decisions recorded for this advertisement. Print the page and bring it into the pitch.",
+    productLabel: "Product",
+    audienceLabel: "Audience brief",
+    print: "Print",
+    close: "Close",
+    emptySection: "Nothing recorded for this heading yet.",
+    notOpen: "Open an advertisement first.",
+    sections: {
+      "audience-purpose": "Audience and purpose",
+      "visual-choices": "Visual choices",
+      "language-choices": "Language choices",
+      evidence: "Evidence"
+    },
+    aidaLabels: {
+      attention: "Attention",
+      interest: "Interest",
+      desire: "Desire",
+      action: "Action"
+    },
+    proofPointLabel: "Proof point",
+    slotEvidenceLabels: {
+      price: "Price evidence",
+      attention: "Attention evidence",
+      interest: "Interest evidence",
+      desire: "Desire evidence",
+      action: "Action evidence"
+    },
+    publishOffer: {
+      message:
+        "The advertisement is published. The writer's statement lists the decisions recorded for the pitch.",
+      open: "Open writer's statement",
+      dismiss: "Not now"
+    }
+  },
   marketErrors: {
     INVALID_ROOM_CODE: "Enter the room code in the format ABC-234.",
     ROOM_NOT_FOUND: "That room could not be found. Check the code and try again.",

@@ -43,6 +43,19 @@ Behaviour contract:
 
 Product name currently appears in the top bar; if the Build panel also owns naming, keep ONE source (Build panel primary; Menu shows read-only name). Verify during implementation.
 
+### No standing instructional copy (Peter, 2026-08-06)
+
+Persistent text does not teach; it clutters and gets ignored. Students are TAUGHT
+through the tour, the role-guide dialog and the guided journey — never left
+standing instructions. Applied to the pair strip: the role card is a compact
+functional row (Now/Partner labels + Swap roles + Role guide). The per-stage
+productive/holding sentences were deleted outright (the journey bar owns "what
+now"); the recorded/not-recorded + swap bookkeeping became an aural-only
+`role=status` region (`sr-only`), with the swap prompt leading the announcement
+when the active role has acted. Gate-time readiness copy still names anything
+missing. Apply the same test to any future surface: if copy would sit on screen
+after first reading, it belongs in a dialog, the tour or the journey instead.
+
 ### Concept pacing (first entry)
 
 - While the Studio tour is open, the stage is clean: all edge tabs hidden, tour only.

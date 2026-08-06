@@ -106,151 +106,6 @@ corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xf8bi"]
-bg_color = Color(0.0627451, 0.15686275, 0.23137255, 0.9372549)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_33faw"]
-bg_color = Color(0, 0, 0, 0)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2lkbr"]
-bg_color = Color(0, 0, 0, 0)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8rj2o"]
-bg_color = Color(0, 0, 0, 0)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_j8hr3"]
-bg_color = Color(0.0627451, 0.15686275, 0.23137255, 0.9372549)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.9647059, 0.7411765, 0.24705882, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_j81m3"]
-bg_color = Color(0.043137256, 0.105882354, 0.18039216, 0.9372549)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.3647059, 0.45882353, 0.54901963, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dewna"]
-bg_color = Color(0, 0, 0, 0)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-expand_margin_left = 2.0
-expand_margin_top = 2.0
-expand_margin_right = 2.0
-expand_margin_bottom = 2.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_74yfu"]
-bg_color = Color(0, 0, 0, 0)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-expand_margin_left = 2.0
-expand_margin_top = 2.0
-expand_margin_right = 2.0
-expand_margin_bottom = 2.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bc0i0"]
-bg_color = Color(0, 0, 0, 0)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-expand_margin_left = 2.0
-expand_margin_top = 2.0
-expand_margin_right = 2.0
-expand_margin_bottom = 2.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_it3ii"]
-bg_color = Color(0, 0, 0, 0)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-expand_margin_left = 2.0
-expand_margin_top = 2.0
-expand_margin_right = 2.0
-expand_margin_bottom = 2.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_eve7s"]
-bg_color = Color(0.9647059, 0.7411765, 0.24705882, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.9647059, 0.7411765, 0.24705882, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qgce1"]
-bg_color = Color(1, 0.89411765, 0.60784316, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5ieuk"]
-bg_color = Color(0.9647059, 0.7411765, 0.24705882, 1)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(0.15294118, 0.7764706, 0.81960785, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
 [node name="Main" type="Control" unique_id=1908655379]
 layout_mode = 3
 anchors_preset = 15
@@ -384,11 +239,28 @@ theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 26
 text = "Start the game with your pair."
 
+[node name="AliasLabel" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent" unique_id=758750720]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_font_sizes/font_size = 16
+text = "Pair alias (practice or live room)"
+
+[node name="TeamAlias" type="LineEdit" parent="MainMargin/GameInput/LobbyPanel/LobbyContent" unique_id=126908605]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+placeholder_text = "Try Neon Narwhals"
+max_length = 32
+clear_button_enabled = true
+
 [node name="LobbyColumns" type="HBoxContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent" unique_id=689122473]
 layout_mode = 2
 theme_override_constants/separation = 14
 
 [node name="JoinArea" type="PanelContainer" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns" unique_id=1764474164]
+unique_name_in_owner = true
+visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_styles/panel = SubResource("Style_chip")
@@ -402,21 +274,6 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.713725, 0.227451, 0.0823529, 1)
 theme_override_font_sizes/font_size = 14
 text = "JOIN A LIVE ROOM"
-
-[node name="AliasLabel" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/JoinArea/JoinContent" unique_id=758750720]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
-theme_override_font_sizes/font_size = 16
-text = "Pair alias (practice or live room)"
-
-[node name="TeamAlias" type="LineEdit" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/JoinArea/JoinContent" unique_id=126908605]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-theme_override_font_sizes/font_size = 17
-placeholder_text = "Try Neon Narwhals"
-max_length = 32
-clear_button_enabled = true
 
 [node name="RoomCodeLabel" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyColumns/JoinArea/JoinContent" unique_id=558317454]
 layout_mode = 2
@@ -531,6 +388,20 @@ theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
 theme_override_font_sizes/font_size = 15
 text = "No room code? Play a local practice round."
 vertical_alignment = 1
+
+[node name="JoinMarketToggle" type="Button" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/PracticeRow" unique_id=1712221944]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(230, 50)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Style_secondary")
+theme_override_styles/pressed = SubResource("Style_secondary")
+theme_override_styles/hover = SubResource("Style_secondary")
+theme_override_styles/focus = SubResource("Style_focus")
+text = "Join the class market"
 
 [node name="TeacherSetupToggle" type="Button" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/PracticeRow" unique_id=691384531]
 unique_name_in_owner = true
@@ -967,16 +838,13 @@ game_input_root_path = NodePath("../MainMargin/GameInput")
 [node name="AgencyWorld" parent="." unique_id=1576448732 instance=ExtResource("5_gm8pl")]
 visible = false
 
-[node name="PitchTheatre" type="Control" parent="." unique_id=1220221933 instance=ExtResource("6_dewna")]
+[node name="PitchTheatre" parent="." unique_id=1220221933 instance=ExtResource("6_dewna")]
 unique_name_in_owner = true
 visible = false
 z_index = 30
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="AgencyAudio" type="Node" parent="." unique_id=1937646235 instance=ExtResource("9_v6dgk")]
+[node name="AgencyAudio" parent="." unique_id=1937646235 instance=ExtResource("9_v6dgk")]
 unique_name_in_owner = true

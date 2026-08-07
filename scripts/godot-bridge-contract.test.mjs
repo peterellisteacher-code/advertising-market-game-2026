@@ -158,6 +158,13 @@ test("the deployed game shell locks gameplay to the viewport without trapping th
   assert.match(shell, /height:\s*100dvh/);
   assert.match(shell, /overflow:\s*hidden/);
   assert.match(shell, /class="game-skip-link"[^>]*href="#canvas"/);
+  // The canvas must be a block box sized from CSS. Left unstyled it is an inline
+  // element laid out from its width and height attributes, which Godot writes in
+  // device pixels, so any display above 100% scaling overflows the viewport.
+  assert.match(shell, /#canvas\s*\{[^}]*display:\s*block/);
+  assert.match(shell, /#canvas\s*\{[^}]*width:\s*100%/);
+  assert.match(shell, /#canvas\s*\{[^}]*height:\s*100%/);
+  assert.match(shell, /body\s*>\s*main\s*\{[^}]*height:\s*100%/);
   assert.match(shell, /--space-2:\s*\.65rem/);
   assert.match(shell, /--space-3:\s*\.85rem/);
   assert.match(shell, /padding:\s*var\(--space-2\) var\(--space-3\)/);
@@ -337,4 +344,48 @@ test("missionEvidence parity: the Godot bridge validates it and the web schema d
   );
   assert.match(campaignDocumentTs, /const missionEvidence = z\.array\(missionEvidenceEntry\)\.max\(24\)/);
   assert.match(campaignDocumentTs, /missionEvidence:\s*missionEvidence\.optional\(\)/);
+});
+
+test("every station's proximity position matches the station node placed in the scene", async () => {
+  const [world, worldScene] = await Promise.all([
+    readFile(new URL("godot/src/agency/agency_world.gd", root), "utf8"),
+    readFile(new URL("godot/src/agency/AgencyWorld.tscn", root), "utf8")
+  ]);
+
+  // STATION_DATA drives _station_position(), which gates the near-station check,
+  // the interaction test and the nearest-station search. The Stations nodes draw
+  // the marker the pair actually sees. When the two drift apart the hotspot sits
+  // away from its icon, so they are asserted equal here rather than maintained
+  // by hand in two places.
+  const nodeNames = new Map(
+    [...world.matchAll(/"([a-z-]+)":\s*"([A-Za-z]+)",/g)]
+      .map((entry) => [entry[1], entry[2]])
+  );
+
+  const scriptPositions = new Map(
+    [...world.matchAll(
+      /"id":\s*"([a-z-]+)",[\s\S]{0,240}?"position":\s*Vector2\(([-\d.]+),\s*([-\d.]+)\)/g
+    )].map((entry) => [entry[1], [Number(entry[2]), Number(entry[3])]])
+  );
+
+  const scenePositions = new Map(
+    [...worldScene.matchAll(
+      /\[node name="([A-Za-z]+)" parent="Stations"[^\]]*\]\s*\nposition = Vector2\(([-\d.]+),\s*([-\d.]+)\)/g
+    )].map((entry) => [entry[1], [Number(entry[2]), Number(entry[3])]])
+  );
+
+  assert.ok(scriptPositions.size >= 9, `expected 9+ stations, got ${scriptPositions.size}`);
+  assert.equal(scenePositions.size, scriptPositions.size);
+
+  for (const [stationId, [sx, sy]] of scriptPositions) {
+    const nodeName = nodeNames.get(stationId);
+    assert.ok(nodeName, `station ${stationId} has no node name`);
+    const placed = scenePositions.get(nodeName);
+    assert.ok(placed, `station node ${nodeName} is missing from AgencyWorld.tscn`);
+    assert.ok(
+      Math.hypot(placed[0] - sx, placed[1] - sy) < 0.5,
+      `${stationId}: script position (${sx}, ${sy}) does not match scene node ` +
+        `${nodeName} at (${placed[0]}, ${placed[1]})`
+    );
+  }
 });

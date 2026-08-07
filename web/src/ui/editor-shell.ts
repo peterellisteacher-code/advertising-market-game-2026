@@ -304,16 +304,25 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         </div>
         <div data-studio-onboarding-page="roles" hidden>
           <h2>Share the roles</h2>
-          <p>The Art Director leads appearance choices. The Strategist leads audience, message, evidence and offer choices.</p>
-          <p>Both partners can use the same controls. Swap roles changes responsibility, not permissions.</p>
+          <ul>
+            <li>Art Director: choose how the advertisement looks.</li>
+            <li>Strategist: choose the audience, message, evidence and offer.</li>
+            <li>Either partner can use every control.</li>
+          </ul>
         </div>
         <div data-studio-onboarding-page="build" hidden>
           <h2>Use the Build area</h2>
-          <p>Build lets you choose a starter product for the advertisement. Other tools appear when their next action needs them.</p>
+          <ul>
+            <li>Open Build to choose a starter product.</li>
+            <li>Each other tool appears when its next action is due.</li>
+          </ul>
         </div>
         <div data-studio-onboarding-page="first-action" hidden>
           <h2>Choose a starter product</h2>
-          <p>Choose one product. It will appear in the advertisement, ready for your first design edit.</p>
+          <ul>
+            <li>Choose one product.</li>
+            <li>It appears in the advertisement, ready for your first design edit.</li>
+          </ul>
         </div>
         <div class="creator__studio-onboarding-actions">
           <button type="button" data-studio-onboarding-close>Close</button>

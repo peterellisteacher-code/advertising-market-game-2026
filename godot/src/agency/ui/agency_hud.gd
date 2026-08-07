@@ -78,7 +78,11 @@ func set_compact(compact: bool) -> void:
 	# Width comes from the anchors so the bar spans whatever viewport the stretch mode
 	# hands it. Only the height is this panel's to set.
 	custom_minimum_size.y = target_height
-	size.y = target_height
+	# The height is applied through the bottom offset rather than through size, because
+	# the left and right anchors differ and writing size warns about that. Vertically the
+	# anchors are equal, so the offset is what actually carries the height, and it lands
+	# in the same frame the caller asks for it.
+	offset_bottom = offset_top + target_height
 	var button := get_node_or_null("HudMargin/HudStack/PrimaryRow/HudTuckToggle") as Button
 	if button != null:
 		button.text = "Show work details" if compact else "Hide work details"

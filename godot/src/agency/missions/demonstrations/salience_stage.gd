@@ -151,7 +151,7 @@ func _build_swatches() -> void:
         var tint: Dictionary = tint_value
         var button := Button.new()
         button.text = String(tint.get("label", ""))
-        button.custom_minimum_size = Vector2(0, 40)
+        button.custom_minimum_size = Vector2(0, 48)
         button.add_theme_font_size_override("font_size", 14)
         _style_swatch(button, tint.get("colour", Color.WHITE))
         button.pressed.connect(_on_tint_pressed.bind(tint.get("colour", Color.WHITE)))

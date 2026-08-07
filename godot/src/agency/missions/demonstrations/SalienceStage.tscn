@@ -75,7 +75,7 @@ text = "Size"
 
 [node name="SizeSlider" type="HSlider" parent="ControlsRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(180, 36)
+custom_minimum_size = Vector2(180, 48)
 layout_mode = 2
 size_flags_vertical = 4
 min_value = 0.12

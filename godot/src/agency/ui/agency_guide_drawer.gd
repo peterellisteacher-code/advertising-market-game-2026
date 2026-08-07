@@ -25,12 +25,12 @@ const ORIENTATION_CONTENT_MIN_INSET := 32.0
 const ORIENTATION_STEPS := [
 	{
 		"overview": true,
-		"title": "You and your partner make one advertisement and pitch it.",
-		"action": "There are seven required tasks. Each one adds a decision to the advertisement.",
+		"title": "You and your partner make one ad and pitch it.",
+		"action": "There are seven required tasks. Each one adds a decision to the ad.",
 		"items": [
 			{
 				"label": "THE WORK",
-				"text": "One advertisement that gives its audience a reason to act.",
+				"text": "One ad that gives its audience a reason to act.",
 			},
 			{
 				"label": "THE TASKS",
@@ -38,7 +38,7 @@ const ORIENTATION_STEPS := [
 			},
 			{
 				"label": "THE PITCH",
-				"text": "You present the finished advertisement and explain your decisions.",
+				"text": "You present the finished ad and explain your decisions.",
 			},
 		],
 		"button": "How do we start?",
@@ -83,7 +83,7 @@ const ORIENTATION_STEPS := [
 	},
 	{
 		"title": "Begin the work",
-		"action": "Start at Client Briefing. Each required task adds a decision to the advertisement.",
+		"action": "Start at Client Briefing. Each required task adds a decision to the ad.",
 		"items": [
 			{
 				"label": "READ",
@@ -91,7 +91,7 @@ const ORIENTATION_STEPS := [
 			},
 			{
 				"label": "BUILD",
-				"text": "Apply each completed task to the advertisement.",
+				"text": "Apply each completed task to the ad.",
 			},
 			{
 				"label": "PITCH",

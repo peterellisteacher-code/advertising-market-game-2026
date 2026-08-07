@@ -654,7 +654,7 @@ custom_minimum_size = Vector2(1056, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 30
-text = "You and your partner will make and pitch one ad."
+text = "You and your partner make one ad and pitch it."
 
 [node name="OrientationAction" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=747531041]
 unique_name_in_owner = true
@@ -663,7 +663,7 @@ custom_minimum_size = Vector2(1056, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 20
-text = "Read the brief. Complete seven short tasks. Build one ad. Pitch it."
+text = "There are seven required tasks. Each one adds a decision to the ad."
 autowrap_mode = 2
 
 [node name="OrientationOverview" type="HBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=2026080314]
@@ -745,7 +745,7 @@ modulate = Color(0.18, 0.84, 0.9, 1)
 layout_mode = 2
 custom_minimum_size = Vector2(150, 0)
 theme_override_font_sizes/font_size = 18
-text = "MAKE"
+text = "THE WORK"
 
 [node name="OrientationItemOneText" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems/OrientationItemOne" unique_id=2026080304]
 unique_name_in_owner = true
@@ -753,7 +753,7 @@ modulate = Color(0.92, 0.95, 0.98, 1)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
-text = "Make an ad that gives the audience a clear reason to act."
+text = "One ad that gives its audience a reason to act."
 autowrap_mode = 2
 
 [node name="OrientationItemTwo" type="HBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems" unique_id=2026080305]
@@ -767,7 +767,7 @@ modulate = Color(0.18, 0.84, 0.9, 1)
 layout_mode = 2
 custom_minimum_size = Vector2(150, 0)
 theme_override_font_sizes/font_size = 18
-text = "PRACTISE"
+text = "THE TASKS"
 
 [node name="OrientationItemTwoText" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems/OrientationItemTwo" unique_id=2026080307]
 unique_name_in_owner = true
@@ -797,7 +797,7 @@ modulate = Color(0.92, 0.95, 0.98, 1)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
-text = "Each required task prepares the ad for the final pitch."
+text = "You present the finished ad and explain your decisions."
 autowrap_mode = 2
 
 [node name="OrientationActions" type="HBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=2026080311]

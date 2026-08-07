@@ -92,11 +92,18 @@ jobs:
           mv -v "$TEMPLATE_SOURCE" \
                ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
 
-      - name: Import Godot project
-        run: godot --headless --path godot --import
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "22.12.0"
 
-      - name: Run Godot tests
-        run: godot --headless --path godot --script res://tests/run_tests.gd
+      # scripts/run-godot-tests.mjs imports the project and then runs the suites,
+      # failing on a SCRIPT ERROR the runner would otherwise exit 0 on. It is the
+      # only Godot test entry point so the local gate and this step cannot diverge.
+      - name: Run Godot import and tests
+        run: node scripts/run-godot-tests.mjs
+        env:
+          GODOT_BIN: godot
 
       - name: Export Web build
         run: |

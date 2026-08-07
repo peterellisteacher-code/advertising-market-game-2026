@@ -303,6 +303,10 @@ func _assert_motion_and_ambient_contract(world: Node) -> void:
 	world.set_reduced_motion_enabled(false)
 	assert(world.direct_travel("strategy-room"))
 	assert(pair.call("visual_motion_state") == "walking")
+	# The sheet carries a real gait, so the frames have to be running while the pair
+	# walks and held on the standing pose whenever it is not.
+	assert(art_director.is_playing())
+	assert(strategist.is_playing())
 	pair.call("_physics_process", 0.016)
 	assert(pair.call("visual_motion_state") == "walking")
 	assert(pair.facing_direction == "right")
@@ -321,6 +325,8 @@ func _assert_motion_and_ambient_contract(world: Node) -> void:
 	assert(pair.call("sprite_transforms_are_neutral") == false)
 	world.call("_finish_direct_travel")
 	assert(pair.call("visual_motion_state") == "idle")
+	assert(not art_director.is_playing())
+	assert(not strategist.is_playing())
 	assert(not pair.call("is_auto_travelling"))
 	ambient.call("advance_ambient_motion", 0.25)
 	assert(ambient.call("pulse_amount") > 0.0)
@@ -328,6 +334,8 @@ func _assert_motion_and_ambient_contract(world: Node) -> void:
 	assert(pair.call("is_auto_travelling"))
 	world.set_reduced_motion_enabled(true)
 	assert(pair.call("visual_motion_state") == "idle")
+	assert(not art_director.is_playing())
+	assert(not strategist.is_playing())
 	assert(not pair.call("is_auto_travelling"))
 	assert(pair.input_enabled)
 	assert(pair.call("sprite_transforms_are_neutral"))

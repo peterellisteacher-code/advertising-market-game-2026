@@ -68,6 +68,24 @@ const showFieldError = (target: HTMLParagraphElement, message: string): void => 
 
 const errorMessage = (fallback: string): string => fallback;
 
+const copyForError = (error: unknown): string => {
+  const code = error instanceof TeacherClientError ? error.code : "TEACHER_UNAVAILABLE";
+  switch (code) {
+    case "INVALID_CREDENTIALS":
+      return "The teacher password was not accepted. Check the password and try again.";
+    case "CSRF_REJECTED":
+      return "The server rejected the sign-in as cross-origin. Open the teacher page from the site's own address, then try again.";
+    case "TEACHER_NOT_CONFIGURED":
+      return "Teacher access is not configured on the server. The teacher password and session secret must be set in the site's environment variables before sign-in works.";
+    case "INVALID_REQUEST":
+      return "The server rejected the sign-in request as malformed. Reload this page, then try again.";
+    case "INVALID_RESPONSE":
+      return "The sign-in reply could not be read. Reload this page to check whether the session was created.";
+    default:
+      return "The teacher service could not be reached. Check the connection, then try again.";
+  }
+};
+
 export class TeacherDashboard {
   readonly #root: HTMLElement;
   readonly #client: TeacherClient;
@@ -148,12 +166,11 @@ export class TeacherDashboard {
       error.hidden = true;
       void this.#client.login(password.value)
         .then(() => this.#loadDashboard())
-        .catch(() => {
+        .catch((failure: unknown) => {
           submit.disabled = false;
           password.disabled = false;
           error.hidden = false;
-          error.textContent =
-            "The teacher password was not accepted. Check the password and try again.";
+          error.textContent = copyForError(failure);
           password.focus();
         });
     });

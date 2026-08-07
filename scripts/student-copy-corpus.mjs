@@ -313,7 +313,9 @@ export const STUDENT_COPY_SOURCE_PATHS = Object.freeze([
   "web/src/ui/editor-shell.ts",
   "web/src/ui/canvas-accessibility-controller.ts",
   "web/src/ui/studio-split-pane.ts",
-  "web/src/ui/studio-tool-drawer.ts"
+  "web/src/ui/studio-tool-drawer.ts",
+  "web/src/ui/tuck-shell.ts",
+  "web/src/ui/writers-statement.ts"
 ]);
 
 export const COPY_SOURCE_AUDIENCE = Object.freeze({

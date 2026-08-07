@@ -26,9 +26,7 @@ import {
 
 export interface PairGameView {
   activeRole: HTMLElement;
-  activeRoleAction: HTMLElement;
   partnerRole: HTMLElement;
-  partnerRoleAction: HTMLElement;
   roundProgress: HTMLElement;
   swapRoles: HTMLButtonElement;
   audienceSignal: HTMLSelectElement;
@@ -337,13 +335,8 @@ export class PairGameController {
     }
     const activeRole = this.#current.session.activeRole;
     const partnerRole = oppositeRole(activeRole);
-    const prompts = STUDENT_COPY.stageRolePrompts[this.#current.stage];
-    this.#view.activeRole.textContent = prompts[activeRole].label;
-    this.#view.activeRoleAction.textContent = prompts[activeRole].productiveAction;
-    this.#view.partnerRole.textContent = prompts[partnerRole].label;
-    this.#view.partnerRoleAction.textContent = prompts[partnerRole].holdingAction;
-    this.#view.activeRoleAction.title = prompts[activeRole].productiveAction;
-    this.#view.partnerRoleAction.title = prompts[partnerRole].holdingAction;
+    this.#view.activeRole.textContent = STUDENT_COPY.rolePrompts[activeRole].label;
+    this.#view.partnerRole.textContent = STUDENT_COPY.rolePrompts[partnerRole].label;
     this.#view.audienceSignal.value = this.#current.session.audienceBriefId;
     this.#renderBrief(getAudienceBrief(this.#current.session.audienceBriefId));
     this.#renderProgress();
@@ -363,18 +356,16 @@ export class PairGameController {
     const progress = this.#current.progress;
     const activeRole = this.#current.session.activeRole;
     const partnerRole = oppositeRole(activeRole);
-    const prompts = STUDENT_COPY.stageRolePrompts[this.#current.stage];
-    if (bothRolesHaveActed(progress)) {
-      this.#view.activeRoleAction.textContent = prompts[activeRole].productiveAction;
-    } else if (progress[activeRole] > 0) {
-      this.#view.activeRoleAction.textContent = partnerRole === "art-director"
+    // The status region is aural-only: the visible strip stays a compact
+    // functional row, and the swap prompt leads the announcement when the
+    // active role has acted but the partner has not.
+    const swapPrompt = !bothRolesHaveActed(progress) && progress[activeRole] > 0
+      ? (partnerRole === "art-director"
         ? STUDENT_COPY.handoff.promptToArtDirector
-        : STUDENT_COPY.handoff.promptToStrategist;
-    } else {
-      this.#view.activeRoleAction.textContent = prompts[activeRole].productiveAction;
-    }
-
+        : STUDENT_COPY.handoff.promptToStrategist)
+      : null;
     this.#view.roundProgress.textContent = [
+      ...(swapPrompt === null ? [] : [swapPrompt]),
       progress["art-director"] > 0
         ? STUDENT_COPY.roundZero.artDirectorRecorded
         : STUDENT_COPY.roundZero.artDirectorMissing,
@@ -385,6 +376,5 @@ export class PairGameController {
         ? STUDENT_COPY.roundZero.rolesSwapped
         : STUDENT_COPY.roundZero.rolesNotSwapped
     ].join(" ");
-    this.#view.activeRoleAction.title = this.#view.activeRoleAction.textContent ?? "";
   }
 }

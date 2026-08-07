@@ -63,6 +63,8 @@ const AIDA_NEXT_ACTIONS := {
 @onready var team_alias: LineEdit = %TeamAlias
 @onready var room_code: LineEdit = %RoomCode
 @onready var join_live_market: Button = %JoinLiveMarket
+@onready var join_area: Control = %JoinArea
+@onready var join_market_toggle: Button = %JoinMarketToggle
 @onready var teacher_setup_toggle: Button = %TeacherSetupToggle
 @onready var host_area: Control = %HostArea
 @onready var classroom_code: LineEdit = %ClassroomCode
@@ -240,6 +242,7 @@ func _ready() -> void:
     market_screen.set_market_host(market_host)
     market_screen.fix_requested.connect(_reopen_returned_campaign)
     join_live_market.pressed.connect(_join_live_room)
+    join_market_toggle.pressed.connect(_toggle_join_market)
     teacher_setup_toggle.pressed.connect(_toggle_teacher_setup)
     create_live_market.pressed.connect(_create_live_room)
     start_button.pressed.connect(_start_run)
@@ -373,6 +376,11 @@ func _toggle_teacher_setup() -> void:
     host_area.visible = not host_area.visible
     teacher_setup_toggle.text = "Hide teacher setup" if host_area.visible else "Teacher setup"
     _focus_if_ready(classroom_code if host_area.visible else team_alias)
+
+func _toggle_join_market() -> void:
+    join_area.visible = not join_area.visible
+    join_market_toggle.text = "Hide the class market" if join_area.visible else "Join the class market"
+    _focus_if_ready(room_code if join_area.visible else team_alias)
 
 func _setup_practice_recovery() -> void:
     _practice_bridge = PracticeBridge.new()

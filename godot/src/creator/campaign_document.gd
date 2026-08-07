@@ -5,6 +5,8 @@ const SCHEMA_VERSION := 1
 const CANVAS_WIDTH := 1600
 const CANVAS_HEIGHT := 900
 const MAX_SAFE_INTEGER := 9007199254740991
+const MAX_MISSION_EVIDENCE_ENTRIES := 24
+const MISSION_EVIDENCE_KEYS := ["missionId", "title", "decisionId", "effectText"]
 
 # This is deliberately a bridge-shape check. The TypeScript Zod schema remains
 # authoritative for the complete campaign document and its nested editor data.
@@ -52,7 +54,48 @@ static func validate_bridge_shape(value: Variant) -> Dictionary:
         var evidence: Dictionary = document.get("evidence")
         if typeof(evidence.get(slot)) != TYPE_ARRAY:
             return _invalid("Campaign document evidence.%s must be an array" % slot)
+
+    if document.has("missionEvidence"):
+        if not _valid_mission_evidence(document.get("missionEvidence")):
+            return _invalid("Campaign document missionEvidence is invalid")
+
     return {"ok": true, "value": document.duplicate(true)}
+
+static func _valid_mission_evidence(value: Variant) -> bool:
+    if typeof(value) != TYPE_ARRAY:
+        return false
+    var entries: Array = value
+    if entries.size() > MAX_MISSION_EVIDENCE_ENTRIES:
+        return false
+    var seen_mission_ids: Dictionary = {}
+    for entry_value in entries:
+        if typeof(entry_value) != TYPE_DICTIONARY:
+            return false
+        var entry: Dictionary = entry_value
+        if entry.size() != MISSION_EVIDENCE_KEYS.size():
+            return false
+        for key in MISSION_EVIDENCE_KEYS:
+            if not entry.has(key):
+                return false
+        if not _valid_mission_evidence_text(entry.get("missionId"), 1, 100):
+            return false
+        if not _valid_mission_evidence_text(entry.get("title"), 1, 120):
+            return false
+        if not _valid_mission_evidence_text(entry.get("decisionId"), 1, 100):
+            return false
+        if not _valid_mission_evidence_text(entry.get("effectText"), 1, 400):
+            return false
+        var mission_id := String(entry.get("missionId"))
+        if seen_mission_ids.has(mission_id):
+            return false
+        seen_mission_ids[mission_id] = true
+    return true
+
+static func _valid_mission_evidence_text(value: Variant, minimum: int, maximum: int) -> bool:
+    if typeof(value) != TYPE_STRING:
+        return false
+    var text := String(value)
+    return text == text.strip_edges() and text.length() >= minimum and text.length() <= maximum
 
 static func is_nonnegative_integer_number(value: Variant) -> bool:
     if typeof(value) == TYPE_INT:

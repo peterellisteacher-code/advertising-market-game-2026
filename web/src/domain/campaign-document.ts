@@ -143,6 +143,28 @@ const campaignStrategy = z.object({
   aidaPlan: { attention: "", interest: "", desire: "", action: "" }
 });
 
+// Written by the Godot side from its native mission progress when it opens the
+// creator or publishes; the web side only displays it (writer's statement).
+// Optional on purpose: drafts saved before Phase D stay valid with no migration.
+const missionEvidenceEntry = z.object({
+  missionId: z.string().trim().min(1).max(100),
+  title: z.string().trim().min(1).max(120),
+  decisionId: z.string().trim().min(1).max(100),
+  effectText: z.string().trim().min(1).max(400)
+}).strict();
+
+const missionEvidence = z.array(missionEvidenceEntry).max(24)
+  .superRefine((entries, context) => {
+    if (new Set(entries.map(({ missionId }) => missionId)).size !== entries.length) {
+      context.addIssue({
+        code: "custom",
+        message: "Mission evidence mission ids must be unique"
+      });
+    }
+  });
+
+export type CampaignMissionEvidenceV1 = z.infer<typeof missionEvidenceEntry>;
+
 const genericAssetReference = z.record(z.string(), z.unknown()).refine(
   (reference) => reference.kind !== "product-kit-composition",
   { message: "Product Kit references must use the strict composition shape" }
@@ -282,6 +304,7 @@ export const CampaignDocumentSchema = z.object({
   }),
   gameplay: campaignGameplay,
   strategy: campaignStrategy,
+  missionEvidence: missionEvidence.optional(),
   evidence: slotMap,
   assetReferences: z.array(assetReference),
   updatedAt: z.string()

@@ -66,12 +66,15 @@ describe("GuidedJourneyController", () => {
 
     controller.setCampaign(campaign());
 
-    const guide = getByRole(root, "region", { name: "Current instruction" });
-    expect(guide.textContent).toContain("Build · Task 1 of 3");
-    expect(guide.textContent).toContain("Choose one starter product");
+    const bar = getByRole(root, "region", { name: "Current instruction" });
+    expect(bar.textContent).toContain("Build · Task 1 of 3");
+    expect(bar.textContent).toContain("Choose one starter product");
+
+    const guide = getByRole(root, "region", { name: "Current instruction details" });
     expect(guide.textContent?.toLowerCase()).toContain("product edit");
     expect(guide.textContent).toContain("appears in the advertisement");
-    fireEvent.click(getByRole(guide, "button", { name: "Open Build" }));
+
+    fireEvent.click(getByRole(bar, "button", { name: "Open Build" }));
     expect(openStep).toHaveBeenCalledOnce();
     expect(openStep.mock.calls[0]![0]).toMatchObject({
       id: "starter-product",
@@ -103,7 +106,7 @@ describe("GuidedJourneyController", () => {
 
     controller.setCampaign(document);
 
-    const guide = getByRole(root, "region", { name: "Current instruction" });
+    const guide = getByRole(root, "region", { name: "Current instruction details" });
     const methods = guide.querySelector<HTMLDetailsElement>("[data-guide-methods]")!;
     expect(methods.hidden).toBe(false);
     expect(methods.getAttribute("role")).toBe("group");
@@ -145,7 +148,7 @@ describe("GuidedJourneyController", () => {
     expect(document.activeElement).toBe(
       getByRole(dialog, "button", { name: "Close guide" })
     );
-    expect(root.querySelector<HTMLElement>(".creator__topbar")!.inert).toBe(true);
+    expect(root.querySelector<HTMLElement>(".creator__tuck-top")!.inert).toBe(true);
     expect(root.querySelector<HTMLElement>(".creator__workspace")!.inert).toBe(true);
     expect(dialog.inert).not.toBe(true);
 
@@ -157,7 +160,7 @@ describe("GuidedJourneyController", () => {
 
     fireEvent.keyDown(dialog, { key: "Escape" });
     expect(dialog.hidden).toBe(true);
-    expect(root.querySelector<HTMLElement>(".creator__topbar")!.inert).toBe(false);
+    expect(root.querySelector<HTMLElement>(".creator__tuck-top")!.inert).toBe(false);
     expect(root.querySelector<HTMLElement>(".creator__workspace")!.inert).toBe(false);
     expect(document.activeElement).toBe(reviewButtons[0]);
 
@@ -270,10 +273,10 @@ describe("GuidedJourneyController", () => {
 
     controller.setCampaign(document);
 
-    const guide = getByRole(root, "region", { name: "Current instruction" });
-    expect(guide.textContent).toContain("Level 1 studio work complete");
-    expect(guide.textContent).toContain("Return to the game and lock Level 1.");
-    fireEvent.click(getByRole(guide, "button", { name: "Return to game" }));
+    const bar = getByRole(root, "region", { name: "Current instruction" });
+    expect(bar.textContent).toContain("Level 1 studio work complete");
+    expect(bar.textContent).toContain("Return to the game and lock Level 1.");
+    fireEvent.click(getByRole(bar, "button", { name: "Return to game" }));
     expect(openStep).toHaveBeenCalledWith(expect.objectContaining({
       id: "finish-level-1",
       tool: "game"
@@ -287,5 +290,6 @@ describe("GuidedJourneyController", () => {
     controller.setCampaign(null);
 
     expect(root.querySelector<HTMLElement>("[data-guide]")!.hidden).toBe(true);
+    expect(root.querySelector<HTMLElement>("[data-guide-bar]")!.hidden).toBe(true);
   });
 });

@@ -61,11 +61,19 @@ present in `C:\Godot Projects\Advertising Market Game QA` on 4 August 2026.
 - Tool: OpenAI built-in image generation
 - Selected original:
   `call_yzXFKgzdpuTtD7YvhSngSArk.png`
-- Final file: original RGB PNG copied without resizing or image-editor
-  processing
+- Final file: original RGB PNG at its generated size, with three station markers
+  added on 2026-08-07 (see below)
 - Dimensions: 1672 x 941 pixels (wide 16:9 composition; aspect ratio 1.776833)
 - SHA-256:
+  `fbb6cdbab2678211b6247827935ec0cb6308d7a5223c953a015cd234ab468bf3`
+- Superseded SHA-256 (generated file, before markers were added):
   `d49d9b2d45b1b1ab23d144c82c4807d5f41abbde3117eff7196f8accd285d4ac`
+- Edit on 2026-08-07: the generator produced glowing floor markers for only six of
+  the nine stations, plus one for the central travel point and one on the entrance
+  mat. Markers for client-briefing, media-desk and art-studio were added by
+  alpha-compositing a copy of the generated reception marker onto clear floor in
+  each station's room. No pixels came from outside this file, so the provenance and
+  public-use decision below are unchanged.
 - Human selection: selected because the connected rooms, open central route,
   nine glowing work points, palette, scale and pitch theatre are immediately
   readable as a playable advertising agency
@@ -86,11 +94,41 @@ not required to build, use or license the public game.
   `fal-ai/bria/background/remove`
 - Selected generated source:
   `call_vNT0oBiBgvUp1BjOjCaHNllv.png`
-- Final file: commercially licensed Bria background-removal result; character
-  pixels, registration and original 1672 x 941 dimensions were retained
+- Final file: an eight-direction walk-cycle sheet animated from the background-removed
+  still sheet on 2026-08-07 (see below)
 - Alpha: genuine RGBA transparency, confirmed in the final PNG and by Godot
+- Dimensions: 776 x 1104 pixels, a 64-cell 8x8 grid of 97 x 138 cells — eight walk
+  frames per row, one row per direction per character
 - SHA-256:
+  `17b2604917dcf78529dd308579f070aa89e94a1e9629cf020f66e25844e4d832`
+- Superseded SHA-256 (still sheet resampled to 432 x 244):
+  `d1041230a6d4edc1d871d7bbeba295f401c3d2c7b7fd0df7c3d4e76ecccb2b42`
+- Superseded SHA-256 (background-removal result at 1672 x 941):
   `8eec47af4b31b2c3f6866a14c0e840c51d983617decc8b730c29d5e54934d1ba`
+- Edit on 2026-08-07, first pass: at 418 x 470 per cell the sheet rendered at
+  `scale = 0.13`, so the GPU reduced each figure to 54 x 61 by nearest-neighbour
+  sampling and the faces and hands broke up. Each cell was resampled to 108 x 122 —
+  twice the rendered size — using premultiplied-alpha Lanczos with a light unsharp
+  pass, and the sprites moved to `scale = 0.5`. No pixels came from outside this file.
+- Edit on 2026-08-07, second pass — **new third-party tool, read this before any
+  public snapshot**: the eight still poses were each animated into a five-second
+  walk clip with `fal-ai/kling-video/v2.5-turbo/pro/image-to-video` on fal.ai, at a
+  total cost of USD 2.80. Each still was staged on flat magenta (`FF00FF`) and the
+  prompt locked the camera, the framing and the facing direction. The clips were
+  converted by the `gamelab-to-spritesheet` batch pipeline, which chromakeys the
+  magenta to alpha, despills the H.264 halo, detects the logical pixel grid and
+  normalises every animation of one character to a shared frame size and foot anchor.
+  For each clip the segment that closes on itself was found by minimising the
+  difference between its first and last frame over gait periods of 12 to 36 frames,
+  then eight poses were sampled evenly across that period. Both characters are padded
+  to a common 97 x 138 cell aligned on the foot line, not the frame edge, so the pair
+  stands on one floor line.
+- Licence note for the second pass: fal.ai lists
+  `fal-ai/kling-video/v2.5-turbo/pro/image-to-video` with `license_type: commercial`.
+  The model saw only this project's own character art as its input image, so no
+  third-party subject or artwork entered the sheet. The public-use decision below is
+  unchanged, but this is the first asset here whose final pixels were produced by a
+  video model rather than an image model.
 - Human selection: selected because it is a clean two-row, four-direction sheet
   with two visibly distinct, consistently scaled partner roles
 - Public-use decision: approved because the characters are original generated

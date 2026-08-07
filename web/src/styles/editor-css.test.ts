@@ -26,7 +26,7 @@ describe("Fabric canvas layer styling", () => {
 
   it("reserves only compact chrome above a canvas-first workspace", () => {
     expect(css).toMatch(
-      /\.creator\s*\{[^}]*grid-template-rows:\s*52px\s+76px\s+minmax\(0,\s*1fr\)[^}]*\}/i
+      /\.creator\s*\{[^}]*grid-template-rows:\s*auto\s+auto\s+minmax\(0,\s*1fr\)[^}]*\}/i
     );
     expect(css).toMatch(
       /\.creator__workspace\s*\{[^}]*--studio-rail-width:\s*64px[^}]*--studio-browse-percent:\s*40%[^}]*--studio-browse-width:\s*\.666667fr[^}]*grid-template-columns:\s*var\(--studio-rail-width\)\s+minmax\(0,\s*var\(--studio-browse-width\)\)\s+var\(--studio-separator-width\)\s+minmax\(0,\s*1fr\)[^}]*\}/i
@@ -36,16 +36,25 @@ describe("Fabric canvas layer styling", () => {
     );
   });
 
-  it("keeps both pair actions visible in compact current and partner rows", () => {
+  it("keeps the journey bar as a slim always-visible strip that hides with the tuck tabs during the tour", () => {
     expect(css).toMatch(
-      /\.creator__next-action\s*\{[^}]*white-space:\s*normal[^}]*\}/i
+      /\.creator__journey-bar\s*\{[^}]*min-height:\s*44px[^}]*\}/i
     );
     expect(css).toMatch(
-      /\.creator__partner-action\s*\{[^}]*white-space:\s*normal[^}]*\}/i
+      /\.creator:has\(\[data-studio-onboarding-layer\]:not\(\[hidden\]\)\)\s*\.creator__journey-bar\s*\{[^}]*visibility:\s*hidden[^}]*\}/i
     );
     expect(css).toMatch(
-      /\.creator__role-card\s*\{[^}]*grid-template-areas:\s*"active swap"\s*"partner swap"\s*"progress swap"[^}]*\}/i
+      /\.creator__journey-bar-body\s+p\s*\{[^}]*white-space:\s*nowrap[^}]*overflow:\s*hidden[^}]*text-overflow:\s*ellipsis[^}]*\}/i
     );
+  });
+
+  it("keeps the role card a compact functional row with no standing copy", () => {
+    expect(css).toMatch(
+      /\.creator__role-card\s*\{[^}]*display:\s*flex[^}]*\}/i
+    );
+    expect(css).not.toMatch(/\.creator__next-action/i);
+    expect(css).not.toMatch(/\.creator__partner-action/i);
+    expect(css).not.toMatch(/\.creator__round-progress/i);
     expect(css).toMatch(
       /\.creator__audience-brief\s*\{[^}]*top:\s*calc\(100%\s*\+\s*4px\)[^}]*\}/i
     );
@@ -66,6 +75,21 @@ describe("Fabric canvas layer styling", () => {
     );
     expect(css).toMatch(
       /\.creator__studio-onboarding\s*\{[^}]*position:\s*relative[^}]*z-index:\s*1[^}]*\}/i
+    );
+  });
+
+  it("keeps the writer's statement as a bounded overlay that prints alone", () => {
+    expect(css).toMatch(
+      /\.creator__writers-statement\s*\{[^}]*position:\s*fixed[^}]*inset:\s*0[^}]*place-items:\s*center[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator__writers-statement-page\s*\{[^}]*max-height:[^}]*overflow:\s*auto[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /@media print\s*\{[^]*body\[data-writers-statement-open\]\s*\*\s*\{[^}]*visibility:\s*hidden[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /body\[data-writers-statement-open\]\s*\.creator__writers-statement-actions\s*\{[^}]*display:\s*none[^}]*\}/i
     );
   });
 
@@ -199,16 +223,13 @@ describe("Fabric canvas layer styling", () => {
 
   it("gives the pair roles a full second row on school MacBook widths", () => {
     expect(css).toMatch(
-      /@media\s*\(min-width:\s*1201px\)\s*and\s*\(max-width:\s*1599px\)[\s\S]*?\.creator\s*\{[^}]*grid-template-rows:\s*52px\s+120px\s+minmax\(0,\s*1fr\)[^}]*\}/i
+      /@media\s*\(min-width:\s*1201px\)\s*and\s*\(max-width:\s*1599px\)[\s\S]*?\.creator__pair-strip(?:\s*,\s*\.creator__pair-strip:has\([^)]*\))?\s*\{[^}]*grid-template-rows:\s*44px\s+minmax\(56px,\s*1fr\)[^}]*\}/i
     );
     expect(css).toMatch(
       /@media\s*\(min-width:\s*1201px\)\s*and\s*\(max-width:\s*1599px\)[\s\S]*?\.creator__pair-strip(?:\s*,\s*\.creator__pair-strip:has\([^)]*\))?\s*\{[^}]*grid-template-areas:\s*"level audience checklist"\s*"role role role"[^}]*\}/i
     );
     expect(css).toMatch(
       /@media\s*\(min-width:\s*1201px\)\s*and\s*\(max-width:\s*1599px\)[\s\S]*?\.creator__role-card\s*\{[^}]*grid-area:\s*role[^}]*\}/i
-    );
-    expect(css).toMatch(
-      /@media\s*\(min-width:\s*1201px\)\s*and\s*\(max-width:\s*1599px\)[\s\S]*?\.creator__role-actions\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*max-content\)[^}]*\}/i
     );
   });
 
@@ -220,9 +241,6 @@ describe("Fabric canvas layer styling", () => {
 
   it("keeps the complete studio chrome inside a 320-pixel viewport", () => {
     const mobile = css.match(/@media\s*\(max-width:\s*520px\)\s*\{([\s\S]*)\}\s*$/i)?.[1] ?? "";
-    expect(mobile).toMatch(
-      /\.creator\s*\{[^}]*grid-template-rows:\s*auto\s+auto\s+minmax\(0,\s*1fr\)[^}]*\}/i
-    );
     expect(mobile).toMatch(
       /\.creator__topbar\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto\s+auto[^}]*\}/i
     );

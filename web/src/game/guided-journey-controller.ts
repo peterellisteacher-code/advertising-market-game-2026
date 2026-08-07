@@ -15,6 +15,7 @@ function required<T extends Element>(root: ParentNode, selector: string): T {
 
 export class GuidedJourneyController {
   readonly #guide: HTMLElement;
+  readonly #guideBar: HTMLElement;
   readonly #progress: HTMLElement;
   readonly #title: HTMLElement;
   readonly #now: HTMLElement;
@@ -42,6 +43,7 @@ export class GuidedJourneyController {
     private readonly openStep: OpenGuidedJourneyStep
   ) {
     this.#guide = required(root, "[data-guide]");
+    this.#guideBar = required(root, "[data-guide-bar]");
     this.#progress = required(root, "[data-guide-progress]");
     this.#title = required(root, "[data-guide-title]");
     this.#now = required(root, "[data-guide-now]");
@@ -86,6 +88,7 @@ export class GuidedJourneyController {
     if (document === null) {
       this.#current = null;
       this.#guide.hidden = true;
+      this.#guideBar.hidden = true;
       this.#closeDialog();
       return;
     }
@@ -93,6 +96,7 @@ export class GuidedJourneyController {
     const state = evaluateGuidedJourney(document);
     this.#current = state.current;
     this.#guide.hidden = false;
+    this.#guideBar.hidden = false;
     this.#progress.textContent = state.progressLabel;
     this.#title.textContent = state.current.title;
     this.#now.textContent = state.current.now;

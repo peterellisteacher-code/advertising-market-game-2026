@@ -128,7 +128,7 @@ func _assert_world_travel_and_label_contract(world: Node) -> void:
 		assert(pair.movement_bounds.has_point(pair.position))
 		assert(pair.position.distance_to(station.position) <= 92.0)
 	assert(world.direct_travel("client-briefing"))
-	assert(pair.position == Vector2(430.0, 460.0))
+	assert(pair.position == Vector2(421.0, 498.0))
 	var world_bounds := world.get_node("WorldBounds") as StaticBody2D
 	var client_collision := world.get_node("WorldBounds/ClientBriefingFixture") as CollisionShape2D
 	var client_shape := client_collision.shape as RectangleShape2D
@@ -285,18 +285,28 @@ func _assert_motion_and_ambient_contract(world: Node) -> void:
 	var interaction_area := pair.get_node("InteractionRadius") as Area2D
 	var art_director := pair.get_node("%ArtDirectorSprite") as AnimatedSprite2D
 	var strategist := pair.get_node("%StrategistSprite") as AnimatedSprite2D
-	var expected_sprite_scale := Vector2(0.13, 0.13)
+	var expected_sprite_scale := Vector2(0.5, 0.5)
+	var expected_sprite_size := Vector2(48.5, 69.0)
 	var root_position := Vector2.ZERO
 	var body_position := body_collision.position
 	var interaction_position := interaction_area.position
 	assert(ambient != null)
 	assert(art_director.scale.is_equal_approx(expected_sprite_scale))
 	assert(strategist.scale.is_equal_approx(expected_sprite_scale))
+	# The atlas is authored at twice the rendered size, so what the contract fixes is
+	# the on-screen footprint rather than the scale factor on its own.
+	for sprite: AnimatedSprite2D in [art_director, strategist]:
+		var frame_size := sprite.sprite_frames.get_frame_texture(sprite.animation, 0).get_size()
+		assert((frame_size * sprite.scale).is_equal_approx(expected_sprite_size))
 	assert(world.direct_travel("copy-room"))
 	root_position = pair.position
 	world.set_reduced_motion_enabled(false)
 	assert(world.direct_travel("strategy-room"))
 	assert(pair.call("visual_motion_state") == "walking")
+	# The sheet carries a real gait, so the frames have to be running while the pair
+	# walks and held on the standing pose whenever it is not.
+	assert(art_director.is_playing())
+	assert(strategist.is_playing())
 	pair.call("_physics_process", 0.016)
 	assert(pair.call("visual_motion_state") == "walking")
 	assert(pair.facing_direction == "right")
@@ -315,6 +325,8 @@ func _assert_motion_and_ambient_contract(world: Node) -> void:
 	assert(pair.call("sprite_transforms_are_neutral") == false)
 	world.call("_finish_direct_travel")
 	assert(pair.call("visual_motion_state") == "idle")
+	assert(not art_director.is_playing())
+	assert(not strategist.is_playing())
 	assert(not pair.call("is_auto_travelling"))
 	ambient.call("advance_ambient_motion", 0.25)
 	assert(ambient.call("pulse_amount") > 0.0)
@@ -322,6 +334,8 @@ func _assert_motion_and_ambient_contract(world: Node) -> void:
 	assert(pair.call("is_auto_travelling"))
 	world.set_reduced_motion_enabled(true)
 	assert(pair.call("visual_motion_state") == "idle")
+	assert(not art_director.is_playing())
+	assert(not strategist.is_playing())
 	assert(not pair.call("is_auto_travelling"))
 	assert(pair.input_enabled)
 	assert(pair.call("sprite_transforms_are_neutral"))

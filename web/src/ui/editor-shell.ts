@@ -6,8 +6,9 @@ import { CURVED_LABEL_FONT_FAMILIES } from "../product-kit/curved-label-renderer
 export interface EditorShell extends PairGameView {
   overlay: HTMLElement;
   workspace: HTMLElement;
+  tuckTabsTop: HTMLElement;
+  menuPanel: HTMLElement;
   taskBar: HTMLElement;
-  taskBarToggle: HTMLButtonElement;
   displayToggle: HTMLButtonElement;
   displayPanel: HTMLElement;
   library: HTMLElement;
@@ -51,20 +52,19 @@ const PRODUCT_TYPEFACE_OPTIONS = CURVED_LABEL_FONT_FAMILIES
 export function createEditorShell(root: HTMLElement): EditorShell {
   root.innerHTML = `
       <section class="creator" aria-label="Advertisement studio">
-      <header class="creator__topbar">
-        <p class="creator__brand"><strong>AD MARKET</strong><span>Studio</span></p>
-        <input aria-label="Product name" maxlength="48" placeholder="Name your product">
-        <button type="button" data-command="undo">Undo</button>
-        <button type="button" data-command="redo">Redo</button>
-        <span class="creator__save-status" role="status" aria-label="Saved progress" data-save-status></span>
-        <button type="button" data-guide-review-top>How to use this site</button>
-        <button type="button" data-studio-tour-open>Studio tour</button>
-        <button type="button" data-display-toggle aria-controls="studio-display-panel" aria-expanded="false">Display</button>
-        <button type="button" data-task-bar-toggle aria-controls="studio-task-bar" aria-expanded="true">Hide task bar</button>
-        <button type="button" data-command="return">Return to game</button>
-        <section class="creator__display-panel" id="studio-display-panel" aria-label="Display preferences" hidden data-display-panel><fieldset><legend>Interface text</legend><label><input type="radio" name="display-text" value="standard" checked> Standard</label><label><input type="radio" name="display-text" value="large"> Large</label></fieldset><fieldset><legend>Interface colours</legend><label><input type="radio" name="display-colours" value="standard" checked> Standard</label><label><input type="radio" name="display-colours" value="high-contrast"> High contrast</label></fieldset><button type="button" data-display-close>Close display preferences</button></section>
-      </header>
-      <section class="creator__pair-strip" id="studio-task-bar" role="region" aria-label="${STUDENT_COPY.labels.pairPlay}">
+      <div class="creator__tuck-top" data-tuck-top>
+        <div class="creator__tuck-tabs" data-tuck-tabs="top" role="group" aria-label="Studio menus"></div>
+        <header class="creator__topbar" id="studio-menu-panel" role="region" aria-label="Studio menu">
+          <p class="creator__brand"><strong>AD MARKET</strong><span>Studio</span></p>
+          <input aria-label="Product name" maxlength="48" placeholder="Name your product">
+          <button type="button" data-guide-review-top>How to use this site</button>
+          <button type="button" data-studio-tour-open>Studio tour</button>
+          <button type="button" data-writers-statement-open>${STUDENT_COPY.writersStatement.menuLabel}</button>
+          <button type="button" data-display-toggle aria-controls="studio-display-panel" aria-expanded="false">Display</button>
+          <button type="button" data-command="return">Return to game</button>
+          <section class="creator__display-panel" id="studio-display-panel" aria-label="Display preferences" hidden data-display-panel><fieldset><legend>Interface text</legend><label><input type="radio" name="display-text" value="standard" checked> Standard</label><label><input type="radio" name="display-text" value="large"> Large</label></fieldset><fieldset><legend>Interface colours</legend><label><input type="radio" name="display-colours" value="standard" checked> Standard</label><label><input type="radio" name="display-colours" value="high-contrast"> High contrast</label></fieldset><button type="button" data-display-close>Close display preferences</button></section>
+        </header>
+        <section class="creator__pair-strip" id="studio-task-bar" role="region" aria-label="${STUDENT_COPY.labels.pairPlay}">
         <div class="creator__level-chip">
           <span class="creator__eyebrow" data-creator-level-label>${STUDENT_COPY.phaseLabels["round-zero"]}</span>
         </div>
@@ -78,15 +78,9 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           ${CHECKLIST_STEPS.map((label, index) => `<button type="button" aria-pressed="${index === 0}" data-slot="${label.toLowerCase()}">${label}</button>`).join("")}
         </nav>
         <div class="creator__role-card">
-          <div class="creator__role-turn creator__role-turn--active">
-            <span class="creator__role-label">Now: <strong data-active-role>${STUDENT_COPY.rolePrompts["art-director"].label}</strong></span>
-            <p class="creator__next-action" data-active-role-action>${STUDENT_COPY.rolePrompts["art-director"].productiveAction}</p>
-          </div>
-          <div class="creator__role-turn creator__role-turn--partner">
-            <span class="creator__role-label">Partner: <strong data-partner-role>${STUDENT_COPY.rolePrompts.strategist.label}</strong></span>
-            <p class="creator__partner-action" data-partner-role-action>${STUDENT_COPY.rolePrompts.strategist.holdingAction}</p>
-          </div>
-          <p class="creator__round-progress" role="status" aria-label="${STUDENT_COPY.labels.roundProgress}" data-round-progress>${STUDENT_COPY.roundZero.progressNone}</p>
+          <span class="creator__role-label">Now: <strong data-active-role>${STUDENT_COPY.rolePrompts["art-director"].label}</strong></span>
+          <span class="creator__role-label creator__role-label--partner">Partner: <strong data-partner-role>${STUDENT_COPY.rolePrompts.strategist.label}</strong></span>
+          <p class="sr-only" role="status" aria-label="${STUDENT_COPY.labels.roundProgress}" data-round-progress>${STUDENT_COPY.roundZero.progressNone}</p>
           <div class="creator__role-actions" role="group" aria-label="Partner role controls">
             <button type="button" data-swap-roles>${STUDENT_COPY.handoff.buttonLabel}</button>
             <button type="button" data-role-guide-open>Role guide</button>
@@ -120,6 +114,15 @@ export function createEditorShell(root: HTMLElement): EditorShell {
             </div>
           </dl>
         </article>
+        </section>
+      </div>
+      <section class="creator__journey-bar" role="region" aria-label="Current instruction" data-guide-bar>
+        <p class="creator__guide-progress" data-guide-progress>Task 1 of 11</p>
+        <div class="creator__journey-bar-body">
+          <h2 data-guide-title>Audience evidence</h2>
+          <p data-guide-now></p>
+        </div>
+        <button type="button" class="creator__journey-bar-action" data-guide-open-tool>Open Audience evidence</button>
       </section>
       <div class="creator__workspace">
         <nav class="creator__tool-rail" role="tablist" aria-label="Studio tools">
@@ -138,12 +141,8 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           <button type="button" role="tab" aria-selected="false" aria-controls="studio-edit-pane" tabindex="-1" data-studio-pane-tab="edit">Edit</button>
         </nav>
         <aside class="creator__library creator__tool-drawer" id="studio-browse-pane" aria-label="Studio drawer" data-studio-drawer>
-          <button type="button" class="creator__tool-drawer-toggle" data-studio-drawer-toggle aria-controls="studio-browse-pane" aria-expanded="true">Hide tools</button>
-          <section class="creator__guide" role="region" aria-label="Current instruction" data-guide>
-            <p class="creator__guide-progress" data-guide-progress>Task 1 of 11</p>
-            <h2 data-guide-title>Audience evidence</h2>
+          <section class="creator__guide" role="region" aria-label="Current instruction details" data-guide>
             <dl>
-              <div><dt>Now</dt><dd data-guide-now></dd></div>
               <div><dt>Why</dt><dd data-guide-why></dd></div>
               <div><dt>Done</dt><dd data-guide-done></dd></div>
               <div><dt>Next</dt><dd data-guide-next></dd></div>
@@ -154,7 +153,6 @@ export function createEditorShell(root: HTMLElement): EditorShell {
               <ul data-guide-method-list></ul>
             </details>
             <div class="creator__guide-actions">
-              <button type="button" data-guide-open-tool>Open Audience evidence</button>
               <button type="button" data-guide-review>How to use this site</button>
             </div>
             <p class="creator__guide-locks" id="studio-locked-actions-status"
@@ -243,7 +241,10 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         </p>
         <main class="creator__canvas" id="studio-edit-pane" role="region" aria-label="Advertisement area" tabindex="0">
           <p class="creator__canvas-label" aria-hidden="true">LIVE AD</p>
-          <div class="creator__canvas-size" role="group" aria-label="Selected product or image size">
+          <div class="creator__canvas-size" role="group" aria-label="Advertisement toolbar">
+            <button type="button" data-command="undo">Undo</button>
+            <button type="button" data-command="redo">Redo</button>
+            <span class="creator__save-status" role="status" aria-label="Saved progress" data-save-status></span>
             <button type="button" data-canvas-zoom="out" aria-label="Make selected product or image smaller" title="Make selected product or image smaller">−</button>
             <button type="button" data-canvas-zoom="fill" aria-label="Fill ad with selected image" title="Fill the ad, then drag the image to choose the crop">Fill ad</button>
             <button type="button" data-canvas-zoom="in" aria-label="Make selected product or image larger" title="Make selected product or image larger">+</button>
@@ -303,16 +304,25 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         </div>
         <div data-studio-onboarding-page="roles" hidden>
           <h2>Share the roles</h2>
-          <p>The Art Director leads appearance choices. The Strategist leads audience, message, evidence and offer choices.</p>
-          <p>Both partners can use the same controls. Swap roles changes responsibility, not permissions.</p>
+          <ul>
+            <li>Art Director: choose how the advertisement looks.</li>
+            <li>Strategist: choose the audience, message, evidence and offer.</li>
+            <li>Either partner can use every control.</li>
+          </ul>
         </div>
         <div data-studio-onboarding-page="build" hidden>
           <h2>Use the Build area</h2>
-          <p>Build lets you choose a starter product for the advertisement. Other tools appear when their next action needs them.</p>
+          <ul>
+            <li>Open Build to choose a starter product.</li>
+            <li>Each other tool appears when its next action is due.</li>
+          </ul>
         </div>
         <div data-studio-onboarding-page="first-action" hidden>
           <h2>Choose a starter product</h2>
-          <p>Choose one product. It will appear in the advertisement, ready for your first design edit.</p>
+          <ul>
+            <li>Choose one product.</li>
+            <li>It appears in the advertisement, ready for your first design edit.</li>
+          </ul>
         </div>
         <div class="creator__studio-onboarding-actions">
           <button type="button" data-studio-onboarding-close>Close</button>
@@ -396,8 +406,9 @@ export function createEditorShell(root: HTMLElement): EditorShell {
   return {
     overlay,
     workspace: root.querySelector(".creator__workspace")!,
+    tuckTabsTop: root.querySelector('[data-tuck-tabs="top"]')!,
+    menuPanel: root.querySelector("#studio-menu-panel")!,
     taskBar: root.querySelector("#studio-task-bar")!,
-    taskBarToggle: root.querySelector("[data-task-bar-toggle]")!,
     displayToggle: root.querySelector("[data-display-toggle]")!,
     displayPanel: root.querySelector("[data-display-panel]")!,
     library: root.querySelector(".creator__library")!,
@@ -411,9 +422,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
     studioCoachPanel: root.querySelector('[data-studio-coach-panel]')!,
     logoLabPanel: root.querySelector('[data-logo-lab-panel]')!,
     activeRole: root.querySelector('[data-active-role]')!,
-    activeRoleAction: root.querySelector('[data-active-role-action]')!,
     partnerRole: root.querySelector('[data-partner-role]')!,
-    partnerRoleAction: root.querySelector('[data-partner-role-action]')!,
     roundProgress: root.querySelector('[data-round-progress]')!,
     swapRoles: root.querySelector('[data-swap-roles]')!,
     audienceSignal: root.querySelector('[data-audience-signal]')!,

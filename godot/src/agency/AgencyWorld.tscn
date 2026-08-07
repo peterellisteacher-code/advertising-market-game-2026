@@ -750,31 +750,31 @@ shape = SubResource("RectangleShape2D_k282e")
 y_sort_enabled = true
 
 [node name="Reception" parent="Stations" unique_id=795862808 instance=ExtResource("3_ytwji")]
-position = Vector2(317.4, 290.7)
+position = Vector2(319.9, 290.9)
 
 [node name="ClientBriefing" parent="Stations" unique_id=1212045144 instance=ExtResource("3_ytwji")]
-position = Vector2(430, 370)
+position = Vector2(421.0, 408.0)
 
 [node name="StrategyRoom" parent="Stations" unique_id=1683905649 instance=ExtResource("3_ytwji")]
-position = Vector2(640.8, 290.7)
+position = Vector2(639.0, 289.4)
 
 [node name="ArtStudio" parent="Stations" unique_id=1203801639 instance=ExtResource("3_ytwji")]
-position = Vector2(1040, 310)
+position = Vector2(949.3, 301.9)
 
 [node name="CopyRoom" parent="Stations" unique_id=647683404 instance=ExtResource("3_ytwji")]
-position = Vector2(228, 518)
+position = Vector2(226.5, 502.1)
 
 [node name="ProductionStudio" parent="Stations" unique_id=609081351 instance=ExtResource("3_ytwji")]
-position = Vector2(178, 706)
+position = Vector2(164.4, 709.1)
 
 [node name="MediaDesk" parent="Stations" unique_id=445161505 instance=ExtResource("3_ytwji")]
-position = Vector2(640, 532)
+position = Vector2(635.4, 554.4)
 
 [node name="SoundBooth" parent="Stations" unique_id=977954098 instance=ExtResource("3_ytwji")]
-position = Vector2(982, 518)
+position = Vector2(973.3, 500.9)
 
 [node name="PitchTheatre" parent="Stations" unique_id=91552630 instance=ExtResource("3_ytwji")]
-position = Vector2(1012, 708)
+position = Vector2(996.6, 671.2)
 
 [node name="AgencyPair" parent="." unique_id=536369964 instance=ExtResource("6_45h1l")]
 z_index = 12

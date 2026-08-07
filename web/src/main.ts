@@ -169,6 +169,9 @@ import { LocalPracticeService } from "./persistence/local-practice-service";
 import { SerializedAutosave } from "./persistence/serialized-autosave";
 import { createEditorShell, type EditorShell } from "./ui/editor-shell";
 import { DisplayPreferencesController } from "./ui/display-preferences";
+import { createTuckShell, type TuckPanelHandle } from "./ui/tuck-shell";
+import { createOverlayExclusivity, type OverlayExclusivity } from "./ui/overlay-exclusivity";
+import { createWritersStatementView, type WritersStatementView } from "./ui/writers-statement";
 import { catalogueRecordsWithBackgrounds, isAdBackgroundPreset } from "./assets/ad-background-presets";
 import { registerReleaseServiceWorker } from "./service-worker-registration";
 import { createStudioToolDrawer } from "./ui/studio-tool-drawer";
@@ -259,6 +262,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   readonly #productName: HTMLInputElement;
   readonly #placements: CataloguePlacementQueue;
   readonly #productShellRegions: ProductShellRegionControls;
+  readonly #overlayExclusivity: OverlayExclusivity;
   #document: CampaignDocumentV1 | null = null;
   #runtime: CanvasRuntime | null = null;
   #runtimePromise: Promise<CanvasRuntime> | null = null;
@@ -286,6 +290,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #editorOpen = false;
   #practiceAutosave: SerializedAutosave<LocalPracticeRecoveryV1> | null = null;
   #practiceSaveMatched = false;
+  readonly #writersStatement: WritersStatementView;
 
   constructor(
     private readonly root: HTMLElement,
@@ -294,8 +299,10 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     private readonly gameCanvas: HTMLCanvasElement | null,
     private readonly drafts: DraftStore = new IndexedDbDraftStore(),
     practice: LocalPracticeService | null = null,
-    cloudSync: Pick<CloudProgressSync, "enqueue"> | null = null
+    cloudSync: Pick<CloudProgressSync, "enqueue"> | null = null,
+    overlayExclusivity: OverlayExclusivity = createOverlayExclusivity()
   ) {
+    this.#overlayExclusivity = overlayExclusivity;
     const productName = shell.overlay.querySelector<HTMLInputElement>(
       'input[aria-label="Product name"]'
     );
@@ -324,7 +331,22 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
         this.shell.polite.textContent = `${region} colour changed`;
       }
     );
+    this.#overlayExclusivity.register({
+      id: "inspector",
+      isOpen: () => !shell.inspector.hidden,
+      close: () => this.#productShellRegions.clear()
+    });
     this.#productShellRegions.clear();
+    this.#writersStatement = createWritersStatementView(shell.overlay, {
+      onOpened: () => this.#overlayExclusivity.notifyOpened("writers-statement")
+    });
+    this.#overlayExclusivity.register({
+      id: "writers-statement",
+      isOpen: () => this.#writersStatement.isOpen(),
+      close: () => this.#writersStatement.close({ focus: false })
+    });
+    shell.overlay.querySelector<HTMLButtonElement>("[data-writers-statement-open]")
+      ?.addEventListener("click", () => { this.#openWritersStatement(); });
     this.#placements = new CataloguePlacementQueue({
       getDocument: () => this.#document,
       getCanvas: async () => (await this.#ensureRuntime()).adapter,
@@ -1313,7 +1335,31 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     const document = this.#snapshot();
     const published = new CampaignExporter(runtime.adapter, this.#ownedRasterUrls).publish(document);
     this.#document = document;
+    this.#writersStatement.offerAfterPublish(structuredClone(document));
     return published;
+  }
+
+  #openWritersStatement(): void {
+    const campaign = this.#campaignForWritersStatement();
+    if (campaign === null) {
+      this.shell.polite.textContent = STUDENT_COPY.writersStatement.notOpen;
+      return;
+    }
+    this.#writersStatement.open(campaign);
+  }
+
+  #campaignForWritersStatement(): CampaignDocumentV1 | null {
+    if (this.#document === null) return null;
+    if (this.#editorOpen && this.#runtime !== null) {
+      try {
+        return this.#snapshot();
+      } catch {
+        // The statement is a read-only view; a snapshot that cannot be
+        // re-validated must not block reading the last good document.
+        return structuredClone(this.#document);
+      }
+    }
+    return structuredClone(this.#document);
   }
 
   async close(): Promise<void> {
@@ -1345,6 +1391,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     attempt(() => {
       if (this.#document && this.#runtime) this.#document = this.#snapshot();
     });
+    attempt(() => this.#writersStatement.reset());
     attempt(() => this.#pairGame?.close());
     attempt(() => this.#destroyCanvasAccessibility());
     const history = this.#history;
@@ -1687,6 +1734,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
 
   #showProductShellRegions(objectId: string, title: string, regions: string[]): void {
     if (!this.#runtime) return;
+    this.#overlayExclusivity.notifyOpened("inspector");
     this.#productShellRegions.show({
       objectId,
       title,
@@ -1696,6 +1744,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 
   #showProductVariantSummary(title: string): void {
+    this.#overlayExclusivity.notifyOpened("inspector");
     this.shell.inspector.hidden = false;
     const heading = document.createElement("h2");
     heading.textContent = title;
@@ -1794,7 +1843,15 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       deleteSelected: () => this.deleteSelected(),
       announce: (message, priority) => {
         (priority === "assertive" ? this.shell.assertive : this.shell.polite).textContent = message;
+      },
+      onOpenChange: (open) => {
+        if (open) this.#overlayExclusivity.notifyOpened("layers");
       }
+    });
+    this.#overlayExclusivity.register({
+      id: "layers",
+      isOpen: () => this.#canvasAccessibility?.isOpen() ?? false,
+      close: () => this.#canvasAccessibility?.close()
     });
     this.#sectionFill = new SectionFillController({
       host: this.shell.sectionFillPanel,
@@ -1814,7 +1871,15 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
         this.#sectionFillPreviewActive = active;
         if (active) this.root.dataset.sectionFillPreview = "true";
         else delete this.root.dataset.sectionFillPreview;
+      },
+      onVisibilityChange: (visible) => {
+        if (visible) this.#overlayExclusivity.notifyOpened("section-fill");
       }
+    });
+    this.#overlayExclusivity.register({
+      id: "section-fill",
+      isOpen: () => !this.shell.sectionFillPanel.hidden,
+      close: () => { void this.#sectionFill?.setSelection(null); }
     });
     this.#unsubscribeCanvasSelectionStatus = runtime.adapter.subscribeSelection(({ objectIds }) => {
       void this.#sectionFill?.setSelection(objectIds.length === 1 ? objectIds[0]! : null)
@@ -2030,14 +2095,30 @@ const root = document.querySelector<HTMLElement>("#creator-root");
 if (!root) throw new Error("Missing #creator-root");
 
 const shell = createEditorShell(root);
-const setTaskBarCollapsed = (collapsed: boolean): void => {
-  shell.overlay.toggleAttribute("data-task-bar-collapsed", collapsed);
-  shell.taskBar.hidden = collapsed;
-  shell.taskBarToggle.textContent = collapsed ? "Show task bar" : "Hide task bar";
-  shell.taskBarToggle.setAttribute("aria-expanded", String(!collapsed));
-};
-shell.taskBarToggle.addEventListener("click", () => {
-  setTaskBarCollapsed(!shell.taskBar.hidden);
+const tuckShell = createTuckShell({
+  // sessionStorage on purpose: tuck layout survives mid-lesson reloads but
+  // every new session starts fully tucked, per the single-action screen law.
+  storage: (() => {
+    try { return window.sessionStorage; } catch { return null; }
+  })(),
+  scope: mode.kind,
+  motionRoot: shell.overlay
+});
+const menuTuck: TuckPanelHandle = tuckShell.register({
+  id: "menu",
+  edge: "top",
+  tabLabel: "Menu",
+  defaultTucked: true,
+  panel: shell.menuPanel,
+  tabStrip: shell.tuckTabsTop
+});
+const briefTuck: TuckPanelHandle = tuckShell.register({
+  id: "brief",
+  edge: "top",
+  tabLabel: "Brief & roles",
+  defaultTucked: true,
+  panel: shell.taskBar,
+  tabStrip: shell.tuckTabsTop
 });
 registerReleaseServiceWorker({
   onUpdateReady: () => {
@@ -2046,12 +2127,27 @@ registerReleaseServiceWorker({
     shell.polite.textContent = STUDENT_COPY.release.updateReady;
   }
 });
-const studioTools = createStudioToolDrawer(shell.overlay);
+// Shared with the tool drawer below: in narrow viewports StudioSplitPane's
+// Browse/Edit pane tabs are the sole owner of the library/drawer element's
+// visibility (there is no side-by-side space for tucking to reclaim), so
+// both modules must agree on the exact same breakpoint crossing in the same
+// order rather than racing two independent matchMedia listeners.
+const studioNarrowQuery = (() => {
+  try {
+    return typeof window.matchMedia === "function" ? window.matchMedia("(max-width: 900px)") : null;
+  } catch {
+    return null;
+  }
+})();
 const studioSplitPane = new StudioSplitPane({
   root: shell.workspace,
   browsePane: shell.library,
   designPane: shell.canvasRegion,
   separator: shell.workspaceSeparator,
+  // exactOptionalPropertyTypes forbids an explicit `undefined`; omit the key
+  // entirely when matchMedia is unavailable so StudioSplitPane falls back to
+  // its own internally-constructed query instead.
+  ...(studioNarrowQuery !== null ? { narrowQuery: studioNarrowQuery } : {}),
   storage: (() => {
     try {
       return window.localStorage;
@@ -2063,9 +2159,24 @@ const studioSplitPane = new StudioSplitPane({
     ? TEACHER_PLAYTEST_STUDIO_SPLIT_STORAGE_KEY
     : STUDENT_STUDIO_SPLIT_STORAGE_KEY
 });
+// Constructed after studioSplitPane: both control the shared drawer/library
+// element's `hidden` state, and the drawer's own tucked default (see
+// studio-tool-drawer.ts) must be the last word at boot in wide layouts.
+const studioTools = createStudioToolDrawer(shell.overlay, {
+  storage: (() => {
+    try { return window.sessionStorage; } catch { return null; }
+  })(),
+  scope: mode.kind,
+  narrowQuery: studioNarrowQuery
+});
 const displayPreferences = new DisplayPreferencesController(shell.overlay, (() => {
   try { return window.localStorage; } catch { return null; }
 })(), mode.kind);
+// The layers panel, inspector, section-fill panel and display panel are
+// floating overlays that may never be open simultaneously (single-action
+// screen law): opening one closes the others, including contextual
+// auto-opens such as the inspector opening on a canvas selection.
+const overlayExclusivity = createOverlayExclusivity();
 const syncDisplayPanel = (): void => {
   const value = displayPreferences.value;
   shell.displayPanel.querySelector<HTMLInputElement>(`input[name="display-text"][value="${value.textSize}"]`)!.checked = true;
@@ -2076,12 +2187,22 @@ shell.displayToggle.addEventListener("click", () => {
   shell.displayPanel.hidden = !open;
   shell.displayToggle.setAttribute("aria-expanded", String(open));
   if (open) {
+    overlayExclusivity.notifyOpened("display");
     syncDisplayPanel();
     shell.displayPanel.querySelector<HTMLInputElement>('input[name="display-text"]')?.focus();
   }
 });
-const closeDisplayPanel = (): void => { shell.displayPanel.hidden = true; shell.displayToggle.setAttribute("aria-expanded", "false"); shell.displayToggle.focus(); };
-shell.displayPanel.querySelector<HTMLButtonElement>("[data-display-close]")?.addEventListener("click", closeDisplayPanel);
+const closeDisplayPanel = (options: { focus?: boolean } = {}): void => {
+  shell.displayPanel.hidden = true;
+  shell.displayToggle.setAttribute("aria-expanded", "false");
+  if (options.focus ?? true) shell.displayToggle.focus();
+};
+overlayExclusivity.register({
+  id: "display",
+  isOpen: () => !shell.displayPanel.hidden,
+  close: () => closeDisplayPanel({ focus: false })
+});
+shell.displayPanel.querySelector<HTMLButtonElement>("[data-display-close]")?.addEventListener("click", () => closeDisplayPanel());
 shell.displayPanel.addEventListener("keydown", (event) => { if (event.key === "Escape") { event.preventDefault(); closeDisplayPanel(); } });
 shell.displayPanel.addEventListener("change", () => {
   const textSize = shell.displayPanel.querySelector<HTMLInputElement>('input[name="display-text"]:checked')?.value;
@@ -2089,7 +2210,9 @@ shell.displayPanel.addEventListener("change", () => {
   if ((textSize === "standard" || textSize === "large") && (colours === "standard" || colours === "high-contrast")) displayPreferences.update({ textSize, colours });
 });
 shell.overlay.querySelector(".creator__tool-rail")?.addEventListener("click", () => {
-  studioSplitPane.selectNarrowPane("browse");
+  // A rail click that tucks the drawer (clicking the already-active tab)
+  // must not force the narrow-viewport pane-tabs back to Browse.
+  if (!studioTools.isTucked()) studioSplitPane.selectNarrowPane("browse");
 });
 const gameSurface = document.querySelector<HTMLElement>('main[aria-label="Advertising Market Game"]');
 const gameCanvas = document.querySelector<HTMLCanvasElement>("#canvas");
@@ -2293,7 +2416,8 @@ const handler = new BrowserCreatorHandler(
   gameCanvas,
   drafts,
   practiceService,
-  cloudSync
+  cloudSync,
+  overlayExclusivity
 );
 const canvasResizeObserver = typeof globalThis.ResizeObserver === "function"
   ? new ResizeObserver((entries) => {
@@ -2345,10 +2469,12 @@ const guidedJourney = new GuidedJourneyController(shell.overlay, (step) => {
     return;
   }
   if (step.id === "roles") {
+    briefTuck.untuck({ focus: false });
     shell.overlay.querySelector<HTMLButtonElement>("[data-role-guide-open]")?.click();
     return;
   }
   if (step.id === "product-name") {
+    menuTuck.untuck({ focus: false });
     shell.overlay.querySelector<HTMLInputElement>('input[aria-label="Product name"]')?.focus();
     return;
   }
@@ -2358,12 +2484,14 @@ const guidedJourney = new GuidedJourneyController(shell.overlay, (step) => {
     return;
   }
   if (step.id === "audience") {
+    briefTuck.untuck({ focus: false });
     const briefToggle = shell.overlay.querySelector<HTMLButtonElement>("[data-brief-toggle]");
     if (briefToggle?.getAttribute("aria-expanded") !== "true") briefToggle?.click();
     shell.audienceSignal.focus();
     return;
   }
   if (step.id === "pair-contribution") {
+    briefTuck.untuck({ focus: false });
     studioTools.select("product");
     shell.swapRoles.focus();
     return;
@@ -2444,6 +2572,7 @@ const roleGuide = new RoleGuideController(
   false
 );
 handler.attachRoleGuide(roleGuide);
+let tourCloseRetuck: number | null = null;
 const studioOnboarding = new StudioOnboardingController(
   root,
   shell.overlay,
@@ -2453,7 +2582,36 @@ const studioOnboarding = new StudioOnboardingController(
   },
   () => {
     studioTools.select("product");
-    shell.productBuilderPanel.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
+    // The starter panel's first action is a radio choice; its only button
+    // stays disabled until a product is picked. Until the catalogue loads
+    // the panel has no focusable content, so fall back to the Build tab.
+    const starter = shell.productBuilderPanel
+      .querySelector<HTMLElement>("input:not(:disabled), button:not(:disabled)")
+      ?? shell.overlay.querySelector<HTMLElement>('[data-studio-tool="product"]');
+    starter?.focus();
+  },
+  (pageId) => {
+    // Menu stays untucked for the tour's duration (it houses the tour's own
+    // open control). The controller restores focus synchronously AFTER this
+    // callback, so the close retuck runs on a zero timer; if that focus
+    // restore landed inside the now-hidden Menu, focus moves to the Menu tab.
+    if (pageId === null) {
+      briefTuck.tuck({ focus: false });
+      tourCloseRetuck = window.setTimeout(() => {
+        tourCloseRetuck = null;
+        const focusWasInMenu = shell.menuPanel.contains(document.activeElement);
+        menuTuck.tuck({ focus: false });
+        if (focusWasInMenu) menuTuck.tab.focus();
+      }, 0);
+      return;
+    }
+    if (tourCloseRetuck !== null) {
+      window.clearTimeout(tourCloseRetuck);
+      tourCloseRetuck = null;
+    }
+    menuTuck.untuck({ focus: false });
+    if (pageId === "brief" || pageId === "roles") briefTuck.untuck({ focus: false });
+    else briefTuck.tuck({ focus: false });
   }
 );
 handler.attachStudioOnboarding(studioOnboarding);

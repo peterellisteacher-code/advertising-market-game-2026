@@ -23,7 +23,7 @@ describe("createEditorShell", () => {
       expect(getComputedStyle(creator).getPropertyValue("--creator-chrome-font-size").trim())
         .toBe("1.125rem");
       const coveredChrome: Array<[string, HTMLElement]> = [
-        ["task bar", shell.activeRoleAction],
+        ["task bar", shell.activeRole],
         ["canvas controls", root.querySelector<HTMLElement>("[data-canvas-zoom-status]")!],
         ["display panel", shell.displayPanel.querySelector<HTMLElement>("legend")!],
         ["instruction dialog", root.querySelector<HTMLElement>("[data-guide-dialog] p")!],
@@ -110,9 +110,7 @@ describe("createEditorShell", () => {
     expect(shell.libraryColour).toBe(pieceColour);
     expect(shell.libraryResults.dataset.libraryResults).toBe("");
     expect(shell.libraryStatus.getAttribute("role")).toBe("status");
-    const hideTools = getByRole<HTMLButtonElement>(root, "button", { name: "Hide tools" });
-    expect(hideTools.getAttribute("aria-controls")).toBe("studio-browse-pane");
-    expect(hideTools.getAttribute("aria-expanded")).toBe("true");
+    expect(root.querySelector("[data-studio-drawer-toggle]")).toBeNull();
     const separator = getByRole<HTMLElement>(root, "separator", {
       name: "Resize the library and design areas"
     });
@@ -133,13 +131,20 @@ describe("createEditorShell", () => {
       .toBe("studio-edit-pane");
     expect(shell.library.id).toBe("studio-browse-pane");
     expect(shell.canvasRegion.id).toBe("studio-edit-pane");
-    const currentInstruction = getByRole(root, "region", { name: "Current instruction" });
+    const journeyBar = getByRole(root, "region", { name: "Current instruction" });
+    expect(journeyBar).toBeTruthy();
+    expect(journeyBar.querySelector("[data-guide-progress]")).toBeTruthy();
+    expect(journeyBar.querySelector("[data-guide-title]")).toBeTruthy();
+    expect(journeyBar.querySelector("[data-guide-now]")).toBeTruthy();
+    expect(getByRole(journeyBar, "button", { name: "Open Audience evidence" })).toBeTruthy();
+
+    const currentInstruction = getByRole(root, "region", { name: "Current instruction details" });
     expect(currentInstruction).toBeTruthy();
-    expect(["Now", "Why", "Done", "Next"].every((label) =>
+    expect(["Why", "Done", "Next"].every((label) =>
       currentInstruction.textContent?.includes(label)
     )).toBe(true);
     const guideRows = currentInstruction.querySelectorAll("dl > div");
-    expect(guideRows).toHaveLength(4);
+    expect(guideRows).toHaveLength(3);
     expect([...guideRows].every((row) =>
       row.querySelector("dt") !== null && row.querySelector("dd") !== null
     )).toBe(true);
@@ -158,7 +163,7 @@ describe("createEditorShell", () => {
     expect(lockedActions.id).toBe("studio-locked-actions-status");
     expect(lockedActions.hidden).toBe(true);
     expect(getByRole(root, "region", { name: "Advertisement area" }).getAttribute("tabindex")).toBe("0");
-    const sizeControls = getByRole(root, "group", { name: "Selected product or image size" });
+    const sizeControls = getByRole(root, "group", { name: "Advertisement toolbar" });
     expect(getByRole(sizeControls, "button", { name: "Make selected product or image smaller" }))
       .toBeTruthy();
     expect(getByRole(sizeControls, "button", { name: "Fill ad with selected image" }))
@@ -176,24 +181,22 @@ describe("createEditorShell", () => {
       .toBe("Select an item to delete");
     expect(shell.deleteSelected).toBe(deleteSelected);
     expect(shell.deleteStatus.id).toBe("canvas-delete-status");
-    expect(getByRole(sizeControls, "status").textContent).toBe("Select a product or image");
+    expect(shell.zoomStatus.textContent).toBe("Select a product or image");
     expect(getByRole(root, "status", { name: "Empty advertisement" }).textContent)
       .toContain("Advertisement empty");
     expect(shell.canvasEmptyState.hidden).toBe(false);
     expect(getByRole(root, "region", { name: "Pair play" })).toBeTruthy();
-    expect(getByRole(root, "status", { name: "Pair progress" })).toBeTruthy();
-    expect(root.querySelector(".creator__role-card [data-active-role-action]"))
-      .toBe(shell.activeRoleAction);
+    // The pair status is announced, not displayed: role teaching lives in
+    // the tour and role guide, so the strip stays a compact functional row.
+    const pairProgress = getByRole(root, "status", { name: "Pair progress" });
+    expect(pairProgress.classList.contains("sr-only")).toBe(true);
+    expect(root.querySelector(".creator__role-card [data-active-role]"))
+      .toBe(shell.activeRole);
     expect(root.querySelector(".creator__role-card [data-partner-role]"))
       .toBe(shell.partnerRole);
-    expect(root.querySelector(".creator__role-card [data-partner-role-action]"))
-      .toBe(shell.partnerRoleAction);
-    expect(shell.partnerRoleAction.closest("[hidden]")).toBeNull();
-    expect(shell.activeRoleAction.textContent)
-      .toMatch(/build the product/i);
+    expect(root.querySelector("[data-active-role-action]")).toBeNull();
+    expect(root.querySelector("[data-partner-role-action]")).toBeNull();
     expect(shell.partnerRole.textContent).toBe("Strategist");
-    expect(shell.partnerRoleAction.textContent)
-      .toContain("Prepare a product name and one useful benefit");
     expect(getByRole(root, "button", { name: "Swap roles" })).toBeTruthy();
     const roleActions = getByRole(root, "group", { name: "Partner role controls" });
     expect([...roleActions.querySelectorAll("button")].map(({ textContent }) => textContent))
@@ -221,9 +224,13 @@ describe("createEditorShell", () => {
     expect(audienceBrief.querySelectorAll("[data-brief-help]")).toHaveLength(4);
     expect(getByRole(root, "button", { name: "Open full brief" }).getAttribute("aria-expanded"))
       .toBe("false");
-    const taskBarToggle = getByRole<HTMLButtonElement>(root, "button", { name: "Hide task bar" });
-    expect(taskBarToggle.getAttribute("aria-controls")).toBe("studio-task-bar");
-    expect(taskBarToggle.getAttribute("aria-expanded")).toBe("true");
+    expect(shell.tuckTabsTop.getAttribute("role")).toBe("group");
+    expect(shell.tuckTabsTop.getAttribute("aria-label")).toBe("Studio menus");
+    expect(shell.tuckTabsTop.children).toHaveLength(0);
+    expect(shell.menuPanel.id).toBe("studio-menu-panel");
+    expect(shell.menuPanel.hidden).toBe(false);
+    expect(shell.taskBar.id).toBe("studio-task-bar");
+    expect(shell.taskBar.hidden).toBe(false);
     expect(root.querySelector('[data-studio-panel="words"][aria-label="Pair tools"]')).toBeTruthy();
     expect(root.querySelector('[data-studio-panel="logo"][aria-label="Logo Lab"]')).toBeTruthy();
     expect(shell.logoLabPanel.dataset.logoLabPanel).toBe("");
@@ -265,6 +272,9 @@ describe("createEditorShell", () => {
     expect(shell.saveStatus.textContent).toBe("");
     expect(shell.undo.dataset.command).toBe("undo");
     expect(shell.redo.dataset.command).toBe("redo");
+    expect(sizeControls.contains(shell.undo)).toBe(true);
+    expect(sizeControls.contains(shell.redo)).toBe(true);
+    expect(sizeControls.contains(shell.saveStatus)).toBe(true);
     expect(root.textContent).not.toMatch(/\b(?:assignment|unit|canvas)\b/i);
   });
 

@@ -207,6 +207,15 @@ func _apply_visual_motion() -> void:
 	strategist.rotation = lean * 0.78
 	art_director.scale = _art_director_base_scale
 	strategist.scale = _strategist_base_scale
+	# The sheet carries a real walk cycle, so the frames may only advance while the
+	# pair is walking. Reduced motion holds the standing pose for the same reason it
+	# suppresses the bob.
+	var walking := _visual_motion_state == "walking" and not _reduced_motion_enabled
+	for sprite: AnimatedSprite2D in [art_director, strategist]:
+		if walking and not sprite.is_playing():
+			sprite.play()
+		elif not walking and sprite.is_playing():
+			sprite.stop()
 
 func _capture_sprite_bases() -> void:
 	if _sprite_bases_captured:

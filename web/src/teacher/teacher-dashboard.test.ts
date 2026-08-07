@@ -139,6 +139,48 @@ describe("TeacherDashboard", () => {
     expect(fake.imageLabStatus).toHaveBeenCalledOnce();
   });
 
+  it.each<[string, number, string]>([
+    ["INVALID_CREDENTIALS", 401, "The teacher password was not accepted."],
+    ["CSRF_REJECTED", 403, "rejected the sign-in as cross-origin"],
+    ["TEACHER_NOT_CONFIGURED", 503, "not configured on the server"],
+    ["INVALID_REQUEST", 400, "rejected the sign-in request as malformed"],
+    ["INVALID_RESPONSE", 503, "The sign-in reply could not be read."]
+  ])("gives a %s sign-in failure its own message", async (
+    code,
+    status,
+    expected
+  ) => {
+    const fake = client(false);
+    vi.mocked(fake.login).mockRejectedValueOnce(new TeacherClientError(code, status));
+    const { root } = await mount(fake);
+    const password = getByLabelText<HTMLInputElement>(root, "Teacher password");
+    fireEvent.input(password, { target: { value: "teacher-password" } });
+
+    fireEvent.submit(password.form!);
+
+    const alert = await waitFor(() => getByRole(root, "alert"));
+    expect(alert.textContent).toContain(expected);
+    expect(getByRole<HTMLButtonElement>(root, "button", { name: "Sign in" }).disabled)
+      .toBe(false);
+  });
+
+  it("reports a network failure as an unreachable service, not a wrong password", async () => {
+    const fake = client(false);
+    vi.mocked(fake.login).mockRejectedValueOnce(
+      new TeacherClientError("TEACHER_UNAVAILABLE", 503, true)
+    );
+    const { root } = await mount(fake);
+    const password = getByLabelText<HTMLInputElement>(root, "Teacher password");
+    fireEvent.input(password, { target: { value: "teacher-password" } });
+
+    fireEvent.submit(password.form!);
+
+    const alert = await waitFor(() => getByRole(root, "alert"));
+    expect(alert.textContent).toBe(
+      "The teacher service could not be reached. Check the connection, then try again."
+    );
+  });
+
   it("shows classroom credentials and approves a student-created pair login", async () => {
     const { root, fake } = await mount();
 

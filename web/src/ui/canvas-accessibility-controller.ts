@@ -34,6 +34,7 @@ export interface CanvasAccessibilityControllerOptions {
   readonly runAction: (action: CanvasAccessibilityAction) => Promise<void>;
   readonly deleteSelected?: () => Promise<void>;
   readonly announce?: (message: string, priority: "polite" | "assertive") => void;
+  readonly onOpenChange?: (open: boolean) => void;
 }
 
 const interactiveTarget = (target: EventTarget | null): boolean => {
@@ -55,6 +56,7 @@ export class CanvasAccessibilityController {
   readonly #runAction: CanvasAccessibilityControllerOptions["runAction"];
   readonly #runDeleteSelected: () => Promise<void>;
   readonly #announce: NonNullable<CanvasAccessibilityControllerOptions["announce"]>;
+  readonly #onOpenChange: NonNullable<CanvasAccessibilityControllerOptions["onOpenChange"]>;
   readonly #unsubscribeMutation: () => void;
   readonly #unsubscribeSelection: () => void;
   #open = false;
@@ -136,6 +138,7 @@ export class CanvasAccessibilityController {
       return this.#runAction({ type: "remove", id });
     });
     this.#announce = options.announce ?? (() => undefined);
+    this.#onOpenChange = options.onOpenChange ?? (() => undefined);
     if (!this.#host.id) this.#host.id = "canvas-layers-panel";
     this.#toggle.setAttribute("aria-controls", this.#host.id);
     this.#toggle.setAttribute("aria-expanded", "false");
@@ -162,6 +165,18 @@ export class CanvasAccessibilityController {
     this.#host.hidden = true;
   }
 
+  isOpen(): boolean {
+    return this.#open;
+  }
+
+  /** Closes the panel without moving focus, for callers other than the toggle button itself. */
+  close(): void {
+    if (!this.#open) return;
+    this.#open = false;
+    this.#syncVisibility();
+    this.#render();
+  }
+
   #syncVisibility(): void {
     this.#host.hidden = !this.#open;
     this.#toggle.setAttribute("aria-expanded", String(this.#open));
@@ -170,6 +185,7 @@ export class CanvasAccessibilityController {
       this.#open ? "Close item list" : "Open item list"
     );
     this.#toggle.textContent = this.#open ? "Close items" : "Items";
+    this.#onOpenChange(this.#open);
   }
 
   #render(): void {

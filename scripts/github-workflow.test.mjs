@@ -19,13 +19,17 @@ test("GitHub Actions validates and builds the complete web artifact without depl
   );
   assert.doesNotMatch(workflow, /\$\{\{\s*vars\./u);
   assert.match(workflow, /permissions:\s*\r?\n\s+contents:\s*read/u);
-  assert.match(workflow, /godot --headless --path godot --import/u);
-  assert.match(workflow, /godot --headless --path godot --script res:\/\/tests\/run_tests\.gd/u);
+  assert.match(workflow, /node scripts\/run-godot-tests\.mjs/u);
   assert.match(workflow, /godot --headless --path godot --export-release "Web"/u);
+  assert.doesNotMatch(
+    workflow,
+    /godot --headless --path godot (?:--import|--script)/u,
+    "the Godot gate must run through scripts/run-godot-tests.mjs so CI cannot skip the import or the SCRIPT ERROR check"
+  );
   assert.ok(
-    workflow.indexOf("godot --headless --path godot --import") <
-      workflow.indexOf("godot --headless --path godot --script res://tests/run_tests.gd"),
-    "a fresh CI checkout must complete Godot imports before running scripts"
+    workflow.indexOf("node scripts/run-godot-tests.mjs") <
+      workflow.indexOf('godot --headless --path godot --export-release "Web"'),
+    "the Godot gate must pass before the release export is built"
   );
   assert.match(workflow, /pnpm test/u);
   assert.match(workflow, /pnpm typecheck/u);

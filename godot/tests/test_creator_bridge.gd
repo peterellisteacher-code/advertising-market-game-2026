@@ -11,6 +11,7 @@ func run() -> bool:
     assert(_test_latest_draft_response_validation())
     assert(_test_publish_payload_and_error_envelope_validation())
     assert(_test_campaign_document_strict_strings_and_json_numbers())
+    assert(_test_mission_evidence_validation())
     assert(_test_focus_restores_only_after_a_valid_close())
     return true
 
@@ -271,6 +272,78 @@ func _test_campaign_document_strict_strings_and_json_numbers() -> bool:
     assert(CampaignDocument.is_nonnegative_integer_number(42.0))
     assert(not CampaignDocument.is_nonnegative_integer_number(9007199254740992))
     assert(not CampaignDocument.is_nonnegative_integer_number(9007199254740992.0))
+    return true
+
+func _test_mission_evidence_validation() -> bool:
+    var document_without_field := _valid_document()
+    assert(not document_without_field.has("missionEvidence"))
+    assert(CampaignDocument.validate_bridge_shape(document_without_field).get("ok", false))
+
+    var valid_entry := {
+        "missionId": "audience-brief",
+        "title": "Read the audience before making anything",
+        "decisionId": "independence",
+        "effectText": "This interpretation joins the audience's limited time, need for productivity and value of independence."
+    }
+    var document_with_evidence := _valid_document()
+    document_with_evidence["missionEvidence"] = [valid_entry]
+    var result := CampaignDocument.validate_bridge_shape(document_with_evidence)
+    assert(result.get("ok", false))
+    assert(result.get("value").get("missionEvidence") == [valid_entry])
+
+    var not_array := _valid_document()
+    not_array["missionEvidence"] = {}
+    assert(not CampaignDocument.validate_bridge_shape(not_array).get("ok", false))
+
+    var extra_key := _valid_document()
+    var entry_with_extra_key := valid_entry.duplicate(true)
+    entry_with_extra_key["extra"] = "not allowed"
+    extra_key["missionEvidence"] = [entry_with_extra_key]
+    assert(not CampaignDocument.validate_bridge_shape(extra_key).get("ok", false))
+
+    var missing_key := _valid_document()
+    var entry_missing_key := valid_entry.duplicate(true)
+    entry_missing_key.erase("decisionId")
+    missing_key["missionEvidence"] = [entry_missing_key]
+    assert(not CampaignDocument.validate_bridge_shape(missing_key).get("ok", false))
+
+    var empty_text := _valid_document()
+    var entry_with_empty_text := valid_entry.duplicate(true)
+    entry_with_empty_text["effectText"] = ""
+    empty_text["missionEvidence"] = [entry_with_empty_text]
+    assert(not CampaignDocument.validate_bridge_shape(empty_text).get("ok", false))
+
+    var untrimmed_text := _valid_document()
+    var entry_with_untrimmed_text := valid_entry.duplicate(true)
+    entry_with_untrimmed_text["title"] = "  Read the audience before making anything  "
+    untrimmed_text["missionEvidence"] = [entry_with_untrimmed_text]
+    assert(not CampaignDocument.validate_bridge_shape(untrimmed_text).get("ok", false))
+
+    var too_long_title := _valid_document()
+    var entry_with_long_title := valid_entry.duplicate(true)
+    entry_with_long_title["title"] = "x".repeat(121)
+    too_long_title["missionEvidence"] = [entry_with_long_title]
+    assert(not CampaignDocument.validate_bridge_shape(too_long_title).get("ok", false))
+
+    var duplicate_mission_ids := _valid_document()
+    duplicate_mission_ids["missionEvidence"] = [valid_entry, valid_entry.duplicate(true)]
+    assert(not CampaignDocument.validate_bridge_shape(duplicate_mission_ids).get("ok", false))
+
+    var too_many_entries := _valid_document()
+    var entries: Array = []
+    for index in range(25):
+        var entry := valid_entry.duplicate(true)
+        entry["missionId"] = "mission-%d" % index
+        entries.append(entry)
+    too_many_entries["missionEvidence"] = entries
+    assert(not CampaignDocument.validate_bridge_shape(too_many_entries).get("ok", false))
+
+    var wrong_value_type := _valid_document()
+    var entry_with_wrong_type := valid_entry.duplicate(true)
+    entry_with_wrong_type["decisionId"] = 7
+    wrong_value_type["missionEvidence"] = [entry_with_wrong_type]
+    assert(not CampaignDocument.validate_bridge_shape(wrong_value_type).get("ok", false))
+
     return true
 
 func _test_focus_restores_only_after_a_valid_close() -> bool:

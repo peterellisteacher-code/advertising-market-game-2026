@@ -286,7 +286,7 @@ func _assert_motion_and_ambient_contract(world: Node) -> void:
 	var art_director := pair.get_node("%ArtDirectorSprite") as AnimatedSprite2D
 	var strategist := pair.get_node("%StrategistSprite") as AnimatedSprite2D
 	var expected_sprite_scale := Vector2(0.5, 0.5)
-	var expected_sprite_size := Vector2(54.0, 61.0)
+	var expected_sprite_size := Vector2(48.5, 69.0)
 	var root_position := Vector2.ZERO
 	var body_position := body_collision.position
 	var interaction_position := interaction_area.position

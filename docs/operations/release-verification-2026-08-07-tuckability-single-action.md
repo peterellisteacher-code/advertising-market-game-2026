@@ -194,28 +194,77 @@ required before any further QA.
 
 The fourth defect is open and needs an authoring decision, recorded below.
 
-### Open: the floor art carries 8 markers for 9 stations
+### Resolved: the floor art carries 8 markers, only 6 of them for stations
 
-The agency floor art bakes a glowing amber ellipse at each station, and those markers
-are the authored ground truth for where a hotspot belongs. Detecting them by colour and
-converting through the `AgencyFloor` sprite transform (centred at 640,440, scale
-0.76555) yields eight markers. Seven stations sit 14px to 40px from their marker, which
-is mechanical to correct. Three do not resolve:
+The agency floor art bakes a glowing amber ellipse where a hotspot belongs, and those
+markers are the authored ground truth. Detecting them by colour and converting through
+the `AgencyFloor` sprite transform (centred at 640,440, scale 0.76555) yields eight. The
+earlier reading of "8 markers for 9 stations" was wrong: only six mark stations. Of the
+remaining two, one matches `CENTRAL_TRAVEL_POINT` and one sits on the entrance mat,
+bound to nothing — the pair spawns at reception (381.4, 290.7), not on the mat.
 
-| Station | Script position | Distance to nearest marker |
-|---|---|---|
-| client-briefing | (430, 370) | 136px |
-| media-desk | (640, 532) | 121px |
-| art-studio | (1040, 310) | 202px |
+Six stations were moved onto their marker, a correction of 14px to 40px each. The three
+with no marker — client-briefing, media-desk and art-studio — were given one, by
+alpha-compositing a copy of the reception marker onto clear floor in the room each
+station belongs to. Stamping rather than drawing keeps the new markers identical in
+colour and shape to the authored ones.
 
-The art studio room has no floor marker at all. Snapping these three to their nearest
-marker would place client-briefing on reception's marker, so no automatic correction was
-applied. Either the art gains three markers or those three stations move onto existing
-ones; both are authoring decisions.
+| Station | Was | Now | Marker |
+|---|---|---|---|
+| reception | (318, 318) | (319.9, 290.9) | authored |
+| client-briefing | (430, 370) | (421.0, 408.0) | stamped, floor by the briefing table |
+| strategy-room | (640, 320) | (639.0, 289.4) | authored |
+| art-studio | (1040, 310) | (949.3, 301.9) | stamped, floor left of the swatch layout |
+| copy-room | — | (226.5, 502.1) | authored |
+| production-studio | — | (164.4, 709.1) | authored |
+| media-desk | (640, 532) | (635.4, 554.4) | stamped, tile below the lounge rug |
+| sound-booth | — | (973.3, 500.9) | authored |
+| pitch-theatre | — | (996.6, 671.2) | authored |
 
-Separately, the pair figures were judged not good enough. Replacement candidates should
-come from `C:\Users\Peter Ellis\Documents\Asset Packs` (see its `ASSET_CATALOG.md`); the
-current figures are one atlas at `godot/assets/agency/agency-pair.png`.
+Every arrival point (station position plus its `STATION_ARRIVAL_OFFSETS` entry) was
+checked to land on walkable floor inside the same room and inside `movement_bounds`
+(28,104 to 1252,772). The original media-desk placement pushed its `(+64, 0)` arrival
+into the corridor's right wall; moving the station clears it. client-briefing's physics
+contract still holds: the pair arrives at (421, 498), 46px below `ClientBriefingFixture`,
+so the 90px upward motion test still collides.
+
+### Resolved: the pair figures were destroyed by their downscale, not badly drawn
+
+The figures were judged not good enough, with the Asset Packs proposed as a source of
+replacements. Two findings changed that plan.
+
+`C:\Users\Peter Ellis\Documents\Asset Packs` has no usable replacement. Its character
+collection is side-view platformer art (Idle/Run/Jump/Attack) and top-down-shooter combat
+art; a search of `catalog/files.csv` for four-directional naming returns nothing outside
+two unrelated effect and tileset packs. The agency pair needs front, back, left and right
+at a high three-quarter camera angle. Swapping would cost the back and side views.
+
+The figures also were not the problem. The atlas shipped at 418x470 per cell and rendered
+at `scale = 0.13`, so the GPU resolved each figure into 54x61 pixels by nearest-neighbour
+sampling — an 87% reduction that keeps one pixel in eight. That is what produced the
+mismatched eyes and broken hands, not the artwork. The atlas is now authored at 108x122
+per cell (twice the rendered size, leaving headroom for larger browser windows) by
+premultiplied-alpha Lanczos resampling with a light unsharp pass, with `scale = 0.5` and
+`texture_filter = 2` (linear). The on-screen footprint is unchanged at 54x61, and the
+asset drops from 1.3 MB to 62 KB.
+
+`test_agency_world.gd` asserted the raw `0.13` scale, which coupled the contract to the
+source resolution. It now also asserts the rendered footprint (frame size times scale
+equals 54x61), verified load-bearing by injecting a 1px error.
+
+### Open: a failed `assert` does not fail the Godot suite
+
+Both regressions above were caught by reading stdout, not by the gate. `run_tests.gd`
+calls `quit(1)` only when a suite returns something other than `true`, but a failed
+GDScript `assert()` aborts the assertion function and returns control to `run()`, which
+carries on and returns `true`. Both times the runner printed `SCRIPT ERROR: Assertion
+failed` and then `Godot game, Creator bridge, and Market bridge tests passed`, and exited
+0. CI would have gone green on a broken suite. The cheapest fix is to fail the gate when
+the runner's output contains `SCRIPT ERROR`; it has not been applied.
+
+Related, not changed: `AgencyFloor` also uses `texture_filter = 1` at scale 0.766, so the
+floor art loses roughly a quarter of its pixel rows to the same nearest-neighbour
+sampling.
 
 ## Outstanding before production
 

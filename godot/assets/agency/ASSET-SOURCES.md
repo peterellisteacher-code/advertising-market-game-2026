@@ -61,11 +61,19 @@ present in `C:\Godot Projects\Advertising Market Game QA` on 4 August 2026.
 - Tool: OpenAI built-in image generation
 - Selected original:
   `call_yzXFKgzdpuTtD7YvhSngSArk.png`
-- Final file: original RGB PNG copied without resizing or image-editor
-  processing
+- Final file: original RGB PNG at its generated size, with three station markers
+  added on 2026-08-07 (see below)
 - Dimensions: 1672 x 941 pixels (wide 16:9 composition; aspect ratio 1.776833)
 - SHA-256:
+  `fbb6cdbab2678211b6247827935ec0cb6308d7a5223c953a015cd234ab468bf3`
+- Superseded SHA-256 (generated file, before markers were added):
   `d49d9b2d45b1b1ab23d144c82c4807d5f41abbde3117eff7196f8accd285d4ac`
+- Edit on 2026-08-07: the generator produced glowing floor markers for only six of
+  the nine stations, plus one for the central travel point and one on the entrance
+  mat. Markers for client-briefing, media-desk and art-studio were added by
+  alpha-compositing a copy of the generated reception marker onto clear floor in
+  each station's room. No pixels came from outside this file, so the provenance and
+  public-use decision below are unchanged.
 - Human selection: selected because the connected rooms, open central route,
   nine glowing work points, palette, scale and pitch theatre are immediately
   readable as a playable advertising agency
@@ -87,10 +95,21 @@ not required to build, use or license the public game.
 - Selected generated source:
   `call_vNT0oBiBgvUp1BjOjCaHNllv.png`
 - Final file: commercially licensed Bria background-removal result; character
-  pixels, registration and original 1672 x 941 dimensions were retained
+  pixels and registration were retained, and the sheet was resampled on
+  2026-08-07 to the size it is actually drawn at (see below)
 - Alpha: genuine RGBA transparency, confirmed in the final PNG and by Godot
+- Dimensions: 432 x 244 pixels, an eight-cell 4x2 grid of 108 x 122 cells
 - SHA-256:
+  `d1041230a6d4edc1d871d7bbeba295f401c3d2c7b7fd0df7c3d4e76ecccb2b42`
+- Superseded SHA-256 (background-removal result at 1672 x 941):
   `8eec47af4b31b2c3f6866a14c0e840c51d983617decc8b730c29d5e54934d1ba`
+- Edit on 2026-08-07: at 418 x 470 per cell the sheet rendered at `scale = 0.13`,
+  so the GPU reduced each figure to 54 x 61 by nearest-neighbour sampling and the
+  faces and hands broke up. Each cell was resampled to 108 x 122 — twice the
+  rendered size — using premultiplied-alpha Lanczos with a light unsharp pass, and
+  the sprites now use `scale = 0.5`. The rendered footprint is unchanged. No pixels
+  came from outside this file, so the provenance and public-use decision below are
+  unchanged.
 - Human selection: selected because it is a clean two-row, four-direction sheet
   with two visibly distinct, consistently scaled partner roles
 - Public-use decision: approved because the characters are original generated

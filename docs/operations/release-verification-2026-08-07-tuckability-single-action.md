@@ -215,11 +215,15 @@ colour and shape to the authored ones.
 | client-briefing | (430, 370) | (421.0, 408.0) | stamped, floor by the briefing table |
 | strategy-room | (640, 320) | (639.0, 289.4) | authored |
 | art-studio | (1040, 310) | (949.3, 301.9) | stamped, floor left of the swatch layout |
-| copy-room | — | (226.5, 502.1) | authored |
-| production-studio | — | (164.4, 709.1) | authored |
+| copy-room | (228, 518) | (226.5, 502.1) | authored |
+| production-studio | (178, 706) | (164.4, 709.1) | authored |
 | media-desk | (640, 532) | (635.4, 554.4) | stamped, tile below the lounge rug |
-| sound-booth | — | (973.3, 500.9) | authored |
-| pitch-theatre | — | (996.6, 671.2) | authored |
+| sound-booth | (982, 518) | (973.3, 500.9) | authored |
+| pitch-theatre | (1012, 708) | (996.6, 671.2) | authored |
+
+`CENTRAL_TRAVEL_POINT` also moved, from (640, 430) to (618.3, 413.4), onto the marker
+in the central corridor. "Was" is the position before this QA round; reception and
+strategy-room were nudged once already in `c276017f` before being placed exactly here.
 
 Every arrival point (station position plus its `STATION_ARRIVAL_OFFSETS` entry) was
 checked to land on walkable floor inside the same room and inside `movement_bounds`
@@ -252,19 +256,49 @@ asset drops from 1.3 MB to 62 KB.
 source resolution. It now also asserts the rendered footprint (frame size times scale
 equals 54x61), verified load-bearing by injecting a 1px error.
 
-### Open: a failed `assert` does not fail the Godot suite
+### Resolved: a failed `assert` did not fail the Godot suite
 
 Both regressions above were caught by reading stdout, not by the gate. `run_tests.gd`
 calls `quit(1)` only when a suite returns something other than `true`, but a failed
 GDScript `assert()` aborts the assertion function and returns control to `run()`, which
 carries on and returns `true`. Both times the runner printed `SCRIPT ERROR: Assertion
 failed` and then `Godot game, Creator bridge, and Market bridge tests passed`, and exited
-0. CI would have gone green on a broken suite. The cheapest fix is to fail the gate when
-the runner's output contains `SCRIPT ERROR`; it has not been applied.
+0. CI would have gone green on a broken suite.
+
+`scripts/run-godot-tests.mjs` now fails the gate when the suite output contains
+`SCRIPT ERROR`, when the completion line is absent, or when the runner exits non-zero.
+Re-injecting the 1px footprint error exits 1 with the reason named, against the same
+stdout that still ends in the completion line.
 
 Related, not changed: `AgencyFloor` also uses `texture_filter = 1` at scale 0.766, so the
 floor art loses roughly a quarter of its pixel rows to the same nearest-neighbour
 sampling.
+
+### Resolved: the local Godot gate could pass against a stale import cache
+
+`godot --headless --script res://tests/run_tests.gd` does not re-import changed assets.
+After the atlas was resized from 1672x941 to 432x244, the suite passed while
+`godot/.godot/imported/` still held the two-day-old 1,028,352-byte `.ctex` built from
+the original image. Nothing in the suite reads the imported texture — the footprint
+assertion reads the `AtlasTexture` region out of the scene file — so a scene pointing at
+regions that no longer exist in the source image would still have passed.
+
+Running `godot --headless --path godot --import` first rebuilt the cache (pair 58,770
+bytes, floor refreshed) and the suite was re-run clean against the real textures. CI is
+unaffected: it checks out fresh with no `.godot/` cache, so it always imports.
+
+`scripts/run-godot-tests.mjs` now imports before it runs the suites, so a local run
+carries the same weight. Emptying `godot/.godot/imported/` and running the gate rebuilds
+all 36 files, including the 58,770-byte pair `.ctex`, before the first suite loads.
+
+### The gate now has one entry point
+
+`pnpm test:godot` and the workflow's **Run Godot import and tests** step both run
+`node scripts/run-godot-tests.mjs`, which resolves the Godot binary the same way the web
+export does. `scripts/github-workflow.test.mjs` fails if the workflow calls
+`godot --headless --path godot --import` or `--script` directly again, so the CI step and
+the local gate cannot drift apart. `scripts/run-godot-tests.test.mjs` pins the
+import-before-tests order and the three failure verdicts.
 
 ## Outstanding before production
 

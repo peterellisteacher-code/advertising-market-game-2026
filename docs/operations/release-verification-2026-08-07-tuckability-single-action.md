@@ -17,9 +17,15 @@ the behavioural pass is recorded here.
 - GitHub Actions run: [31147722264](https://github.com/peterellisteacher-code/advertising-market-game-2026/actions/runs/31147722264), `workflow_dispatch` on the exact candidate commit, all three jobs green
 - Complete web artifact: ID `8982317387`, 208,349,356 bytes
 - Raw Godot web export: ID `8982268322`, 17,794,221 bytes
+- Release ID: `8ba17b338194f6b0f90b6a8a01813a8e`
+- Release manifest SHA-256: `8f44ad49f77dbdf09c3718a15bd8d60bce15021ff4f92f6b4dfd02589a15b0b3`
 - `index.pck` SHA-256: `e1b2741221e3db7105dea0f76126e56e23cacd9f0b933e2d689d6d2debe59ede`
 - `index.wasm` SHA-256: `35116f68540ac41acf7d71ea457added91b5e960a9cca3e2acc72918eaf01277`
-- Retained artifact path: `C:\Godot Projects\Advertising Market Game QA\run-31147722264`
+- Retained artifact path:
+  `C:\Godot Projects\Advertising Market Game QA\run-31147722264\advertising-market-game-web`
+  (deploy from here — the earlier retained folders all predate the playtest fixes)
+- Retained raw Godot export:
+  `C:\Godot Projects\Advertising Market Game QA\run-31147722264\godot-web`
 
 `index.wasm` is identical to the 5 August production release and to every earlier
 candidate here, because all of them use the same Godot 4.7.1 export template.
@@ -30,6 +36,8 @@ pck for `GST2` texture headers: the 776x1104 walk atlas is present, the 1672x941
 carrying the three newly stamped markers is present, and the superseded 432x244 still
 sheet appears nowhere. All eight animation names (`art-front` … `strategy-right`) are in
 the pck, so the scene references the atlas rows rather than a stale single-frame sheet.
+The same check was run on both artifacts and both `index.pck` files hash identically, so
+the assembly step passes the Godot export through unaltered.
 
 Superseded candidates, verified the same way earlier the same day: `baff2e9f` (run
 [31129466373](https://github.com/peterellisteacher-code/advertising-market-game-2026/actions/runs/31129466373))
@@ -69,12 +77,12 @@ and the gate's `GODOT_TESTS_OK` line.
 
 The **Verify complete web export** step of the Assemble job runs
 `node scripts/verify-web-export.mjs build/web` against the exact tree that becomes the
-artifact, and printed `WEB_EXPORT_STATIC_VERIFICATION_OK` for this candidate. For the
-earlier `baff2e9f` candidate the same verifier was additionally re-run locally on the
-downloaded copy; its release manifest bound 10,226 static files and 31 Function files,
-and the built `studio/studio.js` contained both the Phase D writer's statement copy and
-the Phase A1 "Advertisement toolbar" label, confirming the artifact was the candidate
-build and not a stale one.
+artifact, and printed `WEB_EXPORT_STATIC_VERIFICATION_OK` for this candidate. The
+downloaded copy was then re-verified locally with the same script and also passed. Its
+release manifest binds 10,226 static files and 31 Function files, and the built
+`studio/studio.js` contains both the Phase D writer's statement copy and the Phase A1
+"Advertisement toolbar" label, which confirms the artifact is the candidate build and
+not a stale one.
 
 ## Hosted draft deploys
 

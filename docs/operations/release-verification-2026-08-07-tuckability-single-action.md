@@ -3,24 +3,38 @@
 Status: **candidate verified, hosted QA open and awaiting the behavioural pass.** The
 artifact passed every automated gate and the static verifier. Hosted QA was initially
 blocked by an unconfigured QA project; the teacher path has since been configured and
-reopened. See "Hosted QA blocker and resolution" below. Production publication must not
-proceed until the behavioural pass is recorded here.
+reopened. See "Hosted QA blocker and resolution" below. A teacher playtest on the
+reopened draft then found four defects, all fixed and recorded under "Hosted QA
+findings, 7 August" — the candidate below is the post-fix build, and none of the four
+has yet been re-tested on a hosted deploy. Production publication must not proceed until
+the behavioural pass is recorded here.
 
 ## Candidate
 
 - Branch: `agent/tuckability-single-action-20260806`
-- Verified code commit: `baff2e9f64b1e94e45032d8fe0e6d5f69db6fa25`
-- Pull request: [#25](https://github.com/peterellisteacher-code/advertising-market-game-2026/pull/25), base `main`, state `MERGEABLE` / `CLEAN`, 40 files, +2664 / -505
-- GitHub Actions run: [31129466373](https://github.com/peterellisteacher-code/advertising-market-game-2026/actions/runs/31129466373), `workflow_dispatch` on the exact candidate commit
-- Complete web artifact: ID `8975676095`, 208,859,651 bytes, 10,258 files
-- Release ID: `f895f1c31ff55d4f185c269c0c25ebf9`
-- Release manifest SHA-256: `c1bdf72b1552c662479f8124acf1812e7af5b8bbedf4ee36689e420fe940b26d`
-- `index.pck` SHA-256: `73ef2fe09c13b3917b19a3a308cc7cfb3e977d6136850aac863643f4bc96038b`
+- Verified code commit: `92024750`
+- Pull request: [#25](https://github.com/peterellisteacher-code/advertising-market-game-2026/pull/25), base `main`, state `MERGEABLE` / `CLEAN`, 57 files, +3969 / -584
+- GitHub Actions run: [31147722264](https://github.com/peterellisteacher-code/advertising-market-game-2026/actions/runs/31147722264), `workflow_dispatch` on the exact candidate commit, all three jobs green
+- Complete web artifact: ID `8982317387`, 208,349,356 bytes
+- Raw Godot web export: ID `8982268322`, 17,794,221 bytes
+- `index.pck` SHA-256: `e1b2741221e3db7105dea0f76126e56e23cacd9f0b933e2d689d6d2debe59ede`
 - `index.wasm` SHA-256: `35116f68540ac41acf7d71ea457added91b5e960a9cca3e2acc72918eaf01277`
-- Retained artifact path: `C:\Godot Projects\Advertising Market Game QA\run-31129466373\advertising-market-game-web`
+- Retained artifact path: `C:\Godot Projects\Advertising Market Game QA\run-31147722264`
 
-`index.wasm` is identical to the 5 August production release because both use the
-same Godot 4.7.1 export template. `index.pck` differs, as the game code changed.
+`index.wasm` is identical to the 5 August production release and to every earlier
+candidate here, because all of them use the same Godot 4.7.1 export template.
+`index.pck` differs, as the game code and the assets changed.
+
+The Linux export was checked against the two assets this pass replaced, by scanning the
+pck for `GST2` texture headers: the 776x1104 walk atlas is present, the 1672x941 floor art
+carrying the three newly stamped markers is present, and the superseded 432x244 still
+sheet appears nowhere. All eight animation names (`art-front` … `strategy-right`) are in
+the pck, so the scene references the atlas rows rather than a stale single-frame sheet.
+
+Superseded candidates, verified the same way earlier the same day: `baff2e9f` (run
+[31129466373](https://github.com/peterellisteacher-code/advertising-market-game-2026/actions/runs/31129466373))
+and `9e9ff150` (run
+[31145537978](https://github.com/peterellisteacher-code/advertising-market-game-2026/actions/runs/31145537978)).
 
 ## PR base
 
@@ -33,26 +47,34 @@ points at the stale integration branch and was ignored.
 
 ## Automated gates
 
-Local gates at `baff2e9f`:
+Local gates at `92024750`:
 
 | Gate | Result |
 |---|---|
-| `npx pnpm test` | 176 files, 2,462 tests passed |
+| `npx pnpm test` | 176 files, 2,468 tests passed |
 | `npx tsc --noEmit` | clean |
-| `npx pnpm run test:build-web` | 147 of 147 passed |
-| `godot --headless --path godot --script res://tests/run_tests.gd` | game, creator bridge and market bridge suites passed |
+| `npx pnpm run test:build-web` | 153 of 153 passed |
+| `npx pnpm test:godot` | `GODOT_TESTS_OK` — game, creator bridge and market bridge suites passed |
 
-All three jobs in run 31129466373 passed: **Validate** (catalogue pipeline, type-check,
+All three jobs in run 31147722264 passed: **Validate** (catalogue pipeline, type-check,
 application tests, web-build contracts), **Export Godot Web** (import, Godot suite,
 release export) and **Assemble Complete Web Artifact** (Function bundles, Creator
 Studio, logo catalogue, assembly, verification). The catalogue pipeline tests run only
 in CI; no local gate covers them.
 
-The downloaded artifact passed `node scripts/verify-web-export.mjs <artifact>` with
-`WEB_EXPORT_STATIC_VERIFICATION_OK`. Its release manifest binds 10,226 static files and
-31 Function files. The built `studio/studio.js` contains both the Phase D writer's
-statement copy and the Phase A1 "Advertisement toolbar" label, which confirms the
-artifact is the candidate build and not a stale one.
+The Godot gate now runs in CI as well as locally, on Node 22.12.0 supplied by
+`actions/setup-node` inside the `barichello/godot-ci` container. That combination was
+untested — the container ships no Node — and the job log confirms both the Node version
+and the gate's `GODOT_TESTS_OK` line.
+
+The **Verify complete web export** step of the Assemble job runs
+`node scripts/verify-web-export.mjs build/web` against the exact tree that becomes the
+artifact, and printed `WEB_EXPORT_STATIC_VERIFICATION_OK` for this candidate. For the
+earlier `baff2e9f` candidate the same verifier was additionally re-run locally on the
+downloaded copy; its release manifest bound 10,226 static files and 31 Function files,
+and the built `studio/studio.js` contained both the Phase D writer's statement copy and
+the Phase A1 "Advertisement toolbar" label, confirming the artifact was the candidate
+build and not a stale one.
 
 ## Hosted draft deploys
 
@@ -168,9 +190,8 @@ the pair-account gate and is the pattern to follow. Audit-only; no change made h
 
 ## Hosted QA findings, 7 August
 
-The teacher playtest was reached and exercised. It found four defects. Three are fixed
-on this branch; the artifact above is therefore superseded and a fresh CI build is
-required before any further QA.
+The teacher playtest was reached and exercised. It found four defects. All four are fixed
+on this branch, and the candidate recorded above is the CI build that carries the fixes.
 
 1. **The game canvas overflowed the viewport.** `godot/web/godot_shell.html` carried no
    `#canvas` rule at all, so the canvas stayed an inline element laid out from its width
@@ -192,7 +213,8 @@ required before any further QA.
    `web/src/ui/editor-shell.ts` are now bullets that state only what to do. The sentence
    "Swap roles changes responsibility, not permissions" was removed rather than reworded.
 
-The fourth defect is open and needs an authoring decision, recorded below.
+The fourth defect — the floor markers and the pair figures — needed an authoring
+decision and is recorded below.
 
 ### Resolved: the floor art carries 8 markers, only 6 of them for stations
 
@@ -246,15 +268,34 @@ at a high three-quarter camera angle. Swapping would cost the back and side view
 The figures also were not the problem. The atlas shipped at 418x470 per cell and rendered
 at `scale = 0.13`, so the GPU resolved each figure into 54x61 pixels by nearest-neighbour
 sampling — an 87% reduction that keeps one pixel in eight. That is what produced the
-mismatched eyes and broken hands, not the artwork. The atlas is now authored at 108x122
-per cell (twice the rendered size, leaving headroom for larger browser windows) by
-premultiplied-alpha Lanczos resampling with a light unsharp pass, with `scale = 0.5` and
-`texture_filter = 2` (linear). The on-screen footprint is unchanged at 54x61, and the
-asset drops from 1.3 MB to 62 KB.
+mismatched eyes and broken hands, not the artwork. The atlas is now authored at roughly
+twice the rendered size, leaving headroom for larger browser windows, with `scale = 0.5`
+and `texture_filter = 2` (linear).
+
+What remained after that was a second complaint the downscale had masked: the pair was two
+static figures that a sine bob had to pretend were walking. Each of the eight facings now
+carries an eight-frame walk cycle. The stills were animated as image-to-video on fal.ai
+(Kling 2.5 Turbo Pro, `license_type: commercial`, USD 2.80 for the eight clips), extracted
+to sprite sheets, and packed into one 776x1104 atlas of 97x138 cells. Frames are chosen by
+finding the segment of each clip whose first and last frames differ least, so the cycle
+closes on itself; both characters are padded to a common cell aligned on the foot line
+rather than the frame edge, so they stand on the same floor. The bob and lean stay — they
+carry the weight shift — but the frames advance only while the pair is walking, and
+reduced motion holds the standing pose for the same reason it holds the bob. Every
+`AtlasTexture` sets `filter_clip = true`, so linear filtering cannot bleed between
+neighbouring cells.
+
+One extraction defect is worth recording because it produced a false quality judgement.
+The sprite-sheet packer writes each cell with 2px edge extrusion on every side, so the
+grid stride is `frame + 4`, not `frame`. Cropping on the bare frame size walked off the
+grid and mixed adjacent poses, which read as wobbly proportions and an incoherent gait —
+a measurement artefact, not a model failure. Corrected to `stride = frame + 4, origin +2`,
+the frames are single clean figures with stable proportions.
 
 `test_agency_world.gd` asserted the raw `0.13` scale, which coupled the contract to the
 source resolution. It now also asserts the rendered footprint (frame size times scale
-equals 54x61), verified load-bearing by injecting a 1px error.
+equals 48.5x69), verified load-bearing by injecting a 1px error. Provenance, hashes and
+the superseded assets are recorded in `godot/assets/agency/ASSET-SOURCES.md`.
 
 ### Resolved: a failed `assert` did not fail the Godot suite
 
@@ -304,10 +345,14 @@ import-before-tests order and the three failure verdicts.
 
 1. Hosted QA of the Phase C lobby staging and the whole Phase D writer's statement at
    1280×800 and 1440×900. Neither has ever run against a web export.
-2. Pull request [#24](https://github.com/peterellisteacher-code/advertising-market-game-2026/pull/24)
+2. Hosted re-test of the four playtest defects above. The canvas sizing in particular can
+   only be proved at real display scaling — the local and CI evidence is static. The
+   walk cycle and the marker-derived station positions have been verified in the headless
+   suite and by rendering the atlas at ship size, but not yet seen moving in a browser.
+3. Pull request [#24](https://github.com/peterellisteacher-code/advertising-market-game-2026/pull/24)
    is still open against `main` and carries a duplicate of this branch's `aac2cc2d`.
    Whichever merges second will collide; prefer this branch's version.
-3. The Supabase migration for teacher batch Image Lab allowances remains unapplied
+4. The Supabase migration for teacher batch Image Lab allowances remains unapplied
    (`docs/operations/image-lab.md:305-308`).
 
 ## Release boundary

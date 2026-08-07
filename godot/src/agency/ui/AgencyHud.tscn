@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://3m1m5tio6u0p"]
 
 [ext_resource type="Script" uid="uid://daunaq7lxb2qu" path="res://src/agency/ui/agency_hud.gd" id="1_4iwib"]
+[ext_resource type="Theme" path="res://src/agency/ui/agency_theme.tres" id="2_theme"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_eq85p"]
 bg_color = Color(0.035, 0.105, 0.19, 0.97)
@@ -30,6 +31,7 @@ corner_radius_bottom_left = 10
 
 [node name="AgencyHud" type="PanelContainer" unique_id=603327499]
 custom_minimum_size = Vector2(1248, 84)
+theme = ExtResource("2_theme")
 theme_override_styles/panel = SubResource("StyleBoxFlat_eq85p")
 script = ExtResource("1_4iwib")
 

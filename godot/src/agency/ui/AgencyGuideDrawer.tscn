@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" path="res://assets/agency/onboarding-brief.png" id="2_brief"]
 [ext_resource type="Texture2D" path="res://assets/agency/onboarding-build.png" id="3_build"]
 [ext_resource type="Texture2D" path="res://assets/agency/onboarding-approval.png" id="4_approval"]
+[ext_resource type="Theme" path="res://src/agency/ui/agency_theme.tres" id="5_theme"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_brief"]
 atlas = ExtResource("2_brief")
@@ -218,6 +219,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme = ExtResource("5_theme")
 script = ExtResource("1_3sbd4")
 
 [node name="GuideTab" type="Button" parent="." unique_id=436268978]
@@ -456,6 +458,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_type_variation = &"PrimaryAction"
 text = "Make Art Director active"
 autowrap_mode = 2
 
@@ -473,6 +476,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_type_variation = &"PrimaryAction"
 text = "Make Strategist active"
 autowrap_mode = 2
 

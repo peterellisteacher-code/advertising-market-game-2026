@@ -351,9 +351,13 @@ func _style_choice_button(button: Button, colour: Color) -> void:
     hover.set_border_width_all(4)
     var pressed := normal.duplicate() as StyleBoxFlat
     pressed.bg_color = colour.darkened(0.08)
+    # The answer swatches keep their own colour identity while they can be clicked, but
+    # they take the shared theme's grey the moment they cannot: grey means unclickable,
+    # and nothing else in this panel is grey.
     var disabled: StyleBoxFlat = normal.duplicate() as StyleBoxFlat
-    disabled.bg_color = colour.lerp(PAPER, 0.55)
-    disabled.border_color = INK.lightened(0.3)
+    var theme_disabled := get_theme_stylebox("disabled", "Button") as StyleBoxFlat
+    disabled.bg_color = theme_disabled.bg_color if theme_disabled != null else PAPER
+    disabled.border_color = theme_disabled.border_color if theme_disabled != null else INK
     disabled.set_border_width_all(2)
     var focus := normal.duplicate() as StyleBoxFlat
     focus.border_color = FOCUS
@@ -367,7 +371,7 @@ func _style_choice_button(button: Button, colour: Color) -> void:
     button.add_theme_color_override("font_hover_color", INK)
     button.add_theme_color_override("font_pressed_color", INK)
     button.add_theme_color_override("font_focus_color", INK)
-    button.add_theme_color_override("font_disabled_color", INK.lightened(0.12))
+    button.add_theme_color_override("font_disabled_color", get_theme_color("font_disabled_color", "Button"))
 
 func _role_name(role_id: String) -> String:
     if role_id == "art-director":

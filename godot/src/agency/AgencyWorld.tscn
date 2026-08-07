@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" path="res://src/agency/AgencyAmbientMotion.tscn" id="8_ambient"]
 [ext_resource type="PackedScene" uid="uid://dmdn0nl418hup" path="res://src/agency/missions/AgencyMissionPanel.tscn" id="9_t5o2e"]
 [ext_resource type="Script" uid="uid://dt5d3rtsxgwyr" path="res://src/agency/missions/agency_mission_controller.gd" id="11_dufgl"]
+[ext_resource type="Theme" path="res://src/agency/ui/agency_theme.tres" id="12_theme"]
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_iardm"]
 vertices = PackedVector2Array(30, 104, 1250, 104, 1250, 772, 30, 772)
@@ -926,12 +927,14 @@ text = "H: hand control to partner"
 unique_name_in_owner = true
 custom_minimum_size = Vector2(112, 36)
 layout_mode = 2
+theme = ExtResource("12_theme")
 text = "Show room details"
 
 [node name="StationPanelTuck" type="Button" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent/StationHeader" unique_id=2026080315]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(88, 36)
 layout_mode = 2
+theme = ExtResource("12_theme")
 text = "Hide card"
 
 [node name="StationResponsibilities" type="Label" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent" unique_id=896154039]
@@ -965,6 +968,7 @@ offset_left = 500.0
 offset_top = 700.0
 offset_right = 780.0
 offset_bottom = 752.0
+theme = ExtResource("12_theme")
 theme_override_font_sizes/font_size = 16
 text = "Open room card"
 

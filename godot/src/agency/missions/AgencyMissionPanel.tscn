@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://dmdn0nl418hup"]
 
 [ext_resource type="Script" uid="uid://ixe15b1sg2jg" path="res://src/agency/missions/agency_mission_panel.gd" id="1_mm4e4"]
+[ext_resource type="Theme" path="res://src/agency/ui/agency_theme.tres" id="2_theme"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mm4e4"]
 bg_color = Color(0.98, 0.965, 0.91, 1)
@@ -57,6 +58,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("2_theme")
 script = ExtResource("1_mm4e4")
 
 [node name="Backdrop" type="ColorRect" parent="." unique_id=1838012177]
@@ -159,6 +161,7 @@ unique_name_in_owner = true
 visible = false
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
+theme_type_variation = &"PrimaryAction"
 text = "Make the lead role active"
 
 [node name="Instruction" type="Label" parent="Backdrop/Dialog/Margin/Content" unique_id=681311123]
@@ -300,6 +303,7 @@ size_flags_horizontal = 3
 [node name="ContinueButton" type="Button" parent="Backdrop/Dialog/Margin/Content/EffectStage/EffectActions" unique_id=1840059499]
 custom_minimum_size = Vector2(230, 52)
 layout_mode = 2
+theme_type_variation = &"PrimaryAction"
 text = "Apply this decision"
 
 [node name="TransferStage" type="VBoxContainer" parent="Backdrop/Dialog/Margin/Content" unique_id=880836468]
@@ -358,6 +362,7 @@ autowrap_mode = 3
 [node name="SubmitButton" type="Button" parent="Backdrop/Dialog/Margin/Content/TransferStage" unique_id=613905415]
 custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
+theme_type_variation = &"PrimaryAction"
 text = "Submit application evidence"
 
 [node name="CompletedStage" type="VBoxContainer" parent="Backdrop/Dialog/Margin/Content" unique_id=1044366139]
@@ -396,4 +401,5 @@ autowrap_mode = 3
 [node name="CompletedCloseButton" type="Button" parent="Backdrop/Dialog/Margin/Content/CompletedStage" unique_id=1776812330]
 custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
+theme_type_variation = &"PrimaryAction"
 text = "Return to the agency"

@@ -15,6 +15,7 @@ func _run_suites() -> void:
         "res://tests/test_market_view_state.gd",
         "res://tests/test_market_screen.gd",
         "res://tests/test_local_market_session.gd",
+        "res://tests/test_agency_button_theme.gd",
         "res://tests/test_agency_mission_catalog.gd",
         "res://tests/test_agency_missions.gd",
         "res://tests/test_agency_world.gd",

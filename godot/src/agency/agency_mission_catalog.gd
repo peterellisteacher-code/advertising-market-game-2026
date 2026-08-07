@@ -1,6 +1,80 @@
 extends RefCounted
 class_name AdMarketAgencyMissionCatalog
 
+# Engine A — arrange for salience. The pair moves, resizes and recolours real objects
+# over a background plate until the named target leads one of the three levers. The
+# opening arrangement is deliberately one the target loses on all three, and there is no
+# authored solution to match: test_salience_measure.gd holds both of those properties.
+const SALIENCE_DEMONSTRATION := {
+    "engine": "arrange-for-salience",
+    "scene": "res://src/agency/missions/demonstrations/SalienceStage.tscn",
+    "plate": "res://assets/agency/salience/fruit-table-plate.png",
+    "stageSize": Vector2(880, 320),
+    "targetId": "orange",
+    "instruction": "Make the orange the first thing the audience sees. Drag a fruit to move it, or use the size and colour controls.",
+    "minScale": 0.12,
+    "maxScale": 0.9,
+    "objects": [
+        {
+            "id": "bananas",
+            "name": "bananas",
+            "texture": "res://assets/agency/salience/fruit-bananas.png",
+            "position": Vector2(390, 195),
+            "scale": 0.50
+        },
+        {
+            "id": "orange",
+            "name": "orange",
+            "texture": "res://assets/agency/salience/fruit-orange.png",
+            "position": Vector2(452, 210),
+            "scale": 0.28
+        },
+        {
+            "id": "apple",
+            "name": "apple",
+            "texture": "res://assets/agency/salience/fruit-apple.png",
+            "position": Vector2(500, 205),
+            "scale": 0.30
+        },
+        {
+            "id": "pear",
+            "name": "pear",
+            "texture": "res://assets/agency/salience/fruit-pear.png",
+            "position": Vector2(475, 268),
+            "scale": 0.26
+        },
+        {
+            "id": "grapes",
+            "name": "grapes",
+            "texture": "res://assets/agency/salience/fruit-grapes.png",
+            "position": Vector2(640, 130),
+            "scale": 0.28
+        }
+    ],
+    "tints": [
+        {"id": "original", "label": "Original", "colour": Color(1, 1, 1, 1)},
+        {"id": "warmer", "label": "Warmer", "colour": Color(1, 0.86, 0.62, 1)},
+        {"id": "cooler", "label": "Cooler", "colour": Color(0.66, 0.86, 1, 1)},
+        {"id": "darker", "label": "Darker", "colour": Color(0.62, 0.62, 0.66, 1)},
+        {"id": "muted", "label": "Muted", "colour": Color(0.8, 0.8, 0.78, 1)}
+    ],
+    "leverPhrases": {
+        "size": "size",
+        "isolation": "space around it",
+        "contrast": "colour difference"
+    },
+    "wonSentences": {
+        "size": "The {target} is now the largest object on the table, so the audience sees it first.",
+        "isolation": "The {target} now has the most space around it, so the audience sees it first.",
+        "contrast": "The {target} now differs most in colour from what sits behind it, so the audience sees it first."
+    },
+    "evidenceSentences": {
+        "size": "The {target} was made the largest object on the table, so the audience sees it first.",
+        "isolation": "The {target} was given the most space around it, so the audience sees it first.",
+        "contrast": "The {target} was given the strongest colour difference from what sits behind it, so the audience sees it first."
+    }
+}
+
 const REQUIRED_MISSION_RECORDS := [
     {
         "id": "audience-brief",
@@ -77,6 +151,7 @@ const REQUIRED_MISSION_RECORDS := [
         "correctChoiceId": "largest-contrast",
         "effectExplanation": "A controlled contrast hierarchy helps the audience notice the product before reading the supporting message.",
         "transferPrompt": "Name the element that should be seen first in your advertisement and specify the size, isolation or colour contrast that will make it salient.",
+        "demonstration": SALIENCE_DEMONSTRATION,
         "reward": "Salience lens unlocked",
         "required": true
     },

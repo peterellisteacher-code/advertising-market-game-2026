@@ -18,6 +18,7 @@ func _run_suites() -> void:
         "res://tests/test_agency_button_theme.gd",
         "res://tests/test_agency_mission_catalog.gd",
         "res://tests/test_agency_missions.gd",
+        "res://tests/test_salience_measure.gd",
         "res://tests/test_agency_world.gd",
         "res://tests/test_agency_guidance.gd",
         "res://tests/test_agency_progress.gd",
@@ -42,7 +43,8 @@ func _run_suites() -> void:
             "res://tests/test_agency_world.gd",
             "res://tests/test_agency_hud_layout.gd",
             "res://tests/test_agency_guidance.gd",
-            "res://tests/test_game_shell.gd"
+            "res://tests/test_game_shell.gd",
+            "res://tests/test_salience_measure.gd"
         ]:
             passed = await suite.run()
         else:

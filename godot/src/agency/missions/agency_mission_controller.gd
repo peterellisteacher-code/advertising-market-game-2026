@@ -11,6 +11,7 @@ const STATE_HOLDING := "holding"
 const STATE_CHOICE := "choice"
 const STATE_EFFECT := "effect"
 const STATE_TRANSFER := "transfer"
+const STATE_DEMONSTRATION := "demonstration"
 const STATE_COMPLETED := "completed"
 const MIN_EVIDENCE_LENGTH := 30
 const MAX_EVIDENCE_LENGTH := 400
@@ -153,8 +154,14 @@ func continue_to_transfer() -> Dictionary:
 			"state": _state,
 			"reason": "Choose the effective treatment before applying it."
 		}
-	_state = STATE_TRANSFER
-	_show_transfer()
+	# A task with a demonstration replaces the writing gate with it. The rest still ask
+	# for a written sentence until their own engine lands.
+	if _demonstration().is_empty():
+		_state = STATE_TRANSFER
+		_show_transfer()
+	else:
+		_state = STATE_DEMONSTRATION
+		_show_demonstration()
 	_emit_state()
 	return {
 		"changed": true,
@@ -199,6 +206,49 @@ func submit_transfer_evidence(text: String) -> Dictionary:
 	else:
 		sidequest_completed.emit(_mission_id)
 	return result
+
+## Accepts a measured arrangement from a demonstration stage. The evidence sentence is
+## generated from the measure — the lever the pair won on and the object they promoted —
+## so a task without a text box still records evidence for the writer's statement.
+func submit_demonstration(result: Dictionary) -> Dictionary:
+	if _state != STATE_DEMONSTRATION:
+		return {
+			"accepted": false,
+			"state": _state,
+			"reason": "Reach the arrangement step before recording it."
+		}
+	if not bool(result.get("passed")):
+		return {
+			"accepted": false,
+			"state": _state,
+			"reason": "The named object does not lead on any of the three yet."
+		}
+	var evidence := {
+		"decision": _selected_choice_id,
+		"effect": _demonstration_evidence(result)
+	}
+	if String(evidence.get("effect")).is_empty():
+		return {
+			"accepted": false,
+			"state": _state,
+			"reason": "That arrangement produced no result to record."
+		}
+	var completed := _complete_progress(evidence)
+	if not completed:
+		return {
+			"accepted": false,
+			"state": _state,
+			"reason": _progress_error()
+		}
+	_state = STATE_COMPLETED
+	var outcome := _completion_result(evidence)
+	_show_completed(outcome)
+	_emit_state()
+	if _required:
+		mission_completed.emit(_mission_id, evidence.duplicate(true))
+	else:
+		sidequest_completed.emit(_mission_id)
+	return outcome
 
 func close() -> void:
 	if is_instance_valid(_panel) and _panel.has_method("close_panel"):
@@ -322,6 +372,34 @@ func _show_transfer() -> void:
 	if is_instance_valid(_panel) and _panel.has_method("show_transfer"):
 		_panel.call("show_transfer", _record.duplicate(true), _application_objective())
 
+func _show_demonstration() -> void:
+	if is_instance_valid(_panel) and _panel.has_method("show_demonstration"):
+		_panel.call("show_demonstration", _record.duplicate(true))
+
+func _demonstration() -> Dictionary:
+	var value: Variant = _record.get("demonstration", {})
+	return Dictionary(value) if typeof(value) == TYPE_DICTIONARY else {}
+
+func _demonstration_evidence(result: Dictionary) -> String:
+	var demonstration := _demonstration()
+	var won_levers: PackedStringArray = result.get("wonLevers", PackedStringArray())
+	if demonstration.is_empty() or won_levers.is_empty():
+		return ""
+	var sentences: Dictionary = demonstration.get("evidenceSentences", {})
+	return String(sentences.get(won_levers[0], "")).format({
+		"target": _demonstration_target_name(demonstration)
+	})
+
+func _demonstration_target_name(demonstration: Dictionary) -> String:
+	var target_id := String(demonstration.get("targetId", ""))
+	for object_value: Variant in Array(demonstration.get("objects", [])):
+		if typeof(object_value) != TYPE_DICTIONARY:
+			continue
+		var object: Dictionary = object_value
+		if String(object.get("id", "")) == target_id:
+			return String(object.get("name", target_id))
+	return target_id
+
 func _show_completed(result: Dictionary) -> void:
 	if is_instance_valid(_panel) and _panel.has_method("show_completed"):
 		_panel.call("show_completed", _record.duplicate(true), result.duplicate(true))
@@ -332,6 +410,7 @@ func _connect_panel() -> void:
 	_connect_panel_signal("choice_selected", _on_choice_selected)
 	_connect_panel_signal("continue_requested", _on_continue_requested)
 	_connect_panel_signal("evidence_submitted", _on_evidence_submitted)
+	_connect_panel_signal("demonstration_submitted", _on_demonstration_submitted)
 	_connect_panel_signal("retry_requested", _on_retry_requested)
 	_connect_panel_signal("close_requested", _on_close_requested)
 
@@ -341,6 +420,7 @@ func _disconnect_panel() -> void:
 	_disconnect_panel_signal("choice_selected", _on_choice_selected)
 	_disconnect_panel_signal("continue_requested", _on_continue_requested)
 	_disconnect_panel_signal("evidence_submitted", _on_evidence_submitted)
+	_disconnect_panel_signal("demonstration_submitted", _on_demonstration_submitted)
 	_disconnect_panel_signal("retry_requested", _on_retry_requested)
 	_disconnect_panel_signal("close_requested", _on_close_requested)
 
@@ -363,6 +443,12 @@ func _on_evidence_submitted(text: String) -> void:
 	if not bool(result.get("accepted")) and is_instance_valid(_panel):
 		if _panel.has_method("show_validation_error"):
 			_panel.call("show_validation_error", String(result.get("reason")))
+
+func _on_demonstration_submitted(result: Dictionary) -> void:
+	var outcome := submit_demonstration(result)
+	if not bool(outcome.get("accepted")) and is_instance_valid(_panel):
+		if _panel.has_method("show_demonstration_error"):
+			_panel.call("show_demonstration_error", String(outcome.get("reason")))
 
 func _on_retry_requested() -> void:
 	retry()

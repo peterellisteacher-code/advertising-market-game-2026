@@ -184,6 +184,91 @@ Exact generation prompt:
 
 > Create one production-ready transparent PNG sprite sheet with exactly seven distinct game icons in the same crisp high-resolution pixel-art style and deep-navy, warm-cream, teal, coral, mustard and cobalt palette as this advertising agency environment. Transparent background only. Strict single horizontal row of seven perfectly aligned equal square cells, generous transparent separation, no overall border, no text, no letters, no numbers, no logos, no brands and no people. Each icon must be bold, immediately readable at small HUD size and fully contained: 1) current objective: a mustard target with a small shining star in its centre; 2) interact: a teal hand pressing a coral circular button; 3) Art Director role: a coral-tipped paintbrush crossed with a navy layout ruler; 4) Strategist role: a teal compass over an abstract branching planning diagram with no writing; 5) evidence: a warm-cream proof card with a teal checkmark and coral magnifying glass; 6) sound: a navy speaker emitting three mustard sound waves; 7) direct travel: cobalt map pin with a cream motion arrow. Consistent scale, strong silhouette, clean alpha, restrained highlights. This must be a clean game icon sheet, not a UI mockup, concept board, labelled diagram or sticker page.
 
+## Salience demonstration assets — `salience/`
+
+Generated 7 August 2026; the background plate was regenerated 8 August 2026.
+
+These six files supply the arrangement the pair builds in **Control what the
+audience notices first**. Five fruit are dragged, resized and recoloured over one
+background plate. The measure that decides whether the arrangement works reads the
+sprites' own pixels — alpha-weighted area and alpha-weighted mean colour — so each
+fruit had to keep the size and colour it was generated with relative to the others.
+That is why one uniform scale factor was applied across the whole sheet instead of
+fitting each fruit to its own target: a per-sprite rescale would have silently
+authored the answer.
+
+### The five fruit sprites
+
+- Tool: `openai/gpt-image-2` on fal.ai at `high` quality, followed by
+  `fal-ai/bria/background/remove`
+- Generated source: 2880 x 960 pixels, RGB, SHA-256
+  `9fa987d44bff89b81b9ec1c68a44126a78f31a2a2d761566b6c4420d6ad40499`
+- Background-removal result: 2880 x 960 pixels, RGBA, SHA-256
+  `40c5247225bb01b0b574f3a0b6574fd21dd3ab37f583ae4fd4cbc6ddf9836976`
+- Alpha: genuine RGBA transparency, confirmed in every final PNG and by Godot
+- Slicing: the cleaned sheet was split on runs of opaque columns, each fruit was
+  cropped to its own alpha bounds, and every crop was then resampled by the single
+  factor `0.71856` — the factor that takes the widest fruit to 360 pixels, twice the
+  largest size it is ever drawn at. Resampling used Lanczos on premultiplied alpha,
+  so transparent pixels could not bleed colour into the edges.
+- Final files:
+  - `salience/fruit-bananas.png` — 360 x 326 pixels, SHA-256
+    `5e183ba2b9aa93a77180f7e68a83de92ed546606147390f3d255e8953486e2ab`
+  - `salience/fruit-orange.png` — 272 x 283 pixels, SHA-256
+    `b09eed7c74c6ffd1a32bb8f726e1695423f991682aa8ddc637d87577c1668938`
+  - `salience/fruit-apple.png` — 289 x 331 pixels, SHA-256
+    `af41e63877bcc3f54578c71bec9cd6a533b5f6a60988e45c0c2a5a8bbbbac159`
+  - `salience/fruit-grapes.png` — 279 x 388 pixels, SHA-256
+    `38e8e6a65c0f2c771cdc149ce5a0cb218160b1da88ace97441f20d2e0a0b2618`
+  - `salience/fruit-pear.png` — 244 x 349 pixels, SHA-256
+    `b4578f006eb296bbee0055511dca6c36dfde9960eabdb478208f57426fdf613d`
+- Human selection: selected because all five silhouettes are complete and distinct
+  at the size they are drawn at, and because the five differ from the cream plate by
+  visibly different amounts — the colour-difference lever has something to measure
+- Public-use decision: approved because the fruit are original generated objects
+  with no brand, packaging, label or recognisable product
+
+Exact generation prompt:
+
+> Create one production-ready transparent PNG sprite sheet with exactly five distinct fruit objects in the same crisp high-resolution pixel-art style and deep-navy, warm-cream, teal, coral, mustard and cobalt palette as a modern editorial Bauhaus advertising-agency game. Transparent background only; no plate, no bowl, no table, no cast shadow, no border, no text, no letters, no numerals, no logos and no people. Strict single horizontal row of five perfectly aligned equal square cells with generous transparent separation and consistent registration. Each cell contains exactly one complete uncropped fruit with a strong silhouette that stays readable at small size: 1) a bunch of mustard-yellow bananas; 2) a single round orange in warm coral-orange; 3) a single apple in deep coral red; 4) a bunch of grapes in cobalt purple; 5) a single pear in pale cream-green. Consistent apparent scale across all five, one consistent light direction, restrained highlights, crisp coherent pixel edges, clean alpha at every edge. This must be a clean game asset sheet, not a still life, mockup, interface, concept board, labelled diagram or sticker page.
+
+The generator returned an RGB file with a painted checkerboard despite the
+transparency request — the same result the pair sheet produced. Bria then removed
+only the background from that file and produced the RGBA sheet the sprites were cut
+from.
+
+### `salience/fruit-table-plate.png`
+
+- Tool: `openai/gpt-image-2` on fal.ai at `high` quality
+- Final file: the selected original RGB PNG at its generated size, unedited
+- Dimensions: 1760 x 640 pixels (aspect ratio 2.75)
+- SHA-256:
+  `b815f203ee3f6313dcd9f48577263566916a7856ea4c9fd875ebf7bf46ff322e`
+- Superseded SHA-256 (first plate, 1792 x 896):
+  `3c8e3d61f31efa2a5fed5a89b5e6ee98db81573c1c5c17b80b9a204874529373`
+- Reason for the regeneration on 8 August 2026: the arrangement has to fit inside a
+  980-pixel dialog in a window only 800 pixels high, and a 2:1 plate scaled to that
+  height filled little more than half the available width. The plate was regenerated
+  at 2.75:1 so it fills the dialog at full scale. It was not stretched, cropped or
+  resampled to get there.
+- Human selection: selected over the second candidate because the bowl is cleaner
+  and more centred and the middle of the plate is a larger plain cream field, which
+  is where the fruit are arranged
+- Public-use decision: approved because the plate is an original generated surface
+  with no people, logos, brands or readable text
+
+Exact generation prompt:
+
+> Create one production-ready wide banner background plate for a Year 10 classroom advertising game, in crisp high-resolution pixel-art style with a Bauhaus palette of deep navy, warm cream, teal, coral, mustard and cobalt. One flat straight-on view with a single consistent camera angle and no perspective distortion. The entire surface is a warm-cream advertising ground with a subtle paper grain. Composition: one wide shallow teal ceramic bowl, completely empty, viewed straight-on from slightly above, centred horizontally and resting on the lower third of the image with a soft cream contact shadow beneath it. Nothing is inside, on, behind or in front of the bowl. Flat geometric Bauhaus accents are confined strictly to the far-left sixth and far-right sixth of the image: quarter circles, groups of vertical bars, stepped blocks, small squares and thin arcs in navy, coral, mustard, teal and cobalt. The central two thirds of the image, above and around the bowl, stays plain warm cream with nothing on it. No fruit, no food, no plants, no props and no objects other than that one bowl and the edge shapes. No text, letters, numerals, logos, brands, people, hands, table edges, vignette, border or frame. This is a single full-bleed game background, not a mockup, poster, collage, concept sheet or labelled diagram.
+
+The superseded first plate used this prompt, at 1792 x 896:
+
+> Create one clean full-bleed background plate for a browser game, in crisp high-resolution pixel-art using a deep-navy, warm-cream, teal, coral, mustard and cobalt palette, matching a modern editorial Bauhaus advertising-agency style. The scene is a plain warm-cream table surface seen straight on from slightly above, with a single empty shallow teal ceramic bowl resting on it, centred and low in the frame. Absolutely no fruit, no food, no people, no hands, no text, no letters, no numerals, no logos, no interface panels, no vignette and no border. Even lighting, one consistent perspective, restrained texture, and generous uncluttered surface above and around the bowl so game objects can be placed on top of it later. This is a single flat background image, not a still life, mockup, screenshot, interface, concept sheet or collage.
+
+Licence note: fal.ai lists `openai/gpt-image-2` with `license_type: commercial`.
+Every input to both models was this project's own text; no third-party image was
+supplied to either.
+
 ## Validation record
 
 - Visual inspection confirmed no cropped silhouettes, unintended text or
@@ -193,3 +278,7 @@ Exact generation prompt:
 - Godot imported all four textures and loaded them in the running project.
 - Godot reported alpha mode `0` for the opaque floor and alpha mode `2` for the
   pair, device and icon sheets.
+- Godot read the five salience sprites back through the demonstration's own
+  measure: each reported an alpha coverage between 0.54 and 0.78 of its bounding
+  box, so the transparency survives import rather than being painted on.
+- The salience plate is RGB and all five salience sprites are RGBA.

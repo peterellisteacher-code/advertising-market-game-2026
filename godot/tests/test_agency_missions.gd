@@ -60,24 +60,26 @@ func _choice_effect_and_transfer_complete_required_progress() -> bool:
 	var controller := _new_controller(progress)
 	if controller == null:
 		return false
-	assert(controller.call("open_mission", "salience", "art-director").get("allowed") == true)
-	var incorrect: Dictionary = controller.call("choose", "small-logo")
+	# audience-brief still ends in the written sentence; salience is covered by
+	# test_salience_measure.gd now that its writing gate is a demonstration.
+	assert(controller.call("open_mission", "audience-brief", "strategist").get("allowed") == true)
+	var incorrect: Dictionary = controller.call("choose", "cheapest")
 	assert(incorrect.get("correct") == false)
 	assert(controller.call("snapshot").get("state") == "effect")
 	assert(controller.call("retry").get("state") == "choice")
-	var correct: Dictionary = controller.call("choose", "largest-contrast")
+	var correct: Dictionary = controller.call("choose", "independence")
 	assert(correct.get("correct") == true)
 	assert(controller.call("continue_to_transfer").get("state") == "transfer")
 	var rejected: Dictionary = controller.call("submit_transfer_evidence", "bigger")
 	assert(rejected.get("accepted") == false)
 	var accepted: Dictionary = controller.call(
 		"submit_transfer_evidence",
-        "I will use a bigger product and stronger colour contrast so the audience notices it first."
+        "I will meet the audience need for a productive hour so the audience keeps its independence."
 	)
 	assert(accepted.get("accepted") == true)
 	var evidence_by_mission: Dictionary = progress.get("evidence_by_mission")
-	var evidence: Dictionary = evidence_by_mission.get("salience", {})
-	assert(evidence.get("decision") == "largest-contrast")
+	var evidence: Dictionary = evidence_by_mission.get("audience-brief", {})
+	assert(evidence.get("decision") == "independence")
 	assert(String(evidence.get("effect")).contains("audience"))
 	assert(String(accepted.get("applicationObjective")).contains("Studio"))
 	controller.free()
@@ -247,7 +249,9 @@ func _panel_scene_exposes_the_mission_contract() -> bool:
 	assert(panel.has_signal("role_handoff_requested"))
 	assert(panel.has_method("show_choice"))
 	assert(panel.has_method("show_effect"))
+	assert(panel.has_signal("demonstration_submitted"))
 	assert(panel.has_method("show_transfer"))
+	assert(panel.has_method("show_demonstration"))
 	assert(panel.has_method("show_completed"))
 	assert(panel.has_method("show_handoff_error"))
 	panel.free()

@@ -259,6 +259,8 @@ export const STUDENT_COPY_SOURCE_PATHS = Object.freeze([
   "godot/src/agency/missions/AgencyMissionPanel.tscn",
   "godot/src/agency/missions/agency_mission_controller.gd",
   "godot/src/agency/missions/agency_mission_panel.gd",
+  "godot/src/agency/missions/demonstrations/SalienceStage.tscn",
+  "godot/src/agency/missions/demonstrations/salience_stage.gd",
   "godot/src/agency/player/AgencyPair.tscn",
   "godot/src/agency/stations/AgencyStation.tscn",
   "godot/src/agency/stations/agency_station.gd",

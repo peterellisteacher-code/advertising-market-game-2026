@@ -78,6 +78,8 @@ offset_left = -490.0
 offset_top = -350.0
 offset_right = 490.0
 offset_bottom = 350.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_mm4e4")
 
 [node name="Margin" type="MarginContainer" parent="Backdrop/Dialog" unique_id=1088122593]
@@ -364,6 +366,14 @@ custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
 theme_type_variation = &"PrimaryAction"
 text = "Submit application evidence"
+
+[node name="DemonstrationStage" type="VBoxContainer" parent="Backdrop/Dialog/Margin/Content" unique_id=2026080801]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(800, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
 [node name="CompletedStage" type="VBoxContainer" parent="Backdrop/Dialog/Margin/Content" unique_id=1044366139]
 visible = false

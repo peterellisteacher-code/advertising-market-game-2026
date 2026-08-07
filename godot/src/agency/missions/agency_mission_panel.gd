@@ -3,6 +3,7 @@ class_name AdMarketAgencyMissionPanel
 
 signal choice_selected(choice_id: String)
 signal evidence_submitted(text: String)
+signal demonstration_submitted(result: Dictionary)
 signal continue_requested
 signal retry_requested
 signal close_requested
@@ -25,6 +26,7 @@ const ROLE_DEFINITION := "Both partners use the same controls. Strategist decide
 @onready var close_button: Button = $Backdrop/Dialog/Margin/Content/Header/CloseButton
 @onready var title_label: Label = $Backdrop/Dialog/Margin/Content/Title
 @onready var goal_label: Label = $Backdrop/Dialog/Margin/Content/Goal
+@onready var owner_card: VBoxContainer = $Backdrop/Dialog/Margin/Content/OwnerCard
 @onready var owner_label: Label = $Backdrop/Dialog/Margin/Content/OwnerCard/OwnerLabel
 @onready var role_definition_label: Label = $Backdrop/Dialog/Margin/Content/OwnerCard/RoleDefinitionLabel
 @onready var holding_label: Label = $Backdrop/Dialog/Margin/Content/OwnerCard/HoldingLabel
@@ -56,6 +58,7 @@ const ROLE_DEFINITION := "Both partners use the same controls. Strategist decide
 @onready var evidence_count: Label = $Backdrop/Dialog/Margin/Content/TransferStage/EvidenceFooter/EvidenceCount
 @onready var validation_label: Label = $Backdrop/Dialog/Margin/Content/TransferStage/ValidationLabel
 @onready var submit_button: Button = $Backdrop/Dialog/Margin/Content/TransferStage/SubmitButton
+@onready var demonstration_stage: VBoxContainer = $Backdrop/Dialog/Margin/Content/DemonstrationStage
 @onready var completed_stage: VBoxContainer = $Backdrop/Dialog/Margin/Content/CompletedStage
 @onready var completed_heading: Label = $Backdrop/Dialog/Margin/Content/CompletedStage/CompletedHeading
 @onready var reward_label: Label = $Backdrop/Dialog/Margin/Content/CompletedStage/RewardCard/RewardLabel
@@ -63,6 +66,8 @@ const ROLE_DEFINITION := "Both partners use the same controls. Strategist decide
 @onready var completed_close_button: Button = $Backdrop/Dialog/Margin/Content/CompletedStage/CompletedCloseButton
 
 var _record: Dictionary = {}
+var _demonstration_view: Control = null
+var _demonstration_scene_path: String = ""
 var _choice_ids: Array[String] = ["", "", "", ""]
 var _role_details_visible: bool = false
 var _reference_visible: bool = true
@@ -163,6 +168,24 @@ func show_transfer(record: Dictionary, objective_text: String) -> void:
     _update_evidence_count()
     evidence_edit.call_deferred("grab_focus")
 
+## Replaces the writing gate for a task that carries one. The engine scene comes from
+## the record, so a later engine only has to name its own scene rather than teach the
+## panel about itself.
+func show_demonstration(record: Dictionary) -> void:
+    _record = record.duplicate(true)
+    _set_common_text()
+    var demonstration: Dictionary = _record.get("demonstration", {})
+    mission_step.text = "3. Show the decision in the layout"
+    _mount_demonstration(demonstration)
+    _show_stage(demonstration_stage)
+    visible = true
+    if is_instance_valid(_demonstration_view) and _demonstration_view.has_method("focus_target"):
+        _demonstration_view.call_deferred("focus_target")
+
+func show_demonstration_error(message: String) -> void:
+    if is_instance_valid(_demonstration_view) and _demonstration_view.has_method("show_error"):
+        _demonstration_view.call("show_error", message)
+
 func show_completed(record: Dictionary, result: Dictionary) -> void:
     _record = record.duplicate(true)
     _set_common_text()
@@ -202,11 +225,39 @@ func _set_common_text() -> void:
     title_label.text = String(_record.get("title"))
     goal_label.text = String(_record.get("goal"))
 
+func _mount_demonstration(demonstration: Dictionary) -> void:
+    var scene_path := String(demonstration.get("scene", ""))
+    if scene_path.is_empty():
+        return
+    if scene_path != _demonstration_scene_path or not is_instance_valid(_demonstration_view):
+        for child in demonstration_stage.get_children():
+            child.queue_free()
+        var scene := load(scene_path) as PackedScene
+        if scene == null:
+            return
+        _demonstration_view = scene.instantiate() as Control
+        _demonstration_scene_path = scene_path
+        demonstration_stage.add_child(_demonstration_view)
+        if _demonstration_view.has_signal("arrangement_submitted"):
+            _demonstration_view.connect("arrangement_submitted", _submit_demonstration)
+    if _demonstration_view.has_method("configure"):
+        _demonstration_view.call("configure", demonstration)
+
+func _submit_demonstration(result: Dictionary) -> void:
+    demonstration_submitted.emit(result)
+
 func _show_stage(active_stage: Control) -> void:
     choice_stage.visible = active_stage == choice_stage
     effect_stage.visible = active_stage == effect_stage
     transfer_stage.visible = active_stage == transfer_stage
+    demonstration_stage.visible = active_stage == demonstration_stage
     completed_stage.visible = active_stage == completed_stage
+    # The demonstration is a working surface rather than something to read, so the
+    # framing that set the choice up is dropped and the layout gets the height instead.
+    var showing_demonstration := active_stage == demonstration_stage
+    goal_label.visible = not showing_demonstration
+    owner_card.visible = not showing_demonstration
+    instruction_label.visible = not showing_demonstration
     var showing_choice := active_stage == choice_stage
     reference_toggle.visible = showing_choice and not reference_label.text.is_empty()
     reference_card.visible = showing_choice and _reference_visible and not reference_label.text.is_empty()

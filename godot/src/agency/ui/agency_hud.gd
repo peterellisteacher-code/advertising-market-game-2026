@@ -75,8 +75,9 @@ func set_compact(compact: bool) -> void:
 		margin.add_theme_constant_override("margin_top", vertical_margin)
 		margin.add_theme_constant_override("margin_bottom", vertical_margin)
 	var target_height := 84.0 if compact else 164.0
+	# Width comes from the anchors so the bar spans whatever viewport the stretch mode
+	# hands it. Only the height is this panel's to set.
 	custom_minimum_size.y = target_height
-	size.x = custom_minimum_size.x
 	size.y = target_height
 	var button := get_node_or_null("HudMargin/HudStack/PrimaryRow/HudTuckToggle") as Button
 	if button != null:

@@ -23,7 +23,10 @@ func _run_suites() -> void:
         "res://tests/test_game_run.gd",
         "res://tests/test_run_progress_store.gd",
         "res://tests/test_live_resume.gd",
-        "res://tests/test_game_shell.gd"
+        "res://tests/test_game_shell.gd",
+        # Last: this suite resizes the root viewport to prove the HUD adapts, so it must
+        # not run ahead of a suite that assumes the design size.
+        "res://tests/test_agency_hud_layout.gd"
     ]:
         if not requested_suite.is_empty() and suite_path != requested_suite:
             continue
@@ -36,6 +39,7 @@ func _run_suites() -> void:
         var passed: Variant
         if suite_path in [
             "res://tests/test_agency_world.gd",
+            "res://tests/test_agency_hud_layout.gd",
             "res://tests/test_agency_guidance.gd",
             "res://tests/test_game_shell.gd"
         ]:

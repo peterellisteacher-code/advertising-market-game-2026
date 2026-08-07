@@ -69,20 +69,25 @@ func _assert_guide(progress: AdMarketAgencyProgress) -> void:
 	assert(orientation_layer.anchor_right == 1.0)
 	assert(orientation_layer.anchor_bottom == 1.0)
 	assert(orientation_layer.mouse_filter == Control.MOUSE_FILTER_STOP)
+	# The card fills its layer rather than sitting at a fixed size, so what the contract
+	# fixes is the inset: no bare game may show between the card and the screen edge
+	# beyond this margin, at any viewport.
+	var card_margin := AdMarketAgencyGuideDrawer.ORIENTATION_PANEL_MARGIN
 	assert(
-		orientation_card.size.x <= 1130.0,
-		"Orientation card outer size=%s" % orientation_card.size
+		is_equal_approx(orientation_card.size.x, orientation_layer.size.x - card_margin.x * 2.0),
+		"Orientation card outer size=%s layer=%s" % [orientation_card.size, orientation_layer.size]
 	)
 	assert(
-		orientation_card.size.y <= 690.0,
-		"Orientation card outer size=%s" % orientation_card.size
+		is_equal_approx(orientation_card.size.y, orientation_layer.size.y - card_margin.y * 2.0),
+		"Orientation card outer size=%s layer=%s" % [orientation_card.size, orientation_layer.size]
 	)
 	assert(
 		orientation_card.global_position.y >= 48.0,
 		"Orientation card y=%s size=%s" % [orientation_card.global_position.y, orientation_card.size]
 	)
-	assert(orientation_minimise.global_position.y + orientation_minimise.size.y <= 760.0)
-	assert(orientation_next.global_position.y + orientation_next.size.y <= 760.0)
+	var card_bottom := orientation_card.global_position.y + orientation_card.size.y
+	assert(orientation_minimise.global_position.y + orientation_minimise.size.y <= card_bottom)
+	assert(orientation_next.global_position.y + orientation_next.size.y <= card_bottom)
 	assert(guide.get_node("%OrientationTitle").text.contains("make and pitch one ad"))
 	assert(guide.get_node("%OrientationAction").text.contains("Complete seven short tasks"))
 	assert(guide.get_node("%OrientationItemOneLabel").text == "MAKE")

@@ -225,7 +225,10 @@ func _assert_keyboard_handoff_and_guide_shortcuts(world: Node, progress: RefCoun
 	guide.set_tucked(true)
 
 func _assert_mission_panel_is_readable_and_bounded(panel: Control) -> void:
-	assert(panel.size == Vector2(1280.0, 800.0))
+	# The panel is the full-screen backdrop, so it tracks the viewport rather than the
+	# 1280x800 design size. Readability is the Dialog's job, asserted just below.
+	var viewport := panel.get_viewport_rect().size
+	assert(panel.size.x >= viewport.x and panel.size.y >= viewport.y)
 	var dialog := panel.get_node("Backdrop/Dialog") as Control
 	assert(dialog.size.x <= 980.0)
 	assert(dialog.size.y <= 700.0)

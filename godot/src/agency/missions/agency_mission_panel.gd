@@ -200,7 +200,7 @@ func close_panel() -> void:
 func _set_common_text() -> void:
     mission_badge.text = "OPTIONAL PRACTICE" if not bool(_record.get("required", true)) else "AGENCY TASK"
     title_label.text = String(_record.get("title"))
-    goal_label.text = "GOAL — %s" % String(_record.get("goal"))
+    goal_label.text = String(_record.get("goal"))
 
 func _show_stage(active_stage: Control) -> void:
     choice_stage.visible = active_stage == choice_stage
@@ -239,7 +239,7 @@ func _set_reference_text(record: Dictionary) -> void:
             if not text.is_empty():
                 lines.append("%s: %s" % [label, text])
     if lines.is_empty():
-        lines.append("USE THIS: %s" % String(record.get("instruction", record.get("goal", "Check the task goal."))))
+        lines.append(String(record.get("instruction", record.get("goal", "Check the task goal."))))
     reference_label.text = "\n".join(lines)
 
 func _set_role_details_visible(is_visible: bool) -> void:

@@ -25,20 +25,20 @@ const ORIENTATION_CONTENT_MIN_INSET := 32.0
 const ORIENTATION_STEPS := [
 	{
 		"overview": true,
-		"title": "You and your partner will make and pitch one ad.",
-		"action": "Read the brief. Complete seven short tasks. Build one ad. Pitch it.",
+		"title": "You and your partner make one advertisement and pitch it.",
+		"action": "There are seven required tasks. Each one adds a decision to the advertisement.",
 		"items": [
 			{
-				"label": "MAKE",
-				"text": "Make an ad that gives the audience a clear reason to act.",
+				"label": "THE WORK",
+				"text": "One advertisement that gives its audience a reason to act.",
 			},
 			{
-				"label": "PRACTISE",
-				"text": "Practise choosing advertising techniques and explaining their effect.",
+				"label": "THE TASKS",
+				"text": "Each task is one advertising technique and its effect on the audience.",
 			},
 			{
-				"label": "EARN",
-				"text": "Each required task prepares the ad for the final pitch.",
+				"label": "THE PITCH",
+				"text": "You present the finished advertisement and explain your decisions.",
 			},
 		],
 		"button": "How do we start?",
@@ -83,15 +83,15 @@ const ORIENTATION_STEPS := [
 	},
 	{
 		"title": "Begin the work",
-		"action": "Start at Client Briefing. Every required task moves your ad towards the final pitch.",
+		"action": "Start at Client Briefing. Each required task adds a decision to the advertisement.",
 		"items": [
 			{
 				"label": "READ",
-				"text": "Read the audience brief before making ad choices.",
+				"text": "Read the audience brief before making design decisions.",
 			},
 			{
 				"label": "BUILD",
-				"text": "Apply each completed task when you create the ad.",
+				"text": "Apply each completed task to the advertisement.",
 			},
 			{
 				"label": "PITCH",

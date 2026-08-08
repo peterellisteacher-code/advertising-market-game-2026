@@ -38,6 +38,15 @@ GodotIQ "found every real defect in this build and none of them were visible to 
 files." That is false, and believing it is how both defects shipped. Drive the tools *and* read
 the code.
 
+**Preflight, concretely.** The GodotIQ config is at `godot/.godotiq.json` — **inside `godot/`, not
+at the worktree root**, where looking first finds nothing and reads as "unwired". This root claims
+port **6105** in the shared ledger `C:\Users\Peter Ellis\.agents-shared\godotiq-port-claims.json`.
+Two calls before any Godot work, because no static check can prove either: `godotiq_ping` →
+`tier` must be `pro` (14 tools silently degrade to a community stub otherwise), and
+`godotiq_editor_context` → `addon_connected` must be `true`. If it is false, open the editor on
+this root with `mcp__godot__launch_editor` and its `--path` pointing at
+`...\agency-clarity-tuckability\godot`.
+
 `mcp__godot__launch_editor` (the separate `godot` MCP server, not `godotiq`) starts the editor;
 the live tools need it. The GodotIQ addon writes the `GodotIQRuntime` autoload into
 `godot/project.godot:17-19` — **that file is tracked, and the addon's edit to it is never
@@ -49,8 +58,12 @@ Three operational notes:
 - **Saving a scene from the editor renormalises the whole file** (uid stamps, `unique_id` on
   every node, `layout_mode` → `anchors_preset`) and can touch unrelated files. For a
   one-property change, revert and hand-apply the single line to keep the diff minimal.
-- `godot/src` and `godot/tests` **disagree on indentation**: sources are 4 spaces, tests are
-  tabs. `script_ops` patches are exact-match, so check before writing a patch.
+- **Indentation is mixed per file, in both trees.** Measured 8 August: `godot/src` is 11
+  tab-dominant files to 23 space-dominant; `godot/tests` is 15 to 16. `salience_measure.gd`,
+  `salience_stage.gd` and `agency_mission_catalog.gd` are spaces; `agency_mission_controller.gd`,
+  `agency_world.gd` and `agency_hud.gd` are tabs. **Check the specific file before patching it.**
+  `script_ops` patches are exact-match, and a mismatch returns `status:"OK"` with `written:null`
+  rather than erroring — always confirm `written:true`.
 
 ## Verified false-positive classes — do NOT "fix" these
 
@@ -81,8 +94,10 @@ would make new code less consistent with the rest of the project, nearly all of 
   the stage. The measure is computed from the live arrangement with no authored target to compare
   against. The three levers:
   - **size** — alpha-weighted opaque area, normalised to the largest object;
-  - **isolation** — distance to the nearest neighbour's bounding box **or to the stage edge,
-    whichever is closer**, over the stage diagonal;
+  - **isolation** — as shipped in `831236eb`, the distance to the nearest neighbour's bounding
+    box over the stage diagonal. **As the code stands today it also takes the stage edge,
+    whichever is closer** — but that term was added later, in `2911598e`, so do not bisect
+    against this bullet;
   - **contrast** — CIE76 distance between the object's tinted colour and the mean colour of a
     *ring grown around* it. That ring is **not** simply the plate behind the object: it blends
     neighbouring objects' tinted colours, weighted by their alpha coverage, with the plate's mean
@@ -161,8 +176,11 @@ source — but none has been re-derived since, so confirm before acting.
 7. **Transparent pixels form opaque hit boxes.** Every object is a rectangular `TextureRect` with
    `MOUSE_FILTER_STOP` and no alpha hit-testing, and the opening arrangement overlaps. Clicking
    what is visibly the orange can select the apple whose box is above it in draw order.
-8. **`focus_target()` is defined and never called** by `_ready`, `configure`, or any test, so the
-   keyboard affordance its comment promises does not happen unless the host panel calls it.
+8. **WITHDRAWN — `focus_target()` is called, and this was never a defect.** Three panel reviewers
+   reported it as dead code because the caller sits outside the source bundle they were given:
+   `agency_mission_panel.gd:182-183` calls it with `call_deferred` on the demonstration mount
+   path. **Do not "fix" it** — adding a call in `_ready` or `configure` would give every mount a
+   second redundant `grab_focus`. Kept here rather than deleted so the number is not reused.
 9. **`focus_entered.connect(_select.bind(id))`** means tabbing through the objects reassigns the
    selection, so a keyboard user aiming for the slider changes which fruit the controls act on.
 10. **Keyboard control is undiscoverable.** Arrow-key nudging with Shift for coarse steps exists,
@@ -181,9 +199,10 @@ source — but none has been re-derived since, so confirm before acting.
 **Test coverage**
 
 15. **Only the size lever is driven end to end.** No committed test exercises dragging, keyboard
-    nudging, edge clamping, the tint swatches, reset, `show_error`, or a win by isolation or
-    contrast through the stage. A disconnected swatch or a sign error in the drag maths would
-    leave the suite green.
+    nudging, edge clamping, the tint swatches, `show_error`, or a win by isolation or contrast
+    through the stage. A disconnected swatch or a sign error in the drag maths would leave the
+    suite green. (`reset_arrangement` **is** covered, through `configure`, by
+    `_a_missing_sprite_does_not_shift_the_others` — do not rewrite that one.)
 16. **`test_salience_measure.gd` asserts an algebraic identity** — `baseArea == coverage * w * h`
     holds by construction for any input, so it cannot fail.
 17. **`test_agency_guidance.gd:162` asserts `hud.size.x <= hud.custom_minimum_size.x`**, which is
@@ -197,7 +216,10 @@ source — but none has been re-derived since, so confirm before acting.
 
 19. `salience_measure.gd`'s header says all three levers are "each normalised across the objects
     in the scene". Size is over the largest area, isolation over the stage diagonal, contrast is
-    raw ΔE. The `*Share` fields are the normalised ones.
+    raw ΔE. The `*Share` fields are the normalised ones. **The same header, at `:8`, still
+    describes isolation as "distance to the nearest neighbour's bounding box" and has been stale
+    since `2911598e` added the stage edge.** Writing engine B's measure from that header would
+    reimplement the exact defect `2911598e` fixed — fix the comment early.
 20. `test_salience_measure.gd` says there is "no expected arrangement anywhere in this suite"
     while hardcoding 0.62 as a known passing scale twice. The property it names is real; the test
     does not establish it.
@@ -220,9 +242,16 @@ source — but none has been re-derived since, so confirm before acting.
 
 ## Next
 
-1. **Engines B–G.** Same shape as A: a record-driven stage scene plus a measure module, wired
-   through `show_demonstration`. Reuse `salience_measure.gd` where the lever maths applies — but
-   items 1–6 above are the price of reusing it as it stands.
+**Step 0 — start here, before any new engine.** Fix open items 1–6, the ones headed "Fix before
+engines B–G". They are in `salience_measure.gd` and `salience_stage.gd`, which every later engine
+reuses, so each one left in place becomes one defect in six exercises. Begin with item 1, the
+single-object auto-pass in `_sole_leader`. Do not start engine B until these are done.
+
+1. **Engines B–G.** The roster — which missions get a demonstration, and what lever each teaches —
+   is in `docs/superpowers/plans/2026-08-07-mission-demonstration-stages.md`, not in this
+   document. Same shape as A: a record-driven stage scene plus a measure module, wired through
+   `show_demonstration` (`agency_mission_panel.gd:174`). Reuse `salience_measure.gd` where the
+   lever maths applies.
 2. **Terminology pass** across the twelve mission records — `REQUIRED_MISSION_RECORDS` (7) plus
    `SIDEQUEST_RECORDS` (5) in `agency_mission_catalog.gd`.
 3. **Remove `transferPrompt` / `TransferStage`** once every mission has a demonstration. Present in
@@ -234,7 +263,11 @@ source — but none has been re-derived since, so confirm before acting.
 This is a **pnpm** workspace — `package.json` declares `packageManager: pnpm@11.7.0` and
 `CONTRIBUTING.md` specifies `corepack enable` then `pnpm install --frozen-lockfile`. Never run
 `npm install` here. Bare `pnpm` is **not on PATH** on this machine; `corepack --version` is 0.35.0
-and `corepack pnpm --version` is 11.7.0. Invoke the gates as `AGENTS.md` does:
+and `corepack pnpm --version` is 11.7.0. The five gate scripts are defined in `package.json`.
+(An earlier version of this document said to "invoke the gates as `AGENTS.md` does" — `AGENTS.md`
+carries one command, `corepack pnpm run verify:repo-sync --expect-local-head`, which is a
+repo-publication check and not a gate. Only the `corepack pnpm run` invocation form came from
+there.)
 
 ```
 corepack pnpm run test:godot
@@ -246,5 +279,29 @@ corepack pnpm run build:web
 
 All five were run and green at `2911598e` on 8 August.
 
-Note the six `.png.import` files under `godot/assets/agency/salience/` show as modified with an
-empty content diff — that is LF/CRLF normalisation, not a change. Do not stage them.
+The binary the Godot gate runs is resolved by `resolveGodotExecutable`, exported from
+`scripts/export-godot-web.mjs` and called at `scripts/run-godot-tests.mjs:100`. Open item 18 makes
+"the gate runs a debug binary is nowhere recorded" a finding — that is where to record it.
+
+**A new test file is not run until you register it.** `godot/tests/run_tests.gd` lists the suites
+explicitly. There are 24 `test_*.gd` on disk and four it never references —
+`test_agency_audio_manager.gd`, `test_agency_campaign_controller.gd`, `test_campaign_image_decoder.gd`
+and `test_pitch_theatre.gd`. Add engine B's suite to `run_tests.gd` or a green gate will mean
+nothing about it.
+
+**Before committing, check what is dirty.** Two files are modified in the working tree right now
+and neither should be staged:
+- **`godot/project.godot`** — tracked, and the GodotIQ addon writes its `GodotIQRuntime` autoload
+  into it. **Never commit this file.**
+- The six `.png.import` files under `godot/assets/agency/salience/` show as modified with an
+  **empty content diff** — LF/CRLF normalisation, not a change.
+
+Stage by name, never `git add .` or `-A`.
+
+## Branch state
+
+`agent/mission-clarity-20260807` is pushed and current at `062b20ea`. **No PR is open.** Whether
+to PR Engine A now or land it together with engines B–G is an open decision for Peter, as is
+whether the isolation lever should keep counting the stage edge as "space around it" (changed in
+`2911598e`) or revert to pure object-to-object separation with the win sentence reworded. Do not
+settle either alone.

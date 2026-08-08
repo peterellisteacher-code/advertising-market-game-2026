@@ -5,7 +5,11 @@ Generation date: 29 July 2026
 These assets were created specifically for the Advertising Market Game. They do
 not copy the branded advertisements in the teaching source folders. The selected
 images contain no recognisable trademark, commercial logo, real person, or
-readable third-party advertising copy.
+readable third-party advertising copy — with **one deliberate exception**, the
+`crop/preppy-max-mark.png` parody roundel, which is described and flagged in its
+own section below. That exception is the only asset here that is meant to be
+read against a real brand, and it is the one to review before any public
+snapshot.
 
 ## First-run onboarding screenshots
 
@@ -269,6 +273,96 @@ Licence note: fal.ai lists `openai/gpt-image-2` with `license_type: commercial`.
 Every input to both models was this project's own text; no third-party image was
 supplied to either.
 
+## Crop demonstration assets — `crop/`
+
+Generated 8 August 2026.
+
+These two files supply the advertisement the pair frames in **Frame the image
+around the advertisement meaning**, which serves both `framing` and `crop-lab`.
+The picture is shipped deliberately too wide to use — 3:1 — so that cropping is a
+real decision rather than a tidy-up, and the slogan is a separate draggable piece
+so that leaving the message somewhere readable is also the pair's decision. The
+measure reads the picture's own pixels underneath wherever the pair puts the
+slogan, so the plain plaster wall on the right and the dense pews, tile and roof
+timbers everywhere else are load-bearing, not decoration.
+
+### `crop/preppy-max-church.png`
+
+- Tool: `openai/gpt-image-2` on fal.ai at `high` quality
+- Generated source: 2880 x 960 pixels, RGB, SHA-256
+  `f5cddba602ffcce25fedb38f85b04c6a0e80e75c937af7055f67780179b3a502`
+- Final file: the selected original resampled once to 1920 x 640 with Lanczos —
+  twice the width it is ever drawn at — and not cropped, stretched or edited
+- Dimensions: 1920 x 640 pixels, RGB (aspect ratio 3.0)
+- SHA-256:
+  `e03fa488da1e5d35685bb0779e61d36d22ffd0d36654492e30c0d0f5970fc6da`
+- Human selection: selected over two other candidates because the party is
+  genuinely confined to the bottle outline. In both rejected candidates dancers
+  with raised arms appear *outside* the outline, which destroys the idea the
+  picture exists to carry. This one also has the cleanest bottle silhouette, the
+  floor tile and roof timbers continue unbroken across the outline edge, and the
+  robed figure still stands at the pulpit outside while the DJ occupies the same
+  axis inside
+- Measured geometry, in the shipped file's own pixels: the bottle sits at
+  x 1264..1776, y 24..936; the plain plaster wall runs x 2060..2880, y 150..720
+  in the generated source. The record's `subjectRegion` trims the outline's tip
+  and base to `Rect2(842, 64, 342, 528)` in shipped pixels, which is what leaves
+  the frame anywhere to move vertically
+- Public-use decision: approved because the scene is an original generated
+  interior with fictional figures, no logo, no brand and no readable text — the
+  bottle carries no label because it is only an outline
+- Note for anyone re-cutting this asset: the measure classifies a cell as plain
+  from its luminance variance, so the picture must never be resampled with a
+  smoothing filter before it is measured. Lanczos moved 72 of its 1200 cells from
+  busy to plain and changed five verdicts; the engine downscales with nearest for
+  exactly this reason
+
+Exact generation prompt:
+
+> Wide pixel-art illustration, crisp chunky pixels, flat limited palette of deep navy, warm cream, teal, coral, mustard and cobalt blue, heavy dark outlines, 1990s point-and-click adventure background art. ONE continuous interior of a small parish church, seen straight down the central aisle from the back, a single consistent camera angle and one vanishing point. LEFT THIRD: rows of wooden pews packed with a seated congregation seen from behind — still, upright, dull coats and hats. A tall stained-glass window and a stone pillar. Dense with detail. CENTRE-LEFT FOREGROUND: the back of a teenage boy's head and one shoulder, very large, dark navy silhouette, cropped by the bottom edge — an over-the-shoulder view. CENTRE-RIGHT: his arm is raised and his hand holds up a tall soft-drink bottle shape at eye level. THE BOTTLE IS NOT A REAL OBJECT — it is only a clean bottle-shaped outline, a crisp keyhole cut into the picture. No label, no cap, no glass, no highlights, no reflections, no writing on it. INSIDE THE BOTTLE OUTLINE: the exact same church, same pews, same pillars, same vanishing point, continuing across the outline edge with no break or shift — but transformed. Where the pulpit stands there is instead a DJ in headphones behind a pair of turntables. The front pews are empty and the people are standing in the aisle dancing with their arms up, lit by coloured beams of coral and cobalt, confetti in the air. The architecture lines up perfectly with the calm version outside the outline; only the people and the pulpit change. OUTSIDE THE BOTTLE OUTLINE: the same church, calm and dim, a still robed figure standing at the pulpit. RIGHT QUARTER: a large bare whitewashed plaster wall, completely empty and flat cream, no windows, no plaques, no shadows, no texture. The vaulted ceiling has dark timber beams. The floor is patterned encaustic tile. Both are dense with detail. Absolutely no text, no letters, no numbers, no logos and no signage anywhere in the image.
+
+### `crop/preppy-max-mark.png` — parody mark, review before public release
+
+**This is the one asset in this file that is deliberately readable against a real
+brand.** Peter asked on 8 August 2026 for a Pepsi Max parody: the advertisement
+in this exercise is "Preppy MAX", and the joke only works if the mark reads as
+the thing it is parodying. It was generated from a description of a red-over-blue
+wave roundel and came back close enough to the Pepsi globe to be recognised as
+one. The wordmark beside it is not part of this file — "PREPPY MAX" and "LIVE
+LIFE TO THE MAX" are set as text by the stage, so no third-party wordmark was
+reproduced.
+
+The game is behind a password gate rather than openly published, so this ships as
+a classroom teaching parody. It is recorded here so that the decision is
+deliberate and reversible rather than discovered later.
+
+- Tool: `openai/gpt-image-2` on fal.ai at `high` quality
+- Generated source: 832 x 832 pixels, RGB on white, SHA-256
+  `a55bc414a655cd15dee4e8b153441917e96020cfacfc14ed6dc9b141183acf9e`
+- Final file: the disc cropped to its own bounds and given an antialiased circular
+  alpha mask computed geometrically at 4x supersampling, then resampled once to
+  256 x 256. No background-removal model was used: the mark is a circle, so a
+  geometric mask is exact where a keying model would have guessed at the boundary
+  between the cream ring and the near-white ground
+- Dimensions: 256 x 256 pixels, RGBA
+- Alpha: 51,244 of 65,536 pixels opaque, which is pi/4 of the square to within a
+  rounding error — the mask is the circle it claims to be
+- SHA-256:
+  `aa01a50621dfefe5efaeb370e142dbfecd854b57b2e3d744123c6ff2614a8b5a`
+- Public-use decision: **NOT approved for public release as it stands.** Approved
+  for classroom use behind the existing password gate. To clear it for a public
+  snapshot, regenerate the roundel in the game's own palette — teal and coral on
+  cream rather than red and blue — which keeps the "a soft drink brand" reading
+  without reproducing a specific one
+
+Exact generation prompt:
+
+> A single circular soft-drink brand roundel logo icon, flat pixel-art vector style, centred on a plain pure white background with generous margin. A bold circle with a thick cream outer ring. The disc inside is divided by one thick cream horizontal wave that curves across the middle: coral red in the upper half, cobalt blue in the lower half. Absolutely no text, no letters, no numbers, no words anywhere on or near the logo. Crisp flat colour blocks, hard edges, no gradients, no shadows, no reflections, no highlights, no drop shadow.
+
+Licence note: fal.ai lists `openai/gpt-image-2` with `license_type: commercial`.
+Every input to both generations was this project's own text; no third-party image
+was supplied.
+
 ## Validation record
 
 - Visual inspection confirmed no cropped silhouettes, unintended text or
@@ -282,3 +376,12 @@ supplied to either.
   measure: each reported an alpha coverage between 0.54 and 0.78 of its bounding
   box, so the transparency survives import rather than being painted on.
 - The salience plate is RGB and all five salience sprites are RGBA.
+- Godot read the crop picture back through the demonstration's own measure: 423
+  of its 1200 cells classify as plain and the rest as busy, so the picture has
+  both somewhere to put the slogan and enough clutter to be worth cropping away.
+- The crop picture is RGB and the parody mark is RGBA.
+- The four checks were verified against the shipped file before any of the engine
+  was written, and again after the resample to 1920 x 640: the slogan reads 0.99
+  of its area as plain on the wall, 0.77 straddling its edge and 0.01 across the
+  bottle, and five structurally different frames pass. `test_crop_measure.gd`
+  holds all of that.

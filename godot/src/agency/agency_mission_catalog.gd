@@ -75,6 +75,70 @@ const SALIENCE_DEMONSTRATION := {
     }
 }
 
+# Engine B — crop frame. One draggable, resizable rectangle over one source photograph.
+# The record names what has to survive the crop rather than where the frame belongs: there
+# is no authored correct rectangle, and every frame that keeps the subject, stays close
+# enough to it and leaves a plain area for the headline passes. The frame opens on the
+# whole untouched picture, which does contain the subject but keeps so much of the room
+# that the subject fills too little of the frame to pass.
+const CROP_DEMONSTRATION := {
+    "engine": "crop-frame",
+    "scene": "res://src/agency/missions/demonstrations/CropStage.tscn",
+    "image": "res://assets/agency/crop/preppy-max-church.png",
+    # Image pixels, measured off the shipped 1920 x 640 picture: the bottle outline the boy
+    # holds up, less the very tip and base of it. Trimming those is what leaves the frame
+    # room to move vertically — the outline runs almost the whole height of the picture, so
+    # a region drawn around all of it would pin the frame to within a few pixels top and
+    # bottom and every vertical drag would read as a fault. The stage takes the picture's
+    # size from the texture rather than from here, so the two cannot disagree, and
+    # test_crop_measure.gd holds this region inside it.
+    "subjectRegion": Rect2(842, 64, 342, 528),
+    "subjectPhrase": "the bottle",
+    "instruction": "Drag the frame to move it, or drag a corner to resize it. Drag the slogan to move it. The arrow keys move whatever is selected, and holding Shift moves it further. The picture is far too wide for an advertisement: cut it down so the bottle carries the frame, and put the slogan where it can still be read.",
+    # The slogan the pair drags into place, rather than something the stage lays out for
+    # them. The mark is art; the two lines are set as text so they stay sharp at whatever
+    # size the dialog gives the stage, and so their spelling is not whatever a generator
+    # produced.
+    "sloganMark": "res://assets/agency/crop/preppy-max-mark.png",
+    "sloganName": "PREPPY MAX",
+    "sloganLine": "LIVE LIFE TO THE MAX",
+    "sloganSize": Vector2(480, 192),
+    # Lying across the aisle and the foot of the bottle, so the opening arrangement fails
+    # on the picture the slogan covers as well as on the width the frame keeps. It has to
+    # start wholly on the picture: the stage would clamp a start that hung off the bottom,
+    # leaving the record describing a rectangle the pair never sees.
+    "sloganStart": Vector2(720, 400),
+    "minCropSize": Vector2(480, 320),
+    # The bottle fills 0.15 of the untouched picture and 0.20 of a frame that only trims
+    # the left quarter, against 0.26 to 0.31 for frames drawn close enough to carry it.
+    "minSubjectShare": 0.23,
+    # The share of the slogan's own area that has to be sitting on plain pixels. On the
+    # shipped picture the plaster wall reads 0.99, half on and half off the wall reads
+    # 0.77, and across the bottle it reads 0.01.
+    "minPlainShare": 0.85,
+    "checkPhrases": {
+        "subject": "bottle kept whole",
+        "prominence": "frame close enough",
+        "messageInFrame": "slogan in the frame",
+        "messageClear": "slogan can be read"
+    },
+    "unmetSentences": {
+        "subject": "The frame cuts off part of {subject}. Move or widen the frame until all of it is inside.",
+        "prominence": "The frame holds too much of the church around {subject}. Make the frame smaller.",
+        "messageInFrame": "The slogan is outside the frame, so it is not part of the advertisement. Drag it inside.",
+        "messageClear": "The slogan is lying across the picture, where nobody can read it. Drag it onto the plain wall."
+    },
+    # Shown in the stage, where a third line of text pushes the dialog past the shortest
+    # window the game guarantees. The recorded sentence below is never drawn, so it keeps
+    # the audience clause the writer's statement quotes.
+    "wonSentences": {
+        "crop": "The frame carries {subject}, and the slogan sits where it can be read."
+    },
+    "evidenceSentences": {
+        "crop": "The picture was cropped so that {subject} carries the frame, and the slogan was placed on a plain area rather than across the picture, so the audience can see the product and still read the message."
+    }
+}
+
 const REQUIRED_MISSION_RECORDS := [
     {
         "id": "audience-brief",
@@ -260,6 +324,7 @@ const REQUIRED_MISSION_RECORDS := [
         "correctChoiceId": "useful-close-crop",
         "effectExplanation": "Purposeful framing controls which evidence the audience can see and where the written message can be read.",
         "transferPrompt": "State what your image must prove, what will remain inside the crop and where negative space will hold the headline.",
+        "demonstration": CROP_DEMONSTRATION,
         "reward": "Framing desk complete",
         "required": true
     },
@@ -447,6 +512,7 @@ const SIDEQUEST_RECORDS := [
         "correctChoiceId": "action-and-space",
         "effectExplanation": "An evidence-preserving crop lets the audience understand both what the product is and how it produces value.",
         "transferPrompt": "List the two image details your own crop must preserve and the area that will remain available for text.",
+        "demonstration": CROP_DEMONSTRATION,
         "reward": "Optional portfolio stamp",
         "required": false,
         "portfolioStamp": "Crop Analyst",

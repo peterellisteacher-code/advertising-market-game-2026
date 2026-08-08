@@ -221,7 +221,7 @@ func submit_demonstration(result: Dictionary) -> Dictionary:
 		return {
 			"accepted": false,
 			"state": _state,
-			"reason": "The named object does not lead on any of the three yet."
+			"reason": _demonstration_reason(result)
 		}
 	var evidence := {
 		"decision": _selected_choice_id,
@@ -381,6 +381,12 @@ func _demonstration() -> Dictionary:
 	return Dictionary(value) if typeof(value) == TYPE_DICTIONARY else {}
 
 func _demonstration_evidence(result: Dictionary) -> String:
+	# A stage that writes its own sentence from its own record supplies it here, so this
+	# controller does not have to know what each engine measures or what its record calls
+	# things. Engine A names the lever it won instead, and the sentence is looked up below.
+	var supplied := String(result.get("evidence", ""))
+	if not supplied.is_empty():
+		return supplied
 	var demonstration := _demonstration()
 	var won_levers: PackedStringArray = result.get("wonLevers", PackedStringArray())
 	if demonstration.is_empty() or won_levers.is_empty():
@@ -389,6 +395,15 @@ func _demonstration_evidence(result: Dictionary) -> String:
 	return String(sentences.get(won_levers[0], "")).format({
 		"target": _demonstration_target_name(demonstration)
 	})
+
+## Why the stage did not accept what the pair built. Engine A's sentence was written into
+## this controller, so every later engine would have reported that the named object does
+## not lead on any of the three, whatever its own measure actually checks.
+func _demonstration_reason(result: Dictionary) -> String:
+	var supplied := String(result.get("reason", ""))
+	if not supplied.is_empty():
+		return supplied
+	return "The named object does not lead on any of the three yet."
 
 func _demonstration_target_name(demonstration: Dictionary) -> String:
 	var target_id := String(demonstration.get("targetId", ""))

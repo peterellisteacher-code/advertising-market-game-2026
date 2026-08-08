@@ -3,12 +3,41 @@
 Branch `agent/mission-clarity-20260807`. PRs target `agent/admarket-integrated-fixes-20260723`.
 Plan of record: `docs/superpowers/plans/2026-08-07-mission-demonstration-stages.md`.
 
+**Read the plan of record first if you have not.** This document assumes it. That is where the
+game, the twelve missions, the writing gate being replaced and the seven engines are described;
+this one carries only what has been learned since.
+
+**Vocabulary this document uses without stopping to define it.** *The pair* — two students at one
+machine, which is how the game is played; the plan of record calls the same actor "the student".
+*A mission record* — one entry in `REQUIRED_MISSION_RECORDS` or `SIDEQUEST_RECORDS` in
+`godot/src/agency/agency_mission_catalog.gd`, a Dictionary carrying every string and number a
+mission needs. *A demonstration stage* — the record-driven scene that replaces that mission's
+writing gate, mounted by `agency_mission_panel.gd::show_demonstration` at line 174. *An engine* —
+one stage scene plus one measure module, serving several missions from different records.
+
+**Where the slice is:** Step 0, engine A (salience) and engine B (crop frame) are built, tested
+and pushed. **Engine C, the colour wheel, is next, and it is blocked on an asset decision only
+Peter can make** — see "Next". **Four engines remain after C — D, E, F and G.** (The plan of
+record's heading says "Six engines cover twelve missions" while listing seven, A–G. Seven is what
+it actually specifies; the heading is the error.) After the engines come the terminology pass and
+the removal of the writing gate.
+
 **How to read the claims below.** Numbers that came from a GodotIQ tool are marked as tool
 output — re-run the tool, do not trust the figure. Everything else was checked against the
 source on 8 August. An earlier version of this document opened by asserting that every claim
 in it had survived adversarial verification. That warrant was false and has been removed: a
 six-reviewer pass on 8 August found a shipped logic defect in the measure, and found four
 false statements in this document. Treat it as notes, not as a certificate.
+
+**A cold-read pass on 8 August refuted six more claims in the engine B material**, all now
+repaired: the remaining-engine count, the lockup's generated size, the fal size bullet (which
+described the shipped file as if it were a valid request), a `_connect_panel_signal` line number,
+the "ASCII-sorted or the gate fails" claim, and the dirty-tree count. It also found that this
+document never said how a new engine is *registered* — the one thing engine C cannot start without.
+Five claims came back **unverifiable from the repo alone** and are marked where they appear: the
+`godotiq_ping` response shape, the `validate`/`ui_map` figures, the GodotIQ bridge behaviours, and
+the `sloganStart` (720, 460) / 805px figures, neither of which exists on disk. The pattern across
+both passes is the same: the wrong claims were the confident ones with no artifact behind them.
 
 ## Standing instruction — GodotIQ (Peter, 8 August 2026)
 
@@ -41,11 +70,16 @@ the code.
 **Preflight, concretely.** The GodotIQ config is at `godot/.godotiq.json` — **inside `godot/`, not
 at the worktree root**, where looking first finds nothing and reads as "unwired". This root claims
 port **6105** in the shared ledger `C:\Users\Peter Ellis\.agents-shared\godotiq-port-claims.json`.
-Two calls before any Godot work, because no static check can prove either: `godotiq_ping` →
-`tier` must be `pro` (14 tools silently degrade to a community stub otherwise), and
-`godotiq_editor_context` → `addon_connected` must be `true`. If it is false, open the editor on
-this root with `mcp__godot__launch_editor` and its `--path` pointing at
-`...\agency-clarity-tuckability\godot`.
+Two calls before any Godot work, because no static check can prove either: `godotiq_ping` → pro
+tier (14 tools silently degrade to a community stub otherwise), and `godotiq_editor_context` →
+`addon_connected` must be `true`. If it is false, open the editor on this root with
+`mcp__godot__launch_editor` and its `--path` pointing at
+`...\agency-clarity-tuckability\godot`; a closed editor shows as
+`Failed to connect to 127.0.0.1:6105: [WinError 1225]`. **The session-start hook tells you to
+check `tier`; one `godotiq_ping` on 0.5.16 returned no `tier` key at all** — it reported
+`"license": "pro"`, `"pro_bundle": "active"`, `tool_count: 38`. That is a single observation of a
+response shape, not a documented contract: read whichever field is there, and do not conclude the
+tier is unknowable because the named key is missing.
 
 `mcp__godot__launch_editor` (the separate `godot` MCP server, not `godotiq`) starts the editor;
 the live tools need it. The GodotIQ addon writes the `GodotIQRuntime` autoload into
@@ -82,6 +116,58 @@ Operational notes, all measured on this branch:
   `agency_world.gd` and `agency_hud.gd` are tabs. **Check the specific file before patching it.**
   `script_ops` patches are exact-match, and a mismatch returns `status:"OK"` with `written:null`
   rather than erroring — always confirm `written:true`.
+- **Read layout in a *later* `exec` call than the one that mounts the scene.** Measured on engine
+  B: an in-frame read put the slogan at screen y 69.875 where the settled value was 367.
+
+## Carried out of engine B — every later engine hits these
+
+Measured while building B, not inherited from A. Each one cost something.
+
+- **A new stage's `.gd` *and* `.tscn` must be registered in `STUDENT_COPY_SOURCE_PATHS`**
+  (`scripts/student-copy-corpus.mjs`) or `test:build-web` fails on
+  `student-copy-source-coverage.test.mjs`. The pattern that claims a file is
+  `GODOT_EMITTER_PATTERN` in that **test**, not in the corpus module —
+  `/(?:^|\n)\s*(?:text|tooltip_text|placeholder_text)\s*=|\.text\s*=/`. Membership is all the
+  test checks (`assert.deepEqual(candidates, [])`); the list is kept ASCII-sorted by convention,
+  not by the gate. This is a separate registration from `run_tests.gd`, and engine B failed the
+  gate on it.
+- **Nearest, never a smoothing filter, for any variance-preserving downscale.** Every averaging
+  filter is low-pass, and low-pass is exactly the operation that removes the quantity a variance
+  measure reads. Measured on the shipped picture: Lanczos moved 72 of its 1200 cells from busy to
+  plain and flipped five verdicts; `INTERPOLATE_NEAREST` disagreed with the full-resolution grid
+  on 15 cells and flipped none. Any engine that classifies pixels inherits this.
+- **Later siblings receive the pointer first**, and a `Panel` with `MOUSE_FILTER_STOP` grabs its
+  whole rectangle, not just its border. In `CropStage.tscn`, `Slogan` sits after `Frame` under
+  `Stage` on purpose; swapping them makes the slogan undraggable wherever the frame overlaps it,
+  silently.
+- **An authored geometry field must describe a rectangle the pair actually sees.** `sloganStart`
+  was first written at (720, 460) on a 640-tall picture, so the stage clamped it on mount and the
+  record described a position that never existed. Check every authored rectangle against the
+  picture bounds *and* against the stage's own clamp.
+- **The demonstration dialog fits 750px in the 800px window the game guarantees** — the dialog is
+  centred with a 25px margin, so 800 is the wrong number to guard. Both suites now assert ≤760
+  while the demonstration is the stage on show; A measures 750, B 715. Put the same assertion in
+  the same place in C's panel test: right after the layout settles, and **before the test presses
+  the check button**. Do not grep for `show_completed` to find that boundary — neither panel test
+  calls it. Completion is triggered by `CheckButton.pressed.emit()`
+  (`test_crop_measure.gd:490`, `test_salience_measure.gd:442`), which reaches the panel through
+  the controller. The assertion must sit above that line.
+- **`openai/gpt-image-2` through fal, `quality: "high"` — these constrain the REQUEST, not the
+  file you ship.** Both dimensions multiples of 16, max edge 3840, aspect ≤ 3:1, total pixels
+  655,360–8,294,400. Both crop assets were **generated large and resampled down once**, and the
+  shipped lockup would be rejected as a request: the church was asked for at 2880×960 and shipped
+  at 1920×640; the lockup was asked for at 1520×608 and shipped at 960×384, which is 368,640
+  pixels — below the minimum above. `ASSET-SOURCES.md` records the generated size, the shipped
+  size and the SHA-256 of each separately for exactly this reason.
+  **Lanczos is the right filter for that resample and is not what the bullet above bans** — the
+  ban is on smoothing inside a variance *measurement*, not on producing art.
+- **A green Godot gate is not evidence your new assertions ran.** `test:godot` prints
+  `Godot game, Creator bridge, and Market bridge tests passed` then `GODOT_TESTS_OK`, exit 0,
+  whether the suites ran or matched nothing — proved by pointing `ADMARKET_GODOT_TEST_SUITE` at a
+  path that does not exist. Negative-control every new or moved assertion: break the threshold it
+  guards, confirm the suite fails naming that specific file, revert, re-run. Choose the broken
+  value so it separates the case you care about — moving the dialog-height assertion was proved
+  at 720px, because the old position read 700 and passed while the new one reads 750 and fails.
 
 ## Verified false-positive classes — do NOT "fix" these
 
@@ -96,7 +182,7 @@ after a defect that does not exist.)
 |---|---|
 | `no_type_hint` | Flags `:=` inferred declarations, which **are** statically typed. It hits them at class level (`var`, not `const`) and inside functions whose signature spans multiple lines — in `salience_measure.gd` that is `_surround_contrast` and `_grid_integral`. Dozens of `:=` in single-line-signature functions in the same files go unflagged. *(An earlier version gave an exact per-function decomposition. Recounted by hand it did not sum to the reported total, so it has been dropped rather than re-guessed — run `validate(target=file, detail="normal")` if you need the list.)* |
 | `missing_null_check` | Keyword heuristic. `dependency_graph` reports `references_autoloads: []` for every flagged file; the only autoload in the project is the addon's own `GodotIQRuntime`. |
-| `orphan_signal` | The six panel signals are connected through a helper taking the name as a parameter — `_connect_panel_signal(signal_name: StringName, callback: Callable)` at `agency_mission_controller.gd:427-429`, called six times from `_connect_panel()`. Because the name is a variable at the `connect` call site, no static pass resolves it. The panel's seventh signal, `role_handoff_requested`, is wired statically at `agency_world.gd:371` and is correctly not reported. **`arrangement_submitted` (`salience_stage.gd:11`) is a second instance of the same class**, verified 8 August: it is connected at `agency_mission_panel.gd:241-242` by string literal on a dynamically-typed `_demonstration_view`, which no static pass resolves. Every engine B–G stage will report the same way. Verify a new one before dismissing it — a dead signal is the one real defect this rule has ever caught here. |
+| `orphan_signal` | The six panel signals are connected through a helper taking the name as a parameter — `_connect_panel_signal(signal_name: StringName, callback: Callable)` defined at `agency_mission_controller.gd:442`, called six times from `_connect_panel()` (line 422) at lines 425-430. Because the name is a variable at the `connect` call site, no static pass resolves it. The panel's seventh signal, `role_handoff_requested`, is wired statically at `agency_world.gd:371` and is correctly not reported. **`arrangement_submitted` (`salience_stage.gd:11`) is a second instance of the same class**, verified 8 August: it is connected at `agency_mission_panel.gd:241-242` by string literal on a dynamically-typed `_demonstration_view`, which no static pass resolves. Every engine B–G stage will report the same way. Verify a new one before dismissing it — a dead signal is the one real defect this rule has ever caught here. |
 | `incomplete_node` (Plate) | By design: `SalienceStage.tscn` has no plate texture because `salience_stage.gd` assigns it at runtime from the mission record, so one engine serves several missions. |
 | `signal_map` → `missing` | Engine built-ins (`pressed`, `item_selected`, `timeout`, `confirmed`) emitted manually in tests to simulate input — e.g. `test_agency_guidance.gd:168`. |
 | `asset_registry` → unused | **Do not act on this list.** It only scans scenes, so anything referenced by path string looks unused: the salience sprites and `SalienceStage.tscn` (`agency_mission_catalog.gd`), `Main.tscn` (`project.godot`), and the four market rival PNGs loaded from `RIVAL_ARTWORK_PATHS` at `godot/src/market/local_market_session.gd:24-29` and asserted by `test_local_market_session.gd`. Deleting any of them breaks the Godot gate. |
@@ -172,6 +258,45 @@ would make new code less consistent with the rest of the project, nearly all of 
   - **19.** The file header no longer describes isolation as the distance to the nearest
     neighbour, and no longer claims all three levers are normalised.
 
+- `0a05e848` — **Engine B, crop frame.** Serves `framing` and `crop-lab`. Same three-file shape as
+  A — `crop_measure.gd` (`extends RefCounted`, static only, no reference to the stage),
+  `crop_stage.gd`, `CropStage.tscn` — and it shares no maths with `salience_measure.gd`. The pair
+  crops a deliberately over-wide picture and drags the advertisement's slogan into place. Four
+  checks decide it, each in its own units and each naming one thing to change:
+
+  | Check | What it reads | Units |
+  |---|---|---|
+  | `subject` | the frame contains the bottle | image pixels: 0 while contained, negative by however far the worst side cuts in |
+  | `prominence` | the bottle's share of the frame | share |
+  | `messageInFrame` | the slogan lies inside the frame | image pixels, same convention as `subject` |
+  | `messageClear` | the slogan sits on plain pixels | share, weighted by each cell's overlap with the slogan |
+
+  The last two replace an auto-placed headline and a `largest_plain_rect` search that existed in
+  the working draft and never reached a commit — do not go looking for it in the history. Because
+  the pair positions the slogan themselves, the measure reads the picture's own pixels under
+  *their* choice instead of reporting a status word about space nobody had to use. Nothing authors
+  a correct rectangle: `test_crop_measure.gd` shows five structurally different arrangements
+  passing, which no stored answer could allow, and holds the record's geometry against the shipped
+  file.
+- `f2713da6` — **the slogan lockup baked as one piece of art.** It had been a generated roundel
+  plus two Godot `Label`s; the project ships no font files at all, so those Labels fell back to
+  the default face and lost the heavy condensed wordmark the parody depends on. Roundel, wordmark
+  and strapline are now generated together at 960×384, drawn at 222×88 through one `SloganArt`
+  `TextureRect` at `KEEP_ASPECT_CENTERED` so it can never be stretched.
+  `test_crop_measure.gd` asserts the art's aspect matches the record's `sloganSize` — at 2.5:1
+  either mismatch would show, as letterboxing or as distortion.
+- `2824427c` — **both demonstration suites now measure the dialog while it is on show.** Engine
+  A's height assertion sat at the end of its panel test, after the completed stage had replaced
+  the demonstration, so it was reading the wrong layout. See the height bullet above for the
+  numbers and the exact position. **Engine A is not overflowing** — measured 750 in the running
+  game on 8 August. The work was started from an 805px figure carried in from an earlier session;
+  **that number appears nowhere in this repo and should be treated as wrong or stale, not as
+  history.** The salience plate was regenerated to 1760×640 the same day and that plausibly
+  shortened the dialog, but `ASSET-SOURCES.md:255-258` gives a different stated reason — a 2:1
+  plate "filled little more than half the available width", so it was regenerated at 2.75:1 to
+  fill the dialog at full scale. Do not repeat the causal claim; only the 750 is measured. The
+  test-ordering flaw was real and is fixed.
+
 ## The 8 August review
 
 Six independent unguided adversarial reviewers, each given verbatim source and no hypothesis: an
@@ -208,10 +333,16 @@ source — but none has been re-derived since, so confirm before acting.
    second redundant `grab_focus`. Kept here rather than deleted so the number is not reused.
 9. **`focus_entered.connect(_select.bind(id))`** means tabbing through the objects reassigns the
    selection, so a keyboard user aiming for the slider changes which fruit the controls act on.
-10. **Keyboard control is undiscoverable.** Arrow-key nudging with Shift for coarse steps exists,
-    but neither the record instruction nor the scene text mentions keys at all.
+10. **Keyboard control is undiscoverable — engine A only.** Arrow-key nudging with Shift for
+    coarse steps exists, but neither the salience record's instruction nor the scene text mentions
+    keys at all. **Engine B already fixed this for itself**: its record says so at
+    `agency_mission_catalog.gd:97`. Do not "fix" B here; copy B's sentence into A.
 11. **Touch is unhandled.** Only `InputEventMouseButton`/`MouseMotion`/`Key` are inspected, so
     dragging does not work on a touchscreen or interactive whiteboard. The native controls do.
+    **Engine B has the same gap** — checked 8 August, there is no `InputEventScreen*` anywhere
+    under `godot/src/agency/missions/demonstrations/`. Every drag engine will clone it unless it
+    is fixed once, and B's slogan and frame are *both* drag-only. This is now the largest single
+    accessibility item in the slice.
 12. **Swatch minimum size is height-only** — `Vector2(0, 48)` sets no minimum width. Current labels
     happen to exceed 48px; the 48×48 target is not enforced.
 13. **The "Darker" and "Muted" swatches ship as grey clickable buttons**, against the rule commit
@@ -267,25 +398,72 @@ source — but none has been re-derived since, so confirm before acting.
     Mipmaps were enabled chasing this and reverted: the render was unchanged, because the blocks
     are the art, not undersampling.
 
+**From engine B**
+
+23. **`crop/preppy-max-lockup.png` is NOT cleared for public release.** It is the one asset in the
+    project that deliberately reads against a real brand, and `ASSET-SOURCES.md` records it as
+    approved for classroom use behind the password gate only, with what would have to change to
+    clear it. Anything that widens this build's audience deals with that file first. Not a bug —
+    a standing condition on the slice.
+24. **The lockup's words left the student-copy corpus when they became art.** `PREPPY MAX` and
+    `LIVE LIFE TO THE MAX` are baked into the PNG, so they are invisible to `/plain-language`,
+    `/claude-scrubber` and `student-copy-professional-contract.test.mjs`. That was the price of
+    getting the condensed wordmark without a font file. If a condensed face is ever added to the
+    project, the honest move is to set them as text again.
+25. **Nothing in this slice is recorded as having Peter's eyes-on approval.** He settled engine
+    B's *concept* in conversation, but no session record shows him looking at a rendered asset or
+    a running stage and saying so. `ASSET-SOURCES.md` carries provenance and the reasoning behind
+    each selection — that is not a sign-off. Treat every asset as awaiting his review.
+
 ## Next
 
-**Step 0 is done (`3ce0f8ea`). Start at engine B.**
+**Step 0, engine A and engine B are all done. Start at engine C.**
 
-1. **Engine B — crop frame.** A draggable, resizable rectangle over a raster image. The record
-   names a required subject region and a minimum clear area for the message; it passes when the
-   crop contains the former and preserves the latter. Serves `framing` and `crop-lab`. Same shape
-   as A — a record-driven stage scene plus a measure module, wired through `show_demonstration`
-   (`agency_mission_panel.gd:174`) — but **it shares no lever maths with `salience_measure.gd`**:
-   B is rectangle containment and clear area, not size/isolation/contrast. Write
-   `crop_measure.gd` as its own `extends RefCounted` module of static functions, and copy A's
-   *discipline* rather than its code: no authored target to match against, a pass that falls out
-   of the measure, a per-lever tie tolerance in that lever's own units, and no lever list
-   hardcoded into the scene. B needs a raster image asset that does not exist yet — see "The
-   asset approach" in the plan of record; the subject is not specified there, so settle it with
-   Peter before spending on generation. Then engines C–G; the full roster is in
-   `docs/superpowers/plans/2026-08-07-mission-demonstration-stages.md`, not in this document.
+1. **Engine C — colour wheel.** Serves `contrast` and `colour-clinic`. A raster colour wheel; the
+   pair picks the accent hue for one named element while the rest of the palette stays fixed. It
+   passes when the chosen hue is far enough around the wheel from the base hue **and** only one
+   element carries it. Same three-file shape as A and B, wired through `show_demonstration`
+   (`agency_mission_panel.gd:174`), and it shares no maths with either — write `colour_measure.gd`
+   as its own `extends RefCounted` module of static functions. Copy the *discipline*, not the
+   code: no authored answer, a pass that falls out of the measure, a per-check tolerance in that
+   check's own units (hue separation is degrees; "only one element carries it" is a count, so its
+   tolerance is not a float at all), and no check list hardcoded into the scene. Read the
+   "Carried out of engine B" section above before starting — most of it is things C hits on its
+   first day.
+
+   **How an engine is registered — four places, and only two of them are tests.** Engine C is not
+   mounted by anything until you do the first two:
+
+   | Where | What to add |
+   |---|---|
+   | `agency_mission_catalog.gd` | a `COLOUR_DEMONSTRATION := { … }` const beside `SALIENCE_DEMONSTRATION` (line 8) and `CROP_DEMONSTRATION` (line 84), carrying a `"scene"` path to `ColourStage.tscn` |
+   | `agency_mission_catalog.gd` | `"demonstration": COLOUR_DEMONSTRATION` inside the `contrast` record (pattern at line 326) and the `colour-clinic` record (pattern at line 514) |
+   | `godot/tests/run_tests.gd` | `"res://tests/test_colour_measure.gd"` — in **both** lists, as `test_crop_measure.gd` is at lines 22 and 49 |
+   | `scripts/student-copy-corpus.mjs` | the new `.gd` and `.tscn` in `STUDENT_COPY_SOURCE_PATHS` |
+
+   **The record's field contract is not documented anywhere — read `CROP_DEMONSTRATION`
+   (`agency_mission_catalog.gd:84-140`) and copy its shape.** Note that the two existing engines
+   already disagree on key names: A titles its readout from `leverPhrases` (line 61), B from
+   `checkPhrases` (line 118). Pick one and say why in the commit rather than inventing a third. B
+   additionally authors `unmetSentences` (one fix each), `wonSentences`, `evidenceSentences`,
+   `subjectPhrase` and its per-check thresholds — `evidenceSentences` is not optional, because
+   `missionEvidence` feeds the writer's statement and the pitch theatre.
+
+   **The asset is not settled, and needs Peter before anything is generated.** The plan of record
+   specifies only "a raster colour wheel asset" and the pass rule. It does not say what the pair
+   is recolouring — and *that is a second asset*, since "only one element carries the accent"
+   presupposes a piece of work with several elements. Raising both is this document's reading, not
+   the plan's instruction; put it to Peter as a question rather than assuming it. Peter has ruled
+   out one option already: **do not reuse the Pinterest colour wheel he linked**, which he flagged
+   as too low quality — an example of the kind of thing, not the asset. Engine B's subject took
+   three rounds of clarification before generation was worth paying for, and the version that
+   shipped was nothing like the first proposal. Ask, then generate.
 2. **Terminology pass** across the twelve mission records — `REQUIRED_MISSION_RECORDS` (7) plus
-   `SIDEQUEST_RECORDS` (5) in `agency_mission_catalog.gd`.
+   `SIDEQUEST_RECORDS` (5) in `agency_mission_catalog.gd`. **This is a deliberate departure from
+   the plan of record's build order**, which puts the terminology pass at step 3, before engines
+   B–G. It moved after the engines because each engine rewrites its own missions' copy as it
+   lands, and passing over records that are about to change twice is wasted work. If you disagree,
+   that is a decision to take to Peter — not a discrepancy to silently repair.
 3. **Remove `transferPrompt` / `TransferStage`** once every mission has a demonstration. Present in
    `agency_mission_catalog.gd`, `AgencyMissionPanel.tscn`, `agency_mission_panel.gd`,
    `test_agency_missions.gd`, `test_agency_mission_catalog.gd`, `test_agency_world.gd`.
@@ -309,33 +487,47 @@ corepack pnpm run test:unit
 corepack pnpm run build:web
 ```
 
-All five were run and green at `2911598e` on 8 August.
+All five were run end to end and green at `2824427c` on 8 August: `test:godot` `GODOT_TESTS_OK`,
+`typecheck` clean, `test:unit` 2468 tests passed, `test:build-web` 0 failures, `build:web`
+`WEB_EXPORT_STATIC_VERIFICATION_OK`. The tree was dirty only by the expected files below.
+
+`test:godot` prints a stack trace through `test_salience_measure.gd:246` and still passes. That is
+Godot echoing a `push_warning`, not an error: `_a_missing_sprite_does_not_shift_the_others`
+(line 229) deliberately points one sprite at `no-such-sprite.png`, which fires
+`salience_stage.gd:131`. `2911598e` made a failed sprite load warn instead of going quiet and this
+test is what exercises it. Do not suppress it — the trace disappearing means the warning stopped
+firing.
 
 The binary the Godot gate runs is resolved by `resolveGodotExecutable`, exported from
 `scripts/export-godot-web.mjs` and called at `scripts/run-godot-tests.mjs:100`. Open item 18 makes
 "the gate runs a debug binary is nowhere recorded" a finding — that is where to record it.
 
-**A new test file is not run until you register it.** `godot/tests/run_tests.gd` lists the suites
-explicitly. There are 24 `test_*.gd` on disk and four it never references —
-`test_agency_audio_manager.gd`, `test_agency_campaign_controller.gd`, `test_campaign_image_decoder.gd`
-and `test_pitch_theatre.gd`. Add engine B's suite to `run_tests.gd` or a green gate will mean
-nothing about it.
+**A new test file is not run until you register it — in two places.** `godot/tests/run_tests.gd`
+lists the suites explicitly (four `test_*.gd` on disk are never referenced by it:
+`test_agency_audio_manager.gd`, `test_agency_campaign_controller.gd`,
+`test_campaign_image_decoder.gd`, `test_pitch_theatre.gd`). Separately, the new stage's `.gd` and
+`.tscn` go in `STUDENT_COPY_SOURCE_PATHS` in `scripts/student-copy-corpus.mjs`. Miss the first and
+a green gate means nothing about your suite; miss the second and `test:build-web` fails. Engine B's
+entries — `test_crop_measure.gd`, `CropStage.tscn`, `crop_stage.gd` — are the worked example.
 
-**Before committing, check what is dirty.** Two files are modified in the working tree right now
-and neither should be staged:
+**Before committing, check what is dirty.** `git status` on a clean checkout of this branch is
+**not empty**, and three of the entries must never be staged:
 - **`godot/project.godot`** — tracked, and the GodotIQ addon writes its `GodotIQRuntime` autoload
-  into it. **Never commit this file.**
+  into it (lines 17-19). **Never commit this file.**
 - The six `.png.import` files under `godot/assets/agency/salience/` show as modified with an
-  **empty content diff** — LF/CRLF normalisation, not a change.
+  **empty content diff** — LF/CRLF normalisation, not a change. `git diff --stat` is the check:
+  they carry no content change.
+- **`.claude/`** is untracked and stays that way.
 
-Stage by name, never `git add .` or `-A`.
+Anything else you see is your own work. Stage by name, never `git add .` or `-A` — that rule
+exists precisely because the three entries above sit in the way.
 
 ## Branch state
 
-`agent/mission-clarity-20260807` is pushed and current at `3ce0f8ea`. **No PR is open, and that
+`agent/mission-clarity-20260807` is pushed and current at `2824427c`. **No PR is open, and that
 is deliberate.**
 
-**Both open decisions were settled by Peter on 8 August. Neither is open any more; do not re-ask.**
+**Everything below was settled by Peter on 8 August. None of it is open; do not re-ask.**
 
 - **Engine A lands together with engines B–G**, in one PR when the demonstration slice is
   finished. The branch stays open until then.
@@ -343,3 +535,12 @@ is deliberate.**
   `2911598e`). The win sentence stands as written and
   `test_salience_measure.gd::_a_corner_is_not_open_space` holds the property. Neither decision
   required a code change.
+- **Engine B's picture is a Preppy MAX parody, and its specifics are his.** A boring day at
+  church, over the shoulder of a kid holding a bottle; *within the outline of the bottle* is a
+  party that lines up with the nave behind it, with a DJ where the pastor stands. **The bottle
+  carries no branding whatsoever** — it is only an outline, and asking for branding on it is
+  asking for the thing he ruled out. The Pepsi-Max-mirroring identity lives entirely in the
+  slogan lockup, which is why that file is the one flagged for public release. The picture is
+  deliberately over-wide so the pair has to frame it, and the slogan is draggable so they have to
+  place it. The earlier planning-board image was deleted on his instruction and is not coming
+  back.

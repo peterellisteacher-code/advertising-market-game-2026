@@ -52,12 +52,30 @@ the live tools need it. The GodotIQ addon writes the `GodotIQRuntime` autoload i
 `godot/project.godot:17-19` — **that file is tracked, and the addon's edit to it is never
 committed.**
 
-Three operational notes:
+Operational notes, all measured on this branch:
 - With the editor open, the Godot gate prints `Failed to start WebSocket server on port 6105` —
   the headless run cannot bind the port the editor holds. Tests still pass; it is stderr noise.
+- **`ADMARKET_GODOT_TEST_SUITE` runs one suite alone** (`run_tests.gd:8`). Set it to a
+  `res://tests/...` path and `test:godot` skips everything else. This is how you confirm a new
+  test fails against the old code without waiting for the full suite.
+- **`godotiq_file_ops op="write"` on a `.tscn` is refused** with `BLOCKED_EDITOR_OPEN` while the
+  editor is running — correctly. Use `node_ops` + `save_scene`. `node_ops` additionally requires
+  the target scene to be the *currently edited* one, or it returns `PREFLIGHT_FAILED`; switch with
+  `exec(context="editor")` calling `EditorInterface.open_scene_from_path(...)`. Do **not**
+  `save_scene()` first as the error text suggests, or you renormalise whatever was open before.
+- **The key in a `node_ops` operation is `node`, not `path`.** `path` is accepted and arrives
+  empty, giving `NODE_NOT_FOUND` on `""` for every operation in the batch. That one at least
+  fails loudly — `all_verified: false` — but it costs a round trip.
+- **A multi-patch `script_ops` call is atomic.** One search string that does not match returns
+  `status: "PARTIAL"` and `written: false`, and *none* of the other patches are applied. Always
+  read `written`, never `status`.
 - **Saving a scene from the editor renormalises the whole file** (uid stamps, `unique_id` on
-  every node, `layout_mode` → `anchors_preset`) and can touch unrelated files. For a
-  one-property change, revert and hand-apply the single line to keep the diff minimal.
+  every node, `layout_mode` → `anchors_preset`) and can touch unrelated files. Confirmed again on
+  8 August: one `save_scene()` on `SalienceStage.tscn` also stamped a `uid=` into
+  `src/agency/ui/agency_theme.tres` and added a trailing newline to
+  `tests/agency_completion_runner.gd`. Both were reverted; expect them to come back on the next
+  save and revert them again unless the change is yours. `SalienceStage.tscn` itself is now
+  committed in canonical form, so it should stay a fixed point.
 - **Indentation is mixed per file, in both trees.** Measured 8 August: `godot/src` is 11
   tab-dominant files to 23 space-dominant; `godot/tests` is 15 to 16. `salience_measure.gd`,
   `salience_stage.gd` and `agency_mission_catalog.gd` are spaces; `agency_mission_controller.gd`,
@@ -78,7 +96,7 @@ after a defect that does not exist.)
 |---|---|
 | `no_type_hint` | Flags `:=` inferred declarations, which **are** statically typed. It hits them at class level (`var`, not `const`) and inside functions whose signature spans multiple lines — in `salience_measure.gd` that is `_surround_contrast` and `_grid_integral`. Dozens of `:=` in single-line-signature functions in the same files go unflagged. *(An earlier version gave an exact per-function decomposition. Recounted by hand it did not sum to the reported total, so it has been dropped rather than re-guessed — run `validate(target=file, detail="normal")` if you need the list.)* |
 | `missing_null_check` | Keyword heuristic. `dependency_graph` reports `references_autoloads: []` for every flagged file; the only autoload in the project is the addon's own `GodotIQRuntime`. |
-| `orphan_signal` | The six panel signals are connected through a helper taking the name as a parameter — `_connect_panel_signal(signal_name: StringName, callback: Callable)` at `agency_mission_controller.gd:427-429`, called six times from `_connect_panel()`. Because the name is a variable at the `connect` call site, no static pass resolves it. The panel's seventh signal, `role_handoff_requested`, is wired statically at `agency_world.gd:371` and is correctly not reported. |
+| `orphan_signal` | The six panel signals are connected through a helper taking the name as a parameter — `_connect_panel_signal(signal_name: StringName, callback: Callable)` at `agency_mission_controller.gd:427-429`, called six times from `_connect_panel()`. Because the name is a variable at the `connect` call site, no static pass resolves it. The panel's seventh signal, `role_handoff_requested`, is wired statically at `agency_world.gd:371` and is correctly not reported. **`arrangement_submitted` (`salience_stage.gd:11`) is a second instance of the same class**, verified 8 August: it is connected at `agency_mission_panel.gd:241-242` by string literal on a dynamically-typed `_demonstration_view`, which no static pass resolves. Every engine B–G stage will report the same way. Verify a new one before dismissing it — a dead signal is the one real defect this rule has ever caught here. |
 | `incomplete_node` (Plate) | By design: `SalienceStage.tscn` has no plate texture because `salience_stage.gd` assigns it at runtime from the mission record, so one engine serves several missions. |
 | `signal_map` → `missing` | Engine built-ins (`pressed`, `item_selected`, `timeout`, `confirmed`) emitted manually in tests to simulate input — e.g. `test_agency_guidance.gd:168`. |
 | `asset_registry` → unused | **Do not act on this list.** It only scans scenes, so anything referenced by path string looks unused: the salience sprites and `SalienceStage.tscn` (`agency_mission_catalog.gd`), `Main.tscn` (`project.godot`), and the four market rival PNGs loaded from `RIVAL_ARTWORK_PATHS` at `godot/src/market/local_market_session.gd:24-29` and asserted by `test_local_market_session.gd`. Deleting any of them breaks the Godot gate. |
@@ -125,6 +143,35 @@ would make new code less consistent with the rest of the project, nearly all of 
     handed the orange the bananas' scale and the exercise passed itself. The opening pose is now
     carried on the object, and a failed load raises a warning instead of going quiet.
 
+- `3ce0f8ea` — **Step 0: open items 1–6, the ones that would have been cloned into every
+  later engine, plus item 19.** Each carries a regression test confirmed to fail against
+  the old code first, by running the suite alone between fixes. In `salience_measure.gd`
+  unless noted:
+  - **1.** `_sole_leader` returns `""` when fewer than two objects are scored. Measured
+    before the fix: a lone object returned `passed: true` with `wonLevers`
+    `size,isolation,contrast`.
+  - **2.** `LEAD_EPSILON` is now a Dictionary keyed by lever — `0.0005` for the
+    normalised size and isolation levers, `2.3` (the CIE76 just-noticeable difference)
+    for raw contrast. A lever with **no** declared tolerance names no leader, rather than
+    silently inheriting the normalised figure. Measured before the fix: contrasts of
+    89.06 and 88.43 — a 0.63 ΔE gap — named a leader.
+  - **3.** `_surround_contrast` iterates neighbours **topmost first**
+    (`range(size - 1, -1, -1)`), because views are added in record order so the last
+    entry draws on top. The contested ring area now goes to the neighbour actually
+    visible there.
+  - **4.** `salience_stage.gd` has `DEFAULT_STAGE_SIZE := Vector2(880, 320)`, matching the
+    scene, used in both the declaration and the `configure` fallback.
+  - **5.** `_surround_contrast` returns `0.0` when `_has_plate_grid` is false, so a
+    mistyped plate path kills the lever instead of ranking objects by distance from
+    white; `salience_stage.gd::configure` pushes a warning when the plate texture fails
+    to load.
+  - **6.** `ReadoutRow` is now `unique_name_in_owner` and **empty** in the scene;
+    `_build_readout()` builds one column per `Measure.LEVERS` entry, titled from the
+    record's `leverPhrases`. `describe`'s fallback sentence goes through a new
+    `_lever_list()`. The three authored bar/label groups are gone.
+  - **19.** The file header no longer describes isolation as the distance to the nearest
+    neighbour, and no longer claims all three levers are normalised.
+
 ## The 8 August review
 
 Six independent unguided adversarial reviewers, each given verbatim source and no hypothesis: an
@@ -146,30 +193,8 @@ Two results worth carrying forward:
 Findings from the review that were not fixed. Nothing here is speculative — each was traced to
 source — but none has been re-derived since, so confirm before acting.
 
-**Fix before engines B–G, because cloning propagates them sixfold**
-
-1. **A single-object record auto-passes every lever.** `_sole_leader` initialises `runner_up` to
-   `-INF`, so a lone object leads everything and `passed` is true with no student action. Found by
-   all five panel seats. Harmless for the five-fruit record; fatal for any future one-object record.
-2. **`LEAD_EPSILON` is one absolute value across incompatible units.** 0.0005 is applied to size
-   and isolation (roughly [0,1]) and to contrast (raw CIE76 ΔE, 0–100+). On contrast it is three
-   orders of magnitude below a just-noticeable difference, so the tie mechanism is dead there and
-   grid-sampling noise decides the leader — the opposite of what the comment above it promises.
-3. **Contrast depends on the record's object order.** In `_surround_contrast`, neighbours consume
-   a shared budget in array order, so when two overlap inside the ring, whichever is listed first
-   claims it. Reordering a record changes the measured contrast with no visual change. Worse, views
-   are added in record order so later ones draw *on top*, while the blend gives the first — the
-   bottom-most — priority.
-4. **`_stage_size` falls back to `Vector2(880, 440)`** while the scene and record use 880×320. A
-   record omitting `stageSize` would measure and clamp against a stage 120px taller than the one
-   drawn.
-5. **A missing plate silently becomes a white surround.** `_plate_mean` returns `Color.WHITE` when
-   the grid is absent or the ring's plate weight is zero, so a mistyped plate path turns contrast
-   into "distance from white" with no error.
-6. **Lever names and bars are hardcoded to three.** `describe`'s fallback sentence names "size,
-   space or colour difference" directly instead of going through `leverPhrases`, and
-   `SalienceStage.tscn` defines exactly three bar/label groups. An engine with a different lever
-   set needs both changed.
+**Items 1–6 — ALL FIXED in `3ce0f8ea`.** Numbers kept so they are not reused; see the
+`3ce0f8ea` bullet under Done for what each fix actually was. Nothing to do here.
 
 **Interaction and accessibility**
 
@@ -202,7 +227,11 @@ source — but none has been re-derived since, so confirm before acting.
     nudging, edge clamping, the tint swatches, `show_error`, or a win by isolation or contrast
     through the stage. A disconnected swatch or a sign error in the drag maths would leave the
     suite green. (`reset_arrangement` **is** covered, through `configure`, by
-    `_a_missing_sprite_does_not_shift_the_others` — do not rewrite that one.)
+    `_a_missing_sprite_does_not_shift_the_others` — do not rewrite that one.) **Still open after
+    `3ce0f8ea`**, which added six measure-level tests and two more stage-level ones
+    (`_a_record_without_a_stage_size_falls_back_to_the_scene`,
+    `_the_readout_and_the_sentence_come_from_the_record`) but drove no new *input*. Dragging,
+    keyboard nudging, edge clamping, the swatches and `show_error` remain unexercised.
 16. **`test_salience_measure.gd` asserts an algebraic identity** — `baseArea == coverage * w * h`
     holds by construction for any input, so it cannot fail.
 17. **`test_agency_guidance.gd:162` asserts `hud.size.x <= hud.custom_minimum_size.x`**, which is
@@ -214,12 +243,10 @@ source — but none has been re-derived since, so confirm before acting.
 
 **Comments that overstate the code**
 
-19. `salience_measure.gd`'s header says all three levers are "each normalised across the objects
-    in the scene". Size is over the largest area, isolation over the stage diagonal, contrast is
-    raw ΔE. The `*Share` fields are the normalised ones. **The same header, at `:8`, still
-    describes isolation as "distance to the nearest neighbour's bounding box" and has been stale
-    since `2911598e` added the stage edge.** Writing engine B's measure from that header would
-    reimplement the exact defect `2911598e` fixed — fix the comment early.
+19. **FIXED in `3ce0f8ea`.** The header claimed all three levers were "each normalised across the
+    objects in the scene" and still described isolation as "distance to the nearest neighbour's
+    bounding box", stale since `2911598e` added the stage edge. It now describes what the code
+    does, and says only the `*Share` fields are normalised.
 20. `test_salience_measure.gd` says there is "no expected arrangement anywhere in this suite"
     while hardcoding 0.62 as a known passing scale twice. The property it names is real; the test
     does not establish it.
@@ -242,16 +269,21 @@ source — but none has been re-derived since, so confirm before acting.
 
 ## Next
 
-**Step 0 — start here, before any new engine.** Fix open items 1–6, the ones headed "Fix before
-engines B–G". They are in `salience_measure.gd` and `salience_stage.gd`, which every later engine
-reuses, so each one left in place becomes one defect in six exercises. Begin with item 1, the
-single-object auto-pass in `_sole_leader`. Do not start engine B until these are done.
+**Step 0 is done (`3ce0f8ea`). Start at engine B.**
 
-1. **Engines B–G.** The roster — which missions get a demonstration, and what lever each teaches —
-   is in `docs/superpowers/plans/2026-08-07-mission-demonstration-stages.md`, not in this
-   document. Same shape as A: a record-driven stage scene plus a measure module, wired through
-   `show_demonstration` (`agency_mission_panel.gd:174`). Reuse `salience_measure.gd` where the
-   lever maths applies.
+1. **Engine B — crop frame.** A draggable, resizable rectangle over a raster image. The record
+   names a required subject region and a minimum clear area for the message; it passes when the
+   crop contains the former and preserves the latter. Serves `framing` and `crop-lab`. Same shape
+   as A — a record-driven stage scene plus a measure module, wired through `show_demonstration`
+   (`agency_mission_panel.gd:174`) — but **it shares no lever maths with `salience_measure.gd`**:
+   B is rectangle containment and clear area, not size/isolation/contrast. Write
+   `crop_measure.gd` as its own `extends RefCounted` module of static functions, and copy A's
+   *discipline* rather than its code: no authored target to match against, a pass that falls out
+   of the measure, a per-lever tie tolerance in that lever's own units, and no lever list
+   hardcoded into the scene. B needs a raster image asset that does not exist yet — see "The
+   asset approach" in the plan of record; the subject is not specified there, so settle it with
+   Peter before spending on generation. Then engines C–G; the full roster is in
+   `docs/superpowers/plans/2026-08-07-mission-demonstration-stages.md`, not in this document.
 2. **Terminology pass** across the twelve mission records — `REQUIRED_MISSION_RECORDS` (7) plus
    `SIDEQUEST_RECORDS` (5) in `agency_mission_catalog.gd`.
 3. **Remove `transferPrompt` / `TransferStage`** once every mission has a demonstration. Present in
@@ -300,8 +332,14 @@ Stage by name, never `git add .` or `-A`.
 
 ## Branch state
 
-`agent/mission-clarity-20260807` is pushed and current at `062b20ea`. **No PR is open.** Whether
-to PR Engine A now or land it together with engines B–G is an open decision for Peter, as is
-whether the isolation lever should keep counting the stage edge as "space around it" (changed in
-`2911598e`) or revert to pure object-to-object separation with the win sentence reworded. Do not
-settle either alone.
+`agent/mission-clarity-20260807` is pushed and current at `3ce0f8ea`. **No PR is open, and that
+is deliberate.**
+
+**Both open decisions were settled by Peter on 8 August. Neither is open any more; do not re-ask.**
+
+- **Engine A lands together with engines B–G**, in one PR when the demonstration slice is
+  finished. The branch stays open until then.
+- **The isolation lever keeps counting the stage edge as "space around it"** (as changed in
+  `2911598e`). The win sentence stands as written and
+  `test_salience_measure.gd::_a_corner_is_not_open_space` holds the property. Neither decision
+  required a code change.

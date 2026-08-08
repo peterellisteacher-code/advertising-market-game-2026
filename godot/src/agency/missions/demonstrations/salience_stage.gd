@@ -81,9 +81,12 @@ func configure(demonstration: Dictionary) -> void:
 
 func reset_arrangement() -> void:
     for index in _objects.size():
-        var opening: Dictionary = _record.get("objects", [])[index]
-        _objects[index]["position"] = opening.get("position", Vector2.ZERO)
-        _objects[index]["scale"] = float(opening.get("scale", 1.0))
+        # The opening pose is carried on the object itself rather than looked up in the
+        # record by position. An object whose texture fails to load is skipped while
+        # building, so the two lists stop lining up and every later object would be reset
+        # to the pose of the one before it.
+        _objects[index]["position"] = _objects[index].get("openingPosition", Vector2.ZERO)
+        _objects[index]["scale"] = float(_objects[index].get("openingScale", 1.0))
         _objects[index]["tint"] = Color.WHITE
     _select(String(_record.get("targetId", "")))
     _refresh()
@@ -114,6 +117,9 @@ func _build_objects() -> void:
         var entry: Dictionary = entry_value
         var texture := load(String(entry.get("texture", ""))) as Texture2D
         if texture == null:
+            # One engine serves several missions, so a mistyped path has to say so rather
+            # than quietly shipping the exercise with an object missing from the table.
+            push_warning("Salience stage: no texture at %s" % String(entry.get("texture", "")))
             continue
         var described := Measure.describe_texture(texture)
         var id := String(entry.get("id", ""))
@@ -126,6 +132,8 @@ func _build_objects() -> void:
             "alphaCoverage": described.get("alphaCoverage", 1.0),
             "position": entry.get("position", Vector2.ZERO),
             "scale": float(entry.get("scale", 1.0)),
+            "openingPosition": entry.get("position", Vector2.ZERO),
+            "openingScale": float(entry.get("scale", 1.0)),
             "tint": Color.WHITE
         }
         _objects.append(object)

@@ -24,7 +24,9 @@ func run() -> bool:
 	assert(_each_lever_ranks_the_objects_it_names())
 	assert(_a_tie_leaves_no_leader())
 	assert(_a_neighbour_changes_the_surround())
+	assert(_a_corner_is_not_open_space())
 	assert(_real_sprites_describe_themselves())
+	assert(await _a_missing_sprite_does_not_shift_the_others())
 	assert(await _the_opening_arrangement_is_unsolved_and_solvable())
 	assert(await _the_panel_records_measured_evidence())
 	return true
@@ -71,11 +73,14 @@ func _entry(result: Dictionary, id: String) -> Dictionary:
 	return {}
 
 # a is the largest, c has the most space around it, b differs most from the cream plate.
+# They sit on the stage's midline so that c's isolation lead comes from the 150px gap to
+# b, with the stage edge further away still. Closer to the top edge, b and c would tie on
+# their distance to it and neither would lead.
 func _fixture() -> Array:
 	return [
-		_object("a", Vector2(100, 100), 1.0, Color(0.95, 0.90, 0.80, 1)),
-		_object("b", Vector2(300, 100), 0.5, Color(0.04, 0.14, 0.25, 1)),
-		_object("c", Vector2(500, 100), 0.5, Color(0.90, 0.86, 0.78, 1))
+		_object("a", Vector2(100, 200), 1.0, Color(0.95, 0.90, 0.80, 1)),
+		_object("b", Vector2(300, 200), 0.5, Color(0.04, 0.14, 0.25, 1)),
+		_object("c", Vector2(500, 200), 0.5, Color(0.90, 0.86, 0.78, 1))
 	]
 
 func _each_lever_ranks_the_objects_it_names() -> bool:
@@ -102,7 +107,7 @@ func _a_tie_leaves_no_leader() -> bool:
 	# Shrinking a below the other two leaves b and c tied on size, and a tie means the
 	# pair has not made anything lead.
 	objects[0]["scale"] = 0.4
-	objects[0]["position"] = Vector2(240, 100)
+	objects[0]["position"] = Vector2(240, 200)
 	var result: Dictionary = Measure.evaluate(_scene(objects, "a"))
 	assert(result.get("leaders").get("size") == "")
 	assert(result.get("passed") == false)
@@ -120,10 +125,66 @@ func _a_neighbour_changes_the_surround() -> bool:
 	var near := far.duplicate(true)
 	# a keeps its colour and its size; only the dark neighbour moves close enough to sit
 	# inside the ring that a's surround is sampled from.
-	near[1]["position"] = Vector2(178, 100)
+	near[1]["position"] = Vector2(178, 200)
 	var near_contrast := float(_entry(Measure.evaluate(_scene(near, "a")), "a").get("contrast"))
 	assert(near_contrast > far_contrast + 1.0)
 	return true
+
+func _a_corner_is_not_open_space() -> bool:
+	# The isolation win sentence says the target "now has the most space around it". An
+	# object clamped into the corner has no space at all on two of its sides, so it must
+	# not lead the lever. Measuring only the gaps between objects makes the exercise one
+	# drag long: everything left behind in the cluster reads as gap 0 against a neighbour,
+	# so the corner wins isolation by default and the game asserts something untrue.
+	var objects := [
+		_object("target", Vector2(25, 25), 0.5, PLATE_CREAM),
+		_object("p", Vector2(400, 200), 0.5, PLATE_CREAM),
+		_object("q", Vector2(440, 200), 0.5, PLATE_CREAM),
+		_object("r", Vector2(420, 240), 0.5, PLATE_CREAM)
+	]
+	var result: Dictionary = Measure.evaluate(_scene(objects, "target"))
+	assert(result.get("leaders").get("isolation") != "target")
+	assert(not PackedStringArray(result.get("wonLevers")).has("isolation"))
+	return true
+
+func _a_missing_sprite_does_not_shift_the_others() -> bool:
+	# An object whose texture fails to load is skipped while the stage is built, so the
+	# built list is shorter than the record's. Pairing the two by position hands every later
+	# object the pose of the one before it -- against the real record that gives the orange
+	# the bananas' scale, and the exercise passes itself. A record with a broken sprite has
+	# to arrange the survivors exactly as a record that never listed it would.
+	var broken: Dictionary = Catalog.mission("salience").get("demonstration").duplicate(true)
+	var broken_entries: Array = broken.get("objects", [])
+	assert(broken_entries.size() >= 3)
+	var dropped := String(Dictionary(broken_entries[0]).get("id"))
+	assert(dropped != String(broken.get("targetId")))
+	broken_entries[0]["texture"] = "res://assets/agency/salience/no-such-sprite.png"
+
+	var without: Dictionary = Catalog.mission("salience").get("demonstration").duplicate(true)
+	var without_entries: Array = without.get("objects", [])
+	without_entries.remove_at(0)
+
+	var broken_result := await _configured_result(broken)
+	var listed_result := await _configured_result(without)
+	assert(_entry(broken_result, dropped).is_empty())
+	for source_value: Variant in without_entries:
+		var id := String(Dictionary(source_value).get("id"))
+		var with_gap := _entry(broken_result, id)
+		var listed := _entry(listed_result, id)
+		assert(not with_gap.is_empty() and not listed.is_empty())
+		assert(is_equal_approx(float(with_gap.get("size")), float(listed.get("size"))))
+		assert(is_equal_approx(float(with_gap.get("isolation")), float(listed.get("isolation"))))
+	return true
+
+func _configured_result(record: Dictionary) -> Dictionary:
+	var tree := Engine.get_main_loop() as SceneTree
+	var stage := StageScene.instantiate() as Control
+	tree.root.add_child(stage)
+	stage.call("configure", record)
+	await _settle()
+	var result: Dictionary = stage.call("current_result")
+	stage.queue_free()
+	return result
 
 func _real_sprites_describe_themselves() -> bool:
 	var orange := load("res://assets/agency/salience/fruit-orange.png") as Texture2D

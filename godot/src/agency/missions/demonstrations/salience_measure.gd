@@ -50,6 +50,7 @@ static func evaluate(scene: Dictionary) -> Dictionary:
         areas.append(area_of(object))
 
     var diagonal := stage_size.length()
+    var stage := Rect2(Vector2.ZERO, stage_size)
     var largest_area := 0.0
     for area: float in areas:
         largest_area = maxf(largest_area, area)
@@ -60,7 +61,7 @@ static func evaluate(scene: Dictionary) -> Dictionary:
         scored.append({
             "id": String(object.get("id", "")),
             LEVER_SIZE: areas[index] / largest_area if largest_area > 0.0 else 0.0,
-            LEVER_ISOLATION: _nearest_gap(rects, index) / diagonal,
+            LEVER_ISOLATION: _nearest_gap(rects, index, stage) / diagonal,
             LEVER_CONTRAST: _surround_contrast(scene, objects, rects, index)
         })
 
@@ -153,15 +154,26 @@ static func build_plate_grid(texture: Texture2D, cols: int, rows: int) -> Dictio
             cells[row * cols + col] = Color(pixel.r, pixel.g, pixel.b, 1.0)
     return {"cols": cols, "rows": rows, "cells": cells}
 
-static func _nearest_gap(rects: Array[Rect2], index: int) -> float:
-    if rects.size() < 2:
-        return 0.0
-    var nearest := INF
+static func _nearest_gap(rects: Array[Rect2], index: int, stage: Rect2) -> float:
+    # Space around an object means space on every side, so the stage edge counts as a
+    # neighbour like any other. Measuring only the gaps between objects lets an object
+    # shoved into a corner read as the most isolated thing on the table while two of its
+    # sides have no room at all, and the win sentence then tells the pair it has the most
+    # space around it.
+    var nearest := _edge_gap(rects[index], stage)
     for other in rects.size():
         if other == index:
             continue
         nearest = minf(nearest, _rect_gap(rects[index], rects[other]))
     return nearest if is_finite(nearest) else 0.0
+
+## Distance from the object to the nearest stage edge. Clamped at zero so an object that
+## hangs over the edge reads as touching it rather than as having negative room.
+static func _edge_gap(rect: Rect2, stage: Rect2) -> float:
+    return maxf(0.0, minf(
+        minf(rect.position.x - stage.position.x, stage.end.x - rect.end.x),
+        minf(rect.position.y - stage.position.y, stage.end.y - rect.end.y)
+    ))
 
 static func _rect_gap(a: Rect2, b: Rect2) -> float:
     var dx := maxf(0.0, maxf(a.position.x - b.end.x, b.position.x - a.end.x))

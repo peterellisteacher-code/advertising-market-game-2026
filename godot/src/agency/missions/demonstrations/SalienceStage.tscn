@@ -1,14 +1,14 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://byeo16ikmh25l"]
 
-[ext_resource type="Script" path="res://src/agency/missions/demonstrations/salience_stage.gd" id="1_stage"]
+[ext_resource type="Script" uid="uid://dd678ul15d6mi" path="res://src/agency/missions/demonstrations/salience_stage.gd" id="1_stage"]
 
-[node name="SalienceStage" type="VBoxContainer"]
+[node name="SalienceStage" type="VBoxContainer" unique_id=1318131079]
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 10
 script = ExtResource("1_stage")
 
-[node name="DemonstrationInstruction" type="Label" parent="."]
+[node name="DemonstrationInstruction" type="Label" parent="." unique_id=1784680579]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(800, 0)
 layout_mode = 2
@@ -18,7 +18,7 @@ theme_override_font_sizes/font_size = 17
 text = "Drag a fruit to move it, or use the size and colour controls."
 autowrap_mode = 3
 
-[node name="PlateViewport" type="Control" parent="."]
+[node name="PlateViewport" type="Control" parent="." unique_id=962397661]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 320)
 clip_contents = true
@@ -26,14 +26,14 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="Stage" type="Control" parent="PlateViewport"]
+[node name="Stage" type="Control" parent="PlateViewport" unique_id=1169431503]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(880, 320)
-layout_mode = 0
+anchors_preset = 0
 offset_right = 880.0
 offset_bottom = 320.0
 
-[node name="Plate" type="TextureRect" parent="PlateViewport/Stage"]
+[node name="Plate" type="TextureRect" parent="PlateViewport/Stage" unique_id=1363469963]
 unique_name_in_owner = true
 layout_mode = 0
 offset_right = 880.0
@@ -41,25 +41,25 @@ offset_bottom = 320.0
 mouse_filter = 2
 expand_mode = 1
 
-[node name="Objects" type="Control" parent="PlateViewport/Stage"]
+[node name="Objects" type="Control" parent="PlateViewport/Stage" unique_id=686843614]
 unique_name_in_owner = true
-layout_mode = 0
+anchors_preset = 0
 offset_right = 880.0
 offset_bottom = 320.0
 mouse_filter = 2
 
-[node name="SelectionRing" type="Panel" parent="PlateViewport/Stage/Objects"]
+[node name="SelectionRing" type="Panel" parent="PlateViewport/Stage/Objects" unique_id=1820553354]
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
 mouse_filter = 2
 
-[node name="ControlsRow" type="HBoxContainer" parent="."]
+[node name="ControlsRow" type="HBoxContainer" parent="." unique_id=146755465]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="SelectedLabel" type="Label" parent="ControlsRow"]
+[node name="SelectedLabel" type="Label" parent="ControlsRow" unique_id=1234992774]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
@@ -67,13 +67,13 @@ theme_override_colors/font_color = Color(0.04, 0.09, 0.16, 1)
 theme_override_font_sizes/font_size = 16
 text = "Selected: orange"
 
-[node name="SizeCaption" type="Label" parent="ControlsRow"]
+[node name="SizeCaption" type="Label" parent="ControlsRow" unique_id=2132094855]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.14, 0.2, 0.3, 1)
 theme_override_font_sizes/font_size = 15
 text = "Size"
 
-[node name="SizeSlider" type="HSlider" parent="ControlsRow"]
+[node name="SizeSlider" type="HSlider" parent="ControlsRow" unique_id=252550965]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(180, 48)
 layout_mode = 2
@@ -83,134 +83,51 @@ max_value = 0.9
 step = 0.01
 value = 0.28
 
-[node name="ColourCaption" type="Label" parent="ControlsRow"]
+[node name="ColourCaption" type="Label" parent="ControlsRow" unique_id=2119399113]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.14, 0.2, 0.3, 1)
 theme_override_font_sizes/font_size = 15
 text = "Colour"
 
-[node name="SwatchRow" type="HBoxContainer" parent="ControlsRow"]
+[node name="SwatchRow" type="HBoxContainer" parent="ControlsRow" unique_id=90532314]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="ReadoutRow" type="HBoxContainer" parent="."]
+[node name="ReadoutRow" type="HBoxContainer" parent="." unique_id=1201174727]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 28
 
-[node name="SizeLever" type="VBoxContainer" parent="ReadoutRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 2
-
-[node name="SizeLeverHead" type="HBoxContainer" parent="ReadoutRow/SizeLever"]
-layout_mode = 2
-
-[node name="SizeLeverName" type="Label" parent="ReadoutRow/SizeLever/SizeLeverHead"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0, 0.48, 0.62, 1)
-theme_override_font_sizes/font_size = 14
-text = "SIZE"
-
-[node name="SizeLeverLeader" type="Label" parent="ReadoutRow/SizeLever/SizeLeverHead"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.14, 0.2, 0.3, 1)
-theme_override_font_sizes/font_size = 14
-text = "Leading: bananas"
-
-[node name="SizeLeverBar" type="ProgressBar" parent="ReadoutRow/SizeLever"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 14)
-layout_mode = 2
-show_percentage = false
-
-[node name="IsolationLever" type="VBoxContainer" parent="ReadoutRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 2
-
-[node name="IsolationLeverHead" type="HBoxContainer" parent="ReadoutRow/IsolationLever"]
-layout_mode = 2
-
-[node name="IsolationLeverName" type="Label" parent="ReadoutRow/IsolationLever/IsolationLeverHead"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0, 0.48, 0.62, 1)
-theme_override_font_sizes/font_size = 14
-text = "SPACE AROUND IT"
-
-[node name="IsolationLeverLeader" type="Label" parent="ReadoutRow/IsolationLever/IsolationLeverHead"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.14, 0.2, 0.3, 1)
-theme_override_font_sizes/font_size = 14
-text = "Leading: grapes"
-
-[node name="IsolationLeverBar" type="ProgressBar" parent="ReadoutRow/IsolationLever"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 14)
-layout_mode = 2
-show_percentage = false
-
-[node name="ContrastLever" type="VBoxContainer" parent="ReadoutRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 2
-
-[node name="ContrastLeverHead" type="HBoxContainer" parent="ReadoutRow/ContrastLever"]
-layout_mode = 2
-
-[node name="ContrastLeverName" type="Label" parent="ReadoutRow/ContrastLever/ContrastLeverHead"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0, 0.48, 0.62, 1)
-theme_override_font_sizes/font_size = 14
-text = "COLOUR DIFFERENCE"
-
-[node name="ContrastLeverLeader" type="Label" parent="ReadoutRow/ContrastLever/ContrastLeverHead"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.14, 0.2, 0.3, 1)
-theme_override_font_sizes/font_size = 14
-text = "Leading: grapes"
-
-[node name="ContrastLeverBar" type="ProgressBar" parent="ReadoutRow/ContrastLever"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 14)
-layout_mode = 2
-show_percentage = false
-
-[node name="DemonstrationFeedback" type="Label" parent="."]
+[node name="DemonstrationFeedback" type="Label" parent="." unique_id=1197803248]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(800, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.04, 0.09, 0.16, 1)
 theme_override_font_sizes/font_size = 17
-text = "The orange does not lead on size, space or colour difference yet."
+text = "The arrangement is measured here as it changes."
 autowrap_mode = 3
 
-[node name="ActionsRow" type="HBoxContainer" parent="."]
+[node name="ActionsRow" type="HBoxContainer" parent="." unique_id=630506758]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="ResetButton" type="Button" parent="ActionsRow"]
+[node name="ResetButton" type="Button" parent="ActionsRow" unique_id=459141113]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(180, 48)
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "Start again"
 
-[node name="ActionsSpacer" type="Control" parent="ActionsRow"]
+[node name="ActionsSpacer" type="Control" parent="ActionsRow" unique_id=929611977]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="CheckButton" type="Button" parent="ActionsRow"]
+[node name="CheckButton" type="Button" parent="ActionsRow" unique_id=880511984]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(240, 48)
 layout_mode = 2

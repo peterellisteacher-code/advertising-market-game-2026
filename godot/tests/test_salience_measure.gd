@@ -23,10 +23,16 @@ const PLATE_CREAM := Color(0.98, 0.94, 0.82, 1)
 func run() -> bool:
 	assert(_each_lever_ranks_the_objects_it_names())
 	assert(_a_tie_leaves_no_leader())
+	assert(_a_lone_object_leads_nothing())
+	assert(_a_contrast_lead_under_a_just_noticeable_difference_ties())
+	assert(_the_topmost_neighbour_sets_the_surround())
 	assert(_a_neighbour_changes_the_surround())
 	assert(_a_corner_is_not_open_space())
+	assert(_a_missing_plate_is_not_a_white_surround())
 	assert(_real_sprites_describe_themselves())
 	assert(await _a_missing_sprite_does_not_shift_the_others())
+	assert(await _a_record_without_a_stage_size_falls_back_to_the_scene())
+	assert(await _the_readout_and_the_sentence_come_from_the_record())
 	assert(await _the_opening_arrangement_is_unsolved_and_solvable())
 	assert(await _the_panel_records_measured_evidence())
 	return true
@@ -54,6 +60,20 @@ func _object(id: String, centre: Vector2, object_scale: float, colour: Color) ->
 		"alphaCoverage": 0.8,
 		"position": centre,
 		"scale": object_scale,
+		"tint": Color.WHITE
+	}
+
+# A neighbour large enough to cover another object's whole surround ring, so it claims
+# the ring outright and the blended surround is exactly its own colour.
+func _cover(id: String, colour: Color) -> Dictionary:
+	return {
+		"id": id,
+		"baseSize": STAGE,
+		"baseArea": STAGE.x * STAGE.y,
+		"baseColour": colour,
+		"alphaCoverage": 1.0,
+		"position": STAGE * 0.5,
+		"scale": 1.0,
 		"tint": Color.WHITE
 	}
 
@@ -112,6 +132,65 @@ func _a_tie_leaves_no_leader() -> bool:
 	assert(result.get("leaders").get("size") == "")
 	assert(result.get("passed") == false)
 	assert(PackedStringArray(result.get("wonLevers")).is_empty())
+	return true
+
+func _a_lone_object_leads_nothing() -> bool:
+	# Leading a lever means leading the other objects on it, and a record with one object
+	# has no others. _sole_leader compared the only score against a runner-up of -INF, so a
+	# one-object record reported itself solved on all three levers the moment it opened,
+	# before the pair had touched anything.
+	var solo := [_object("solo", Vector2(400, 200), 0.5, Color(0.04, 0.14, 0.25, 1))]
+	var result: Dictionary = Measure.evaluate(_scene(solo, "solo"))
+	for lever: String in Measure.LEVERS:
+		assert(String(Dictionary(result.get("leaders")).get(lever, "")) == "")
+	assert(result.get("passed") == false)
+	assert(PackedStringArray(result.get("wonLevers")).is_empty())
+	return true
+
+func _a_contrast_lead_under_a_just_noticeable_difference_ties() -> bool:
+	# The tie tolerance has to be read in each lever's own units. Size and isolation are
+	# normalised into roughly [0, 1]; contrast is a raw CIE76 delta-E on a 0-100+ scale. One
+	# absolute 0.0005 across both left contrast with no working tie mechanism, so its leader
+	# was decided by plate-sampling noise rather than by a difference anyone can see.
+	# These two sit symmetrically, so size and isolation tie by construction and contrast is
+	# the only lever that can name a leader here.
+	var objects := [
+		_object("a", Vector2(200, 200), 0.5, Color(0.04, 0.14, 0.25, 1)),
+		_object("b", Vector2(600, 200), 0.5, Color(0.05, 0.145, 0.255, 1))
+	]
+	var result: Dictionary = Measure.evaluate(_scene(objects, "a"))
+	var gap := absf(
+		float(_entry(result, "a").get("contrast")) - float(_entry(result, "b").get("contrast"))
+	)
+	# The fixture only tests what it claims to while it lands in the window the fix is
+	# about: a real difference, below the smallest colour step an eye resolves.
+	assert(gap > 0.0 and gap < 2.3)
+	assert(result.get("leaders").get("contrast") == "")
+	assert(result.get("passed") == false)
+	return true
+
+func _the_topmost_neighbour_sets_the_surround() -> bool:
+	# Where two neighbours overlap inside the ring, only one of them is visible there. The
+	# views are added in record order, so the last entry is the one drawn on top -- and the
+	# blend handed the contested area to the first, the object buried underneath it.
+	var bright := Color(0.95, 0.93, 0.88, 1)
+	var dark := Color(0.05, 0.10, 0.18, 1)
+	var target := _object("target", Vector2(400, 200), 0.5, Color(0.90, 0.45, 0.10, 1))
+	var target_colour := Measure.tinted_colour(target)
+	var dark_on_top: Dictionary = Measure.evaluate(
+		_scene([target, _cover("lower", bright), _cover("upper", dark)], "target")
+	)
+	var bright_on_top: Dictionary = Measure.evaluate(
+		_scene([target, _cover("lower", dark), _cover("upper", bright)], "target")
+	)
+	assert(is_equal_approx(
+		float(_entry(dark_on_top, "target").get("contrast")),
+		Measure.delta_e(target_colour, dark)
+	))
+	assert(is_equal_approx(
+		float(_entry(bright_on_top, "target").get("contrast")),
+		Measure.delta_e(target_colour, bright)
+	))
 	return true
 
 func _a_neighbour_changes_the_surround() -> bool:
@@ -186,6 +265,18 @@ func _configured_result(record: Dictionary) -> Dictionary:
 	stage.queue_free()
 	return result
 
+func _a_missing_plate_is_not_a_white_surround() -> bool:
+	# A mistyped plate path leaves the grid empty. Falling back to white then measured every
+	# object's distance from white instead, which ranks them, reads as a working lever and is
+	# not one. With nothing behind the objects there is no colour difference to report.
+	var scene := _scene(_fixture(), "a")
+	scene.erase("plateGrid")
+	var result: Dictionary = Measure.evaluate(scene)
+	for entry_value: Variant in result.get("objects", []):
+		assert(is_zero_approx(float(Dictionary(entry_value).get("contrast"))))
+	assert(result.get("leaders").get("contrast") == "")
+	return true
+
 func _real_sprites_describe_themselves() -> bool:
 	var orange := load("res://assets/agency/salience/fruit-orange.png") as Texture2D
 	assert(orange != null)
@@ -204,6 +295,69 @@ func _real_sprites_describe_themselves() -> bool:
 	var grid := Measure.build_plate_grid(plate, 24, 12)
 	assert(grid.get("cols") == 24 and grid.get("rows") == 12)
 	assert(PackedColorArray(grid.get("cells")).size() == 288)
+	return true
+
+func _a_record_without_a_stage_size_falls_back_to_the_scene() -> bool:
+	# The fallback shipped as 880x440 while the scene and the record both draw 880x320, so a
+	# record that left stageSize out would measure and clamp against a stage 120px taller
+	# than the one the pair can see.
+	var unconfigured := StageScene.instantiate() as Control
+	var authored: Vector2 = (unconfigured.get_node("PlateViewport/Stage") as Control).custom_minimum_size
+	unconfigured.free()
+	assert(authored.x > 0.0 and authored.y > 0.0)
+
+	var record: Dictionary = Catalog.mission("salience").get("demonstration").duplicate(true)
+	record.erase("stageSize")
+	var tree := Engine.get_main_loop() as SceneTree
+	var stage := StageScene.instantiate() as Control
+	tree.root.add_child(stage)
+	stage.call("configure", record)
+	await _settle()
+	assert((stage.get_node("PlateViewport/Stage") as Control).custom_minimum_size == authored)
+	stage.queue_free()
+	return true
+
+func _the_readout_and_the_sentence_come_from_the_record() -> bool:
+	# Engines B-G clone this stage with a different lever set, so renaming a lever in the
+	# record has to reach both the readout column and the sentence. The columns were three
+	# authored groups with the lever names typed into them, and the "does not lead" sentence
+	# listed those same three names in line instead of reading leverPhrases -- so each clone
+	# needed the scene and the script edited as well as its record.
+	var record: Dictionary = Catalog.mission("salience").get("demonstration").duplicate(true)
+	var phrases: Dictionary = record.get("leverPhrases")
+	phrases[Measure.LEVER_ISOLATION] = "elbow room"
+	var tree := Engine.get_main_loop() as SceneTree
+	var stage := StageScene.instantiate() as Control
+	tree.root.add_child(stage)
+	stage.call("configure", record)
+	await _settle()
+
+	var readout := stage.get_node("ReadoutRow") as Control
+	assert(readout.get_child_count() == Measure.LEVERS.size())
+	var headings := PackedStringArray()
+	for column in readout.get_children():
+		# Built at runtime rather than authored, so the columns have to be shown taking up
+		# room: a collapsed readout would still hold the right labels and show nothing.
+		assert((column as Control).size.x > 0.0 and (column as Control).size.y > 0.0)
+		for label in column.find_children("*", "Label", true, false):
+			headings.append(String((label as Label).text))
+			break
+	assert(headings.has("ELBOW ROOM"))
+
+	# The sentence that named the levers in line is the one that fires when no lever has a
+	# leader at all.
+	var leaders := {}
+	for lever: String in Measure.LEVERS:
+		leaders[lever] = ""
+	var tied := {
+		"objects": [],
+		"leaders": leaders,
+		"wonLevers": PackedStringArray(),
+		"passed": false,
+		"targetId": String(record.get("targetId"))
+	}
+	assert(String(stage.call("describe", tied)).contains("elbow room"))
+	stage.queue_free()
 	return true
 
 func _stage_in_tree() -> Control:

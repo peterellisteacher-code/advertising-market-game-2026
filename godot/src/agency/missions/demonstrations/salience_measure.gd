@@ -1,13 +1,16 @@
 extends RefCounted
 class_name AdMarketSalienceMeasure
 
-# Scores every object in an arrangement on the three salience levers, each normalised
-# across the objects in the scene:
+# Scores every object in an arrangement on the three salience levers:
 #
-#   size      object area / largest object area
-#   isolation distance to the nearest neighbour's bounding box / scene diagonal
-#   contrast  colour difference between the object's mean colour and the mean of its
-#             local surround
+#   size      object area / largest object area, so the largest object reads 1
+#   isolation space around the object -- the gap to the nearest neighbour's bounding box
+#             or to the stage edge, whichever is closer -- over the stage diagonal
+#   contrast  CIE76 delta-E between the object's tinted colour and the mean colour of a
+#             ring grown around it, which blends whichever neighbours fall inside the
+#             ring with the plate behind them. Raw delta-E, on its own 0-100+ scale
+#
+# Only the *Share fields are normalised across the objects in the scene.
 #
 # The arrangement passes when the named target leads every other object on at least one
 # lever. There is no authored target arrangement to compare against: a pass has to come
@@ -18,9 +21,21 @@ const LEVER_ISOLATION := "isolation"
 const LEVER_CONTRAST := "contrast"
 const LEVERS: Array[String] = [LEVER_SIZE, LEVER_ISOLATION, LEVER_CONTRAST]
 
-# Two objects whose scores differ by less than this are treated as tied, so neither
-# leads. Float noise from dragging must not decide whether the stage passes.
-const LEAD_EPSILON := 0.0005
+# Two objects whose scores differ by less than the lever's own tolerance are treated as
+# tied, so neither leads. One absolute figure cannot serve every lever, because the
+# levers are not in the same units: size and isolation are normalised into roughly
+# [0, 1], where this sits below the float noise a drag produces, while contrast is a raw
+# CIE76 delta-E on a 0-100+ scale, where the same figure is three orders of magnitude
+# under the smallest difference an eye resolves and plate-sampling noise decides the
+# leader instead.
+const LEAD_EPSILON_NORMALISED := 0.0005
+# CIE76's just-noticeable difference, so a contrast lead has to be visible to count.
+const LEAD_EPSILON_DELTA_E := 2.3
+const LEAD_EPSILON: Dictionary = {
+    LEVER_SIZE: LEAD_EPSILON_NORMALISED,
+    LEVER_ISOLATION: LEAD_EPSILON_NORMALISED,
+    LEVER_CONTRAST: LEAD_EPSILON_DELTA_E
+}
 # The surround ring reaches this far past the object, or a quarter of its longer side.
 const MIN_SURROUND_MARGIN := 24.0
 const SURROUND_MARGIN_RATIO := 0.25
@@ -196,10 +211,20 @@ static func _surround_contrast(
     var ring_area := _area(outer) - _area(inner)
     if ring_area <= 0.0:
         return 0.0
+    if not _has_plate_grid(scene):
+        # A mistyped plate path leaves the grid empty. Standing white in for the missing
+        # plate measured each object's distance from white instead, which ranks them,
+        # reads as a working lever and is not one. With nothing behind the objects there
+        # is no colour difference to report.
+        return 0.0
 
     var surround := Vector3.ZERO
     var claimed := 0.0
-    for other in objects.size():
+    # Topmost neighbour first. Views are added in record order, so the last entry is the
+    # one drawn on top; where two neighbours overlap inside the ring only the top one is
+    # visible there, and it is the one that should claim the contested area. Consuming the
+    # shared budget in record order handed that area to the object buried underneath.
+    for other in range(objects.size() - 1, -1, -1):
         if other == index:
             continue
         var overlap := _area(outer.intersection(rects[other])) - _area(inner.intersection(rects[other]))
@@ -223,12 +248,23 @@ static func _surround_contrast(
         Color(surround.x, surround.y, surround.z, 1.0)
     )
 
+## Whether the plate downscale is present and complete enough to sample.
+static func _has_plate_grid(scene: Dictionary) -> bool:
+    var grid: Dictionary = scene.get("plateGrid", {})
+    var cols := int(grid.get("cols", 0))
+    var rows := int(grid.get("rows", 0))
+    var cells: PackedColorArray = grid.get("cells", PackedColorArray())
+    return cols > 0 and rows > 0 and cells.size() >= cols * rows
+
 static func _plate_mean(scene: Dictionary, outer: Rect2, inner: Rect2) -> Color:
     var grid: Dictionary = scene.get("plateGrid", {})
     var cols := int(grid.get("cols", 0))
     var rows := int(grid.get("rows", 0))
     var cells: PackedColorArray = grid.get("cells", PackedColorArray())
-    if cols <= 0 or rows <= 0 or cells.size() < cols * rows:
+    # Neither return below is a measurement: _surround_contrast has already established
+    # that the grid is usable, and a plate that failed to load stops the lever rather than
+    # being stood in for by a colour.
+    if not _has_plate_grid(scene):
         return Color.WHITE
     var outer_total := _grid_integral(scene, cells, cols, rows, outer)
     var inner_total := _grid_integral(scene, cells, cols, rows, inner)
@@ -267,6 +303,11 @@ static func _grid_integral(
     return total
 
 static func _sole_leader(scored: Array[Dictionary], lever: String) -> String:
+    # Leading a lever means leading the other objects on it. With no others to lead, a
+    # lone object would carry every lever against a runner-up of -INF the moment the
+    # stage opened, and the exercise would pass itself before the pair touched anything.
+    if scored.size() < 2:
+        return ""
     var best := -INF
     var runner_up := -INF
     var leader := ""
@@ -278,7 +319,12 @@ static func _sole_leader(scored: Array[Dictionary], lever: String) -> String:
             leader = String(entry.get("id", ""))
         elif value > runner_up:
             runner_up = value
-    if best - runner_up <= LEAD_EPSILON:
+    if not LEAD_EPSILON.has(lever):
+        # An engine adding a lever has to say what a real lead on it is. Falling back to
+        # the normalised figure is how contrast ended up with a tie test three orders of
+        # magnitude too small; until the tolerance is declared, the lever names no leader.
+        return ""
+    if best - runner_up <= float(LEAD_EPSILON[lever]):
         return ""
     return leader
 

@@ -14,11 +14,17 @@ const Measure = preload("res://src/agency/missions/demonstrations/salience_measu
 
 const PLATE_GRID_COLS := 24
 const PLATE_GRID_ROWS := 12
+# The stage SalienceStage.tscn is drawn at. Records carry their own stageSize; this
+# fallback shipped 120px taller than the scene, so a record that left stageSize out would
+# measure and clamp against a stage the pair could not see.
+const DEFAULT_STAGE_SIZE := Vector2(880, 320)
 const NUDGE_STEP := 8.0
 const COARSE_NUDGE_STEP := 32.0
 const SELECTION_INSET := 6.0
 const FOCUS_RING := Color(0.965, 0.72, 0.21, 1)
 const INK := Color(0.04, 0.14, 0.25, 1)
+const LEVER_NAME_INK := Color(0, 0.48, 0.62, 1)
+const READOUT_INK := Color(0.14, 0.2, 0.3, 1)
 
 @onready var instruction_label: Label = %DemonstrationInstruction
 @onready var plate_viewport: Control = %PlateViewport
@@ -32,22 +38,19 @@ const INK := Color(0.04, 0.14, 0.25, 1)
 @onready var feedback_label: Label = %DemonstrationFeedback
 @onready var reset_button: Button = %ResetButton
 @onready var check_button: Button = %CheckButton
-@onready var lever_bars: Dictionary = {
-    Measure.LEVER_SIZE: %SizeLeverBar,
-    Measure.LEVER_ISOLATION: %IsolationLeverBar,
-    Measure.LEVER_CONTRAST: %ContrastLeverBar
-}
-@onready var lever_leaders: Dictionary = {
-    Measure.LEVER_SIZE: %SizeLeverLeader,
-    Measure.LEVER_ISOLATION: %IsolationLeverLeader,
-    Measure.LEVER_CONTRAST: %ContrastLeverLeader
-}
+@onready var readout_row: HBoxContainer = %ReadoutRow
+
+# One column per lever, keyed by lever name. The columns used to be three authored groups
+# with the lever names typed into the scene, so an engine measuring a different set had to
+# have this scene and this script edited as well as its record.
+var lever_bars: Dictionary = {}
+var lever_leaders: Dictionary = {}
 
 var _record: Dictionary = {}
 var _objects: Array[Dictionary] = []
 var _views: Dictionary = {}
 var _plate_grid: Dictionary = {}
-var _stage_size: Vector2 = Vector2(880, 440)
+var _stage_size: Vector2 = DEFAULT_STAGE_SIZE
 var _selected_id: String = ""
 var _dragging_id: String = ""
 var _drag_offset: Vector2 = Vector2.ZERO
@@ -65,17 +68,23 @@ func _ready() -> void:
 ## objects, tints and the sentences used for feedback.
 func configure(demonstration: Dictionary) -> void:
     _record = demonstration.duplicate(true)
-    _stage_size = _record.get("stageSize", Vector2(880, 440))
+    _stage_size = _record.get("stageSize", DEFAULT_STAGE_SIZE)
     stage.custom_minimum_size = _stage_size
     stage.size = _stage_size
     plate.size = _stage_size
     objects_root.size = _stage_size
     var plate_texture := load(String(_record.get("plate", ""))) as Texture2D
+    if plate_texture == null:
+        # Without the plate there is nothing behind the objects to measure against, so the
+        # colour lever reports nothing at all. A mistyped path has to say so rather than
+        # quietly shipping the exercise with one of its levers dead.
+        push_warning("Salience stage: no plate texture at %s" % String(_record.get("plate", "")))
     plate.texture = plate_texture
     _plate_grid = Measure.build_plate_grid(plate_texture, PLATE_GRID_COLS, PLATE_GRID_ROWS)
     instruction_label.text = String(_record.get("instruction", ""))
     _build_objects()
     _build_swatches()
+    _build_readout()
     _fit_stage()
     reset_arrangement()
 
@@ -164,6 +173,35 @@ func _build_swatches() -> void:
         _style_swatch(button, tint.get("colour", Color.WHITE))
         button.pressed.connect(_on_tint_pressed.bind(tint.get("colour", Color.WHITE)))
         swatch_row.add_child(button)
+
+func _build_readout() -> void:
+    for child in readout_row.get_children():
+        child.queue_free()
+    lever_bars.clear()
+    lever_leaders.clear()
+    for lever: String in Measure.LEVERS:
+        var column := VBoxContainer.new()
+        column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        column.add_theme_constant_override("separation", 2)
+        var head := HBoxContainer.new()
+        var name_label := Label.new()
+        name_label.text = _lever_phrase(lever).to_upper()
+        name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        name_label.add_theme_color_override("font_color", LEVER_NAME_INK)
+        name_label.add_theme_font_size_override("font_size", 14)
+        var leader_label := Label.new()
+        leader_label.add_theme_color_override("font_color", READOUT_INK)
+        leader_label.add_theme_font_size_override("font_size", 14)
+        var bar := ProgressBar.new()
+        bar.custom_minimum_size = Vector2(0, 14)
+        bar.show_percentage = false
+        head.add_child(name_label)
+        head.add_child(leader_label)
+        column.add_child(head)
+        column.add_child(bar)
+        readout_row.add_child(column)
+        lever_bars[lever] = bar
+        lever_leaders[lever] = leader_label
 
 func _style_swatch(button: Button, colour: Color) -> void:
     # The swatch shows the tint it applies, so it has to carry that colour rather than
@@ -332,7 +370,7 @@ func describe(result: Dictionary) -> String:
         var closest := _closest_lever(result)
         var leader := String(Dictionary(result.get("leaders", {})).get(closest, ""))
         if leader.is_empty():
-            return "The %s does not lead on size, space or colour difference yet." % target_name
+            return "The %s does not lead on %s yet." % [target_name, _lever_list()]
         # The leader sits in a naming slot rather than in front of the verb, because a
         # fruit name here can be plural: "the bananas leads" would be wrong.
         return "The %s does not lead yet. It is closest on %s, where the leader is still the %s." % [
@@ -359,6 +397,20 @@ func _share_for(result: Dictionary, id: String, lever: String) -> float:
         if String(entry.get("id", "")) == id:
             return float(entry.get("%sShare" % lever, 0.0))
     return 0.0
+
+## The record's own lever names as a list -- "size, space around it or colour difference".
+## Naming them in line meant an engine measuring a different set had to have this sentence
+## rewritten as well as its record.
+func _lever_list() -> String:
+    var phrases := PackedStringArray()
+    for lever: String in Measure.LEVERS:
+        phrases.append(_lever_phrase(lever))
+    if phrases.size() < 2:
+        return "".join(phrases)
+    return "%s or %s" % [
+        ", ".join(phrases.slice(0, phrases.size() - 1)),
+        phrases[phrases.size() - 1]
+    ]
 
 func _lever_phrase(lever: String) -> String:
     return String(Dictionary(_record.get("leverPhrases", {})).get(lever, lever))

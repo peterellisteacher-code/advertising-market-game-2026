@@ -224,7 +224,13 @@ func _the_picture_carries_what_the_record_names() -> bool:
 	var record := _demonstration()
 	var texture := _picture_texture()
 	assert(texture != null)
-	assert(load(String(record.get("sloganMark"))) as Texture2D != null)
+	# The lockup is drawn at one aspect and the record gives it a box. If those disagree the
+	# art letterboxes inside the panel instead of filling it, which reads as a mistake, and
+	# the alternative — letting it stretch — would distort the wordmark.
+	var art := load(String(record.get("sloganArt"))) as Texture2D
+	assert(art != null)
+	var box: Vector2 = record.get("sloganSize")
+	assert(is_equal_approx(art.get_size().x / art.get_size().y, box.x / box.y))
 	# The stage reads the picture's size from the texture rather than from the record, so
 	# everything the record places has to lie inside the real file.
 	var picture := Rect2(Vector2.ZERO, texture.get_size())

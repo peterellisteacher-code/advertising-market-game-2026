@@ -96,12 +96,11 @@ const CROP_DEMONSTRATION := {
     "subjectPhrase": "the bottle",
     "instruction": "Drag the frame to move it, or drag a corner to resize it. Drag the slogan to move it. The arrow keys move whatever is selected, and holding Shift moves it further. The picture is far too wide for an advertisement: cut it down so the bottle carries the frame, and put the slogan where it can still be read.",
     # The slogan the pair drags into place, rather than something the stage lays out for
-    # them. The mark is art; the two lines are set as text so they stay sharp at whatever
-    # size the dialog gives the stage, and so their spelling is not whatever a generator
-    # produced.
-    "sloganMark": "res://assets/agency/crop/preppy-max-mark.png",
-    "sloganName": "PREPPY MAX",
-    "sloganLine": "LIVE LIFE TO THE MAX",
+    # them. One piece of art rather than a mark plus two Labels: the project ships no font
+    # files at all, so type set at runtime falls back to the default face and loses the
+    # heavy condensed wordmark the parody depends on. Its aspect has to match sloganSize,
+    # which test_crop_measure.gd holds.
+    "sloganArt": "res://assets/agency/crop/preppy-max-lockup.png",
     "sloganSize": Vector2(480, 192),
     # Lying across the aisle and the foot of the bottle, so the opening arrangement fails
     # on the picture the slogan covers as well as on the width the frame keeps. It has to

@@ -33,14 +33,6 @@ const HANDLE_SCREEN_SIZE := 48.0
 const CORNERS: Array[Vector2i] = [
     Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)
 ]
-# The slogan's own furniture, in image pixels, laid out against whatever size the record
-# gives it rather than against fixed numbers.
-const SLOGAN_PAD_SHARE := 0.075
-const SLOGAN_GAP_SHARE := 0.062
-const SLOGAN_MARK_SHARE := 0.55
-const SLOGAN_NAME_SHARE := 0.27
-const SLOGAN_LINE_SHARE := 0.14
-
 const SHADE := Color(0.04, 0.14, 0.25, 0.55)
 const FOCUS_RING := Color(0.965, 0.72, 0.21, 1)
 const PAPER := Color(0.98, 0.965, 0.91, 1)
@@ -56,9 +48,7 @@ const UNMET_INK := Color(0.55, 0.24, 0.16, 1)
 @onready var shade: Control = %Shade
 @onready var frame: Panel = %Frame
 @onready var slogan: Panel = %Slogan
-@onready var slogan_mark: TextureRect = %SloganMark
-@onready var slogan_name: Label = %SloganName
-@onready var slogan_line: Label = %SloganLine
+@onready var slogan_art: TextureRect = %SloganArt
 @onready var handles_root: Control = %Handles
 @onready var readout_row: HBoxContainer = %ReadoutRow
 @onready var feedback_label: Label = %DemonstrationFeedback
@@ -109,12 +99,7 @@ func _ready() -> void:
     slogan.gui_input.connect(_on_slogan_input)
     slogan.focus_entered.connect(_restyle_slogan)
     slogan.focus_exited.connect(_restyle_slogan)
-    for part: Control in [slogan_mark, slogan_name, slogan_line]:
-        part.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    slogan_mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-    slogan_mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-    slogan_name.add_theme_color_override("font_color", PAPER)
-    slogan_line.add_theme_color_override("font_color", PAPER)
+    slogan_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
     _build_shade()
     _build_handles()
 
@@ -142,9 +127,7 @@ func configure(demonstration: Dictionary) -> void:
     stage.size = _image_size
     source_image.size = _image_size
     instruction_label.text = String(_record.get("instruction", ""))
-    slogan_mark.texture = load(String(_record.get("sloganMark", ""))) as Texture2D
-    slogan_name.text = String(_record.get("sloganName", ""))
-    slogan_line.text = String(_record.get("sloganLine", ""))
+    slogan_art.texture = load(String(_record.get("sloganArt", ""))) as Texture2D
     _min_crop_size = _record.get("minCropSize", DEFAULT_MIN_CROP_SIZE)
     _slogan_size = _record.get("sloganSize", DEFAULT_SLOGAN_SIZE)
     _layout_slogan()
@@ -229,29 +212,14 @@ func _build_readout() -> void:
         readout_row.add_child(column)
         check_status[check] = status_label
 
-## Lays the slogan's mark and two lines out inside whatever size the record gives it. The
-## whole lockup lives in the picture's coordinates, so it scales with the picture and its
-## size relative to the frame is the same whatever dialog it is shown in.
+## Sizes the lockup to whatever box the record gives it. The art carries its own type, so
+## the wordmark keeps the condensed face it was drawn in instead of falling back to the
+## project's default one, and the lockup lives in the picture's coordinates so it scales
+## with the picture. The scene sets KEEP_ASPECT_CENTERED, so a box of a different shape
+## letterboxes onto the panel's own fill rather than stretching the wordmark.
 func _layout_slogan() -> void:
-    var box := _slogan_size
-    if box.x <= 0.0 or box.y <= 0.0:
-        return
-    var pad := box.y * SLOGAN_PAD_SHARE
-    var mark := box.y * SLOGAN_MARK_SHARE
-    slogan_mark.position = Vector2(pad, (box.y - mark) * 0.5)
-    slogan_mark.size = Vector2(mark, mark)
-    var text_x := pad + mark + box.y * SLOGAN_GAP_SHARE
-    var text_width := maxf(0.0, box.x - text_x - pad)
-    var name_size := box.y * SLOGAN_NAME_SHARE
-    var line_size := box.y * SLOGAN_LINE_SHARE
-    var block := name_size * 1.2 + line_size * 1.35
-    var top := (box.y - block) * 0.5
-    slogan_name.position = Vector2(text_x, top)
-    slogan_name.size = Vector2(text_width, name_size * 1.2)
-    slogan_name.add_theme_font_size_override("font_size", int(name_size))
-    slogan_line.position = Vector2(text_x, top + name_size * 1.2)
-    slogan_line.size = Vector2(text_width, line_size * 1.35)
-    slogan_line.add_theme_font_size_override("font_size", int(line_size))
+    slogan_art.position = Vector2.ZERO
+    slogan_art.size = _slogan_size
 
 func _frame_style(focused: bool) -> StyleBoxFlat:
     var box := StyleBoxFlat.new()

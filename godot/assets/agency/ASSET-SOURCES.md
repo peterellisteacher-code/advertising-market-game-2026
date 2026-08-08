@@ -6,9 +6,9 @@ These assets were created specifically for the Advertising Market Game. They do
 not copy the branded advertisements in the teaching source folders. The selected
 images contain no recognisable trademark, commercial logo, real person, or
 readable third-party advertising copy — with **one deliberate exception**, the
-`crop/preppy-max-mark.png` parody roundel, which is described and flagged in its
-own section below. That exception is the only asset here that is meant to be
-read against a real brand, and it is the one to review before any public
+`crop/preppy-max-lockup.png` parody slogan block, which is described and flagged
+in its own section below. That exception is the only asset here that is meant to
+be read against a real brand, and it is the one to review before any public
 snapshot.
 
 ## First-run onboarding screenshots
@@ -321,43 +321,53 @@ Exact generation prompt:
 
 > Wide pixel-art illustration, crisp chunky pixels, flat limited palette of deep navy, warm cream, teal, coral, mustard and cobalt blue, heavy dark outlines, 1990s point-and-click adventure background art. ONE continuous interior of a small parish church, seen straight down the central aisle from the back, a single consistent camera angle and one vanishing point. LEFT THIRD: rows of wooden pews packed with a seated congregation seen from behind — still, upright, dull coats and hats. A tall stained-glass window and a stone pillar. Dense with detail. CENTRE-LEFT FOREGROUND: the back of a teenage boy's head and one shoulder, very large, dark navy silhouette, cropped by the bottom edge — an over-the-shoulder view. CENTRE-RIGHT: his arm is raised and his hand holds up a tall soft-drink bottle shape at eye level. THE BOTTLE IS NOT A REAL OBJECT — it is only a clean bottle-shaped outline, a crisp keyhole cut into the picture. No label, no cap, no glass, no highlights, no reflections, no writing on it. INSIDE THE BOTTLE OUTLINE: the exact same church, same pews, same pillars, same vanishing point, continuing across the outline edge with no break or shift — but transformed. Where the pulpit stands there is instead a DJ in headphones behind a pair of turntables. The front pews are empty and the people are standing in the aisle dancing with their arms up, lit by coloured beams of coral and cobalt, confetti in the air. The architecture lines up perfectly with the calm version outside the outline; only the people and the pulpit change. OUTSIDE THE BOTTLE OUTLINE: the same church, calm and dim, a still robed figure standing at the pulpit. RIGHT QUARTER: a large bare whitewashed plaster wall, completely empty and flat cream, no windows, no plaques, no shadows, no texture. The vaulted ceiling has dark timber beams. The floor is patterned encaustic tile. Both are dense with detail. Absolutely no text, no letters, no numbers, no logos and no signage anywhere in the image.
 
-### `crop/preppy-max-mark.png` — parody mark, review before public release
+### `crop/preppy-max-lockup.png` — parody slogan block, review before public release
 
 **This is the one asset in this file that is deliberately readable against a real
-brand.** Peter asked on 8 August 2026 for a Pepsi Max parody: the advertisement
-in this exercise is "Preppy MAX", and the joke only works if the mark reads as
-the thing it is parodying. It was generated from a description of a red-over-blue
-wave roundel and came back close enough to the Pepsi globe to be recognised as
-one. The wordmark beside it is not part of this file — "PREPPY MAX" and "LIVE
-LIFE TO THE MAX" are set as text by the stage, so no third-party wordmark was
-reproduced.
+brand.** Peter asked on 8 August 2026 for a Pepsi Max parody: the advertisement in
+this exercise is "Preppy MAX", and the joke only works if it reads as the thing it
+is parodying. The block carries the roundel, the wordmark `PREPPY MAX` and the
+strapline `LIVE LIFE TO THE MAX`. The roundel came back close enough to the Pepsi
+globe to be recognised as one, and the wordmark is set in a heavy condensed
+uppercase face chosen to mirror the same identity.
+
+The words are baked into the art rather than set as text at runtime, so they are
+**not** in the student-copy corpus and will not be seen by
+`student-copy-corpus.mjs` or the copy scrubbers. Anyone reviewing the game's
+student-facing wording has to read this entry to find them. The reason for baking
+them is that the project ships no font files at all, so type set at runtime falls
+back to Godot's default face and loses the condensed wordmark the parody depends
+on. If a condensed face is ever added to the project, the honest move is to set
+these two lines as text again and put them back under the copy corpus.
 
 The game is behind a password gate rather than openly published, so this ships as
 a classroom teaching parody. It is recorded here so that the decision is
 deliberate and reversible rather than discovered later.
 
 - Tool: `openai/gpt-image-2` on fal.ai at `high` quality
-- Generated source: 832 x 832 pixels, RGB on white, SHA-256
-  `a55bc414a655cd15dee4e8b153441917e96020cfacfc14ed6dc9b141183acf9e`
-- Final file: the disc cropped to its own bounds and given an antialiased circular
-  alpha mask computed geometrically at 4x supersampling, then resampled once to
-  256 x 256. No background-removal model was used: the mark is a circle, so a
-  geometric mask is exact where a keying model would have guessed at the boundary
-  between the cream ring and the near-white ground
-- Dimensions: 256 x 256 pixels, RGBA
-- Alpha: 51,244 of 65,536 pixels opaque, which is pi/4 of the square to within a
-  rounding error — the mask is the circle it claims to be
+- Generated source: 1520 x 608 pixels, RGB, SHA-256
+  `5442601488870618cca73e4dfa0ce55f431af7fd53858ae541081838503ee425`
+- Final file: the selected original resampled once to 960 x 384 with Lanczos and
+  not cropped, stretched or edited. That is 2.5:1, exactly the aspect of the
+  record's `sloganSize`, and 4.3x the size it is ever drawn at
+- Dimensions: 960 x 384 pixels, RGB (aspect ratio 2.5)
 - SHA-256:
-  `aa01a50621dfefe5efaeb370e142dbfecd854b57b2e3d744123c6ff2614a8b5a`
+  `707d1256d7a294c7125c46869863b01645e43af29b319e72693d76f95913aca0`
+- Human selection: selected from three candidates. All three spelled both lines
+  correctly; this one has the cleanest circular roundel, the crispest letterforms
+  and a strapline letter-spaced to the same width as the wordmark above it
+- Superseded: `crop/preppy-max-mark.png`, a 256 x 256 RGBA roundel on its own,
+  used while the two lines were still set as Godot Labels. Removed rather than
+  left in the tree once the lockup replaced it
 - Public-use decision: **NOT approved for public release as it stands.** Approved
   for classroom use behind the existing password gate. To clear it for a public
-  snapshot, regenerate the roundel in the game's own palette — teal and coral on
+  snapshot, regenerate the block in the game's own palette — teal and coral on
   cream rather than red and blue — which keeps the "a soft drink brand" reading
   without reproducing a specific one
 
 Exact generation prompt:
 
-> A single circular soft-drink brand roundel logo icon, flat pixel-art vector style, centred on a plain pure white background with generous margin. A bold circle with a thick cream outer ring. The disc inside is divided by one thick cream horizontal wave that curves across the middle: coral red in the upper half, cobalt blue in the lower half. Absolutely no text, no letters, no numbers, no words anywhere on or near the logo. Crisp flat colour blocks, hard edges, no gradients, no shadows, no reflections, no highlights, no drop shadow.
+> A flat pixel-art advertising slogan lockup on a solid deep navy rectangular block. The navy block fills the entire frame edge to edge, with no margin, border or background outside it. LEFT THIRD: a circular soft-drink roundel logo — a thick cream outer ring, and the disc inside split by one thick cream horizontal wave, coral red in the upper half and cobalt blue in the lower half. No text or letters on the roundel itself. RIGHT OF THE ROUNDEL: two lines of type, left-aligned, set in a very bold, heavy, tightly-condensed uppercase sans-serif, cream white against the navy. Line one, large and dominant, filling most of the width: PREPPY MAX. Line two, directly beneath it, roughly half the height, widely letter-spaced: LIVE LIFE TO THE MAX. Spell them exactly and completely: the first line is P R E P P Y then M A X. The second line is L I V E, L I F E, T O, T H E, M A X. No other words anywhere, no extra or repeated letters, no numbers, no trademark or registered symbols, no tagline, no small print. Crisp flat colour blocks, hard clean edges, very high contrast, no gradients, no drop shadows, no glows, no reflections, no texture, no photographic lighting.
 
 Licence note: fal.ai lists `openai/gpt-image-2` with `license_type: commercial`.
 Every input to both generations was this project's own text; no third-party image
@@ -379,7 +389,9 @@ was supplied.
 - Godot read the crop picture back through the demonstration's own measure: 423
   of its 1200 cells classify as plain and the rest as busy, so the picture has
   both somewhere to put the slogan and enough clutter to be worth cropping away.
-- The crop picture is RGB and the parody mark is RGBA.
+- The crop picture and the parody slogan block are both RGB, and the block's 2.5:1
+  aspect matches the box the record gives it, so the wordmark is neither stretched
+  nor letterboxed. `test_crop_measure.gd` asserts that match.
 - The four checks were verified against the shipped file before any of the engine
   was written, and again after the resample to 1920 x 640: the slogan reads 0.99
   of its area as plain on the wall, 0.77 straddling its edge and 0.01 across the

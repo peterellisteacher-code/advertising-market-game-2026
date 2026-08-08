@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dbfo4pmcfyubp"
-path="res://.godot/imported/preppy-max-mark.png-840b19f469b84d10a6f2e5b01992b738.ctex"
+uid="uid://b6dak17rnjx45"
+path="res://.godot/imported/preppy-max-lockup.png-d897438a231021bba6063fc48fd17b65.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/agency/crop/preppy-max-mark.png"
-dest_files=["res://.godot/imported/preppy-max-mark.png-840b19f469b84d10a6f2e5b01992b738.ctex"]
+source_file="res://assets/agency/crop/preppy-max-lockup.png"
+dest_files=["res://.godot/imported/preppy-max-lockup.png-d897438a231021bba6063fc48fd17b65.ctex"]
 
 [params]
 

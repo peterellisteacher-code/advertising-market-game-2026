@@ -417,6 +417,21 @@ func _the_panel_records_measured_evidence() -> bool:
 	assert(stage != null)
 	await _settle()
 
+	# The demonstration must not push the dialog past the shortest window the game
+	# guarantees, or the buttons at its foot are drawn off the bottom of the screen.
+	#
+	# This has to be measured while the demonstration is the stage on show. Until 8 August
+	# 2026 it sat at the end of this test, after show_completed had swapped the stage out,
+	# so it read the completed layout instead. Measured that day: the demonstration needs
+	# 750px and the completed stage only 700px, so the assertion was guarding a number 50px
+	# smaller than the one that matters and could not have caught an overflow.
+	#
+	# The dialog is centred in an 800px window with a 25px margin, so 750 is what actually
+	# fits and the figure below leaves 10px of headroom. Anything added to the salience
+	# demonstration lands here first.
+	var dialog := panel.get_node("Backdrop/Dialog") as PanelContainer
+	assert(dialog.get_combined_minimum_size().y <= 760.0)
+
 	# An arrangement that has not been changed is refused, and refusing it must not
 	# record anything.
 	var refused: Dictionary = controller.call("submit_demonstration", stage.call("current_result"))
@@ -433,11 +448,6 @@ func _the_panel_records_measured_evidence() -> bool:
 	var effect := String(evidence.get("effect"))
 	assert(effect.contains("orange") and effect.contains("largest"))
 	assert(effect.contains("audience"))
-
-	# The demonstration must not push the dialog past the shortest window the game
-	# guarantees, or the buttons at its foot are drawn off the bottom of the screen.
-	var dialog := panel.get_node("Backdrop/Dialog") as PanelContainer
-	assert(dialog.get_combined_minimum_size().y <= 760.0)
 	controller.free()
 	panel.queue_free()
 	return true

@@ -471,8 +471,13 @@ func _the_panel_records_measured_evidence() -> bool:
 	# measures the completed stage, which is short, and lets an overflowing demonstration
 	# through: this dialog stood 828px tall in the 800px window while an assertion written
 	# that way passed.
+	#
+	# 760, matching test_salience_measure.gd, rather than the window's own 800. The dialog
+	# is centred in an 800px window with a 25px margin, so 750 is what actually fits; a
+	# guard set at the window height would pass a demonstration that had already eaten the
+	# margin. This stage measures 715.
 	var dialog := panel.get_node("Backdrop/Dialog") as PanelContainer
-	assert(dialog.get_combined_minimum_size().y <= 800.0)
+	assert(dialog.get_combined_minimum_size().y <= 760.0)
 
 	# The untouched arrangement is refused, and refusing it must not record anything.
 	var refused: Dictionary = controller.call("submit_demonstration", stage.call("current_result"))

@@ -50,9 +50,9 @@ const SNAPSHOT_KEYS := [
 const OBJECTIVE_AFTER_MISSION := {
     "audience-brief": "build-product",
     "salience": "direct-attention",
-    "reading-path": "shape-message",
-    "contrast": "set-campaign-tone",
-    "framing": "focus-image",
+    "reading-path": "set-campaign-tone",
+    "contrast": "focus-image",
+    "framing": "shape-message",
     "aida": "prove-value",
     "claim-proof": "polish-campaign"
 }

@@ -35,6 +35,7 @@ func _out_of_order_required_work_advances_to_polish() -> bool:
 	assert(game_run.begin("North Star Studio", "session-out-of-order", "team-out-of-order"))
 	var controller: RefCounted = controller_script.new()
 	controller.begin_agency(game_run, _campaign_document())
+	var progress := game_run.agency_progress() as AdMarketAgencyProgress
 	var completion_order: Array[String] = [
 		"audience-brief",
 		"framing",
@@ -45,10 +46,12 @@ func _out_of_order_required_work_advances_to_polish() -> bool:
 		"contrast",
 	]
 	for mission_id: String in completion_order:
-		assert(controller.complete_mission(mission_id, {
+		var evidence := {
 			"decision": "decision-%s" % mission_id,
 			"effect": "This recorded decision changes the audience's response to the advertisement.",
-		}))
+		}
+		assert(progress.complete_mission(mission_id, evidence))
+		assert(controller.complete_mission(mission_id, evidence))
 	assert(controller.current_objective().get("id") == "polish-campaign")
 	controller.on_creator_returned(_campaign_document())
 	assert(controller.current_objective().get("id") == "prepare-pitch")

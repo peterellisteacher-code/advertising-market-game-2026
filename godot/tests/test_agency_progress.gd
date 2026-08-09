@@ -8,6 +8,7 @@ func run() -> bool:
     assert(_json_round_trip_preserves_integer_counters())
     assert(_invalid_role_is_rejected_atomically())
     assert(_legacy_sell_pitch_maps_to_message_objective())
+    assert(_canonical_completion_sets_next_objective())
     assert(_out_of_order_completions_keep_snapshot_canonical())
     return true
 
@@ -54,6 +55,27 @@ func _legacy_sell_pitch_maps_to_message_objective() -> bool:
     var migrated: Dictionary = AgencyProgress.from_legacy_pitch("sell", ["invent"])
     assert(migrated.get("currentObjectiveId") == "shape-message")
     assert(Array(migrated.get("completedMissionIds")).has("audience-brief"))
+    return true
+
+func _canonical_completion_sets_next_objective() -> bool:
+    var progress := AgencyProgress.new()
+    assert(progress.begin())
+    var expected_after: Array[Dictionary] = [
+        {"mission": "audience-brief", "objective": "build-product"},
+        {"mission": "salience", "objective": "direct-attention"},
+        {"mission": "reading-path", "objective": "set-campaign-tone"},
+        {"mission": "contrast", "objective": "focus-image"},
+        {"mission": "framing", "objective": "shape-message"},
+        {"mission": "aida", "objective": "prove-value"},
+        {"mission": "claim-proof", "objective": "polish-campaign"},
+    ]
+    for step: Dictionary in expected_after:
+        var mission_id := String(step.get("mission"))
+        assert(progress.complete_mission(mission_id, {
+            "decision": "decision-%s" % mission_id,
+            "effect": "This recorded decision changes the audience's response to the advertisement.",
+        }))
+        assert(progress.current_objective_id == String(step.get("objective")))
     return true
 
 func _out_of_order_completions_keep_snapshot_canonical() -> bool:

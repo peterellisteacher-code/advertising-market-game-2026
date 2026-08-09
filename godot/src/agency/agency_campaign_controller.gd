@@ -23,6 +23,7 @@ const OBJECTIVE_FOR_INCOMPLETE_MISSION: Dictionary = {
 	"claim-proof": "prove-value",
 }
 const CREATOR_OBJECTIVES: Array[String] = ["build-product", "polish-campaign"]
+const POST_POLISH_OBJECTIVES: Array[String] = ["prepare-pitch", "present-campaign"]
 const MAX_MISSION_EVIDENCE_ENTRIES := 24
 
 var _run: AdMarketGameRun
@@ -82,8 +83,9 @@ func complete_mission(mission_id: String, evidence: Dictionary) -> bool:
 	var was_completed := _progress.completed_mission_ids.has(mission_id)
 	if not was_completed and not _progress.complete_mission(mission_id, evidence):
 		return false
-	if not was_completed:
-		_set_objective(_objective_for_current_work())
+	var next_objective := _objective_for_current_work()
+	if next_objective != "polish-campaign" or not POST_POLISH_OBJECTIVES.has(_progress.current_objective_id):
+		_set_objective(next_objective)
 	_emit_progress()
 	return true
 
@@ -219,7 +221,7 @@ func _reconcile_document_objective() -> void:
 	if _progress == null:
 		return
 	if _progress.current_objective_id == "build-product" and _has_initial_product():
-		_set_objective("direct-attention")
+		_set_objective(_objective_for_current_work())
 	elif _progress.current_objective_id == "polish-campaign" and all_required_missions_complete():
 		_set_objective("prepare-pitch")
 

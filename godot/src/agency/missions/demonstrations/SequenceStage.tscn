@@ -1,0 +1,133 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/agency/missions/demonstrations/sequence_stage.gd" id="1_sequence"]
+
+[sub_resource type="Theme" id="Theme_sequence_stage"]
+Label/colors/font_color = Color(0.0588235, 0.105882, 0.180392, 1)
+
+[node name="SequenceStage" type="VBoxContainer"]
+custom_minimum_size = Vector2(880, 0)
+layout_mode = 2
+theme = SubResource("Theme_sequence_stage")
+theme_override_constants/separation = 6
+script = ExtResource("1_sequence")
+
+[node name="DemonstrationInstruction" type="Label" parent="."]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+autowrap_mode = 2
+
+[node name="KeyboardHint" type="Label" parent="."]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+autowrap_mode = 2
+
+[node name="Workspace" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(880, 254)
+layout_mode = 2
+
+[node name="SequencePanel" type="PanelContainer" parent="Workspace"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SequenceColumn" type="VBoxContainer" parent="Workspace/SequencePanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="SequenceHeading" type="Label" parent="Workspace/SequencePanel/SequenceColumn"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+horizontal_alignment = 1
+
+[node name="CardSurface" type="Control" parent="Workspace/SequencePanel/SequenceColumn"]
+custom_minimum_size = Vector2(860, 212)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ReadingPath" type="Line2D" parent="Workspace/SequencePanel/SequenceColumn/CardSurface"]
+z_index = 1
+width = 5.0
+default_color = Color(0.0745098, 0.54902, 0.568627, 0.9)
+
+[node name="CardGrid" type="GridContainer" parent="Workspace/SequencePanel/SequenceColumn/CardSurface"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 10
+columns = 2
+
+[node name="MoveRow" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MoveLeftButton" type="Button" parent="MoveRow"]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "Move left"
+
+[node name="SelectedReading" type="Label" parent="MoveRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="MoveRightButton" type="Button" parent="MoveRow"]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "Move right"
+
+[node name="ReadoutRow" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="OrderReading" type="Label" parent="ReadoutRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="ConstraintReading" type="Label" parent="ReadoutRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
+
+[node name="DemonstrationFeedback" type="Label" parent="."]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+autowrap_mode = 2
+
+[node name="ActionsRow" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+
+[node name="ResetButton" type="Button" parent="ActionsRow"]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "Start again"
+
+[node name="Spacer" type="Control" parent="ActionsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="CheckButton" type="Button" parent="ActionsRow"]
+custom_minimum_size = Vector2(180, 40)
+layout_mode = 2
+text = "Check sequence"

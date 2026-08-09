@@ -392,6 +392,72 @@ const CLAIM_PROOF_TARGET_DEMONSTRATION := {
     "subjectPhrase": "the qualified product claim"
 }
 
+# Engine E — sequence cards. Both records declare prerequisite edges, so the measure
+# accepts every complete order that satisfies the concept rather than comparing with one
+# hidden authored list. Reading path adds a live line through the stable card positions;
+# AIDA uses the same scene without that line.
+const READING_PATH_SEQUENCE_DEMONSTRATION := {
+    "engine": "sequence-cards",
+    "scene": "res://src/agency/missions/demonstrations/SequenceStage.tscn",
+    "instruction": "Order the advertisement elements so the audience meets the subject, then its meaning, then the requested action.",
+    "heading": "BUILD THE READING PATH",
+    "cards": [
+        {"id": "image", "shortLabel": "Product image", "label": "Meet the product and recognise what the advertisement is about."},
+        {"id": "headline", "shortLabel": "Headline", "label": "Connect the product to its useful meaning."},
+        {"id": "action", "shortLabel": "Action", "label": "Give the audience a feasible next step."}
+    ],
+    "constraints": [
+        {"before": "image", "after": "headline"},
+        {"before": "headline", "after": "action"}
+    ],
+    "initialOrder": ["action", "headline", "image"],
+    "drawPath": true,
+    "checkPhrases": {
+        "permutation": "all three points used once",
+        "constraints": "subject before meaning before action"
+    },
+    "unmetSentences": {
+        "declarations": "This reading-path task is incomplete.",
+        "permutation": "Use the product image, headline and action exactly once.",
+        "constraints": "{before} must come before {after}. Move one card and watch the path change."
+    },
+    "wonSentence": "The reading path now moves from {first} to {last} without a visual dead end.",
+    "evidenceSentence": "The reading path moves through {order}, so the audience can connect the product, its meaning and the requested action in sequence.",
+    "subjectPhrase": "the advertisement reading path"
+}
+
+const AIDA_SEQUENCE_DEMONSTRATION := {
+    "engine": "sequence-cards",
+    "scene": "res://src/agency/missions/demonstrations/SequenceStage.tscn",
+    "instruction": "Put the AIDA stages in the order that builds a reason to act.",
+    "heading": "BUILD THE AIDA SEQUENCE",
+    "cards": [
+        {"id": "attention", "shortLabel": "Attention", "label": "Make one distinctive subject easy to notice."},
+        {"id": "interest", "shortLabel": "Interest", "label": "Show why the subject is relevant to this audience."},
+        {"id": "desire", "shortLabel": "Desire", "label": "Develop the audience benefit into something worth wanting."},
+        {"id": "action", "shortLabel": "Action", "label": "State one clear and feasible next step."}
+    ],
+    "constraints": [
+        {"before": "attention", "after": "interest"},
+        {"before": "interest", "after": "desire"},
+        {"before": "desire", "after": "action"}
+    ],
+    "initialOrder": ["action", "desire", "interest", "attention"],
+    "drawPath": false,
+    "checkPhrases": {
+        "permutation": "all four stages used once",
+        "constraints": "each stage prepares the next"
+    },
+    "unmetSentences": {
+        "declarations": "This AIDA task is incomplete.",
+        "permutation": "Use Attention, Interest, Desire and Action exactly once.",
+        "constraints": "{before} must come before {after}. Move one stage, then check again."
+    },
+    "wonSentence": "The sequence now moves from {first} to {last} through all four AIDA stages.",
+    "evidenceSentence": "The sequence places {order}, so each stage gives the audience a reason to continue to the next and finally act.",
+    "subjectPhrase": "the AIDA sequence"
+}
+
 const REQUIRED_MISSION_RECORDS := [
     {
         "id": "audience-brief",
@@ -506,6 +572,7 @@ const REQUIRED_MISSION_RECORDS := [
         "correctChoiceId": "product-headline-action",
         "effectExplanation": "A coherent reading path helps the audience connect the visual subject, advertisement meaning and requested action in sequence.",
         "transferPrompt": "Describe the first, second and third points in your advertisement's reading path and name the line, gaze or placement that connects them.",
+        "demonstration": READING_PATH_SEQUENCE_DEMONSTRATION,
         "reward": "Reading-path overlay unlocked",
         "required": true
     },
@@ -616,6 +683,7 @@ const REQUIRED_MISSION_RECORDS := [
         "correctChoiceId": "aida-complete",
         "effectExplanation": "AIDA creates a cumulative audience journey rather than four unrelated labels placed on an advertisement.",
         "transferPrompt": "Write one sentence for each AIDA stage in your advertisement and explain how the audience can move from one to the next.",
+        "demonstration": AIDA_SEQUENCE_DEMONSTRATION,
         "reward": "AIDA sequence complete",
         "required": true
     },

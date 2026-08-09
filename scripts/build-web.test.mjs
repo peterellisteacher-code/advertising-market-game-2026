@@ -526,7 +526,7 @@ test("release assembly binds static assets, private functions and one atomic ser
   assert.equal(
     await readFile(path.join(web, "_redirects"), "utf8"),
     [
-      "/                 /student             302",
+      "/                 /student             302!",
       "/student          /index.html          200",
       "/student/*        /index.html          200",
       "/teacher          /index.html          200",
@@ -666,7 +666,7 @@ test("bound releases give changed Studio assets new browser URLs", async () => {
 test("application route verification rejects teacher API shell rewrites", () => {
   const valid = new Map([
     ["_redirects", [
-      "/                 /student             302",
+      "/                 /student             302!",
       "/student          /index.html          200",
       "/student/*        /index.html          200",
       "/teacher          /index.html          200",
@@ -698,6 +698,41 @@ test("application route verification rejects teacher API shell rewrites", () => 
   assert.throws(
     () => verifyWebExport.verifyApplicationRouteContract(unsafe),
     /teacher API|API route/i
+  );
+});
+
+test("application route verification requires an unshadowable root redirect", () => {
+  const forced = new Map([
+    ["_redirects", [
+      "/                 /student             302!",
+      "/student          /index.html          200",
+      "/student/*        /index.html          200",
+      "/teacher          /index.html          200",
+      "/teacher/*        /index.html          200",
+      ""
+    ].join("\n")],
+    ["manifest.webmanifest", JSON.stringify({
+      name: "Advertising Market Game",
+      start_url: "/student",
+      scope: "/"
+    })],
+    ["service-worker.js", `
+      if (request.method !== "GET" ||
+        url.origin !== self.location.origin ||
+        url.pathname.startsWith("/api/")) return;
+      if (request.mode === "navigate") {
+        return await cache.match("/index.html") ?? fetch(request);
+      }
+    `]
+  ]);
+
+  assert.doesNotThrow(() => verifyWebExport.verifyApplicationRouteContract(forced));
+
+  const shadowable = new Map(forced);
+  shadowable.set("_redirects", forced.get("_redirects").replace("302!", "302"));
+  assert.throws(
+    () => verifyWebExport.verifyApplicationRouteContract(shadowable),
+    /route verification|release contract/i
   );
 });
 

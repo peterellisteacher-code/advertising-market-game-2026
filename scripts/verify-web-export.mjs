@@ -35,7 +35,7 @@ const MAX_LOGO_CATALOGUE_BYTES = 3 * 1024 * 1024;
 const PORTABLE_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SHA256 = /^[a-f0-9]{64}$/;
 export const APPLICATION_REDIRECTS = [
-  "/                 /student             302",
+  "/                 /student             302!",
   "/student          /index.html          200",
   "/student/*        /index.html          200",
   "/teacher          /index.html          200",

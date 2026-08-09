@@ -82,8 +82,9 @@ const OPPOSITE := 180.0
 ## Scores one job — one product's poster, one palette. `scene` carries `elements` (an
 ## Array of Dictionaries, each with `id`, `hue` in degrees and `strength` 0 to 1),
 ## `actionElement` (the id of the element carrying the thing the audience is asked to do),
-## `toneHue` (the hue the brief's feeling asks for), and the four thresholds
-## `minAccentSeparation`, `minAccentStrength`, `maxSupportSpread` and `maxToneDistance`.
+## `toneHue` (the hue the brief's feeling asks for), the minimum meaningful support
+## strength `minSupportStrength`, and the four scoring thresholds `minAccentSeparation`,
+## `minAccentStrength`, `maxSupportSpread` and `maxToneDistance`.
 static func evaluate(scene: Dictionary) -> Dictionary:
     var elements: Array = scene.get("elements", [])
     var action_id := String(scene.get("actionElement", ""))
@@ -95,8 +96,10 @@ static func evaluate(scene: Dictionary) -> Dictionary:
         # passes.
         return _unmeasured(scene)
 
+    var minimum_support_strength := clampf(float(scene.get("minSupportStrength", 0.0)), 0.0, 1.0)
+    var supports_have_colour := _all_at_least_strength(supports, minimum_support_strength)
     var support_hues := hues_of(supports)
-    var base_hue := circular_mean(support_hues)
+    var base_hue := circular_mean(support_hues) if supports_have_colour else HUE_UNDEFINED
     var has_base := base_hue >= 0.0
     var accent_hue := float(action.get("hue", 0.0))
 
@@ -111,7 +114,7 @@ static func evaluate(scene: Dictionary) -> Dictionary:
     var values := {
         CHECK_ACCENT_SEPARATION: separation,
         CHECK_ACCENT_STRENGTH: float(action.get("strength", 0.0)) - strongest(supports),
-        CHECK_SUPPORT_HARMONY: widest_gap(support_hues),
+        CHECK_SUPPORT_HARMONY: widest_gap(support_hues) if supports_have_colour else OPPOSITE,
         CHECK_TONE_MATCH: tone_distance
     }
     var required := {
@@ -187,6 +190,12 @@ static func strongest(elements: Array) -> float:
     for element: Variant in elements:
         top = maxf(top, float(Dictionary(element).get("strength", 0.0)))
     return top
+
+static func _all_at_least_strength(elements: Array, minimum: float) -> bool:
+    for element: Variant in elements:
+        if float(Dictionary(element).get("strength", 0.0)) < minimum - STRENGTH_EPSILON:
+            return false
+    return true
 
 ## The hues of these elements, in list order.
 static func hues_of(elements: Array) -> PackedFloat32Array:

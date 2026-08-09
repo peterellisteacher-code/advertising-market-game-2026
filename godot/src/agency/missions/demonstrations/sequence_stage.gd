@@ -158,6 +158,10 @@ func _build_cards() -> void:
 	_refresh_cards()
 
 func _refresh_cards() -> void:
+	for sequence_index in range(_order.size()):
+		var ordered_button := _card_button(_order[sequence_index])
+		if ordered_button != null:
+			_card_grid.move_child(ordered_button, sequence_index)
 	for card_value: Variant in Array(_record.get("cards", [])):
 		if typeof(card_value) != TYPE_DICTIONARY:
 			continue

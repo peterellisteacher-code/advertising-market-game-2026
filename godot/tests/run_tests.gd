@@ -28,6 +28,7 @@ func _run_suites() -> void:
         "res://tests/test_agency_world.gd",
         "res://tests/test_agency_guidance.gd",
         "res://tests/test_agency_progress.gd",
+        "res://tests/test_agency_campaign_controller.gd",
         "res://tests/test_game_run.gd",
         "res://tests/test_run_progress_store.gd",
         "res://tests/test_live_resume.gd",

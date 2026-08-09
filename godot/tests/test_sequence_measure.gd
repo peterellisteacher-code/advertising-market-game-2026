@@ -197,6 +197,28 @@ func _card_button(stage: Control, card_id: String) -> Button:
 		"Workspace/SequencePanel/SequenceColumn/CardSurface/CardGrid/Card_%s" % _safe_id(card_id)
 	) as Button
 
+func _visual_card_order(stage: Control) -> PackedStringArray:
+	var visual_order := PackedStringArray()
+	var grid := stage.get_node(
+		"Workspace/SequencePanel/SequenceColumn/CardSurface/CardGrid"
+	) as GridContainer
+	for child: Node in grid.get_children():
+		visual_order.append(String(child.get_meta("card_id", "")))
+	return visual_order
+
+func _path_matches_visual_card_order(stage: Control, line: Line2D) -> bool:
+	var grid := stage.get_node(
+		"Workspace/SequencePanel/SequenceColumn/CardSurface/CardGrid"
+	) as GridContainer
+	if line.points.size() != grid.get_child_count():
+		return false
+	for index in range(grid.get_child_count()):
+		var button := grid.get_child(index) as Button
+		var expected := line.to_local(button.get_global_rect().get_center())
+		if line.points[index].distance_to(expected) > 1.0:
+			return false
+	return true
+
 func _catalog_supplies_two_distinct_sequence_records() -> bool:
 	var aida: Dictionary = Catalog.mission("aida").get("demonstration", {})
 	var reading_path: Dictionary = Catalog.mission("reading-path").get("demonstration", {})
@@ -253,7 +275,10 @@ func _button_keyboard_and_drag_reordering_work() -> bool:
 	move_left.pressed.emit()
 	await _settle_stage()
 	var button_order: PackedStringArray = stage.call("order_ids")
-	var button_works := button_order == PackedStringArray(["action", "desire", "attention", "interest"])
+	var button_works := (
+		button_order == PackedStringArray(["action", "desire", "attention", "interest"])
+		and _visual_card_order(stage) == button_order
+	)
 
 	var key := InputEventKey.new()
 	key.keycode = KEY_LEFT
@@ -261,7 +286,10 @@ func _button_keyboard_and_drag_reordering_work() -> bool:
 	attention.gui_input.emit(key)
 	await _settle_stage()
 	var keyboard_order: PackedStringArray = stage.call("order_ids")
-	var keyboard_works := keyboard_order == PackedStringArray(["action", "attention", "desire", "interest"])
+	var keyboard_works := (
+		keyboard_order == PackedStringArray(["action", "attention", "desire", "interest"])
+		and _visual_card_order(stage) == keyboard_order
+	)
 
 	var press := InputEventMouseButton.new()
 	press.button_index = MOUSE_BUTTON_LEFT
@@ -275,13 +303,14 @@ func _button_keyboard_and_drag_reordering_work() -> bool:
 	attention.gui_input.emit(release)
 	await _settle_stage()
 	var drag_order: PackedStringArray = stage.call("order_ids")
-	var drag_works := drag_order[0] == "attention"
+	var drag_works := drag_order[0] == "attention" and _visual_card_order(stage) == drag_order
 
 	(stage.get_node("ActionsRow/ResetButton") as Button).pressed.emit()
 	await _settle_stage()
+	var reset_order: PackedStringArray = stage.call("order_ids")
 	var reset_works := (
-		PackedStringArray(stage.call("order_ids"))
-		== PackedStringArray(["action", "desire", "interest", "attention"])
+		reset_order == PackedStringArray(["action", "desire", "interest", "attention"])
+		and _visual_card_order(stage) == reset_order
 	)
 	stage.queue_free()
 	return button_works and keyboard_works and drag_works and reset_works
@@ -295,11 +324,16 @@ func _reading_path_changes_with_the_sequence() -> bool:
 	var line := stage.get_node(
 		"Workspace/SequencePanel/SequenceColumn/CardSurface/ReadingPath"
 	) as Line2D
-	var before := PackedVector2Array(line.points)
+	var before_order := _visual_card_order(stage)
 	stage.call("move_card", "image", -1)
 	await _settle_stage()
-	var after := PackedVector2Array(line.points)
-	var holds := line.visible and before.size() == 3 and after.size() == 3 and before != after
+	var after_order := _visual_card_order(stage)
+	var holds := (
+		line.visible
+		and before_order != after_order
+		and after_order == PackedStringArray(stage.call("order_ids"))
+		and _path_matches_visual_card_order(stage, line)
+	)
 	stage.queue_free()
 	return holds
 

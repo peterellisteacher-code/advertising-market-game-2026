@@ -8,6 +8,7 @@ func run() -> bool:
     assert(_json_round_trip_preserves_integer_counters())
     assert(_invalid_role_is_rejected_atomically())
     assert(_legacy_sell_pitch_maps_to_message_objective())
+    assert(_out_of_order_completions_keep_snapshot_canonical())
     return true
 
 func _new_progress_round_trips_completed_evidence() -> bool:
@@ -53,4 +54,38 @@ func _legacy_sell_pitch_maps_to_message_objective() -> bool:
     var migrated: Dictionary = AgencyProgress.from_legacy_pitch("sell", ["invent"])
     assert(migrated.get("currentObjectiveId") == "shape-message")
     assert(Array(migrated.get("completedMissionIds")).has("audience-brief"))
+    return true
+
+func _out_of_order_completions_keep_snapshot_canonical() -> bool:
+    var progress := AgencyProgress.new()
+    assert(progress.begin())
+    var completion_order: Array[String] = [
+        "audience-brief",
+        "framing",
+        "aida",
+        "claim-proof",
+        "salience",
+        "reading-path",
+        "contrast",
+    ]
+    for mission_id: String in completion_order:
+        assert(progress.complete_mission(mission_id, {
+            "decision": "decision-%s" % mission_id,
+            "effect": "This recorded decision changes the audience's response to the advertisement.",
+        }))
+    for sidequest_id: String in [
+        "thirty-second-rescue",
+        "crop-lab",
+        "colour-clinic",
+        "headline-surgery",
+        "media-match",
+    ]:
+        assert(progress.complete_sidequest(sidequest_id))
+
+    var snapshot: Dictionary = progress.snapshot()
+    assert(snapshot.get("completedMissionIds") == AgencyProgress.REQUIRED_MISSIONS)
+    assert(snapshot.get("completedSidequestIds") == AgencyProgress.SIDEQUESTS)
+    var restored := AgencyProgress.new()
+    assert(restored.restore_snapshot(snapshot))
+    assert(restored.snapshot() == snapshot)
     return true

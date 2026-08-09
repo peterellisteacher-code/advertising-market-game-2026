@@ -25,6 +25,33 @@ func run() -> bool:
 	assert(evidence_entry.get("decisionId") == "independence")
 	assert(evidence_entry.get("effectText") == "The offer supports the audience's need to control the hour after school.")
 	assert(evidence_entry.get("title") == "Read the audience before making anything")
+	assert(_out_of_order_required_work_advances_to_polish())
+	return true
+
+func _out_of_order_required_work_advances_to_polish() -> bool:
+	var controller_script: Script = load("res://src/agency/agency_campaign_controller.gd")
+	var game_run_script: Script = load("res://src/game/game_run.gd")
+	var game_run: AdMarketGameRun = game_run_script.new()
+	assert(game_run.begin("North Star Studio", "session-out-of-order", "team-out-of-order"))
+	var controller: RefCounted = controller_script.new()
+	controller.begin_agency(game_run, _campaign_document())
+	var completion_order: Array[String] = [
+		"audience-brief",
+		"framing",
+		"aida",
+		"claim-proof",
+		"salience",
+		"reading-path",
+		"contrast",
+	]
+	for mission_id: String in completion_order:
+		assert(controller.complete_mission(mission_id, {
+			"decision": "decision-%s" % mission_id,
+			"effect": "This recorded decision changes the audience's response to the advertisement.",
+		}))
+	assert(controller.current_objective().get("id") == "polish-campaign")
+	controller.on_creator_returned(_campaign_document())
+	assert(controller.current_objective().get("id") == "prepare-pitch")
 	return true
 
 func _campaign_document() -> Dictionary:

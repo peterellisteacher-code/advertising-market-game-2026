@@ -147,6 +147,7 @@ func complete_mission(mission_id: String, evidence: Dictionary) -> bool:
     if not _valid_evidence_record(evidence):
         return _fail("Task evidence must include a decision and an audience effect")
     completed_mission_ids.append(mission_id)
+    _order_completed_ids(completed_mission_ids, REQUIRED_MISSIONS)
     evidence_by_mission[mission_id] = evidence.duplicate(true)
     current_objective_id = String(OBJECTIVE_AFTER_MISSION.get(
         mission_id,
@@ -162,6 +163,7 @@ func complete_sidequest(sidequest_id: String) -> bool:
     if completed_sidequest_ids.has(sidequest_id):
         return _fail("That optional practice is already complete")
     completed_sidequest_ids.append(sidequest_id)
+    _order_completed_ids(completed_sidequest_ids, SIDEQUESTS)
     return _succeed()
 
 func snapshot() -> Dictionary:
@@ -280,6 +282,14 @@ func _validated_snapshot(value: Variant) -> Dictionary:
     if JSON.stringify(candidate).to_utf8_buffer().size() > MAX_SNAPSHOT_BYTES:
         return {}
     return candidate.duplicate(true)
+
+func _order_completed_ids(items: Array[String], canonical_order: Array) -> void:
+    var ordered: Array[String] = []
+    for item_value in canonical_order:
+        var item := String(item_value)
+        if items.has(item):
+            ordered.append(item)
+    items.assign(ordered)
 
 func _valid_ordered_subset(value: Variant, allowed: Array) -> bool:
     if typeof(value) != TYPE_ARRAY:

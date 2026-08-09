@@ -37,6 +37,7 @@ func run() -> bool:
 	assert(_every_declared_check_declares_its_own_tolerance_and_comparison())
 	assert(_each_check_reads_what_it_names())
 	assert(_a_support_as_strong_as_the_action_leaves_no_accent())
+	assert(_zero_strength_supports_do_not_form_a_palette())
 	assert(_a_poster_with_nothing_but_the_action_cannot_pass())
 	assert(_the_same_palette_cannot_serve_two_different_briefs())
 	assert(_many_different_palettes_pass())
@@ -71,6 +72,7 @@ func _scene(overrides: Dictionary = {}) -> Dictionary:
 		"toneHue": CALM,
 		"minAccentSeparation": 90.0,
 		"minAccentStrength": 0.25,
+		"minSupportStrength": 0.3,
 		"maxSupportSpread": 60.0,
 		"maxToneDistance": 75.0
 	}
@@ -229,6 +231,17 @@ func _a_support_as_strong_as_the_action_leaves_no_accent() -> bool:
 	assert(tied.get("passed") == false)
 	return true
 
+func _zero_strength_supports_do_not_form_a_palette() -> bool:
+	var unbuilt: Dictionary = Measure.evaluate(_scene({
+		"elements": _palette([[210.0, 0.0], [210.0, 0.0], [210.0, 0.0]], 30.0, 1.0)
+	}))
+	assert(not bool(unbuilt.get("passed")))
+	assert(is_equal_approx(float(unbuilt.get("baseHue", 0.0)), Measure.HUE_UNDEFINED))
+	assert(not _met(unbuilt, Measure.CHECK_ACCENT_SEPARATION))
+	assert(not _met(unbuilt, Measure.CHECK_SUPPORT_HARMONY))
+	assert(not _met(unbuilt, Measure.CHECK_TONE_MATCH))
+	return true
+
 func _a_poster_with_nothing_but_the_action_cannot_pass() -> bool:
 	# Nothing to reserve the accent against. Reporting a pass here would let a poster with
 	# one coloured element satisfy a check about hierarchy between elements.
@@ -318,10 +331,10 @@ func _stage_job(id: String, product: String, feeling: String, product_image: Str
 		"productImage": product_image,
 		"toneHue": tone_hue,
 		"elements": [
-			_element("panel", tone_hue, 0.35),
-			_element("headline", tone_hue, 0.35),
-			_element("body", tone_hue, 0.35),
-			_element(ACTION, tone_hue, 0.35)
+			_element("panel", tone_hue, 0.0),
+			_element("headline", tone_hue, 0.0),
+			_element("body", tone_hue, 0.0),
+			_element(ACTION, tone_hue, 0.0)
 		]
 	}
 
@@ -349,6 +362,7 @@ func _stage_record() -> Dictionary:
 		],
 		"minAccentSeparation": 90.0,
 		"minAccentStrength": 0.25,
+		"minSupportStrength": 0.3,
 		"maxSupportSpread": 60.0,
 		"maxToneDistance": 45.0,
 		"checkPhrases": {
@@ -430,6 +444,13 @@ func _select_action_and_click(stage: Control, hue: float) -> void:
 	(stage.get_node("ElementButtons/ActionButton") as Button).pressed.emit()
 	var wheel := stage.get_node("CompositionArea/ColourWheel") as TextureRect
 	_click_wheel(wheel, _wheel_point(wheel, hue))
+
+func _build_current_palette(stage: Control) -> void:
+	var current: Dictionary = stage.call("current_result")
+	var support_hue := float(current.get("toneHue", 0.0))
+	for element_id: String in ["panel", "headline", "body"]:
+		stage.call("_set_element_colour", element_id, support_hue, 0.35)
+	stage.call("_set_element_colour", ACTION, wrapf(support_hue + 180.0, 0.0, 360.0), 1.0)
 
 func _the_stage_builds_the_measured_contract() -> bool:
 	if not ResourceLoader.exists(STAGE_PATH):
@@ -543,8 +564,7 @@ func _three_record_jobs_run_in_sequence() -> bool:
 	for index in range(Array(record.get("jobs", [])).size()):
 		var before: Dictionary = stage.call("current_result")
 		observed.append(String(before.get("jobId", "")))
-		var action_hue := wrapf(float(before.get("toneHue", 0.0)) + 180.0, 0.0, 360.0)
-		_select_action_and_click(stage, action_hue)
+		_build_current_palette(stage)
 		(stage.get_node("ActionsRow/CheckButton") as Button).pressed.emit()
 		if index < Array(record.get("jobs", [])).size() - 1 and not submitted.is_empty():
 			premature = true
@@ -606,6 +626,7 @@ func _catalog_supplies_two_distinct_three_job_demonstrations() -> bool:
 		and not Dictionary(contrast.get("clientDialogue", {})).is_empty()
 		and Dictionary(contrast.get("clientDialogue", {})) != Dictionary(clinic.get("clientDialogue", {}))
 		and float(contrast.get("minAccentStrength", 1.0)) <= 0.29
+		and is_equal_approx(float(contrast.get("minSupportStrength", -1.0)), 0.3)
 		and all_checks_named
 		and not contrast.has("leverPhrases")
 		and not Dictionary(contrast.get("unmetSentences", {})).is_empty()
@@ -692,8 +713,7 @@ func _kate_dialogue_tracks_the_three_product_sequence() -> bool:
 		return false
 	var submitted := []
 	stage.connect("arrangement_submitted", func(result: Dictionary) -> void: submitted.append(result))
-	var first: Dictionary = stage.call("current_result")
-	_select_action_and_click(stage, wrapf(float(first.get("toneHue", 0.0)) + 180.0, 0.0, 360.0))
+	_build_current_palette(stage)
 	(stage.get_node("ActionsRow/CheckButton") as Button).pressed.emit()
 	await _settle_stage()
 	var second: Dictionary = stage.call("current_result")
@@ -703,8 +723,7 @@ func _kate_dialogue_tracks_the_three_product_sequence() -> bool:
 	})
 	var advanced := dialogue.text == next_expected
 	for _index in range(2):
-		var current: Dictionary = stage.call("current_result")
-		_select_action_and_click(stage, wrapf(float(current.get("toneHue", 0.0)) + 180.0, 0.0, 360.0))
+		_build_current_palette(stage)
 		(stage.get_node("ActionsRow/CheckButton") as Button).pressed.emit()
 		await _settle_stage()
 	var check_button := stage.get_node("ActionsRow/CheckButton") as Button
@@ -798,8 +817,7 @@ func _the_panel_fits_and_records_all_three_palettes() -> bool:
 		"Colour demonstration dialog is %.1f px high; maximum is 760 px." % demonstration_height
 	)
 	for index in range(3):
-		var before: Dictionary = stage.call("current_result")
-		_select_action_and_click(stage, wrapf(float(before.get("toneHue", 0.0)) + 180.0, 0.0, 360.0))
+		_build_current_palette(stage)
 		(stage.get_node("ActionsRow/CheckButton") as Button).pressed.emit()
 		await _settle_stage()
 	var completion_copy := String(Dictionary(Catalog.mission("contrast").get("demonstration", {})).get("clientDialogue", {}).get("complete", ""))

@@ -14,13 +14,13 @@ const LEVEL_MISSIONS: Dictionary = {
 	"irresistible": ["claim-proof"],
 	"publish-check": [],
 }
-const OBJECTIVE_AFTER_MISSION: Dictionary = {
+const OBJECTIVE_FOR_INCOMPLETE_MISSION: Dictionary = {
 	"salience": "direct-attention",
-	"reading-path": "set-campaign-tone",
-	"contrast": "focus-image",
-	"framing": "shape-message",
-	"aida": "prove-value",
-	"claim-proof": "polish-campaign",
+	"reading-path": "direct-attention",
+	"contrast": "set-campaign-tone",
+	"framing": "focus-image",
+	"aida": "shape-message",
+	"claim-proof": "prove-value",
 }
 const CREATOR_OBJECTIVES: Array[String] = ["build-product", "polish-campaign"]
 const MAX_MISSION_EVIDENCE_ENTRIES := 24
@@ -79,15 +79,11 @@ func open_station(station_id: String) -> Dictionary:
 func complete_mission(mission_id: String, evidence: Dictionary) -> bool:
 	if _progress == null:
 		return false
-	var completed := _progress.completed_mission_ids.has(mission_id)
-	if not completed:
-		completed = _progress.complete_mission(mission_id, evidence)
-	if not completed:
+	var was_completed := _progress.completed_mission_ids.has(mission_id)
+	if not was_completed and not _progress.complete_mission(mission_id, evidence):
 		return false
-	if mission_id == "audience-brief":
-		_set_objective("direct-attention" if _has_initial_product() else "build-product")
-	elif OBJECTIVE_AFTER_MISSION.has(mission_id):
-		_set_objective(String(OBJECTIVE_AFTER_MISSION[mission_id]))
+	if not was_completed:
+		_set_objective(_objective_for_current_work())
 	_emit_progress()
 	return true
 
@@ -203,6 +199,21 @@ func _build_mission_evidence() -> Array:
 			"effectText": effect_text,
 		})
 	return entries
+
+func _objective_for_current_work() -> String:
+	if _progress == null:
+		return ""
+	if not _progress.completed_mission_ids.has("audience-brief"):
+		return "meet-client"
+	if not _has_initial_product():
+		return "build-product"
+	for mission: Dictionary in MissionCatalog.required_missions():
+		var mission_id := String(mission.get("id"))
+		if mission_id == "audience-brief":
+			continue
+		if not _progress.completed_mission_ids.has(mission_id):
+			return String(OBJECTIVE_FOR_INCOMPLETE_MISSION.get(mission_id, ""))
+	return "polish-campaign"
 
 func _reconcile_document_objective() -> void:
 	if _progress == null:

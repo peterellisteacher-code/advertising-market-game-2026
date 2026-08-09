@@ -104,6 +104,7 @@ func current_result() -> Dictionary:
         "toneHue": float(job.get("toneHue", 0.0)),
         "minAccentSeparation": float(_record.get("minAccentSeparation", 0.0)),
         "minAccentStrength": float(_record.get("minAccentStrength", 0.0)),
+        "minSupportStrength": float(_record.get("minSupportStrength", 0.0)),
         "maxSupportSpread": float(_record.get("maxSupportSpread", Measure.OPPOSITE)),
         "maxToneDistance": float(_record.get("maxToneDistance", Measure.OPPOSITE))
     })

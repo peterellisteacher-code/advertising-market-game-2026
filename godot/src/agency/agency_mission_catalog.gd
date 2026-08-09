@@ -293,6 +293,8 @@ const COLOUR_DEMONSTRATION := {
     # The verified wheel's smallest adjacent-ring increase is 0.295, so 0.25 is
     # achievable with one outward move and cannot be achieved on the same ring.
     "minAccentStrength": 0.25,
+    # The wheel's weakest coloured ring is 0.35; neutral starts remain below this floor.
+    "minSupportStrength": 0.3,
     "maxSupportSpread": 60.0,
     "maxToneDistance": 45.0,
     # C uses checkPhrases, following the newer engine B record. These are conditions the

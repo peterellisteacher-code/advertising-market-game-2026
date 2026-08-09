@@ -141,9 +141,9 @@ const CROP_DEMONSTRATION := {
 
 # Engine C — colour wheel. Kate supplies three product briefs. The pair colours the same
 # four poster elements for each one, so the wheel has to be read as a relationship diagram
-# rather than used as a store of authored answers. The starting palettes use one weak hue
-# throughout; every one therefore fails the two action-accent checks while keeping the
-# supports narrow and on the brief's requested side of the wheel.
+# rather than used as a store of authored answers. Contrast begins with a neutral poster;
+# its hue data still belongs to the brief, but every visible element starts at zero colour
+# strength and therefore fails the two action-accent checks.
 const COLOUR_DEMONSTRATION := {
     "engine": "colour-wheel",
     "scene": "res://src/agency/missions/demonstrations/ColourStage.tscn",
@@ -154,7 +154,14 @@ const COLOUR_DEMONSTRATION := {
     "actionArt": "res://assets/agency/colour/poster-action.png",
     "actionElement": "action",
     "clientName": "Kate",
-    "instruction": "One palette is required for each product. Select a poster element, then choose a colour from the wheel.",
+    "clientRole": "80-year-old grandmother and owner of Preppy Cola",
+    "clientPortrait": "res://assets/agency/colour/client-kate-preppy-cola.png",
+    "clientDialogue": {
+        "opening": "I know a good colour system gives the eye one clear destination. Build each palette with related supporting colours and one clear action colour.",
+        "next": "Good. Now give {product} a palette that suits {feeling} and still makes its action easy to find.",
+        "complete": "These palettes work. Each product has its own feeling, and every action is easy to find."
+    },
+    "instruction": "Build one palette for each product. Select a poster element, then choose a colour from the wheel.",
     "elementLabels": {
         "panel": "Panel",
         "headline": "Headline",
@@ -170,10 +177,10 @@ const COLOUR_DEMONSTRATION := {
             "productImage": "res://assets/agency/colour/product-sleep-tea.png",
             "toneHue": 210.0,
             "elements": [
-                {"id": "panel", "hue": 210.0, "strength": 0.35},
-                {"id": "headline", "hue": 210.0, "strength": 0.35},
-                {"id": "body", "hue": 210.0, "strength": 0.35},
-                {"id": "action", "hue": 210.0, "strength": 0.35}
+                {"id": "panel", "hue": 210.0, "strength": 0.0},
+                {"id": "headline", "hue": 210.0, "strength": 0.0},
+                {"id": "body", "hue": 210.0, "strength": 0.0},
+                {"id": "action", "hue": 210.0, "strength": 0.0}
             ]
         },
         {
@@ -184,10 +191,10 @@ const COLOUR_DEMONSTRATION := {
             "productImage": "res://assets/agency/colour/product-skateboard.png",
             "toneHue": 30.0,
             "elements": [
-                {"id": "panel", "hue": 30.0, "strength": 0.35},
-                {"id": "headline", "hue": 30.0, "strength": 0.35},
-                {"id": "body", "hue": 30.0, "strength": 0.35},
-                {"id": "action", "hue": 30.0, "strength": 0.35}
+                {"id": "panel", "hue": 30.0, "strength": 0.0},
+                {"id": "headline", "hue": 30.0, "strength": 0.0},
+                {"id": "body", "hue": 30.0, "strength": 0.0},
+                {"id": "action", "hue": 30.0, "strength": 0.0}
             ]
         },
         {
@@ -198,10 +205,10 @@ const COLOUR_DEMONSTRATION := {
             "productImage": "res://assets/agency/colour/product-mug.png",
             "toneHue": 120.0,
             "elements": [
-                {"id": "panel", "hue": 120.0, "strength": 0.35},
-                {"id": "headline", "hue": 120.0, "strength": 0.35},
-                {"id": "body", "hue": 120.0, "strength": 0.35},
-                {"id": "action", "hue": 120.0, "strength": 0.35}
+                {"id": "panel", "hue": 120.0, "strength": 0.0},
+                {"id": "headline", "hue": 120.0, "strength": 0.0},
+                {"id": "body", "hue": 120.0, "strength": 0.0},
+                {"id": "action", "hue": 120.0, "strength": 0.0}
             ]
         }
     ],
@@ -233,6 +240,74 @@ const COLOUR_DEMONSTRATION := {
         "colour": "The three product palettes used related supporting colours that suited each requested feeling and one stronger, separated colour for each action, so the audience can identify the intended tone and locate the action."
     },
     "subjectPhrase": "the three product palettes"
+}
+
+# The optional clinic uses the same engine and the same three products, but the record
+# replaces their opening palettes and Kate's assignment. Every opening element is fully
+# bright; the three supporting hues fan around the wheel, and the action repeats the panel
+# hue. The measure therefore reports all four faults before the pair repairs anything.
+const COLOUR_CLINIC_DEMONSTRATION := {
+    "engine": "colour-wheel",
+    "scene": "res://src/agency/missions/demonstrations/ColourStage.tscn",
+    "baseRecord": COLOUR_DEMONSTRATION,
+    "instruction": "Repair one palette for each product. Select a poster element, then choose a colour from the wheel.",
+    "clientDialogue": {
+        "opening": "These palettes are shouting in every direction. Repair each one so its supporting colours work together and its action colour leads.",
+        "next": "One repair is done. Now remove the competing colour signals from {product}.",
+        "complete": "Much better. The supporting colours now work together, and every action earns attention."
+    },
+    "jobs": [
+        {
+            "id": "sleep-tea",
+            "product": "Herbal sleep tea",
+            "feeling": "calm",
+            "paletteGuidance": "cool supporting hues",
+            "productImage": "res://assets/agency/colour/product-sleep-tea.png",
+            "toneHue": 210.0,
+            "elements": [
+                {"id": "panel", "hue": 210.0, "strength": 1.0},
+                {"id": "headline", "hue": 330.0, "strength": 1.0},
+                {"id": "body", "hue": 90.0, "strength": 1.0},
+                {"id": "action", "hue": 210.0, "strength": 1.0}
+            ]
+        },
+        {
+            "id": "skateboard",
+            "product": "Skateboard",
+            "feeling": "urgent",
+            "paletteGuidance": "warm supporting hues and high contrast",
+            "productImage": "res://assets/agency/colour/product-skateboard.png",
+            "toneHue": 30.0,
+            "elements": [
+                {"id": "panel", "hue": 30.0, "strength": 1.0},
+                {"id": "headline", "hue": 150.0, "strength": 1.0},
+                {"id": "body", "hue": 270.0, "strength": 1.0},
+                {"id": "action", "hue": 30.0, "strength": 1.0}
+            ]
+        },
+        {
+            "id": "ceramic-mug",
+            "product": "Handmade ceramic mug",
+            "feeling": "restrained",
+            "paletteGuidance": "close, muted natural hues",
+            "productImage": "res://assets/agency/colour/product-mug.png",
+            "toneHue": 120.0,
+            "elements": [
+                {"id": "panel", "hue": 120.0, "strength": 1.0},
+                {"id": "headline", "hue": 240.0, "strength": 1.0},
+                {"id": "body", "hue": 0.0, "strength": 1.0},
+                {"id": "action", "hue": 120.0, "strength": 1.0}
+            ]
+        }
+    ],
+    "wonSentences": {
+        "job": "The palette for {product} now has related supporting colours that suit {feeling}, with one clear action accent.",
+        "complete": "The three product palettes have been repaired."
+    },
+    "evidenceSentences": {
+        "colour": "The three product palettes were repaired so their supporting colours suited each requested feeling and one stronger, separated colour carried each action, so the audience can identify the intended tone and locate the action."
+    },
+    "subjectPhrase": "the three repaired product palettes"
 }
 
 const REQUIRED_MISSION_RECORDS := [
@@ -543,7 +618,7 @@ const SIDEQUEST_RECORDS := [
         "stationId": "art-studio",
         "ownerRole": "art-director",
         "title": "Colour hierarchy clinic",
-        "goal": "Repair a palette in which every bright colour currently claims equal importance.",
+        "goal": "Repair palettes in which every bright colour currently claims equal importance.",
         "instruction": "Select the revision that reserves high contrast for the action and uses related colours elsewhere.",
         "holdingAction": "The Strategist checks that the revised palette still communicates the intended audience feeling.",
         "choices": [
@@ -571,7 +646,7 @@ const SIDEQUEST_RECORDS := [
         "correctChoiceId": "reserve-accent",
         "effectExplanation": "A reserved accent gives the audience one reliable colour signal for priority.",
         "transferPrompt": "Identify the single element in your advertisement that will receive the strongest colour contrast.",
-        "demonstration": COLOUR_DEMONSTRATION,
+        "demonstration": COLOUR_CLINIC_DEMONSTRATION,
         "reward": "Optional portfolio stamp",
         "required": false,
         "portfolioStamp": "Colour Clinician",

@@ -1,7 +1,7 @@
 # Engine C: Kate and mission split design
 
-**Date:** 2026-08-09  
-**Branch:** `agent/mission-clarity-20260807`  
+**Date:** 2026-08-09
+**Branch:** `agent/mission-clarity-20260807`
 **Status:** Approved by Peter on 2026-08-09. Peter approved all eight existing Engine C assets, the suggested `contrast` / `colour-clinic` split, and Kate as an 80-year-old grandmother who owns Preppy Cola. He authorised implementation choices to proceed without another approval pause.
 
 ## Outcome
@@ -73,4 +73,3 @@ Every instructional sentence stays below 25 words. The client card establishes w
 - Demonstration height remains at or below 760 px.
 - Student-copy coverage includes the scene and script, and the professional-copy gate accepts the new prose.
 - All five repository gates pass before the follow-up commit.
-

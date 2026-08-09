@@ -45,7 +45,11 @@ func run() -> bool:
 	assert(await _wheel_linework_does_not_change_the_selected_element())
 	assert(await _reconfiguring_the_stage_rebuilds_a_populated_readout())
 	assert(await _three_record_jobs_run_in_sequence())
-	assert(_catalog_supplies_one_shared_three_job_demonstration())
+	assert(_catalog_supplies_two_distinct_three_job_demonstrations())
+	assert(_nested_record_overlay_preserves_base_siblings())
+	assert(await _the_clinic_binds_kate_and_opens_with_four_failed_checks())
+	assert(await _kate_dialogue_tracks_the_three_product_sequence())
+	assert(_the_stage_declares_readable_label_colours())
 	assert(await _the_panel_focuses_the_selected_element())
 	assert(await _the_panel_fits_and_records_all_three_palettes())
 	return true
@@ -545,10 +549,15 @@ func _three_record_jobs_run_in_sequence() -> bool:
 		if index < Array(record.get("jobs", [])).size() - 1 and not submitted.is_empty():
 			premature = true
 		await _settle_stage()
+	var check_button := stage.get_node("ActionsRow/CheckButton") as Button
+	var awaiting_ack := submitted.is_empty() and check_button.text == "Finish task" and not check_button.disabled
+	check_button.pressed.emit()
+	await _settle_stage()
 	var final: Dictionary = submitted[0] if submitted.size() == 1 else {}
 	var holds := (
 		observed == PackedStringArray(["sleep-tea", "skateboard", "ceramic-mug"])
 		and not premature
+		and awaiting_ack
 		and submitted.size() == 1
 		and bool(final.get("passed"))
 		and Array(final.get("jobs", [])).size() == 3
@@ -558,21 +567,44 @@ func _three_record_jobs_run_in_sequence() -> bool:
 	return holds
 
 
-func _catalog_supplies_one_shared_three_job_demonstration() -> bool:
+func _job_products(record: Dictionary) -> PackedStringArray:
+	var products := PackedStringArray()
+	for value: Variant in Array(record.get("jobs", [])):
+		products.append(String(Dictionary(value).get("product", "")))
+	return products
+
+
+func _all_starting_strengths_are(record: Dictionary, expected: float) -> bool:
+	for job_value: Variant in Array(record.get("jobs", [])):
+		for element_value: Variant in Array(Dictionary(job_value).get("elements", [])):
+			if not is_equal_approx(float(Dictionary(element_value).get("strength", -1.0)), expected):
+				return false
+	return true
+
+
+func _catalog_supplies_two_distinct_three_job_demonstrations() -> bool:
 	var contrast: Dictionary = Catalog.mission("contrast").get("demonstration", {})
 	var clinic: Dictionary = Catalog.sidequest("colour-clinic").get("demonstration", {})
 	var phrases: Dictionary = contrast.get("checkPhrases", {})
-	var products := PackedStringArray()
-	for value: Variant in Array(contrast.get("jobs", [])):
-		products.append(String(Dictionary(value).get("product", "")))
+	var clinic_base: Dictionary = clinic.get("baseRecord", {})
+	var products := PackedStringArray(["Herbal sleep tea", "Skateboard", "Handmade ceramic mug"])
 	var all_checks_named := true
 	for check: String in Measure.CHECKS:
 		all_checks_named = all_checks_named and phrases.has(check)
 	return (
 		not contrast.is_empty()
-		and contrast == clinic
+		and not clinic.is_empty()
+		and contrast != clinic
+		and clinic_base == contrast
 		and String(contrast.get("scene", "")) == STAGE_PATH
-		and products == PackedStringArray(["Herbal sleep tea", "Skateboard", "Handmade ceramic mug"])
+		and String(clinic.get("scene", "")) == STAGE_PATH
+		and _job_products(contrast) == products
+		and _job_products(clinic) == products
+		and _all_starting_strengths_are(contrast, 0.0)
+		and _all_starting_strengths_are(clinic, 1.0)
+		and String(contrast.get("clientPortrait", "")) == "res://assets/agency/colour/client-kate-preppy-cola.png"
+		and not Dictionary(contrast.get("clientDialogue", {})).is_empty()
+		and Dictionary(contrast.get("clientDialogue", {})) != Dictionary(clinic.get("clientDialogue", {}))
 		and float(contrast.get("minAccentStrength", 1.0)) <= 0.29
 		and all_checks_named
 		and not contrast.has("leverPhrases")
@@ -581,6 +613,134 @@ func _catalog_supplies_one_shared_three_job_demonstration() -> bool:
 		and not Dictionary(contrast.get("evidenceSentences", {})).is_empty()
 		and not String(contrast.get("subjectPhrase", "")).is_empty()
 	)
+
+
+func _nested_record_overlay_preserves_base_siblings() -> bool:
+	var packed := load(STAGE_PATH) as PackedScene
+	if packed == null:
+		return false
+	var stage := packed.instantiate() as Control
+	var base := {
+		"clientDialogue": {
+			"opening": "Base opening",
+			"next": "Base next",
+			"complete": "Base complete"
+		},
+		"elementLabels": {"panel": "Base panel", "action": "Base action"},
+		"jobs": [{"id": "base-job"}]
+	}
+	var expanded: Dictionary = stage.call("_expanded_record", {
+		"baseRecord": base,
+		"clientDialogue": {"opening": "Overlay opening"},
+		"elementLabels": {"action": "Overlay action"},
+		"jobs": [{"id": "replacement-job"}]
+	})
+	stage.free()
+	var dialogue: Dictionary = expanded.get("clientDialogue", {})
+	var labels: Dictionary = expanded.get("elementLabels", {})
+	var jobs: Array = expanded.get("jobs", [])
+	return (
+		String(dialogue.get("opening", "")) == "Overlay opening"
+		and String(dialogue.get("next", "")) == "Base next"
+		and String(dialogue.get("complete", "")) == "Base complete"
+		and String(labels.get("panel", "")) == "Base panel"
+		and String(labels.get("action", "")) == "Overlay action"
+		and jobs.size() == 1
+		and String(Dictionary(jobs[0]).get("id", "")) == "replacement-job"
+		and String(Dictionary(base.get("clientDialogue", {})).get("opening", "")) == "Base opening"
+	)
+
+
+func _the_clinic_binds_kate_and_opens_with_four_failed_checks() -> bool:
+	var record: Dictionary = Catalog.sidequest("colour-clinic").get("demonstration", {})
+	var stage := _stage_in_tree(record)
+	if stage == null:
+		return false
+	await _settle_stage()
+	var portrait := stage.get_node_or_null("CompositionArea/ClientCard/ClientPortrait") as TextureRect
+	var identity := stage.get_node_or_null("CompositionArea/ClientCard/ClientCopy/ClientIdentity") as Label
+	var dialogue := stage.get_node_or_null("CompositionArea/ClientCard/ClientCopy/ClientDialogue") as Label
+	var result: Dictionary = stage.call("current_result")
+	var unmet: PackedStringArray = result.get("unmet", PackedStringArray())
+	var opening := String(Dictionary(record.get("clientDialogue", {})).get("opening", ""))
+	var holds := (
+		portrait != null
+		and portrait.texture != null
+		and identity != null
+		and identity.text.contains("Kate")
+		and identity.text.contains("80-year-old grandmother")
+		and identity.text.contains("Preppy Cola")
+		and dialogue != null
+		and dialogue.text == opening
+		and not bool(result.get("passed"))
+		and unmet.size() == Measure.CHECKS.size()
+	)
+	stage.queue_free()
+	return holds
+
+
+func _kate_dialogue_tracks_the_three_product_sequence() -> bool:
+	var record: Dictionary = Catalog.mission("contrast").get("demonstration", {})
+	var dialogue_record: Dictionary = record.get("clientDialogue", {})
+	var stage := _stage_in_tree(record)
+	if stage == null:
+		return false
+	await _settle_stage()
+	var dialogue := stage.get_node_or_null("CompositionArea/ClientCard/ClientCopy/ClientDialogue") as Label
+	if dialogue == null or dialogue.text != String(dialogue_record.get("opening", "")):
+		stage.queue_free()
+		return false
+	var submitted := []
+	stage.connect("arrangement_submitted", func(result: Dictionary) -> void: submitted.append(result))
+	var first: Dictionary = stage.call("current_result")
+	_select_action_and_click(stage, wrapf(float(first.get("toneHue", 0.0)) + 180.0, 0.0, 360.0))
+	(stage.get_node("ActionsRow/CheckButton") as Button).pressed.emit()
+	await _settle_stage()
+	var second: Dictionary = stage.call("current_result")
+	var next_expected := String(dialogue_record.get("next", "")).format({
+		"product": String(second.get("product", "")),
+		"feeling": String(second.get("feeling", ""))
+	})
+	var advanced := dialogue.text == next_expected
+	for _index in range(2):
+		var current: Dictionary = stage.call("current_result")
+		_select_action_and_click(stage, wrapf(float(current.get("toneHue", 0.0)) + 180.0, 0.0, 360.0))
+		(stage.get_node("ActionsRow/CheckButton") as Button).pressed.emit()
+		await _settle_stage()
+	var check_button := stage.get_node("ActionsRow/CheckButton") as Button
+	var completion_visible := (
+		submitted.is_empty()
+		and dialogue.text == String(dialogue_record.get("complete", ""))
+		and check_button.text == "Finish task"
+		and not check_button.disabled
+	)
+	check_button.pressed.emit()
+	await _settle_stage()
+	var holds := (
+		advanced
+		and completion_visible
+		and submitted.size() == 1
+	)
+	stage.queue_free()
+	return holds
+
+
+func _the_stage_declares_readable_label_colours() -> bool:
+	var packed := load(STAGE_PATH) as PackedScene
+	if packed == null:
+		return false
+	var stage := packed.instantiate() as Control
+	var stage_theme: Theme = stage.theme
+	if stage_theme == null or not stage_theme.has_color("font_color", "Label"):
+		stage.free()
+		return false
+	var foreground := stage_theme.get_color("font_color", "Label")
+	var background := Color.from_string("#fffaf0", Color.WHITE)
+	var lighter := maxf(foreground.get_luminance(), background.get_luminance())
+	var darker := minf(foreground.get_luminance(), background.get_luminance())
+	var contrast_ratio := (lighter + 0.05) / (darker + 0.05)
+	stage.free()
+	return foreground.a >= 0.99 and contrast_ratio >= 4.5
 
 func _the_panel_focuses_the_selected_element() -> bool:
 	var tree := Engine.get_main_loop() as SceneTree
@@ -633,16 +793,35 @@ func _the_panel_fits_and_records_all_three_palettes() -> bool:
 	# stage with a shorter panel, which would make an overflow assertion meaningless.
 	var dialog := panel.get_node("Backdrop/Dialog") as PanelContainer
 	var demonstration_height := dialog.get_combined_minimum_size().y
+	assert(
+		demonstration_height <= 760.0,
+		"Colour demonstration dialog is %.1f px high; maximum is 760 px." % demonstration_height
+	)
 	for index in range(3):
 		var before: Dictionary = stage.call("current_result")
 		_select_action_and_click(stage, wrapf(float(before.get("toneHue", 0.0)) + 180.0, 0.0, 360.0))
 		(stage.get_node("ActionsRow/CheckButton") as Button).pressed.emit()
 		await _settle_stage()
+	var completion_copy := String(Dictionary(Catalog.mission("contrast").get("demonstration", {})).get("clientDialogue", {}).get("complete", ""))
+	var completion_visible := (
+		is_instance_valid(stage)
+		and host.visible
+		and String(controller.call("snapshot").get("state", "")) == "demonstration"
+		and (stage.get_node("CompositionArea/ClientCard/ClientCopy/ClientDialogue") as Label).text == completion_copy
+		and (stage.get_node("ActionsRow/CheckButton") as Button).text == "Finish task"
+		and not (stage.get_node("ActionsRow/CheckButton") as Button).disabled
+	)
+	if not completion_visible:
+		controller.free()
+		panel.queue_free()
+		return false
+	(stage.get_node("ActionsRow/CheckButton") as Button).pressed.emit()
+	await _settle_stage()
 	var evidence: Dictionary = Dictionary(progress.get("evidence_by_mission")).get("contrast", {})
 	var effect := String(evidence.get("effect", ""))
 	var holds := (
 		host_was_visible
-		and demonstration_height <= 760.0
+		and completion_visible
 		and String(controller.call("snapshot").get("state", "")) == "completed"
 		and String(evidence.get("decision", "")) == "one-accent-harmony"
 		and effect.contains("audience")

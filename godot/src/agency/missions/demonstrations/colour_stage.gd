@@ -23,7 +23,9 @@ const ELEMENT_BUTTON_PATHS := {
 }
 
 @onready var _instruction: Label = $DemonstrationInstruction
-@onready var _client_name: Label = $JobRow/ClientName
+@onready var _client_portrait: TextureRect = $CompositionArea/ClientCard/ClientPortrait
+@onready var _client_identity: Label = $CompositionArea/ClientCard/ClientCopy/ClientIdentity
+@onready var _client_dialogue: Label = $CompositionArea/ClientCard/ClientCopy/ClientDialogue
 @onready var _job_progress: Label = $JobRow/JobProgress
 @onready var _brief: Label = $JobRow/BriefLabel
 @onready var _selected_label: Label = $JobRow/SelectedLabel
@@ -41,6 +43,8 @@ var _elements: Array = []
 var _selected_element: String = "panel"
 var _completed_results: Array = []
 var _wheel_image: Image
+var _awaiting_completion_ack: bool = false
+var _pending_final_result: Dictionary = {}
 
 func _ready() -> void:
     _wheel.gui_input.connect(_on_wheel_gui_input)
@@ -51,14 +55,16 @@ func _ready() -> void:
         button.pressed.connect(_on_element_selected.bind(element_id))
 
 func configure(record: Dictionary) -> void:
-    _record = record.duplicate(true)
+    _record = _expanded_record(record)
     _jobs.clear()
     for value: Variant in Array(_record.get("jobs", [])):
         if typeof(value) == TYPE_DICTIONARY:
             _jobs.append(Dictionary(value).duplicate(true))
     _instruction.text = String(_record.get("instruction", "Select an element, then choose a colour from the wheel."))
-    _client_name.text = String(_record.get("clientName", ""))
-    _client_name.visible = not _client_name.text.is_empty()
+    var client_name := String(_record.get("clientName", ""))
+    var client_role := String(_record.get("clientRole", ""))
+    _client_identity.text = "%s — %s" % [client_name, client_role] if not client_role.is_empty() else client_name
+    _client_identity.visible = not _client_identity.text.is_empty()
     _load_record_art()
     _build_readout()
     reset_arrangement()
@@ -66,12 +72,17 @@ func configure(record: Dictionary) -> void:
 func reset_arrangement() -> void:
     _job_index = 0
     _completed_results.clear()
+    _awaiting_completion_ack = false
+    _pending_final_result.clear()
     _check_button.disabled = false
+    _check_button.text = "Check palette"
+    _set_palette_controls_enabled(true)
     if _jobs.is_empty():
         _elements.clear()
         _job_progress.text = "No palettes available"
         _brief.text = ""
         _feedback.text = "No product briefs were supplied."
+        _set_client_dialogue("opening")
         _update_readout(current_result())
         return
     _load_job()
@@ -132,6 +143,12 @@ func describe(result: Dictionary) -> String:
     return String(sentences.get(unmet[0], "Change one colour, then check the palette again.")).format(substitutions)
 
 func _load_record_art() -> void:
+    var portrait_path := String(_record.get("clientPortrait", ""))
+    if portrait_path.is_empty():
+        _client_portrait.texture = null
+    else:
+        _assign_texture(_client_portrait, portrait_path, "client portrait")
+    _client_portrait.visible = _client_portrait.texture != null
     _assign_texture(_wheel, String(_record.get("wheel", "")), "colour wheel")
     _assign_texture(get_node(String(ELEMENT_NODE_PATHS["panel"])) as TextureRect, String(_record.get("panelArt", "")), "poster panel")
     _assign_texture(get_node(String(ELEMENT_NODE_PATHS["headline"])) as TextureRect, String(_record.get("headlineArt", "")), "headline")
@@ -156,6 +173,7 @@ func _load_job() -> void:
     if not guidance.is_empty():
         _brief.text += " — %s" % guidance
     _assign_texture(_product, String(job.get("productImage", "")), "product")
+    _set_client_dialogue("opening" if _completed_results.is_empty() else "next")
     _select_element("panel")
     _apply_palette()
     _refresh_feedback()
@@ -166,6 +184,8 @@ func _current_job() -> Dictionary:
     return Dictionary(_jobs[_job_index])
 
 func _on_element_selected(element_id: String) -> void:
+    if _awaiting_completion_ack:
+        return
     _select_element(element_id)
 
 func _select_element(element_id: String) -> void:
@@ -179,6 +199,8 @@ func _select_element(element_id: String) -> void:
         button.set_pressed_no_signal(candidate == _selected_element)
 
 func _on_wheel_gui_input(event: InputEvent) -> void:
+    if _awaiting_completion_ack:
+        return
     if not (event is InputEventMouseButton):
         return
     var click := event as InputEventMouseButton
@@ -293,6 +315,13 @@ func _format_reading(check: String, measured: Dictionary) -> String:
     return "%.0f° · %.0f° %s" % [value, required, relation]
 
 func _on_check_pressed() -> void:
+    if _awaiting_completion_ack:
+        _awaiting_completion_ack = false
+        _check_button.disabled = true
+        var submitted := _pending_final_result.duplicate(true)
+        _pending_final_result.clear()
+        arrangement_submitted.emit(submitted)
+        return
     var result := current_result()
     if not bool(result.get("passed", false)):
         _feedback.text = describe(result)
@@ -308,11 +337,54 @@ func _on_check_pressed() -> void:
     final_result["reason"] = ""
     var won: Dictionary = _record.get("wonSentences", {})
     _feedback.text = String(won.get("complete", "All product palettes meet their briefs."))
-    _check_button.disabled = true
-    arrangement_submitted.emit(final_result)
+    _set_client_dialogue("complete")
+    _pending_final_result = final_result
+    _awaiting_completion_ack = true
+    _check_button.text = "Finish task"
+    _set_palette_controls_enabled(false)
+    _check_button.grab_focus()
+
+func _set_palette_controls_enabled(enabled: bool) -> void:
+    _wheel.mouse_filter = Control.MOUSE_FILTER_STOP if enabled else Control.MOUSE_FILTER_IGNORE
+    _reset_button.disabled = not enabled
+    for element_id: String in ELEMENT_BUTTON_PATHS:
+        var button := get_node(String(ELEMENT_BUTTON_PATHS[element_id])) as Button
+        button.disabled = not enabled
 
 func _evidence_sentence() -> String:
     var sentences: Dictionary = _record.get("evidenceSentences", {})
     return String(sentences.get("colour", "")).format({
         "subject": String(_record.get("subjectPhrase", "the product palettes"))
     })
+
+func _expanded_record(record: Dictionary) -> Dictionary:
+    var overlay := record.duplicate(true)
+    var base_value: Variant = overlay.get("baseRecord", {})
+    overlay.erase("baseRecord")
+    if typeof(base_value) != TYPE_DICTIONARY:
+        return overlay
+    return _merge_dictionaries(Dictionary(base_value), overlay)
+
+func _merge_dictionaries(base: Dictionary, overlay: Dictionary) -> Dictionary:
+    var merged := base.duplicate(true)
+    for key: Variant in overlay:
+        var overlay_value: Variant = overlay[key]
+        var base_value: Variant = merged.get(key)
+        if typeof(base_value) == TYPE_DICTIONARY and typeof(overlay_value) == TYPE_DICTIONARY:
+            merged[key] = _merge_dictionaries(Dictionary(base_value), Dictionary(overlay_value))
+        elif typeof(overlay_value) == TYPE_DICTIONARY:
+            merged[key] = Dictionary(overlay_value).duplicate(true)
+        elif typeof(overlay_value) == TYPE_ARRAY:
+            merged[key] = Array(overlay_value).duplicate(true)
+        else:
+            merged[key] = overlay_value
+    return merged
+
+func _set_client_dialogue(phase: String) -> void:
+    var dialogue: Dictionary = _record.get("clientDialogue", {})
+    var job := _current_job()
+    _client_dialogue.text = String(dialogue.get(phase, "")).format({
+        "product": String(job.get("product", "the next product")),
+        "feeling": String(job.get("feeling", "the intended feeling"))
+    })
+    _client_dialogue.visible = not _client_dialogue.text.is_empty()

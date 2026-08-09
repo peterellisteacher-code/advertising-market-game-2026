@@ -6,7 +6,7 @@
 
 **Architecture:** Keep `COLOUR_DEMONSTRATION` as the complete contrast/base record. Add `COLOUR_CLINIC_DEMONSTRATION` as a record overlay with `baseRecord`, and let `AdMarketColourStage.configure` deep-merge the overlay before binding UI or evaluating jobs. All visual, dialogue, and opening-palette differences remain catalog data.
 
-**Tech stack:** Godot 4.5.1 GDScript and `.tscn`, raster PNG with real alpha, Node/pnpm contract gates.
+**Tech stack:** Godot 4.x GDScript and `.tscn`, raster PNG with real alpha, Node/pnpm contract gates.
 
 **Execution mode:** Inline execution. The catalog, scene, stage, and Engine C test changes share one contract and should be changed and verified together.
 
@@ -71,4 +71,3 @@
 - [ ] Audit the staged manifest by exact path. Never stage `godot/project.godot`, the six salience `.png.import` files, `.claude/`, or the untracked handover.
 - [ ] Commit the approved follow-up with an explicit Engine C/Kate message.
 - [ ] Recheck `git status`, commit contents, and requirement-by-requirement completion evidence.
-

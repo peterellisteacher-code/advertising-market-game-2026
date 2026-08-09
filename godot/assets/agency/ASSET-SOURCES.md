@@ -481,6 +481,47 @@ measurable.
 - Public-use decision: approved. Three original generated objects, no text, no
   logo, no brand and no people
 
+### `colour/client-kate-preppy-cola.png`
+
+- Tool: OpenAI built-in image generation, then the imagegen skill's local
+  `remove_chroma_key.py` helper
+- Style references: project-owned `agency-pair.png`, `crop/preppy-max-lockup.png`
+  and `colour/product-mug.png`; used only for pixel-art language and the fictional
+  brand palette. The generated portrait contains no copied logo, roundel, slogan,
+  lettering or product
+- Generated source: 1254 x 1254 pixels, RGB, SHA-256
+  `7c85974eb2570d9fde44550e5a49d87b1f3c30c0995ae447a3027a3d9deb5d89`
+- Generated source retained at
+  `C:\Users\Peter Ellis\.codex\generated_images\019fe56c-bb03-7401-a1ec-90b999b151cf\exec-4a04abe5-5993-4845-a239-eef8436bd9ef.png`
+- Background removal: the border-sampled key was `#03f80a`; the local helper ran
+  with `--auto-key border --soft-matte --transparent-threshold 12
+  --opaque-threshold 96 --despill`
+- Final file: 1254 x 1254 pixels, RGBA, 906544 bytes, SHA-256
+  `321916e4e35c9acad4b7bb53a5f619da6f6659b49d3d6e01129669fbc5b19201`
+- Alpha validation: 789743 fully transparent, 5543 partially transparent and
+  777230 fully opaque pixels; no key-green-dominant pixel remains above alpha 32
+- Public-use decision: approved under Peter's 9 August instruction to presume
+  approval on implementation choices. One original fictional elderly client, no
+  real person, text, copied logo, trademark or watermark
+
+Exact generation prompt — Kate:
+
+> Use case: stylized-concept
+>
+> Asset type: square pixel-art client portrait for a Godot classroom game UI, designed for later transparent-background extraction.
+>
+> Reference use: match the crisp, polished pixel-art language of the supplied game character sheet and product art. Borrow only the navy, vivid red, warm cream and restrained deep-teal colour family from the supplied fictional Preppy Cola parody lockup. Do not reproduce its logo, lettering, roundel, slogan, or bottle.
+>
+> Primary request: Create Kate, an 80-year-old grandmother and the confident owner of Preppy Cola. Show a respectful chest-up three-quarter portrait of one elderly woman. She has clearly visible age lines, silver-white hair in a neat short softly waved style, and a warm but decisive expression that reads as an experienced business owner. Give her a tailored deep-navy jacket over a warm cream blouse, with one small red accent such as a scarf or brooch. She may wear simple reading glasses. She should feel energetic and capable, neither frail nor comic.
+>
+> Composition: one character only, centered, facing slightly toward the viewer, complete head and shoulders, generous clear padding around the silhouette, no cropped hair or shoulders, strong readable silhouette at 96 pixels tall.
+>
+> Style and rendering: deliberate high-quality 2D pixel art, crisp hard-edged pixel clusters, restrained anti-aliasing, coherent single-pixel detail, clear facial features, no painterly blur, no 3D render, no photorealism. Square canvas.
+>
+> Background: perfectly uniform flat chroma-key green #00FF00 across every background pixel, edge to edge. No gradient, texture, vignette, floor, shadow, halo, glow, reflected green light, or environmental objects. Do not use green or green-adjacent colours anywhere on Kate.
+>
+> Constraints: no additional people, no children, no hands holding products, no drink container, no text, no letters, no numbers, no logo, no trademark, no watermark, no border, no speech bubble. Avoid caricature, infantilisation, stereotypical granny props, exaggerated frailty, or distorted anatomy.
+
 Exact generation prompt — the wheel:
 
 > Create one production-ready transparent PNG game asset showing exactly one colour wheel, in the same crisp high-resolution pixel-art style as a modern editorial Bauhaus advertising-agency game. Transparent background only. One perfectly circular wheel centred in the square canvas, viewed straight-on with no perspective, no tilt and no shadow. The wheel is divided into exactly twelve equal wedges of thirty degrees each, running in spectrum order clockwise starting from red at the top: red, orange, amber, yellow, chartreuse, green, spring green, cyan, azure, blue, violet, magenta. The wheel is also divided into exactly three concentric rings of equal width. The innermost ring of every wedge is a heavily muted, low-saturation version of that wedge's hue; the middle ring is a moderately saturated version of the same hue; the outermost ring is the fully saturated pure hue. All three rings of one wedge are unmistakably the same hue and differ only in saturation. Every one of the thirty-six cells is a single flat even colour with no gradient, no texture, no highlight and no shading. Wedge and ring boundaries are crisp thin warm-cream lines of even weight. A small plain warm-cream circle at the exact centre. No text, no letters, no numerals, no labels, no arrows, no pointer, no handle, no marker, no swatches outside the circle, no border, no frame, no drop shadow and no people. This must be a clean game asset, not a mockup, interface, colour-picker screenshot, concept board, labelled diagram or infographic.

@@ -29,8 +29,8 @@ class_name AdMarketColourMeasure
 #
 # Hue is degrees clockwise from red, 0 to 360, and every comparison between two hues wraps
 # — 350 and 10 are twenty degrees apart, not three hundred and forty. Strength is the
-# wheel ring, 0 to 1. The wheel offers no unsaturated ring, so no element is ever neutral
-# and every element has a hue that means something.
+# wheel ring, 0 to 1. A wheel click always supplies a coloured ring with a meaningful hue;
+# a mission record may still begin from neutral elements so students build the palette.
 
 const CHECK_ACCENT_SEPARATION := "accentSeparation"
 const CHECK_ACCENT_STRENGTH := "accentStrength"

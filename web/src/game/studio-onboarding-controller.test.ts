@@ -70,7 +70,7 @@ describe("StudioOnboardingController", () => {
       .toContain("Page 1 of 4 · Brief");
   });
 
-  it("keeps a required tour open until completion and cycles focus through its visible controls", () => {
+  it("keeps a required tour open until completion and allows closing only on manual replay", () => {
     document.body.innerHTML = '<div id="creator-root"></div>';
     const root = document.querySelector<HTMLElement>("#creator-root")!;
     const shell = createEditorShell(root);
@@ -80,41 +80,33 @@ describe("StudioOnboardingController", () => {
     controller.setCampaign(campaign());
 
     const dialog = getByRole(root, "dialog", { name: "Studio tour" });
-    const close = getByRole(dialog, "button", { name: "Close" });
     const next = getByRole(dialog, "button", { name: "Next" });
-    close.focus();
-    fireEvent.keyDown(close, { key: "Tab" });
+    const close = dialog.querySelector<HTMLButtonElement>("[data-studio-onboarding-close]")!;
+    expect(close.hidden).toBe(true);
+    next.focus();
+    fireEvent.keyDown(next, { key: "Tab" });
     expect(document.activeElement).toBe(next);
-    fireEvent.keyDown(next, { key: "Tab", shiftKey: true });
-    expect(document.activeElement).toBe(close);
 
     fireEvent.click(close);
     expect(acknowledge).not.toHaveBeenCalled();
-    expect(root.querySelector<HTMLElement>("[data-studio-onboarding-layer]")!.hidden).toBe(true);
-    expect(document.activeElement).toBe(getByRole(root, "button", { name: "Studio tour" }));
-
-    fireEvent.click(getByRole(root, "button", { name: "Studio tour" }));
-    expect(dialog.textContent).toContain("Page 1 of 4 · Brief");
-    expect(acknowledge).not.toHaveBeenCalled();
+    expect(root.querySelector<HTMLElement>("[data-studio-onboarding-layer]")!.hidden).toBe(false);
 
     fireEvent.keyDown(dialog, { key: "Escape" });
     expect(acknowledge).not.toHaveBeenCalled();
-    expect(document.activeElement).toBe(getByRole(root, "button", { name: "Studio tour" }));
-
-    fireEvent.click(getByRole(root, "button", { name: "Studio tour" }));
+    expect(root.querySelector<HTMLElement>("[data-studio-onboarding-layer]")!.hidden).toBe(false);
 
     fireEvent.click(next);
-    const previous = getByRole(dialog, "button", { name: "Previous" });
-    close.focus();
-    fireEvent.keyDown(close, { key: "Tab" });
-    expect(document.activeElement).toBe(previous);
-    fireEvent.keyDown(previous, { key: "Tab", shiftKey: true });
-    expect(document.activeElement).toBe(close);
-    next.focus();
-    fireEvent.keyDown(next, { key: "Tab" });
-    expect(document.activeElement).toBe(close);
-    fireEvent.keyDown(close, { key: "Tab", shiftKey: true });
-    expect(document.activeElement).toBe(next);
+    fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
+    fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
+    fireEvent.click(getByRole(dialog, "button", { name: "Start with a product" }));
+    expect(acknowledge).toHaveBeenCalledOnce();
+    expect(root.querySelector<HTMLElement>("[data-studio-onboarding-layer]")!.hidden).toBe(true);
+
+    controller.setCampaign(campaign(true));
+    fireEvent.click(getByRole(root, "button", { name: "Studio tour" }));
+    expect(close.hidden).toBe(false);
+    fireEvent.click(close);
+    expect(root.querySelector<HTMLElement>("[data-studio-onboarding-layer]")!.hidden).toBe(true);
   });
 
   it("offers optional first-page brief definitions without hiding the brief facts", () => {

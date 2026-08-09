@@ -119,7 +119,9 @@ export class StudioOnboardingController {
       this.focusStarter();
     }
   };
-  readonly #onClose = (): void => this.#closeTour(true);
+  readonly #onClose = (): void => {
+    if (!this.#required) this.#closeTour(true);
+  };
   readonly #onOpen = (event: Event): void => {
     if (!this.#hasCampaign) return;
     this.#returnFocus = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
@@ -154,7 +156,12 @@ export class StudioOnboardingController {
   };
   readonly #onResize = (): void => this.#positionSpotlight();
   readonly #onKeydown = (event: KeyboardEvent): void => {
-    if (event.key === "Escape") { event.preventDefault(); this.#closeTour(true); return; }
+    if (event.key === "Escape") {
+      if (this.#required) return;
+      event.preventDefault();
+      this.#closeTour(true);
+      return;
+    }
     if (event.key === "Tab") {
       const controls = this.#visibleControls();
       const currentIndex = controls.indexOf(this.#dialog.ownerDocument.activeElement as HTMLButtonElement);
@@ -208,6 +215,7 @@ export class StudioOnboardingController {
     this.#pages.forEach((page, pageIndex) => { page.hidden = pageIndex !== this.#index; });
     this.#position.textContent = `Page ${this.#index + 1} of ${PAGES.length} · ${PAGES[this.#index]![1]}`;
     this.#previous.hidden = this.#index === 0;
+    this.#close.hidden = this.#required;
     this.#next.textContent = this.#index === PAGES.length - 1 ? "Start with a product" : "Next";
     this.#targets.forEach((target) => delete target.dataset.studioOnboardingHighlight);
     this.#targets[this.#index]!.dataset.studioOnboardingHighlight = PAGES[this.#index]![0];

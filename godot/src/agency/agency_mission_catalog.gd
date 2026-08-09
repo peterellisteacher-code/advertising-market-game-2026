@@ -492,6 +492,78 @@ const HEADLINE_WORD_CHIP_DEMONSTRATION := {
     "subjectPhrase": "the revised headline"
 }
 
+# Engine G — format fit. The frame's declared aspect supplies the coordinate space for
+# the existing product cutout. Students coordinate message length, product scale and
+# containment under a named viewing condition; selecting a format never passes by itself.
+const MEDIA_FORMAT_DEMONSTRATION := {
+    "engine": "format-fit",
+    "scene": "res://src/agency/missions/demonstrations/FormatStage.tscn",
+    "instruction": "Choose a format and headline, then move and resize the product so the composition can be understood under that format's viewing conditions.",
+    "subjectArt": "res://assets/agency/colour/product-mug.png",
+    "formats": [
+        {
+            "id": "billboard",
+            "label": "Billboard",
+            "aspect": Vector2(16, 6),
+            "viewingCondition": "Seen briefly from a distance.",
+            "maxWords": 6,
+            "minSubjectCoverage": 0.18
+        },
+        {
+            "id": "vertical",
+            "label": "Vertical screen",
+            "aspect": Vector2(9, 16),
+            "viewingCondition": "Seen nearby in a tall frame.",
+            "maxWords": 12,
+            "minSubjectCoverage": 0.20
+        },
+        {
+            "id": "poster",
+            "label": "Poster",
+            "aspect": Vector2(4, 5),
+            "viewingCondition": "Seen at walking distance for several seconds.",
+            "maxWords": 18,
+            "minSubjectCoverage": 0.16
+        }
+    ],
+    "headlines": [
+        {
+            "id": "short",
+            "text": "Control your hour. Keep priorities visible.",
+            "wordCount": 6
+        },
+        {
+            "id": "medium",
+            "text": "Control your hour and keep every changing priority clearly visible.",
+            "wordCount": 10
+        },
+        {
+            "id": "long",
+            "text": "A complete planning system for every changing priority in your productive and independent after-school hour.",
+            "wordCount": 15
+        }
+    ],
+    # This names the correct high-level choice while still failing the actual engine on
+    # word count and product scale. The negative control holds that distinction.
+    "initialFormatId": "billboard",
+    "initialHeadlineId": "long",
+    "initialSubjectRect": Rect2(6.5, 2, 2, 2),
+    "checkPhrases": {
+        "wordCap": "headline fits the viewing time",
+        "coverage": "product is large enough",
+        "containment": "whole product remains in the frame"
+    },
+    "unmetSentences": {
+        "declarations": "This format task is incomplete.",
+        "wordCap": "The {format} allows {max_words} words, but this headline has {words}. Choose a shorter headline.",
+        "coverage": "The product fills only {coverage}% of the frame. Make it larger for this viewing condition.",
+        "containment": "Part of the product is outside the frame. Move it back inside."
+    },
+    "wonSentence": "The {format} composition now fits its viewing conditions: {words} words, {coverage}% product coverage and the whole product inside the frame.",
+    "evidenceSentence": "The {format} composition suits {condition}: its headline uses {words} of {max_words} words, the product fills {coverage}% of the frame, and the whole product remains inside.",
+    "subjectPhrase": "the format-fit composition"
+}
+
 const REQUIRED_MISSION_RECORDS := [
     {
         "id": "audience-brief",
@@ -949,6 +1021,7 @@ const SIDEQUEST_RECORDS := [
         "correctChoiceId": "billboard-brief",
         "effectExplanation": "Matching content to format conditions helps the audience receive the intended message before attention moves elsewhere.",
         "transferPrompt": "Choose billboard, magazine or vertical screen for your advertisement and explain how its viewing conditions affect your composition.",
+        "demonstration": MEDIA_FORMAT_DEMONSTRATION,
         "reward": "Optional portfolio stamp",
         "required": false,
         "portfolioStamp": "Media Planner",

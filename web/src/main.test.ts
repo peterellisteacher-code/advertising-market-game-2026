@@ -2199,20 +2199,11 @@ describe("window.AdMarketCreator", () => {
     const dialog = getByRole(document.body, "dialog", { name: "Studio tour" });
     expect(dialog.textContent).toContain("Page 1 of 4 · Brief");
     expect(dialog.textContent).toContain("Teenagers. One-hour window between school dismissal and home arrival.");
+    expect(dialog.querySelector<HTMLButtonElement>("[data-studio-onboarding-close]")?.hidden)
+      .toBe(true);
     fireEvent.keyDown(dialog, { key: "Escape" });
-    expect(dialog.closest<HTMLElement>("[data-studio-onboarding-layer]")?.hidden).toBe(true);
-    // After a tour close the Menu retucks on a zero timer so the canvas owns
-    // the screen again; focus lands on the Menu tab because the tour's opener
-    // is hidden along with the panel.
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(dialog.closest<HTMLElement>("[data-studio-onboarding-layer]")?.hidden).toBe(false);
     const menuPanel = document.querySelector<HTMLElement>("#studio-menu-panel");
-    const menuTab = document.querySelector<HTMLButtonElement>('[data-tuck-tab="menu"]');
-    expect(menuPanel?.hidden).toBe(true);
-    expect(document.activeElement).toBe(menuTab);
-
-    fireEvent.click(menuTab!);
-    const reopenTour = getByRole<HTMLButtonElement>(document.body, "button", { name: "Studio tour" });
-    fireEvent.click(reopenTour);
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));

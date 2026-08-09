@@ -240,7 +240,6 @@ func _assert_mission_panel_is_readable_and_bounded(panel: Control) -> void:
 		panel.get_node("%s/Instruction" % content_path) as Label,
 		panel.get_node("%s/ChoiceStage/KeyboardHint" % content_path) as Label,
 		panel.get_node("%s/EffectStage/EffectHeading" % content_path) as Label,
-		panel.get_node("%s/TransferStage/TransferPrompt" % content_path) as Label,
 		panel.get_node("%s/CompletedStage/CompletedHeading" % content_path) as Label,
 	]
 	for label in readable_labels:

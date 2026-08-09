@@ -681,7 +681,6 @@ const REQUIRED_MISSION_RECORDS := [
         ],
         "correctChoiceId": "independence",
         "effectExplanation": "Using the supported situation, need and values gives the audience a coherent reason to recognise the offer as relevant.",
-        "transferPrompt": "State the audience need your product will meet and explain how the offer can preserve the audience's independence.",
         "demonstration": AUDIENCE_TARGET_DEMONSTRATION,
         "reward": "Brief complete",
         "required": true
@@ -719,7 +718,6 @@ const REQUIRED_MISSION_RECORDS := [
         ],
         "correctChoiceId": "largest-contrast",
         "effectExplanation": "A controlled contrast hierarchy helps the audience notice the product before reading the supporting message.",
-        "transferPrompt": "Name the element that should be seen first in your advertisement and specify the size, isolation or colour contrast that will make it salient.",
         "demonstration": SALIENCE_DEMONSTRATION,
         "reward": "Salience lens unlocked",
         "required": true
@@ -757,7 +755,6 @@ const REQUIRED_MISSION_RECORDS := [
         ],
         "correctChoiceId": "product-headline-action",
         "effectExplanation": "A coherent reading path helps the audience connect the visual subject, advertisement meaning and requested action in sequence.",
-        "transferPrompt": "Describe the first, second and third points in your advertisement's reading path and name the line, gaze or placement that connects them.",
         "demonstration": READING_PATH_SEQUENCE_DEMONSTRATION,
         "reward": "Reading-path overlay unlocked",
         "required": true
@@ -795,7 +792,6 @@ const REQUIRED_MISSION_RECORDS := [
         ],
         "correctChoiceId": "one-accent-harmony",
         "effectExplanation": "A restrained palette can guide audience attention and establish tone without sacrificing legibility.",
-        "transferPrompt": "Name your supporting colours, your single accent colour and the exact advertisement element that will receive that accent.",
         "demonstration": COLOUR_DEMONSTRATION,
         "reward": "Colour system complete",
         "required": true
@@ -833,7 +829,6 @@ const REQUIRED_MISSION_RECORDS := [
         ],
         "correctChoiceId": "useful-close-crop",
         "effectExplanation": "Purposeful framing controls which evidence the audience can see and where the written message can be read.",
-        "transferPrompt": "State what your image must prove, what will remain inside the crop and where negative space will hold the headline.",
         "demonstration": CROP_DEMONSTRATION,
         "reward": "Framing desk complete",
         "required": true
@@ -871,7 +866,6 @@ const REQUIRED_MISSION_RECORDS := [
         ],
         "correctChoiceId": "aida-complete",
         "effectExplanation": "AIDA creates a cumulative audience journey rather than four unrelated labels placed on an advertisement.",
-        "transferPrompt": "Write one sentence for each AIDA stage in your advertisement and explain how the audience can move from one to the next.",
         "demonstration": AIDA_SEQUENCE_DEMONSTRATION,
         "reward": "AIDA sequence complete",
         "required": true
@@ -909,7 +903,6 @@ const REQUIRED_MISSION_RECORDS := [
         ],
         "correctChoiceId": "qualified-supported",
         "effectExplanation": "A supportable claim gives the audience a credible connection between product evidence and a relevant benefit.",
-        "transferPrompt": "Write your advertisement's main claim, name the feature or image detail that supports it and remove any absolute wording the evidence cannot justify.",
         "demonstration": CLAIM_PROOF_TARGET_DEMONSTRATION,
         "reward": "Claim cleared for publication",
         "required": true
@@ -950,7 +943,6 @@ const SIDEQUEST_RECORDS := [
         ],
         "correctChoiceId": "remove-equal-badges",
         "effectExplanation": "Removing equal competitors lets the audience identify the advertisement subject and action more quickly.",
-        "transferPrompt": "Name one nonessential competitor you can remove from your own advertisement without losing evidence.",
         "demonstration": SALIENCE_RESCUE_DEMONSTRATION,
         "reward": "Optional portfolio stamp",
         "required": false,
@@ -990,7 +982,6 @@ const SIDEQUEST_RECORDS := [
         ],
         "correctChoiceId": "reserve-accent",
         "effectExplanation": "A reserved accent gives the audience one reliable colour signal for priority.",
-        "transferPrompt": "Identify the single element in your advertisement that will receive the strongest colour contrast.",
         "demonstration": COLOUR_CLINIC_DEMONSTRATION,
         "reward": "Optional portfolio stamp",
         "required": false,
@@ -1030,7 +1021,6 @@ const SIDEQUEST_RECORDS := [
         ],
         "correctChoiceId": "action-and-space",
         "effectExplanation": "An evidence-preserving crop lets the audience understand both what the product is and how it produces value.",
-        "transferPrompt": "List the two image details your own crop must preserve and the area that will remain available for text.",
         "demonstration": CROP_DEMONSTRATION,
         "reward": "Optional portfolio stamp",
         "required": false,
@@ -1070,7 +1060,6 @@ const SIDEQUEST_RECORDS := [
         ],
         "correctChoiceId": "control-your-hour",
         "effectExplanation": "A concise, supportable headline helps the audience recognise relevance before reading detail.",
-        "transferPrompt": "Reduce your own headline to a precise benefit that can be read quickly and supported by the advertisement.",
         "demonstration": HEADLINE_WORD_CHIP_DEMONSTRATION,
         "reward": "Optional portfolio stamp",
         "required": false,
@@ -1110,7 +1099,6 @@ const SIDEQUEST_RECORDS := [
         ],
         "correctChoiceId": "billboard-brief",
         "effectExplanation": "Matching content to format conditions helps the audience receive the intended message before attention moves elsewhere.",
-        "transferPrompt": "Choose billboard, magazine or vertical screen for your advertisement and explain how its viewing conditions affect your composition.",
         "demonstration": MEDIA_FORMAT_DEMONSTRATION,
         "reward": "Optional portfolio stamp",
         "required": false,

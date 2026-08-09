@@ -43,6 +43,7 @@ func _required_missions_define_role_effect_term_and_demonstration() -> bool:
 		assert(Array(mission.get("choices")).size() == 4)
 		assert(not String(mission.get("correctChoiceId")).is_empty())
 		assert(not Dictionary(mission.get("demonstration", {})).is_empty())
+		assert(not mission.has("transferPrompt"))
 		assert(not String(mission.get("reward")).is_empty())
 	return true
 
@@ -69,6 +70,7 @@ func _optional_contracts_are_varied_and_nonblocking() -> bool:
 		assert(sidequest.get("term") == expected_terms[index])
 		assert(String(sidequest.get("goal")).begins_with("%s:" % expected_terms[index]))
 		assert(not Dictionary(sidequest.get("demonstration", {})).is_empty())
+		assert(not sidequest.has("transferPrompt"))
 		assert(sidequest.get("required") == false)
 		assert(String(sidequest.get("portfolioStamp")).length() > 3)
 		assert(not String(sidequest.get("presentationFlourish")).is_empty())

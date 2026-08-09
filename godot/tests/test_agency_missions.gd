@@ -2,6 +2,7 @@ extends RefCounted
 class_name AdMarketTestAgencyMissions
 
 const AgencyProgress = preload("res://src/agency/agency_progress.gd")
+const Catalog = preload("res://src/agency/agency_mission_catalog.gd")
 const CONTROLLER_PATH := "res://src/agency/missions/agency_mission_controller.gd"
 const PANEL_SCENE_PATH := "res://src/agency/missions/AgencyMissionPanel.tscn"
 
@@ -10,7 +11,7 @@ func run() -> bool:
 	assert(_close_emits_a_safe_closed_snapshot())
 	assert(_choice_effect_and_demonstration_complete_required_progress())
 	assert(_optional_contract_awards_only_progress_metadata())
-	assert(_panel_stages_are_bounded_and_sequence_one_action())
+	assert(_panel_sequences_one_action_without_transfer())
 	assert(_panel_exposes_reference_and_direct_handoff())
 	assert(_panel_scene_exposes_the_mission_contract())
 	return true
@@ -60,6 +61,9 @@ func _choice_effect_and_demonstration_complete_required_progress() -> bool:
 	var controller := _new_controller(progress)
 	if controller == null:
 		return false
+	assert(controller.has_method("continue_to_demonstration"))
+	assert(not controller.has_method("continue_to_transfer"))
+	assert(not controller.has_method("submit_transfer_evidence"))
 	# audience-brief now ends in Engine D's measured support demonstration.
 	assert(controller.call("open_mission", "audience-brief", "strategist").get("allowed") == true)
 	var incorrect: Dictionary = controller.call("choose", "cheapest")
@@ -68,7 +72,7 @@ func _choice_effect_and_demonstration_complete_required_progress() -> bool:
 	assert(controller.call("retry").get("state") == "choice")
 	var correct: Dictionary = controller.call("choose", "independence")
 	assert(correct.get("correct") == true)
-	assert(controller.call("continue_to_transfer").get("state") == "demonstration")
+	assert(controller.call("continue_to_demonstration").get("state") == "demonstration")
 	var rejected: Dictionary = controller.call("submit_demonstration", {"passed": false})
 	assert(rejected.get("accepted") == false)
 	var accepted: Dictionary = controller.call("submit_demonstration", {
@@ -92,7 +96,7 @@ func _optional_contract_awards_only_progress_metadata() -> bool:
 		return false
 	assert(controller.call("open_mission", "colour-clinic", "art-director").get("required") == false)
 	assert(controller.call("choose", "reserve-accent").get("correct") == true)
-	assert(controller.call("continue_to_transfer").get("state") == "demonstration")
+	assert(controller.call("continue_to_demonstration").get("state") == "demonstration")
 	var completed: Dictionary = controller.call("submit_demonstration", {
 		"passed": true,
 		"evidence": "The palettes use related supporting colours and one stronger action colour."
@@ -106,7 +110,7 @@ func _optional_contract_awards_only_progress_metadata() -> bool:
 	controller.free()
 	return true
 
-func _panel_stages_are_bounded_and_sequence_one_action() -> bool:
+func _panel_sequences_one_action_without_transfer() -> bool:
 	var panel_scene := load(PANEL_SCENE_PATH) as PackedScene
 	if panel_scene == null:
 		return false
@@ -116,30 +120,20 @@ func _panel_stages_are_bounded_and_sequence_one_action() -> bool:
 	tree.root.add_child(panel)
 	if not panel.is_node_ready():
 		panel.call("_ready")
-	var record := {
-		"title": "Control what the audience notices first",
-		"goal": "Use visual salience to direct attention.",
-		"required": true,
-		"transferPrompt": "Name the element that should be seen first and the technique you will use.",
-	}
+	var record: Dictionary = Catalog.mission("salience")
 	var content_path := "Backdrop/Dialog/Margin/Content"
 	var instruction := panel.get_node("%s/Instruction" % content_path) as Label
+	var mission_badge := panel.get_node("%s/Header/MissionBadge" % content_path) as Label
 	panel.call("show_effect", record, {"correct": false, "effect": "The product is not salient."})
 	assert(instruction.text == "Read the effect, then select Try another treatment.")
 	panel.call("show_effect", record, {"correct": true, "effect": "The product is salient."})
 	assert(instruction.text == "Read the effect, then select Apply this decision.")
-	panel.call("show_transfer", record, "At the Studio, apply this decision to the advertisement.")
-	assert(instruction.text == "Write one specific sentence that names the audience, the technique and what you will change.")
-	var transfer := panel.get_node("%s/TransferStage" % content_path) as VBoxContainer
-	var evidence_edit := transfer.get_node("EvidenceEdit") as TextEdit
-	var evidence_footer := transfer.get_node("EvidenceFooter") as HBoxContainer
-	var validation := transfer.get_node("ValidationLabel") as Label
-	var submit := transfer.get_node("SubmitButton") as Button
-	assert(evidence_edit.get_index() < evidence_footer.get_index())
-	assert(evidence_footer.get_index() < validation.get_index())
-	assert(validation.get_index() < submit.get_index())
-	var dialog := panel.get_node("Backdrop/Dialog") as PanelContainer
-	assert(dialog.get_combined_minimum_size().y <= 700.0)
+	assert(mission_badge.text == "AGENCY TASK · Salience and AIDA Attention")
+	panel.call("show_demonstration", record)
+	var demonstration := panel.get_node("%s/DemonstrationStage" % content_path) as VBoxContainer
+	assert(demonstration.visible)
+	assert(demonstration.get_child_count() == 1)
+	assert(panel.get_node_or_null("%s/TransferStage" % content_path) == null)
 	panel.call("show_completed", record, {
 		"required": true,
 		"reward": "A visible campaign milestone.",
@@ -241,7 +235,7 @@ func _panel_scene_exposes_the_mission_contract() -> bool:
 		return false
 	var panel := panel_scene.instantiate()
 	assert(panel.has_signal("choice_selected"))
-	assert(panel.has_signal("evidence_submitted"))
+	assert(not panel.has_signal("evidence_submitted"))
 	assert(panel.has_signal("continue_requested"))
 	assert(panel.has_signal("retry_requested"))
 	assert(panel.has_signal("close_requested"))
@@ -249,8 +243,9 @@ func _panel_scene_exposes_the_mission_contract() -> bool:
 	assert(panel.has_method("show_choice"))
 	assert(panel.has_method("show_effect"))
 	assert(panel.has_signal("demonstration_submitted"))
-	assert(panel.has_method("show_transfer"))
+	assert(not panel.has_method("show_transfer"))
 	assert(panel.has_method("show_demonstration"))
+	assert(panel.get_node_or_null("Backdrop/Dialog/Margin/Content/TransferStage") == null)
 	assert(panel.has_method("show_completed"))
 	assert(panel.has_method("show_handoff_error"))
 	panel.free()

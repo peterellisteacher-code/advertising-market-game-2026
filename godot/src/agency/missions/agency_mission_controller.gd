@@ -10,36 +10,8 @@ const STATE_CLOSED := "closed"
 const STATE_HOLDING := "holding"
 const STATE_CHOICE := "choice"
 const STATE_EFFECT := "effect"
-const STATE_TRANSFER := "transfer"
 const STATE_DEMONSTRATION := "demonstration"
 const STATE_COMPLETED := "completed"
-const MIN_EVIDENCE_LENGTH := 30
-const MAX_EVIDENCE_LENGTH := 400
-const AUDIENCE_WORDS: Array[String] = [
-	"audience",
-	"teenager",
-	"student",
-	"buyer",
-	"customer",
-	"people",
-	"viewer",
-    "reader"
-]
-const TECHNIQUE_WORDS := {
-	"audience-brief": ["audience", "need", "value", "situation", "response"],
-	"salience": ["salience", "salient", "contrast", "size", "bigger", "largest", "isolation", "first"],
-	"reading-path": ["reading path", "leading line", "placement", "order", "direction", "route"],
-	"contrast": ["contrast", "colour", "color", "harmony", "tone", "palette"],
-	"framing": ["framing", "frame", "crop", "focus", "subject"],
-	"aida": ["aida", "attention", "interest", "desire", "action"],
-	"claim-proof": ["claim", "proof", "evidence", "support"],
-	"thirty-second-rescue": ["hierarchy", "salience", "clutter", "remove", "focus"],
-	"colour-clinic": ["colour", "color", "contrast", "accent", "palette", "tone"],
-	"crop-lab": ["crop", "frame", "framing", "focal"],
-	"headline-surgery": ["headline", "claim", "message", "concise"],
-	"media-match": ["media", "channel", "placement", "format"]
-}
-
 var _catalog_script: Script = load(CATALOG_PATH) as Script
 var _progress: RefCounted
 var _panel: Control
@@ -147,65 +119,21 @@ func retry() -> Dictionary:
 		"state": _state
 	}
 
-func continue_to_transfer() -> Dictionary:
+func continue_to_demonstration() -> Dictionary:
 	if _state != STATE_EFFECT or not _choice_correct:
 		return {
 			"changed": false,
 			"state": _state,
 			"reason": "Choose the effective treatment before applying it."
 		}
-	# A task with a demonstration replaces the writing gate with it. The rest still ask
-	# for a written sentence until their own engine lands.
-	if _demonstration().is_empty():
-		_state = STATE_TRANSFER
-		_show_transfer()
-	else:
-		_state = STATE_DEMONSTRATION
-		_show_demonstration()
+	_state = STATE_DEMONSTRATION
+	_show_demonstration()
 	_emit_state()
 	return {
 		"changed": true,
 		"state": _state,
 		"applicationObjective": _application_objective()
 	}
-
-func submit_transfer_evidence(text: String) -> Dictionary:
-	if _state != STATE_TRANSFER:
-		return {
-			"accepted": false,
-			"state": _state,
-			"reason": "Reach the application step before submitting evidence."
-		}
-	var evidence_text := text.strip_edges()
-	var validation := _validate_evidence(evidence_text)
-	if not bool(validation.get("valid")):
-		return {
-			"accepted": false,
-			"state": _state,
-			"reason": String(validation.get("reason")),
-			"minimumCharacters": MIN_EVIDENCE_LENGTH,
-			"maximumCharacters": MAX_EVIDENCE_LENGTH
-		}
-	var evidence := {
-		"decision": _selected_choice_id,
-		"effect": evidence_text
-	}
-	var completed := _complete_progress(evidence)
-	if not completed:
-		return {
-			"accepted": false,
-			"state": _state,
-			"reason": _progress_error()
-		}
-	_state = STATE_COMPLETED
-	var result := _completion_result(evidence)
-	_show_completed(result)
-	_emit_state()
-	if _required:
-		mission_completed.emit(_mission_id, evidence.duplicate(true))
-	else:
-		sidequest_completed.emit(_mission_id)
-	return result
 
 ## Accepts a measured arrangement from a demonstration stage. The evidence sentence is
 ## generated from the measure — the lever the pair won on and the object they promoted —
@@ -293,37 +221,6 @@ func _evaluate_choice(mission_id: String, choice_id: String) -> Dictionary:
 func _role_allowed() -> bool:
 	return not _record.is_empty() and _active_role == String(_record.get("ownerRole"))
 
-func _validate_evidence(text: String) -> Dictionary:
-	if text.length() < MIN_EVIDENCE_LENGTH:
-		return {
-			"valid": false,
-			"reason": "Write at least 30 characters explaining the advertising decision and its audience effect."
-		}
-	if text.length() > MAX_EVIDENCE_LENGTH:
-		return {
-			"valid": false,
-			"reason": "Keep the explanation to 400 characters or fewer."
-		}
-	var lower_text := text.to_lower()
-	if not _contains_any(lower_text, AUDIENCE_WORDS):
-		return {
-			"valid": false,
-			"reason": "Name the audience or viewer who should notice the effect."
-		}
-	var technique_words: Array = TECHNIQUE_WORDS.get(_mission_id, [])
-	if not _contains_any(lower_text, technique_words):
-		return {
-			"valid": false,
-			"reason": "Name the technique or design change you will apply."
-		}
-	return {"valid": true}
-
-func _contains_any(text: String, words: Array) -> bool:
-	for word_value in words:
-		if text.contains(String(word_value).to_lower()):
-			return true
-	return false
-
 func _complete_progress(evidence: Dictionary) -> bool:
 	if not is_instance_valid(_progress):
 		return false
@@ -367,10 +264,6 @@ func _show_choice() -> void:
 func _show_effect(evaluation: Dictionary) -> void:
 	if is_instance_valid(_panel) and _panel.has_method("show_effect"):
 		_panel.call("show_effect", _record.duplicate(true), evaluation.duplicate(true))
-
-func _show_transfer() -> void:
-	if is_instance_valid(_panel) and _panel.has_method("show_transfer"):
-		_panel.call("show_transfer", _record.duplicate(true), _application_objective())
 
 func _show_demonstration() -> void:
 	if is_instance_valid(_panel) and _panel.has_method("show_demonstration"):
@@ -424,7 +317,6 @@ func _connect_panel() -> void:
 		return
 	_connect_panel_signal("choice_selected", _on_choice_selected)
 	_connect_panel_signal("continue_requested", _on_continue_requested)
-	_connect_panel_signal("evidence_submitted", _on_evidence_submitted)
 	_connect_panel_signal("demonstration_submitted", _on_demonstration_submitted)
 	_connect_panel_signal("retry_requested", _on_retry_requested)
 	_connect_panel_signal("close_requested", _on_close_requested)
@@ -434,7 +326,6 @@ func _disconnect_panel() -> void:
 		return
 	_disconnect_panel_signal("choice_selected", _on_choice_selected)
 	_disconnect_panel_signal("continue_requested", _on_continue_requested)
-	_disconnect_panel_signal("evidence_submitted", _on_evidence_submitted)
 	_disconnect_panel_signal("demonstration_submitted", _on_demonstration_submitted)
 	_disconnect_panel_signal("retry_requested", _on_retry_requested)
 	_disconnect_panel_signal("close_requested", _on_close_requested)
@@ -451,13 +342,7 @@ func _on_choice_selected(choice_id: String) -> void:
 	choose(choice_id)
 
 func _on_continue_requested() -> void:
-	continue_to_transfer()
-
-func _on_evidence_submitted(text: String) -> void:
-	var result := submit_transfer_evidence(text)
-	if not bool(result.get("accepted")) and is_instance_valid(_panel):
-		if _panel.has_method("show_validation_error"):
-			_panel.call("show_validation_error", String(result.get("reason")))
+	continue_to_demonstration()
 
 func _on_demonstration_submitted(result: Dictionary) -> void:
 	var outcome := submit_demonstration(result)

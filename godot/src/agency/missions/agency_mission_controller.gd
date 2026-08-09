@@ -247,7 +247,7 @@ func _completion_result(evidence: Dictionary) -> Dictionary:
 func _application_objective() -> String:
 	if _record.is_empty():
 		return ""
-	return "At the Studio, apply this %s decision to your advertisement and explain its audience effect." % String(_record.get("title")).to_lower()
+	return "At the Studio, apply this %s decision to your advertisement. Explain its audience effect." % String(_record.get("title")).to_lower()
 
 func _progress_error() -> String:
 	if not is_instance_valid(_progress):

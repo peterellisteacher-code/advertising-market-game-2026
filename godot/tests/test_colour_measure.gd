@@ -753,7 +753,7 @@ func _the_panel_focuses_the_selected_element() -> bool:
 	controller.call("configure", progress, panel)
 	var opened: Dictionary = controller.call("open_mission", "contrast", "art-director")
 	var chosen: Dictionary = controller.call("choose", "one-accent-harmony")
-	var continued: Dictionary = controller.call("continue_to_transfer")
+	var continued: Dictionary = controller.call("continue_to_demonstration")
 	await _settle_stage()
 	var host := panel.get_node("Backdrop/Dialog/Margin/Content/DemonstrationStage") as Control
 	var stage := host.get_child(0) as Control if host.get_child_count() == 1 else null
@@ -780,7 +780,7 @@ func _the_panel_fits_and_records_all_three_palettes() -> bool:
 	controller.call("configure", progress, panel)
 	var opened: Dictionary = controller.call("open_mission", "contrast", "art-director")
 	var chosen: Dictionary = controller.call("choose", "one-accent-harmony")
-	var continued: Dictionary = controller.call("continue_to_transfer")
+	var continued: Dictionary = controller.call("continue_to_demonstration")
 	if not bool(opened.get("allowed")) or not bool(chosen.get("correct")) or String(continued.get("state", "")) != "demonstration":
 		controller.free()
 		panel.queue_free()

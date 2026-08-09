@@ -199,7 +199,7 @@ const CROP_DEMONSTRATION := {
         "messageClear": "slogan can be read"
     },
     "unmetSentences": {
-        "subject": "The frame cuts off part of {subject}. Move or widen the frame until all of it is inside.",
+        "subject": "The frame cuts off part of {subject}. Move the frame, or widen it, until all of {subject} is inside.",
         "prominence": "The frame holds too much of the church around {subject}. Make the frame smaller.",
         "messageInFrame": "The slogan is outside the frame, so it is not part of the advertisement. Drag it inside.",
         "messageClear": "The slogan is lying across the picture, where nobody can read it. Drag it onto the plain wall."
@@ -496,7 +496,7 @@ const READING_PATH_SEQUENCE_DEMONSTRATION := {
     "unmetSentences": {
         "declarations": "This reading-path task is incomplete.",
         "permutation": "Use the product image, headline and action exactly once.",
-        "constraints": "{before} must come before {after}. Move one card and watch the path change."
+        "constraints": "{before} must come before {after}. Move one card. Watch the path change."
     },
     "wonSentence": "The reading path now moves from {first} to {last} without a visual dead end.",
     "evidenceSentence": "The reading path moves through {order}, so the audience can connect the product, its meaning and the requested action in sequence.",
@@ -540,7 +540,7 @@ const AIDA_SEQUENCE_DEMONSTRATION := {
 const HEADLINE_WORD_CHIP_DEMONSTRATION := {
     "engine": "removable-word-chips",
     "scene": "res://src/agency/missions/demonstrations/WordChipStage.tscn",
-    "instruction": "Remove empty praise while keeping the product benefit. Keep the headline at nine words or fewer.",
+    "instruction": "Remove empty praise. Keep the product benefit. Keep the headline at nine words or fewer.",
     "chips": [
         {"id": "the", "text": "The", "wordCount": 1},
         {"id": "best", "text": "best,", "wordCount": 1},
@@ -575,7 +575,7 @@ const HEADLINE_WORD_CHIP_DEMONSTRATION := {
 const MEDIA_FORMAT_DEMONSTRATION := {
     "engine": "format-fit",
     "scene": "res://src/agency/missions/demonstrations/FormatStage.tscn",
-    "instruction": "Choose a format and headline, then move and resize the product so the composition can be understood under that format's viewing conditions.",
+    "instruction": "Choose a format and headline. Move and resize the product so the composition can be understood under that format's viewing conditions.",
     "subjectArt": "res://assets/agency/colour/product-mug.png",
     "formats": [
         {
@@ -922,7 +922,7 @@ const SIDEQUEST_RECORDS := [
         "choices": [
             {
                 "id": "remove-equal-badges",
-                "label": "Remove four equal promotional badges and retain one supported action.",
+                "label": "Remove four equal promotional badges. Retain one supported action.",
                 "effect": "The audience receives one clear priority instead of several competing promotional claims."
             },
             {
@@ -961,7 +961,7 @@ const SIDEQUEST_RECORDS := [
         "choices": [
             {
                 "id": "reserve-accent",
-                "label": "Keep one bright accent for the action and reduce supporting elements to related tones.",
+                "label": "Keep one bright accent for the action. Reduce supporting elements to related tones.",
                 "effect": "The audience can locate the action while still receiving a coherent advertisement tone."
             },
             {
@@ -1112,7 +1112,7 @@ const OBJECTIVE_RECORDS := {
         "id": "meet-client",
         "stationId": "client-briefing",
         "title": "Meet the client and read the audience brief",
-        "action": "Travel to Client Briefing and identify the audience situation, need and values.",
+        "action": "Travel to Client Briefing. Identify the audience situation, need and values.",
         "reason": "Every later decision needs one shared account of who the advertisement is for.",
         "ownerRole": "strategist",
         "holdingAction": "The Art Director looks for a visual way to represent the selected audience value."
@@ -1121,7 +1121,7 @@ const OBJECTIVE_RECORDS := {
         "id": "build-product",
         "stationId": "production-studio",
         "title": "Build a product for the audience need",
-        "action": "Open the production studio and choose or adapt a product that can meet the identified need.",
+        "action": "Open the production studio. Choose or adapt a product that can meet the identified need.",
         "reason": "The advertisement needs a specific offer whose value can be shown and explained.",
         "ownerRole": "strategist",
         "holdingAction": "The Art Director checks that the product has a recognisable visual form."
@@ -1148,7 +1148,7 @@ const OBJECTIVE_RECORDS := {
         "id": "set-campaign-tone",
         "stationId": "art-studio",
         "title": "Set emphasis and tone with colour",
-        "action": "Choose supporting colours and reserve one strong accent for the advertisement priority.",
+        "action": "Choose supporting colours. Reserve one strong accent for the advertisement priority.",
         "reason": "Colour should guide attention and feeling without weakening legibility.",
         "ownerRole": "art-director",
         "holdingAction": "The Strategist names the intended audience feeling and checks the palette against it."
@@ -1166,7 +1166,7 @@ const OBJECTIVE_RECORDS := {
         "id": "prove-value",
         "stationId": "copy-room",
         "title": "Connect the claim to evidence",
-        "action": "Write one precise claim and name the product feature or image detail that supports it.",
+        "action": "Write one precise claim. Name the product feature or image detail that supports it.",
         "reason": "A credible advertisement links audience benefit to evidence rather than an absolute promise.",
         "ownerRole": "strategist",
         "holdingAction": "The Art Director makes the supporting evidence noticeable in the composition."
@@ -1184,7 +1184,7 @@ const OBJECTIVE_RECORDS := {
         "id": "prepare-pitch",
         "stationId": "pitch-theatre",
         "title": "Prepare the final pitch",
-        "action": "Review all required evidence, choose a presentation format and build the final market card.",
+        "action": "Review all required evidence. Choose a presentation format. Build the final market card.",
         "reason": "The pair must be able to explain how the finished advertisement works for its audience.",
         "ownerRole": "strategist",
         "holdingAction": "The Art Director checks the final visual at billboard, magazine and vertical-screen scales."
@@ -1193,7 +1193,7 @@ const OBJECTIVE_RECORDS := {
         "id": "present-campaign",
         "stationId": "pitch-theatre",
         "title": "Present the finished advertisement",
-        "action": "Show the exact published advertisement and explain its audience, value, AIDA, hierarchy and proof.",
+        "action": "Show the exact published advertisement. Explain its audience, value, AIDA, hierarchy and proof.",
         "reason": "The pitch makes the pair's decisions visible and prepares the advertisement for the class market.",
         "ownerRole": "art-director",
         "holdingAction": "The Strategist supplies the explanation for each piece of advertisement evidence."

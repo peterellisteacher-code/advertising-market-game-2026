@@ -331,7 +331,7 @@ func _a_reason_from_the_stage_reaches_the_pair() -> bool:
 	controller.call("configure", progress, null)
 	assert(controller.call("open_mission", "framing", "art-director").get("allowed") == true)
 	assert(controller.call("choose", "useful-close-crop").get("correct") == true)
-	assert(controller.call("continue_to_transfer").get("state") == "demonstration")
+	assert(controller.call("continue_to_demonstration").get("state") == "demonstration")
 
 	var refused: Dictionary = controller.call("submit_demonstration", {
 		"passed": false,
@@ -459,7 +459,7 @@ func _the_panel_records_measured_evidence() -> bool:
 	assert(controller.call("open_mission", "framing", "art-director").get("allowed") == true)
 	assert(controller.call("choose", "useful-close-crop").get("correct") == true)
 	# The written gate is gone for this task: continuing lands on the demonstration.
-	assert(controller.call("continue_to_transfer").get("state") == "demonstration")
+	assert(controller.call("continue_to_demonstration").get("state") == "demonstration")
 	var host := panel.get_node("Backdrop/Dialog/Margin/Content/DemonstrationStage") as Control
 	assert(host.visible)
 	var stage := host.get_child(0) as Control

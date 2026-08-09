@@ -62,7 +62,7 @@ func configure(record: Dictionary) -> void:
 	_instruction.text = String(
 		_record.get(
 			"instruction",
-			"Choose a format and adapt the headline and product scale to its viewing conditions."
+			"Choose a format. Adapt the headline and product scale to its viewing conditions."
 		)
 	)
 	_keyboard_hint.text = "Drag the product, or focus it and use the arrow keys. The visible move and size buttons do the same work."

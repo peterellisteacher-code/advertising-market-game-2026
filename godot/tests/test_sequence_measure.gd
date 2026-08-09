@@ -339,7 +339,7 @@ func _the_panel_focuses_the_first_card_and_records_evidence() -> bool:
 	controller.call("configure", progress, panel)
 	var opened: Dictionary = controller.call("open_mission", "aida", "strategist")
 	var chosen: Dictionary = controller.call("choose", "aida-complete")
-	var continued: Dictionary = controller.call("continue_to_transfer")
+	var continued: Dictionary = controller.call("continue_to_demonstration")
 	await _settle_stage()
 	var host := panel.get_node("Backdrop/Dialog/Margin/Content/DemonstrationStage") as Control
 	var stage := host.get_child(0) as Control if host.get_child_count() == 1 else null

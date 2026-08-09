@@ -31,7 +31,7 @@ func _ready() -> void:
 func configure(record: Dictionary) -> void:
 	_record = record.duplicate(true)
 	_instruction.text = String(
-		_record.get("instruction", "Remove empty words while keeping the product benefit.")
+		_record.get("instruction", "Remove empty words. Keep the product benefit.")
 	)
 	_keyboard_hint.text = "Activate a retained chip to remove it. Activate a removed chip to restore it in the original order."
 	reset_headline()

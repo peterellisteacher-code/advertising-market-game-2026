@@ -8,7 +8,7 @@ const PANEL_SCENE_PATH := "res://src/agency/missions/AgencyMissionPanel.tscn"
 func run() -> bool:
 	assert(_owner_role_holds_the_choice_until_handoff())
 	assert(_close_emits_a_safe_closed_snapshot())
-	assert(_choice_effect_and_transfer_complete_required_progress())
+	assert(_choice_effect_and_demonstration_complete_required_progress())
 	assert(_optional_contract_awards_only_progress_metadata())
 	assert(_panel_stages_are_bounded_and_sequence_one_action())
 	assert(_panel_exposes_reference_and_direct_handoff())
@@ -54,14 +54,13 @@ func _close_emits_a_safe_closed_snapshot() -> bool:
 	controller.free()
 	return true
 
-func _choice_effect_and_transfer_complete_required_progress() -> bool:
+func _choice_effect_and_demonstration_complete_required_progress() -> bool:
 	var progress: RefCounted = AgencyProgress.new()
 	assert(progress.call("begin"))
 	var controller := _new_controller(progress)
 	if controller == null:
 		return false
-	# audience-brief still ends in the written sentence; salience is covered by
-	# test_salience_measure.gd now that its writing gate is a demonstration.
+	# audience-brief now ends in Engine D's measured support demonstration.
 	assert(controller.call("open_mission", "audience-brief", "strategist").get("allowed") == true)
 	var incorrect: Dictionary = controller.call("choose", "cheapest")
 	assert(incorrect.get("correct") == false)
@@ -69,13 +68,13 @@ func _choice_effect_and_transfer_complete_required_progress() -> bool:
 	assert(controller.call("retry").get("state") == "choice")
 	var correct: Dictionary = controller.call("choose", "independence")
 	assert(correct.get("correct") == true)
-	assert(controller.call("continue_to_transfer").get("state") == "transfer")
-	var rejected: Dictionary = controller.call("submit_transfer_evidence", "bigger")
+	assert(controller.call("continue_to_transfer").get("state") == "demonstration")
+	var rejected: Dictionary = controller.call("submit_demonstration", {"passed": false})
 	assert(rejected.get("accepted") == false)
-	var accepted: Dictionary = controller.call(
-		"submit_transfer_evidence",
-        "I will meet the audience need for a productive hour so the audience keeps its independence."
-	)
+	var accepted: Dictionary = controller.call("submit_demonstration", {
+		"passed": true,
+		"evidence": "The context, need and values support a self-directed audience, so the independence decision fits the brief."
+	})
 	assert(accepted.get("accepted") == true)
 	var evidence_by_mission: Dictionary = progress.get("evidence_by_mission")
 	var evidence: Dictionary = evidence_by_mission.get("audience-brief", {})

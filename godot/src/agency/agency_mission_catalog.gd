@@ -310,6 +310,88 @@ const COLOUR_CLINIC_DEMONSTRATION := {
     "subjectPhrase": "the three repaired product palettes"
 }
 
+# Engine D — drag to target. The record declares a support relation, not an answer
+# position. Chip order is immaterial, and a record may allow one fact to support more than
+# one statement. Statements with no incoming support stay empty because no fact can
+# truthfully be placed on them.
+const AUDIENCE_TARGET_DEMONSTRATION := {
+    "engine": "drag-to-target",
+    "scene": "res://src/agency/missions/demonstrations/TargetStage.tscn",
+    "instruction": "Place every brief fact on the audience interpretation it supports.",
+    "sourceHeading": "BRIEF FACTS",
+    "targetHeading": "AUDIENCE INTERPRETATIONS",
+    "evidence": [
+        {"id": "context", "label": "Context: Teenagers have one hour after school."},
+        {"id": "need", "label": "Need: Make that hour productive."},
+        {"id": "independence", "label": "Value: Independence."},
+        {"id": "belonging", "label": "Value: Belonging."}
+    ],
+    "statements": [
+        {"id": "self-directed", "label": "A productive after-school option should still feel self-directed."},
+        {"id": "cheapest", "label": "The lowest price is the audience's main need."},
+        {"id": "adult-control", "label": "Adults should organise every part of the hour."},
+        {"id": "trend-copy", "label": "Belonging means copying whatever is currently popular."}
+    ],
+    "supports": {
+        "context": ["self-directed"],
+        "need": ["self-directed"],
+        "independence": ["self-directed"],
+        "belonging": ["self-directed"]
+    },
+    "checkPhrases": {
+        "allPlaced": "all facts placed",
+        "supports": "each fact supports its statement",
+        "unsupportedEmpty": "unsupported statements empty"
+    },
+    "unmetSentences": {
+        "declarations": "This evidence task is incomplete.",
+        "allPlaced": "Place every brief fact before checking.",
+        "supports": "{evidence} does not support {statement}. Move it to an interpretation supported by the whole fact.",
+        "unsupportedEmpty": "{statement} has no supporting evidence. Return its chips to the brief."
+    },
+    "wonSentence": "All four brief facts support {statement}.",
+    "evidenceSentence": "The four brief facts support {statement}, so the audience decision uses the stated context, need and values.",
+    "subjectPhrase": "the audience interpretation"
+}
+
+const CLAIM_PROOF_TARGET_DEMONSTRATION := {
+    "engine": "drag-to-target",
+    "scene": "res://src/agency/missions/demonstrations/TargetStage.tscn",
+    "instruction": "Place each product proof on the claim it can genuinely support. Leave absolute claims empty.",
+    "sourceHeading": "PRODUCT PROOF",
+    "targetHeading": "CANDIDATE CLAIMS",
+    "evidence": [
+        {"id": "removable-tiles", "label": "Feature: Planning tiles can be removed and moved."},
+        {"id": "visible-priorities", "label": "Image: Several priorities are visible together."},
+        {"id": "reorder", "label": "Use: The order can change during a short session."}
+    ],
+    "statements": [
+        {"id": "qualified-benefit", "label": "The removable tiles help you reorganise a short session as priorities change."},
+        {"id": "guarantee", "label": "This product guarantees immediate success for every student."},
+        {"id": "revolutionary", "label": "This is the most revolutionary product ever created."},
+        {"id": "colour-proof", "label": "Because the product is blue, every afternoon becomes productive."}
+    ],
+    "supports": {
+        "removable-tiles": ["qualified-benefit"],
+        "visible-priorities": ["qualified-benefit"],
+        "reorder": ["qualified-benefit"]
+    },
+    "checkPhrases": {
+        "allPlaced": "all proof placed",
+        "supports": "each proof supports its claim",
+        "unsupportedEmpty": "absolute claims empty"
+    },
+    "unmetSentences": {
+        "declarations": "This claim task is incomplete.",
+        "allPlaced": "Place every piece of product proof before checking.",
+        "supports": "{evidence} does not support {statement}. Test the whole claim, not a repeated word.",
+        "unsupportedEmpty": "{statement} cannot be proved by this product evidence. Leave it empty."
+    },
+    "wonSentence": "The product evidence supports {statement}, while the absolute claims remain empty.",
+    "evidenceSentence": "The removable tiles, visible priorities and reorderable session support {statement}, while the absolute claims remain unsupported, so the audience receives a credible benefit rather than a guarantee.",
+    "subjectPhrase": "the qualified product claim"
+}
+
 const REQUIRED_MISSION_RECORDS := [
     {
         "id": "audience-brief",
@@ -350,6 +432,7 @@ const REQUIRED_MISSION_RECORDS := [
         "correctChoiceId": "independence",
         "effectExplanation": "Using the supported situation, need and values gives the audience a coherent reason to recognise the offer as relevant.",
         "transferPrompt": "State the audience need your product will meet and explain how the offer can preserve the audience's independence.",
+        "demonstration": AUDIENCE_TARGET_DEMONSTRATION,
         "reward": "Brief complete",
         "required": true
     },
@@ -569,6 +652,7 @@ const REQUIRED_MISSION_RECORDS := [
         "correctChoiceId": "qualified-supported",
         "effectExplanation": "A supportable claim gives the audience a credible connection between product evidence and a relevant benefit.",
         "transferPrompt": "Write your advertisement's main claim, name the feature or image detail that supports it and remove any absolute wording the evidence cannot justify.",
+        "demonstration": CLAIM_PROOF_TARGET_DEMONSTRATION,
         "reward": "Claim cleared for publication",
         "required": true
     }

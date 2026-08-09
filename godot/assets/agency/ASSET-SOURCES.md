@@ -373,6 +373,131 @@ Licence note: fal.ai lists `openai/gpt-image-2` with `license_type: commercial`.
 Every input to both generations was this project's own text; no third-party image
 was supplied.
 
+## Colour demonstration assets — `colour/`
+
+Generated 9 August 2026. Three generations produced eight shipped files.
+
+These supply the colour wheel and the poster the pair recolours in engine C,
+which serves both `contrast` and `colour-clinic`. Kate brings three products,
+each with a different feeling its brief asks for, so the same wheel has a
+different right answer each time. The four poster elements ship as near-white
+neutral shapes because Godot tints them to the pair's chosen colour at runtime;
+any hue baked into them would contaminate that tint. The three products keep the
+project's Bauhaus palette, because the pair is not recolouring the product.
+
+**Read this before regenerating anything here.** `openai/gpt-image-2` did not
+honour "transparent background only" on any of the three sheets. It returned
+`mode=RGB` files with no alpha channel at all, having painted a grey and white
+checkerboard as literal pixels — a picture of transparency rather than
+transparency. It looks correct in any viewer that draws its own checkerboard
+behind transparent images, which is every viewer. Check `mode` and the alpha
+extrema, never the appearance. The two sprite sheets were fixed with
+`fal-ai/bria/background/remove`, which is the same second step the salience
+sprites needed; the wheel was cut geometrically instead, because background
+removal cannot be trusted to find one circle's edge and the circle's radius is
+measurable.
+
+### `colour/colour-wheel.png`
+
+- Tool: `openai/gpt-image-2` on fal.ai at `high` quality
+- Generated source: 2048 x 2048 pixels, RGB, SHA-256
+  `fe83f4db8fb3b3d4b8c5922d7d3c5e0ebaa4a552a6d669259e7632308ec7e49b`
+- Final file: hue and saturation rewritten per cell, background cut at the
+  measured circle, then resampled once to 768 x 768 with Lanczos
+- Dimensions: 768 x 768 pixels, RGBA
+- SHA-256:
+  `7c33bd1ce5ad51e75a3887377c2227f8cf0762a916be151042c0945e623b3746`
+- **The generated wheel was not usable as generated, and the reason matters.**
+  Its geometry was good — twelve wedges of about 29 degrees, three concentric
+  rings, crisp cream linework — but its colorimetry was not. Measured off the
+  generated file, the twelve hues landed between 6.8 and 91.9 degrees apart
+  instead of 30, and on four of the twelve wedges the middle and outer rings
+  carried the same saturation to within 0.02. Both are load-bearing here. The
+  wheel is a teaching asset, so a student reading "the colour opposite is its
+  complement" off a wheel whose opposite wedge is 160 degrees away is being
+  taught something false. And the stage reads saturation as the strength of a
+  colour, so two rings measuring the same leave the pair unable to make the
+  action stronger than the supporting elements whichever ring they click
+- What was changed: every pixel inside the wheel had its hue set to its wedge's
+  true value and its saturation to its ring's value — 0.35 muted, 0.65 mid, 1.0
+  full. Nothing else. Each pixel kept its own brightness, so the shading, the
+  paper texture, the cream spokes, the ring arcs and the hub are exactly as
+  generated. The wedge and ring boundaries were read off the artwork's own drawn
+  spokes and arcs rather than assumed to sit on an ideal grid; assuming the grid
+  left a visible sliver of the neighbouring hue down one side of several wedges
+- Measured after correction: the twelve hue gaps run 29.5 to 30.5 degrees on
+  every ring, and the smallest saturation step between adjacent rings anywhere on
+  the wheel is +0.295, against the 0.25 margin the record requires. Opposite
+  wedges are 180 degrees apart, so the complementary relationship the wheel is
+  there to teach is now true of the artwork
+- Public-use decision: approved. An original generated diagram with no text, no
+  logo, no brand and no people
+
+### `colour/poster-panel.png`, `poster-headline.png`, `poster-body.png`, `poster-action.png`
+
+- Tool: `openai/gpt-image-2` on fal.ai at `high` quality, then
+  `fal-ai/bria/background/remove`
+- Generated source: one 2880 x 960 sheet, RGB, SHA-256
+  `c94cda6f87d46740f5050af9efbd5d45dfc68ab226a5c7ab15228a964e309083`
+- After background removal: 2880 x 960, RGBA, SHA-256
+  `89a69b1d81347a601675a8c34ffe2c1c31ac727c73b1d833f7d0706c5500a32a`
+- Final files: cut at the transparent gutters between the four shapes — **not**
+  into equal quarters, because three of the four sit hard against a quarter
+  boundary and cutting there shaves a column off the shape — then trimmed to
+  content and resampled once at half scale with Lanczos
+- Dimensions and SHA-256:
+  - `poster-panel.png`, from x 143-684, 270 x 359, RGBA,
+    `ad1aaf0b7b93705a6a4cf9b483ac1ca624d78ba2755606b026163d05d87206cf`
+  - `poster-headline.png`, from x 808-1454, 323 x 121, RGBA,
+    `e2c2d948fbb32fa000731bc00d71cb27bff2eb3bd806546131737ffa11204bde`
+  - `poster-body.png`, from x 1582-2174, 296 x 177, RGBA,
+    `d00d10a3db1bb9f79a6b9afb34fa68392295b28f0efa0851af71e45cd45b417a`
+  - `poster-action.png`, from x 2332-2736, 202 x 120, RGBA,
+    `2f51a04112df0b20fbe50b8f3c020d14ce36f62da936c6a293a503afebb6efcd`
+- Alpha below 6 per cent was cleared rather than shipped. At that level it is
+  invisible on a white page, but these four shapes are tinted to a saturated hue
+  at runtime and a film of strong colour over the whole rectangle would not be
+- Public-use decision: approved. Four blank shapes, no text, no logo, no brand
+
+### `colour/product-sleep-tea.png`, `product-skateboard.png`, `product-mug.png`
+
+- Tool: `openai/gpt-image-2` on fal.ai at `high` quality, then
+  `fal-ai/bria/background/remove`
+- Generated source: one 2880 x 960 sheet, RGB, SHA-256
+  `29464f1a8a55704e98aa1dba4bdf4c551b7977dd70cd65ad1f051c59b0212764`
+- After background removal: 2880 x 960, RGBA, SHA-256
+  `ac549f1f60023baf902a0169666962f0260b899f95b48faa51f7b44c2b10a4eb`
+- Final files: cut at the transparent gutters, trimmed to content, resampled once
+  at half scale with Lanczos
+- Dimensions and SHA-256:
+  - `product-sleep-tea.png`, from x 282-784, 251 x 371, RGBA,
+    `3af611d05d61a1b06cad0d1da06fc94712dc8d975ba14ce74e96f3913de31d35`
+  - `product-skateboard.png`, from x 1312-1564, 126 x 415, RGBA,
+    `31f8f30b67a37d3ad4ccfe76343fd53c5915e7149694355b89f01cfc0d319ebe`
+  - `product-mug.png`, from x 2034-2691, 328 x 262, RGBA,
+    `310ea3ca802de88945763f76bc80910212ac2ef4de3c0e0e27ac1926a85c6f99`
+- Every product ships unlabelled, which is what lets the poster's own elements
+  carry all the colour decisions
+- Public-use decision: approved. Three original generated objects, no text, no
+  logo, no brand and no people
+
+Exact generation prompt — the wheel:
+
+> Create one production-ready transparent PNG game asset showing exactly one colour wheel, in the same crisp high-resolution pixel-art style as a modern editorial Bauhaus advertising-agency game. Transparent background only. One perfectly circular wheel centred in the square canvas, viewed straight-on with no perspective, no tilt and no shadow. The wheel is divided into exactly twelve equal wedges of thirty degrees each, running in spectrum order clockwise starting from red at the top: red, orange, amber, yellow, chartreuse, green, spring green, cyan, azure, blue, violet, magenta. The wheel is also divided into exactly three concentric rings of equal width. The innermost ring of every wedge is a heavily muted, low-saturation version of that wedge's hue; the middle ring is a moderately saturated version of the same hue; the outermost ring is the fully saturated pure hue. All three rings of one wedge are unmistakably the same hue and differ only in saturation. Every one of the thirty-six cells is a single flat even colour with no gradient, no texture, no highlight and no shading. Wedge and ring boundaries are crisp thin warm-cream lines of even weight. A small plain warm-cream circle at the exact centre. No text, no letters, no numerals, no labels, no arrows, no pointer, no handle, no marker, no swatches outside the circle, no border, no frame, no drop shadow and no people. This must be a clean game asset, not a mockup, interface, colour-picker screenshot, concept board, labelled diagram or infographic.
+
+Exact generation prompt — the four poster elements:
+
+> Create one production-ready transparent PNG sprite sheet containing exactly four blank advertising poster elements, in the same crisp high-resolution pixel-art style as a modern editorial Bauhaus advertising-agency game. Transparent background only. One strict horizontal row of four generously separated equal cells, perfectly aligned, with no border around the overall sheet. CRITICAL: every element must be rendered in NEAR-WHITE NEUTRAL GREY ONLY. There must be no colour, no hue, no tint and no saturation anywhere in the image, because the game tints these shapes to the player's chosen colour at runtime; any colour baked in here would contaminate that tint. Use only white through light grey, with shading limited to very light neutral greys. CELL 1: a plain rectangular poster background panel with softly rounded corners and a subtle even paper grain. CELL 2: a bold solid headline bar, a wide short rectangle with crisp square ends and a flat even face. CELL 3: a body-copy block, four evenly spaced horizontal bars of equal thickness stacked with even gaps, each bar slightly shorter than the one above it, suggesting lines of text without any actual letters. CELL 4: a call-to-action button, a compact rounded rectangle with a clean thick even outline and a plain empty face. Consistent apparent scale, complete uncropped silhouettes, strong readable shapes at small size, crisp coherent pixel edges, clean alpha at every edge, one consistent light direction, restrained highlights. No text, no letters, no numerals, no logos, no brands, no people and no colour. This must be a clean game asset sheet, not a mockup, interface, wireframe screenshot, concept board or labelled diagram.
+
+Exact generation prompt — Kate's three products:
+
+> Create one production-ready transparent PNG sprite sheet containing exactly three distinct retail products, in the same crisp high-resolution pixel-art style and deep-navy, warm-cream, teal, coral, mustard and cobalt palette as a modern editorial Bauhaus advertising-agency game. Transparent background only; no shelf, no table, no packaging backdrop, no cast shadow, no border, no text, no letters, no numerals, no logos, no brands and no people. Strict single horizontal row of three perfectly aligned equal cells with generous transparent separation and consistent registration. Each cell contains exactly one complete uncropped product with a strong silhouette that stays readable at small size: 1) a rectangular carton of herbal sleep tea viewed straight-on, its front face completely blank and unlabelled; 2) a skateboard seen from directly above with all four wheels visible, the deck completely blank and unlabelled; 3) a handmade ceramic mug with a single handle, viewed straight-on from slightly above, the glaze plain and completely unlabelled. Consistent apparent scale across all three, one consistent light direction, restrained highlights, crisp coherent pixel edges, clean alpha at every edge. This must be a clean game asset sheet, not a still life, mockup, interface, concept board, labelled diagram or sticker page.
+
+Licence note: fal.ai lists `openai/gpt-image-2` with `license_type: commercial`,
+and `fal-ai/bria/background/remove` is the same background remover already used
+for the salience sprites. Every input to all three generations was this project's
+own text; no third-party image was supplied.
+
 ## Validation record
 
 - Visual inspection confirmed no cropped silhouettes, unintended text or
@@ -397,3 +522,17 @@ was supplied.
   of its area as plain on the wall, 0.77 straddling its edge and 0.01 across the
   bottle, and five structurally different frames pass. `test_crop_measure.gd`
   holds all of that.
+- All three colour sheets came back from `openai/gpt-image-2` as `mode=RGB` with
+  alpha extrema `(255, 255)` — no alpha channel, and a checkerboard painted in as
+  pixels. This was caught by reading the file's mode, not by looking at it, and it
+  is the reason the mode check is now written down above rather than left to
+  inspection.
+- All eight shipped colour files are RGBA with alpha extrema `(0, 255)`, and each
+  was composited over flat mid-grey and inspected, which is the only way the
+  painted checkerboard and a real cutout look different.
+- The corrected wheel measures 29.5 to 30.5 degrees between adjacent hues on all
+  three rings, against 30.0 for a true wheel, and its smallest saturation step
+  between adjacent rings is +0.295 against the record's 0.25 requirement. Both
+  figures come from sampling the shipped file's own pixels.
+- The four poster elements carry no hue: they are neutral, which is what keeps a
+  runtime tint faithful to the colour the pair actually chose.

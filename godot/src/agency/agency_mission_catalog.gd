@@ -138,6 +138,103 @@ const CROP_DEMONSTRATION := {
     }
 }
 
+
+# Engine C — colour wheel. Kate supplies three product briefs. The pair colours the same
+# four poster elements for each one, so the wheel has to be read as a relationship diagram
+# rather than used as a store of authored answers. The starting palettes use one weak hue
+# throughout; every one therefore fails the two action-accent checks while keeping the
+# supports narrow and on the brief's requested side of the wheel.
+const COLOUR_DEMONSTRATION := {
+    "engine": "colour-wheel",
+    "scene": "res://src/agency/missions/demonstrations/ColourStage.tscn",
+    "wheel": "res://assets/agency/colour/colour-wheel.png",
+    "panelArt": "res://assets/agency/colour/poster-panel.png",
+    "headlineArt": "res://assets/agency/colour/poster-headline.png",
+    "bodyArt": "res://assets/agency/colour/poster-body.png",
+    "actionArt": "res://assets/agency/colour/poster-action.png",
+    "actionElement": "action",
+    "clientName": "Kate",
+    "instruction": "One palette is required for each product. Select a poster element, then choose a colour from the wheel.",
+    "elementLabels": {
+        "panel": "Panel",
+        "headline": "Headline",
+        "body": "Body copy",
+        "action": "Action"
+    },
+    "jobs": [
+        {
+            "id": "sleep-tea",
+            "product": "Herbal sleep tea",
+            "feeling": "calm",
+            "paletteGuidance": "cool supporting hues",
+            "productImage": "res://assets/agency/colour/product-sleep-tea.png",
+            "toneHue": 210.0,
+            "elements": [
+                {"id": "panel", "hue": 210.0, "strength": 0.35},
+                {"id": "headline", "hue": 210.0, "strength": 0.35},
+                {"id": "body", "hue": 210.0, "strength": 0.35},
+                {"id": "action", "hue": 210.0, "strength": 0.35}
+            ]
+        },
+        {
+            "id": "skateboard",
+            "product": "Skateboard",
+            "feeling": "urgent",
+            "paletteGuidance": "warm supporting hues and high contrast",
+            "productImage": "res://assets/agency/colour/product-skateboard.png",
+            "toneHue": 30.0,
+            "elements": [
+                {"id": "panel", "hue": 30.0, "strength": 0.35},
+                {"id": "headline", "hue": 30.0, "strength": 0.35},
+                {"id": "body", "hue": 30.0, "strength": 0.35},
+                {"id": "action", "hue": 30.0, "strength": 0.35}
+            ]
+        },
+        {
+            "id": "ceramic-mug",
+            "product": "Handmade ceramic mug",
+            "feeling": "restrained",
+            "paletteGuidance": "close, muted natural hues",
+            "productImage": "res://assets/agency/colour/product-mug.png",
+            "toneHue": 120.0,
+            "elements": [
+                {"id": "panel", "hue": 120.0, "strength": 0.35},
+                {"id": "headline", "hue": 120.0, "strength": 0.35},
+                {"id": "body", "hue": 120.0, "strength": 0.35},
+                {"id": "action", "hue": 120.0, "strength": 0.35}
+            ]
+        }
+    ],
+    "minAccentSeparation": 90.0,
+    # The verified wheel's smallest adjacent-ring increase is 0.295, so 0.25 is
+    # achievable with one outward move and cannot be achieved on the same ring.
+    "minAccentStrength": 0.25,
+    "maxSupportSpread": 60.0,
+    "maxToneDistance": 45.0,
+    # C uses checkPhrases, following the newer engine B record. These are conditions the
+    # palette has to meet, not three competing levers from which one winner is selected.
+    "checkPhrases": {
+        "accentSeparation": "action colour separated",
+        "accentStrength": "action colour strongest",
+        "supportHarmony": "supporting colours related",
+        "toneMatch": "supporting colours suit the feeling"
+    },
+    "unmetSentences": {
+        "accentSeparation": "The action colour is too close to the supporting colours. Move the action further around the wheel.",
+        "accentStrength": "The action is not stronger than every supporting element. Increase the strength difference by changing rings.",
+        "supportHarmony": "The supporting colours are too far apart. Move one supporting element closer to the others on the wheel.",
+        "toneMatch": "The supporting colours do not suit {feeling}. Move them towards the hues named in the brief."
+    },
+    "wonSentences": {
+        "job": "The palette for {product} now uses related supporting colours that suit {feeling}, with one clear action accent.",
+        "complete": "The three product palettes now meet their product briefs."
+    },
+    "evidenceSentences": {
+        "colour": "The three product palettes used related supporting colours that suited each requested feeling and one stronger, separated colour for each action, so the audience can identify the intended tone and locate the action."
+    },
+    "subjectPhrase": "the three product palettes"
+}
+
 const REQUIRED_MISSION_RECORDS := [
     {
         "id": "audience-brief",
@@ -287,6 +384,7 @@ const REQUIRED_MISSION_RECORDS := [
         "correctChoiceId": "one-accent-harmony",
         "effectExplanation": "A restrained palette can guide audience attention and establish tone without sacrificing legibility.",
         "transferPrompt": "Name your supporting colours, your single accent colour and the exact advertisement element that will receive that accent.",
+        "demonstration": COLOUR_DEMONSTRATION,
         "reward": "Colour system complete",
         "required": true
     },
@@ -473,6 +571,7 @@ const SIDEQUEST_RECORDS := [
         "correctChoiceId": "reserve-accent",
         "effectExplanation": "A reserved accent gives the audience one reliable colour signal for priority.",
         "transferPrompt": "Identify the single element in your advertisement that will receive the strongest colour contrast.",
+        "demonstration": COLOUR_DEMONSTRATION,
         "reward": "Optional portfolio stamp",
         "required": false,
         "portfolioStamp": "Colour Clinician",

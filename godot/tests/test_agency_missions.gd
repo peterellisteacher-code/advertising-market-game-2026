@@ -93,11 +93,11 @@ func _optional_contract_awards_only_progress_metadata() -> bool:
 		return false
 	assert(controller.call("open_mission", "colour-clinic", "art-director").get("required") == false)
 	assert(controller.call("choose", "reserve-accent").get("correct") == true)
-	controller.call("continue_to_transfer")
-	var completed: Dictionary = controller.call(
-		"submit_transfer_evidence",
-        "I will reserve one bright colour accent so the audience sees the action before supporting details."
-	)
+	assert(controller.call("continue_to_transfer").get("state") == "demonstration")
+	var completed: Dictionary = controller.call("submit_demonstration", {
+		"passed": true,
+		"evidence": "The palettes use related supporting colours and one stronger action colour."
+	})
 	assert(completed.get("accepted") == true)
 	assert(Array(progress.get("completed_sidequest_ids")).has("colour-clinic"))
 	assert(String(completed.get("portfolioStamp")).length() > 3)

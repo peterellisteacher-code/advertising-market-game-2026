@@ -1,0 +1,140 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/agency/missions/demonstrations/word_chip_stage.gd" id="1_word_chip"]
+
+[sub_resource type="Theme" id="Theme_word_chip_stage"]
+Label/colors/font_color = Color(0.0588235, 0.105882, 0.180392, 1)
+
+[node name="WordChipStage" type="VBoxContainer"]
+custom_minimum_size = Vector2(880, 0)
+layout_mode = 2
+theme = SubResource("Theme_word_chip_stage")
+theme_override_constants/separation = 6
+script = ExtResource("1_word_chip")
+
+[node name="DemonstrationInstruction" type="Label" parent="."]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+autowrap_mode = 2
+
+[node name="KeyboardHint" type="Label" parent="."]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+autowrap_mode = 2
+
+[node name="PreviewPanel" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(0, 76)
+layout_mode = 2
+
+[node name="PreviewColumn" type="VBoxContainer" parent="PreviewPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="PreviewHeading" type="Label" parent="PreviewPanel/PreviewColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "LIVE HEADLINE"
+horizontal_alignment = 1
+
+[node name="HeadlinePreview" type="Label" parent="PreviewPanel/PreviewColumn"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "Headline preview"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="Workspace" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(880, 226)
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="RetainedPanel" type="PanelContainer" parent="Workspace"]
+custom_minimum_size = Vector2(550, 226)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RetainedColumn" type="VBoxContainer" parent="Workspace/RetainedPanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="RetainedHeading" type="Label" parent="Workspace/RetainedPanel/RetainedColumn"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "RETAINED — ACTIVATE TO REMOVE"
+horizontal_alignment = 1
+
+[node name="RetainedBank" type="GridContainer" parent="Workspace/RetainedPanel/RetainedColumn"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+columns = 3
+
+[node name="RemovedPanel" type="PanelContainer" parent="Workspace"]
+custom_minimum_size = Vector2(310, 226)
+layout_mode = 2
+
+[node name="RemovedColumn" type="VBoxContainer" parent="Workspace/RemovedPanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="RemovedHeading" type="Label" parent="Workspace/RemovedPanel/RemovedColumn"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "REMOVED — ACTIVATE TO RESTORE"
+horizontal_alignment = 1
+
+[node name="RemovedBank" type="GridContainer" parent="Workspace/RemovedPanel/RemovedColumn"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+columns = 2
+
+[node name="ReadoutRow" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="WordCountReading" type="Label" parent="ReadoutRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
+
+[node name="BenefitReading" type="Label" parent="ReadoutRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
+
+[node name="DemonstrationFeedback" type="Label" parent="."]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+autowrap_mode = 2
+
+[node name="ActionsRow" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+
+[node name="ResetButton" type="Button" parent="ActionsRow"]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "Start again"
+
+[node name="Spacer" type="Control" parent="ActionsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="CheckButton" type="Button" parent="ActionsRow"]
+custom_minimum_size = Vector2(180, 40)
+layout_mode = 2
+text = "Check headline"

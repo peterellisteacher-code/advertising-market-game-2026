@@ -458,6 +458,40 @@ const AIDA_SEQUENCE_DEMONSTRATION := {
     "subjectPhrase": "the AIDA sequence"
 }
 
+# Engine F — removable headline chips. The authored order stays fixed; students decide
+# what to remove. Any edit under the cap that keeps every declared benefit token passes.
+const HEADLINE_WORD_CHIP_DEMONSTRATION := {
+    "engine": "removable-word-chips",
+    "scene": "res://src/agency/missions/demonstrations/WordChipStage.tscn",
+    "instruction": "Remove empty praise while keeping the product benefit. Keep the headline at nine words or fewer.",
+    "chips": [
+        {"id": "the", "text": "The", "wordCount": 1},
+        {"id": "best", "text": "best,", "wordCount": 1},
+        {"id": "greatest", "text": "greatest and", "wordCount": 2},
+        {"id": "amazing", "text": "most amazing", "wordCount": 2},
+        {"id": "solution", "text": "solution for everyone:", "wordCount": 3},
+        {"id": "control", "text": "control", "wordCount": 1},
+        {"id": "your-hour", "text": "your hour.", "wordCount": 2},
+        {"id": "keep", "text": "Keep", "wordCount": 1},
+        {"id": "your-priorities", "text": "your priorities", "wordCount": 2},
+        {"id": "visible", "text": "visible.", "wordCount": 1}
+    ],
+    "requiredBenefitTokens": ["control", "your-hour", "keep", "your-priorities", "visible"],
+    "maxWords": 9,
+    "checkPhrases": {
+        "wordCap": "headline at nine words or fewer",
+        "benefit": "product benefit preserved"
+    },
+    "unmetSentences": {
+        "declarations": "This headline task is incomplete.",
+        "wordCap": "The headline has {words} words. Remove at least one empty phrase to reach {max_words}.",
+        "benefit": "The headline has lost {missing}. Restore that benefit chip."
+    },
+    "wonSentence": "The headline keeps the product benefit in {words} words.",
+    "evidenceSentence": "The headline was reduced to {words} words while retaining the benefit: {headline}",
+    "subjectPhrase": "the revised headline"
+}
+
 const REQUIRED_MISSION_RECORDS := [
     {
         "id": "audience-brief",
@@ -876,6 +910,7 @@ const SIDEQUEST_RECORDS := [
         "correctChoiceId": "control-your-hour",
         "effectExplanation": "A concise, supportable headline helps the audience recognise relevance before reading detail.",
         "transferPrompt": "Reduce your own headline to a precise benefit that can be read quickly and supported by the advertisement.",
+        "demonstration": HEADLINE_WORD_CHIP_DEMONSTRATION,
         "reward": "Optional portfolio stamp",
         "required": false,
         "portfolioStamp": "Headline Surgeon",

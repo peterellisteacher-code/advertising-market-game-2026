@@ -34,6 +34,8 @@ func run() -> bool:
 	assert(await _a_record_without_a_stage_size_falls_back_to_the_scene())
 	assert(await _the_readout_and_the_sentence_come_from_the_record())
 	assert(await _the_opening_arrangement_is_unsolved_and_solvable())
+	assert(_catalog_supplies_two_distinct_salience_records())
+	assert(await _the_rescue_opens_unsolved_and_passes_by_demotion())
 	assert(await _the_panel_records_measured_evidence())
 	return true
 
@@ -398,6 +400,52 @@ func _the_opening_arrangement_is_unsolved_and_solvable() -> bool:
 	stage.queue_free()
 	return true
 
+func _catalog_supplies_two_distinct_salience_records() -> bool:
+	var main: Dictionary = Catalog.mission("salience").get("demonstration", {})
+	var rescue: Dictionary = Catalog.sidequest("thirty-second-rescue").get("demonstration", {})
+	return (
+		not main.is_empty()
+		and not rescue.is_empty()
+		and main != rescue
+		and String(main.get("scene", "")) == String(rescue.get("scene", ""))
+		and String(main.get("targetId", "")) == "orange"
+		and String(rescue.get("targetId", "")) == "product"
+		and Array(rescue.get("objects", [])).size() == 5
+		and String(rescue.get("instruction", "")).contains("arrow keys")
+	)
+
+func _the_rescue_opens_unsolved_and_passes_by_demotion() -> bool:
+	var record: Dictionary = Catalog.sidequest("thirty-second-rescue").get("demonstration", {})
+	var tree := Engine.get_main_loop() as SceneTree
+	var stage := StageScene.instantiate() as Control
+	tree.root.add_child(stage)
+	stage.call("configure", record)
+	await _settle()
+	var opening: Dictionary = stage.call("current_result")
+	var views: Dictionary = stage.get("_views")
+	var headline_view := views.get("headline") as TextureRect
+	var product_before_scale := float(Dictionary(stage.call("_object", "product")).get("scale", 0.0))
+	var opening_holds := (
+		not bool(opening.get("passed"))
+		and PackedStringArray(opening.get("wonLevers", PackedStringArray())).is_empty()
+		and String(Dictionary(opening.get("leaders", {})).get("size", "")) != "product"
+		and headline_view != null
+		and headline_view.modulate != Color.WHITE
+	)
+	var slider := stage.get_node("ControlsRow/SizeSlider") as HSlider
+	for competitor: String in ["headline", "body", "action", "badge"]:
+		stage.call("_select", competitor)
+		slider.value = 0.12
+	var solved: Dictionary = stage.call("current_result")
+	var product_after_scale := float(Dictionary(stage.call("_object", "product")).get("scale", -1.0))
+	var solved_holds := (
+		bool(solved.get("passed"))
+		and String(Dictionary(solved.get("leaders", {})).get("size", "")) == "product"
+		and is_equal_approx(product_before_scale, product_after_scale)
+		and String(stage.call("describe", solved)).contains("largest remaining element")
+	)
+	stage.queue_free()
+	return opening_holds and solved_holds
 func _the_panel_records_measured_evidence() -> bool:
 	var tree := Engine.get_main_loop() as SceneTree
 	var progress: RefCounted = AgencyProgress.new()

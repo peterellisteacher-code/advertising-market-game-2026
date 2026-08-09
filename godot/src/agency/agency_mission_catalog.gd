@@ -75,6 +75,83 @@ const SALIENCE_DEMONSTRATION := {
     }
 }
 
+# Engine A's optional record uses the same measure in the opposite direction. The product
+# opens amid four larger, bright competitors; students make it lead by demoting those
+# competitors rather than enlarging the product itself.
+const SALIENCE_RESCUE_DEMONSTRATION := {
+    "engine": "arrange-for-salience",
+    "scene": "res://src/agency/missions/demonstrations/SalienceStage.tscn",
+    "plate": "res://assets/agency/colour/poster-panel.png",
+    "stageSize": Vector2(880, 320),
+    "targetId": "product",
+    "instruction": "Make the ceramic mug the clear focal point by demoting the competing elements. Select an element, then drag it or use the arrow keys; reduce its size or apply a quieter colour.",
+    "minScale": 0.12,
+    "maxScale": 0.95,
+    "objects": [
+        {
+            "id": "product",
+            "name": "ceramic mug",
+            "texture": "res://assets/agency/colour/product-mug.png",
+            "position": Vector2(440, 176),
+            "scale": 0.52,
+            "tint": Color(1, 1, 1, 1)
+        },
+        {
+            "id": "headline",
+            "name": "headline block",
+            "texture": "res://assets/agency/colour/poster-headline.png",
+            "position": Vector2(380, 82),
+            "scale": 0.95,
+            "tint": Color("ff6b57")
+        },
+        {
+            "id": "body",
+            "name": "body-copy block",
+            "texture": "res://assets/agency/colour/poster-body.png",
+            "position": Vector2(500, 164),
+            "scale": 0.78,
+            "tint": Color("42ccd1")
+        },
+        {
+            "id": "action",
+            "name": "action block",
+            "texture": "res://assets/agency/colour/poster-action.png",
+            "position": Vector2(650, 250),
+            "scale": 0.95,
+            "tint": Color("f8d165")
+        },
+        {
+            "id": "badge",
+            "name": "promotional badge",
+            "texture": "res://assets/agency/colour/poster-action.png",
+            "position": Vector2(250, 244),
+            "scale": 0.95,
+            "tint": Color("9bd67a")
+        }
+    ],
+    "tints": [
+        {"id": "original", "label": "Original", "colour": Color(1, 1, 1, 1)},
+        {"id": "soft-cream", "label": "Soft cream", "colour": Color("efe8d0")},
+        {"id": "muted-teal", "label": "Muted teal", "colour": Color("83b7ad")},
+        {"id": "muted-coral", "label": "Muted coral", "colour": Color("d98f7a")}
+    ],
+    "leverPhrases": {
+        "size": "size",
+        "isolation": "space around it",
+        "contrast": "colour difference"
+    },
+    "wonSentences": {
+        "size": "The {target} is now the largest remaining element after the competitors were reduced, so the audience sees it first.",
+        "isolation": "The {target} now has the most clear space after the competitors were moved, so the audience sees it first.",
+        "contrast": "The {target} now has the strongest colour difference after the competitors were quietened, so the audience sees it first."
+    },
+    "evidenceSentences": {
+        "size": "Competing elements were reduced until the {target} became the largest remaining element, so the audience sees it first.",
+        "isolation": "Competing elements were moved until the {target} had the most clear space, so the audience sees it first.",
+        "contrast": "Competing elements were quietened until the {target} had the strongest colour difference, so the audience sees it first."
+    }
+}
+
 # Engine B — crop frame. One draggable, resizable rectangle over one source photograph.
 # The record names what has to survive the crop rather than where the frame belongs: there
 # is no authored correct rectangle, and every frame that keeps the subject, stays close
@@ -570,7 +647,8 @@ const REQUIRED_MISSION_RECORDS := [
         "stationId": "client-briefing",
         "ownerRole": "strategist",
         "title": "Read the audience before making anything",
-        "goal": "Identify the audience situation, need and values that the advertisement must respect.",
+        "term": "Audience brief",
+        "goal": "Audience brief: identify the audience situation, need and values that the advertisement must respect.",
         "instruction": "Compare the four interpretations with the brief, then select the one supported by all of its evidence.",
         "holdingAction": "The Art Director identifies one visual detail that could represent the selected value without relying on a written label.",
         "referenceFacts": {
@@ -613,7 +691,8 @@ const REQUIRED_MISSION_RECORDS := [
         "stationId": "art-studio",
         "ownerRole": "art-director",
         "title": "Control what the audience notices first",
-        "goal": "Use size, isolation and colour contrast to make the advertisement's most important subject salient.",
+        "term": "Salience and AIDA Attention",
+        "goal": "Salience and AIDA Attention: use size, isolation and colour contrast to make the advertisement's most important subject salient.",
         "instruction": "Choose the treatment that creates the clearest first point of attention without making every element compete.",
         "holdingAction": "The Strategist names the single product benefit that deserves the audience's first attention and checks that the visual emphasis supports it.",
         "choices": [
@@ -650,7 +729,8 @@ const REQUIRED_MISSION_RECORDS := [
         "stationId": "art-studio",
         "ownerRole": "art-director",
         "title": "Build a deliberate reading path",
-        "goal": "Arrange imagery, headline and action so the audience encounters the advertisement in a useful sequence.",
+        "term": "Reading path",
+        "goal": "Reading path: arrange imagery, headline and action so the audience encounters the advertisement in a useful sequence.",
         "instruction": "Trace each proposed path from the first focal point to the action and choose the one with no visual dead end.",
         "holdingAction": "The Strategist reads the message in the proposed order and checks that each step supplies the information needed for the next one.",
         "choices": [
@@ -687,7 +767,8 @@ const REQUIRED_MISSION_RECORDS := [
         "stationId": "art-studio",
         "ownerRole": "art-director",
         "title": "Use colour to create emphasis and tone",
-        "goal": "Choose a limited colour relationship that makes one action clear while supporting the advertisement's intended feeling.",
+        "term": "Colour contrast and harmony",
+        "goal": "Colour contrast and harmony: choose a limited colour relationship that makes one action clear while supporting the advertisement's intended feeling.",
         "instruction": "Compare emphasis, legibility and emotional tone; select the palette that performs all three functions.",
         "holdingAction": "The Strategist states the intended audience feeling in one precise word and rejects any palette whose tone conflicts with that feeling.",
         "choices": [
@@ -724,7 +805,8 @@ const REQUIRED_MISSION_RECORDS := [
         "stationId": "production-studio",
         "ownerRole": "art-director",
         "title": "Frame the image around the advertisement meaning",
-        "goal": "Choose a crop and placement that show useful detail, preserve context and leave deliberate space for the message.",
+        "term": "Framing and cropping",
+        "goal": "Framing and cropping: choose a crop and placement that show useful detail, preserve context and leave deliberate space for the message.",
         "instruction": "Decide what the audience must see to understand use, scale and feeling, then select the frame that preserves those clues.",
         "holdingAction": "The Strategist checks whether the image alone supports the stated product value before reading any headline or caption.",
         "choices": [
@@ -761,7 +843,8 @@ const REQUIRED_MISSION_RECORDS := [
         "stationId": "strategy-room",
         "ownerRole": "strategist",
         "title": "Turn attention into a reason to act",
-        "goal": "Order the four AIDA stages so each one gives the audience a reason to continue to the next.",
+        "term": "AIDA sequence",
+        "goal": "AIDA sequence: order the four AIDA stages so each one gives the audience a reason to continue to the next.",
         "instruction": "Choose the sequence in which Attention introduces the subject, Interest explains relevance, Desire develops value and Action states the next step.",
         "holdingAction": "The Art Director identifies the visual element that will carry each AIDA stage and checks that all four stages do not compete at the same scale.",
         "choices": [
@@ -798,7 +881,8 @@ const REQUIRED_MISSION_RECORDS := [
         "stationId": "copy-room",
         "ownerRole": "strategist",
         "title": "Make a claim the advertisement can support",
-        "goal": "Connect a precise audience benefit to visible or stated evidence without making an absolute promise.",
+        "term": "Claims and evidence",
+        "goal": "Claims and evidence: connect a precise audience benefit to visible or stated evidence without making an absolute promise.",
         "instruction": "Select the claim whose wording is proportionate to the evidence provided by the product feature and advertisement image.",
         "holdingAction": "The Art Director identifies where the supporting feature appears in the image and checks that the evidence is noticeable before the claim is accepted.",
         "choices": [
@@ -838,7 +922,8 @@ const SIDEQUEST_RECORDS := [
         "stationId": "production-studio",
         "ownerRole": "art-director",
         "title": "Thirty-second layout rescue",
-        "goal": "Repair a crowded fictional advertisement by restoring one dominant focal point.",
+        "term": "Visual hierarchy",
+        "goal": "Visual hierarchy: repair a crowded fictional advertisement by restoring one dominant focal point.",
         "instruction": "Choose the single change that removes the most competition while preserving the advertisement's necessary evidence.",
         "holdingAction": "The Strategist names the one message that must survive the rescue and checks that the proposed simplification does not remove it.",
         "choices": [
@@ -866,6 +951,7 @@ const SIDEQUEST_RECORDS := [
         "correctChoiceId": "remove-equal-badges",
         "effectExplanation": "Removing equal competitors lets the audience identify the advertisement subject and action more quickly.",
         "transferPrompt": "Name one nonessential competitor you can remove from your own advertisement without losing evidence.",
+        "demonstration": SALIENCE_RESCUE_DEMONSTRATION,
         "reward": "Optional portfolio stamp",
         "required": false,
         "portfolioStamp": "Hierarchy Rescue",
@@ -876,7 +962,8 @@ const SIDEQUEST_RECORDS := [
         "stationId": "art-studio",
         "ownerRole": "art-director",
         "title": "Colour hierarchy clinic",
-        "goal": "Repair palettes in which every bright colour currently claims equal importance.",
+        "term": "Colour hierarchy",
+        "goal": "Colour hierarchy: repair palettes in which every bright colour currently claims equal importance.",
         "instruction": "Select the revision that reserves high contrast for the action and uses related colours elsewhere.",
         "holdingAction": "The Strategist checks that the revised palette still communicates the intended audience feeling.",
         "choices": [
@@ -915,7 +1002,8 @@ const SIDEQUEST_RECORDS := [
         "stationId": "production-studio",
         "ownerRole": "art-director",
         "title": "Crop laboratory",
-        "goal": "Choose the crop that preserves the evidence needed to understand product use and audience benefit.",
+        "term": "Framing and cropping",
+        "goal": "Framing and cropping: choose the crop that preserves the evidence needed to understand product use and audience benefit.",
         "instruction": "Compare what each frame includes and excludes, then select the frame with enough detail, context and message space.",
         "holdingAction": "The Strategist states the benefit the image must support and rejects any crop that removes its evidence.",
         "choices": [
@@ -954,7 +1042,8 @@ const SIDEQUEST_RECORDS := [
         "stationId": "copy-room",
         "ownerRole": "strategist",
         "title": "Headline surgery",
-        "goal": "Shorten a weak headline while retaining the product's relevant audience benefit.",
+        "term": "Concise headlines",
+        "goal": "Concise headlines: shorten a weak headline while retaining the product's relevant audience benefit.",
         "instruction": "Select the revision that removes empty evaluation and keeps a precise promise supported by the offer.",
         "holdingAction": "The Art Director checks that the revised headline can be read at the intended scale without covering advertisement evidence.",
         "choices": [
@@ -993,7 +1082,8 @@ const SIDEQUEST_RECORDS := [
         "stationId": "media-desk",
         "ownerRole": "strategist",
         "title": "Media format match",
-        "goal": "Match message length and visual scale to the conditions in which the audience will encounter the advertisement.",
+        "term": "Media format",
+        "goal": "Media format: match message length and visual scale to the conditions in which the audience will encounter the advertisement.",
         "instruction": "Select the format whose viewing distance, duration and orientation suit the proposed advertisement message.",
         "holdingAction": "The Art Director checks that the main subject remains recognisable at the selected format's scale and shape.",
         "choices": [

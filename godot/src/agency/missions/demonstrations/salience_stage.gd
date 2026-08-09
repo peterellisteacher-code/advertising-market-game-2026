@@ -96,7 +96,7 @@ func reset_arrangement() -> void:
         # to the pose of the one before it.
         _objects[index]["position"] = _objects[index].get("openingPosition", Vector2.ZERO)
         _objects[index]["scale"] = float(_objects[index].get("openingScale", 1.0))
-        _objects[index]["tint"] = Color.WHITE
+        _objects[index]["tint"] = _objects[index].get("openingTint", Color.WHITE)
     _select(String(_record.get("targetId", "")))
     _refresh()
 
@@ -132,6 +132,7 @@ func _build_objects() -> void:
             continue
         var described := Measure.describe_texture(texture)
         var id := String(entry.get("id", ""))
+        var opening_tint: Color = entry.get("tint", Color.WHITE)
         var object := {
             "id": id,
             "name": String(entry.get("name", id)),
@@ -143,7 +144,8 @@ func _build_objects() -> void:
             "scale": float(entry.get("scale", 1.0)),
             "openingPosition": entry.get("position", Vector2.ZERO),
             "openingScale": float(entry.get("scale", 1.0)),
-            "tint": Color.WHITE
+            "openingTint": opening_tint,
+            "tint": opening_tint
         }
         _objects.append(object)
         var view := TextureRect.new()

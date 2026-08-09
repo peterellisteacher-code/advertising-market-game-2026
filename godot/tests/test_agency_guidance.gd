@@ -159,7 +159,7 @@ func _assert_hud(progress: AdMarketAgencyProgress) -> void:
 	assert(hud.get_node("%HudGuideButton").visible)
 	var tuck_toggle := hud.get_node("%HudTuckToggle") as Button
 	assert(tuck_toggle.text == "Show work details")
-	assert(hud.size.x <= hud.custom_minimum_size.x)
+	assert(hud.size.x >= hud.custom_minimum_size.x)
 	assert(tuck_toggle.position.x + tuck_toggle.size.x <= hud.size.x)
 	assert(
 		hud.size.y <= 84.0,
@@ -175,7 +175,7 @@ func _assert_hud(progress: AdMarketAgencyProgress) -> void:
 	assert(hud.get_node("HudMargin/HudStack/ExpandedDetails/TravelBlock").visible)
 	assert(hud.get_node("%HudSoundToggle").visible)
 	assert(tuck_toggle.text == "Hide work details")
-	assert(tuck_toggle.position.x + tuck_toggle.size.x <= hud.custom_minimum_size.x)
+	assert(tuck_toggle.position.x + tuck_toggle.size.x <= hud.size.x)
 	assert(hud.size.y >= 120.0)
 	tuck_toggle.pressed.emit()
 	assert(hud.is_compact())

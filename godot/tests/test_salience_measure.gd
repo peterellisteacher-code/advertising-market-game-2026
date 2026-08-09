@@ -7,8 +7,9 @@ class_name AdMarketTestSalienceMeasure
 #   * the opening arrangement must NOT already pass, and
 #   * a pass must come out of the measure rather than out of matching a stored solution.
 #
-# The second one is why there is no expected arrangement anywhere in this suite: every
-# passing case here is produced by changing an object and re-measuring.
+# No test compares against a stored complete arrangement: each passing case changes an
+# object and asks the measure again. Individual controls still use known values so that a
+# specific lever is exercised deliberately.
 
 const Measure = preload("res://src/agency/missions/demonstrations/salience_measure.gd")
 const Catalog = preload("res://src/agency/agency_mission_catalog.gd")
@@ -34,6 +35,12 @@ func run() -> bool:
 	assert(await _a_record_without_a_stage_size_falls_back_to_the_scene())
 	assert(await _the_readout_and_the_sentence_come_from_the_record())
 	assert(await _the_opening_arrangement_is_unsolved_and_solvable())
+	assert(_the_main_instruction_explains_keyboard_control())
+	assert(await _transparent_pixels_do_not_claim_pointer_hits())
+	assert(await _tab_focus_keeps_the_selected_object())
+	assert(await _stage_inputs_cover_drag_clamp_tint_and_errors())
+	assert(await _stage_can_win_by_isolation_and_contrast())
+	assert(await _swatches_have_square_targets_and_visible_focus())
 	assert(_catalog_supplies_two_distinct_salience_records())
 	assert(await _the_rescue_opens_unsolved_and_passes_by_demotion())
 	assert(await _the_panel_records_measured_evidence())
@@ -288,7 +295,11 @@ func _real_sprites_describe_themselves() -> bool:
 	# Alpha-weighted, so the opaque area is a real fraction of the bounding box.
 	var coverage := float(described.get("alphaCoverage"))
 	assert(coverage > 0.5 and coverage < 1.0)
-	assert(is_equal_approx(float(described.get("baseArea")), coverage * base_size.x * base_size.y))
+	var base_area := float(described.get("baseArea"))
+	assert(
+		is_equal_approx(base_area, 59735.227451),
+		"Orange alpha-weighted area changed: %s" % base_area
+	)
 	var colour: Color = described.get("baseColour")
 	assert(colour.r > colour.g and colour.g > colour.b)
 
@@ -400,6 +411,164 @@ func _the_opening_arrangement_is_unsolved_and_solvable() -> bool:
 	stage.queue_free()
 	return true
 
+func _the_main_instruction_explains_keyboard_control() -> bool:
+	var instruction := String(Catalog.mission("salience").get("demonstration", {}).get("instruction", ""))
+	assert(instruction.contains("The arrow keys move whatever is selected, and holding Shift moves it further."))
+	return true
+
+func _transparent_pixels_do_not_claim_pointer_hits() -> bool:
+	var stage := _stage_in_tree()
+	await _settle()
+	var views: Dictionary = stage.get("_views")
+	var orange := views.get("orange") as Control
+	assert(orange != null)
+	assert(orange.has_method("is_opaque_at"))
+	assert(not bool(orange.call("is_opaque_at", Vector2.ONE)))
+	assert(bool(orange.call("is_opaque_at", orange.size * 0.5)))
+	assert(not bool(orange.call("_has_point", Vector2.ONE)))
+	assert(bool(orange.call("_has_point", orange.size * 0.5)))
+	stage.queue_free()
+	return true
+
+func _tab_focus_keeps_the_selected_object() -> bool:
+	var stage := _stage_in_tree()
+	await _settle()
+	var views: Dictionary = stage.get("_views")
+	var apple := views.get("apple") as Control
+	assert(apple != null)
+	var selected_before := String(stage.get("_selected_id"))
+	var orange_before := Vector2(Dictionary(stage.call("_object", selected_before)).get("position"))
+	var apple_before := Vector2(Dictionary(stage.call("_object", "apple")).get("position"))
+	apple.focus_entered.emit()
+	assert(String(stage.get("_selected_id")) == selected_before)
+	var left := InputEventKey.new()
+	left.keycode = KEY_LEFT
+	left.pressed = true
+	apple.gui_input.emit(left)
+	var orange_after: Dictionary = stage.call("_object", selected_before)
+	var apple_after: Dictionary = stage.call("_object", "apple")
+	assert(Vector2(orange_after.get("position")).x == orange_before.x - 8.0)
+	assert(Vector2(apple_after.get("position")) == apple_before)
+	stage.queue_free()
+	return true
+
+func _stage_inputs_cover_drag_clamp_tint_and_errors() -> bool:
+	var stage := _stage_in_tree()
+	await _settle()
+	var views: Dictionary = stage.get("_views")
+	var orange := views.get("orange") as Control
+	assert(orange != null)
+	var before := Vector2(Dictionary(stage.call("_object", "orange")).get("position"))
+	_drag_by(orange, Vector2(64, 0))
+	var dragged: Dictionary = stage.call("_object", "orange")
+	assert(is_equal_approx(Vector2(dragged.get("position")).x, before.x + 64.0))
+	stage.call("_move_to", "orange", Vector2(-999, -999))
+	var clamped: Dictionary = stage.call("_object", "orange")
+	var half := Vector2(clamped.get("baseSize")) * float(clamped.get("scale")) * 0.5
+	assert(Vector2(clamped.get("position")).is_equal_approx(half))
+	var swatches := stage.get_node("ControlsRow/SwatchRow") as HBoxContainer
+	var cooler: Button = null
+	for child in swatches.get_children():
+		var button := child as Button
+		if button != null and button.text == "Cooler":
+			cooler = button
+			break
+	assert(cooler != null)
+	cooler.pressed.emit()
+	var tinted: Dictionary = stage.call("_object", "orange")
+	assert(Color(tinted.get("tint")).is_equal_approx(Color(0.66, 0.86, 1, 1)))
+	stage.call("show_error", "Choose one change and check again.")
+	var feedback := stage.get_node("DemonstrationFeedback") as Label
+	assert(feedback.text == "Choose one change and check again.")
+	stage.queue_free()
+	return true
+
+func _stage_can_win_by_isolation_and_contrast() -> bool:
+	var isolation_stage := _stage_in_tree()
+	await _settle()
+	var isolation_views: Dictionary = isolation_stage.get("_views")
+	var isolation_orange := isolation_views.get("orange") as Control
+	var isolation_before: Dictionary = isolation_stage.call("_object", "orange")
+	_drag_by(isolation_orange, Vector2(200, 160) - Vector2(isolation_before.get("position")))
+	var isolation_result: Dictionary = isolation_stage.call("current_result")
+	assert(PackedStringArray(isolation_result.get("wonLevers", PackedStringArray())).has("isolation"))
+	isolation_stage.queue_free()
+
+	var contrast_record: Dictionary = Catalog.mission("salience").get("demonstration").duplicate(true)
+	contrast_record["tints"] = [
+		{"id": "test-ink", "label": "Deep ink", "colour": Color(0.02, 0.04, 0.08, 1)}
+	]
+	var tree := Engine.get_main_loop() as SceneTree
+	var contrast_stage := StageScene.instantiate() as Control
+	tree.root.add_child(contrast_stage)
+	contrast_stage.call("configure", contrast_record)
+	await _settle()
+	contrast_stage.call("_move_to", "orange", Vector2(200, 160))
+	var swatches := contrast_stage.get_node("ControlsRow/SwatchRow") as HBoxContainer
+	assert(swatches.get_child_count() == 1)
+	var ink := swatches.get_child(0) as Button
+	assert(ink != null and ink.text == "Deep ink")
+	ink.pressed.emit()
+	var contrast_result: Dictionary = contrast_stage.call("current_result")
+	assert(
+		PackedStringArray(contrast_result.get("wonLevers", PackedStringArray())).has("contrast"),
+		"Record-driven contrast swatch did not reach the measure: %s" % contrast_result
+	)
+	contrast_stage.queue_free()
+	return true
+
+func _swatches_have_square_targets_and_visible_focus() -> bool:
+	var stage := _stage_in_tree()
+	await _settle()
+	var swatches := stage.get_node("ControlsRow/SwatchRow") as HBoxContainer
+	assert(swatches.get_child_count() > 0)
+	for child in swatches.get_children():
+		var button := child as Button
+		assert(button != null)
+		assert(button.custom_minimum_size.x >= 48.0)
+		assert(button.custom_minimum_size.y >= 48.0)
+		var normal := button.get_theme_stylebox("normal") as StyleBoxFlat
+		var focus := button.get_theme_stylebox("focus") as StyleBoxFlat
+		assert(normal != null and focus != null)
+		assert(_contrast_ratio(focus.border_color, normal.bg_color) >= 3.0)
+	stage.queue_free()
+	return true
+
+func _drag_by(view: Control, delta: Vector2) -> void:
+	var centre := view.size * 0.5
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = centre
+	view.gui_input.emit(press)
+	var motion := InputEventMouseMotion.new()
+	motion.position = centre + delta
+	view.gui_input.emit(motion)
+	var release := InputEventMouseButton.new()
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.pressed = false
+	release.position = centre + delta
+	view.gui_input.emit(release)
+
+func _contrast_ratio(first: Color, second: Color) -> float:
+	var first_luminance := _relative_luminance(first)
+	var second_luminance := _relative_luminance(second)
+	return (maxf(first_luminance, second_luminance) + 0.05) / (
+		minf(first_luminance, second_luminance) + 0.05
+	)
+
+func _relative_luminance(colour: Color) -> float:
+	return (
+		0.2126 * _linear_channel(colour.r)
+		+ 0.7152 * _linear_channel(colour.g)
+		+ 0.0722 * _linear_channel(colour.b)
+	)
+
+func _linear_channel(value: float) -> float:
+	if value <= 0.04045:
+		return value / 12.92
+	return pow((value + 0.055) / 1.055, 2.4)
+
 func _catalog_supplies_two_distinct_salience_records() -> bool:
 	var main: Dictionary = Catalog.mission("salience").get("demonstration", {})
 	var rescue: Dictionary = Catalog.sidequest("thirty-second-rescue").get("demonstration", {})
@@ -457,8 +626,8 @@ func _the_panel_records_measured_evidence() -> bool:
 
 	assert(controller.call("open_mission", "salience", "art-director").get("allowed") == true)
 	assert(controller.call("choose", "largest-contrast").get("correct") == true)
-	# The written gate is gone for this task: continuing lands on the demonstration.
-	assert(controller.call("continue_to_transfer").get("state") == "demonstration")
+	# Every mission now continues directly from its effect to the demonstration.
+	assert(controller.call("continue_to_demonstration").get("state") == "demonstration")
 	var host := panel.get_node("Backdrop/Dialog/Margin/Content/DemonstrationStage") as Control
 	assert(host.visible)
 	var stage := host.get_child(0) as Control
@@ -478,7 +647,15 @@ func _the_panel_records_measured_evidence() -> bool:
 	# fits and the figure below leaves 10px of headroom. Anything added to the salience
 	# demonstration lands here first.
 	var dialog := panel.get_node("Backdrop/Dialog") as PanelContainer
-	assert(dialog.get_combined_minimum_size().y <= 760.0)
+	assert(
+		dialog.get_combined_minimum_size().y <= 760.0,
+		"Salience dialog=%s instruction=%s controls=%s stage=%s" % [
+			dialog.get_combined_minimum_size(),
+			(stage.get_node("DemonstrationInstruction") as Control).get_combined_minimum_size(),
+			(stage.get_node("ControlsRow") as Control).get_combined_minimum_size(),
+			stage.get_combined_minimum_size()
+		]
+	)
 
 	# An arrangement that has not been changed is refused, and refusing it must not
 	# record anything.

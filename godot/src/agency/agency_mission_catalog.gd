@@ -11,7 +11,7 @@ const SALIENCE_DEMONSTRATION := {
     "plate": "res://assets/agency/salience/fruit-table-plate.png",
     "stageSize": Vector2(880, 320),
     "targetId": "orange",
-    "instruction": "Make the orange the first thing the audience sees. Drag a fruit to move it, or use the size and colour controls.",
+    "instruction": "Make the orange salient. Drag it. The arrow keys move whatever is selected, and holding Shift moves it further.",
     "minScale": 0.12,
     "maxScale": 0.9,
     "objects": [

@@ -11,6 +11,7 @@ class_name AdMarketSalienceStage
 signal arrangement_submitted(result: Dictionary)
 
 const Measure = preload("res://src/agency/missions/demonstrations/salience_measure.gd")
+const ALPHA_HIT_VIEW_PATH := "res://src/agency/missions/demonstrations/alpha_hit_texture_rect.gd"
 
 const PLATE_GRID_COLS := 24
 const PLATE_GRID_ROWS := 12
@@ -122,6 +123,10 @@ func _build_objects() -> void:
             child.queue_free()
     _objects.clear()
     _views.clear()
+    var view_script := load(ALPHA_HIT_VIEW_PATH) as Script
+    if view_script == null:
+        push_error("Salience stage: alpha-aware object view is unavailable")
+        return
     for entry_value: Variant in _record.get("objects", []):
         var entry: Dictionary = entry_value
         var texture := load(String(entry.get("texture", ""))) as Texture2D
@@ -148,7 +153,7 @@ func _build_objects() -> void:
             "tint": opening_tint
         }
         _objects.append(object)
-        var view := TextureRect.new()
+        var view := view_script.new() as TextureRect
         view.texture = texture
         view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
         # The drawn box is always the source size times one factor, so a resized object
@@ -158,7 +163,6 @@ func _build_objects() -> void:
         view.focus_mode = Control.FOCUS_ALL
         view.tooltip_text = String(object.get("name"))
         view.gui_input.connect(_on_object_input.bind(id))
-        view.focus_entered.connect(_select.bind(id))
         objects_root.add_child(view)
         _views[id] = view
     objects_root.move_child(selection_ring, objects_root.get_child_count() - 1)
@@ -170,7 +174,7 @@ func _build_swatches() -> void:
         var tint: Dictionary = tint_value
         var button := Button.new()
         button.text = String(tint.get("label", ""))
-        button.custom_minimum_size = Vector2(0, 48)
+        button.custom_minimum_size = Vector2(48, 48)
         button.add_theme_font_size_override("font_size", 14)
         _style_swatch(button, tint.get("colour", Color.WHITE))
         button.pressed.connect(_on_tint_pressed.bind(tint.get("colour", Color.WHITE)))
@@ -206,8 +210,8 @@ func _build_readout() -> void:
         lever_leaders[lever] = leader_label
 
 func _style_swatch(button: Button, colour: Color) -> void:
-    # The swatch shows the tint it applies, so it has to carry that colour rather than
-    # the shared button theme. Grey is left alone: it still only means unclickable.
+    # The swatch is a labelled colour specimen rather than state chrome, so it carries
+    # the exact tint it applies. Enabled state remains explicit through focus and hover.
     var normal := StyleBoxFlat.new()
     normal.bg_color = Color(colour.r, colour.g, colour.b, 1.0)
     normal.border_color = INK
@@ -220,7 +224,7 @@ func _style_swatch(button: Button, colour: Color) -> void:
     var hover := normal.duplicate() as StyleBoxFlat
     hover.set_border_width_all(4)
     var focus := normal.duplicate() as StyleBoxFlat
-    focus.border_color = FOCUS_RING
+    focus.border_color = INK
     focus.set_border_width_all(4)
     button.add_theme_stylebox_override("normal", normal)
     button.add_theme_stylebox_override("hover", hover)
@@ -246,24 +250,27 @@ func _fit_stage() -> void:
     stage.position = (available - _stage_size * factor) * 0.5
 
 func _on_object_input(event: InputEvent, id: String) -> void:
+    var view := _views.get(id) as Control
+    if view == null:
+        return
     var button_event := event as InputEventMouseButton
     if button_event != null and button_event.button_index == MOUSE_BUTTON_LEFT:
         if button_event.pressed:
             _select(id)
             _dragging_id = id
-            _drag_offset = _object(id).get("position", Vector2.ZERO) - stage.get_local_mouse_position()
-            _views[id].grab_focus()
+            _drag_offset = _object(id).get("position", Vector2.ZERO) - (view.position + button_event.position)
+            view.grab_focus()
         else:
             _dragging_id = ""
         accept_event()
         return
     var motion := event as InputEventMouseMotion
     if motion != null and _dragging_id == id:
-        _move_to(id, stage.get_local_mouse_position() + _drag_offset)
+        _move_to(id, view.position + motion.position + _drag_offset)
         accept_event()
         return
     var key := event as InputEventKey
-    if key != null and key.pressed:
+    if key != null and key.pressed and _index_of(_selected_id) >= 0:
         var step := COARSE_NUDGE_STEP if key.shift_pressed else NUDGE_STEP
         var delta := Vector2.ZERO
         match key.keycode:
@@ -272,7 +279,7 @@ func _on_object_input(event: InputEvent, id: String) -> void:
             KEY_UP: delta = Vector2(0, -step)
             KEY_DOWN: delta = Vector2(0, step)
             _: return
-        _move_to(id, _object(id).get("position", Vector2.ZERO) + delta)
+        _move_to(_selected_id, _object(_selected_id).get("position", Vector2.ZERO) + delta)
         accept_event()
 
 func _move_to(id: String, target: Vector2) -> void:

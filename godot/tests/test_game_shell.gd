@@ -326,7 +326,22 @@ func _startup_restores_an_exact_locked_pitch() -> bool:
 		== "Grab yours before the buzzer."
 	)
 	assert(not (shell.get_node("%LobbyPanel") as Control).visible)
-	assert((shell.get_node("%AgencyWorld") as Node2D).visible)
+	var restored_world := shell.get_node("%AgencyWorld") as AdMarketAgencyWorld
+	assert(is_instance_valid(restored_world))
+	assert(restored_world.visible)
+	var restored_guide := restored_world.get_node("%AgencyGuideDrawer") as AdMarketAgencyGuideDrawer
+	assert(is_instance_valid(restored_guide))
+	var restored_orientation := restored_guide.get_node("%OrientationLayer") as Control
+	var restored_pair := restored_world.get_node("%AgencyPair") as AdMarketAgencyPair
+	assert(is_instance_valid(restored_orientation))
+	assert(is_instance_valid(restored_pair))
+	assert(
+		not restored_orientation.visible,
+		"Acknowledged restored progress must not leave the preview quick start over the game"
+	)
+	assert(not restored_world.reading_active())
+	assert(restored_pair.input_enabled)
+	assert(not restored_pair.modal_open)
 	assert(not (shell.get_node("%RunPanel") as Control).visible)
 	assert((shell.get_node("%LockLevel") as Button).disabled)
 	assert(not (shell.get_node("%AdvanceLevel") as Button).disabled)

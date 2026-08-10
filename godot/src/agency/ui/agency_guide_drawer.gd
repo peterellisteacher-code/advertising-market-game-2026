@@ -147,6 +147,8 @@ func _apply_dark_button_theme() -> void:
 func configure(progress: AdMarketAgencyProgress, catalog: Variant) -> void:
 	_progress = progress
 	_catalog = catalog
+	if not orientation_required():
+		_set_orientation_visible(false)
 	var objective: Dictionary = catalog.objective(progress.current_objective_id)
 	show_objective(objective)
 	set_progress(

@@ -32,7 +32,7 @@ const DEFAULT_ROOT = path.resolve(SCRIPT_DIR, "..");
 const REQUIRED_GODOT_FILES = ["index.html", "index.js", "index.wasm", "index.pck"];
 const ROUTE_BASE = '<base href="/">';
 const ROUTED_GAME_ACCESS = "window.AdMarketGameAccess.requireAccess()";
-const WEB_MANIFEST = '<link rel="manifest" href="./manifest.webmanifest">';
+const WEB_MANIFEST = '<link rel="manifest" href="./manifest.webmanifest" crossorigin="use-credentials">';
 const RELEASE_PRIVATE_ROOT = path.join(".release", "functions");
 const STUDENT_STARTER_RELATIVE = path.join(
   "catalog",

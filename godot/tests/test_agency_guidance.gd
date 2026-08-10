@@ -13,6 +13,7 @@ func run() -> bool:
 	var progress := AgencyProgress.new()
 	assert(progress.begin())
 	await _assert_guide(progress)
+	await _assert_acknowledged_progress_closes_stale_orientation()
 	await _assert_hud(progress)
 	return true
 
@@ -135,6 +136,34 @@ func _assert_guide(progress: AdMarketAgencyProgress) -> void:
 	assert(not resume.visible)
 	assert(_requested_station_id == "client-briefing")
 	assert(not guide.get_node("%GuidePanel").visible)
+	guide.free()
+
+func _assert_acknowledged_progress_closes_stale_orientation() -> void:
+	var stale_progress := AgencyProgress.new()
+	assert(stale_progress.begin())
+	var guide := GuideScene.instantiate()
+	var tree := Engine.get_main_loop() as SceneTree
+	assert(tree != null)
+	tree.root.add_child(guide)
+	guide.configure(stale_progress, MissionCatalog)
+	guide.open_orientation()
+	await tree.process_frame
+	var orientation_layer := guide.get_node("%OrientationLayer") as Control
+	var orientation_card := guide.get_node("%OrientationPanel") as Control
+	assert(orientation_layer.visible)
+	assert(orientation_card.visible)
+	var restored_progress := AgencyProgress.new()
+	assert(restored_progress.begin())
+	restored_progress.orientation_acknowledged = true
+	restored_progress.guide_tucked = true
+	guide.configure(restored_progress, MissionCatalog)
+	await tree.process_frame
+	assert(
+		not orientation_layer.visible,
+		"An acknowledged saved run must not inherit the preview quick-start overlay"
+	)
+	assert(not orientation_card.visible)
+	assert(not guide.reading_active())
 	guide.free()
 
 func _assert_hud(progress: AdMarketAgencyProgress) -> void:

@@ -173,6 +173,9 @@ func _physics_process(_delta: float) -> void:
 		_set_current_station(nearest, true)
 
 func _unhandled_input(event: InputEvent) -> void:
+	var pair := _pair()
+	if pair == null or not pair.input_enabled or pair.modal_open:
+		return
 	if event.is_action_pressed("guide"):
 		_on_guide_pressed()
 		get_viewport().set_input_as_handled()
@@ -487,6 +490,17 @@ func _set_station_panel_tucked(tucked: bool) -> void:
 		tab.text = "Open %s" % String(record.get("title", "room card"))
 		tab.visible = tucked
 
+func _focus_visible_station_control() -> void:
+	if reading_active():
+		return
+	var pair := _pair()
+	if pair != null and (pair.modal_open or not pair.input_enabled):
+		return
+	var target_path := "%StationPanelTab" if _station_panel_tucked else "%StationActionButton"
+	var target := get_node_or_null(target_path) as Button
+	if target != null and target.is_visible_in_tree() and not target.disabled:
+		target.grab_focus()
+
 func _begin_direct_travel(pair: AdMarketAgencyPair, target: Vector2) -> void:
 	_cancel_direct_travel()
 	_travel_target = target
@@ -512,15 +526,17 @@ func _begin_direct_travel_leg(pair: AdMarketAgencyPair, direction: Vector2) -> v
 
 func _finish_direct_travel() -> void:
 	var pair := _pair()
+	var can_restore_input := false
 	if pair != null:
-		pair.set_input_enabled(true)
+		can_restore_input = not pair.modal_open and not reading_active()
+		if can_restore_input:
+			pair.set_input_enabled(true)
 		pair.set_nearest_station(_current_station_id)
 		pair.end_auto_travel()
 	_travel_tween = null
 	_travel_target = Vector2.ZERO
-	var action_button := get_node_or_null("%StationActionButton") as Button
-	if action_button != null:
-		action_button.grab_focus()
+	if can_restore_input:
+		_focus_visible_station_control()
 
 func _on_pair_interaction_requested() -> void:
 	var pair := _pair()
@@ -544,15 +560,11 @@ func _on_station_details_pressed() -> void:
 
 func _on_station_panel_tuck_pressed() -> void:
 	_set_station_panel_tucked(true)
-	var tab := get_node_or_null("%StationPanelTab") as Button
-	if tab != null and tab.is_inside_tree():
-		tab.call_deferred("grab_focus")
+	call_deferred("_focus_visible_station_control")
 
 func _on_station_panel_tab_pressed() -> void:
 	_set_station_panel_tucked(false)
-	var action_button := get_node_or_null("%StationActionButton") as Button
-	if action_button != null and action_button.is_inside_tree():
-		action_button.call_deferred("grab_focus")
+	call_deferred("_focus_visible_station_control")
 
 func _request_station_work(station_id: String) -> void:
 	station_requested.emit(station_id)
@@ -711,16 +723,21 @@ func _show_handoff_dialog() -> void:
 			"Choose who controls the next decision. This does not remove either partner's job.\n\n%s"
 			% station.responsibility_summary()
 		)
+	var active_role := "strategist" if _progress == null else _progress.active_role
+	var art_button := get_node_or_null("%ArtDirectorHandoff") as Button
+	var strategist_button := get_node_or_null("%StrategistHandoff") as Button
+	if art_button != null:
+		art_button.disabled = active_role == "art-director"
+	if strategist_button != null:
+		strategist_button.disabled = active_role == "strategist"
 	panel.visible = true
 	set_input_enabled(false)
 	var pair := _pair()
 	if pair != null:
 		pair.set_modal_open(true)
-	var active_button := get_node_or_null(
-		"%StrategistHandoff" if _progress != null and _progress.active_role == "art-director" else "%ArtDirectorHandoff"
-	) as Button
-	if active_button != null and active_button.is_inside_tree():
-		active_button.grab_focus()
+	var available_button := strategist_button if active_role == "art-director" else art_button
+	if available_button != null and available_button.is_visible_in_tree():
+		available_button.grab_focus()
 
 func _on_art_director_handoff_pressed() -> void:
 	_complete_handoff("art-director")
@@ -745,9 +762,7 @@ func _hide_handoff_dialog() -> void:
 	if pair != null:
 		pair.set_modal_open(false)
 	set_input_enabled(true)
-	var action_button := get_node_or_null("%StationActionButton") as Button
-	if action_button != null and action_button.is_inside_tree():
-		action_button.grab_focus()
+	_focus_visible_station_control()
 
 func _cancel_direct_travel(teleport_to_target: bool = false) -> void:
 	if _travel_tween != null and _travel_tween.is_valid():

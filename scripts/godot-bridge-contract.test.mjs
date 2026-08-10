@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import vm from "node:vm";
 
 const root = new URL("../", import.meta.url);
 const godotBridgeDocuments = [
@@ -9,6 +10,110 @@ const godotBridgeDocuments = [
   "godot/tests/test_creator_bridge.gd",
   "godot/tests/test_creator_host.gd"
 ];
+
+function recoveryProgram(shell) {
+  const start = shell.indexOf('const GAME_ACCESS_RECOVERY_KEY =');
+  const end = shell.indexOf('const engine = new Engine(', start);
+  assert.ok(start >= 0, "recovery program start must remain identifiable");
+  assert.ok(end > start, "recovery program end must remain identifiable");
+  return shell.slice(start, end);
+}
+
+function recoveryHarness(program, options = {}) {
+  const storage = options.storage ?? new Map();
+  const replacements = [];
+  const timers = [];
+  const microtasks = [];
+  let reloads = 0;
+  const location = {
+    href: options.href ?? "https://example.test/game?teacher=1#play",
+    reload() {
+      reloads += 1;
+    }
+  };
+  const history = {
+    replaceState(_state, _title, next) {
+      replacements.push(next);
+      location.href = new URL(next, location.href).href;
+    }
+  };
+  const document = { activeElement: null };
+  function element(tagName) {
+    const listeners = new Map();
+    return {
+      tagName: tagName.toUpperCase(),
+      attributes: new Map(),
+      children: [],
+      className: "",
+      textContent: "",
+      type: "",
+      addEventListener(name, listener) {
+        listeners.set(name, listener);
+      },
+      append(...children) {
+        this.children.push(...children);
+      },
+      click() {
+        listeners.get("click")?.();
+      },
+      focus() {
+        document.activeElement = this;
+      },
+      getAttribute(name) {
+        return this.attributes.get(name) ?? null;
+      },
+      setAttribute(name, value) {
+        this.attributes.set(name, value);
+      }
+    };
+  }
+  const gateRoot = {
+    children: [],
+    className: "",
+    hidden: true,
+    replaceChildren(...children) {
+      this.children = children;
+    }
+  };
+  document.createElement = element;
+  document.getElementById = (id) => id === "account-gate-root" ? gateRoot : null;
+  const sessionStorage = options.storageDenied ? {
+    getItem() { throw new Error("storage denied"); },
+    setItem() { throw new Error("storage denied"); },
+    removeItem() { throw new Error("storage denied"); }
+  } : {
+    getItem(key) { return storage.get(key) ?? null; },
+    setItem(key, value) { storage.set(key, value); },
+    removeItem(key) { storage.delete(key); }
+  };
+  const window = {
+    AdMarketGameAccess: options.existingController,
+    history,
+    location,
+    setTimeout(callback, delay) {
+      timers.push({ callback, delay });
+      return timers.length;
+    }
+  };
+  vm.runInNewContext(program, {
+    URL,
+    document,
+    queueMicrotask(callback) { microtasks.push(callback); },
+    sessionStorage,
+    window
+  });
+  return {
+    document,
+    gateRoot,
+    location,
+    microtasks,
+    reloadCount: () => reloads,
+    replacements,
+    storage,
+    timers,
+    window
+  };
+}
 
 test("game run keeps one indentation style after student-copy edits", async () => {
   const gameRun = await readFile(
@@ -135,6 +240,91 @@ test("the Godot shell mirrors current instructions semantically without pretendi
     assert.match(block, /theme_override_styles\/focus = SubResource\("[^"]+"\)/);
   }
   assert.doesNotMatch(scene, /\[node name="(?:InventChip|SellChip|IrresistibleChip)" type="Button"/);
+});
+
+test("the fallback game-access controller reloads once then exposes an accessible retry boundary", async () => {
+  const shell = await readFile(
+    new URL("godot/web/godot_shell.html", root),
+    "utf8"
+  );
+  const program = recoveryProgram(shell);
+
+  const deniedFirstLoad = recoveryHarness(program, { storageDenied: true });
+  await assert.rejects(
+    deniedFirstLoad.window.AdMarketGameAccess.requireAccess(),
+    /controller unavailable/i
+  );
+  deniedFirstLoad.window.AdMarketGameAccess.reportStartupFailure("engine");
+  assert.equal(deniedFirstLoad.replacements.length, 1);
+  const deniedRecoveryUrl = new URL(deniedFirstLoad.location.href);
+  assert.equal(deniedRecoveryUrl.searchParams.get("gameAccessRecovery"), "1");
+  assert.equal(deniedRecoveryUrl.searchParams.get("teacher"), "1");
+  assert.equal(deniedRecoveryUrl.hash, "#play");
+  assert.equal(deniedFirstLoad.timers.length, 1, "first failure schedules one reload");
+  assert.equal(deniedFirstLoad.timers[0].delay, 250);
+  deniedFirstLoad.window.AdMarketGameAccess.reportStartupFailure("timeout");
+  assert.equal(deniedFirstLoad.timers.length, 1, "duplicate failures share the pending reload");
+  assert.equal(
+    deniedFirstLoad.gateRoot.children.length,
+    0,
+    "a duplicate failure must not expose the terminal boundary before the recovery reload"
+  );
+  deniedFirstLoad.timers[0].callback();
+  assert.equal(deniedFirstLoad.reloadCount(), 1);
+
+  const deniedSecondLoad = recoveryHarness(program, {
+    href: deniedFirstLoad.location.href,
+    storageDenied: true
+  });
+  deniedSecondLoad.window.AdMarketGameAccess.reportStartupFailure("engine");
+  assert.equal(deniedSecondLoad.timers.length, 0, "second failure must not reload-loop");
+  assert.equal(deniedSecondLoad.gateRoot.hidden, false);
+  assert.equal(deniedSecondLoad.gateRoot.className, "account-access");
+  assert.equal(deniedSecondLoad.gateRoot.children.length, 1);
+  const panel = deniedSecondLoad.gateRoot.children[0];
+  assert.equal(panel.className, "account-access__card");
+  assert.equal(panel.getAttribute("role"), null, "the interactive section is not an alert");
+  const [, message, retry] = panel.children;
+  assert.equal(message.getAttribute("role"), "alert");
+  assert.equal(retry.textContent, "Reload game");
+  assert.equal(deniedSecondLoad.microtasks.length, 1);
+  deniedSecondLoad.microtasks[0]();
+  assert.equal(deniedSecondLoad.document.activeElement, retry);
+  retry.click();
+  assert.equal(deniedSecondLoad.reloadCount(), 1);
+
+  const storage = new Map();
+  const storedFirstLoad = recoveryHarness(program, { storage });
+  storedFirstLoad.window.AdMarketGameAccess.reportStartupFailure("timeout");
+  assert.equal(storage.get("admarket-game-access-recovery"), "1");
+  assert.equal(storedFirstLoad.timers.length, 1);
+  const storedSecondLoad = recoveryHarness(program, { storage });
+  storedSecondLoad.window.AdMarketGameAccess.reportStartupFailure("timeout");
+  assert.equal(storedSecondLoad.timers.length, 0);
+  assert.equal(storedSecondLoad.gateRoot.children.length, 1);
+
+  storage.set("admarket-game-access-recovery", "1");
+  const liveController = Object.freeze({ requireAccess() {} });
+  const recovered = recoveryHarness(program, {
+    existingController: liveController,
+    href: "https://example.test/game?teacher=1&gameAccessRecovery=1#play",
+    storage
+  });
+  assert.equal(recovered.window.AdMarketGameAccess, liveController);
+  assert.equal(storage.has("admarket-game-access-recovery"), false);
+  assert.equal(new URL(recovered.location.href).searchParams.has("gameAccessRecovery"), false);
+  assert.equal(new URL(recovered.location.href).searchParams.get("teacher"), "1");
+  assert.equal(new URL(recovered.location.href).hash, "#play");
+
+  const deniedRecovered = recoveryHarness(program, {
+    existingController: liveController,
+    href: "https://example.test/game?teacher=1&gameAccessRecovery=1#play",
+    storageDenied: true
+  });
+  assert.equal(deniedRecovered.window.AdMarketGameAccess, liveController);
+  assert.equal(new URL(deniedRecovered.location.href).searchParams.has("gameAccessRecovery"), false);
+  assert.equal(new URL(deniedRecovered.location.href).searchParams.get("teacher"), "1");
+  assert.equal(new URL(deniedRecovered.location.href).hash, "#play");
 });
 
 test("the browser reduced-motion preference reaches both Godot motion surfaces", async () => {

@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" path="res://assets/agency/onboarding-brief.png" id="2_brief"]
 [ext_resource type="Texture2D" path="res://assets/agency/onboarding-build.png" id="3_build"]
 [ext_resource type="Texture2D" path="res://assets/agency/onboarding-approval.png" id="4_approval"]
+[ext_resource type="Theme" path="res://src/agency/ui/agency_theme.tres" id="5_theme"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_brief"]
 atlas = ExtResource("2_brief")
@@ -212,8 +213,13 @@ corner_radius_bottom_left = 9
 [node name="AgencyGuideDrawer" type="Control" unique_id=1880896600]
 custom_minimum_size = Vector2(1280, 800)
 layout_mode = 3
-anchors_preset = 0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
+theme = ExtResource("5_theme")
 script = ExtResource("1_3sbd4")
 
 [node name="GuideTab" type="Button" parent="." unique_id=436268978]
@@ -452,6 +458,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_type_variation = &"PrimaryAction"
 text = "Make Art Director active"
 autowrap_mode = 2
 
@@ -469,6 +476,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_type_variation = &"PrimaryAction"
 text = "Make Strategist active"
 autowrap_mode = 2
 
@@ -609,18 +617,20 @@ color = Color(0.015, 0.035, 0.065, 0.9)
 unique_name_in_owner = true
 visible = false
 custom_minimum_size = Vector2(1120, 680)
-layout_mode = 0
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -560.0
-offset_top = -340.0
-offset_right = 560.0
-offset_bottom = 340.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 48.0
+offset_top = 48.0
+offset_right = -48.0
+offset_bottom = -48.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_02wlv")
 
 [node name="OrientationMargin" type="MarginContainer" parent="OrientationLayer/OrientationPanel" unique_id=2007986274]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/margin_left = 32
 theme_override_constants/margin_top = 24
@@ -648,7 +658,7 @@ custom_minimum_size = Vector2(1056, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 30
-text = "You and your partner will make and pitch one ad."
+text = "You and your partner make one ad and pitch it."
 
 [node name="OrientationAction" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=747531041]
 unique_name_in_owner = true
@@ -657,7 +667,7 @@ custom_minimum_size = Vector2(1056, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 20
-text = "Read the brief. Complete seven short tasks. Build one ad. Pitch it."
+text = "There are seven required tasks. Each one adds a decision to the ad."
 autowrap_mode = 2
 
 [node name="OrientationOverview" type="HBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=2026080314]
@@ -739,7 +749,7 @@ modulate = Color(0.18, 0.84, 0.9, 1)
 layout_mode = 2
 custom_minimum_size = Vector2(150, 0)
 theme_override_font_sizes/font_size = 18
-text = "MAKE"
+text = "THE WORK"
 
 [node name="OrientationItemOneText" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems/OrientationItemOne" unique_id=2026080304]
 unique_name_in_owner = true
@@ -747,7 +757,7 @@ modulate = Color(0.92, 0.95, 0.98, 1)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
-text = "Make an ad that gives the audience a clear reason to act."
+text = "One ad that gives its audience a reason to act."
 autowrap_mode = 2
 
 [node name="OrientationItemTwo" type="HBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems" unique_id=2026080305]
@@ -761,7 +771,7 @@ modulate = Color(0.18, 0.84, 0.9, 1)
 layout_mode = 2
 custom_minimum_size = Vector2(150, 0)
 theme_override_font_sizes/font_size = 18
-text = "PRACTISE"
+text = "THE TASKS"
 
 [node name="OrientationItemTwoText" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems/OrientationItemTwo" unique_id=2026080307]
 unique_name_in_owner = true
@@ -791,7 +801,7 @@ modulate = Color(0.92, 0.95, 0.98, 1)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
-text = "Each required task prepares the ad for the final pitch."
+text = "You present the finished ad and explain your decisions."
 autowrap_mode = 2
 
 [node name="OrientationActions" type="HBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=2026080311]

@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://dmdn0nl418hup"]
 
 [ext_resource type="Script" uid="uid://ixe15b1sg2jg" path="res://src/agency/missions/agency_mission_panel.gd" id="1_mm4e4"]
+[ext_resource type="Theme" path="res://src/agency/ui/agency_theme.tres" id="2_theme"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mm4e4"]
 bg_color = Color(0.98, 0.965, 0.91, 1)
@@ -57,6 +58,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("2_theme")
 script = ExtResource("1_mm4e4")
 
 [node name="Backdrop" type="ColorRect" parent="." unique_id=1838012177]
@@ -76,6 +78,8 @@ offset_left = -490.0
 offset_top = -350.0
 offset_right = 490.0
 offset_bottom = 350.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_mm4e4")
 
 [node name="Margin" type="MarginContainer" parent="Backdrop/Dialog" unique_id=1088122593]
@@ -119,7 +123,7 @@ custom_minimum_size = Vector2(800, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.14, 0.2, 0.3, 1)
-text = "GOAL — Decide what the audience should notice."
+text = "Decide what the audience should notice."
 autowrap_mode = 3
 
 [node name="OwnerCard" type="VBoxContainer" parent="Backdrop/Dialog/Margin/Content" unique_id=1326774698]
@@ -159,6 +163,7 @@ unique_name_in_owner = true
 visible = false
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
+theme_type_variation = &"PrimaryAction"
 text = "Make the lead role active"
 
 [node name="Instruction" type="Label" parent="Backdrop/Dialog/Margin/Content" unique_id=681311123]
@@ -300,65 +305,16 @@ size_flags_horizontal = 3
 [node name="ContinueButton" type="Button" parent="Backdrop/Dialog/Margin/Content/EffectStage/EffectActions" unique_id=1840059499]
 custom_minimum_size = Vector2(230, 52)
 layout_mode = 2
+theme_type_variation = &"PrimaryAction"
 text = "Apply this decision"
 
-[node name="TransferStage" type="VBoxContainer" parent="Backdrop/Dialog/Margin/Content" unique_id=880836468]
+[node name="DemonstrationStage" type="VBoxContainer" parent="Backdrop/Dialog/Margin/Content" unique_id=2026080801]
+unique_name_in_owner = true
 visible = false
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="TransferPrompt" type="Label" parent="Backdrop/Dialog/Margin/Content/TransferStage" unique_id=1397016176]
 custom_minimum_size = Vector2(800, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.04, 0.09, 0.16, 1)
-text = "Explain how you will apply this technique."
-autowrap_mode = 3
-
-[node name="ApplicationObjective" type="Label" parent="Backdrop/Dialog/Margin/Content/TransferStage" unique_id=565136344]
-custom_minimum_size = Vector2(800, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.14, 0.2, 0.3, 1)
-text = "At the Studio, apply this decision to your advertisement."
-autowrap_mode = 3
-
-[node name="EvidenceEdit" type="TextEdit" parent="Backdrop/Dialog/Margin/Content/TransferStage" unique_id=706630551]
-custom_minimum_size = Vector2(800, 140)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-placeholder_text = "Example: I will use stronger size contrast so the audience notices the product before the supporting details."
-wrap_mode = 1
-
-[node name="EvidenceFooter" type="HBoxContainer" parent="Backdrop/Dialog/Margin/Content/TransferStage" unique_id=1368061301]
-custom_minimum_size = Vector2(800, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="EvidenceHint" type="Label" parent="Backdrop/Dialog/Margin/Content/TransferStage/EvidenceFooter" unique_id=1744172728]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.14, 0.2, 0.3, 1)
-text = "Name the audience and the technique."
-
-[node name="EvidenceCount" type="Label" parent="Backdrop/Dialog/Margin/Content/TransferStage/EvidenceFooter" unique_id=535016867]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.25, 0.31, 0.4, 1)
-text = "0 / 400 characters"
-
-[node name="ValidationLabel" type="Label" parent="Backdrop/Dialog/Margin/Content/TransferStage" unique_id=633628415]
-custom_minimum_size = Vector2(800, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.55, 0.14, 0.1, 1)
-text = "Write 30–400 characters."
-autowrap_mode = 3
-
-[node name="SubmitButton" type="Button" parent="Backdrop/Dialog/Margin/Content/TransferStage" unique_id=613905415]
-custom_minimum_size = Vector2(0, 54)
-layout_mode = 2
-text = "Submit application evidence"
 
 [node name="CompletedStage" type="VBoxContainer" parent="Backdrop/Dialog/Margin/Content" unique_id=1044366139]
 visible = false
@@ -396,4 +352,5 @@ autowrap_mode = 3
 [node name="CompletedCloseButton" type="Button" parent="Backdrop/Dialog/Margin/Content/CompletedStage" unique_id=1776812330]
 custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
+theme_type_variation = &"PrimaryAction"
 text = "Return to the agency"

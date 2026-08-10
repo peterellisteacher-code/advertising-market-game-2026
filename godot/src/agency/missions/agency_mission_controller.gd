@@ -10,35 +10,8 @@ const STATE_CLOSED := "closed"
 const STATE_HOLDING := "holding"
 const STATE_CHOICE := "choice"
 const STATE_EFFECT := "effect"
-const STATE_TRANSFER := "transfer"
+const STATE_DEMONSTRATION := "demonstration"
 const STATE_COMPLETED := "completed"
-const MIN_EVIDENCE_LENGTH := 30
-const MAX_EVIDENCE_LENGTH := 400
-const AUDIENCE_WORDS: Array[String] = [
-	"audience",
-	"teenager",
-	"student",
-	"buyer",
-	"customer",
-	"people",
-	"viewer",
-    "reader"
-]
-const TECHNIQUE_WORDS := {
-	"audience-brief": ["audience", "need", "value", "situation", "response"],
-	"salience": ["salience", "salient", "contrast", "size", "bigger", "largest", "isolation", "first"],
-	"reading-path": ["reading path", "leading line", "placement", "order", "direction", "route"],
-	"contrast": ["contrast", "colour", "color", "harmony", "tone", "palette"],
-	"framing": ["framing", "frame", "crop", "focus", "subject"],
-	"aida": ["aida", "attention", "interest", "desire", "action"],
-	"claim-proof": ["claim", "proof", "evidence", "support"],
-	"thirty-second-rescue": ["hierarchy", "salience", "clutter", "remove", "focus"],
-	"colour-clinic": ["colour", "color", "contrast", "accent", "palette", "tone"],
-	"crop-lab": ["crop", "frame", "framing", "focal"],
-	"headline-surgery": ["headline", "claim", "message", "concise"],
-	"media-match": ["media", "channel", "placement", "format"]
-}
-
 var _catalog_script: Script = load(CATALOG_PATH) as Script
 var _progress: RefCounted
 var _panel: Control
@@ -146,15 +119,15 @@ func retry() -> Dictionary:
 		"state": _state
 	}
 
-func continue_to_transfer() -> Dictionary:
+func continue_to_demonstration() -> Dictionary:
 	if _state != STATE_EFFECT or not _choice_correct:
 		return {
 			"changed": false,
 			"state": _state,
 			"reason": "Choose the effective treatment before applying it."
 		}
-	_state = STATE_TRANSFER
-	_show_transfer()
+	_state = STATE_DEMONSTRATION
+	_show_demonstration()
 	_emit_state()
 	return {
 		"changed": true,
@@ -162,27 +135,32 @@ func continue_to_transfer() -> Dictionary:
 		"applicationObjective": _application_objective()
 	}
 
-func submit_transfer_evidence(text: String) -> Dictionary:
-	if _state != STATE_TRANSFER:
+## Accepts a measured arrangement from a demonstration stage. The evidence sentence is
+## generated from the measure — the lever the pair won on and the object they promoted —
+## so a task without a text box still records evidence for the writer's statement.
+func submit_demonstration(result: Dictionary) -> Dictionary:
+	if _state != STATE_DEMONSTRATION:
 		return {
 			"accepted": false,
 			"state": _state,
-			"reason": "Reach the application step before submitting evidence."
+			"reason": "Reach the arrangement step before recording it."
 		}
-	var evidence_text := text.strip_edges()
-	var validation := _validate_evidence(evidence_text)
-	if not bool(validation.get("valid")):
+	if not bool(result.get("passed")):
 		return {
 			"accepted": false,
 			"state": _state,
-			"reason": String(validation.get("reason")),
-			"minimumCharacters": MIN_EVIDENCE_LENGTH,
-			"maximumCharacters": MAX_EVIDENCE_LENGTH
+			"reason": _demonstration_reason(result)
 		}
 	var evidence := {
 		"decision": _selected_choice_id,
-		"effect": evidence_text
+		"effect": _demonstration_evidence(result)
 	}
+	if String(evidence.get("effect")).is_empty():
+		return {
+			"accepted": false,
+			"state": _state,
+			"reason": "That arrangement produced no result to record."
+		}
 	var completed := _complete_progress(evidence)
 	if not completed:
 		return {
@@ -191,14 +169,14 @@ func submit_transfer_evidence(text: String) -> Dictionary:
 			"reason": _progress_error()
 		}
 	_state = STATE_COMPLETED
-	var result := _completion_result(evidence)
-	_show_completed(result)
+	var outcome := _completion_result(evidence)
+	_show_completed(outcome)
 	_emit_state()
 	if _required:
 		mission_completed.emit(_mission_id, evidence.duplicate(true))
 	else:
 		sidequest_completed.emit(_mission_id)
-	return result
+	return outcome
 
 func close() -> void:
 	if is_instance_valid(_panel) and _panel.has_method("close_panel"):
@@ -243,37 +221,6 @@ func _evaluate_choice(mission_id: String, choice_id: String) -> Dictionary:
 func _role_allowed() -> bool:
 	return not _record.is_empty() and _active_role == String(_record.get("ownerRole"))
 
-func _validate_evidence(text: String) -> Dictionary:
-	if text.length() < MIN_EVIDENCE_LENGTH:
-		return {
-			"valid": false,
-			"reason": "Write at least 30 characters explaining the advertising decision and its audience effect."
-		}
-	if text.length() > MAX_EVIDENCE_LENGTH:
-		return {
-			"valid": false,
-			"reason": "Keep the explanation to 400 characters or fewer."
-		}
-	var lower_text := text.to_lower()
-	if not _contains_any(lower_text, AUDIENCE_WORDS):
-		return {
-			"valid": false,
-			"reason": "Name the audience or viewer who should notice the effect."
-		}
-	var technique_words: Array = TECHNIQUE_WORDS.get(_mission_id, [])
-	if not _contains_any(lower_text, technique_words):
-		return {
-			"valid": false,
-			"reason": "Name the technique or design change you will apply."
-		}
-	return {"valid": true}
-
-func _contains_any(text: String, words: Array) -> bool:
-	for word_value in words:
-		if text.contains(String(word_value).to_lower()):
-			return true
-	return false
-
 func _complete_progress(evidence: Dictionary) -> bool:
 	if not is_instance_valid(_progress):
 		return false
@@ -300,7 +247,7 @@ func _completion_result(evidence: Dictionary) -> Dictionary:
 func _application_objective() -> String:
 	if _record.is_empty():
 		return ""
-	return "At the Studio, apply this %s decision to your advertisement and explain its audience effect." % String(_record.get("title")).to_lower()
+	return "At the Studio, apply this %s decision to your advertisement. Explain its audience effect." % String(_record.get("title")).to_lower()
 
 func _progress_error() -> String:
 	if not is_instance_valid(_progress):
@@ -318,9 +265,48 @@ func _show_effect(evaluation: Dictionary) -> void:
 	if is_instance_valid(_panel) and _panel.has_method("show_effect"):
 		_panel.call("show_effect", _record.duplicate(true), evaluation.duplicate(true))
 
-func _show_transfer() -> void:
-	if is_instance_valid(_panel) and _panel.has_method("show_transfer"):
-		_panel.call("show_transfer", _record.duplicate(true), _application_objective())
+func _show_demonstration() -> void:
+	if is_instance_valid(_panel) and _panel.has_method("show_demonstration"):
+		_panel.call("show_demonstration", _record.duplicate(true))
+
+func _demonstration() -> Dictionary:
+	var value: Variant = _record.get("demonstration", {})
+	return Dictionary(value) if typeof(value) == TYPE_DICTIONARY else {}
+
+func _demonstration_evidence(result: Dictionary) -> String:
+	# A stage that writes its own sentence from its own record supplies it here, so this
+	# controller does not have to know what each engine measures or what its record calls
+	# things. Engine A names the lever it won instead, and the sentence is looked up below.
+	var supplied := String(result.get("evidence", ""))
+	if not supplied.is_empty():
+		return supplied
+	var demonstration := _demonstration()
+	var won_levers: PackedStringArray = result.get("wonLevers", PackedStringArray())
+	if demonstration.is_empty() or won_levers.is_empty():
+		return ""
+	var sentences: Dictionary = demonstration.get("evidenceSentences", {})
+	return String(sentences.get(won_levers[0], "")).format({
+		"target": _demonstration_target_name(demonstration)
+	})
+
+## Why the stage did not accept what the pair built. Engine A's sentence was written into
+## this controller, so every later engine would have reported that the named object does
+## not lead on any of the three, whatever its own measure actually checks.
+func _demonstration_reason(result: Dictionary) -> String:
+	var supplied := String(result.get("reason", ""))
+	if not supplied.is_empty():
+		return supplied
+	return "The named object does not lead on any of the three yet."
+
+func _demonstration_target_name(demonstration: Dictionary) -> String:
+	var target_id := String(demonstration.get("targetId", ""))
+	for object_value: Variant in Array(demonstration.get("objects", [])):
+		if typeof(object_value) != TYPE_DICTIONARY:
+			continue
+		var object: Dictionary = object_value
+		if String(object.get("id", "")) == target_id:
+			return String(object.get("name", target_id))
+	return target_id
 
 func _show_completed(result: Dictionary) -> void:
 	if is_instance_valid(_panel) and _panel.has_method("show_completed"):
@@ -331,7 +317,7 @@ func _connect_panel() -> void:
 		return
 	_connect_panel_signal("choice_selected", _on_choice_selected)
 	_connect_panel_signal("continue_requested", _on_continue_requested)
-	_connect_panel_signal("evidence_submitted", _on_evidence_submitted)
+	_connect_panel_signal("demonstration_submitted", _on_demonstration_submitted)
 	_connect_panel_signal("retry_requested", _on_retry_requested)
 	_connect_panel_signal("close_requested", _on_close_requested)
 
@@ -340,7 +326,7 @@ func _disconnect_panel() -> void:
 		return
 	_disconnect_panel_signal("choice_selected", _on_choice_selected)
 	_disconnect_panel_signal("continue_requested", _on_continue_requested)
-	_disconnect_panel_signal("evidence_submitted", _on_evidence_submitted)
+	_disconnect_panel_signal("demonstration_submitted", _on_demonstration_submitted)
 	_disconnect_panel_signal("retry_requested", _on_retry_requested)
 	_disconnect_panel_signal("close_requested", _on_close_requested)
 
@@ -356,13 +342,13 @@ func _on_choice_selected(choice_id: String) -> void:
 	choose(choice_id)
 
 func _on_continue_requested() -> void:
-	continue_to_transfer()
+	continue_to_demonstration()
 
-func _on_evidence_submitted(text: String) -> void:
-	var result := submit_transfer_evidence(text)
-	if not bool(result.get("accepted")) and is_instance_valid(_panel):
-		if _panel.has_method("show_validation_error"):
-			_panel.call("show_validation_error", String(result.get("reason")))
+func _on_demonstration_submitted(result: Dictionary) -> void:
+	var outcome := submit_demonstration(result)
+	if not bool(outcome.get("accepted")) and is_instance_valid(_panel):
+		if _panel.has_method("show_demonstration_error"):
+			_panel.call("show_demonstration_error", String(outcome.get("reason")))
 
 func _on_retry_requested() -> void:
 	retry()

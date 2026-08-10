@@ -420,6 +420,17 @@ export class AccountAccessController {
     this.#statusRoot.hidden = false;
     this.#statusRoot.className = "account-session";
     this.#statusRoot.setAttribute("aria-label", "Account");
+    const expanded = this.#cloudConflict !== null;
+    const panelId = "account-session-panel";
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "account-session__toggle";
+    toggle.textContent = `Account · ${username}`;
+    toggle.setAttribute("aria-controls", panelId);
+    toggle.setAttribute("aria-expanded", String(expanded));
+    toggle.setAttribute("aria-label", expanded
+      ? "Hide account details"
+      : "Show account details");
     const identity = document.createElement("span");
     identity.dataset.accountIdentity = "";
     identity.textContent = `Signed in as ${username}`;
@@ -445,13 +456,27 @@ export class AccountAccessController {
     const sessionActions = document.createElement("div");
     sessionActions.className = "account-session__actions";
     sessionActions.append(signOut);
-    this.#statusRoot.replaceChildren(
+    const panel = document.createElement("div");
+    panel.id = panelId;
+    panel.className = "account-session__panel";
+    panel.dataset.accountPanel = "";
+    panel.hidden = !expanded;
+    panel.append(
       identity,
       cloud,
       handover,
       ...(conflict === null ? [] : [conflict]),
       sessionActions
     );
+    toggle.addEventListener("click", () => {
+      panel.hidden = !panel.hidden;
+      const nowExpanded = !panel.hidden;
+      toggle.setAttribute("aria-expanded", String(nowExpanded));
+      toggle.setAttribute("aria-label", nowExpanded
+        ? "Hide account details"
+        : "Show account details");
+    });
+    this.#statusRoot.replaceChildren(toggle, panel);
   }
 
   #cloudConflictControls(options: AccountCloudConflictOptions): HTMLElement {

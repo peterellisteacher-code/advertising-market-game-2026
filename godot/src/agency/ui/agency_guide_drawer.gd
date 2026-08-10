@@ -17,24 +17,28 @@ const SECTION_INDEX := {
 	"progress": 4,
 }
 const ORIENTATION_ITEM_SUFFIXES: Array[String] = ["One", "Two", "Three"]
-const ORIENTATION_PANEL_HALF_SIZE := Vector2(560.0, 340.0)
+# The panel is anchored to the full viewport rather than centred at a fixed size, so
+# resuming the quick start insets it by this margin instead of restoring a half-size.
+const ORIENTATION_PANEL_MARGIN := Vector2(48.0, 48.0)
+const ORIENTATION_CONTENT_MAX_WIDTH := 1120.0
+const ORIENTATION_CONTENT_MIN_INSET := 32.0
 const ORIENTATION_STEPS := [
 	{
 		"overview": true,
-		"title": "You and your partner will make and pitch one ad.",
-		"action": "Read the brief. Complete seven short tasks. Build one ad. Pitch it.",
+		"title": "You and your partner make one ad and pitch it.",
+		"action": "There are seven required tasks. Each one adds a decision to the ad.",
 		"items": [
 			{
-				"label": "MAKE",
-				"text": "Make an ad that gives the audience a clear reason to act.",
+				"label": "THE WORK",
+				"text": "One ad that gives its audience a reason to act.",
 			},
 			{
-				"label": "PRACTISE",
-				"text": "Practise choosing advertising techniques and explaining their effect.",
+				"label": "THE TASKS",
+				"text": "Each task is one advertising technique and its effect on the audience.",
 			},
 			{
-				"label": "EARN",
-				"text": "Each required task prepares the ad for the final pitch.",
+				"label": "THE PITCH",
+				"text": "You present the finished ad and explain your decisions.",
 			},
 		],
 		"button": "How do we start?",
@@ -79,15 +83,15 @@ const ORIENTATION_STEPS := [
 	},
 	{
 		"title": "Begin the work",
-		"action": "Start at Client Briefing. Every required task moves your ad towards the final pitch.",
+		"action": "Start at Client Briefing. Each required task adds a decision to the ad.",
 		"items": [
 			{
 				"label": "READ",
-				"text": "Read the audience brief before making ad choices.",
+				"text": "Read the audience brief before making design decisions.",
 			},
 			{
 				"label": "BUILD",
-				"text": "Apply each completed task when you create the ad.",
+				"text": "Apply each completed task to the ad.",
 			},
 			{
 				"label": "PITCH",
@@ -210,10 +214,10 @@ func resume_orientation() -> void:
 	_update_orientation()
 	var panel := get_node_or_null("%OrientationPanel") as Control
 	if panel != null:
-		panel.offset_left = -ORIENTATION_PANEL_HALF_SIZE.x
-		panel.offset_top = -ORIENTATION_PANEL_HALF_SIZE.y
-		panel.offset_right = ORIENTATION_PANEL_HALF_SIZE.x
-		panel.offset_bottom = ORIENTATION_PANEL_HALF_SIZE.y
+		panel.offset_left = ORIENTATION_PANEL_MARGIN.x
+		panel.offset_top = ORIENTATION_PANEL_MARGIN.y
+		panel.offset_right = -ORIENTATION_PANEL_MARGIN.x
+		panel.offset_bottom = -ORIENTATION_PANEL_MARGIN.y
 	reading_state_changed.emit(true)
 
 func reading_active() -> bool:
@@ -251,6 +255,25 @@ func _set_orientation_visible(is_visible: bool) -> void:
 		layer.visible = is_visible
 	if panel != null:
 		panel.visible = is_visible
+		if is_visible:
+			if not panel.resized.is_connected(_update_orientation_content_width):
+				panel.resized.connect(_update_orientation_content_width)
+			_update_orientation_content_width()
+
+func _update_orientation_content_width() -> void:
+	# The card spans the screen so no game shows beside it, but a line of text that wide
+	# stops being readable. The content column keeps its own width and the card centres
+	# it, which is what the extra space on a wide monitor is for.
+	var panel := get_node_or_null("%OrientationPanel") as Control
+	var margin := get_node_or_null("%OrientationMargin") as MarginContainer
+	if panel == null or margin == null:
+		return
+	var side := maxf(
+		ORIENTATION_CONTENT_MIN_INSET,
+		floorf((panel.size.x - ORIENTATION_CONTENT_MAX_WIDTH) * 0.5)
+	)
+	margin.add_theme_constant_override("margin_left", int(side))
+	margin.add_theme_constant_override("margin_right", int(side))
 
 func _update_resume_orientation() -> void:
 	var resume_button := get_node_or_null("%ResumeOrientation") as Button

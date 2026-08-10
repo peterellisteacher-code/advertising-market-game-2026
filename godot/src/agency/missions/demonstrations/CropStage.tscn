@@ -1,0 +1,79 @@
+[gd_scene format=3 uid="uid://lj52rlw1npou"]
+
+[ext_resource type="Script" uid="uid://dr1wdrbwrjuvi" path="res://src/agency/missions/demonstrations/crop_stage.gd" id="1_bwqsj"]
+
+[node name="CropStage" type="VBoxContainer" unique_id=1003229677]
+theme_override_constants/separation = 10
+script = ExtResource("1_bwqsj")
+
+[node name="DemonstrationInstruction" type="Label" parent="." unique_id=1708305244]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+autowrap_mode = 3
+
+[node name="ImageViewport" type="Control" parent="." unique_id=337676846]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(880, 296)
+clip_contents = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Stage" type="Control" parent="ImageViewport" unique_id=1431976784]
+unique_name_in_owner = true
+anchors_preset = 0
+mouse_filter = 2
+
+[node name="SourceImage" type="TextureRect" parent="ImageViewport/Stage" unique_id=128573262]
+unique_name_in_owner = true
+layout_mode = 0
+mouse_filter = 2
+expand_mode = 1
+
+[node name="Shade" type="Control" parent="ImageViewport/Stage" unique_id=721042467]
+unique_name_in_owner = true
+anchors_preset = 0
+
+[node name="Frame" type="Panel" parent="ImageViewport/Stage" unique_id=132871580]
+unique_name_in_owner = true
+layout_mode = 0
+
+[node name="Slogan" type="Panel" parent="ImageViewport/Stage" unique_id=1793414482]
+unique_name_in_owner = true
+layout_mode = 0
+
+[node name="SloganArt" type="TextureRect" parent="ImageViewport/Stage/Slogan" unique_id=2002876007]
+unique_name_in_owner = true
+layout_mode = 0
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Handles" type="Control" parent="ImageViewport/Stage" unique_id=1649504365]
+unique_name_in_owner = true
+anchors_preset = 0
+
+[node name="ReadoutRow" type="HBoxContainer" parent="." unique_id=90228936]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="DemonstrationFeedback" type="Label" parent="." unique_id=69771031]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+autowrap_mode = 3
+
+[node name="ActionsRow" type="HBoxContainer" parent="." unique_id=1198077722]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 2
+
+[node name="ResetButton" type="Button" parent="ActionsRow" unique_id=1007100170]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Start again"
+
+[node name="CheckButton" type="Button" parent="ActionsRow" unique_id=864569732]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Use this advertisement"

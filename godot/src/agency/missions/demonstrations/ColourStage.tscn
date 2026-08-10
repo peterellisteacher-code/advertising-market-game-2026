@@ -1,0 +1,218 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/agency/missions/demonstrations/colour_stage.gd" id="1_colour"]
+
+[sub_resource type="Theme" id="Theme_colour_stage"]
+Label/colors/font_color = Color(0.0588235, 0.105882, 0.180392, 1)
+
+[node name="ColourStage" type="VBoxContainer"]
+custom_minimum_size = Vector2(880, 0)
+layout_mode = 2
+theme = SubResource("Theme_colour_stage")
+theme_override_constants/separation = 6
+script = ExtResource("1_colour")
+
+[node name="DemonstrationInstruction" type="Label" parent="."]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="JobRow" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="JobProgress" type="Label" parent="JobRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+
+[node name="BriefLabel" type="Label" parent="JobRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+
+[node name="SelectedLabel" type="Label" parent="JobRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 2
+
+[node name="CompositionArea" type="Control" parent="."]
+custom_minimum_size = Vector2(880, 280)
+layout_mode = 2
+
+[node name="ClientCard" type="HBoxContainer" parent="CompositionArea"]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 2.0
+offset_right = 856.0
+offset_bottom = 62.0
+theme_override_constants/separation = 12
+
+[node name="ClientPortrait" type="TextureRect" parent="CompositionArea/ClientCard"]
+texture_filter = 1
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ClientCopy" type="VBoxContainer" parent="CompositionArea/ClientCard"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="ClientIdentity" type="Label" parent="CompositionArea/ClientCard/ClientCopy"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+autowrap_mode = 2
+
+[node name="ClientDialogue" type="Label" parent="CompositionArea/ClientCard/ClientCopy"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 14
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="PosterHitArea" type="Panel" parent="CompositionArea"]
+layout_mode = 0
+offset_left = 30.0
+offset_top = 68.0
+offset_right = 292.5
+offset_bottom = 272.0
+mouse_filter = 0
+
+[node name="PanelArtwork" type="TextureRect" parent="CompositionArea/PosterHitArea"]
+layout_mode = 0
+offset_left = 54.0
+offset_top = 0.0
+offset_right = 208.5
+offset_bottom = 204.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ProductArtwork" type="TextureRect" parent="CompositionArea/PosterHitArea"]
+layout_mode = 0
+offset_left = 63.0
+offset_top = 52.5
+offset_right = 138.0
+offset_bottom = 168.75
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HeadlineArtwork" type="TextureRect" parent="CompositionArea/PosterHitArea"]
+layout_mode = 0
+offset_left = 126.0
+offset_top = 26.25
+offset_right = 197.25
+offset_bottom = 52.5
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="BodyArtwork" type="TextureRect" parent="CompositionArea/PosterHitArea"]
+layout_mode = 0
+offset_left = 130.5
+offset_top = 68.25
+offset_right = 192.0
+offset_bottom = 105.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ActionArtwork" type="TextureRect" parent="CompositionArea/PosterHitArea"]
+layout_mode = 0
+offset_left = 135.0
+offset_top = 153.75
+offset_right = 186.0
+offset_bottom = 185.25
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ColourWheel" type="TextureRect" parent="CompositionArea"]
+layout_mode = 0
+offset_left = 610.0
+offset_top = 68.0
+offset_right = 814.0
+offset_bottom = 272.0
+mouse_filter = 0
+focus_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="WheelGuide" type="Label" parent="CompositionArea"]
+layout_mode = 0
+offset_left = 315.0
+offset_top = 72.0
+offset_right = 590.0
+offset_bottom = 268.0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 12
+text = "Hues near one another on the wheel relate; hues distant from one another contrast. Rings near the centre yield weaker colours; rings at the edge yield stronger colours."
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="ElementButtons" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="PanelButton" type="Button" parent="ElementButtons"]
+custom_minimum_size = Vector2(140, 40)
+layout_mode = 2
+toggle_mode = true
+button_pressed = true
+text = "Panel"
+
+[node name="HeadlineButton" type="Button" parent="ElementButtons"]
+custom_minimum_size = Vector2(140, 40)
+layout_mode = 2
+toggle_mode = true
+text = "Headline"
+
+[node name="BodyButton" type="Button" parent="ElementButtons"]
+custom_minimum_size = Vector2(140, 40)
+layout_mode = 2
+toggle_mode = true
+text = "Body copy"
+
+[node name="ActionButton" type="Button" parent="ElementButtons"]
+custom_minimum_size = Vector2(140, 40)
+layout_mode = 2
+toggle_mode = true
+text = "Action"
+
+[node name="ReadoutRow" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DemonstrationFeedback" type="Label" parent="."]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="ActionsRow" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+
+[node name="ResetButton" type="Button" parent="ActionsRow"]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "Start again"
+
+[node name="Spacer" type="Control" parent="ActionsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="CheckButton" type="Button" parent="ActionsRow"]
+custom_minimum_size = Vector2(180, 40)
+layout_mode = 2
+text = "Check palette"

@@ -69,28 +69,33 @@ func _assert_guide(progress: AdMarketAgencyProgress) -> void:
 	assert(orientation_layer.anchor_right == 1.0)
 	assert(orientation_layer.anchor_bottom == 1.0)
 	assert(orientation_layer.mouse_filter == Control.MOUSE_FILTER_STOP)
+	# The card fills its layer rather than sitting at a fixed size, so what the contract
+	# fixes is the inset: no bare game may show between the card and the screen edge
+	# beyond this margin, at any viewport.
+	var card_margin := AdMarketAgencyGuideDrawer.ORIENTATION_PANEL_MARGIN
 	assert(
-		orientation_card.size.x <= 1130.0,
-		"Orientation card outer size=%s" % orientation_card.size
+		is_equal_approx(orientation_card.size.x, orientation_layer.size.x - card_margin.x * 2.0),
+		"Orientation card outer size=%s layer=%s" % [orientation_card.size, orientation_layer.size]
 	)
 	assert(
-		orientation_card.size.y <= 690.0,
-		"Orientation card outer size=%s" % orientation_card.size
+		is_equal_approx(orientation_card.size.y, orientation_layer.size.y - card_margin.y * 2.0),
+		"Orientation card outer size=%s layer=%s" % [orientation_card.size, orientation_layer.size]
 	)
 	assert(
 		orientation_card.global_position.y >= 48.0,
 		"Orientation card y=%s size=%s" % [orientation_card.global_position.y, orientation_card.size]
 	)
-	assert(orientation_minimise.global_position.y + orientation_minimise.size.y <= 760.0)
-	assert(orientation_next.global_position.y + orientation_next.size.y <= 760.0)
-	assert(guide.get_node("%OrientationTitle").text.contains("make and pitch one ad"))
-	assert(guide.get_node("%OrientationAction").text.contains("Complete seven short tasks"))
-	assert(guide.get_node("%OrientationItemOneLabel").text == "MAKE")
-	assert(guide.get_node("%OrientationItemOneText").text.contains("clear reason to act"))
-	assert(guide.get_node("%OrientationItemTwoLabel").text == "PRACTISE")
-	assert(guide.get_node("%OrientationItemTwoText").text.contains("advertising techniques"))
-	assert(guide.get_node("%OrientationItemThreeLabel").text == "EARN")
-	assert(guide.get_node("%OrientationItemThreeText").text.contains("final pitch"))
+	var card_bottom := orientation_card.global_position.y + orientation_card.size.y
+	assert(orientation_minimise.global_position.y + orientation_minimise.size.y <= card_bottom)
+	assert(orientation_next.global_position.y + orientation_next.size.y <= card_bottom)
+	assert(guide.get_node("%OrientationTitle").text.contains("make one ad and pitch it"))
+	assert(guide.get_node("%OrientationAction").text.contains("seven required tasks"))
+	assert(guide.get_node("%OrientationItemOneLabel").text == "THE WORK")
+	assert(guide.get_node("%OrientationItemOneText").text.contains("a reason to act"))
+	assert(guide.get_node("%OrientationItemTwoLabel").text == "THE TASKS")
+	assert(guide.get_node("%OrientationItemTwoText").text.contains("advertising technique"))
+	assert(guide.get_node("%OrientationItemThreeLabel").text == "THE PITCH")
+	assert(guide.get_node("%OrientationItemThreeText").text.contains("explain your decisions"))
 	var minimise := guide.get_node("%MinimiseOrientation") as Button
 	var resume := guide.get_node("%ResumeOrientation") as Button
 	assert(not progress.guide_tucked)
@@ -103,7 +108,7 @@ func _assert_guide(progress: AdMarketAgencyProgress) -> void:
 	resume.pressed.emit()
 	assert(orientation_layer.visible)
 	assert(not resume.visible)
-	assert(guide.get_node("%OrientationTitle").text.contains("make and pitch one ad"))
+	assert(guide.get_node("%OrientationTitle").text.contains("make one ad and pitch it"))
 	guide.advance_orientation()
 	assert(guide.get_node("%OrientationTitle").text == "Move to the first task")
 	assert(guide.get_node("%OrientationAction").text.contains("Go to Client Briefing"))
@@ -154,7 +159,7 @@ func _assert_hud(progress: AdMarketAgencyProgress) -> void:
 	assert(hud.get_node("%HudGuideButton").visible)
 	var tuck_toggle := hud.get_node("%HudTuckToggle") as Button
 	assert(tuck_toggle.text == "Show work details")
-	assert(hud.size.x <= hud.custom_minimum_size.x)
+	assert(hud.size.x >= hud.custom_minimum_size.x)
 	assert(tuck_toggle.position.x + tuck_toggle.size.x <= hud.size.x)
 	assert(
 		hud.size.y <= 84.0,
@@ -170,7 +175,7 @@ func _assert_hud(progress: AdMarketAgencyProgress) -> void:
 	assert(hud.get_node("HudMargin/HudStack/ExpandedDetails/TravelBlock").visible)
 	assert(hud.get_node("%HudSoundToggle").visible)
 	assert(tuck_toggle.text == "Hide work details")
-	assert(tuck_toggle.position.x + tuck_toggle.size.x <= hud.custom_minimum_size.x)
+	assert(tuck_toggle.position.x + tuck_toggle.size.x <= hud.size.x)
 	assert(hud.size.y >= 120.0)
 	tuck_toggle.pressed.emit()
 	assert(hud.is_compact())

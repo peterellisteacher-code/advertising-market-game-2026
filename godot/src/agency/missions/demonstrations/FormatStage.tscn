@@ -1,0 +1,266 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://src/agency/missions/demonstrations/format_stage.gd" id="1_format"]
+[ext_resource type="Texture2D" path="res://assets/agency/colour/product-mug.png" id="2_mug"]
+
+[sub_resource type="Theme" id="Theme_format_stage"]
+Label/colors/font_color = Color(0.0588235, 0.105882, 0.180392, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_frame"]
+bg_color = Color(1, 0.980392, 0.941176, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.0588235, 0.105882, 0.180392, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="FormatStage" type="VBoxContainer"]
+custom_minimum_size = Vector2(880, 0)
+layout_mode = 2
+theme = SubResource("Theme_format_stage")
+theme_override_constants/separation = 4
+script = ExtResource("1_format")
+
+[node name="DemonstrationInstruction" type="Label" parent="."]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+autowrap_mode = 2
+
+[node name="KeyboardHint" type="Label" parent="."]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+autowrap_mode = 2
+
+[node name="Selectors" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(880, 58)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="FormatPanel" type="PanelContainer" parent="Selectors"]
+custom_minimum_size = Vector2(436, 58)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="FormatColumn" type="VBoxContainer" parent="Selectors/FormatPanel"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="FormatHeading" type="Label" parent="Selectors/FormatPanel/FormatColumn"]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "1. CHOOSE A FORMAT"
+horizontal_alignment = 1
+
+[node name="FormatButtons" type="HBoxContainer" parent="Selectors/FormatPanel/FormatColumn"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="HeadlinePanel" type="PanelContainer" parent="Selectors"]
+custom_minimum_size = Vector2(436, 58)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HeadlineColumn" type="VBoxContainer" parent="Selectors/HeadlinePanel"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="HeadlineHeading" type="Label" parent="Selectors/HeadlinePanel/HeadlineColumn"]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "2. CHOOSE A HEADLINE"
+horizontal_alignment = 1
+
+[node name="HeadlineButtons" type="HBoxContainer" parent="Selectors/HeadlinePanel/HeadlineColumn"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="Workspace" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(880, 210)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="FormatInfo" type="PanelContainer" parent="Workspace"]
+custom_minimum_size = Vector2(240, 210)
+layout_mode = 2
+
+[node name="InfoColumn" type="VBoxContainer" parent="Workspace/FormatInfo"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="FormatName" type="Label" parent="Workspace/FormatInfo/InfoColumn"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "FORMAT"
+horizontal_alignment = 1
+
+[node name="ViewingCondition" type="Label" parent="Workspace/FormatInfo/InfoColumn"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "Viewing condition"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="FormatLimit" type="Label" parent="Workspace/FormatInfo/InfoColumn"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "HEADLINE LIMIT"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CoverageRequirement" type="Label" parent="Workspace/FormatInfo/InfoColumn"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "PRODUCT SCALE"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="FrameHolder" type="Control" parent="Workspace"]
+custom_minimum_size = Vector2(632, 210)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="FrameSurface" type="Panel" parent="Workspace/FrameHolder"]
+clip_contents = true
+layout_mode = 0
+offset_left = 36.0
+offset_top = 10.0
+offset_right = 596.0
+offset_bottom = 200.0
+theme_override_styles/panel = SubResource("StyleBox_frame")
+
+[node name="SubjectArt" type="TextureRect" parent="Workspace/FrameHolder/FrameSurface"]
+layout_mode = 0
+offset_left = 210.0
+offset_top = 62.0
+offset_right = 274.0
+offset_bottom = 126.0
+focus_mode = 2
+mouse_filter = 0
+texture = ExtResource("2_mug")
+expand_mode = 1
+stretch_mode = 5
+tooltip_text = "Drag the product, or use the arrow keys while it is focused."
+
+[node name="Headline" type="Label" parent="Workspace/FrameHolder/FrameSurface"]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 12.0
+offset_right = 338.0
+offset_bottom = 64.0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 15
+text = "Headline preview"
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="CompositionControls" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+theme_override_constants/separation = 5
+alignment = 1
+
+[node name="ControlHeading" type="Label" parent="CompositionControls"]
+custom_minimum_size = Vector2(148, 32)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "3. MOVE AND SCALE"
+vertical_alignment = 1
+
+[node name="SmallerButton" type="Button" parent="CompositionControls"]
+custom_minimum_size = Vector2(96, 32)
+layout_mode = 2
+text = "Smaller"
+
+[node name="LargerButton" type="Button" parent="CompositionControls"]
+custom_minimum_size = Vector2(96, 32)
+layout_mode = 2
+text = "Larger"
+
+[node name="LeftButton" type="Button" parent="CompositionControls"]
+custom_minimum_size = Vector2(64, 32)
+layout_mode = 2
+text = "Left"
+
+[node name="UpButton" type="Button" parent="CompositionControls"]
+custom_minimum_size = Vector2(64, 32)
+layout_mode = 2
+text = "Up"
+
+[node name="DownButton" type="Button" parent="CompositionControls"]
+custom_minimum_size = Vector2(64, 32)
+layout_mode = 2
+text = "Down"
+
+[node name="RightButton" type="Button" parent="CompositionControls"]
+custom_minimum_size = Vector2(64, 32)
+layout_mode = 2
+text = "Right"
+
+[node name="ReadoutRow" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="WordCountReading" type="Label" parent="ReadoutRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+text = "WORDS"
+horizontal_alignment = 1
+
+[node name="CoverageReading" type="Label" parent="ReadoutRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+text = "PRODUCT"
+horizontal_alignment = 1
+
+[node name="ContainmentReading" type="Label" parent="ReadoutRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+text = "FRAME"
+horizontal_alignment = 1
+
+[node name="DemonstrationFeedback" type="Label" parent="."]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+autowrap_mode = 2
+
+[node name="ActionsRow" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+
+[node name="ResetButton" type="Button" parent="ActionsRow"]
+custom_minimum_size = Vector2(150, 36)
+layout_mode = 2
+text = "Start again"
+
+[node name="Spacer" type="Control" parent="ActionsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="CheckButton" type="Button" parent="ActionsRow"]
+custom_minimum_size = Vector2(180, 36)
+layout_mode = 2
+text = "Check composition"

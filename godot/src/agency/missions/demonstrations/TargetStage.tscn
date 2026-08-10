@@ -1,0 +1,118 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/agency/missions/demonstrations/target_stage.gd" id="1_target"]
+
+[sub_resource type="Theme" id="Theme_target_stage"]
+Label/colors/font_color = Color(0.0588235, 0.105882, 0.180392, 1)
+
+[node name="TargetStage" type="VBoxContainer"]
+custom_minimum_size = Vector2(880, 0)
+layout_mode = 2
+theme = SubResource("Theme_target_stage")
+theme_override_constants/separation = 6
+script = ExtResource("1_target")
+
+[node name="DemonstrationInstruction" type="Label" parent="."]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+autowrap_mode = 2
+
+[node name="KeyboardHint" type="Label" parent="."]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+autowrap_mode = 2
+
+[node name="Workspace" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(880, 300)
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="EvidencePanel" type="PanelContainer" parent="Workspace"]
+custom_minimum_size = Vector2(300, 300)
+layout_mode = 2
+
+[node name="EvidenceColumn" type="VBoxContainer" parent="Workspace/EvidencePanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="SourceHeading" type="Label" parent="Workspace/EvidencePanel/EvidenceColumn"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+horizontal_alignment = 1
+
+[node name="EvidenceBank" type="VBoxContainer" parent="Workspace/EvidencePanel/EvidenceColumn"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+
+[node name="StatementsPanel" type="PanelContainer" parent="Workspace"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StatementsColumn" type="VBoxContainer" parent="Workspace/StatementsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TargetHeading" type="Label" parent="Workspace/StatementsPanel/StatementsColumn"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+horizontal_alignment = 1
+
+[node name="StatementCards" type="GridContainer" parent="Workspace/StatementsPanel/StatementsColumn"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 2
+
+[node name="ReadoutRow" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PlacedReading" type="Label" parent="ReadoutRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
+
+[node name="SupportReading" type="Label" parent="ReadoutRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
+
+[node name="EmptyReading" type="Label" parent="ReadoutRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+horizontal_alignment = 1
+
+[node name="DemonstrationFeedback" type="Label" parent="."]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+autowrap_mode = 2
+
+[node name="ActionsRow" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+
+[node name="ResetButton" type="Button" parent="ActionsRow"]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "Start again"
+
+[node name="Spacer" type="Control" parent="ActionsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="CheckButton" type="Button" parent="ActionsRow"]
+custom_minimum_size = Vector2(180, 40)
+layout_mode = 2
+text = "Check support"

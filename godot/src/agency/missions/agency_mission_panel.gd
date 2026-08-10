@@ -2,7 +2,7 @@ extends Control
 class_name AdMarketAgencyMissionPanel
 
 signal choice_selected(choice_id: String)
-signal evidence_submitted(text: String)
+signal demonstration_submitted(result: Dictionary)
 signal continue_requested
 signal retry_requested
 signal close_requested
@@ -17,7 +17,6 @@ const CHOICE_COLOURS: Array[Color] = [
 const INK := Color("10243e")
 const PAPER := Color("fffaf0")
 const FOCUS := Color("ffffff")
-const MAX_EVIDENCE_LENGTH := 400
 const ROLE_DEFINITION := "Both partners use the same controls. Strategist decides audience, purpose, product and message. Art Director decides visual design and execution."
 
 @onready var dialog: PanelContainer = $Backdrop/Dialog
@@ -25,6 +24,7 @@ const ROLE_DEFINITION := "Both partners use the same controls. Strategist decide
 @onready var close_button: Button = $Backdrop/Dialog/Margin/Content/Header/CloseButton
 @onready var title_label: Label = $Backdrop/Dialog/Margin/Content/Title
 @onready var goal_label: Label = $Backdrop/Dialog/Margin/Content/Goal
+@onready var owner_card: VBoxContainer = $Backdrop/Dialog/Margin/Content/OwnerCard
 @onready var owner_label: Label = $Backdrop/Dialog/Margin/Content/OwnerCard/OwnerLabel
 @onready var role_definition_label: Label = $Backdrop/Dialog/Margin/Content/OwnerCard/RoleDefinitionLabel
 @onready var holding_label: Label = $Backdrop/Dialog/Margin/Content/OwnerCard/HoldingLabel
@@ -49,13 +49,7 @@ const ROLE_DEFINITION := "Both partners use the same controls. Strategist decide
 @onready var effect_label: Label = $Backdrop/Dialog/Margin/Content/EffectStage/EffectCard/EffectLabel
 @onready var retry_button: Button = $Backdrop/Dialog/Margin/Content/EffectStage/EffectActions/RetryButton
 @onready var continue_button: Button = $Backdrop/Dialog/Margin/Content/EffectStage/EffectActions/ContinueButton
-@onready var transfer_stage: VBoxContainer = $Backdrop/Dialog/Margin/Content/TransferStage
-@onready var transfer_prompt: Label = $Backdrop/Dialog/Margin/Content/TransferStage/TransferPrompt
-@onready var application_objective: Label = $Backdrop/Dialog/Margin/Content/TransferStage/ApplicationObjective
-@onready var evidence_edit: TextEdit = $Backdrop/Dialog/Margin/Content/TransferStage/EvidenceEdit
-@onready var evidence_count: Label = $Backdrop/Dialog/Margin/Content/TransferStage/EvidenceFooter/EvidenceCount
-@onready var validation_label: Label = $Backdrop/Dialog/Margin/Content/TransferStage/ValidationLabel
-@onready var submit_button: Button = $Backdrop/Dialog/Margin/Content/TransferStage/SubmitButton
+@onready var demonstration_stage: VBoxContainer = $Backdrop/Dialog/Margin/Content/DemonstrationStage
 @onready var completed_stage: VBoxContainer = $Backdrop/Dialog/Margin/Content/CompletedStage
 @onready var completed_heading: Label = $Backdrop/Dialog/Margin/Content/CompletedStage/CompletedHeading
 @onready var reward_label: Label = $Backdrop/Dialog/Margin/Content/CompletedStage/RewardCard/RewardLabel
@@ -63,6 +57,8 @@ const ROLE_DEFINITION := "Both partners use the same controls. Strategist decide
 @onready var completed_close_button: Button = $Backdrop/Dialog/Margin/Content/CompletedStage/CompletedCloseButton
 
 var _record: Dictionary = {}
+var _demonstration_view: Control = null
+var _demonstration_scene_path: String = ""
 var _choice_ids: Array[String] = ["", "", "", ""]
 var _role_details_visible: bool = false
 var _reference_visible: bool = true
@@ -73,16 +69,13 @@ func _ready() -> void:
     close_button.pressed.connect(_request_close)
     retry_button.pressed.connect(_request_retry)
     continue_button.pressed.connect(_request_continue)
-    submit_button.pressed.connect(_submit_evidence)
     completed_close_button.pressed.connect(_request_close)
     role_details_toggle.pressed.connect(_toggle_role_details)
     role_handoff_button.pressed.connect(_request_role_handoff)
     reference_toggle.pressed.connect(_toggle_reference)
-    evidence_edit.text_changed.connect(_update_evidence_count)
     for index in choice_buttons.size():
         choice_buttons[index].pressed.connect(_select_choice.bind(index))
         _style_choice_button(choice_buttons[index], CHOICE_COLOURS[index])
-    _update_evidence_count()
 
 func show_choice(record: Dictionary, active_role: String, allowed: bool) -> void:
     _record = record.duplicate(true)
@@ -147,21 +140,22 @@ func show_effect(record: Dictionary, evaluation: Dictionary) -> void:
     else:
         retry_button.call_deferred("grab_focus")
 
-func show_transfer(record: Dictionary, objective_text: String) -> void:
+## Mounts the demonstration named by the mission record, keeping this panel
+## independent of each engine's working-surface implementation.
+func show_demonstration(record: Dictionary) -> void:
     _record = record.duplicate(true)
     _set_common_text()
-    mission_step.text = "3. Explain how you will use it"
-    transfer_prompt.text = String(record.get("transferPrompt"))
-    application_objective.text = objective_text
-    instruction_label.text = (
-        "Write one specific sentence that names the audience, the technique and what you will change."
-    )
-    evidence_edit.text = ""
-    validation_label.text = "Write 30–400 characters. Name the audience and the technique or design change."
-    _show_stage(transfer_stage)
+    var demonstration: Dictionary = _record.get("demonstration", {})
+    mission_step.text = "3. Show the decision in the layout"
+    _mount_demonstration(demonstration)
+    _show_stage(demonstration_stage)
     visible = true
-    _update_evidence_count()
-    evidence_edit.call_deferred("grab_focus")
+    if is_instance_valid(_demonstration_view) and _demonstration_view.has_method("focus_target"):
+        _demonstration_view.call_deferred("focus_target")
+
+func show_demonstration_error(message: String) -> void:
+    if is_instance_valid(_demonstration_view) and _demonstration_view.has_method("show_error"):
+        _demonstration_view.call("show_error", message)
 
 func show_completed(record: Dictionary, result: Dictionary) -> void:
     _record = record.duplicate(true)
@@ -182,10 +176,6 @@ func show_completed(record: Dictionary, result: Dictionary) -> void:
     visible = true
     completed_close_button.call_deferred("grab_focus")
 
-func show_validation_error(message: String) -> void:
-    validation_label.text = message
-    evidence_edit.call_deferred("grab_focus")
-
 func show_handoff_error() -> void:
     mission_step.text = "1. Hand control over again"
     instruction_label.text = "Control did not change. Select the handover button again."
@@ -194,19 +184,46 @@ func show_handoff_error() -> void:
 func close_panel() -> void:
     visible = false
     _record = {}
-    evidence_edit.text = ""
-    validation_label.text = ""
 
 func _set_common_text() -> void:
-    mission_badge.text = "OPTIONAL PRACTICE" if not bool(_record.get("required", true)) else "AGENCY TASK"
+    var badge_kind := "OPTIONAL PRACTICE" if not bool(_record.get("required", true)) else "AGENCY TASK"
+    var term := String(_record.get("term", "")).strip_edges()
+    mission_badge.text = badge_kind if term.is_empty() else "%s · %s" % [badge_kind, term]
     title_label.text = String(_record.get("title"))
-    goal_label.text = "GOAL — %s" % String(_record.get("goal"))
+    goal_label.text = String(_record.get("goal"))
+
+func _mount_demonstration(demonstration: Dictionary) -> void:
+    var scene_path := String(demonstration.get("scene", ""))
+    if scene_path.is_empty():
+        return
+    if scene_path != _demonstration_scene_path or not is_instance_valid(_demonstration_view):
+        for child in demonstration_stage.get_children():
+            child.queue_free()
+        var scene := load(scene_path) as PackedScene
+        if scene == null:
+            return
+        _demonstration_view = scene.instantiate() as Control
+        _demonstration_scene_path = scene_path
+        demonstration_stage.add_child(_demonstration_view)
+        if _demonstration_view.has_signal("arrangement_submitted"):
+            _demonstration_view.connect("arrangement_submitted", _submit_demonstration)
+    if _demonstration_view.has_method("configure"):
+        _demonstration_view.call("configure", demonstration)
+
+func _submit_demonstration(result: Dictionary) -> void:
+    demonstration_submitted.emit(result)
 
 func _show_stage(active_stage: Control) -> void:
     choice_stage.visible = active_stage == choice_stage
     effect_stage.visible = active_stage == effect_stage
-    transfer_stage.visible = active_stage == transfer_stage
+    demonstration_stage.visible = active_stage == demonstration_stage
     completed_stage.visible = active_stage == completed_stage
+    # The demonstration is a working surface rather than something to read, so the
+    # framing that set the choice up is dropped and the layout gets the height instead.
+    var showing_demonstration := active_stage == demonstration_stage
+    goal_label.visible = not showing_demonstration
+    owner_card.visible = not showing_demonstration
+    instruction_label.visible = not showing_demonstration
     var showing_choice := active_stage == choice_stage
     reference_toggle.visible = showing_choice and not reference_label.text.is_empty()
     reference_card.visible = showing_choice and _reference_visible and not reference_label.text.is_empty()
@@ -239,7 +256,7 @@ func _set_reference_text(record: Dictionary) -> void:
             if not text.is_empty():
                 lines.append("%s: %s" % [label, text])
     if lines.is_empty():
-        lines.append("USE THIS: %s" % String(record.get("instruction", record.get("goal", "Check the task goal."))))
+        lines.append(String(record.get("instruction", record.get("goal", "Check the task goal."))))
     reference_label.text = "\n".join(lines)
 
 func _set_role_details_visible(is_visible: bool) -> void:
@@ -263,9 +280,6 @@ func _select_choice(index: int) -> void:
     if not choice_id.is_empty() and not choice_buttons[index].disabled:
         choice_selected.emit(choice_id)
 
-func _submit_evidence() -> void:
-    evidence_submitted.emit(evidence_edit.text)
-
 func _request_continue() -> void:
     continue_requested.emit()
 
@@ -283,13 +297,6 @@ func _request_role_handoff() -> void:
 
 func _request_close() -> void:
     close_requested.emit()
-
-func _update_evidence_count() -> void:
-    if evidence_edit.text.length() > MAX_EVIDENCE_LENGTH:
-        evidence_edit.text = evidence_edit.text.left(MAX_EVIDENCE_LENGTH)
-        evidence_edit.set_caret_line(evidence_edit.get_line_count() - 1)
-        evidence_edit.set_caret_column(evidence_edit.get_line(evidence_edit.get_line_count() - 1).length())
-    evidence_count.text = "%d / %d characters" % [evidence_edit.text.length(), MAX_EVIDENCE_LENGTH]
 
 func _apply_visual_theme() -> void:
     var margin: MarginContainer = $Backdrop/Dialog/Margin
@@ -316,15 +323,11 @@ func _apply_visual_theme() -> void:
     choice_keyboard_hint.add_theme_font_size_override("font_size", 14)
     effect_heading.add_theme_font_size_override("font_size", 24)
     effect_label.add_theme_font_size_override("font_size", 22)
-    transfer_prompt.add_theme_font_size_override("font_size", 21)
-    application_objective.add_theme_font_size_override("font_size", 16)
-    evidence_edit.add_theme_font_size_override("font_size", 17)
-    validation_label.add_theme_color_override("font_color", Color("b62d1f"))
     completed_heading.add_theme_font_size_override("font_size", 28)
     completed_heading.add_theme_color_override("font_color", Color("00785c"))
     reward_label.add_theme_font_size_override("font_size", 24)
     application_summary.add_theme_font_size_override("font_size", 18)
-    for button in [close_button, role_details_toggle, role_handoff_button, reference_toggle, retry_button, continue_button, submit_button, completed_close_button]:
+    for button in [close_button, role_details_toggle, role_handoff_button, reference_toggle, retry_button, continue_button, completed_close_button]:
         button.add_theme_font_size_override("font_size", 16)
 
 func _focus_first_choice() -> void:
@@ -351,9 +354,13 @@ func _style_choice_button(button: Button, colour: Color) -> void:
     hover.set_border_width_all(4)
     var pressed := normal.duplicate() as StyleBoxFlat
     pressed.bg_color = colour.darkened(0.08)
+    # The answer swatches keep their own colour identity while they can be clicked, but
+    # they take the shared theme's grey the moment they cannot: grey means unclickable,
+    # and nothing else in this panel is grey.
     var disabled: StyleBoxFlat = normal.duplicate() as StyleBoxFlat
-    disabled.bg_color = colour.lerp(PAPER, 0.55)
-    disabled.border_color = INK.lightened(0.3)
+    var theme_disabled := get_theme_stylebox("disabled", "Button") as StyleBoxFlat
+    disabled.bg_color = theme_disabled.bg_color if theme_disabled != null else PAPER
+    disabled.border_color = theme_disabled.border_color if theme_disabled != null else INK
     disabled.set_border_width_all(2)
     var focus := normal.duplicate() as StyleBoxFlat
     focus.border_color = FOCUS
@@ -367,7 +374,7 @@ func _style_choice_button(button: Button, colour: Color) -> void:
     button.add_theme_color_override("font_hover_color", INK)
     button.add_theme_color_override("font_pressed_color", INK)
     button.add_theme_color_override("font_focus_color", INK)
-    button.add_theme_color_override("font_disabled_color", INK.lightened(0.12))
+    button.add_theme_color_override("font_disabled_color", get_theme_color("font_disabled_color", "Button"))
 
 func _role_name(role_id: String) -> String:
     if role_id == "art-director":

@@ -15,15 +15,27 @@ func _run_suites() -> void:
         "res://tests/test_market_view_state.gd",
         "res://tests/test_market_screen.gd",
         "res://tests/test_local_market_session.gd",
+        "res://tests/test_agency_button_theme.gd",
         "res://tests/test_agency_mission_catalog.gd",
         "res://tests/test_agency_missions.gd",
+        "res://tests/test_salience_measure.gd",
+        "res://tests/test_crop_measure.gd",
+        "res://tests/test_colour_measure.gd",
+        "res://tests/test_target_measure.gd",
+        "res://tests/test_sequence_measure.gd",
+        "res://tests/test_word_chip_measure.gd",
+        "res://tests/test_format_measure.gd",
         "res://tests/test_agency_world.gd",
         "res://tests/test_agency_guidance.gd",
         "res://tests/test_agency_progress.gd",
+        "res://tests/test_agency_campaign_controller.gd",
         "res://tests/test_game_run.gd",
         "res://tests/test_run_progress_store.gd",
         "res://tests/test_live_resume.gd",
-        "res://tests/test_game_shell.gd"
+        "res://tests/test_game_shell.gd",
+        # Last: this suite resizes the root viewport to prove the HUD adapts, so it must
+        # not run ahead of a suite that assumes the design size.
+        "res://tests/test_agency_hud_layout.gd"
     ]:
         if not requested_suite.is_empty() and suite_path != requested_suite:
             continue
@@ -36,8 +48,16 @@ func _run_suites() -> void:
         var passed: Variant
         if suite_path in [
             "res://tests/test_agency_world.gd",
+            "res://tests/test_agency_hud_layout.gd",
             "res://tests/test_agency_guidance.gd",
-            "res://tests/test_game_shell.gd"
+            "res://tests/test_game_shell.gd",
+            "res://tests/test_salience_measure.gd",
+            "res://tests/test_crop_measure.gd",
+            "res://tests/test_colour_measure.gd",
+            "res://tests/test_target_measure.gd",
+            "res://tests/test_sequence_measure.gd",
+            "res://tests/test_word_chip_measure.gd",
+            "res://tests/test_format_measure.gd"
         ]:
             passed = await suite.run()
         else:

@@ -1486,6 +1486,7 @@ describe("window.AdMarketCreator", () => {
     expect(document.querySelector<HTMLElement>('main[aria-label="Advertising Market Game"]')?.hidden)
       .toBe(false);
     expect(document.querySelector<HTMLCanvasElement>("#canvas")?.tabIndex).toBe(0);
+    fireEvent.click(getByRole(document.body, "button", { name: "Show account details" }));
     expect(getByRole(document.body, "button", { name: "Sign out" })).toBeTruthy();
     expect(document.body.textContent)
       .toContain("Sign out before another pair uses this device.");
@@ -1625,6 +1626,7 @@ describe("window.AdMarketCreator", () => {
       .toBe("Cloud save restored to this device.");
     expect(runtime.importCloudPractice).toHaveBeenCalledOnce();
 
+    fireEvent.click(getByRole(document.body, "button", { name: "Show account details" }));
     fireEvent.click(getByRole(document.body, "button", { name: "Sign out" }));
     await waitFor(() => expect(fetchSpy.mock.calls.some(
       ([input]) => input === "/api/account/logout"
@@ -2199,20 +2201,11 @@ describe("window.AdMarketCreator", () => {
     const dialog = getByRole(document.body, "dialog", { name: "Studio tour" });
     expect(dialog.textContent).toContain("Page 1 of 4 · Brief");
     expect(dialog.textContent).toContain("Teenagers. One-hour window between school dismissal and home arrival.");
+    expect(dialog.querySelector<HTMLButtonElement>("[data-studio-onboarding-close]")?.hidden)
+      .toBe(true);
     fireEvent.keyDown(dialog, { key: "Escape" });
-    expect(dialog.closest<HTMLElement>("[data-studio-onboarding-layer]")?.hidden).toBe(true);
-    // After a tour close the Menu retucks on a zero timer so the canvas owns
-    // the screen again; focus lands on the Menu tab because the tour's opener
-    // is hidden along with the panel.
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(dialog.closest<HTMLElement>("[data-studio-onboarding-layer]")?.hidden).toBe(false);
     const menuPanel = document.querySelector<HTMLElement>("#studio-menu-panel");
-    const menuTab = document.querySelector<HTMLButtonElement>('[data-tuck-tab="menu"]');
-    expect(menuPanel?.hidden).toBe(true);
-    expect(document.activeElement).toBe(menuTab);
-
-    fireEvent.click(menuTab!);
-    const reopenTour = getByRole<HTMLButtonElement>(document.body, "button", { name: "Studio tour" });
-    fireEvent.click(reopenTour);
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));

@@ -78,19 +78,19 @@ test("onboarding screenshots contain PNG bytes, not only PNG filenames", () => {
 
 test("first-time agency orientation explains the advertising task before controls", () => {
   for (const copy of [
-    "You and your partner will make and pitch one ad.",
-    "Read the brief. Complete seven short tasks. Build one ad. Pitch it.",
+    "You and your partner make one ad and pitch it.",
+    "There are seven required tasks. Each one adds a decision to the ad.",
     "Walk near a room, then click Start task. E, Space or Enter also works.",
-    "Make an ad that gives the audience a clear reason to act.",
-    "Practise choosing advertising techniques and explaining their effect.",
-    "Each required task prepares the ad for the final pitch."
+    "One ad that gives its audience a reason to act.",
+    "Each task is one advertising technique and its effect on the audience.",
+    "You present the finished ad and explain your decisions."
   ]) {
     assert.ok(agencyGuideScript.includes(copy), `missing opening promise: ${copy}`);
   }
   for (const authoredDefault of [
-    "You and your partner will make and pitch one ad.",
-    "Read the brief. Complete seven short tasks. Build one ad. Pitch it.",
-    "Each required task prepares the ad for the final pitch."
+    "You and your partner make one ad and pitch it.",
+    "There are seven required tasks. Each one adds a decision to the ad.",
+    "You present the finished ad and explain your decisions."
   ]) {
     assert.ok(
       agencyGuideScene.includes(`text = "${authoredDefault}"`),
@@ -167,7 +167,7 @@ test("agency quick start presents one action at a time and can be resumed", () =
   assert.doesNotMatch(agencyGuideScript, /portfolio stamps|Gold, Silver and Bronze/);
 });
 
-test("agency quick start keeps its actions inside a 1280 by 800 game view", () => {
+test("agency quick start fills the viewport rather than a fixed 1280 by 800 box", () => {
   const panelBlock = agencyGuideScene.match(
     /\[node name="OrientationPanel"[\s\S]*?(?=\n\[node name="OrientationMargin")/
   )?.[0] ?? "";
@@ -175,8 +175,12 @@ test("agency quick start keeps its actions inside a 1280 by 800 game view", () =
     /\[node name="OrientationItems"[\s\S]*?(?=\n\[node name="OrientationItemOne")/
   )?.[0] ?? "";
   assert.match(panelBlock, /custom_minimum_size = Vector2\(1120, 680\)/);
-  assert.match(panelBlock, /offset_top = -340\.0/);
-  assert.match(panelBlock, /offset_bottom = 340\.0/);
+  // Anchored to the full layer and inset, so a viewport wider than the design size
+  // cannot leave bare game showing beside the card.
+  assert.match(panelBlock, /anchor_right = 1\.0/);
+  assert.match(panelBlock, /anchor_bottom = 1\.0/);
+  assert.match(panelBlock, /offset_top = 48\.0/);
+  assert.match(panelBlock, /offset_bottom = -48\.0/);
   assert.match(itemsBlock, /size_flags_vertical = 1/);
   assert.doesNotMatch(panelBlock, /ScrollContainer/);
 });
@@ -206,8 +210,13 @@ test("agency HUD and station card can be tucked without hiding the next action",
   assert.match(agencyHudScript, /func is_compact\(\) -> bool:/);
   assert.match(
     agencyHudScript,
-    /size\.x\s*=\s*custom_minimum_size\.x/,
-    "compact HUD must shrink back to its viewport width after expanded children are hidden"
+    /size\.y\s*=\s*target_height/,
+    "compact HUD must shrink back to its compact height after expanded children are hidden"
+  );
+  assert.doesNotMatch(
+    agencyHudScript,
+    /size\.x\s*=/,
+    "HUD width belongs to the anchors so the bar spans whatever viewport it is given"
   );
   assert.ok(agencyHudScene.includes('name="HudTuckToggle"'));
   assert.ok(agencyHudScene.includes('text = "Show work details"'));
@@ -248,7 +257,7 @@ test("compact agency HUD keeps readable, high-contrast actions inside the laptop
   assert.match(agencyHudScript, /set_compact\(true\)/);
   assert.match(
     agencyWorldScene,
-    /name="AgencyHud"[\s\S]*?offset_left = 16\.0[\s\S]*?offset_right = 1264\.0[\s\S]*?offset_bottom = 108\.0/
+    /name="AgencyHud"[\s\S]*?anchor_right = 1\.0[\s\S]*?offset_left = 16\.0[\s\S]*?offset_right = -16\.0[\s\S]*?offset_bottom = 108\.0/
   );
 });
 

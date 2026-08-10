@@ -164,6 +164,18 @@ describe("createEditorShell", () => {
     expect(lockedActions.hidden).toBe(true);
     expect(getByRole(root, "region", { name: "Advertisement area" }).getAttribute("tabindex")).toBe("0");
     const sizeControls = getByRole(root, "group", { name: "Advertisement toolbar" });
+    expect(
+      [...sizeControls.querySelectorAll<HTMLButtonElement>("button")]
+        .map((button) => button.textContent?.trim())
+    ).toEqual([
+      "Undo",
+      "Redo",
+      "−",
+      "Fill ad",
+      "+",
+      "Items",
+      "Delete selected item"
+    ]);
     expect(getByRole(sizeControls, "button", { name: "Make selected product or image smaller" }))
       .toBeTruthy();
     expect(getByRole(sizeControls, "button", { name: "Fill ad with selected image" }))
@@ -182,6 +194,9 @@ describe("createEditorShell", () => {
     expect(shell.deleteSelected).toBe(deleteSelected);
     expect(shell.deleteStatus.id).toBe("canvas-delete-status");
     expect(shell.zoomStatus.textContent).toBe("Select a product or image");
+    expect(shell.saveStatus.classList.contains("sr-only")).toBe(true);
+    expect(shell.zoomStatus.classList.contains("sr-only")).toBe(true);
+    expect(shell.deleteStatus.classList.contains("sr-only")).toBe(true);
     expect(getByRole(root, "status", { name: "Empty advertisement" }).textContent)
       .toContain("Advertisement empty");
     expect(shell.canvasEmptyState.hidden).toBe(false);

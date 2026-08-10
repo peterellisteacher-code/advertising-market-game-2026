@@ -1082,12 +1082,14 @@ func _new_button(label: String, node_name: String, primary: bool) -> Button:
     button.add_theme_font_size_override("font_size", 15)
     button.add_theme_color_override("font_color", WHITE)
     button.add_theme_color_override("font_hover_color", WHITE)
+    button.add_theme_color_override("font_disabled_color", NAVY)
     var normal_color := BURNT_ORANGE if primary else NAVY
     var hover_color := ORANGE_HOVER if primary else NAVY.lightened(0.08)
     button.add_theme_stylebox_override("normal", _button_style(normal_color))
     button.add_theme_stylebox_override("hover", _button_style(hover_color))
     button.add_theme_stylebox_override("pressed", _button_style(normal_color.darkened(0.04)))
     button.add_theme_stylebox_override("focus", _focus_style())
+    button.add_theme_stylebox_override("disabled", _button_style(KRAFT_BORDER))
     return button
 
 func _public_controls_in_tree_order() -> Array[Control]:

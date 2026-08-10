@@ -148,6 +148,85 @@
         });
       }
 
+      const GAME_ACCESS_RECOVERY_KEY = "admarket-game-access-recovery";
+      const GAME_ACCESS_RECOVERY_QUERY = "gameAccessRecovery";
+
+      function renderGameAccessFailure() {
+        const gateRoot = document.getElementById("account-gate-root");
+        if (!gateRoot) return;
+        const panel = document.createElement("section");
+        panel.className = "account-access__card";
+        panel.setAttribute("role", "alert");
+        const heading = document.createElement("h1");
+        heading.textContent = "The game could not start";
+        const message = document.createElement("p");
+        message.textContent = "Reload this page to try again.";
+        const retry = document.createElement("button");
+        retry.type = "button";
+        retry.textContent = "Reload game";
+        retry.addEventListener("click", () => window.location.reload());
+        panel.append(heading, message, retry);
+        gateRoot.replaceChildren(panel);
+      }
+
+      function gameAccessRecoveryAlreadyTried() {
+        try {
+          const url = new URL(window.location.href);
+          if (url.searchParams.get(GAME_ACCESS_RECOVERY_QUERY) === "1") return true;
+        } catch {
+          // The storage marker below remains the primary recovery path.
+        }
+        try {
+          if (sessionStorage.getItem(GAME_ACCESS_RECOVERY_KEY) === "1") return true;
+          sessionStorage.setItem(GAME_ACCESS_RECOVERY_KEY, "1");
+          return false;
+        } catch {
+          try {
+            const url = new URL(window.location.href);
+            url.searchParams.set(GAME_ACCESS_RECOVERY_QUERY, "1");
+            window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+            return false;
+          } catch {
+            return true;
+          }
+        }
+      }
+
+      function clearGameAccessRecovery() {
+        try {
+          sessionStorage.removeItem(GAME_ACCESS_RECOVERY_KEY);
+        } catch {
+          // Storage is optional; also clear the URL fallback below.
+        }
+        try {
+          const url = new URL(window.location.href);
+          if (!url.searchParams.has(GAME_ACCESS_RECOVERY_QUERY)) return;
+          url.searchParams.delete(GAME_ACCESS_RECOVERY_QUERY);
+          window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+        } catch {
+          // The live access controller is already available.
+        }
+      }
+
+      if (!window.AdMarketGameAccess) {
+        window.AdMarketGameAccess = Object.freeze({
+          requireAccess() {
+            return Promise.reject(new Error("Game access controller unavailable"));
+          },
+          reportStartupProgress() {},
+          reportStartupReady() {},
+          reportStartupFailure() {
+            if (!gameAccessRecoveryAlreadyTried()) {
+              window.setTimeout(() => window.location.reload(), 250);
+              return;
+            }
+            renderGameAccessFailure();
+          }
+        });
+      } else {
+        clearGameAccessRecovery();
+      }
+
       const engine = new Engine($GODOT_CONFIG);
       window.AdMarketGameAccess.requireAccess().then(() => withStartupTimeout(engine.startGame({
         onProgress(current, total) {

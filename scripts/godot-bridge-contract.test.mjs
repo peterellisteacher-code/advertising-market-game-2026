@@ -107,6 +107,14 @@ test("the Godot shell mirrors current instructions semantically without pretendi
   assert.doesNotMatch(shell, /status\.textContent\s*=\s*`Unable to start:\s*\$\{error\.message\}`/);
   assert.match(shell, /AdMarketGameAccess\.reportStartupFailure\("timeout"\)/);
   assert.match(shell, /AdMarketGameAccess\.reportStartupFailure\("engine"\)/);
+  assert.match(shell, /if\s*\(\s*!window\.AdMarketGameAccess\s*\)/);
+  assert.match(shell, /sessionStorage\.getItem\(GAME_ACCESS_RECOVERY_KEY\)/);
+  assert.match(shell, /const GAME_ACCESS_RECOVERY_QUERY\s*=/);
+  assert.match(shell, /url\.searchParams\.set\(GAME_ACCESS_RECOVERY_QUERY, "1"\)/);
+  assert.match(shell, /url\.searchParams\.delete\(GAME_ACCESS_RECOVERY_QUERY\)/);
+  assert.match(shell, /window\.history\.replaceState/);
+  assert.match(shell, /window\.location\.reload\(\)/);
+  assert.match(shell, /window\.AdMarketGameAccess\s*=\s*Object\.freeze\(\{/);
   assert.match(shell, /console\.error\("\[AdMarket game startup failed\]", \{ reason \}\)/);
   assert.match(main, /GameAccessibilityMirror\.new\(\)/);
   assert.match(main, /func _process\(_delta: float\) -> void:/);

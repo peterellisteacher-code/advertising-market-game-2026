@@ -22,6 +22,17 @@ const ORIENTATION_ITEM_SUFFIXES: Array[String] = ["One", "Two", "Three"]
 const ORIENTATION_PANEL_MARGIN := Vector2(48.0, 48.0)
 const ORIENTATION_CONTENT_MAX_WIDTH := 1120.0
 const ORIENTATION_CONTENT_MIN_INSET := 32.0
+const DARK_BUTTON_TEXT := Color(0.98, 0.965, 0.91, 1)
+const DARK_BUTTON_PATHS: Array[String] = [
+	"%GuideTab",
+	"%ResumeOrientation",
+	"%CloseGuide",
+	"%GoToObjective",
+	"%AudioSettings",
+	"%MinimiseOrientation",
+	"%OrientationPrevious",
+	"%OrientationNext",
+]
 const ORIENTATION_STEPS := [
 	{
 		"overview": true,
@@ -110,8 +121,28 @@ var _tucked: bool = true
 var _opener: Control
 
 func _ready() -> void:
+	_apply_dark_button_theme()
 	_connect_controls()
 	set_tucked(_tucked)
+
+func _apply_dark_button_theme() -> void:
+	var colour_names: Array[StringName] = [
+		&"font_color",
+		&"font_hover_color",
+		&"font_pressed_color",
+		&"font_hover_pressed_color",
+		&"font_focus_color",
+	]
+	for path: String in DARK_BUTTON_PATHS:
+		var button := get_node_or_null(path) as Button
+		if button == null:
+			continue
+		for colour_name: StringName in colour_names:
+			button.add_theme_color_override(colour_name, DARK_BUTTON_TEXT)
+		if not button.has_theme_stylebox_override(&"pressed"):
+			var hover_style := button.get_theme_stylebox(&"hover") as StyleBoxFlat
+			if hover_style != null:
+				button.add_theme_stylebox_override(&"pressed", hover_style.duplicate() as StyleBoxFlat)
 
 func configure(progress: AdMarketAgencyProgress, catalog: Variant) -> void:
 	_progress = progress

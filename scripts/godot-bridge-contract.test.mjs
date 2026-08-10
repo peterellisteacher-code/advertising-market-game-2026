@@ -486,7 +486,7 @@ test("agency ambience, music and rewards use the documented CC0 audio cues", asy
   }
 });
 
-test("agency world travel keeps every room reachable without redundant role labels", async () => {
+test("agency world travel keeps every room reachable with collision-safe arrivals", async () => {
   const [world, worldScene, stationScene, pairScene] = await Promise.all([
     readFile(new URL("godot/src/agency/agency_world.gd", root), "utf8"),
     readFile(new URL("godot/src/agency/AgencyWorld.tscn", root), "utf8"),
@@ -510,7 +510,7 @@ test("agency world travel keeps every room reachable without redundant role labe
     assert.match(arrivalOffsets, new RegExp(`"${stationId}":\\s*Vector2\\(`));
   }
   assert.match(world, /const NEAR_STATION_DISTANCE := 92\.0/);
-  assert.match(arrivalOffsets, /"client-briefing":\s*Vector2\(0\.0,\s*90\.0\)/);
+  assert.match(arrivalOffsets, /"client-briefing":\s*Vector2\(0\.0,\s*48\.0\)/);
   assert.match(worldScene, /\[sub_resource type="RectangleShape2D" id="RectangleShape2D_client_briefing"\]\s*size = Vector2\(112, 118\)/);
   assert.match(worldScene, /\[node name="ClientBriefingFixture" type="CollisionShape2D" parent="WorldBounds"/);
 

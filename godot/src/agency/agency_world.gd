@@ -32,8 +32,13 @@ const STATION_NODE_NAMES := {
 	"pitch-theatre": "PitchTheatre",
 }
 const STATION_ARRIVAL_OFFSETS := {
+	"reception": Vector2(0.0, 0.0),
 	"client-briefing": Vector2(0.0, 48.0),
+	"strategy-room": Vector2(0.0, 0.0),
+	"art-studio": Vector2(0.0, 0.0),
 	"copy-room": Vector2(0.0, 24.0),
+	"production-studio": Vector2(0.0, 0.0),
+	"media-desk": Vector2(0.0, 0.0),
 	"sound-booth": Vector2(0.0, 24.0),
 	"pitch-theatre": Vector2(0.0, 40.0),
 }

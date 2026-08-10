@@ -175,12 +175,12 @@ describe("Fabric canvas layer styling", () => {
     );
   });
 
-  it("docks canvas commands in one compact row and keeps the Item list above it", () => {
+  it("keeps every canvas command reachable in one compact row at the widest library split", () => {
     expect(css).toMatch(
-      /\.creator__workspace\s*\{[^}]*--canvas-command-dock-bottom:\s*12px[^}]*--canvas-command-dock-height:\s*48px[^}]*--canvas-command-dock-clearance:\s*calc\(var\(--canvas-command-dock-bottom\)\s*\+\s*var\(--canvas-command-dock-height\)\s*\+\s*12px\)[^}]*\}/i
+      /\.creator__workspace\s*\{[^}]*--canvas-command-dock-bottom:\s*12px[^}]*--canvas-command-dock-height:\s*60px[^}]*--canvas-command-dock-clearance:\s*calc\(var\(--canvas-command-dock-bottom\)\s*\+\s*var\(--canvas-command-dock-height\)\s*\+\s*12px\)[^}]*\}/i
     );
     expect(css).toMatch(
-      /\.creator__canvas-size\s*\{[^}]*left:\s*50%[^}]*bottom:\s*var\(--canvas-command-dock-bottom\)[^}]*display:\s*flex[^}]*flex-wrap:\s*nowrap[^}]*transform:\s*translateX\(-50%\)[^}]*\}/i
+      /\.creator__canvas-size\s*\{[^}]*left:\s*50%[^}]*bottom:\s*var\(--canvas-command-dock-bottom\)[^}]*width:\s*max-content[^}]*max-width:\s*calc\(100%\s*-\s*24px\)[^}]*display:\s*flex[^}]*flex-wrap:\s*nowrap[^}]*justify-content:\s*flex-start[^}]*overflow-x:\s*auto[^}]*scrollbar-width:\s*thin[^}]*transform:\s*translateX\(-50%\)[^}]*\}/i
     );
     expect(css).not.toMatch(
       /\.creator__canvas-size\s*\{[^}]*grid-template-areas/i

@@ -2,11 +2,13 @@ extends RefCounted
 class_name AdMarketTestMarketScreen
 
 const MarketScreenScene = preload("res://src/market/ui/MarketScreen.tscn")
+const CARD_BACKGROUND := Color("#fffaf0")
 const MarketHost = preload("res://src/market/market_host.gd")
 const FakeMarketTransport = preload("res://tests/fakes/fake_market_transport.gd")
 
 func run() -> bool:
     assert(_scene_uses_accessible_ad_market_layouts())
+    assert(_dynamic_button_states_are_readable())
     assert(_team_market_preserves_order_and_deduplicates_buy_requests())
     assert(_medal_market_shows_strict_criteria_and_deduplicates_awards())
     assert(_spectator_mode_is_calm_and_has_no_market_actions())
@@ -16,6 +18,58 @@ func run() -> bool:
     assert(_teacher_cohort_label_excludes_spectators_from_readiness())
     assert(_reveal_is_role_safe_and_network_failures_are_non_sensitive())
     return true
+
+func _dynamic_button_states_are_readable() -> bool:
+    var mounted := _mount_screen()
+    var screen: Control = mounted.get("screen")
+    for primary: bool in [false, true]:
+        var button := screen.call("_new_button", "Example", "Example", primary) as Button
+        assert(button != null)
+        for contract: Array in [
+            [&"font_color", &"normal"],
+            [&"font_hover_color", &"hover"],
+            [&"font_pressed_color", &"pressed"],
+            [&"font_focus_color", &"normal"],
+            [&"font_disabled_color", &"disabled"],
+        ]:
+            var box := button.get_theme_stylebox(contract[1]) as StyleBoxFlat
+            assert(box != null)
+            var ratio := _contrast_ratio(
+                button.get_theme_color(contract[0]),
+                box.bg_color,
+                CARD_BACKGROUND
+            )
+            assert(ratio >= 4.5, "%s on %s contrast was %.2f" % [contract[0], contract[1], ratio])
+        button.free()
+    _free_mounted(mounted)
+    return true
+
+func _contrast_ratio(foreground: Color, background: Color, canvas: Color) -> float:
+    var rendered_background := _composite(background, canvas)
+    var rendered_foreground := _composite(foreground, rendered_background)
+    var foreground_luminance := _relative_luminance(rendered_foreground)
+    var background_luminance := _relative_luminance(rendered_background)
+    return (maxf(foreground_luminance, background_luminance) + 0.05) / (minf(foreground_luminance, background_luminance) + 0.05)
+
+func _composite(foreground: Color, background: Color) -> Color:
+    return Color(
+        foreground.r * foreground.a + background.r * (1.0 - foreground.a),
+        foreground.g * foreground.a + background.g * (1.0 - foreground.a),
+        foreground.b * foreground.a + background.b * (1.0 - foreground.a),
+        1.0
+    )
+
+func _relative_luminance(colour: Color) -> float:
+    return (
+        0.2126 * _linear_channel(colour.r)
+        + 0.7152 * _linear_channel(colour.g)
+        + 0.0722 * _linear_channel(colour.b)
+    )
+
+func _linear_channel(value: float) -> float:
+    if value <= 0.04045:
+        return value / 12.92
+    return pow((value + 0.055) / 1.055, 2.4)
 
 func _medal_market_shows_strict_criteria_and_deduplicates_awards() -> bool:
     var mounted := _mount_screen()

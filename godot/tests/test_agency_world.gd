@@ -9,6 +9,10 @@ func run() -> bool:
 	var progress := AgencyProgress.new()
 	assert(progress.begin())
 	world.configure(progress)
+	var initial_objective_id: String = progress.current_objective_id
+	progress.current_objective_id = "build-product"
+	assert(world.objective_station_id() == "production-studio")
+	progress.current_objective_id = initial_objective_id
 	world.set_reduced_motion_enabled(true)
 	var tree := Engine.get_main_loop() as SceneTree
 	assert(tree != null)
@@ -42,9 +46,21 @@ func run() -> bool:
 	assert(not pair.input_enabled)
 	assert(pair.modal_open)
 	guide.set_tucked(true)
+	await tree.process_frame
 	assert(not guide_panel.visible)
+	var visible_guide_button := world.get_node("%HudGuideButton") as Button
+	assert(world.get_viewport().gui_get_focus_owner() == visible_guide_button)
 	assert(pair.input_enabled)
 	assert(not pair.modal_open)
+	agency_hud.open_guide("roles")
+	guide.role_handoff_requested.emit("art-director")
+	await tree.process_frame
+	var handoff_panel := world.get_node("%HandoffPanel") as Control
+	var requested_handoff := world.get_node("%ArtDirectorHandoff") as Button
+	assert(handoff_panel.visible)
+	assert(world.get_viewport().gui_get_focus_owner() == requested_handoff)
+	(world.get_node("%CancelHandoff") as Button).pressed.emit()
+	assert(not handoff_panel.visible)
 	_assert_station_card_can_be_tucked(world, progress)
 	_assert_station_mission_panel_uses_role_and_modal_state(world, progress)
 	_assert_keyboard_handoff_and_guide_shortcuts(world, progress)

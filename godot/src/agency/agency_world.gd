@@ -127,7 +127,7 @@ const STATION_DATA := {
 }
 const OBJECTIVE_STATIONS := {
 	"meet-client": "client-briefing",
-	"build-product": "art-studio",
+	"build-product": "production-studio",
 	"direct-attention": "art-studio",
 	"shape-message": "strategy-room",
 	"set-campaign-tone": "art-studio",
@@ -631,7 +631,21 @@ func _on_guide_tucked_changed(tucked: bool) -> void:
 	if guide != null:
 		_hide_embedded_guide_tab(guide)
 	var orientation := guide.get_node_or_null("%OrientationPanel") as Control if guide != null else null
-	_set_guidance_modal(not tucked or (orientation != null and orientation.visible))
+	var orientation_active := orientation != null and orientation.visible
+	if tucked and not orientation_active:
+		var hud_guide_button := get_node_or_null("%HudGuideButton") as Button
+		if hud_guide_button != null and hud_guide_button.visible and hud_guide_button.is_inside_tree():
+			call_deferred("_focus_visible_hud_guide_button")
+	_set_guidance_modal(not tucked or orientation_active)
+
+func _focus_visible_hud_guide_button() -> void:
+	# A role handoff can open synchronously while this tuck-focus is deferred.
+	# Never move focus behind a modal that appeared in the meantime.
+	if reading_active():
+		return
+	var hud_guide_button := get_node_or_null("%HudGuideButton") as Button
+	if hud_guide_button != null and hud_guide_button.visible and hud_guide_button.is_inside_tree():
+		hud_guide_button.grab_focus()
 
 func _on_guide_reading_state_changed(active: bool) -> void:
 	_set_guidance_modal(active)

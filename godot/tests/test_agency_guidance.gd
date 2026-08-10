@@ -99,17 +99,17 @@ func _assert_guide(progress: AdMarketAgencyProgress) -> void:
 	var minimise := guide.get_node("%MinimiseOrientation") as Button
 	var resume := guide.get_node("%ResumeOrientation") as Button
 	assert(not progress.guide_tucked)
-	minimise.pressed.emit()
+	await _click_button(minimise, tree)
 	assert(not orientation_layer.visible)
 	assert(progress.guide_tucked)
 	assert(resume.visible)
 	assert(not progress.orientation_acknowledged)
 	assert(not guide.reading_active())
-	resume.pressed.emit()
+	await _activate_button_with_keyboard(resume, tree)
 	assert(orientation_layer.visible)
 	assert(not resume.visible)
 	assert(guide.get_node("%OrientationTitle").text.contains("make one ad and pitch it"))
-	guide.advance_orientation()
+	await _click_button(orientation_next as Button, tree)
 	assert(guide.get_node("%OrientationTitle").text == "Move to the first task")
 	assert(guide.get_node("%OrientationAction").text.contains("Go to Client Briefing"))
 	assert(guide.get_node("%OrientationItemOneText").text.contains("WASD or arrow keys"))
@@ -189,6 +189,43 @@ func _assert_hud(progress: AdMarketAgencyProgress) -> void:
 	hud.open_guide("controls")
 	assert(_requested_guide_section == "controls")
 	hud.free()
+
+func _click_button(button: Button, tree: SceneTree) -> void:
+	assert(button != null and button.visible and not button.disabled)
+	var viewport := button.get_viewport()
+	assert(viewport != null)
+	var centre := button.get_global_rect().get_center()
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.button_mask = MOUSE_BUTTON_MASK_LEFT
+	press.pressed = true
+	press.position = centre
+	press.global_position = centre
+	viewport.push_input(press, true)
+	await tree.process_frame
+	var release := press.duplicate() as InputEventMouseButton
+	release.button_mask = 0
+	release.pressed = false
+	viewport.push_input(release, true)
+	await tree.process_frame
+
+func _activate_button_with_keyboard(button: Button, tree: SceneTree) -> void:
+	assert(button != null and button.visible and not button.disabled)
+	button.grab_focus()
+	await tree.process_frame
+	assert(button.has_focus())
+	var viewport := button.get_viewport()
+	assert(viewport != null)
+	var press := InputEventAction.new()
+	press.action = &"ui_accept"
+	press.pressed = true
+	viewport.push_input(press)
+	await tree.process_frame
+	var release := InputEventAction.new()
+	release.action = &"ui_accept"
+	release.pressed = false
+	viewport.push_input(release)
+	await tree.process_frame
 
 func _capture_station(station_id: String) -> void:
 	_requested_station_id = station_id

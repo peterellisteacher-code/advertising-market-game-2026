@@ -523,6 +523,7 @@ test("release assembly binds static assets, private functions and one atomic ser
   const html = await readFile(path.join(web, "index.html"), "utf8");
   assert.equal(html.match(/rel="manifest"/g)?.length, 1);
   assert.match(html, /href="\.\/manifest\.webmanifest"/);
+  assert.match(html, /crossorigin="use-credentials"/);
   assert.equal(
     await readFile(path.join(web, "_redirects"), "utf8"),
     [

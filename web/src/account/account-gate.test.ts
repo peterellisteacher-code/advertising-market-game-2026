@@ -63,6 +63,10 @@ function mount(client: AccountSessionClient, callbacks: {
   return { controller, gateRoot, statusRoot, gameSurface, canvas, creatorRoot, reload };
 }
 
+function openAccountDetails(statusRoot: HTMLElement): void {
+  fireEvent.click(getByRole(statusRoot, "button", { name: "Show account details" }));
+}
+
 afterEach(() => {
   document.body.innerHTML = "";
   vi.restoreAllMocks();
@@ -274,6 +278,7 @@ describe("AccountAccessController", () => {
     expect(harness.gateRoot.hidden).toBe(true);
     expect(harness.statusRoot.textContent).toContain("Signed in as team-one");
     expect(queryByRole(harness.statusRoot, "button", { name: /reset progress/i })).toBeNull();
+    openAccountDetails(harness.statusRoot);
     expect(getByRole(harness.statusRoot, "button", { name: "Sign out" })).toBeTruthy();
     expect(harness.statusRoot.textContent)
       .toContain("Sign out before another pair uses this device.");
@@ -363,6 +368,7 @@ describe("AccountAccessController", () => {
     const harness = mount(client, { onSignedOut, reload });
     await harness.controller.requireAccess();
     harness.creatorRoot.hidden = false;
+    openAccountDetails(harness.statusRoot);
 
     fireEvent.click(getByRole(harness.statusRoot, "button", { name: "Sign out" }));
 
@@ -392,6 +398,32 @@ describe("AccountAccessController", () => {
     expect(queryByRole(harness.statusRoot, "button", { name: /reset progress/i })).toBeNull();
     expect(queryByRole(document.body, "dialog", { name: /reset account progress/i })).toBeNull();
     expect(client.logout).not.toHaveBeenCalled();
+  });
+
+  it("tucks account details until the pair asks to see them", async () => {
+    const client: AccountSessionClient = {
+      session: vi.fn().mockResolvedValue(authenticatedSession("team-one")),
+      login: vi.fn(),
+      logout: vi.fn()
+    };
+    const harness = mount(client);
+    await harness.controller.requireAccess();
+
+    const toggle = getByRole<HTMLButtonElement>(harness.statusRoot, "button", {
+      name: "Show account details"
+    });
+    const panel = harness.statusRoot.querySelector<HTMLElement>("[data-account-panel]")!;
+
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(panel.hidden).toBe(true);
+    expect(queryByRole(harness.statusRoot, "button", { name: "Sign out" })).toBeNull();
+
+    fireEvent.click(toggle);
+
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(toggle.getAttribute("aria-label")).toBe("Hide account details");
+    expect(panel.hidden).toBe(false);
+    expect(getByRole(harness.statusRoot, "button", { name: "Sign out" })).toBeTruthy();
   });
 
   it("locks another tab during reset and reloads it on completion", async () => {
@@ -483,6 +515,7 @@ describe("AccountAccessController", () => {
     const harness = mount(client, { onSignedOut, reload });
     await harness.controller.requireAccess();
     harness.creatorRoot.hidden = false;
+    openAccountDetails(harness.statusRoot);
 
     fireEvent.click(getByRole(harness.statusRoot, "button", { name: "Sign out" }));
 

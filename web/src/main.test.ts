@@ -1486,6 +1486,7 @@ describe("window.AdMarketCreator", () => {
     expect(document.querySelector<HTMLElement>('main[aria-label="Advertising Market Game"]')?.hidden)
       .toBe(false);
     expect(document.querySelector<HTMLCanvasElement>("#canvas")?.tabIndex).toBe(0);
+    fireEvent.click(getByRole(document.body, "button", { name: "Show account details" }));
     expect(getByRole(document.body, "button", { name: "Sign out" })).toBeTruthy();
     expect(document.body.textContent)
       .toContain("Sign out before another pair uses this device.");
@@ -1625,6 +1626,7 @@ describe("window.AdMarketCreator", () => {
       .toBe("Cloud save restored to this device.");
     expect(runtime.importCloudPractice).toHaveBeenCalledOnce();
 
+    fireEvent.click(getByRole(document.body, "button", { name: "Show account details" }));
     fireEvent.click(getByRole(document.body, "button", { name: "Sign out" }));
     await waitFor(() => expect(fetchSpy.mock.calls.some(
       ([input]) => input === "/api/account/logout"

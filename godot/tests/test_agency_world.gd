@@ -3,8 +3,15 @@ class_name AdMarketTestAgencyWorld
 
 const WorldScene = preload("res://src/agency/AgencyWorld.tscn")
 const AgencyProgress = preload("res://src/agency/agency_progress.gd")
+const CampaignController = preload("res://src/agency/agency_campaign_controller.gd")
+const GameRun = preload("res://src/game/game_run.gd")
+
+var _workspace_requested: bool = false
 
 func run() -> bool:
+	var tree := Engine.get_main_loop() as SceneTree
+	assert(tree != null)
+	await _assert_quick_start_opens_product_workspace(tree)
 	var world := WorldScene.instantiate()
 	var progress := AgencyProgress.new()
 	assert(progress.begin())
@@ -14,8 +21,6 @@ func run() -> bool:
 	assert(world.objective_station_id() == "production-studio")
 	progress.current_objective_id = initial_objective_id
 	world.set_reduced_motion_enabled(true)
-	var tree := Engine.get_main_loop() as SceneTree
-	assert(tree != null)
 	tree.root.add_child(world)
 	await tree.process_frame
 	await tree.physics_frame
@@ -64,6 +69,7 @@ func run() -> bool:
 	_assert_station_card_can_be_tucked(world, progress)
 	_assert_station_mission_panel_uses_role_and_modal_state(world, progress)
 	_assert_keyboard_handoff_and_guide_shortcuts(world, progress)
+	await _assert_modal_shortcuts_and_station_focus(world, progress, tree)
 	assert(world.direct_travel("reception"))
 	assert(world.current_station_id() == "reception")
 	_assert_pair_arrives_beside_station(world, "Reception")
@@ -96,6 +102,126 @@ func run() -> bool:
 	assert(world.get_node("HUD/HUDRoot/ObjectiveBar").visible == false)
 	world.free()
 	return true
+
+func _assert_quick_start_opens_product_workspace(tree: SceneTree) -> void:
+	_workspace_requested = false
+	var game_run := GameRun.new() as AdMarketGameRun
+	assert(is_instance_valid(game_run))
+	assert(game_run.begin("North Star Studio", "session-workspace-route", "team-workspace-route"))
+	var controller := CampaignController.new() as AdMarketAgencyCampaignController
+	assert(is_instance_valid(controller))
+	controller.begin_agency(game_run, {
+		"product": {},
+		"gameplay": {
+			"pair": {
+				"activeRole": "art-director",
+				"handoffCount": 0,
+			},
+		},
+	})
+	var progress := game_run.agency_progress() as AdMarketAgencyProgress
+	assert(progress != null and progress.current_objective_id == "meet-client")
+	var world := WorldScene.instantiate() as AdMarketAgencyWorld
+	assert(is_instance_valid(world))
+	world.configure(progress)
+	world.set_reduced_motion_enabled(true)
+	world.station_requested.connect(controller.open_station)
+	controller.creator_requested.connect(_capture_workspace_request)
+	tree.root.add_child(world)
+	await tree.process_frame
+	await tree.physics_frame
+	var guide := world.get_node("%AgencyGuideDrawer") as AdMarketAgencyGuideDrawer
+	var orientation := guide.get_node("%OrientationLayer") as Control
+	var orientation_next := guide.get_node("%OrientationNext") as Button
+	assert(orientation.visible)
+	for expected_title: String in [
+		"Move to the first task",
+		"Share the decisions",
+		"Begin the work",
+	]:
+		await _click_button(orientation_next, tree)
+		assert((guide.get_node("%OrientationTitle") as Label).text == expected_title)
+	await _click_button(orientation_next, tree)
+	assert(progress.orientation_acknowledged)
+	assert(not orientation.visible)
+	assert(world.current_station_id() == "client-briefing")
+	assert(controller.complete_mission("audience-brief", {
+		"decision": "independence",
+		"effect": "The offer supports the audience's need to control the hour after school.",
+	}))
+	assert(progress.current_objective_id == "build-product")
+	world.configure(progress)
+	await tree.process_frame
+	var agency_hud := world.get_node("%AgencyHud") as AdMarketAgencyHud
+	var go_to_task := agency_hud.get_node(
+		"HudMargin/HudStack/PrimaryRow/HudGoToObjective"
+	) as Button
+	assert(go_to_task.visible and not go_to_task.disabled)
+	await _activate_button_with_keyboard(go_to_task, tree)
+	assert(world.current_station_id() == "production-studio")
+	var station_action := world.get_node("%StationActionButton") as Button
+	assert(station_action.visible and not station_action.disabled)
+	await _click_button(station_action, tree)
+	assert(_workspace_requested)
+	world.queue_free()
+	await tree.process_frame
+
+func _capture_workspace_request() -> void:
+	_workspace_requested = true
+
+func _click_button(button: Button, tree: SceneTree) -> void:
+	assert(button != null and button.visible and not button.disabled)
+	var viewport := button.get_viewport()
+	assert(viewport != null)
+	var centre := button.get_global_rect().get_center()
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.button_mask = MOUSE_BUTTON_MASK_LEFT
+	press.pressed = true
+	press.position = centre
+	press.global_position = centre
+	viewport.push_input(press, true)
+	await tree.process_frame
+	var release := press.duplicate() as InputEventMouseButton
+	release.button_mask = 0
+	release.pressed = false
+	viewport.push_input(release, true)
+	await tree.process_frame
+
+func _activate_button_with_keyboard(button: Button, tree: SceneTree) -> void:
+	assert(
+		button != null and button.is_visible_in_tree() and not button.disabled,
+		_control_visibility_chain(button)
+	)
+	button.grab_focus()
+	await tree.process_frame
+	assert(button.has_focus())
+	var viewport := button.get_viewport()
+	assert(viewport != null)
+	var press := InputEventAction.new()
+	press.action = &"ui_accept"
+	press.pressed = true
+	viewport.push_input(press)
+	await tree.process_frame
+	var release := InputEventAction.new()
+	release.action = &"ui_accept"
+	release.pressed = false
+	viewport.push_input(release)
+	await tree.process_frame
+
+func _control_visibility_chain(control: Control) -> String:
+	var entries: Array[String] = []
+	var node: Node = control
+	while node != null:
+		var canvas_item := node as CanvasItem
+		if canvas_item != null:
+			entries.append("%s visible=%s tree=%s" % [
+				node.name,
+				canvas_item.visible,
+				canvas_item.is_visible_in_tree(),
+			])
+		node = node.get_parent()
+	return " | ".join(entries)
 
 func _assert_station_card_can_be_tucked(world: Node, progress: RefCounted) -> void:
 	var station_panel := world.get_node("%StationPanel") as Control
@@ -239,6 +365,62 @@ func _assert_keyboard_handoff_and_guide_shortcuts(world: Node, progress: RefCoun
 	var guide := world.get_node("%AgencyGuideDrawer") as AdMarketAgencyGuideDrawer
 	assert((guide.get_node("GuidePanel") as Control).visible)
 	guide.set_tucked(true)
+
+func _assert_modal_shortcuts_and_station_focus(
+	world: Node,
+	progress: RefCounted,
+	tree: SceneTree
+) -> void:
+	var pair: CharacterBody2D = world.get_node("%AgencyPair") as CharacterBody2D
+	var handoff_panel: Control = world.get_node("%HandoffPanel") as Control
+	var guide: AdMarketAgencyGuideDrawer = world.get_node("%AgencyGuideDrawer") as AdMarketAgencyGuideDrawer
+	var guide_panel: Control = guide.get_node("GuidePanel") as Control
+	var station_panel: Control = world.get_node("%StationPanel") as Control
+	var station_tab: Button = world.get_node("%StationPanelTab") as Button
+	var station_tuck: Button = world.get_node("%StationPanelTuck") as Button
+	var art_button: Button = world.get_node("%ArtDirectorHandoff") as Button
+	var strategist_button: Button = world.get_node("%StrategistHandoff") as Button
+	if not station_tab.visible:
+		station_tuck.pressed.emit()
+	assert(station_tab.visible)
+	world.call("_show_handoff_dialog")
+	var active_role: String = String(progress.get("active_role"))
+	assert(art_button.disabled == (active_role == "art-director"))
+	assert(strategist_button.disabled == (active_role == "strategist"))
+	var available_handoff: Button = strategist_button if active_role == "art-director" else art_button
+	assert(world.get_viewport().gui_get_focus_owner() == available_handoff)
+	var guide_event: InputEventAction = InputEventAction.new()
+	guide_event.action = &"guide"
+	guide_event.pressed = true
+	world.call("_unhandled_input", guide_event)
+	assert(handoff_panel.visible)
+	assert(not guide_panel.visible)
+	assert(pair.modal_open)
+	assert(not pair.input_enabled)
+	world.call("_finish_direct_travel")
+	assert(pair.modal_open)
+	assert(not pair.input_enabled)
+	assert(world.get_viewport().gui_get_focus_owner() == available_handoff)
+	(world.get_node("%CancelHandoff") as Button).pressed.emit()
+	assert(not handoff_panel.visible)
+	assert(station_tab.visible)
+	assert(world.get_viewport().gui_get_focus_owner() == station_tab)
+	station_tab.pressed.emit()
+	await tree.process_frame
+	assert(station_panel.visible)
+	station_tuck.pressed.emit()
+	assert(station_tab.visible)
+	world.call("_show_handoff_dialog")
+	assert(world.get_viewport().gui_get_focus_owner() == available_handoff)
+	await tree.process_frame
+	assert(handoff_panel.visible)
+	assert(pair.modal_open)
+	assert(not pair.input_enabled)
+	assert(world.get_viewport().gui_get_focus_owner() == available_handoff)
+	(world.get_node("%CancelHandoff") as Button).pressed.emit()
+	assert(not handoff_panel.visible)
+	assert(station_tab.visible)
+	assert(world.get_viewport().gui_get_focus_owner() == station_tab)
 
 func _assert_mission_panel_is_readable_and_bounded(panel: Control) -> void:
 	# The panel is the full-screen backdrop, so it tracks the viewport rather than the

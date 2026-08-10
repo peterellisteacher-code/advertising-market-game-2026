@@ -150,16 +150,19 @@
 
       const GAME_ACCESS_RECOVERY_KEY = "admarket-game-access-recovery";
       const GAME_ACCESS_RECOVERY_QUERY = "gameAccessRecovery";
+      let gameAccessRecoveryReloadScheduled = false;
 
       function renderGameAccessFailure() {
         const gateRoot = document.getElementById("account-gate-root");
         if (!gateRoot) return;
+        gateRoot.hidden = false;
+        gateRoot.className = "account-access";
         const panel = document.createElement("section");
         panel.className = "account-access__card";
-        panel.setAttribute("role", "alert");
         const heading = document.createElement("h1");
         heading.textContent = "The game could not start";
         const message = document.createElement("p");
+        message.setAttribute("role", "alert");
         message.textContent = "Reload this page to try again.";
         const retry = document.createElement("button");
         retry.type = "button";
@@ -167,6 +170,7 @@
         retry.addEventListener("click", () => window.location.reload());
         panel.append(heading, message, retry);
         gateRoot.replaceChildren(panel);
+        queueMicrotask(() => retry.focus());
       }
 
       function gameAccessRecoveryAlreadyTried() {
@@ -216,8 +220,13 @@
           reportStartupProgress() {},
           reportStartupReady() {},
           reportStartupFailure() {
+            if (gameAccessRecoveryReloadScheduled) return;
             if (!gameAccessRecoveryAlreadyTried()) {
-              window.setTimeout(() => window.location.reload(), 250);
+              gameAccessRecoveryReloadScheduled = true;
+              window.setTimeout(() => {
+                gameAccessRecoveryReloadScheduled = false;
+                window.location.reload();
+              }, 250);
               return;
             }
             renderGameAccessFailure();

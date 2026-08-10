@@ -91,19 +91,14 @@ func _assert_button(button: Button) -> void:
 	var normal := button.get_theme_stylebox("normal") as StyleBoxFlat
 	assert(normal != null)
 	if button is CheckButton:
-		# A switch draws no slab, so its unclickable state is carried by the label.
+		# A switch draws no slab, so every label state is measured over the rendered
+		# panel stack beneath it rather than over an invented opaque button fill.
 		assert(normal.bg_color.a == 0.0)
-		var panel_background := _opaque_ancestor_background(button)
-		var disabled_ratio := _contrast_ratio(
-			button.get_theme_color("font_disabled_color"),
-			panel_background
-		)
-		assert(
-			disabled_ratio >= MIN_TEXT_CONTRAST,
-			"%s disabled contrast %.2f is below %.1f:1" % [
-				button.get_path(), disabled_ratio, MIN_TEXT_CONTRAST
-			]
-		)
+		_assert_state_contrast(button, &"font_color", &"normal")
+		_assert_state_contrast(button, &"font_hover_color", &"hover")
+		_assert_state_contrast(button, &"font_pressed_color", &"pressed")
+		_assert_state_contrast(button, &"font_focus_color", &"normal")
+		_assert_state_contrast(button, &"font_disabled_color", &"disabled")
 		return
 	# Nothing clickable is grey.
 	assert(not _is_grey(normal.bg_color))
@@ -122,26 +117,57 @@ func _assert_button(button: Button) -> void:
 func _assert_state_contrast(button: Button, colour_name: StringName, style_name: StringName) -> void:
 	var background_box := button.get_theme_stylebox(style_name) as StyleBoxFlat
 	assert(background_box != null)
-	if background_box.bg_color.a < 0.9:
-		return
 	var foreground := button.get_theme_color(colour_name)
-	var ratio := _contrast_ratio(foreground, background_box.bg_color)
-	assert(
-		ratio >= MIN_TEXT_CONTRAST,
-		"%s %s contrast %.2f is below %.1f:1" % [button.get_path(), colour_name, ratio, MIN_TEXT_CONTRAST]
-	)
+	for background: Color in _rendered_backgrounds(button, background_box.bg_color):
+		var ratio := _contrast_ratio(foreground, background)
+		assert(
+			ratio >= MIN_TEXT_CONTRAST,
+			"%s %s contrast %.2f is below %.1f:1 over %s" % [
+				button.get_path(),
+				colour_name,
+				ratio,
+				MIN_TEXT_CONTRAST,
+				background.to_html(),
+			]
+		)
 
-func _opaque_ancestor_background(control: Control) -> Color:
+func _rendered_backgrounds(control: Control, local_fill: Color) -> Array[Color]:
+	var layers: Array[Color] = []
 	var ancestor := control.get_parent()
 	while ancestor != null:
-		var panel := ancestor as PanelContainer
-		if panel != null:
-			var panel_box := panel.get_theme_stylebox("panel") as StyleBoxFlat
-			if panel_box != null and panel_box.bg_color.a >= 0.9:
-				return panel_box.bg_color
+		var layer := Color.TRANSPARENT
+		var panel_control := ancestor as Control
+		if panel_control != null and (ancestor is PanelContainer or ancestor is Panel):
+			var panel_box := panel_control.get_theme_stylebox("panel") as StyleBoxFlat
+			if panel_box != null:
+				layer = panel_box.bg_color
+		elif ancestor is ColorRect:
+			layer = (ancestor as ColorRect).color
+		if layer.a > 0.0:
+			layers.push_front(layer)
+			if is_equal_approx(layer.a, 1.0):
+				break
 		ancestor = ancestor.get_parent()
-	assert(false, "%s has no opaque panel background" % control.get_path())
-	return Color.BLACK
+	var backgrounds: Array[Color] = []
+	# If the visible control stack remains translucent, test both luminance
+	# extremes so a world sprite, texture or canvas clear colour cannot hide text.
+	for canvas: Color in [Color.BLACK, Color.WHITE]:
+		var rendered := canvas
+		for layer: Color in layers:
+			rendered = _composite(layer, rendered)
+		backgrounds.append(_composite(local_fill, rendered))
+	return backgrounds
+
+func _composite(foreground: Color, background: Color) -> Color:
+	var alpha := foreground.a + background.a * (1.0 - foreground.a)
+	if is_zero_approx(alpha):
+		return Color.TRANSPARENT
+	return Color(
+		(foreground.r * foreground.a + background.r * background.a * (1.0 - foreground.a)) / alpha,
+		(foreground.g * foreground.a + background.g * background.a * (1.0 - foreground.a)) / alpha,
+		(foreground.b * foreground.a + background.b * background.a * (1.0 - foreground.a)) / alpha,
+		alpha
+	)
 
 func _contrast_ratio(foreground: Color, background: Color) -> float:
 	var rendered_foreground := Color(

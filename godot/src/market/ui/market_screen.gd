@@ -871,10 +871,15 @@ func _finish_shopping() -> void:
         return
     finish_button.disabled = true
     _refresh_keyboard_order()
+    var choice_name := (
+        "medals"
+        if str(_latest_state.get("marketMode", "purchases")) == "medals"
+        else "purchases"
+    )
     network_status.text = (
-        "Practice market: checking medals…"
+        "Practice market: checking %s…" % choice_name
         if _practice_mode
-        else "Live market: checking medals…"
+        else "Live market: checking %s…" % choice_name
     )
     if str(market_host.call("finish")).is_empty():
         _show_safe_diagnostic()
@@ -1082,12 +1087,17 @@ func _new_button(label: String, node_name: String, primary: bool) -> Button:
     button.add_theme_font_size_override("font_size", 15)
     button.add_theme_color_override("font_color", WHITE)
     button.add_theme_color_override("font_hover_color", WHITE)
+    button.add_theme_color_override("font_pressed_color", WHITE)
+    button.add_theme_color_override("font_hover_pressed_color", WHITE)
+    button.add_theme_color_override("font_focus_color", WHITE)
     button.add_theme_color_override("font_disabled_color", NAVY)
     var normal_color := BURNT_ORANGE if primary else NAVY
     var hover_color := ORANGE_HOVER if primary else NAVY.lightened(0.08)
+    var pressed_color := normal_color.darkened(0.04)
     button.add_theme_stylebox_override("normal", _button_style(normal_color))
     button.add_theme_stylebox_override("hover", _button_style(hover_color))
-    button.add_theme_stylebox_override("pressed", _button_style(normal_color.darkened(0.04)))
+    button.add_theme_stylebox_override("pressed", _button_style(pressed_color))
+    button.add_theme_stylebox_override("hover_pressed", _button_style(pressed_color))
     button.add_theme_stylebox_override("focus", _focus_style())
     button.add_theme_stylebox_override("disabled", _button_style(KRAFT_BORDER))
     return button
@@ -1207,7 +1217,11 @@ func _phase_copy(phase: String) -> String:
     if phase == "building":
         return "Advertisements are being built and reviewed."
     if phase == "market":
-        return "The market gallery is open for awards."
+        return (
+            "The market gallery is open for awards."
+            if str(_latest_state.get("marketMode", "purchases")) == "medals"
+            else "The market floor is open for purchases."
+        )
     if phase == "reveal":
         return "The market podium is ready for the reveal."
     if phase == "closed":

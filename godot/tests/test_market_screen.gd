@@ -9,6 +9,7 @@ const FakeMarketTransport = preload("res://tests/fakes/fake_market_transport.gd"
 func run() -> bool:
     assert(_scene_uses_accessible_ad_market_layouts())
     assert(_dynamic_button_states_are_readable())
+    assert(_market_mode_copy_matches_the_available_action())
     assert(_team_market_preserves_order_and_deduplicates_buy_requests())
     assert(_medal_market_shows_strict_criteria_and_deduplicates_awards())
     assert(_spectator_mode_is_calm_and_has_no_market_actions())
@@ -29,9 +30,12 @@ func _dynamic_button_states_are_readable() -> bool:
             [&"font_color", &"normal"],
             [&"font_hover_color", &"hover"],
             [&"font_pressed_color", &"pressed"],
+            [&"font_hover_pressed_color", &"hover_pressed"],
             [&"font_focus_color", &"normal"],
             [&"font_disabled_color", &"disabled"],
         ]:
+            assert(button.has_theme_color_override(contract[0]))
+            assert(button.has_theme_stylebox_override(contract[1]))
             var box := button.get_theme_stylebox(contract[1]) as StyleBoxFlat
             assert(box != null)
             var ratio := _contrast_ratio(
@@ -41,6 +45,29 @@ func _dynamic_button_states_are_readable() -> bool:
             )
             assert(ratio >= 4.5, "%s on %s contrast was %.2f" % [contract[0], contract[1], ratio])
         button.free()
+    _free_mounted(mounted)
+    return true
+
+func _market_mode_copy_matches_the_available_action() -> bool:
+    var mounted := _mount_screen()
+    var screen: Control = mounted.get("screen")
+    screen.call("set_market_host", mounted.get("host"))
+    screen.call("enter_room", "team", "ABC-234")
+    screen.call("present_snapshot", _team_snapshot())
+    assert((screen.get_node("%PhaseStatus") as Label).text == "The market floor is open for purchases.")
+    var finish := screen.get_node("%FinishMarket") as Button
+    finish.disabled = false
+    screen.call("_finish_shopping")
+    var purchase_status := (screen.get_node("%NetworkStatus") as Label).text.to_lower()
+    assert(purchase_status.contains("purchases"))
+    assert(not purchase_status.contains("medals"))
+
+    screen.call("present_snapshot", _medal_team_snapshot())
+    assert((screen.get_node("%PhaseStatus") as Label).text == "The market gallery is open for awards.")
+    finish.disabled = false
+    screen.call("_finish_shopping")
+    var award_status := (screen.get_node("%NetworkStatus") as Label).text.to_lower()
+    assert(award_status.contains("medals"))
     _free_mounted(mounted)
     return true
 

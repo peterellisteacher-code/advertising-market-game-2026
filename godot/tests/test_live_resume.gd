@@ -195,8 +195,11 @@ func _team_resume_hydrates_only_exact_progress_and_draft_identity() -> bool:
 	assert(not (valid_shell.get_node("%RunPanel") as Control).visible)
 	assert(
 		(valid_shell.get_node("%AgencyWorld") as AdMarketAgencyWorld).objective_station_id()
-		== "strategy-room"
+		== "art-studio"
 	)
+	var resumed_objective := valid_shell.find_child("HudObjective", true, false) as Label
+	assert(resumed_objective != null)
+	assert(resumed_objective.text.begins_with("Task 4 of 7"))
 	assert(not (valid_shell.get_node("%LaunchCreator") as Button).disabled)
 	valid_shell.free()
 	return true

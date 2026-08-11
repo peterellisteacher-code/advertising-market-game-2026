@@ -232,7 +232,7 @@ export const STUDENT_COPY = deepFreeze({
     upload: {
       heading: "Upload your drawing or mockup",
       note:
-        "Choose a PNG, JPEG or WebP, up to 12 MiB. The image stays on this device unless you choose an Image Lab action.",
+        "Choose a PNG, JPEG or WebP, up to 12 MiB. Your image is saved with your work on this device and in your account. It is sent to the image service only when you choose an Image Lab action.",
       chooseImage: "Choose an image",
       preparing: "Preparing image…",
       addedSuffix:

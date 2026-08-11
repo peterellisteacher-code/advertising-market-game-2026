@@ -42,6 +42,7 @@ func open_mission(mission_id: String, active_role: String) -> Dictionary:
 	_mission_id = mission_id
 	_active_role = active_role
 	_required = bool(record.get("required", true))
+	_apply_required_sequence_metadata()
 	_selected_choice_id = ""
 	_selected_effect = ""
 	_choice_correct = false
@@ -54,6 +55,8 @@ func open_mission(mission_id: String, active_role: String) -> Dictionary:
 		"required": _required,
 		"state": _state,
 		"missionId": _mission_id,
+		"taskIndex": int(_record.get("taskIndex", 0)),
+		"taskTotal": int(_record.get("taskTotal", 0)),
 		"ownerRole": String(_record.get("ownerRole")),
 		"holdingAction": String(_record.get("holdingAction"))
 	}
@@ -196,7 +199,10 @@ func snapshot() -> Dictionary:
 		"choiceCorrect": _choice_correct,
 		"effect": _selected_effect,
 		"holdingAction": String(_record.get("holdingAction", "")),
-		"applicationObjective": _application_objective()
+		"applicationObjective": _application_objective(),
+		"taskIndex": int(_record.get("taskIndex", 0)),
+		"taskTotal": int(_record.get("taskTotal", 0)),
+		"hasNextRequired": not _next_required_mission_id().is_empty()
 	}
 
 func _mission_record(mission_id: String) -> Dictionary:
@@ -237,12 +243,56 @@ func _completion_result(evidence: Dictionary) -> Dictionary:
 		"required": _required,
 		"evidence": evidence.duplicate(true),
 		"reward": String(_record.get("reward")),
-		"applicationObjective": _application_objective()
+		"applicationObjective": _application_objective(),
+		"taskIndex": int(_record.get("taskIndex", 0)),
+		"taskTotal": int(_record.get("taskTotal", 0)),
+		"hasNextRequired": not _next_required_mission_id().is_empty()
 	}
 	if not _required:
 		result["portfolioStamp"] = String(_record.get("portfolioStamp"))
 		result["presentationFlourish"] = String(_record.get("presentationFlourish"))
 	return result
+
+func _apply_required_sequence_metadata() -> void:
+	if not _required or _catalog_script == null:
+		return
+	var records_value: Variant = _catalog_script.call("required_missions")
+	if typeof(records_value) != TYPE_ARRAY:
+		return
+	var records: Array = records_value
+	for index in records.size():
+		var record_value: Variant = records[index]
+		if typeof(record_value) != TYPE_DICTIONARY:
+			continue
+		if String(Dictionary(record_value).get("id", "")) == _mission_id:
+			_record["taskIndex"] = index + 1
+			_record["taskTotal"] = records.size()
+			return
+
+func _next_required_mission_id() -> String:
+	if not _required or _catalog_script == null or not is_instance_valid(_progress):
+		return ""
+	var records_value: Variant = _catalog_script.call("required_missions")
+	if typeof(records_value) != TYPE_ARRAY:
+		return ""
+	var records: Array = records_value
+	var current_index := -1
+	for index in records.size():
+		var record_value: Variant = records[index]
+		if typeof(record_value) == TYPE_DICTIONARY and String(Dictionary(record_value).get("id", "")) == _mission_id:
+			current_index = index
+			break
+	if current_index < 0:
+		return ""
+	var completed: Array = _progress.get("completed_mission_ids")
+	for index in range(current_index + 1, records.size()):
+		var record_value: Variant = records[index]
+		if typeof(record_value) != TYPE_DICTIONARY:
+			continue
+		var candidate_id := String(Dictionary(record_value).get("id", ""))
+		if not candidate_id.is_empty() and not completed.has(candidate_id):
+			return candidate_id
+	return ""
 
 func _application_objective() -> String:
 	if _record.is_empty():
@@ -319,6 +369,7 @@ func _connect_panel() -> void:
 	_connect_panel_signal("continue_requested", _on_continue_requested)
 	_connect_panel_signal("demonstration_submitted", _on_demonstration_submitted)
 	_connect_panel_signal("retry_requested", _on_retry_requested)
+	_connect_panel_signal("next_requested", _on_next_requested)
 	_connect_panel_signal("close_requested", _on_close_requested)
 
 func _disconnect_panel() -> void:
@@ -328,6 +379,7 @@ func _disconnect_panel() -> void:
 	_disconnect_panel_signal("continue_requested", _on_continue_requested)
 	_disconnect_panel_signal("demonstration_submitted", _on_demonstration_submitted)
 	_disconnect_panel_signal("retry_requested", _on_retry_requested)
+	_disconnect_panel_signal("next_requested", _on_next_requested)
 	_disconnect_panel_signal("close_requested", _on_close_requested)
 
 func _connect_panel_signal(signal_name: StringName, callback: Callable) -> void:
@@ -352,6 +404,16 @@ func _on_demonstration_submitted(result: Dictionary) -> void:
 
 func _on_retry_requested() -> void:
 	retry()
+
+func _on_next_requested() -> void:
+	if _state != STATE_COMPLETED or not _required:
+		close()
+		return
+	var next_mission_id := _next_required_mission_id()
+	if next_mission_id.is_empty():
+		close()
+		return
+	open_mission(next_mission_id, _active_role)
 
 func _on_close_requested() -> void:
 	close()

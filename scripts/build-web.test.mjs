@@ -436,11 +436,18 @@ test("deployed Godot shell blocks game focus and awaits mandatory routed access"
   assert.equal(shell.match(/<base href="\/">/g)?.length, 1);
   assert.match(shell, /window\.AdMarketGameAccess\.requireAccess\(\)/);
   assert.match(shell, /id="game-startup-status"/);
-  assert.match(shell, /45_000/);
+  assert.match(shell, /120_000/);
+  assert.doesNotMatch(shell, /45_000/);
+  assert.match(shell, /admarket-release-marker/);
+  assert.match(shell, /navigator\.serviceWorker\.getRegistrations\(\)/);
+  assert.ok(
+    shell.indexOf("prepareReleaseAssets()") < shell.indexOf("new Engine("),
+    "stale release recovery must run before the engine starts"
+  );
   assert.match(shell, /reportStartupProgress/);
   assert.match(shell, /reportStartupReady/);
-  assert.match(shell, /reportStartupFailure\("timeout"\)/);
-  assert.match(shell, /reportStartupFailure\("engine"\)/);
+  assert.match(shell, /const reason = error instanceof GameStartupTimeoutError \? "timeout" : "engine"/);
+  assert.match(shell, /reportStartupFailure\(reason\)/);
   assert.doesNotMatch(shell, /window\.AdMarketAccount\.requireAccess\(\)/);
   assert.throws(() => assertAccountGatedGodotShell(`
     <main aria-label="Advertising Market Game"><canvas id="canvas" tabindex="0"></canvas></main>
@@ -561,6 +568,8 @@ test("release assembly binds static assets, private functions and one atomic ser
   assert.match(worker, /request\.method !== "GET"/);
   assert.match(worker, /url\.pathname\.startsWith\("\/api\/"\)/);
   assert.match(worker, /crypto\.subtle\.digest\("SHA-256"/);
+  assert.match(worker, /requestedVersion !== expectedVersion/);
+  assert.match(worker, /return fetch\(request, \{ cache: "no-cache" \}\);/);
   assert.match(worker, /for \(const pathname of CORE\)/);
   assert.match(worker, /fetch\(pathname, \{ cache: "no-cache" \}\)/);
   assert.doesNotMatch(worker, /Promise\.all\(CORE\.map/);

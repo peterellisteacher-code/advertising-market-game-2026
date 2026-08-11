@@ -1,6 +1,6 @@
 # Assignment Sandbox copy review — 11 August 2026
 
-## Stable input
+## Frozen-review input
 
 - Scope: the complete `STUDENT_COPY.assignmentSandbox` object used by the sandbox badge, assignment planner, student-image upload and sandbox advertisement-realisation controls.
 - UTF-8 JSON size: 4,038 bytes.
@@ -41,6 +41,14 @@ None. The review did not identify a plain-language defect in an existing visible
 - Internal JSON property names mentioned in the critique are not rendered labels; the interface presents the governed student-facing field labels instead.
 
 The reviewed corpus therefore remained byte-for-byte unchanged at its recorded input hash.
+
+## Post-review factual correction
+
+The frozen review was not repeated. A later code-review finding established that the upload note was factually incomplete because uploaded work is also synced to the student's account. The final corpus changes only that note: it now distinguishes device/account storage from the separate Image Lab transmission initiated by the student.
+
+- Final UTF-8 pretty-printed JSON size: 4,113 bytes.
+- Final SHA-256: `1a4efb6fbb2b7550d35a32b423c618b1eaaff6de553468f82e97fadf1a942cd7`.
+- Required advertising terms and the reviewed Product AIDA/Advertisement AIDA structure are unchanged.
 
 ## Claude-scrubber MICROCOPY route
 

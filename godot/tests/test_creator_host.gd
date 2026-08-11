@@ -9,7 +9,7 @@ func run() -> bool:
     var host := CreatorHost.new()
     var game_input := Node.new()
     var received_states: Array[Dictionary] = []
-    var received_latest: Array[Variant] = []
+    var received_latest: Array[Dictionary] = []
     var publications: Array[Dictionary] = []
     var diagnostics: Array[String] = []
     game_input.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -18,8 +18,8 @@ func run() -> bool:
     host.creator_state_received.connect(func(document: Dictionary) -> void:
         received_states.append(document)
     )
-    host.latest_draft_received.connect(func(document: Variant) -> void:
-        received_latest.append(document)
+    host.latest_draft_received.connect(func(request_id: String, document: Variant) -> void:
+        received_latest.append({"requestId": request_id, "document": document})
     )
     host.creator_published.connect(func(publication: Dictionary) -> void:
         publications.append(publication)
@@ -35,11 +35,13 @@ func run() -> bool:
     assert(fake.request_for(latest_id).get("method") == "loadLatest")
     fake.resolve_success(latest_id, _document())
     assert(received_latest.size() == 1)
-    assert(received_latest[0].get("documentId") == "host-document")
+    assert(received_latest[0].get("requestId") == latest_id)
+    assert(received_latest[0].get("document").get("documentId") == "host-document")
     var missing_id := host.load_latest("host-document")
     fake.resolve_success(missing_id, null)
     assert(received_latest.size() == 2)
-    assert(received_latest[1] == null)
+    assert(received_latest[1].get("requestId") == missing_id)
+    assert(received_latest[1].get("document") == null)
     var sandbox_latest_id := host.load_latest("assignment-sandbox")
     assert(fake.request_for(sandbox_latest_id).get("method") == "loadLatest")
     assert(
@@ -48,7 +50,8 @@ func run() -> bool:
     )
     fake.resolve_success(sandbox_latest_id, null)
     assert(received_latest.size() == 3)
-    assert(received_latest[2] == null)
+    assert(received_latest[2].get("requestId") == sandbox_latest_id)
+    assert(received_latest[2].get("document") == null)
 
     var requests_before_open := fake.request_count()
     host.open_creator(_document())

@@ -25,7 +25,7 @@ import {
   scanHtmlStartTags
 } from "./html-start-tags.mjs";
 
-const SERVICE_WORKER_POLICY_REVISION = "release-refresh-v2";
+const SERVICE_WORKER_POLICY_REVISION = "release-refresh-v3";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ROOT = path.resolve(SCRIPT_DIR, "..");
@@ -248,14 +248,21 @@ self.addEventListener("fetch", (event) => {
       }
     }
     if (!isReleaseAsset(url.pathname)) return fetch(request);
-    const cached = await cache.match(request);
+    const expectedVersion = CORE_SHA256.get(url.pathname);
+    const requestedVersion = url.searchParams.get("v");
+    if (requestedVersion !== null && expectedVersion !== undefined &&
+      requestedVersion !== expectedVersion) {
+      return fetch(request, { cache: "no-cache" });
+    }
+    const cacheKey = expectedVersion === undefined ? request : url.pathname;
+    const cached = await cache.match(cacheKey);
     if (cached) return cached;
     const fetched = await fetch(request);
     const response = CORE_SHA256.has(url.pathname)
       ? await verifiedResponse(url.pathname, fetched)
       : fetched;
     if (response.ok && response.type !== "opaque") {
-      await cache.put(request, response.clone());
+      await cache.put(cacheKey, response.clone());
     }
     return response;
   })());
@@ -532,11 +539,22 @@ export function assertAccountGatedGodotShell(html) {
   const scripts = getExecutableInlineScriptBodies(html);
   const starts = scripts.flatMap((body) =>
     body.match(/\bengine\s*\.\s*startGame\s*\(/gu) ?? []);
-  const gatedStart = scripts.some((body) =>
-    /window\s*\.\s*AdMarketGameAccess\s*\.\s*requireAccess\s*\(\s*\)\s*\.\s*then\s*\(\s*\(\s*\)\s*=>\s*(?:withStartupTimeout\s*\(\s*)?engine\s*\.\s*startGame\s*\(/su.test(body));
-  const boundedFailure = scripts.some((body) =>
-    /reportStartupFailure\s*\(\s*"timeout"\s*\)/su.test(body) &&
-    /reportStartupFailure\s*\(\s*"engine"\s*\)/su.test(body));
+  const gatedStart = scripts.some((body) => {
+    const promisedGate =
+      /window\s*\.\s*AdMarketGameAccess\s*\.\s*requireAccess\s*\(\s*\)\s*\.\s*then\s*\(\s*\(\s*\)\s*=>\s*(?:withStartupTimeout\s*\(\s*)?engine\s*\.\s*startGame\s*\(/su;
+    const awaitedGate =
+      /async\s+function\s+[A-Za-z_$][\w$]*\s*\([^)]*\)\s*\{[\s\S]*?await\s+window\s*\.\s*AdMarketGameAccess\s*\.\s*requireAccess\s*\(\s*\)[\s\S]*?engine\s*\.\s*startGame\s*\(/u;
+    return promisedGate.test(body) || awaitedGate.test(body);
+  });
+  const boundedFailure = scripts.some((body) => {
+    const directReasons =
+      /reportStartupFailure\s*\(\s*"timeout"\s*\)/su.test(body) &&
+      /reportStartupFailure\s*\(\s*"engine"\s*\)/su.test(body);
+    const selectedReason =
+      /const\s+reason\s*=\s*[^;?]+\?\s*"timeout"\s*:\s*"engine"\s*;/su.test(body) &&
+      /reportStartupFailure\s*\(\s*reason\s*\)/su.test(body);
+    return directReasons || selectedReason;
+  });
   if (!structurallyLocked || starts.length !== 1 || !gatedStart || !boundedFailure) {
     throw new Error("Godot shell must enforce mandatory routed access before starting the game");
   }

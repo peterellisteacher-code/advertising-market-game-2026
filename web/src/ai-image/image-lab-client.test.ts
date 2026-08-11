@@ -31,6 +31,7 @@ const advertisementRequest = (): ImageLabJobRequest => ({
   stage: "realise",
   mode: "advertisement",
   idempotencyKey: "advertisement-try-1",
+  documentId: "assignment-sandbox",
   designDataUrl: "data:image/png;base64,iVBORw0KGgo=",
   context: {
     productName: "Orbit Bottle",

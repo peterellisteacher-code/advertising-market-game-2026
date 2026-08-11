@@ -34,6 +34,7 @@ import {
   resolveAccountSession,
   type ResolvedAccountSession
 } from "./lib/account-backend";
+import { parseCloudProgressDocument } from "./lib/account-progress-document";
 import {
   clearAccountSessionCookies,
   serialiseAccountSessionCookies
@@ -107,6 +108,10 @@ export interface ImageLabJobsDependencies {
   state?: ImageLabJobsState;
   resolveSession?: (request: Request) => Promise<ResolvedAccountSession>;
   allowances?: ImageLabAllowanceStore;
+  authoriseAdvertisement?: (
+    userId: string,
+    request: AdvertisementRealisationRequest
+  ) => Promise<boolean>;
 }
 
 export interface ImageLabJobsState {
@@ -164,6 +169,10 @@ interface ResolvedDependencies {
   state?: ImageLabJobsState;
   resolveSession?: (request: Request) => Promise<ResolvedAccountSession>;
   allowances?: ImageLabAllowanceStore;
+  authoriseAdvertisement?: (
+    userId: string,
+    request: AdvertisementRealisationRequest
+  ) => Promise<boolean>;
 }
 
 interface JobBinding {
@@ -220,7 +229,10 @@ const resolveDependencies = (dependencies: ImageLabJobsDependencies): ResolvedDe
   createDeadlineSignal: dependencies.createDeadlineSignal ?? (() => AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)),
   ...(dependencies.state === undefined ? {} : { state: dependencies.state }),
   ...(dependencies.resolveSession === undefined ? {} : { resolveSession: dependencies.resolveSession }),
-  ...(dependencies.allowances === undefined ? {} : { allowances: dependencies.allowances })
+  ...(dependencies.allowances === undefined ? {} : { allowances: dependencies.allowances }),
+  ...(dependencies.authoriseAdvertisement === undefined
+    ? {}
+    : { authoriseAdvertisement: dependencies.authoriseAdvertisement })
 });
 
 function requireReadyEnvironment(record: ImageLabEnvironmentRecord): ReadyImageLabEnvironment {
@@ -230,6 +242,50 @@ function requireReadyEnvironment(record: ImageLabEnvironmentRecord): ReadyImageL
 }
 
 type AuthenticatedAccountSession = Extract<ResolvedAccountSession, { authenticated: true }>;
+
+const advertisementText = (value: string, maximum: number): string =>
+  value.replace(/\s+/gu, " ").trim().slice(0, maximum);
+
+const plainRecord = (value: unknown): Record<string, unknown> | null =>
+  value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+
+async function defaultAuthoriseAdvertisement(
+  userId: string,
+  request: AdvertisementRealisationRequest,
+  environment: ImageLabEnvironmentRecord,
+  fetcher: typeof fetch
+): Promise<boolean> {
+  const client = new SupabaseAccountClient(parseAccountEnvironment(environment), fetcher);
+  const result = plainRecord(await client.progressRpc({
+    userId,
+    operation: "load",
+    documentId: request.documentId,
+    schema: "advertising-game-progress",
+    version: 1
+  }));
+  if (result?.status !== "found") return false;
+  let document;
+  try {
+    document = parseCloudProgressDocument(result.document, request.documentId);
+  } catch {
+    return false;
+  }
+  if (document.workspaceMode !== "assignment-sandbox") return false;
+  const expected: AdvertisementRealisationRequest["context"] = {
+    productName: advertisementText(document.product.name, 96),
+    productFunction: advertisementText(document.assignmentPlan.productFunction, 280),
+    targetAudience: advertisementText(document.assignmentPlan.targetAudience, 160),
+    advertisingLocation: advertisementText(document.assignmentPlan.advertisingLocation, 160),
+    attention: advertisementText(document.strategy.aidaPlan.attention, 280),
+    interest: advertisementText(document.strategy.aidaPlan.interest, 280),
+    desire: advertisementText(document.strategy.aidaPlan.desire, 280),
+    action: advertisementText(document.strategy.aidaPlan.action, 280)
+  };
+  return Object.entries(expected).every(([key, value]) =>
+    request.context[key as keyof typeof expected] === value);
+}
 
 const rotatedAccountCookies = (
   session: AuthenticatedAccountSession
@@ -625,6 +681,17 @@ async function submitJob(
       );
     }
     throw error;
+  }
+  if ("mode" in parsed && parsed.mode === "advertisement") {
+    const authorised = dependencies.authoriseAdvertisement === undefined
+      ? await defaultAuthoriseAdvertisement(
+          account.identity.userId,
+          parsed,
+          environmentRecord,
+          dependencies.fetch
+        )
+      : await dependencies.authoriseAdvertisement(account.identity.userId, parsed);
+    if (!authorised) throw new ImageLabJobsError("INVALID_REQUEST", 403);
   }
   const profile = resolveSubmissionProfile(parsed, environmentRecord);
   const stage = jobStage(parsed);

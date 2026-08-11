@@ -183,6 +183,7 @@ export interface AdvertisementRealisationContext {
 export interface AdvertisementRealisationRequest extends FalImageIdentity {
   readonly stage: "realise";
   readonly mode: "advertisement";
+  readonly documentId: string;
   readonly designDataUrl: string;
   readonly context: AdvertisementRealisationContext;
 }
@@ -220,6 +221,7 @@ const ADVERTISEMENT_REALISE_FIELDS = new Set([
   "stage",
   "mode",
   "idempotencyKey",
+  "documentId",
   "designDataUrl",
   "context"
 ]);
@@ -478,6 +480,7 @@ export function parseAdvertisementRealisationRequest(
     stage: "realise",
     mode: "advertisement",
     ...parseIdentity(record),
+    documentId: requireBoundedText(record.documentId, "documentId", 64),
     designDataUrl: record.designDataUrl as string,
     context: {
       productName: requireBoundedText(context.productName, "productName", 96),
@@ -550,6 +553,7 @@ export function composeAdvertisementRealisationPrompt(
     `Desire plan: ${literal(context.desire)}`,
     `Action plan: ${literal(context.action)}`,
     "Preserve the supplied composition, product, colours, deliberate visual marks and existing wording as closely as possible.",
+    "Preserve every existing person, face, hand, body, identity, appearance and pose as closely as possible; do not remove or replace them.",
     "Improve only the rendering, lighting, material detail, depth and photographic finish needed to make the same advertisement look realistic.",
     "Do not invent a brand, logo, claim, feature, endorsement or offer. Do not replace, paraphrase or correct the student's message.",
     "Add no new text, letters or numbers. Add no new people, hands, faces, characters or body parts.",

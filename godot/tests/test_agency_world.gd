@@ -16,10 +16,10 @@ func run() -> bool:
 	var progress := AgencyProgress.new()
 	assert(progress.begin())
 	world.configure(progress)
-	var initial_objective_id: String = progress.current_objective_id
-	progress.current_objective_id = "build-product"
-	assert(world.objective_station_id() == "production-studio")
-	progress.current_objective_id = initial_objective_id
+	assert(world.objective_station_id() == "client-briefing")
+	progress.completed_mission_ids.append("audience-brief")
+	assert(world.objective_station_id() == "art-studio")
+	progress.completed_mission_ids.erase("audience-brief")
 	world.set_reduced_motion_enabled(true)
 	tree.root.add_child(world)
 	await tree.process_frame
@@ -66,7 +66,7 @@ func run() -> bool:
 	assert(world.get_viewport().gui_get_focus_owner() == requested_handoff)
 	(world.get_node("%CancelHandoff") as Button).pressed.emit()
 	assert(not handoff_panel.visible)
-	_assert_station_card_can_be_tucked(world, progress)
+	await _assert_station_card_can_be_tucked(world, progress, tree)
 	_assert_station_mission_panel_uses_role_and_modal_state(world, progress)
 	_assert_keyboard_handoff_and_guide_shortcuts(world, progress)
 	await _assert_modal_shortcuts_and_station_focus(world, progress, tree)
@@ -143,20 +143,34 @@ func _assert_quick_start_opens_product_workspace(tree: SceneTree) -> void:
 	assert(progress.orientation_acknowledged)
 	assert(not orientation.visible)
 	assert(world.current_station_id() == "client-briefing")
+	var agency_hud := world.get_node("%AgencyHud") as AdMarketAgencyHud
+	var objective_label := agency_hud.get_node(
+		"HudMargin/HudStack/PrimaryRow/ObjectiveBlock/HudObjective"
+	) as Label
+	var go_to_task := agency_hud.get_node(
+		"HudMargin/HudStack/PrimaryRow/HudGoToObjective"
+	) as Button
+	assert(objective_label.text.begins_with("Task 1 of 7"))
+	assert(go_to_task.visible and not go_to_task.disabled)
+	await _activate_button_with_keyboard(go_to_task, tree)
+	var mission_panel := world.get_node("%AgencyMissionPanel") as Control
+	var mission_controller := world.get_node("%AgencyMissionController") as Node
+	assert(mission_panel.visible)
+	assert(mission_controller.call("snapshot").get("missionId") == "audience-brief")
+	mission_controller.call("close")
 	assert(controller.complete_mission("audience-brief", {
 		"decision": "independence",
 		"effect": "The offer supports the audience's need to control the hour after school.",
 	}))
-	assert(progress.current_objective_id == "build-product")
 	world.configure(progress)
 	await tree.process_frame
-	var agency_hud := world.get_node("%AgencyHud") as AdMarketAgencyHud
-	var go_to_task := agency_hud.get_node(
-		"HudMargin/HudStack/PrimaryRow/HudGoToObjective"
-	) as Button
-	assert(go_to_task.visible and not go_to_task.disabled)
+	assert(objective_label.text.begins_with("Task 2 of 7"))
 	await _activate_button_with_keyboard(go_to_task, tree)
-	assert(world.current_station_id() == "production-studio")
+	assert(world.current_station_id() == "art-studio")
+	assert(mission_panel.visible)
+	assert(mission_controller.call("snapshot").get("missionId") == "salience")
+	mission_controller.call("close")
+	assert(world.direct_travel("production-studio"))
 	var station_action := world.get_node("%StationActionButton") as Button
 	assert(station_action.visible and not station_action.disabled)
 	await _click_button(station_action, tree)
@@ -221,7 +235,11 @@ func _control_visibility_chain(control: Control) -> String:
 		node = node.get_parent()
 	return " | ".join(entries)
 
-func _assert_station_card_can_be_tucked(world: Node, progress: RefCounted) -> void:
+func _assert_station_card_can_be_tucked(
+	world: Node,
+	progress: RefCounted,
+	tree: SceneTree
+) -> void:
 	var station_panel := world.get_node("%StationPanel") as Control
 	var station_tab := world.get_node("%StationPanelTab") as Button
 	var details := world.get_node("%StationResponsibilities") as Label
@@ -232,19 +250,23 @@ func _assert_station_card_can_be_tucked(world: Node, progress: RefCounted) -> vo
 
 	assert(not details.visible)
 	assert(details_toggle.text == "Show room details")
-	details_toggle.pressed.emit()
+	await _click_button(details_toggle, tree)
 	assert(details.visible)
 	assert(details_toggle.text == "Hide room details")
-	details_toggle.pressed.emit()
+	var viewport_size := station_panel.get_viewport_rect().size
+	var expanded_rect := station_panel.get_global_rect()
+	assert(expanded_rect.position.y >= 0.0)
+	assert(expanded_rect.end.y <= viewport_size.y)
+	await _click_button(details_toggle, tree)
 	assert(not details.visible)
 	var station_before := world.call("current_station_id") as String
-	tuck.pressed.emit()
+	await _click_button(tuck, tree)
 	assert(not station_panel.visible)
 	assert(station_tab.visible)
 	assert(station_tab.text.contains("Open"))
 	assert(world.call("current_station_id") == station_before)
 	assert(progress.get("current_station_id") == station_before)
-	station_tab.pressed.emit()
+	await _click_button(station_tab, tree)
 	assert(station_panel.visible)
 	assert(not station_tab.visible)
 

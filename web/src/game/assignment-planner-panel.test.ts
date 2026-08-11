@@ -89,7 +89,7 @@ describe("AssignmentPlannerPanel", () => {
     expect(css).toMatch(/data-display-colours="high-contrast"[^}]*student-image-upload/s);
   });
 
-  it("saves one complete cloned plan and restores focus after redraw", async () => {
+  it("saves one complete cloned plan without replacing the active text control", async () => {
     const host = document.createElement("div");
     document.body.append(host);
     const commit = vi.fn().mockResolvedValue(undefined);
@@ -98,6 +98,7 @@ describe("AssignmentPlannerPanel", () => {
     const field = getByRole<HTMLInputElement>(host, "textbox", {
       name: STUDENT_COPY.assignmentSandbox.planner.fields.productFunction
     });
+    field.focus();
 
     fireEvent.change(field, { target: { value: "Lights a path after dark." } });
 
@@ -114,6 +115,32 @@ describe("AssignmentPlannerPanel", () => {
     expect(document.activeElement).toBe(getByRole(host, "textbox", {
       name: STUDENT_COPY.assignmentSandbox.planner.fields.productFunction
     }));
+  });
+
+  it("does not steal focus or discard typing in the next field while a blur save is pending", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    let resolveCommit!: () => void;
+    const commit = vi.fn(() => new Promise<void>((resolve) => { resolveCommit = resolve; }));
+    const panel = new AssignmentPlannerPanel(host, commit);
+    panel.setState({ productName: "SunPath Lamp", plan: createBlankAssignmentPlan() });
+    const first = getByRole<HTMLInputElement>(host, "textbox", {
+      name: STUDENT_COPY.assignmentSandbox.planner.fields.productFunction
+    });
+    const second = getByRole<HTMLInputElement>(host, "textbox", {
+      name: STUDENT_COPY.assignmentSandbox.planner.fields.targetAudience
+    });
+
+    first.focus();
+    fireEvent.change(first, { target: { value: "Lights a path after dark." } });
+    second.focus();
+    fireEvent.input(second, { target: { value: "Teen campers" } });
+    resolveCommit();
+
+    await vi.waitFor(() => expect(getByRole(host, "status").textContent)
+      .toBe(STUDENT_COPY.assignmentSandbox.planner.saved));
+    expect(document.activeElement).toBe(second);
+    expect(second.value).toBe("Teen campers");
   });
 
   it("keeps the main Desire value within the selected values", async () => {

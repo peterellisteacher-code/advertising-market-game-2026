@@ -6,7 +6,7 @@ signal focus_restore_requested
 signal creator_opened
 signal creator_closed
 signal creator_state_received(document: Dictionary)
-signal latest_draft_received(document: Variant)
+signal latest_draft_received(request_id: String, document: Variant)
 signal creator_published(publication: Dictionary)
 
 const CreatorBridge = preload("res://src/creator/creator_bridge.gd")
@@ -98,7 +98,10 @@ func _on_request_succeeded(request_id: String, method: String, payload: Variant)
         _save_before_close_request_id = ""
         _request_state_before_close()
     elif method == "loadLatest":
-        latest_draft_received.emit(payload.duplicate(true) if typeof(payload) == TYPE_DICTIONARY else null)
+        latest_draft_received.emit(
+            request_id,
+            payload.duplicate(true) if typeof(payload) == TYPE_DICTIONARY else null
+        )
     elif method == "getState" and typeof(payload) == TYPE_DICTIONARY:
         creator_state_received.emit(Dictionary(payload).duplicate(true))
         if _awaiting_state_before_close or request_id == _state_before_close_request_id:

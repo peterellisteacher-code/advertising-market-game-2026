@@ -1,6 +1,7 @@
 // @vitest-environment node
 
 import { describe, expect, it, vi } from "vitest";
+import { createBlankCampaignDocument } from "../../web/src/domain/campaign-document";
 import {
   createJobToken,
   readJobToken
@@ -111,6 +112,7 @@ const advertisementRequest = {
   stage: "realise",
   mode: "advertisement",
   ...identity,
+  documentId: "assignment-sandbox",
   designDataUrl,
   context: {
     productName: "Orbit Bottle",
@@ -296,7 +298,8 @@ const handlerWith = (
   state: ImageLabJobsState = stateFixture(),
   allowances: ImageLabAllowanceStore = allowanceFixture(),
   resolveSession: (request: Request) => Promise<ResolvedAccountSession> =
-    async () => authenticatedSession
+    async () => authenticatedSession,
+  authoriseAdvertisement = vi.fn(async () => true)
 ) => createImageLabJobsHandler({
   environment,
   fetch: fetcher,
@@ -304,7 +307,8 @@ const handlerWith = (
   createDeadlineSignal: () => new AbortController().signal,
   state,
   allowances,
-  resolveSession
+  resolveSession,
+  authoriseAdvertisement
 });
 
 const handlerWithEnvironment = (
@@ -319,7 +323,8 @@ const handlerWithEnvironment = (
   createDeadlineSignal: () => new AbortController().signal,
   state,
   allowances,
-  resolveSession: async () => authenticatedSession
+  resolveSession: async () => authenticatedSession,
+  authoriseAdvertisement: async () => true
 });
 
 const jobToken = (
@@ -533,6 +538,80 @@ describe("Image Lab jobs transport", () => {
     const body = await response.json() as { jobToken: string };
     expect(readJobToken(body.jobToken, secret, { userId, nowSeconds: 1_000 }).profileId)
       .toBe(ADVERTISEMENT_REALISATION_PROFILE_ID);
+  });
+
+  it("rejects advertisement realisation before reservation when the saved account document is not authorised", async () => {
+    const fetcher = vi.fn<typeof fetch>();
+    const state = stateFixture();
+    const allowances = allowanceFixture();
+    const authoriseAdvertisement = vi.fn(async () => false);
+    const response = await handlerWith(
+      fetcher,
+      1_000,
+      state,
+      allowances,
+      async () => authenticatedSession,
+      authoriseAdvertisement
+    )(post(advertisementRequest));
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: "INVALID_REQUEST" });
+    expect(authoriseAdvertisement).toHaveBeenCalledWith(userId, advertisementRequest);
+    expect(state.reserve).not.toHaveBeenCalled();
+    expect(allowances.reserve).not.toHaveBeenCalled();
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("authorises advertisement realisation from the authenticated account's exact saved sandbox", async () => {
+    const cloudDocument = createBlankCampaignDocument({
+      documentId: "assignment-sandbox",
+      sessionId: "assignment-sandbox-session",
+      teamId: "assignment-sandbox-team",
+      mode: "offline"
+    });
+    cloudDocument.workspaceMode = "assignment-sandbox";
+    cloudDocument.product.name = advertisementRequest.context.productName;
+    cloudDocument.assignmentPlan.productFunction = advertisementRequest.context.productFunction;
+    cloudDocument.assignmentPlan.targetAudience = advertisementRequest.context.targetAudience;
+    cloudDocument.assignmentPlan.advertisingLocation = advertisementRequest.context.advertisingLocation;
+    cloudDocument.strategy.aidaPlan = {
+      attention: advertisementRequest.context.attention,
+      interest: advertisementRequest.context.interest,
+      desire: advertisementRequest.context.desire,
+      action: advertisementRequest.context.action
+    };
+    const selectedEnvironment = {
+      ...environment,
+      SUPABASE_URL: "https://abcdefghijklmnopqrst.supabase.co",
+      SUPABASE_PUBLISHABLE_KEY: `sb_publishable_${"p".repeat(32)}`,
+      ADVERTISING_GAME_EDGE_GATEWAY_SECRET: "g".repeat(43),
+      ADVERTISING_GAME_USERNAME_HMAC_SECRET: "h".repeat(32),
+      ADVERTISING_GAME_CLASSROOM_CODE: "classroom-access"
+    };
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(Response.json({
+        status: "found",
+        revision: 1,
+        document: cloudDocument
+      }))
+      .mockResolvedValueOnce(Response.json({ request_id: requestId }));
+    const state = stateFixture();
+    const handler = createImageLabJobsHandler({
+      environment: selectedEnvironment,
+      fetch: fetcher,
+      nowSeconds: () => 1_000,
+      createDeadlineSignal: () => new AbortController().signal,
+      state,
+      allowances: allowanceFixture(),
+      resolveSession: async () => authenticatedSession
+    });
+
+    const response = await handler(post(advertisementRequest));
+
+    expect(response.status).toBe(202);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(String(fetcher.mock.calls[0]?.[0])).toContain("/functions/v1/advertising-game-backend");
+    expect(state.reserve).toHaveBeenCalledOnce();
   });
 
   it("submits the exact server-owned Z-Image LoRA A/B profile and binds its stable ID", async () => {

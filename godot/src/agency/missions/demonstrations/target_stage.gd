@@ -37,7 +37,7 @@ func configure(record: Dictionary) -> void:
 	_instruction.text = String(
 		_record.get("instruction", "Place every evidence chip on a statement it supports.")
 	)
-	_keyboard_hint.text = "Drag a chip, or select it and then select a statement. Activate an assigned chip to return it."
+	_keyboard_hint.text = "Select a card, then select the statement it proves. Select a placed card to move it."
 	_source_heading.text = String(_record.get("sourceHeading", "EVIDENCE"))
 	_target_heading.text = String(_record.get("targetHeading", "STATEMENTS"))
 	reset_arrangement()
@@ -49,7 +49,7 @@ func reset_arrangement() -> void:
 	_awaiting_completion_ack = false
 	_pending_final_result.clear()
 	_check_button.disabled = false
-	_check_button.text = "Check support"
+	_check_button.text = "Check matches"
 	_reset_button.disabled = false
 	_build_workspace()
 	_set_workspace_enabled(true)
@@ -170,7 +170,7 @@ func _build_statement_card(statement: Dictionary) -> void:
 	card.add_child(statement_label)
 	var assign_button := Button.new()
 	assign_button.name = "StatementButton"
-	assign_button.text = "Place selected evidence here"
+	assign_button.text = "Put selected card here"
 	assign_button.custom_minimum_size = Vector2(0, 34)
 	assign_button.pressed.connect(_on_statement_pressed.bind(statement_id))
 	card.add_child(assign_button)
@@ -202,13 +202,13 @@ func _on_evidence_pressed(evidence_id: String) -> void:
 		return
 	_selected_evidence = evidence_id
 	_refresh_selection()
-	_feedback.text = "Selected: %s. Now select the statement this evidence supports." % _evidence_label(evidence_id)
+	_feedback.text = "Selected: %s. Now select the statement this card proves." % _evidence_label(evidence_id)
 
 func _on_statement_pressed(statement_id: String) -> void:
 	if _awaiting_completion_ack:
 		return
 	if _selected_evidence.is_empty():
-		_feedback.text = "Select an evidence chip before choosing a statement."
+		_feedback.text = "Select a card first."
 		return
 	assign_evidence(_selected_evidence, statement_id)
 
@@ -251,9 +251,9 @@ func _refresh_feedback() -> void:
 	var unsupported: PackedStringArray = result.get("unsupportedAssignments", PackedStringArray())
 	var invalid: PackedStringArray = result.get("invalidAssignments", PackedStringArray())
 	var occupied: PackedStringArray = result.get("occupiedUnsupportable", PackedStringArray())
-	_placed_reading.text = "PLACED\n%d / %d" % [placed_count, evidence_count]
-	_support_reading.text = "SUPPORT\n%d incorrect" % (unsupported.size() + invalid.size())
-	_empty_reading.text = "UNSUPPORTED\n%d occupied" % occupied.size()
+	_placed_reading.text = "CARDS MATCHED\n%d / %d" % [placed_count, evidence_count]
+	_support_reading.text = "WRONG MATCHES\n%d to fix" % (unsupported.size() + invalid.size())
+	_empty_reading.text = "UNSUPPORTED FILLED\n%d to clear" % occupied.size()
 	_set_reading_colour(_placed_reading, placed_count == evidence_count and evidence_count > 0)
 	_set_reading_colour(_support_reading, unsupported.is_empty() and invalid.is_empty())
 	_set_reading_colour(_empty_reading, occupied.is_empty())

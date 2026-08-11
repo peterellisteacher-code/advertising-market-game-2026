@@ -2,6 +2,7 @@ extends PanelContainer
 class_name AdMarketAgencyHud
 
 signal direct_travel_requested(station_id: String)
+signal objective_task_requested(station_id: String)
 signal guide_requested(section: String)
 signal sound_muted_requested(muted: bool)
 
@@ -101,7 +102,7 @@ func set_sound_muted(muted: bool) -> void:
 func go_to_objective() -> void:
 	var station_id := String(_objective.get("stationId", ""))
 	if not station_id.is_empty():
-		direct_travel_requested.emit(station_id)
+		objective_task_requested.emit(station_id)
 
 func _connect_controls() -> void:
 	var guide_button := get_node_or_null("HudMargin/HudStack/PrimaryRow/HudGuideButton") as Button

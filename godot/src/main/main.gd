@@ -141,6 +141,8 @@ var _startup_expected_document_revision: int = -1
 var _accessibility_mirror: RefCounted = GameAccessibilityMirror.new()
 var _dialog_focus_target: Control
 var _sandbox_load_pending: bool = false
+var _sandbox_load_request_id: String = ""
+var _sandbox_document: Dictionary = {}
 var _sandbox_open: bool = false
 
 func _process(_delta: float) -> void:
@@ -437,9 +439,12 @@ func _on_room_resume_failed(code: String, _message: String) -> void:
     market_screen.hide()
     status.text = _student_market_error(code)
 
-func _on_latest_draft_received(document: Variant) -> void:
+func _on_latest_draft_received(request_id: String, document: Variant) -> void:
     if _sandbox_load_pending:
+        if request_id != _sandbox_load_request_id:
+            return
         _sandbox_load_pending = false
+        _sandbox_load_request_id = ""
         if document == null:
             var document_script := _assignment_sandbox_document_script()
             if document_script == null:
@@ -788,6 +793,7 @@ func _cancel_assignment_sandbox_load() -> void:
     if not _sandbox_load_pending:
         return
     _sandbox_load_pending = false
+    _sandbox_load_request_id = ""
     open_assignment_sandbox.disabled = false
 
 func _start_run() -> void:
@@ -1125,8 +1131,8 @@ func _open_assignment_sandbox() -> void:
     _sandbox_load_pending = true
     open_assignment_sandbox.disabled = true
     status.text = "Checking this computer for your assignment sandbox."
-    var request_id: String = creator_host.load_latest(ASSIGNMENT_SANDBOX_DOCUMENT_ID)
-    if request_id.is_empty():
+    _sandbox_load_request_id = creator_host.load_latest(ASSIGNMENT_SANDBOX_DOCUMENT_ID)
+    if _sandbox_load_request_id.is_empty():
         _fail_assignment_sandbox_open(
             "The saved assignment sandbox could not be checked. Try again."
         )
@@ -1148,10 +1154,10 @@ func _open_assignment_sandbox_document(document_value: Variant) -> void:
         )
         return
     var document: Dictionary = document_value
-    _campaign_document = document.duplicate(true)
+    _sandbox_document = document.duplicate(true)
     _sandbox_open = true
     status.text = "Opening the assignment sandbox."
-    var request_id: String = creator_host.open_creator(_campaign_document)
+    var request_id: String = creator_host.open_creator(_sandbox_document)
     if request_id.is_empty():
         _fail_assignment_sandbox_open(
             "The assignment sandbox could not be opened. Try again."
@@ -1159,6 +1165,7 @@ func _open_assignment_sandbox_document(document_value: Variant) -> void:
 
 func _fail_assignment_sandbox_open(message: String) -> void:
     _sandbox_load_pending = false
+    _sandbox_load_request_id = ""
     _sandbox_open = false
     open_assignment_sandbox.disabled = false
     status.text = message
@@ -1233,7 +1240,7 @@ func _on_creator_state_received(document: Dictionary) -> void:
                 + "Your current sandbox was kept untouched."
             )
             return
-        _campaign_document = document.duplicate(true)
+        _sandbox_document = document.duplicate(true)
         status.text = "Saving the assignment sandbox."
         return
     if _room_role.is_empty() and not _practice_recovery.is_empty():

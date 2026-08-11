@@ -2,6 +2,7 @@ import type { GeneratedRasterPlacement } from "../catalogue/catalogue-runtime";
 import type {
   ImageLabClient,
   AdvertisementRealisationContext,
+  AdvertisementRealisationSource,
   ImageLabJobCreated,
   ImageLabJobRequest,
   ImageLabJobStatus,
@@ -67,7 +68,7 @@ export interface ImageLabRuntimeDependencies {
   isCurrentPair(pair: ImageLabPairIdentity): boolean;
   getAdvertisementContext?: (
     pair: ImageLabPairIdentity
-  ) => AdvertisementRealisationContext | Promise<AdvertisementRealisationContext>;
+  ) => AdvertisementRealisationSource | Promise<AdvertisementRealisationSource>;
   prepare?: (
     dataUrl: string,
     target: AiImageTarget,
@@ -254,13 +255,16 @@ export class ImageLabRuntime implements ImageLabActions {
       removeWhiteBackground: false
     });
     this.#assertActive(pair, signal);
-    const context = { ...await this.#getAdvertisementContext(pair) };
+    const source = await this.#getAdvertisementContext(pair);
+    const documentId = source.documentId;
+    const context: AdvertisementRealisationContext = { ...source.context };
     this.#assertActive(pair, signal);
     const submission = JSON.stringify({
       stage: "realise",
       mode: "advertisement",
       sessionId: input.sessionId,
       teamId: input.teamId,
+      documentId,
       designDataUrl: reference.dataUrl,
       context
     });
@@ -269,6 +273,7 @@ export class ImageLabRuntime implements ImageLabActions {
       stage: "realise",
       mode: "advertisement",
       idempotencyKey: generationId,
+      documentId,
       designDataUrl: reference.dataUrl,
       context
     }, fingerprint, signal);

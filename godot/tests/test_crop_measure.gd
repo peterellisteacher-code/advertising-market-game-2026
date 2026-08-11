@@ -40,6 +40,7 @@ func run() -> bool:
 	assert(_the_untouched_arrangement_does_not_pass())
 	assert(_many_different_arrangements_pass())
 	assert(_a_reason_from_the_stage_reaches_the_pair())
+	assert(await _the_slogan_can_be_moved_and_resized())
 	assert(await _dragging_solves_it_and_resetting_undoes_it())
 	assert(await _the_readout_comes_from_the_record())
 	assert(await _the_panel_records_measured_evidence())
@@ -375,6 +376,28 @@ func _drag(control: Control, from_picture_point: Vector2, to_picture_point: Vect
 	release.pressed = false
 	release.position = motion.position
 	control.gui_input.emit(release)
+
+func _the_slogan_can_be_moved_and_resized() -> bool:
+	var record := _demonstration()
+	var stage := _stage_in_tree(record)
+	await _settle()
+	var instruction := stage.get_node("%DemonstrationInstruction") as Label
+	assert(instruction.text.to_lower().contains("resize the slogan"))
+	var slogan_handle := stage.get_node_or_null("ImageViewport/Stage/Handles/SloganResizeHandle") as Control
+	assert(slogan_handle != null)
+	assert(slogan_handle.tooltip_text.to_lower().contains("resize slogan"))
+	var opening: Rect2 = Dictionary(stage.call("current_result")).get("slogan")
+	var handle_centre := slogan_handle.position + slogan_handle.size * 0.5
+	_drag(slogan_handle, handle_centre, opening.end + opening.size * 0.2)
+	var resized: Rect2 = Dictionary(stage.call("current_result")).get("slogan")
+	assert(resized.size != opening.size)
+	assert(is_equal_approx(resized.size.aspect(), opening.size.aspect()))
+	assert(Rect2(Vector2.ZERO, _picture_texture().get_size()).encloses(resized))
+	stage.call("reset_arrangement")
+	var reset: Rect2 = Dictionary(stage.call("current_result")).get("slogan")
+	assert(reset.size == Vector2(record.get("sloganSize")))
+	stage.queue_free()
+	return true
 
 func _dragging_solves_it_and_resetting_undoes_it() -> bool:
 	var record := _demonstration()

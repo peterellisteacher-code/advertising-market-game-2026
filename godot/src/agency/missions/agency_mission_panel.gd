@@ -5,6 +5,7 @@ signal choice_selected(choice_id: String)
 signal demonstration_submitted(result: Dictionary)
 signal continue_requested
 signal retry_requested
+signal next_requested
 signal close_requested
 signal role_handoff_requested(role: String)
 
@@ -63,13 +64,14 @@ var _choice_ids: Array[String] = ["", "", "", ""]
 var _role_details_visible: bool = false
 var _reference_visible: bool = true
 var _reference_name: String = "task reference"
+var _completed_opens_next: bool = false
 
 func _ready() -> void:
     _apply_visual_theme()
     close_button.pressed.connect(_request_close)
     retry_button.pressed.connect(_request_retry)
     continue_button.pressed.connect(_request_continue)
-    completed_close_button.pressed.connect(_request_close)
+    completed_close_button.pressed.connect(_request_completed_action)
     role_details_toggle.pressed.connect(_toggle_role_details)
     role_handoff_button.pressed.connect(_request_role_handoff)
     reference_toggle.pressed.connect(_toggle_reference)
@@ -159,19 +161,36 @@ func show_demonstration_error(message: String) -> void:
 
 func show_completed(record: Dictionary, result: Dictionary) -> void:
     _record = record.duplicate(true)
+    for key in ["taskIndex", "taskTotal"]:
+        if result.has(key):
+            _record[key] = result.get(key)
     _set_common_text()
-    mission_step.text = "Complete"
     var required := bool(result.get("required", true))
-    instruction_label.text = "Review the result, then return to the agency."
-    completed_heading.text = "TASK COMPLETE" if required else "OPTIONAL PRACTICE COMPLETE"
+    var task_index := int(result.get("taskIndex", 0))
+    var task_total := int(result.get("taskTotal", 0))
+    _completed_opens_next = required and bool(result.get("hasNextRequired", false))
     if required:
-        reward_label.text = "REWARD: %s" % String(result.get("reward"))
+        mission_step.text = "Task %d of %d complete" % [task_index, task_total]
+        instruction_label.text = (
+            "Task complete. Continue straight to the next task."
+            if _completed_opens_next
+            else "All required tasks complete."
+        )
+        completed_heading.text = "TASK %d OF %d COMPLETE" % [task_index, task_total]
+        reward_label.text = "Result saved."
+        application_summary.visible = false
+        completed_close_button.text = "Next task" if _completed_opens_next else "Finish required tasks"
     else:
+        mission_step.text = "Optional practice complete"
+        instruction_label.text = "Review the result, then return to the agency."
+        completed_heading.text = "OPTIONAL PRACTICE COMPLETE"
         reward_label.text = "PORTFOLIO STAMP: %s\nPRESENTATION FLOURISH: %s" % [
             String(result.get("portfolioStamp")),
             String(result.get("presentationFlourish")).capitalize()
         ]
-    application_summary.text = String(result.get("applicationObjective"))
+        application_summary.text = String(result.get("applicationObjective"))
+        application_summary.visible = true
+        completed_close_button.text = "Return to agency"
     _show_stage(completed_stage)
     visible = true
     completed_close_button.call_deferred("grab_focus")
@@ -186,7 +205,12 @@ func close_panel() -> void:
     _record = {}
 
 func _set_common_text() -> void:
-    var badge_kind := "OPTIONAL PRACTICE" if not bool(_record.get("required", true)) else "AGENCY TASK"
+    var required := bool(_record.get("required", true))
+    var badge_kind := "OPTIONAL PRACTICE" if not required else "AGENCY TASK"
+    var task_index := int(_record.get("taskIndex", 0))
+    var task_total := int(_record.get("taskTotal", 0))
+    if required and task_index > 0 and task_total > 0:
+        badge_kind = "TASK %d OF %d" % [task_index, task_total]
     var term := String(_record.get("term", "")).strip_edges()
     mission_badge.text = badge_kind if term.is_empty() else "%s · %s" % [badge_kind, term]
     title_label.text = String(_record.get("title"))
@@ -285,6 +309,12 @@ func _request_continue() -> void:
 
 func _request_retry() -> void:
     retry_requested.emit()
+
+func _request_completed_action() -> void:
+    if _completed_opens_next:
+        next_requested.emit()
+    else:
+        close_requested.emit()
 
 func _toggle_role_details() -> void:
     _set_role_details_visible(not _role_details_visible)

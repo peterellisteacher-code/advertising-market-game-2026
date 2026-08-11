@@ -150,7 +150,49 @@
 
       const GAME_ACCESS_RECOVERY_KEY = "admarket-game-access-recovery";
       const GAME_ACCESS_RECOVERY_QUERY = "gameAccessRecovery";
+      const RELEASE_MARKER_KEY = "admarket-release-marker";
       let gameAccessRecoveryReloadScheduled = false;
+
+      function currentReleaseMarker() {
+        const studioScript = document.querySelector('script[src*="studio/studio.js"]');
+        if (!(studioScript instanceof HTMLScriptElement)) return "";
+        try {
+          return new URL(studioScript.src, window.location.href).searchParams.get("v") || "";
+        } catch {
+          return "";
+        }
+      }
+
+      async function prepareReleaseAssets() {
+        const marker = currentReleaseMarker();
+        if (!marker || !("serviceWorker" in navigator)) return true;
+
+        let previousMarker = "";
+        try {
+          previousMarker = window.localStorage.getItem(RELEASE_MARKER_KEY) || "";
+        } catch {
+          // The controller check below still makes recovery self-limiting.
+        }
+
+        if (navigator.serviceWorker.controller && previousMarker !== marker) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map((registration) => registration.unregister()));
+          try {
+            window.localStorage.setItem(RELEASE_MARKER_KEY, marker);
+          } catch {
+            // After unregistering, the reloaded page has no stale controller.
+          }
+          window.location.reload();
+          return false;
+        }
+
+        try {
+          window.localStorage.setItem(RELEASE_MARKER_KEY, marker);
+        } catch {
+          // Release recovery does not require persistent browser storage.
+        }
+        return true;
+      }
 
       function renderGameAccessFailure() {
         const gateRoot = document.getElementById("account-gate-root");
@@ -236,24 +278,30 @@
         clearGameAccessRecovery();
       }
 
-      const engine = new Engine($GODOT_CONFIG);
-      window.AdMarketGameAccess.requireAccess().then(() => withStartupTimeout(engine.startGame({
-        onProgress(current, total) {
-          if (total > 0) {
-            window.AdMarketGameAccess.reportStartupProgress(current / total * 100);
-          }
+      async function startGame() {
+        try {
+          if (!await prepareReleaseAssets()) return;
+          await window.AdMarketGameAccess.requireAccess();
+          const engine = new Engine($GODOT_CONFIG);
+          await withStartupTimeout(engine.startGame({
+            onProgress(current, total) {
+              if (total > 0) {
+                window.AdMarketGameAccess.reportStartupProgress(current / total * 100);
+              }
+            }
+          }), 120_000);
+          window.AdMarketGameAccess.reportStartupReady();
+        } catch (error) {
+          const reason = error instanceof GameStartupTimeoutError ? "timeout" : "engine";
+          window.AdMarketGameAccess.reportStartupFailure(reason);
+          console.error("[AdMarket game startup failed]", {
+            reason,
+            errorName: error instanceof Error ? error.name : "UnknownError"
+          });
         }
-      }), 45_000)).then(() => {
-        window.AdMarketGameAccess.reportStartupReady();
-      }).catch((error) => {
-        const reason = error instanceof GameStartupTimeoutError ? "timeout" : "engine";
-        if (reason === "timeout") {
-          window.AdMarketGameAccess.reportStartupFailure("timeout");
-        } else {
-          window.AdMarketGameAccess.reportStartupFailure("engine");
-        }
-        console.error("[AdMarket game startup failed]", { reason });
-      });
+      }
+
+      startGame();
     </script>
   </body>
 </html>

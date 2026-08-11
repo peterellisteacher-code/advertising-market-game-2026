@@ -171,7 +171,7 @@ const CROP_DEMONSTRATION := {
     # test_crop_measure.gd holds this region inside it.
     "subjectRegion": Rect2(842, 64, 342, 528),
     "subjectPhrase": "the bottle",
-    "instruction": "Drag the frame to move it, or drag a corner to resize it. Drag the slogan to move it. The arrow keys move whatever is selected, and holding Shift moves it further. The picture is far too wide for an advertisement: cut it down so the bottle carries the frame, and put the slogan where it can still be read.",
+    "instruction": "Drag the frame to move it, or drag a corner to resize it. Drag the slogan to move it; drag its cyan corner to resize the slogan. The arrow keys move whatever is selected, and holding Shift moves it further. The picture is far too wide for an advertisement: cut it down so the bottle carries the frame, and put the slogan where it can still be read.",
     # The slogan the pair drags into place, rather than something the stage lays out for
     # them. One piece of art rather than a mark plus two Labels: the project ships no font
     # files at all, so type set at runtime falls back to the default face and loses the
@@ -396,9 +396,9 @@ const COLOUR_CLINIC_DEMONSTRATION := {
 const AUDIENCE_TARGET_DEMONSTRATION := {
     "engine": "drag-to-target",
     "scene": "res://src/agency/missions/demonstrations/TargetStage.tscn",
-    "instruction": "Place every brief fact on the audience interpretation it supports.",
-    "sourceHeading": "BRIEF FACTS",
-    "targetHeading": "AUDIENCE INTERPRETATIONS",
+    "instruction": "Match each brief fact to the statement it proves. Select a fact, then select the matching statement. Select a placed fact to move it.",
+    "sourceHeading": "FACTS FROM THE BRIEF",
+    "targetHeading": "WHAT THE FACTS PROVE",
     "evidence": [
         {"id": "context", "label": "Context: Teenagers have one hour after school."},
         {"id": "need", "label": "Need: Make that hour productive."},
@@ -418,17 +418,17 @@ const AUDIENCE_TARGET_DEMONSTRATION := {
         "belonging": ["self-directed"]
     },
     "checkPhrases": {
-        "allPlaced": "all facts placed",
-        "supports": "each fact supports its statement",
-        "unsupportedEmpty": "unsupported statements empty"
+        "allPlaced": "facts matched",
+        "supports": "matches correct",
+        "unsupportedEmpty": "unsupported statements left empty"
     },
     "unmetSentences": {
-        "declarations": "This evidence task is incomplete.",
-        "allPlaced": "Place every brief fact before checking.",
-        "supports": "{evidence} does not support {statement}. Move it to an interpretation supported by the whole fact.",
-        "unsupportedEmpty": "{statement} has no supporting evidence. Return its chips to the brief."
+        "declarations": "This matching task is incomplete.",
+        "allPlaced": "Match every brief fact before checking.",
+        "supports": "{evidence} does not prove {statement}. Move it to the statement supported by the fact.",
+        "unsupportedEmpty": "No brief fact supports {statement}. Return its cards to the brief."
     },
-    "wonSentence": "All four brief facts support {statement}.",
+    "wonSentence": "All four brief facts prove {statement}.",
     "evidenceSentence": "The four brief facts support {statement}, so the audience decision uses the stated context, need and values.",
     "subjectPhrase": "the audience interpretation"
 }

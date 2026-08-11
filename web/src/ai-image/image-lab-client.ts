@@ -61,10 +61,16 @@ export interface AdvertisementRealisationContext {
   action: string;
 }
 
+export interface AdvertisementRealisationSource {
+  documentId: string;
+  context: AdvertisementRealisationContext;
+}
+
 export interface AdvertisementRealisationJobRequest {
   stage: "realise";
   mode: "advertisement";
   idempotencyKey: string;
+  documentId: string;
   designDataUrl: string;
   context: AdvertisementRealisationContext;
 }
@@ -436,7 +442,9 @@ const validateJobRequest = (value: unknown): ImageLabJobRequest => {
   }
   const context = ownRecord(record.context);
   if (record.stage === "realise" && record.mode === "advertisement" &&
-    hasExactKeys(record, ["stage", "mode", "idempotencyKey", "designDataUrl", "context"]) &&
+    hasExactKeys(record, [
+      "stage", "mode", "idempotencyKey", "documentId", "designDataUrl", "context"
+    ]) && boundedString(record.documentId, 64) &&
     boundedString(record.designDataUrl, DESIGN_DATA_URL_LIMIT) &&
     /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(record.designDataUrl) &&
     context && hasExactKeys(context, [
@@ -452,6 +460,7 @@ const validateJobRequest = (value: unknown): ImageLabJobRequest => {
       stage: "realise",
       mode: "advertisement",
       idempotencyKey: record.idempotencyKey as string,
+      documentId: record.documentId,
       designDataUrl: record.designDataUrl,
       context: {
         productName: context.productName,

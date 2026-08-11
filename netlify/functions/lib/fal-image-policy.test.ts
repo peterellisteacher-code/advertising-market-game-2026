@@ -447,6 +447,7 @@ describe("fal image policy", () => {
       stage: "realise",
       mode: "advertisement",
       ...identity,
+      documentId: "assignment-sandbox",
       designDataUrl: dataUrl("image/png", pngBytes()),
       context: advertisementContext
     } as const;
@@ -494,6 +495,7 @@ describe("fal image policy", () => {
         stage: "realise",
         mode: "advertisement",
         ...identity,
+        documentId: "assignment-sandbox",
         designDataUrl: dataUrl("image/png", pngBytes()),
         context: promptLikeData
       })
@@ -504,6 +506,7 @@ describe("fal image policy", () => {
     expect(prompt).toMatch(/preserve.*composition/i);
     expect(prompt).toMatch(/preserve.*existing wording/i);
     expect(prompt).toMatch(/do not invent.*claim/i);
+    expect(prompt).toMatch(/preserve every existing person.*identity.*pose/i);
     expect(prompt).toMatch(/no new people/i);
     expect(prompt).toMatch(/no new text/i);
     expect(prompt).toMatch(/no watermarks|no signatures/i);

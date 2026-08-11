@@ -82,7 +82,7 @@ export class AssignmentPlannerPanel {
     control.value = value;
     control.dataset.assignmentFocus = focusKey;
     control.addEventListener("change", () => {
-      void this.#save(onChange(control.value), focusKey);
+      void this.#save(onChange(control.value), focusKey, false);
     });
     label.append(text, control);
     parent.append(label);
@@ -127,7 +127,11 @@ export class AssignmentPlannerPanel {
     };
   }
 
-  async #save(next: AssignmentPlannerPanelState, focusKey: string): Promise<void> {
+  async #save(
+    next: AssignmentPlannerPanelState,
+    focusKey: string,
+    redraw = true
+  ): Promise<void> {
     const operation = ++this.#operation;
     const status = this.host.querySelector<HTMLElement>("[role=status]");
     if (status) status.textContent = STUDENT_COPY.assignmentSandbox.planner.saving;
@@ -139,12 +143,18 @@ export class AssignmentPlannerPanel {
       this.#state = nextState;
       await this.onCommit(nextState.productName, immutablePlan(nextState.plan));
       if (operation !== this.#operation) return;
-      this.#draw();
+      const activeFocusKey = redraw && document.activeElement instanceof HTMLElement &&
+        this.host.contains(document.activeElement)
+        ? document.activeElement.dataset.assignmentFocus
+        : focusKey;
+      if (redraw) this.#draw();
       const saved = this.host.querySelector<HTMLElement>("[role=status]");
       if (saved) saved.textContent = STUDENT_COPY.assignmentSandbox.planner.saved;
-      [...this.host.querySelectorAll<HTMLElement>("[data-assignment-focus]")]
-        .find((control) => control.dataset.assignmentFocus === focusKey)
-        ?.focus();
+      if (redraw && activeFocusKey !== undefined) {
+        [...this.host.querySelectorAll<HTMLElement>("[data-assignment-focus]")]
+          .find((control) => control.dataset.assignmentFocus === activeFocusKey)
+          ?.focus();
+      }
     } catch (error) {
       if (operation !== this.#operation) return;
       const current = this.host.querySelector<HTMLElement>("[role=status]");

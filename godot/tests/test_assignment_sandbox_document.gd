@@ -12,6 +12,7 @@ func run() -> bool:
 	assert(document_script != null)
 	assert(_document_helper_isolated(document_script))
 	assert(_lobby_opens_new_and_matching_sandboxes(document_script))
+	assert(_stale_sandbox_load_cannot_satisfy_a_new_request())
 	assert(_late_sandbox_load_cannot_override_lobby_routes())
 	assert(_lobby_rejects_a_mismatched_saved_document())
 	return true
@@ -45,6 +46,7 @@ func _lobby_opens_new_and_matching_sandboxes(document_script: Script) -> bool:
 	var shell := _mount_shell(creator_fake)
 	var button := shell.get_node("%OpenAssignmentSandbox") as Button
 	var agency_before: Dictionary = shell.get("_agency_campaign").call("document")
+	var campaign_before: Dictionary = Dictionary(shell.get("_campaign_document")).duplicate(true)
 
 	button.pressed.emit()
 	assert(bool(shell.get("_sandbox_load_pending")))
@@ -82,7 +84,8 @@ func _lobby_opens_new_and_matching_sandboxes(document_script: Script) -> bool:
 	returned["product"]["name"] = "Saved Sandbox Product"
 	var returned_wire: Dictionary = JSON.parse_string(JSON.stringify(returned))
 	creator_fake.resolve_success(state_id, returned)
-	assert(shell.get("_campaign_document") == returned_wire)
+	assert(shell.get("_campaign_document") == campaign_before)
+	assert(shell.get("_sandbox_document") == returned_wire)
 	assert(shell.get("_agency_campaign").call("document") == agency_before)
 	var close_id := creator_fake.last_request_id()
 	assert(creator_fake.request_for(close_id).get("method") == "close")
@@ -99,6 +102,28 @@ func _lobby_opens_new_and_matching_sandboxes(document_script: Script) -> bool:
 	var reopen: Dictionary = creator_fake.request_for(creator_fake.last_request_id())
 	assert(reopen.get("method") == "open")
 	assert(Dictionary(reopen.get("payload")).recursive_equal(returned_wire, 32))
+	shell.free()
+	return true
+
+func _stale_sandbox_load_cannot_satisfy_a_new_request() -> bool:
+	var creator_fake := FakeCreatorTransport.new()
+	var shell := _mount_shell(creator_fake)
+	var button := shell.get_node("%OpenAssignmentSandbox") as Button
+	button.pressed.emit()
+	var stale_load_id := creator_fake.last_request_id()
+	shell.call("_cancel_assignment_sandbox_load")
+	button.pressed.emit()
+	var current_load_id := creator_fake.last_request_id()
+	assert(current_load_id != stale_load_id)
+	assert(bool(shell.get("_sandbox_load_pending")))
+	creator_fake.resolve_success(stale_load_id, null)
+	assert(bool(shell.get("_sandbox_load_pending")))
+	assert(not bool(shell.get("_sandbox_open")))
+	assert(creator_fake.request_count() == 2)
+	creator_fake.resolve_success(current_load_id, null)
+	assert(not bool(shell.get("_sandbox_load_pending")))
+	assert(bool(shell.get("_sandbox_open")))
+	assert(creator_fake.request_count() == 3)
 	shell.free()
 	return true
 

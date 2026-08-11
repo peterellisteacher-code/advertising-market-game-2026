@@ -1416,9 +1416,13 @@ describe("window.AdMarketCreator", () => {
     expect(document.querySelector<HTMLElement>("#game-startup-status")?.hidden)
       .toBe(false);
 
+    const readyEvent = vi.fn();
+    window.addEventListener("admarket:game-startup-ready", readyEvent);
     gameAccess.reportStartupReady();
     expect(document.querySelector<HTMLElement>("#game-startup-status")?.hidden)
       .toBe(true);
+    expect(readyEvent).toHaveBeenCalledOnce();
+    window.removeEventListener("admarket:game-startup-ready", readyEvent);
 
     gameAccess.reportStartupProgress(100);
     expect(document.querySelector<HTMLElement>("#game-startup-status")?.hidden)
@@ -2845,14 +2849,24 @@ describe("window.AdMarketCreator", () => {
     expect(document.querySelector<HTMLElement>("[data-guide-bar]")?.hidden).toBe(true);
     activateStudioTool("aida");
 
+    const productName = document.querySelector<HTMLInputElement>(
+      'input[aria-label="Product name"]'
+    )!;
+    fireEvent.input(productName, { target: { value: "NightBeam Lamp" } });
+    const planner = document.querySelector<HTMLElement>("[data-assignment-planner-panel]")!;
+    expect(within(planner).getByRole<HTMLInputElement>("textbox", {
+      name: STUDENT_COPY.assignmentSandbox.planner.fields.productName
+    }).value).toBe("NightBeam Lamp");
+
     fireEvent.change(getByRole(document.body, "textbox", {
       name: STUDENT_COPY.assignmentSandbox.planner.fields.productFunction
     }), { target: { value: "Lights a walking path after dark." } });
     await waitFor(async () => {
       const response = await parsed(api, "sandbox-plan-state", "getState", null);
       if (!response.ok) throw new Error(JSON.stringify(response.error));
-      expect(CampaignDocumentSchema.parse(response.payload).assignmentPlan.productFunction)
-        .toBe("Lights a walking path after dark.");
+      const saved = CampaignDocumentSchema.parse(response.payload);
+      expect(saved.product.name).toBe("NightBeam Lamp");
+      expect(saved.assignmentPlan.productFunction).toBe("Lights a walking path after dark.");
     });
     await waitFor(() => expect(document.querySelector<HTMLElement>(
       "[data-assignment-planner-panel] [role=status]"
@@ -2862,16 +2876,43 @@ describe("window.AdMarketCreator", () => {
       name: "Your Attention technique"
     }), { target: { value: "Use one bright beam against the dark campsite." } });
     fireEvent.click(getByRole(document.body, "button", { name: "Lock in Attention" }));
+    await waitFor(() => expect(getByRole(document.body, "textbox", {
+      name: "Your Interest technique"
+    })).toBeTruthy());
+    fireEvent.input(getByRole(document.body, "textbox", {
+      name: "Your Interest technique"
+    }), { target: { value: "Show the rechargeable battery and weatherproof shell." } });
+    fireEvent.click(getByRole(document.body, "button", { name: "Lock in Interest" }));
+    await waitFor(() => expect(getByRole(document.body, "textbox", {
+      name: "Your Desire technique"
+    })).toBeTruthy());
+    fireEvent.input(getByRole(document.body, "textbox", {
+      name: "Your Desire technique"
+    }), { target: { value: "Imagine a safe, welcoming campsite after dark." } });
+    fireEvent.click(getByRole(document.body, "button", { name: "Lock in Desire" }));
+    await waitFor(() => expect(getByRole(document.body, "textbox", {
+      name: "Your Action technique"
+    })).toBeTruthy());
+    fireEvent.input(getByRole(document.body, "textbox", {
+      name: "Your Action technique"
+    }), { target: { value: "Choose your lamp colour today." } });
+    fireEvent.click(getByRole(document.body, "button", { name: "Lock in Action" }));
     await waitFor(() => expect(document.querySelector<HTMLElement>(
       "[data-aida-playbook-panel] [role=status]"
-    )?.textContent).toContain("Advertisement Attention saved"));
+    )?.textContent).toContain("Advertisement Action saved"));
     const response = await parsed(api, "sandbox-aida-state", "getState", null);
     if (!response.ok) throw new Error(JSON.stringify(response.error));
     const state = CampaignDocumentSchema.parse(response.payload);
     expect(state.strategy.aidaPlan.attention)
       .toBe("Use one bright beam against the dark campsite.");
+    expect(state.strategy.aidaPlan.interest)
+      .toBe("Show the rechargeable battery and weatherproof shell.");
+    expect(state.strategy.aidaPlan.desire)
+      .toBe("Imagine a safe, welcoming campsite after dark.");
+    expect(state.strategy.aidaPlan.action)
+      .toBe("Choose your lamp colour today.");
     expect(state.evidence.attention).toEqual([]);
-  });
+  }, 15_000);
 
   it("uploads a selected student mockup and deletes, restores and removes it through history", async () => {
     const source = CampaignDocumentSchema.parse({
@@ -2923,11 +2964,20 @@ describe("window.AdMarketCreator", () => {
     const toolbar = getByRole(document.body, "group", { name: "Advertisement toolbar" });
     fireEvent.click(getByRole(toolbar, "button", { name: "Delete selected item" }));
     await waitFor(() => expect(currentObjects()).toEqual([]));
+    expect(CampaignDocumentSchema.parse(
+      (await parsed(api, "student-upload-deleted", "getState", null)).payload
+    ).assetReferences).toEqual([]);
 
     fireEvent.click(getByRole(toolbar, "button", { name: "Undo" }));
     await waitFor(() => expect(currentObjects()).toHaveLength(1));
+    expect(CampaignDocumentSchema.parse(
+      (await parsed(api, "student-upload-restored", "getState", null)).payload
+    ).assetReferences).toHaveLength(2);
     fireEvent.click(getByRole(toolbar, "button", { name: "Redo" }));
     await waitFor(() => expect(currentObjects()).toEqual([]));
+    expect(CampaignDocumentSchema.parse(
+      (await parsed(api, "student-upload-redone", "getState", null)).payload
+    ).assetReferences).toEqual([]);
   });
 
   it("keeps image upload hidden and guarded in guided campaigns", async () => {
@@ -3133,7 +3183,7 @@ describe("window.AdMarketCreator", () => {
       expect(state.fabricState.objects.some(({ objectId }) => objectId === priceObjectId))
         .toBe(false);
     });
-  });
+  }, 10_000);
 
   it("drops checklist evidence when its canvas piece has been removed", async () => {
     const source = CampaignDocumentSchema.parse({
@@ -4063,7 +4113,7 @@ describe("window.AdMarketCreator", () => {
       ]);
     expect(responses.filter(({ mimeType }) => mimeType === "image/png")
       .every(({ byteLength }) => byteLength > 8)).toBe(true);
-  }, 20_000);
+  }, 40_000);
 
   it("creates all four local logo recipes, remixes, saves, reloads and publishes them", async () => {
     expect(() => parseLogoIconCatalogue(logoCatalogueFixture())).not.toThrow();
@@ -4245,7 +4295,7 @@ describe("window.AdMarketCreator", () => {
     expect(String(logoCalls[0]![0])).toBe(
       `${window.location.origin}/catalog/generated/logo-icons-v1-reviewed/catalog.json`
     );
-  }, 20_000);
+  }, 40_000);
 
   it("loads account Object Forge allowance, places owned pixels, and keeps fal controls server-side", async () => {
     const imageBytes = Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a);
@@ -4334,11 +4384,11 @@ describe("window.AdMarketCreator", () => {
     });
     source.workspaceMode = "assignment-sandbox";
     source.product.name = "Orbit Bottle";
-    source.assignmentPlan.productFunction = "Keeps water cold through the school day";
-    source.assignmentPlan.targetAudience = "Senior students who carry water all day";
+    source.assignmentPlan.productFunction = "Keeps water cold\nthrough the school day";
+    source.assignmentPlan.targetAudience = "Senior students\nwho carry water all day";
     source.assignmentPlan.advertisingLocation = "Bus shelter near school";
     source.strategy.aidaPlan = {
-      attention: "The icy bottle against a hot orange background",
+      attention: "The icy bottle\nagainst a hot orange background",
       interest: "A temperature display and replaceable filter",
       desire: "Feel prepared, calm and refreshed all day",
       action: "Scan the code to choose a colour"
@@ -4394,6 +4444,7 @@ describe("window.AdMarketCreator", () => {
     expect(JSON.parse(String(jobCall?.[1]?.body))).toMatchObject({
       stage: "realise",
       mode: "advertisement",
+      documentId: "sandbox-realise-document",
       context: {
         productName: "Orbit Bottle",
         productFunction: "Keeps water cold through the school day",

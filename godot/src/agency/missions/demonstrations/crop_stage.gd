@@ -30,6 +30,9 @@ const COARSE_NUDGE_STEP := 32.0
 # current fit factor, so they stay a 48px touch target however far the image is scaled
 # down to fit the dialog.
 const HANDLE_SCREEN_SIZE := 48.0
+const MIN_SLOGAN_SCALE := 0.65
+const MAX_SLOGAN_SCALE := 1.35
+const SLOGAN_HANDLE_COLOUR := Color(0.0, 0.78, 0.86, 1)
 const CORNERS: Array[Vector2i] = [
     Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)
 ]
@@ -62,6 +65,7 @@ var _detail_grid: Dictionary = {}
 var _image_size: Vector2 = Vector2.ZERO
 var _min_crop_size: Vector2 = DEFAULT_MIN_CROP_SIZE
 var _slogan_size: Vector2 = DEFAULT_SLOGAN_SIZE
+var _slogan_default_size: Vector2 = DEFAULT_SLOGAN_SIZE
 var _crop: Rect2 = Rect2()
 var _slogan: Rect2 = Rect2()
 var _shade_rects: Array[ColorRect] = []
@@ -72,6 +76,9 @@ var _moving_frame: bool = false
 var _moving_slogan: bool = false
 var _drag_offset: Vector2 = Vector2.ZERO
 var _slogan_offset: Vector2 = Vector2.ZERO
+var _slogan_resize_handle: Panel
+var _resizing_slogan: bool = false
+var _slogan_resize_offset: Vector2 = Vector2.ZERO
 var _fit_factor: float = 1.0
 var _last_result: Dictionary = {}
 
@@ -95,7 +102,7 @@ func _ready() -> void:
     # its border, so a slogan below it in the tree could never be picked up at all.
     slogan.mouse_filter = Control.MOUSE_FILTER_STOP
     slogan.focus_mode = Control.FOCUS_ALL
-    slogan.tooltip_text = "Drag the slogan to where it can be read"
+    slogan.tooltip_text = "Drag to move the slogan. Drag its cyan corner to resize the slogan."
     slogan.gui_input.connect(_on_slogan_input)
     slogan.focus_entered.connect(_restyle_slogan)
     slogan.focus_exited.connect(_restyle_slogan)
@@ -129,7 +136,8 @@ func configure(demonstration: Dictionary) -> void:
     instruction_label.text = String(_record.get("instruction", ""))
     slogan_art.texture = load(String(_record.get("sloganArt", ""))) as Texture2D
     _min_crop_size = _record.get("minCropSize", DEFAULT_MIN_CROP_SIZE)
-    _slogan_size = _record.get("sloganSize", DEFAULT_SLOGAN_SIZE)
+    _slogan_default_size = _record.get("sloganSize", DEFAULT_SLOGAN_SIZE)
+    _slogan_size = _slogan_default_size
     _layout_slogan()
     _build_readout()
     _fit_stage()
@@ -140,6 +148,8 @@ func configure(demonstration: Dictionary) -> void:
 ## the bottle reads small, and the slogan starts on top of the picture, so the exercise
 ## cannot pass itself before the pair has touched anything.
 func reset_arrangement() -> void:
+    _slogan_size = _slogan_default_size
+    _layout_slogan()
     _set_slogan(_record.get("sloganStart", Vector2.ZERO))
     _set_crop(_record.get("openingCrop", Rect2(Vector2.ZERO, _image_size)))
 
@@ -191,6 +201,17 @@ func _build_handles() -> void:
         handle.focus_exited.connect(_on_handle_focus.bind(corner, false))
         handles_root.add_child(handle)
         _handles[corner] = handle
+    _slogan_resize_handle = Panel.new()
+    _slogan_resize_handle.name = "SloganResizeHandle"
+    _slogan_resize_handle.mouse_filter = Control.MOUSE_FILTER_STOP
+    _slogan_resize_handle.focus_mode = Control.FOCUS_ALL
+    _slogan_resize_handle.tooltip_text = "Drag to resize slogan"
+    _slogan_resize_handle.z_index = 20
+    _slogan_resize_handle.add_theme_stylebox_override("panel", _slogan_handle_style(false))
+    _slogan_resize_handle.gui_input.connect(_on_slogan_resize_input)
+    _slogan_resize_handle.focus_entered.connect(_on_slogan_handle_focus.bind(true))
+    _slogan_resize_handle.focus_exited.connect(_on_slogan_handle_focus.bind(false))
+    handles_root.add_child(_slogan_resize_handle)
 
 func _build_readout() -> void:
     for child in readout_row.get_children():
@@ -236,6 +257,14 @@ func _handle_style(focused: bool) -> StyleBoxFlat:
     box.border_color = FOCUS_RING if focused else INK
     box.set_border_width_all(4 if focused else 2)
     box.set_corner_radius_all(4)
+    return box
+
+func _slogan_handle_style(focused: bool) -> StyleBoxFlat:
+    var box := StyleBoxFlat.new()
+    box.bg_color = SLOGAN_HANDLE_COLOUR
+    box.border_color = FOCUS_RING if focused else INK
+    box.set_border_width_all(5 if focused else 3)
+    box.set_corner_radius_all(5)
     return box
 
 ## The slogan's own block. Its edge carries the one check the pair cannot otherwise see:
@@ -340,6 +369,37 @@ func _on_handle_focus(corner: Vector2i, focused: bool) -> void:
     if handle != null:
         handle.add_theme_stylebox_override("panel", _handle_style(focused))
 
+func _on_slogan_resize_input(event: InputEvent) -> void:
+    var button_event := event as InputEventMouseButton
+    if button_event != null and button_event.button_index == MOUSE_BUTTON_LEFT:
+        if button_event.pressed:
+            _resizing_slogan = true
+            _slogan_resize_offset = _slogan.end - _stage_point(
+                _slogan_resize_handle, button_event.position
+            )
+            _slogan_resize_handle.grab_focus()
+        else:
+            _resizing_slogan = false
+        accept_event()
+        return
+    var motion := event as InputEventMouseMotion
+    if motion != null and _resizing_slogan:
+        _resize_slogan(
+            _stage_point(_slogan_resize_handle, motion.position) + _slogan_resize_offset
+        )
+        accept_event()
+        return
+    var delta := _nudge_delta(event)
+    if delta != Vector2.ZERO:
+        _resize_slogan(_slogan.end + delta)
+        accept_event()
+
+func _on_slogan_handle_focus(focused: bool) -> void:
+    if is_instance_valid(_slogan_resize_handle):
+        _slogan_resize_handle.add_theme_stylebox_override(
+            "panel", _slogan_handle_style(focused)
+        )
+
 func _nudge_delta(event: InputEvent) -> Vector2:
     var key := event as InputEventKey
     if key == null or not key.pressed:
@@ -399,9 +459,9 @@ func _set_crop(rect: Rect2) -> void:
     )
     _refresh()
 
-## The slogan keeps the size the record gives it and only moves. Resizing it would let a
-## pair shrink the message until it fitted any gap, which is the opposite of the decision
-## being asked for.
+## Moving keeps the current slogan size. Resizing is constrained to a useful range and
+## preserves the lockup's aspect ratio, so students can adapt scale without shrinking the
+## message into an unreadable gap.
 func _set_slogan(position: Vector2) -> void:
     if _image_size.x <= 0.0 or _image_size.y <= 0.0:
         return
@@ -412,6 +472,27 @@ func _set_slogan(position: Vector2) -> void:
         ),
         _slogan_size
     )
+    _refresh()
+
+func _resize_slogan(point: Vector2) -> void:
+    if _image_size.x <= 0.0 or _image_size.y <= 0.0:
+        return
+    var requested := point - _slogan.position
+    var denominator := _slogan_default_size.length_squared()
+    if denominator <= 0.0:
+        return
+    var requested_scale := requested.dot(_slogan_default_size) / denominator
+    var maximum_scale := minf(
+        MAX_SLOGAN_SCALE,
+        minf(
+            (_image_size.x - _slogan.position.x) / _slogan_default_size.x,
+            (_image_size.y - _slogan.position.y) / _slogan_default_size.y
+        )
+    )
+    var minimum_scale := minf(MIN_SLOGAN_SCALE, maximum_scale)
+    var scale := clampf(requested_scale, minimum_scale, maximum_scale)
+    _slogan_size = _slogan_default_size * scale
+    _slogan = Rect2(_slogan.position, _slogan_size)
     _refresh()
 
 func _refresh() -> void:
@@ -427,6 +508,7 @@ func _refresh() -> void:
     })
     slogan.position = _slogan.position
     slogan.size = _slogan.size
+    slogan_art.size = _slogan.size
     _restyle_slogan()
     _update_readout(_last_result)
 
@@ -457,6 +539,15 @@ func _position_frame() -> void:
             maxf(0.0, _image_size.y - handle_size.y)
         )
         handle.position = (_corner_point(corner) - handle_size * 0.5).clamp(Vector2.ZERO, limit)
+    if is_instance_valid(_slogan_resize_handle):
+        _slogan_resize_handle.size = handle_size
+        var slogan_limit := Vector2(
+            maxf(0.0, _image_size.x - handle_size.x),
+            maxf(0.0, _image_size.y - handle_size.y)
+        )
+        _slogan_resize_handle.position = (
+            _slogan.end - handle_size * 0.5
+        ).clamp(Vector2.ZERO, slogan_limit)
 
 func _update_readout(result: Dictionary) -> void:
     var checks: Dictionary = result.get("checks", {})

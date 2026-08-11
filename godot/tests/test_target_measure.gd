@@ -260,6 +260,9 @@ func _catalog_supplies_two_distinct_target_records() -> bool:
 		and Array(audience.get("evidence", [])).size() == 4
 		and Array(claim.get("evidence", [])).size() == 3
 		and Array(audience_supports.get("belonging", [])).has("self-directed")
+		and String(audience.get("instruction", "")).begins_with("Match each brief fact")
+		and String(audience.get("sourceHeading", "")) == "FACTS FROM THE BRIEF"
+		and String(audience.get("targetHeading", "")) == "WHAT THE FACTS PROVE"
 		and Array(claim_supports.get("reorder", [])).has("qualified-benefit")
 		and not String(audience.get("evidenceSentence", "")).is_empty()
 		and not String(claim.get("evidenceSentence", "")).is_empty()
@@ -276,8 +279,14 @@ func _the_stage_builds_the_record_contract() -> bool:
 	stage.call("focus_target")
 	await _settle_stage()
 	var first := _evidence_button(stage, "context")
+	var first_statement := _statement_button(stage, "self-directed")
+	var keyboard_hint := stage.get_node("KeyboardHint") as Label
+	var check_button := stage.get_node("ActionsRow/CheckButton") as Button
 	var holds := (
 		bank.get_child_count() == 4
+		and first_statement.text == "Put selected card here"
+		and keyboard_hint.text.begins_with("Select a card")
+		and check_button.text == "Check matches"
 		and cards.get_child_count() == 3
 		and int(opening.get("placedCount", -1)) == 0
 		and PackedStringArray(opening.get("unplaced", PackedStringArray())).size() == 4

@@ -238,7 +238,10 @@ describe("ImageLabRuntime", () => {
       width: 1024,
       height: 576
     });
-    const getAdvertisementContext = vi.fn(() => advertisementContext);
+    const getAdvertisementContext = vi.fn(() => ({
+      documentId: "assignment-sandbox",
+      context: advertisementContext
+    }));
     const place = vi.fn().mockResolvedValue(undefined);
     const runtime = new ImageLabRuntime({
       client: api,
@@ -261,6 +264,7 @@ describe("ImageLabRuntime", () => {
       stage: "realise",
       mode: "advertisement",
       idempotencyKey: "generation-advertisement-1",
+      documentId: "assignment-sandbox",
       designDataUrl: preparedReference,
       context: advertisementContext
     }, { signal: expect.any(AbortSignal) });

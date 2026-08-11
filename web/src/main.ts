@@ -115,7 +115,8 @@ import type {
 } from "./fabric/canvas-port";
 import {
   ImageLabClient,
-  type AdvertisementRealisationContext
+  type AdvertisementRealisationContext,
+  type AdvertisementRealisationSource
 } from "./ai-image/image-lab-client";
 import { ImageLabPanel } from "./ai-image/image-lab-panel";
 import { ImageLabRuntime, type ImageLabPairIdentity } from "./ai-image/image-lab-runtime";
@@ -150,7 +151,7 @@ import {
 import type { AudienceBrief } from "./game/audience-briefs";
 import type { CurvedLabelFontFamily } from "./product-kit/curved-label-renderer";
 import { AidaPlaybookPanel } from "./game/aida-playbook-panel";
-import type { AidaStage } from "./game/aida-playbook";
+import { AIDA_STAGES, type AidaStage } from "./game/aida-playbook";
 import {
   AssignmentPlannerPanel
 } from "./game/assignment-planner-panel";
@@ -186,7 +187,10 @@ import { createTuckShell, type TuckPanelHandle } from "./ui/tuck-shell";
 import { createOverlayExclusivity, type OverlayExclusivity } from "./ui/overlay-exclusivity";
 import { createWritersStatementView, type WritersStatementView } from "./ui/writers-statement";
 import { catalogueRecordsWithBackgrounds, isAdBackgroundPreset } from "./assets/ad-background-presets";
-import { registerReleaseServiceWorker } from "./service-worker-registration";
+import {
+  GAME_STARTUP_READY_EVENT,
+  registerReleaseServiceWorker
+} from "./service-worker-registration";
 import { createStudioToolDrawer } from "./ui/studio-tool-drawer";
 import {
   STUDENT_STUDIO_SPLIT_STORAGE_KEY,
@@ -233,6 +237,9 @@ function nextUpdatedAt(current: string, latest?: string): string {
   }
   return new Date(Math.max(...candidates)).toISOString();
 }
+
+const normaliseAdvertisementText = (value: string, maximum: number): string =>
+  value.replace(/\s+/gu, " ").trim().slice(0, maximum);
 
 async function createCanvasRuntime(canvasElement: HTMLCanvasElement): Promise<CanvasRuntime> {
   const [{ Canvas }, { FabricCanvasAdapter }] = await Promise.all([
@@ -305,6 +312,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #editorOpen = false;
   #practiceAutosave: SerializedAutosave<LocalPracticeRecoveryV1> | null = null;
   #practiceSaveMatched = false;
+  readonly #cloudSync: Pick<CloudProgressSync, "enqueue" | "settled"> | null;
   readonly #writersStatement: WritersStatementView;
 
   constructor(
@@ -314,9 +322,10 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     private readonly gameCanvas: HTMLCanvasElement | null,
     private readonly drafts: DraftStore = new IndexedDbDraftStore(),
     practice: LocalPracticeService | null = null,
-    cloudSync: Pick<CloudProgressSync, "enqueue"> | null = null,
+    cloudSync: Pick<CloudProgressSync, "enqueue" | "settled"> | null = null,
     overlayExclusivity: OverlayExclusivity = createOverlayExclusivity()
   ) {
+    this.#cloudSync = cloudSync;
     this.#overlayExclusivity = overlayExclusivity;
     const productName = shell.overlay.querySelector<HTMLInputElement>(
       'input[aria-label="Product name"]'
@@ -332,6 +341,9 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
             name: this.#productName.value
           }
         }));
+        if (this.#document.workspaceMode === "assignment-sandbox") {
+          this.#refreshAssignmentPlanner();
+        }
         this.#refreshMoneyCheck();
         this.#refreshMarketRoute();
       }
@@ -676,7 +688,12 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     };
     if (this.#history === null) await commit();
     else await this.#history.transaction(commit);
-    this.#aidaStage = stage;
+    const stageIndex = AIDA_STAGES.findIndex(({ id }) => id === stage);
+    const nextStage = sandbox && stageIndex >= 0 && stageIndex < AIDA_STAGES.length - 1
+      ? AIDA_STAGES[stageIndex + 1]!.id
+      : stage;
+    this.#aidaStage = nextStage;
+    if (nextStage !== stage) this.#refreshAidaPlaybook();
     this.#refreshStudioCoachCampaign();
     this.schedulePracticeAutosave();
   }
@@ -796,23 +813,27 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     return runtime.adapter.exportCleanPngDataUrl();
   }
 
-  advertisementRealisationContext(
+  async advertisementRealisationContext(
     pair: ImageLabPairIdentity
-  ): AdvertisementRealisationContext {
+  ): Promise<AdvertisementRealisationSource> {
+    this.#assertCurrentImageLabPair(pair);
+    this.schedulePracticeAutosave();
+    await this.flushPracticeAutosave();
+    await this.#cloudSync?.settled();
     this.#assertCurrentImageLabPair(pair);
     const document = this.#document;
     if (!document || document.workspaceMode !== "assignment-sandbox") {
       throw new Error("Advertisement realisation is available only in Assignment Sandbox.");
     }
     const context: AdvertisementRealisationContext = {
-      productName: document.product.name.trim(),
-      productFunction: document.assignmentPlan.productFunction.trim(),
-      targetAudience: document.assignmentPlan.targetAudience.trim(),
-      advertisingLocation: document.assignmentPlan.advertisingLocation.trim(),
-      attention: document.strategy.aidaPlan.attention.trim(),
-      interest: document.strategy.aidaPlan.interest.trim(),
-      desire: document.strategy.aidaPlan.desire.trim(),
-      action: document.strategy.aidaPlan.action.trim()
+      productName: normaliseAdvertisementText(document.product.name, 96),
+      productFunction: normaliseAdvertisementText(document.assignmentPlan.productFunction, 280),
+      targetAudience: normaliseAdvertisementText(document.assignmentPlan.targetAudience, 160),
+      advertisingLocation: normaliseAdvertisementText(document.assignmentPlan.advertisingLocation, 160),
+      attention: normaliseAdvertisementText(document.strategy.aidaPlan.attention, 280),
+      interest: normaliseAdvertisementText(document.strategy.aidaPlan.interest, 280),
+      desire: normaliseAdvertisementText(document.strategy.aidaPlan.desire, 280),
+      action: normaliseAdvertisementText(document.strategy.aidaPlan.action, 280)
     };
     const missing = Object.entries(context)
       .filter(([, value]) => value.length === 0)
@@ -820,7 +841,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     if (missing.length > 0) {
       throw new Error("Complete the product details and all four Advertisement AIDA decisions first.");
     }
-    return context;
+    return { documentId: document.documentId, context };
   }
 
   async captureStudioCoachCanvas(): Promise<StudioCoachCanvasEvidence> {
@@ -1709,6 +1730,11 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     const selection = runtime.adapter.captureSelection();
     await this.#history.transaction(async () => {
       new ObjectCommandService(runtime.adapter).remove(id);
+      const current = this.#snapshot();
+      this.#document = parseCampaignDocument({
+        ...structuredClone(current),
+        assetReferences: current.assetReferences.filter((reference) => reference.objectId !== id)
+      });
     });
     this.#removalHistory.push({
       beforeState,
@@ -2127,6 +2153,7 @@ window.AdMarketGameAccess = Object.freeze({
     gameStartupReady = true;
     const status = document.querySelector<HTMLElement>("#game-startup-status");
     if (status !== null) status.hidden = true;
+    window.dispatchEvent(new Event(GAME_STARTUP_READY_EVENT));
   },
   reportStartupFailure: (reason: "timeout" | "engine") => {
     reportGameStartupFailure(reason);

@@ -9,6 +9,7 @@ func _run_suites() -> void:
     for suite_path in [
         "res://tests/test_creator_bridge.gd",
         "res://tests/test_creator_host.gd",
+        "res://tests/test_assignment_sandbox_document.gd",
         "res://tests/test_market_bridge.gd",
         "res://tests/test_market_host.gd",
         "res://tests/test_practice_bridge.gd",

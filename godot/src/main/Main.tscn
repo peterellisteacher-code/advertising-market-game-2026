@@ -431,6 +431,20 @@ theme_override_styles/hover = SubResource("Style_primary_hover")
 theme_override_styles/focus = SubResource("Style_focus")
 text = "Practice on this computer"
 
+[node name="OpenAssignmentSandbox" type="Button" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/PracticeRow" unique_id=1920994293]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 50)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("Style_primary")
+theme_override_styles/pressed = SubResource("Style_primary_pressed")
+theme_override_styles/hover = SubResource("Style_primary_hover")
+theme_override_styles/focus = SubResource("Style_focus")
+text = "Assignment sandbox"
+
 [node name="MarketScreen" parent="MainMargin/GameInput" unique_id=698235327 instance=ExtResource("4_market_screen")]
 unique_name_in_owner = true
 visible = false

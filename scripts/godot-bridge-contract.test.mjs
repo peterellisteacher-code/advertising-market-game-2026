@@ -195,6 +195,32 @@ test("CreatorHost never prefixes student diagnostics with internal bridge codes 
   );
 });
 
+test("the lobby opens only the isolated assignment sandbox document", async () => {
+  const [main, scene, documentHelper, routeTests, hostTests] = await Promise.all([
+    readFile(new URL("godot/src/main/main.gd", root), "utf8"),
+    readFile(new URL("godot/src/main/Main.tscn", root), "utf8"),
+    readFile(new URL("godot/src/main/assignment_sandbox_document.gd", root), "utf8"),
+    readFile(new URL("godot/tests/test_assignment_sandbox_document.gd", root), "utf8"),
+    readFile(new URL("godot/tests/test_creator_host.gd", root), "utf8")
+  ]);
+
+  assert.match(
+    scene,
+    /\[node name="OpenAssignmentSandbox" type="Button"[^\]]*\][\s\S]*?unique_name_in_owner = true[\s\S]*?(?=\n\[node |\s*$)/
+  );
+  assert.match(scene, /text = "Assignment sandbox"/);
+  assert.match(main, /creator_host\.load_latest\(ASSIGNMENT_SANDBOX_DOCUMENT_ID\)/);
+  assert.match(main, /func _on_latest_draft_received\(document: Variant\) -> void:\s+if _sandbox_load_pending:/);
+  assert.match(main, /func _on_creator_state_received\(document: Dictionary\) -> void:\s+if _sandbox_open:/);
+  assert.match(main, /func _on_creator_closed\(\) -> void:\s+if _sandbox_open:/);
+  assert.match(documentHelper, /const DOCUMENT_ID := "assignment-sandbox"/);
+  assert.match(documentHelper, /const SESSION_ID := "assignment-sandbox-session"/);
+  assert.match(documentHelper, /document\["workspaceMode"\] = WORKSPACE_MODE/);
+  assert.match(documentHelper, /document\["assignmentPlan"\] = _blank_assignment_plan\(\)/);
+  assert.match(routeTests, /That saved assignment sandbox did not match this workspace\. Nothing was replaced\./);
+  assert.match(hostTests, /host\.load_latest\("assignment-sandbox"\)/);
+});
+
 test("the Godot shell mirrors current instructions semantically without pretending to be an editor", async () => {
   const [shell, main, scene] = await Promise.all([
     readFile(new URL("godot/web/godot_shell.html", root), "utf8"),

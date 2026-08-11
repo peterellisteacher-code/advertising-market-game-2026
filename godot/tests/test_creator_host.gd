@@ -40,6 +40,15 @@ func run() -> bool:
     fake.resolve_success(missing_id, null)
     assert(received_latest.size() == 2)
     assert(received_latest[1] == null)
+    var sandbox_latest_id := host.load_latest("assignment-sandbox")
+    assert(fake.request_for(sandbox_latest_id).get("method") == "loadLatest")
+    assert(
+        fake.request_for(sandbox_latest_id).get("payload").get("documentId")
+        == "assignment-sandbox"
+    )
+    fake.resolve_success(sandbox_latest_id, null)
+    assert(received_latest.size() == 3)
+    assert(received_latest[2] == null)
 
     var requests_before_open := fake.request_count()
     host.open_creator(_document())

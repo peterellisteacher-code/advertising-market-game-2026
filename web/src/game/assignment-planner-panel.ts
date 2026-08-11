@@ -5,6 +5,7 @@ import {
   type AssignmentDesireValueId,
   type AssignmentPlanV1
 } from "./assignment-plan";
+import { STUDENT_COPY } from "./student-copy";
 
 export interface AssignmentPlannerPanelState {
   readonly productName: string;
@@ -19,6 +20,8 @@ export type AssignmentPlannerCommitHandler = (
 type PlanTextField = Exclude<keyof AssignmentPlanV1,
   "desireValueIds" | "primaryDesireValueId" | "productAidaPlan">;
 type AidaField = keyof AssignmentPlanV1["productAidaPlan"];
+
+let assignmentPlannerInstance = 0;
 
 function element<K extends keyof HTMLElementTagNameMap>(
   name: K,
@@ -42,6 +45,8 @@ export class AssignmentPlannerPanel {
     plan: createBlankAssignmentPlan()
   };
   #operation = 0;
+  readonly #idPrefix = `assignment-planner-${++assignmentPlannerInstance}`;
+  readonly #openSections = new Set(["define-product"]);
 
   constructor(
     private readonly host: HTMLElement,
@@ -70,6 +75,8 @@ export class AssignmentPlannerPanel {
     const text = element("span");
     text.textContent = labelText;
     const control = multiline ? element("textarea") : element("input");
+    control.id = `${this.#idPrefix}-${focusKey}`;
+    label.htmlFor = control.id;
     if (control instanceof HTMLTextAreaElement) control.rows = 3;
     control.maxLength = maxLength;
     control.value = value;
@@ -79,6 +86,28 @@ export class AssignmentPlannerPanel {
     });
     label.append(text, control);
     parent.append(label);
+  }
+
+  #section(key: string, title: string): { details: HTMLDetailsElement; body: HTMLElement } {
+    const details = element("details", "assignment-planner__section");
+    const summary = element("summary", "assignment-planner__summary");
+    const heading = element("span");
+    heading.id = `${this.#idPrefix}-${key}-heading`;
+    heading.setAttribute("role", "heading");
+    heading.setAttribute("aria-level", "3");
+    heading.textContent = title;
+    summary.tabIndex = 0;
+    summary.append(heading);
+    const body = element("div", "assignment-planner__section-body");
+    details.open = this.#openSections.has(key);
+    details.setAttribute("role", "group");
+    details.setAttribute("aria-label", title);
+    details.addEventListener("toggle", () => {
+      if (details.open) this.#openSections.add(key);
+      else this.#openSections.delete(key);
+    });
+    details.append(summary, body);
+    return { details, body };
   }
 
   #textState(field: PlanTextField, value: string): AssignmentPlannerPanelState {
@@ -101,7 +130,7 @@ export class AssignmentPlannerPanel {
   async #save(next: AssignmentPlannerPanelState, focusKey: string): Promise<void> {
     const operation = ++this.#operation;
     const status = this.host.querySelector<HTMLElement>("[role=status]");
-    if (status) status.textContent = "Saving…";
+    if (status) status.textContent = STUDENT_COPY.assignmentSandbox.planner.saving;
     try {
       const nextState = {
         productName: next.productName,
@@ -112,55 +141,55 @@ export class AssignmentPlannerPanel {
       if (operation !== this.#operation) return;
       this.#draw();
       const saved = this.host.querySelector<HTMLElement>("[role=status]");
-      if (saved) saved.textContent = "Saved";
+      if (saved) saved.textContent = STUDENT_COPY.assignmentSandbox.planner.saved;
       [...this.host.querySelectorAll<HTMLElement>("[data-assignment-focus]")]
         .find((control) => control.dataset.assignmentFocus === focusKey)
         ?.focus();
     } catch (error) {
       if (operation !== this.#operation) return;
       const current = this.host.querySelector<HTMLElement>("[role=status]");
-      if (current) current.textContent = error instanceof Error ? error.message : "Save failed.";
+      if (current) current.textContent = error instanceof Error
+        ? error.message
+        : STUDENT_COPY.assignmentSandbox.planner.saveFailed;
     }
   }
 
   #draw(): void {
+    const copy = STUDENT_COPY.assignmentSandbox.planner;
     const root = element("div", "assignment-planner");
     const intro = element("p", "assignment-planner__intro");
-    intro.textContent = "Plan the product first. Then decide how the advertisement will communicate it.";
+    intro.textContent = copy.intro;
 
-    const define = element("section", "assignment-planner__section");
-    const defineHeading = element("h3");
-    defineHeading.textContent = "Define the product";
-    define.append(defineHeading);
-    this.#appendTextField(define, "Product name for this assignment", "product-name",
+    const defineSection = this.#section("define-product", copy.sections.defineProduct);
+    const define = defineSection.body;
+    this.#appendTextField(define, copy.fields.productName, "product-name",
       this.#state.productName, 48,
       (value) => ({ ...this.#state, productName: value }));
     const textFields: readonly [PlanTextField, string, number, boolean?][] = [
-      ["productFunction", "What does the product do?", 280, true],
-      ["targetAudience", "Who is the target audience?", 160],
-      ["advertisingLocation", "Where will the advertisement appear?", 160],
-      ["featureToEmphasise", "Which feature will you emphasise?", 280, true],
-      ["differenceFromAlternatives", "How is it different from alternatives?", 280, true],
-      ["materials", "What materials will it use?", 280, true],
-      ["estimatedProductionCost", "Estimated production cost", 80],
-      ["salePrice", "Planned sale price", 80]
+      ["productFunction", copy.fields.productFunction, 280, true],
+      ["targetAudience", copy.fields.targetAudience, 160],
+      ["advertisingLocation", copy.fields.advertisingLocation, 160],
+      ["featureToEmphasise", copy.fields.featureToEmphasise, 280, true],
+      ["differenceFromAlternatives", copy.fields.differenceFromAlternatives, 280, true],
+      ["materials", copy.fields.materials, 280, true],
+      ["estimatedProductionCost", copy.fields.estimatedProductionCost, 80],
+      ["salePrice", copy.fields.salePrice, 80]
     ];
     for (const [field, label, maximum, multiline] of textFields) {
       this.#appendTextField(define, label, field, this.#state.plan[field], maximum,
         (value) => this.#textState(field, value), multiline);
     }
 
-    const productAida = element("section", "assignment-planner__section");
-    const productAidaHeading = element("h3");
-    productAidaHeading.textContent = "Product AIDA";
+    const productAidaSection = this.#section("product-aida", copy.sections.productAida);
+    const productAida = productAidaSection.body;
     const productAidaNote = element("p");
-    productAidaNote.textContent = "Explain the product's promise before planning the advertisement itself.";
-    productAida.append(productAidaHeading, productAidaNote);
+    productAidaNote.textContent = copy.productAidaNote;
+    productAida.append(productAidaNote);
     const aidaFields: readonly [AidaField, string][] = [
-      ["attention", "Attention — what about the product should grab attention?"],
-      ["interest", "Interest — which features add interest?"],
-      ["desire", "Desire — how could the audience imagine life with it?"],
-      ["action", "Action — what honest next step should the audience take?"]
+      ["attention", copy.productAidaPrompts.attention],
+      ["interest", copy.productAidaPrompts.interest],
+      ["desire", copy.productAidaPrompts.desire],
+      ["action", copy.productAidaPrompts.action]
     ];
     for (const [field, label] of aidaFields) {
       this.#appendTextField(productAida, label, `product-aida-${field}`,
@@ -168,12 +197,11 @@ export class AssignmentPlannerPanel {
         (value) => this.#aidaState(field, value), true);
     }
 
-    const values = element("section", "assignment-planner__section");
-    const valuesHeading = element("h3");
-    valuesHeading.textContent = "Values for Desire";
+    const valuesSection = this.#section("desire-values", copy.sections.desireValues);
+    const values = valuesSection.body;
     const valuesNote = element("p");
-    valuesNote.textContent = "Choose up to twelve audience values, then mark the most important one.";
-    values.append(valuesHeading, valuesNote);
+    valuesNote.textContent = copy.valuesNote;
+    values.append(valuesNote);
     const families = [...new Set(ASSIGNMENT_DESIRE_VALUES.map(({ family }) => family))];
     for (const family of families) {
       const group = element("fieldset", "assignment-planner__values");
@@ -184,10 +212,13 @@ export class AssignmentPlannerPanel {
         const row = element("div", "assignment-planner__value");
         const choose = element("label");
         const checkbox = element("input");
+        const valueKey = item.id.replace(/[^a-z0-9-]/gi, "-");
+        checkbox.id = `${this.#idPrefix}-value-${valueKey}`;
         checkbox.type = "checkbox";
         checkbox.checked = this.#state.plan.desireValueIds.includes(item.id);
         checkbox.disabled = !checkbox.checked && this.#state.plan.desireValueIds.length >= 12;
         checkbox.dataset.assignmentFocus = `value-${item.id}`;
+        choose.htmlFor = checkbox.id;
         choose.append(checkbox, document.createTextNode(item.label));
         checkbox.addEventListener("change", () => {
           const selected = new Set(this.#state.plan.desireValueIds);
@@ -209,13 +240,16 @@ export class AssignmentPlannerPanel {
 
         const primaryLabel = element("label");
         const radio = element("input");
+        radio.id = `${this.#idPrefix}-primary-${valueKey}`;
         radio.type = "radio";
-        radio.name = "assignment-primary-desire-value";
+        radio.name = `${this.#idPrefix}-primary-desire-value`;
         radio.checked = this.#state.plan.primaryDesireValueId === item.id;
         radio.disabled = !checkbox.checked;
-        radio.setAttribute("aria-label", `Make ${item.label} the main value`);
+        radio.setAttribute("aria-label",
+          `${copy.mainValuePrefix} ${item.label} ${copy.mainValueSuffix}`);
         radio.dataset.assignmentFocus = `primary-${item.id}`;
-        primaryLabel.append(radio, document.createTextNode("Main"));
+        primaryLabel.htmlFor = radio.id;
+        primaryLabel.append(radio, document.createTextNode(copy.mainValueLabel));
         radio.addEventListener("change", () => {
           if (!radio.checked || !this.#state.plan.desireValueIds.includes(item.id)) return;
           void this.#save({
@@ -229,16 +263,24 @@ export class AssignmentPlannerPanel {
       values.append(group);
     }
 
-    const handoff = element("section", "assignment-planner__section");
-    const handoffHeading = element("h3");
-    handoffHeading.textContent = "Advertisement AIDA";
+    const handoffSection = this.#section("advertisement-aida", copy.sections.advertisementAida);
+    const handoff = handoffSection.body;
     const handoffText = element("p");
-    handoffText.textContent = "Now use the technique deck below to plan what this advertisement will show and say.";
-    handoff.append(handoffHeading, handoffText);
+    handoffText.textContent = copy.advertisementAidaNote;
+    const composition = element("p", "assignment-planner__techniques");
+    composition.textContent = copy.compositionTechniques;
+    handoff.append(handoffText, composition);
     const status = element("p", "assignment-planner__status");
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
-    root.append(intro, define, productAida, values, handoff, status);
+    root.append(
+      intro,
+      defineSection.details,
+      productAidaSection.details,
+      valuesSection.details,
+      handoffSection.details,
+      status
+    );
     this.host.replaceChildren(root);
   }
 }

@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { applyCreatorLevelAccess, creatorStageAllows } from "./creator-level-access";
+import { STUDENT_COPY } from "./student-copy";
 
 function fixture(): HTMLElement {
   document.body.innerHTML = `
     <main data-creator-root>
       <p data-creator-level-label></p>
-      <p data-sandbox-only hidden>ASSIGNMENT SANDBOX</p>
+      <p data-sandbox-only hidden inert>${STUDENT_COPY.assignmentSandbox.label}</p>
       <section data-guided-only></section>
       <nav data-creator-checklist>
         <button data-slot="price">Price</button>
@@ -109,9 +110,29 @@ describe("creator level access", () => {
     expect(root.querySelector<HTMLElement>("[data-guided-only]")!.inert).toBe(true);
     expect(root.querySelector<HTMLElement>("[data-sandbox-only]")!.hidden).toBe(false);
     expect(root.querySelector("[data-creator-level-label]")?.textContent)
-      .toBe("ASSIGNMENT SANDBOX");
+      .toBe(STUDENT_COPY.assignmentSandbox.label);
     expect(creatorStageAllows("invent", "aida", "assignment-sandbox")).toBe(true);
     expect(creatorStageAllows("invent", "price", "assignment-sandbox")).toBe(true);
     expect(creatorStageAllows("invent", "route", "assignment-sandbox")).toBe(true);
+  });
+
+  it("switches hidden and inert mode regions in both directions", () => {
+    const root = fixture();
+    const guided = root.querySelector<HTMLElement>("[data-guided-only]")!;
+    const sandbox = root.querySelector<HTMLElement>("[data-sandbox-only]")!;
+
+    applyCreatorLevelAccess(root, "invent", "assignment-sandbox");
+
+    expect(guided.hidden).toBe(true);
+    expect(guided.hasAttribute("inert")).toBe(true);
+    expect(sandbox.hidden).toBe(false);
+    expect(sandbox.hasAttribute("inert")).toBe(false);
+
+    applyCreatorLevelAccess(root, "invent", "guided");
+
+    expect(guided.hidden).toBe(false);
+    expect(guided.hasAttribute("inert")).toBe(false);
+    expect(sandbox.hidden).toBe(true);
+    expect(sandbox.hasAttribute("inert")).toBe(true);
   });
 });

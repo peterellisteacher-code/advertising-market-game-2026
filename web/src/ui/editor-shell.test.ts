@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createEditorShell } from "./editor-shell";
+import { STUDENT_COPY } from "../game/student-copy";
 
 describe("createEditorShell", () => {
   it("applies one large-text token across creator controls and dialogs", () => {
@@ -98,8 +99,13 @@ describe("createEditorShell", () => {
     expect(root.querySelector('[data-studio-panel="aida"][aria-label="AIDA techniques"]')).toBeTruthy();
     expect(shell.aidaPlaybookPanel.dataset.aidaPlaybookPanel).toBe("");
     expect(shell.assignmentPlannerPanel.dataset.assignmentPlannerPanel).toBe("");
-    expect(root.querySelector("[data-sandbox-label]")?.textContent).toBe("ASSIGNMENT SANDBOX");
+    expect(root.querySelector("[data-sandbox-label]")?.textContent)
+      .toBe(STUDENT_COPY.assignmentSandbox.label);
     expect(root.querySelector<HTMLElement>("[data-sandbox-label]")?.hidden).toBe(true);
+    expect(root.querySelector<HTMLElement>("[data-sandbox-label]")?.hasAttribute("inert"))
+      .toBe(true);
+    expect(shell.assignmentPlannerPanel.hidden).toBe(true);
+    expect(shell.assignmentPlannerPanel.hasAttribute("inert")).toBe(true);
     expect(root.querySelectorAll("[data-guided-only]").length).toBeGreaterThanOrEqual(2);
     expect(root.querySelector('[data-studio-panel="coach"][aria-label="Studio Coach"]')).toBeTruthy();
     expect(shell.studioCoachPanel.dataset.studioCoachPanel).toBe("");

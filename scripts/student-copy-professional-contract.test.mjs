@@ -61,6 +61,29 @@ test("the web game uses advertisement language instead of campaign or canvas ali
   );
 });
 
+test("assignment sandbox copy preserves the exact AIDA and composition vocabulary", async () => {
+  const corpus = await buildStudentCopyCorpus(ROOT);
+  const assignmentCopy = corpus
+    .filter(({ path: sourcePath }) => [
+      "web/src/game/assignment-plan.ts",
+      "web/src/game/assignment-planner-panel.ts",
+      "web/src/game/student-copy.ts",
+      "web/src/uploads/student-image-upload.ts",
+      "web/src/uploads/student-image-upload-panel.ts",
+      "web/src/ai-image/image-lab-panel.ts"
+    ].includes(sourcePath))
+    .map(({ text }) => text)
+    .join("\n");
+
+  for (const term of [
+    "AIDA", "Attention", "Interest", "Desire", "Action", "salience", "framing",
+    "reading pathway", "vector lines", "rule of thirds", "colour contrast and harmony",
+    "pattern", "balance and symmetry"
+  ]) {
+    assert.ok(assignmentCopy.includes(term), `assignment copy is missing ${term}`);
+  }
+});
+
 test("authored Godot copy uses advertising terms instead of game-system vocabulary", async () => {
   const corpus = (await buildStudentCopyCorpus(ROOT)).filter(
     ({ audience, path: sourcePath }) => audience === "student" && sourcePath.startsWith("godot/")

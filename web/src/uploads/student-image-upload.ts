@@ -1,3 +1,5 @@
+import { STUDENT_COPY } from "../game/student-copy";
+
 export const MAX_STUDENT_IMAGE_BYTES = 12 * 1024 * 1024;
 export const MAX_STUDENT_IMAGE_EDGE = 4_096;
 
@@ -51,7 +53,7 @@ function uploadTitle(fileName: string): string {
 
 function targetDimensions(width: number, height: number): { width: number; height: number } {
   if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width < 1 || height < 1) {
-    throw new Error("The image has invalid dimensions.");
+    throw new Error(STUDENT_COPY.assignmentSandbox.upload.errors.invalidDimensions);
   }
   const scale = Math.min(1, MAX_STUDENT_IMAGE_EDGE / Math.max(width, height));
   return {
@@ -75,13 +77,15 @@ const browserProcessor: StudentImageUploadProcessor = {
     canvas.width = width;
     canvas.height = height;
     const context = canvas.getContext("2d", { alpha: true });
-    if (!context) throw new Error("This browser cannot prepare the image.");
+    if (!context) {
+      throw new Error(STUDENT_COPY.assignmentSandbox.upload.errors.browserCannotPrepare);
+    }
     context.clearRect(0, 0, width, height);
     context.drawImage(image.source, 0, 0, width, height);
     return await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob((blob) => {
         if (blob) resolve(blob);
-        else reject(new Error("The image could not be encoded as PNG."));
+        else reject(new Error(STUDENT_COPY.assignmentSandbox.upload.errors.encodeFailed));
       }, "image/png");
     });
   }
@@ -91,33 +95,34 @@ export async function prepareStudentImageUpload(
   file: File,
   processor: StudentImageUploadProcessor = browserProcessor
 ): Promise<PreparedStudentImageUpload> {
-  if (!(file instanceof File) || file.size === 0) throw new Error("Choose a non-empty image file.");
-  if (file.size > MAX_STUDENT_IMAGE_BYTES) throw new Error("Choose an image no larger than 12 MiB.");
+  const errors = STUDENT_COPY.assignmentSandbox.upload.errors;
+  if (!(file instanceof File) || file.size === 0) throw new Error(errors.emptyFile);
+  if (file.size > MAX_STUDENT_IMAGE_BYTES) throw new Error(errors.tooLarge);
   const mimeType = file.type.toLowerCase();
   if (!ACCEPTED_TYPES.has(mimeType)) {
-    throw new Error("Choose a PNG, JPEG or WebP image.");
+    throw new Error(errors.unsupportedType);
   }
   const header = new Uint8Array(await file.slice(0, 16).arrayBuffer());
   if (!signatureMatches(mimeType, header)) {
-    throw new Error("The file contents do not match its image type.");
+    throw new Error(errors.signatureMismatch);
   }
 
   let decoded: DecodedStudentImage;
   try {
     decoded = await processor.decode(file);
   } catch {
-    throw new Error("The image could not be decoded. Try exporting it as PNG, JPEG or WebP.");
+    throw new Error(errors.decodeFailed);
   }
   try {
     const target = targetDimensions(decoded.width, decoded.height);
     const blob = await processor.encodePng(decoded, target.width, target.height);
     if (!(blob instanceof Blob) || blob.type !== "image/png" || blob.size === 0 ||
       blob.size > MAX_STUDENT_IMAGE_BYTES) {
-      throw new Error("The prepared image is not a valid bounded PNG.");
+      throw new Error(errors.preparedBounds);
     }
     const outputHeader = new Uint8Array(await blob.slice(0, 8).arrayBuffer());
     if (!signatureMatches("image/png", outputHeader)) {
-      throw new Error("The prepared image is not a valid PNG.");
+      throw new Error(errors.preparedPng);
     }
     return Object.freeze({
       title: uploadTitle(file.name),

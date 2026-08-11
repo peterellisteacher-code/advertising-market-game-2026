@@ -1,7 +1,10 @@
 import { fireEvent, getByRole, within } from "@testing-library/dom";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { createBlankAssignmentPlan } from "./assignment-plan";
 import { AssignmentPlannerPanel } from "./assignment-planner-panel";
+import { STUDENT_COPY } from "./student-copy";
 
 describe("AssignmentPlannerPanel", () => {
   it("shows the page-five product, Product AIDA and six Desire-value families", () => {
@@ -19,16 +22,25 @@ describe("AssignmentPlannerPanel", () => {
       }
     });
 
-    expect(getByRole(host, "heading", { name: "Define the product" })).toBeTruthy();
-    expect(getByRole(host, "heading", { name: "Product AIDA" })).toBeTruthy();
-    expect(getByRole(host, "heading", { name: "Values for Desire" })).toBeTruthy();
+    expect(getByRole(host, "heading", {
+      name: STUDENT_COPY.assignmentSandbox.planner.sections.defineProduct
+    })).toBeTruthy();
+    expect(getByRole(host, "heading", {
+      name: STUDENT_COPY.assignmentSandbox.planner.sections.productAida
+    })).toBeTruthy();
+    expect(getByRole(host, "heading", {
+      name: STUDENT_COPY.assignmentSandbox.planner.sections.desireValues
+    })).toBeTruthy();
+    fireEvent.click(getByRole(host, "group", {
+      name: STUDENT_COPY.assignmentSandbox.planner.sections.desireValues
+    }).querySelector("summary")!);
     for (const family of [
       "Responsibility", "Practicality", "Identity", "Experience", "Performance", "Care"
     ]) {
       expect(getByRole(host, "group", { name: family })).toBeTruthy();
     }
     expect(getByRole<HTMLInputElement>(host, "textbox", {
-      name: "What does the product do?"
+      name: STUDENT_COPY.assignmentSandbox.planner.fields.productFunction
     }).value).toBe("Lights a path after dark.");
     expect(getByRole<HTMLInputElement>(host, "checkbox", {
       name: "Sustainability"
@@ -38,6 +50,45 @@ describe("AssignmentPlannerPanel", () => {
     }).checked).toBe(true);
   });
 
+  it("uses native compact sections, explicit label associations and unique IDs", () => {
+    const firstHost = document.createElement("div");
+    const secondHost = document.createElement("div");
+    new AssignmentPlannerPanel(firstHost, vi.fn()).setState({
+      productName: "",
+      plan: createBlankAssignmentPlan()
+    });
+    new AssignmentPlannerPanel(secondHost, vi.fn()).setState({
+      productName: "",
+      plan: createBlankAssignmentPlan()
+    });
+
+    const sections = [...firstHost.querySelectorAll<HTMLDetailsElement>("details")];
+    expect(sections).toHaveLength(4);
+    expect(sections[0]?.open).toBe(true);
+    expect(sections.slice(1).every(({ open }) => !open)).toBe(true);
+    for (const summary of firstHost.querySelectorAll<HTMLElement>("summary")) {
+      expect(summary.tabIndex).toBe(0);
+    }
+    for (const label of firstHost.querySelectorAll<HTMLLabelElement>("label[for]")) {
+      expect([...firstHost.querySelectorAll<HTMLElement>("[id]")]
+        .some(({ id }) => id === label.htmlFor)).toBe(true);
+    }
+    const ids = [...firstHost.querySelectorAll<HTMLElement>("[id]"),
+      ...secondHost.querySelectorAll<HTMLElement>("[id]")].map(({ id }) => id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(getByRole(firstHost, "status").getAttribute("aria-live")).toBe("polite");
+  });
+
+  it("has a bounded independent desktop scroller and display-preference styles", () => {
+    const css = readFileSync(join(process.cwd(), "web", "src", "styles", "editor.css"), "utf8");
+
+    expect(css).toMatch(/\.assignment-planner\s*\{[^}]*max-height:[^}]*overflow-y:\s*auto/s);
+    expect(css).toMatch(/\.assignment-planner__summary\s*\{[^}]*cursor:\s*pointer/s);
+    expect(css).toMatch(/\.student-image-upload\s*\{/);
+    expect(css).toMatch(/data-display-colours="high-contrast"[^}]*assignment-planner/s);
+    expect(css).toMatch(/data-display-colours="high-contrast"[^}]*student-image-upload/s);
+  });
+
   it("saves one complete cloned plan and restores focus after redraw", async () => {
     const host = document.createElement("div");
     document.body.append(host);
@@ -45,7 +96,7 @@ describe("AssignmentPlannerPanel", () => {
     const panel = new AssignmentPlannerPanel(host, commit);
     panel.setState({ productName: "SunPath Lamp", plan: createBlankAssignmentPlan() });
     const field = getByRole<HTMLInputElement>(host, "textbox", {
-      name: "What does the product do?"
+      name: STUDENT_COPY.assignmentSandbox.planner.fields.productFunction
     });
 
     fireEvent.change(field, { target: { value: "Lights a path after dark." } });
@@ -58,9 +109,10 @@ describe("AssignmentPlannerPanel", () => {
       productFunction: "Lights a path after dark."
     });
     expect(plan).not.toBe(createBlankAssignmentPlan());
-    await vi.waitFor(() => expect(getByRole(host, "status").textContent).toBe("Saved"));
+    await vi.waitFor(() => expect(getByRole(host, "status").textContent)
+      .toBe(STUDENT_COPY.assignmentSandbox.planner.saved));
     expect(document.activeElement).toBe(getByRole(host, "textbox", {
-      name: "What does the product do?"
+      name: STUDENT_COPY.assignmentSandbox.planner.fields.productFunction
     }));
   });
 
@@ -69,6 +121,9 @@ describe("AssignmentPlannerPanel", () => {
     const commit = vi.fn().mockResolvedValue(undefined);
     const panel = new AssignmentPlannerPanel(host, commit);
     panel.setState({ productName: "SunPath Lamp", plan: createBlankAssignmentPlan() });
+    fireEvent.click(getByRole(host, "group", {
+      name: STUDENT_COPY.assignmentSandbox.planner.sections.desireValues
+    }).querySelector("summary")!);
     const responsibility = getByRole(host, "group", { name: "Responsibility" });
 
     fireEvent.change(within(responsibility).getByRole("checkbox", { name: "Sustainability" }), {

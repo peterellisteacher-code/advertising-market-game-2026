@@ -58,7 +58,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         <div class="creator__tuck-tabs" data-tuck-tabs="top" role="group" aria-label="Studio menus"></div>
         <header class="creator__topbar" id="studio-menu-panel" role="region" aria-label="Studio menu">
           <p class="creator__brand"><strong>AD MARKET</strong><span>Studio</span></p>
-          <span class="creator__eyebrow" data-sandbox-only data-sandbox-label hidden>ASSIGNMENT SANDBOX</span>
+          <span class="creator__eyebrow" data-sandbox-only data-sandbox-label hidden inert>${STUDENT_COPY.assignmentSandbox.label}</span>
           <input aria-label="Product name" maxlength="48" placeholder="Name your product">
           <button type="button" data-guide-review-top>How to use this site</button>
           <button type="button" data-studio-tour-open>Studio tour</button>
@@ -210,7 +210,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           </section>
           <section class="creator__tool-panel creator__image-lab" id="studio-panel-image" role="region" aria-label="Image Lab" data-studio-panel="image" hidden>
             <h2>Image Lab</h2>
-            <div data-student-image-upload-panel><p role="status">Image upload loading</p></div>
+            <div data-student-image-upload-panel><p role="status">${STUDENT_COPY.assignmentSandbox.uploadLoading}</p></div>
             <div data-image-lab-panel><p role="status">Image options loading</p></div>
           </section>
           <section class="creator__tool-panel creator__money-check" id="studio-panel-price" role="region" aria-label="Money check" data-studio-panel="price" data-creator-feature="price" hidden>
@@ -223,7 +223,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           </section>
           <section class="creator__tool-panel creator__aida-playbook" id="studio-panel-aida" role="region" aria-label="AIDA techniques" data-studio-panel="aida" data-creator-feature="aida" hidden>
             <h2>AIDA techniques</h2>
-            <div data-assignment-planner-panel data-sandbox-only hidden><p role="status">Assignment planner loading</p></div>
+            <div data-assignment-planner-panel data-sandbox-only hidden inert><p role="status">${STUDENT_COPY.assignmentSandbox.plannerLoading}</p></div>
             <div data-aida-playbook-panel><p role="status">AIDA techniques loading</p></div>
           </section>
           <section class="creator__tool-panel creator__studio-coach" id="studio-panel-coach" role="region" aria-label="Studio Coach" data-studio-panel="coach" data-creator-feature="coach" hidden>

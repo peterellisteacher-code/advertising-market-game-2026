@@ -6,6 +6,7 @@ import {
   type ImageLabActions,
   type ImageLabStatus
 } from "./image-lab-panel";
+import { STUDENT_COPY } from "../game/student-copy";
 
 const identity = {
   sessionId: "session-pair-7",
@@ -208,10 +209,13 @@ describe("ImageLabPanel", () => {
     await sandbox.initialise();
 
     expect(sandboxHost.textContent).toContain("Make It Real: 1 use available");
-    expect(getByRole(sandboxHost, "button", { name: "Make the product real" })).toBeTruthy();
-    expect(sandboxHost.textContent).toMatch(/image models can change lettering/i);
+    expect(getByRole(sandboxHost, "button", {
+      name: STUDENT_COPY.assignmentSandbox.imageLab.makeProductReal
+    })).toBeTruthy();
+    expect(getByRole(sandboxHost, "note").textContent)
+      .toBe(STUDENT_COPY.assignmentSandbox.imageLab.textWarning);
     fireEvent.click(getByRole(sandboxHost, "button", {
-      name: "Make this advertisement realistic"
+      name: STUDENT_COPY.assignmentSandbox.imageLab.makeAdvertisementRealistic
     }));
 
     await waitFor(() => expect(port.makeAdvertisementReal).toHaveBeenCalledWith({

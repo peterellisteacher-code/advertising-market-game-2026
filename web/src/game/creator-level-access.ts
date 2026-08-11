@@ -1,5 +1,6 @@
 import type { CampaignGameplayStage } from "../domain/campaign-document";
 import type { WorkspaceMode } from "./assignment-plan";
+import { STUDENT_COPY } from "./student-copy";
 
 const LEVEL_LABELS: Readonly<Record<CampaignGameplayStage, string>> = Object.freeze({
   invent: "LEVEL 1 // INVENT IT",
@@ -36,10 +37,13 @@ function setModeOverride(element: HTMLElement, active: boolean, hidden: boolean)
   if (active) {
     if (element.dataset.creatorModePreviousHidden === undefined) {
       element.dataset.creatorModePreviousHidden = String(element.hidden);
-      element.dataset.creatorModePreviousInert = String(element.inert);
+      element.dataset.creatorModePreviousInert = String(
+        element.inert === true || element.hasAttribute("inert")
+      );
     }
     element.hidden = hidden;
     element.inert = hidden;
+    element.toggleAttribute("inert", hidden);
     return;
   }
   const previousHidden = element.dataset.creatorModePreviousHidden;
@@ -47,6 +51,7 @@ function setModeOverride(element: HTMLElement, active: boolean, hidden: boolean)
   if (previousHidden === undefined || previousInert === undefined) return;
   element.hidden = previousHidden === "true";
   element.inert = previousInert === "true";
+  element.toggleAttribute("inert", previousInert === "true");
   delete element.dataset.creatorModePreviousHidden;
   delete element.dataset.creatorModePreviousInert;
 }
@@ -61,7 +66,7 @@ export function applyCreatorLevelAccess(
   root.dataset.creatorStage = stage;
   root.dataset.workspaceMode = workspaceMode;
   required(root, "[data-creator-level-label]").textContent = sandbox
-    ? "ASSIGNMENT SANDBOX"
+    ? STUDENT_COPY.assignmentSandbox.label
     : LEVEL_LABELS[stage];
 
   const guidedRegions = [

@@ -1,3 +1,5 @@
+import { STUDENT_COPY } from "../game/student-copy";
+
 export interface ImageLabPair {
   sessionId: string;
   teamId: string;
@@ -315,6 +317,7 @@ export class ImageLabPanel {
   }
 
   #makeItReal(): HTMLElement {
+    const sandboxCopy = STUDENT_COPY.assignmentSandbox.imageLab;
     const section = document.createElement("section");
     section.className = "image-lab__stage";
     section.setAttribute("aria-label", "Make It Real");
@@ -326,7 +329,7 @@ export class ImageLabPanel {
     const guidance = document.createElement("p");
     const sandbox = this.#pair?.workspaceMode === "assignment-sandbox";
     guidance.textContent = sandbox
-      ? "Make the product real, or turn the complete advertisement into a realistic version."
+      ? sandboxCopy.guidance
       : "Use this after the product design is ready, before you build the ad. " +
         "Existing words and marks will be fitted to the product surface.";
     section.append(heading, guidance);
@@ -348,11 +351,11 @@ export class ImageLabPanel {
       const unmet = document.createElement("p");
       unmet.className = "image-lab__unmet";
       unmet.textContent = "No Make It Real uses are available.";
-      const realise = button(sandbox ? "Make the product real" : "Make it real");
+      const realise = button(sandbox ? sandboxCopy.makeProductReal : "Make it real");
       realise.disabled = true;
       section.append(unmet, realise);
       if (sandbox) {
-        const advertisement = button("Make this advertisement realistic");
+        const advertisement = button(sandboxCopy.makeAdvertisementRealistic);
         advertisement.disabled = true;
         section.append(advertisement);
       }
@@ -362,17 +365,18 @@ export class ImageLabPanel {
     const scene = labelledSelect("Product scene", "product-scene", SCENE_CHOICES);
     const realise = button(this.#busy === "realise"
       ? "Building showcase…"
-      : sandbox ? "Make the product real" : "Make it real");
+      : sandbox ? sandboxCopy.makeProductReal : "Make it real");
     realise.disabled = this.#busy !== null || !this.#pair;
     realise.addEventListener("click", () => void this.#realise(section));
     section.append(product, scene, realise);
     if (sandbox) {
       const warning = document.createElement("p");
       warning.className = "image-lab__warning";
-      warning.textContent = "Image models can change lettering. Check every word and use the text tools to correct it.";
+      warning.setAttribute("role", "note");
+      warning.textContent = sandboxCopy.textWarning;
       const advertisement = button(this.#busy === "realise"
         ? "Building advertisement…"
-        : "Make this advertisement realistic");
+        : sandboxCopy.makeAdvertisementRealistic);
       advertisement.disabled = this.#busy !== null || !this.#pair;
       advertisement.addEventListener("click", () => void this.#realiseAdvertisement());
       section.append(warning, advertisement);
@@ -436,8 +440,8 @@ export class ImageLabPanel {
     };
     await this.#run({
       operation: "realise",
-      busyMessage: "Creating a realistic version of your advertisement…",
-      doneMessage: "The realistic advertisement is selected on the canvas.",
+      busyMessage: STUDENT_COPY.assignmentSandbox.imageLab.busyAdvertisement,
+      doneMessage: STUDENT_COPY.assignmentSandbox.imageLab.doneAdvertisement,
       work: (signal) => this.actions.makeAdvertisementReal(input, signal)
     });
   }

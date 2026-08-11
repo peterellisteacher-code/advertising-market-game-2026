@@ -64,6 +64,17 @@ test("every authored file capable of emitting student-facing text is in the corp
   assert.deepEqual(candidates, []);
 });
 
+test("assignment sandbox emitters are all governed by the student-copy corpus", () => {
+  for (const source of [
+    "web/src/game/assignment-plan.ts",
+    "web/src/game/assignment-planner-panel.ts",
+    "web/src/uploads/student-image-upload.ts",
+    "web/src/uploads/student-image-upload-panel.ts"
+  ]) {
+    assert.ok(STUDENT_COPY_SOURCE_PATHS.includes(source), `${source} is not in the corpus`);
+  }
+});
+
 test("student Image Lab sources contain no teacher capability route or shared code control", async () => {
   const studentImageLabPaths = [
     "web/src/ai-image/image-lab-client.ts",

@@ -120,6 +120,22 @@ vi.mock("./ai-image/image-processing", async (importOriginal) => {
   };
 });
 
+vi.mock("./uploads/student-image-upload", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./uploads/student-image-upload")>();
+  return {
+    ...actual,
+    prepareStudentImageUpload: vi.fn(async (file: File) => ({
+      blob: new Blob([Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4)], {
+        type: "image/png"
+      }),
+      width: 1_200,
+      height: 900,
+      title: file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ")
+        .replace(/^./, (character) => character.toUpperCase())
+    }))
+  };
+});
+
 vi.mock("./catalogue/raster-template-tint", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./catalogue/raster-template-tint")>();
   return {
@@ -2851,6 +2867,60 @@ describe("window.AdMarketCreator", () => {
     expect(state.strategy.aidaPlan.attention)
       .toBe("Use one bright beam against the dark campsite.");
     expect(state.evidence.attention).toEqual([]);
+  });
+
+  it("uploads a selected student mockup and deletes, restores and removes it through history", async () => {
+    const source = CampaignDocumentSchema.parse({
+      ...documentAtStage("invent"),
+      workspaceMode: "assignment-sandbox"
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-student-upload", "open", source))
+      .toMatchObject({ ok: true });
+    activateStudioTool("image");
+
+    const input = getByLabelText<HTMLInputElement>(document.body, "Choose an image");
+    fireEvent.change(input, {
+      target: {
+        files: [new File([Uint8Array.of(1, 2, 3)], "shoe-sketch.jpg", { type: "image/jpeg" })]
+      }
+    });
+
+    await waitFor(() => expect(document.querySelector<HTMLElement>(
+      "[data-student-image-upload-panel] [role=status]"
+    )?.textContent).toContain("Shoe sketch added"));
+    expect(currentObjects()).toHaveLength(1);
+    const uploaded = currentObjects()[0]!;
+    expect(uploaded).toMatchObject({
+      elementKind: "image",
+      accessibleName: "Shoe sketch"
+    });
+    expect(runtime.selectedObjectId).toBe(uploaded.objectId);
+
+    const placed = CampaignDocumentSchema.parse(
+      (await parsed(api, "student-upload-state", "getState", null)).payload
+    );
+    expect(placed.assetReferences).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: "student-upload",
+        objectId: uploaded.objectId,
+        title: "Shoe sketch"
+      }),
+      expect.objectContaining({
+        kind: "local-blob",
+        objectId: uploaded.objectId,
+        mimeType: "image/png"
+      })
+    ]));
+
+    fireEvent.click(getByRole(document.body, "button", { name: "Delete selected item" }));
+    await waitFor(() => expect(currentObjects()).toEqual([]));
+
+    fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));
+    await waitFor(() => expect(currentObjects()).toHaveLength(1));
+    fireEvent.click(getByRole(document.body, "button", { name: "Redo" }));
+    await waitFor(() => expect(currentObjects()).toEqual([]));
   });
 
   it("keeps the visible price, charged price and price evidence identical", async () => {

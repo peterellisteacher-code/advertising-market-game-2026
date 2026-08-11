@@ -20,6 +20,7 @@ export interface EditorShell extends PairGameView {
   aidaPlaybookPanel: HTMLElement;
   assignmentPlannerPanel: HTMLElement;
   imageLabPanel: HTMLElement;
+  studentImageUploadPanel: HTMLElement;
   studioCoachPanel: HTMLElement;
   logoLabPanel: HTMLElement;
   librarySearch: HTMLInputElement;
@@ -209,6 +210,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           </section>
           <section class="creator__tool-panel creator__image-lab" id="studio-panel-image" role="region" aria-label="Image Lab" data-studio-panel="image" hidden>
             <h2>Image Lab</h2>
+            <div data-student-image-upload-panel><p role="status">Image upload loading</p></div>
             <div data-image-lab-panel><p role="status">Image options loading</p></div>
           </section>
           <section class="creator__tool-panel creator__money-check" id="studio-panel-price" role="region" aria-label="Money check" data-studio-panel="price" data-creator-feature="price" hidden>
@@ -423,6 +425,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
     aidaPlaybookPanel: root.querySelector('[data-aida-playbook-panel]')!,
     assignmentPlannerPanel: root.querySelector('[data-assignment-planner-panel]')!,
     imageLabPanel: root.querySelector('[data-image-lab-panel]')!,
+    studentImageUploadPanel: root.querySelector('[data-student-image-upload-panel]')!,
     studioCoachPanel: root.querySelector('[data-studio-coach-panel]')!,
     logoLabPanel: root.querySelector('[data-logo-lab-panel]')!,
     activeRole: root.querySelector('[data-active-role]')!,

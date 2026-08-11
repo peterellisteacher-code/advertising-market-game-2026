@@ -68,7 +68,8 @@ import { CataloguePanel } from "./catalogue/catalogue-panel";
 import {
   CataloguePlacementQueue,
   CatalogueRuntime,
-  type LocalCatalogueBlob
+  type LocalCatalogueBlob,
+  type StudentRasterPlacement
 } from "./catalogue/catalogue-runtime";
 import { loadOfflineCatalogueWithHash } from "./catalogue/catalogue-store";
 import { loadRasterPricing, type RasterPricingIndex } from "./catalogue/raster-pricing";
@@ -116,6 +117,8 @@ import { ImageLabClient } from "./ai-image/image-lab-client";
 import { ImageLabPanel } from "./ai-image/image-lab-panel";
 import { ImageLabRuntime, type ImageLabPairIdentity } from "./ai-image/image-lab-runtime";
 import { BrowserImageLabSubmissionPersistence } from "./ai-image/browser-image-lab-submission-persistence";
+import { StudentImageUploadPanel } from "./uploads/student-image-upload-panel";
+import type { PreparedStudentImageUpload } from "./uploads/student-image-upload";
 import { captureStudioCoachEvidence, type StudioCoachCanvasEvidence } from "./studio-coach/canvas-evidence";
 import { StudioCoachClient } from "./studio-coach/studio-coach-client";
 import { StudioCoachPanel } from "./studio-coach/studio-coach-panel";
@@ -737,6 +740,17 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#placements.enqueueGeneratedRaster(input);
     await this.#placements.flush();
     this.#assertCurrentImageLabPair(pair);
+  }
+
+  async placeStudentImageUpload(image: PreparedStudentImageUpload): Promise<void> {
+    const placement: StudentRasterPlacement = {
+      assetId: `student-upload-${globalThis.crypto.randomUUID()}`,
+      title: image.title,
+      blob: image.blob,
+      stage: "student-upload"
+    };
+    this.#placements.enqueueStudentRaster(placement);
+    await this.#placements.flush();
   }
 
   async exportDesignDataUrl(pair: ImageLabPairIdentity): Promise<string> {
@@ -2694,6 +2708,10 @@ const imageLabRuntime = new ImageLabRuntime({
 });
 const imageLabPanel = new ImageLabPanel(shell.imageLabPanel, imageLabRuntime);
 handler.attachImageLab(imageLabPanel);
+new StudentImageUploadPanel(
+  shell.studentImageUploadPanel,
+  (image) => handler.placeStudentImageUpload(image)
+);
 const studioCoachPanel = new StudioCoachPanel(shell.studioCoachPanel, studioCoachRuntime);
 handler.attachStudioCoach(studioCoachRuntime);
 const logCreatorDiagnostic = (diagnostic: CreatorBridgeDiagnostic): void => {

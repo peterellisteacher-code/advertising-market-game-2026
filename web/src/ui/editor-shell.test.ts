@@ -112,6 +112,9 @@ describe("createEditorShell", () => {
     expect(root.querySelector('[data-studio-panel="image"][aria-label="Image Lab"]')).toBeTruthy();
     expect(shell.imageLabPanel.dataset.imageLabPanel).toBe("");
     expect(shell.studentImageUploadPanel.dataset.studentImageUploadPanel).toBe("");
+    expect(shell.studentImageUploadPanel.dataset.sandboxOnly).toBe("");
+    expect(shell.studentImageUploadPanel.hidden).toBe(true);
+    expect(shell.studentImageUploadPanel.hasAttribute("inert")).toBe(true);
     expect(shell.studentImageUploadPanel.compareDocumentPosition(shell.imageLabPanel) &
       Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     expect(root.querySelector('[data-product-shell-select]')).toBeNull();

@@ -4,6 +4,7 @@ import {
   prepareStudentImageUpload,
   type StudentImageUploadProcessor
 } from "./student-image-upload";
+import { MAX_ACCOUNT_ASSET_BYTES } from "../account/account-asset-limits";
 
 const signatures = {
   "image/png": Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
@@ -64,6 +65,34 @@ describe("prepareStudentImageUpload", () => {
       4_096,
       2_048
     );
+  });
+
+  it("progressively downscales a 4–12 MiB source to the cloud persistence ceiling", async () => {
+    const sourceSize = 6 * 1024 * 1024;
+    const source = new Uint8Array(sourceSize);
+    source.set(signatures["image/png"]);
+    const oversizedPng = new Uint8Array(sourceSize);
+    oversizedPng.set(signatures["image/png"]);
+    const boundedPng = new Uint8Array(3 * 1024 * 1024);
+    boundedPng.set(signatures["image/png"]);
+    const imageProcessor = processor({ width: 4_096, height: 2_048 });
+    vi.mocked(imageProcessor.encodePng)
+      .mockResolvedValueOnce(new Blob([oversizedPng], { type: "image/png" }))
+      .mockResolvedValueOnce(new Blob([boundedPng], { type: "image/png" }));
+
+    const prepared = await prepareStudentImageUpload(
+      new File([source], "large-sketch.png", { type: "image/png" }),
+      imageProcessor
+    );
+
+    expect(prepared.blob.size).toBeLessThanOrEqual(MAX_ACCOUNT_ASSET_BYTES);
+    expect(imageProcessor.encodePng).toHaveBeenCalledTimes(2);
+    const firstDimensions = vi.mocked(imageProcessor.encodePng).mock.calls[0]!.slice(1);
+    const secondDimensions = vi.mocked(imageProcessor.encodePng).mock.calls[1]!.slice(1);
+    expect(secondDimensions[0]).toBeLessThan(firstDimensions[0] as number);
+    expect(secondDimensions[1]).toBeLessThan(firstDimensions[1] as number);
+    expect(prepared.width).toBe(secondDimensions[0]);
+    expect(prepared.height).toBe(secondDimensions[1]);
   });
 
   it.each([

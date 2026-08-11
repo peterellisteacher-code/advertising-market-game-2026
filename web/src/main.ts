@@ -289,6 +289,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #pairGame: PairGameController | null = null;
   #logoLab: LogoLabPanel | null = null;
   #imageLab: ImageLabPanel | null = null;
+  #studentImageUpload: StudentImageUploadPanel | null = null;
   #studioCoach: StudioCoachRuntime | null = null;
   #moneyPanel: ProductMoneyPanel | null = null;
   #marketRoutePanel: MarketRoutePanel | null = null;
@@ -510,6 +511,17 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#imageLab = panel;
   }
 
+  attachStudentImageUploadPanel(panel: StudentImageUploadPanel): void {
+    if (this.#studentImageUpload !== null && this.#studentImageUpload !== panel) {
+      throw new Error("Student image upload is already attached");
+    }
+    this.#studentImageUpload = panel;
+  }
+
+  cancelStudentImageUpload(): void {
+    this.#studentImageUpload?.cancel();
+  }
+
   attachStudioCoach(runtime: StudioCoachRuntime): void {
     if (this.#studioCoach !== null && this.#studioCoach !== runtime) {
       throw new Error("Studio Coach is already attached");
@@ -610,6 +622,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 
   async isolateAccountWork(): Promise<void> {
+    this.#studentImageUpload?.cancel();
     this.#imageLab?.cancel();
     await this.#practiceAutosave?.dispose();
     try {
@@ -746,7 +759,23 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#assertCurrentImageLabPair(pair);
   }
 
-  async placeStudentImageUpload(image: PreparedStudentImageUpload): Promise<void> {
+  captureStudentImageUploadPair(): ImageLabPairIdentity {
+    const document = this.#document;
+    if (!this.#editorOpen || this.#runtime === null || document === null ||
+      document.workspaceMode !== "assignment-sandbox") {
+      throw new Error(STUDENT_COPY.assignmentSandbox.upload.errors.unknown);
+    }
+    return Object.freeze({
+      sessionId: document.sessionId,
+      teamId: document.teamId ?? document.documentId
+    });
+  }
+
+  async placeStudentImageUpload(
+    image: PreparedStudentImageUpload,
+    pair: ImageLabPairIdentity
+  ): Promise<void> {
+    this.#assertStudentImageUploadPair(pair);
     const placement: StudentRasterPlacement = {
       assetId: `student-upload-${globalThis.crypto.randomUUID()}`,
       title: image.title,
@@ -755,6 +784,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     };
     this.#placements.enqueueStudentRaster(placement);
     await this.#placements.flush();
+    this.#assertStudentImageUploadPair(pair);
   }
 
   async exportDesignDataUrl(pair: ImageLabPairIdentity): Promise<string> {
@@ -982,6 +1012,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 
   async open(value: CampaignDocumentV1): Promise<void> {
+    this.#studentImageUpload?.cancel();
     this.#imageLab?.cancel();
     this.#studioCoach?.clearCampaign();
     await this.flushPracticeAutosave();
@@ -1458,6 +1489,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 
   async close(): Promise<void> {
+    this.#studentImageUpload?.cancel();
     this.#imageLab?.cancel();
     this.#studioCoach?.clearCampaign();
     await this.flushPracticeAutosave();
@@ -1903,6 +1935,13 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #assertCurrentImageLabPair(pair: ImageLabPairIdentity): void {
     if (!this.isCurrentImageLabPair(pair)) {
       throw new DOMException("The Image Lab pair is no longer current.", "AbortError");
+    }
+  }
+
+  #assertStudentImageUploadPair(pair: ImageLabPairIdentity): void {
+    this.#assertCurrentImageLabPair(pair);
+    if (this.#document?.workspaceMode !== "assignment-sandbox") {
+      throw new DOMException("Student image upload is no longer current.", "AbortError");
     }
   }
 
@@ -2629,6 +2668,7 @@ shell.zoomIn.addEventListener("click", () => {
 if (mode.kind === "student") {
   accountMutations.subscribe((mutation) => {
     if (mutation.kind === "session") {
+      handler.cancelStudentImageUpload();
       accountController?.requireReauthentication();
       return;
     }
@@ -2741,10 +2781,13 @@ const imageLabRuntime = new ImageLabRuntime({
 });
 const imageLabPanel = new ImageLabPanel(shell.imageLabPanel, imageLabRuntime);
 handler.attachImageLab(imageLabPanel);
-new StudentImageUploadPanel(
+const studentImageUploadPanel = new StudentImageUploadPanel(
   shell.studentImageUploadPanel,
-  (image) => handler.placeStudentImageUpload(image)
+  (image, pair) => handler.placeStudentImageUpload(image, pair),
+  undefined,
+  () => handler.captureStudentImageUploadPair()
 );
+handler.attachStudentImageUploadPanel(studentImageUploadPanel);
 const studioCoachPanel = new StudioCoachPanel(shell.studioCoachPanel, studioCoachRuntime);
 handler.attachStudioCoach(studioCoachRuntime);
 const logCreatorDiagnostic = (diagnostic: CreatorBridgeDiagnostic): void => {

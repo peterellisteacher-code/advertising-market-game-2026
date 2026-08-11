@@ -30,6 +30,7 @@ import {
   MARKET_BRIDGE_CONTRACT,
   type MarketPublicApi
 } from "./market/market-public-api";
+import type { PreparedStudentImageUpload } from "./uploads/student-image-upload";
 
 const runtime = vi.hoisted(() => ({
   adapterConstructed: vi.fn(),
@@ -80,7 +81,8 @@ const runtime = vi.hoisted(() => ({
   canvasDisposePromise: null as Promise<void> | null,
   selectedObjectId: null as string | null,
   sectionFillPreview: null as RasterSectionFillRecipe | null,
-  sectionFillApplications: [] as RasterSectionFillRecipe[]
+  sectionFillApplications: [] as RasterSectionFillRecipe[],
+  studentImagePrepare: vi.fn()
 }));
 
 vi.mock("fabric", () => ({
@@ -125,15 +127,7 @@ vi.mock("./uploads/student-image-upload", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./uploads/student-image-upload")>();
   return {
     ...actual,
-    prepareStudentImageUpload: vi.fn(async (file: File) => ({
-      blob: new Blob([Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4)], {
-        type: "image/png"
-      }),
-      width: 1_200,
-      height: 900,
-      title: file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ")
-        .replace(/^./, (character) => character.toUpperCase())
-    }))
+    prepareStudentImageUpload: (file: File) => runtime.studentImagePrepare(file)
   };
 });
 
@@ -1241,6 +1235,15 @@ describe("window.AdMarketCreator", () => {
     runtime.selectedObjectId = null;
     runtime.sectionFillPreview = null;
     runtime.sectionFillApplications = [];
+    runtime.studentImagePrepare.mockReset().mockImplementation(async (file: File) => ({
+      blob: new Blob([Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4)], {
+        type: "image/png"
+      }),
+      width: 1_200,
+      height: 900,
+      title: file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ")
+        .replace(/^./, (character) => character.toUpperCase())
+    }));
     runtime.createdUrls = [];
     runtime.revokedUrls = [];
     runtime.nextUrl = 0;
@@ -2881,16 +2884,18 @@ describe("window.AdMarketCreator", () => {
       .toMatchObject({ ok: true });
     activateStudioTool("image");
 
-    const input = getByLabelText<HTMLInputElement>(document.body, "Choose an image");
+    const uploadHost = document.querySelector<HTMLElement>(
+      "[data-student-image-upload-panel]"
+    )!;
+    const input = getByLabelText<HTMLInputElement>(uploadHost, "Choose an image");
     fireEvent.change(input, {
       target: {
         files: [new File([Uint8Array.of(1, 2, 3)], "shoe-sketch.jpg", { type: "image/jpeg" })]
       }
     });
 
-    await waitFor(() => expect(document.querySelector<HTMLElement>(
-      "[data-student-image-upload-panel] [role=status]"
-    )?.textContent).toContain("Shoe sketch added"));
+    await waitFor(() => expect(getByRole(uploadHost, "status").textContent)
+      .toContain("Shoe sketch added"));
     expect(currentObjects()).toHaveLength(1);
     const uploaded = currentObjects()[0]!;
     expect(uploaded).toMatchObject({
@@ -2915,13 +2920,87 @@ describe("window.AdMarketCreator", () => {
       })
     ]));
 
-    fireEvent.click(getByRole(document.body, "button", { name: "Delete selected item" }));
+    const toolbar = getByRole(document.body, "group", { name: "Advertisement toolbar" });
+    fireEvent.click(getByRole(toolbar, "button", { name: "Delete selected item" }));
     await waitFor(() => expect(currentObjects()).toEqual([]));
 
-    fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));
+    fireEvent.click(getByRole(toolbar, "button", { name: "Undo" }));
     await waitFor(() => expect(currentObjects()).toHaveLength(1));
-    fireEvent.click(getByRole(document.body, "button", { name: "Redo" }));
+    fireEvent.click(getByRole(toolbar, "button", { name: "Redo" }));
     await waitFor(() => expect(currentObjects()).toEqual([]));
+  });
+
+  it("keeps image upload hidden and guarded in guided campaigns", async () => {
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-guided-upload-guard", "open", documentAtStage("invent")))
+      .toMatchObject({ ok: true });
+    activateStudioTool("image");
+    const host = document.querySelector<HTMLElement>("[data-student-image-upload-panel]")!;
+
+    expect(host.hidden).toBe(true);
+    expect(host.hasAttribute("inert")).toBe(true);
+
+    host.hidden = false;
+    host.removeAttribute("inert");
+    fireEvent.change(getByLabelText<HTMLInputElement>(host, "Choose an image"), {
+      target: {
+        files: [new File([Uint8Array.of(1, 2, 3)], "guided-sketch.jpg", {
+          type: "image/jpeg"
+        })]
+      }
+    });
+    await waitFor(() => expect(getByRole(host, "alert").textContent)
+      .toBe(STUDENT_COPY.assignmentSandbox.upload.errors.unknown));
+    expect(currentObjects()).toEqual([]);
+  });
+
+  it("cancels a delayed upload when another document opens", async () => {
+    let resolvePreparation!: (image: PreparedStudentImageUpload) => void;
+    runtime.studentImagePrepare.mockImplementationOnce(() =>
+      new Promise<PreparedStudentImageUpload>((resolve) => {
+        resolvePreparation = resolve;
+      }));
+    const first = CampaignDocumentSchema.parse({
+      ...documentAtStage("invent"),
+      documentId: "sandbox-first",
+      sessionId: "sandbox-first-session",
+      workspaceMode: "assignment-sandbox"
+    });
+    const second = CampaignDocumentSchema.parse({
+      ...documentAtStage("invent"),
+      documentId: "sandbox-second",
+      sessionId: "sandbox-second-session",
+      workspaceMode: "assignment-sandbox"
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+    await parsed(api, "open-slow-upload-first", "open", first);
+    activateStudioTool("image");
+    const host = document.querySelector<HTMLElement>("[data-student-image-upload-panel]")!;
+    fireEvent.change(getByLabelText<HTMLInputElement>(host, "Choose an image"), {
+      target: {
+        files: [new File([Uint8Array.of(1, 2, 3)], "slow-sketch.jpg", {
+          type: "image/jpeg"
+        })]
+      }
+    });
+    await waitFor(() => expect(getByRole(host, "status").textContent)
+      .toBe(STUDENT_COPY.assignmentSandbox.upload.preparing));
+
+    expect(await parsed(api, "open-slow-upload-second", "open", second))
+      .toMatchObject({ ok: true });
+    resolvePreparation({
+      blob: new Blob([Uint8Array.of(0x89, 0x50, 0x4e, 0x47)], { type: "image/png" }),
+      width: 1_200,
+      height: 900,
+      title: "Slow sketch"
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(currentObjects()).toEqual([]);
+    expect(getByRole(host, "status").textContent).toBe("");
   });
 
   it("keeps the visible price, charged price and price evidence identical", async () => {

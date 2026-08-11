@@ -11,6 +11,8 @@ const prepared: PreparedStudentImageUpload = {
   blob: new Blob([Uint8Array.of(1)], { type: "image/png" })
 };
 
+const pair = Object.freeze({ sessionId: "sandbox-session", teamId: "sandbox-team" });
+
 function select(input: HTMLInputElement, file: File): void {
   Object.defineProperty(input, "files", { configurable: true, value: [file] });
   fireEvent.change(input);
@@ -22,7 +24,7 @@ describe("StudentImageUploadPanel", () => {
     document.body.append(host);
     const onPlace = vi.fn().mockResolvedValue(undefined);
     const prepare = vi.fn().mockResolvedValue(prepared);
-    new StudentImageUploadPanel(host, onPlace, prepare);
+    new StudentImageUploadPanel(host, onPlace, prepare, () => pair);
     const input = getByLabelText<HTMLInputElement>(
       host,
       STUDENT_COPY.assignmentSandbox.upload.chooseImage
@@ -32,7 +34,7 @@ describe("StudentImageUploadPanel", () => {
     select(input, new File([Uint8Array.of(1)], "shoe-sketch.jpg", { type: "image/jpeg" }));
 
     await vi.waitFor(() => expect(onPlace).toHaveBeenCalledOnce());
-    expect(onPlace).toHaveBeenCalledWith(prepared);
+    expect(onPlace).toHaveBeenCalledWith(prepared, pair);
     expect(input.value).toBe("");
     expect(getByRole(host, "status").textContent)
       .toBe(`Shoe sketch${STUDENT_COPY.assignmentSandbox.upload.addedSuffix}`);
@@ -43,7 +45,7 @@ describe("StudentImageUploadPanel", () => {
     document.body.append(host);
     const onPlace = vi.fn();
     const prepare = vi.fn().mockRejectedValue(new Error("That file is not a supported image."));
-    new StudentImageUploadPanel(host, onPlace, prepare);
+    new StudentImageUploadPanel(host, onPlace, prepare, () => pair);
     const input = getByLabelText<HTMLInputElement>(
       host,
       STUDENT_COPY.assignmentSandbox.upload.chooseImage
@@ -59,8 +61,8 @@ describe("StudentImageUploadPanel", () => {
   it("uses unique labelled controls and separate polite and assertive live regions", () => {
     const first = document.createElement("div");
     const second = document.createElement("div");
-    new StudentImageUploadPanel(first, vi.fn());
-    new StudentImageUploadPanel(second, vi.fn());
+    new StudentImageUploadPanel(first, vi.fn(), undefined, () => pair);
+    new StudentImageUploadPanel(second, vi.fn(), undefined, () => pair);
 
     const firstInput = getByLabelText<HTMLInputElement>(
       first,
@@ -77,5 +79,35 @@ describe("StudentImageUploadPanel", () => {
     expect(getByRole(first, "status").getAttribute("aria-live")).toBe("polite");
     expect(getByRole(first, "alert", { hidden: true }).getAttribute("aria-live"))
       .toBe("assertive");
+  });
+
+  it("cancels a delayed decoder before it can place into a different document", async () => {
+    const host = document.createElement("div");
+    document.body.append(host);
+    let resolvePreparation!: (image: PreparedStudentImageUpload) => void;
+    const prepare = vi.fn(() => new Promise<PreparedStudentImageUpload>((resolve) => {
+      resolvePreparation = resolve;
+    }));
+    const onPlace = vi.fn().mockResolvedValue(undefined);
+    const capturePair = vi.fn(() => pair);
+    const panel = new StudentImageUploadPanel(host, onPlace, prepare, capturePair);
+    const input = getByLabelText<HTMLInputElement>(
+      host,
+      STUDENT_COPY.assignmentSandbox.upload.chooseImage
+    );
+
+    select(input, new File([Uint8Array.of(1)], "slow-sketch.png", { type: "image/png" }));
+    expect(capturePair).toHaveBeenCalledOnce();
+    await vi.waitFor(() => expect(getByRole(host, "status").textContent)
+      .toBe(STUDENT_COPY.assignmentSandbox.upload.preparing));
+
+    panel.cancel();
+    resolvePreparation(prepared);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(onPlace).not.toHaveBeenCalled();
+    expect(input.disabled).toBe(false);
+    expect(getByRole(host, "status").textContent).toBe("");
   });
 });

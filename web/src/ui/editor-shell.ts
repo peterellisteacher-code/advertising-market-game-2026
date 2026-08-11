@@ -210,7 +210,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           </section>
           <section class="creator__tool-panel creator__image-lab" id="studio-panel-image" role="region" aria-label="Image Lab" data-studio-panel="image" hidden>
             <h2>Image Lab</h2>
-            <div data-student-image-upload-panel><p role="status">${STUDENT_COPY.assignmentSandbox.uploadLoading}</p></div>
+            <div data-student-image-upload-panel data-sandbox-only hidden inert><p role="status">${STUDENT_COPY.assignmentSandbox.uploadLoading}</p></div>
             <div data-image-lab-panel><p role="status">Image options loading</p></div>
           </section>
           <section class="creator__tool-panel creator__money-check" id="studio-panel-price" role="region" aria-label="Money check" data-studio-panel="price" data-creator-feature="price" hidden>

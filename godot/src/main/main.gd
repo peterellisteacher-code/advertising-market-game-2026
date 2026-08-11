@@ -784,7 +784,14 @@ func _choose_new_route() -> void:
     _startup_state = "manual"
     market_host.call("invalidate_room_intent")
 
+func _cancel_assignment_sandbox_load() -> void:
+    if not _sandbox_load_pending:
+        return
+    _sandbox_load_pending = false
+    open_assignment_sandbox.disabled = false
+
 func _start_run() -> void:
+    _cancel_assignment_sandbox_load()
     if _startup_state in ["live-resume", "practice-resume", "live-error"]:
         _abandon_practice_request()
         _practice_ready = true
@@ -813,6 +820,7 @@ func _start_run() -> void:
     _remember_practice_request_id("begin", request_id)
 
 func _join_live_room() -> void:
+    _cancel_assignment_sandbox_load()
     _abandon_practice_request()
     market_screen.call("set_market_host", market_host)
     var alias := team_alias.text.strip_edges()
@@ -826,6 +834,7 @@ func _join_live_room() -> void:
     market_host.join_room(code, alias)
 
 func _create_live_room() -> void:
+    _cancel_assignment_sandbox_load()
     _abandon_practice_request()
     market_screen.call("set_market_host", market_host)
     var code := classroom_code.text.strip_edges()

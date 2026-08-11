@@ -3,16 +3,20 @@ import {
   type PreparedStudentImageUpload
 } from "./student-image-upload";
 import { STUDENT_COPY } from "../game/student-copy";
+import type { ImageLabPairIdentity } from "../ai-image/image-lab-runtime";
 
 let studentImageUploadInstance = 0;
 
 export type StudentImagePlaceHandler = (
-  image: PreparedStudentImageUpload
+  image: PreparedStudentImageUpload,
+  pair: ImageLabPairIdentity
 ) => void | Promise<void>;
 
 export type StudentImagePrepareHandler = (
   file: File
 ) => Promise<PreparedStudentImageUpload>;
+
+export type StudentImagePairCapture = () => ImageLabPairIdentity;
 
 export class StudentImageUploadPanel {
   readonly #input: HTMLInputElement;
@@ -23,7 +27,10 @@ export class StudentImageUploadPanel {
   constructor(
     host: HTMLElement,
     private readonly onPlace: StudentImagePlaceHandler,
-    private readonly prepare: StudentImagePrepareHandler = prepareStudentImageUpload
+    private readonly prepare: StudentImagePrepareHandler = prepareStudentImageUpload,
+    private readonly capturePair: StudentImagePairCapture = () => {
+      throw new Error(STUDENT_COPY.assignmentSandbox.upload.errors.unknown);
+    }
   ) {
     const copy = STUDENT_COPY.assignmentSandbox.upload;
     const idPrefix = `student-image-upload-${++studentImageUploadInstance}`;
@@ -55,6 +62,15 @@ export class StudentImageUploadPanel {
     this.#input.addEventListener("change", () => { void this.#handleSelection(); });
   }
 
+  cancel(): void {
+    this.#operation += 1;
+    this.#input.disabled = false;
+    this.#input.value = "";
+    this.#status.textContent = "";
+    this.#alert.textContent = "";
+    this.#alert.hidden = true;
+  }
+
   async #handleSelection(): Promise<void> {
     const file = this.#input.files?.[0] ?? this.#input.files?.item?.(0);
     if (!file) return;
@@ -64,9 +80,10 @@ export class StudentImageUploadPanel {
     this.#alert.textContent = "";
     this.#status.textContent = STUDENT_COPY.assignmentSandbox.upload.preparing;
     try {
+      const pair = this.capturePair();
       const prepared = await this.prepare(file);
       if (operation !== this.#operation) return;
-      await this.onPlace(prepared);
+      await this.onPlace(prepared, pair);
       if (operation !== this.#operation) return;
       this.#status.textContent =
         `${prepared.title}${STUDENT_COPY.assignmentSandbox.upload.addedSuffix}`;

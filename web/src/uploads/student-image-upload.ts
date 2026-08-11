@@ -1,7 +1,10 @@
 import { STUDENT_COPY } from "../game/student-copy";
+import { MAX_ACCOUNT_ASSET_BYTES } from "../account/account-asset-limits";
 
 export const MAX_STUDENT_IMAGE_BYTES = 12 * 1024 * 1024;
 export const MAX_STUDENT_IMAGE_EDGE = 4_096;
+
+const MAX_PNG_ENCODE_ATTEMPTS = 8;
 
 const ACCEPTED_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
@@ -62,6 +65,32 @@ function targetDimensions(width: number, height: number): { width: number; heigh
   };
 }
 
+async function encodeBoundedPng(
+  processor: StudentImageUploadProcessor,
+  image: DecodedStudentImage,
+  initial: { width: number; height: number }
+): Promise<{ width: number; height: number; blob: Blob }> {
+  const errors = STUDENT_COPY.assignmentSandbox.upload.errors;
+  let width = initial.width;
+  let height = initial.height;
+  for (let attempt = 0; attempt < MAX_PNG_ENCODE_ATTEMPTS; attempt += 1) {
+    const blob = await processor.encodePng(image, width, height);
+    if (!(blob instanceof Blob) || blob.type !== "image/png" || blob.size === 0 ||
+      blob.size > MAX_STUDENT_IMAGE_BYTES) {
+      throw new Error(errors.preparedBounds);
+    }
+    if (blob.size <= MAX_ACCOUNT_ASSET_BYTES) return { width, height, blob };
+    if (width === 1 && height === 1) break;
+    const proportionalScale = Math.sqrt(MAX_ACCOUNT_ASSET_BYTES / blob.size) * 0.95;
+    const scale = Math.min(0.9, Math.max(0.1, proportionalScale));
+    const nextWidth = Math.max(1, Math.floor(width * scale));
+    const nextHeight = Math.max(1, Math.floor(height * scale));
+    width = width > 1 ? Math.min(width - 1, nextWidth) : 1;
+    height = height > 1 ? Math.min(height - 1, nextHeight) : 1;
+  }
+  throw new Error(errors.preparedBounds);
+}
+
 const browserProcessor: StudentImageUploadProcessor = {
   async decode(file) {
     const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
@@ -115,19 +144,16 @@ export async function prepareStudentImageUpload(
   }
   try {
     const target = targetDimensions(decoded.width, decoded.height);
-    const blob = await processor.encodePng(decoded, target.width, target.height);
-    if (!(blob instanceof Blob) || blob.type !== "image/png" || blob.size === 0 ||
-      blob.size > MAX_STUDENT_IMAGE_BYTES) {
-      throw new Error(errors.preparedBounds);
-    }
+    const prepared = await encodeBoundedPng(processor, decoded, target);
+    const { blob } = prepared;
     const outputHeader = new Uint8Array(await blob.slice(0, 8).arrayBuffer());
     if (!signatureMatches("image/png", outputHeader)) {
       throw new Error(errors.preparedPng);
     }
     return Object.freeze({
       title: uploadTitle(file.name),
-      width: target.width,
-      height: target.height,
+      width: prepared.width,
+      height: prepared.height,
       blob
     });
   } finally {

@@ -12,6 +12,7 @@ func run() -> bool:
 	assert(document_script != null)
 	assert(_document_helper_isolated(document_script))
 	assert(_lobby_opens_new_and_matching_sandboxes(document_script))
+	assert(_late_sandbox_load_cannot_override_lobby_routes())
 	assert(_lobby_rejects_a_mismatched_saved_document())
 	return true
 
@@ -99,6 +100,27 @@ func _lobby_opens_new_and_matching_sandboxes(document_script: Script) -> bool:
 	assert(reopen.get("method") == "open")
 	assert(Dictionary(reopen.get("payload")).recursive_equal(returned_wire, 32))
 	shell.free()
+	return true
+
+func _late_sandbox_load_cannot_override_lobby_routes() -> bool:
+	for route_button_path in ["%StartRun", "%JoinLiveMarket", "%CreateLiveMarket"]:
+		var creator_fake := FakeCreatorTransport.new()
+		var shell := _mount_shell(creator_fake)
+		(shell.get_node("%TeamAlias") as LineEdit).text = "Route Test Pair"
+		(shell.get_node("%RoomCode") as LineEdit).text = "ABC-234"
+		(shell.get_node("%ClassroomCode") as LineEdit).text = "teacher-code-7"
+		var sandbox_button := shell.get_node("%OpenAssignmentSandbox") as Button
+		sandbox_button.pressed.emit()
+		var load_id := creator_fake.last_request_id()
+		assert(bool(shell.get("_sandbox_load_pending")))
+
+		(shell.get_node(route_button_path) as Button).pressed.emit()
+		assert(not bool(shell.get("_sandbox_load_pending")))
+		assert(not sandbox_button.disabled)
+		creator_fake.resolve_success(load_id, null)
+		assert(not bool(shell.get("_sandbox_open")))
+		assert(creator_fake.request_count() == 1)
+		shell.free()
 	return true
 
 func _lobby_rejects_a_mismatched_saved_document() -> bool:

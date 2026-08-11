@@ -61,6 +61,10 @@ const [
 ]);
 
 const sha256 = (contents) => createHash("sha256").update(contents).digest("hex");
+const godotWebShell = await readFile(
+  new URL("../godot/web/godot_shell.html", import.meta.url),
+  "utf8"
+);
 
 test("onboarding screenshots contain PNG bytes, not only PNG filenames", () => {
   const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -294,6 +298,13 @@ test("game shell uses the full 16:10 school MacBook viewport", () => {
   assert.match(projectSettings, /window\/size\/viewport_height=800/);
   assert.match(projectSettings, /window\/stretch\/aspect="expand"/);
   assert.match(mainScene, /name="MainMargin"[\s\S]*?offset_top = 96\.0[\s\S]*?offset_bottom = -24\.0/);
+});
+
+test("game canvas overrides Godot device-pixel inline sizing at display scale", () => {
+  assert.match(
+    godotWebShell,
+    /#canvas\s*\{[\s\S]*?width:\s*100%\s*!important;[\s\S]*?height:\s*100%\s*!important;/
+  );
 });
 
 test("final review uses a compact checklist without repeating completed level progress", () => {

@@ -33,8 +33,11 @@ Students cannot choose a model, slug, dimensions, step count, guidance, quality 
 | --- | --- | --- | --- | --- |
 | Object Forge | `object-forge-gpt-image-2-low-v1` | `openai/gpt-image-2` | exact 1024×1024, low quality, one PNG | 1024×1024 PNG |
 | Make It Real | `make-it-real-gpt-image-2-high-v2` | `openai/gpt-image-2/edit` | one 1024×576 canvas reference, exact `{ width: 1280, height: 720 }`, high quality, one PNG | exact 1280×720 PNG |
+| Realistic advertisement | `make-it-real-advertisement-v1` | `openai/gpt-image-2/edit` | one 1024×576 complete-ad reference, exact `{ width: 1280, height: 720 }`, high quality, one PNG | exact 1280×720 PNG |
 
-The two endpoints do not share one generic payload. Object Forge sends `prompt`, `image_size`, `quality`, `num_images` and `output_format`. Make It Real sends those fields plus `image_urls`. The production adapter uses an explicit `{ width, height }` object, not a named aspect-ratio preset.
+The endpoints do not share one generic browser payload. Object Forge sends a closed set of object choices. Product realisation retains its historical product-and-scene request. Assignment Sandbox advertisement realisation sends a distinct `mode: "advertisement"` request containing only the prepared canvas and a bounded snapshot of the product details and Advertisement AIDA plan. Both edit operations use server-owned `prompt`, `image_urls`, `image_size`, `quality`, `num_images` and `output_format` fields. The production adapter uses an explicit `{ width, height }` object, not a named aspect-ratio preset.
+
+The realistic-advertisement profile is pinned and does not follow the adult-only `IMAGE_LAB_REALISE_PROFILE_ID` A/B selector. Its prompt treats every student field as literal data, preserves the supplied composition, product, colours, marks and existing wording, and prohibits invented brands, claims, people, text, watermarks and signatures. The generated result is a new selected full-canvas layer; one Undo restores the prior editable design. Students are warned to check every word because image models can alter lettering.
 
 GPT Image 2 concrete output sizes must use multiples of 16, keep each edge at or below 3840 pixels, keep the aspect ratio at or below 3:1, and contain 655,360–8,294,400 pixels. The server checks all four rules before reserving an allowance or dispatching to fal. A 1024×576 output request is below the pixel floor; the earlier 1088×608 return was fal's deterministic rescale of that invalid request, not a canonical 16:9 output. The smallest exact 16:9 size above the floor is 1280×720. A supervised validation request returned an exact 1280×720 PNG, measured from the saved PNG header.
 
@@ -77,7 +80,7 @@ The account-service variables documented in `advertising-game-account-progress.m
 
 ## Allowance lifecycle
 
-Object Forge and Make It Real have independent counters for every pair:
+Object Forge and Make It Real have independent counters for every pair. Product realisation and complete-advertisement realisation deliberately share the Make It Real counter:
 
 - `granted` is the total authorised use count;
 - `available` is `granted - consumed - reserved`;

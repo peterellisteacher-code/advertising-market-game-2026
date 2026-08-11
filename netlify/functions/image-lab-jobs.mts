@@ -8,10 +8,12 @@ import {
   OBJECT_FORGE_PROFILE,
   Z_IMAGE_LORA_PROFILE,
   assertGptImage2ConcreteSize,
+  composeAdvertisementRealisationPrompt,
   composeMakeItRealPrompt,
   composeObjectForgePrompt,
   parseFalImageRequest,
   type FalImageRequest,
+  type AdvertisementRealisationRequest,
   type MakeItRealRequest,
   type ObjectForgeRequest
 } from "./lib/fal-image-policy";
@@ -67,6 +69,7 @@ import {
 export const OBJECT_FORGE_PROFILE_ID = "object-forge-gpt-image-2-low-v1";
 export const LEGACY_MAKE_IT_REAL_PROFILE_ID = "make-it-real-gpt-image-2-high-v1";
 export const MAKE_IT_REAL_PROFILE_ID = "make-it-real-gpt-image-2-high-v2";
+export const ADVERTISEMENT_REALISATION_PROFILE_ID = "make-it-real-advertisement-v1";
 export const Z_IMAGE_LORA_PROFILE_ID = "z-image-lora-v1";
 export const FLUX2_TURBO_EDIT_PROFILE_ID = "flux2-turbo-edit-v1";
 export const IMAGE_LAB_ASSET_MAX_BYTES = 8 * 1_048_576;
@@ -393,6 +396,19 @@ function makeItRealInput(request: MakeItRealRequest): Readonly<Record<string, un
   };
 }
 
+function advertisementRealisationInput(
+  request: AdvertisementRealisationRequest
+): Readonly<Record<string, unknown>> {
+  return {
+    image_urls: [request.designDataUrl],
+    image_size: gptImage2InputSize(MAKE_IT_REAL_PROFILE.imageSize),
+    quality: MAKE_IT_REAL_PROFILE.quality,
+    output_format: MAKE_IT_REAL_PROFILE.outputFormat,
+    num_images: MAKE_IT_REAL_PROFILE.images,
+    prompt: composeAdvertisementRealisationPrompt(request)
+  };
+}
+
 function flux2TurboEditInput(request: MakeItRealRequest): Readonly<Record<string, unknown>> {
   return {
     image_urls: [request.designDataUrl],
@@ -431,6 +447,15 @@ function resolveSubmissionProfile(
   request: FalImageRequest,
   environment: ImageLabEnvironmentRecord
 ): SubmissionProfile {
+  if ("mode" in request) {
+    return {
+      profileId: ADVERTISEMENT_REALISATION_PROFILE_ID,
+      modelId: MAKE_IT_REAL_PROFILE.model,
+      width: MAKE_IT_REAL_PROFILE.width,
+      height: MAKE_IT_REAL_PROFILE.height,
+      input: advertisementRealisationInput(request)
+    };
+  }
   const objectProfileId = environment.IMAGE_LAB_OBJECT_PROFILE_ID ?? OBJECT_FORGE_PROFILE_ID;
   const realiseProfileId = environment.IMAGE_LAB_REALISE_PROFILE_ID ?? MAKE_IT_REAL_PROFILE_ID;
   if (objectProfileId !== OBJECT_FORGE_PROFILE_ID && objectProfileId !== Z_IMAGE_LORA_PROFILE_ID ||
@@ -732,6 +757,15 @@ async function requireBoundJob(
     };
   }
   if (job.stage === "make-it-real" && job.profileId === MAKE_IT_REAL_PROFILE_ID) {
+    return {
+      job,
+      stored,
+      modelId: MAKE_IT_REAL_PROFILE.model,
+      width: MAKE_IT_REAL_PROFILE.width,
+      height: MAKE_IT_REAL_PROFILE.height
+    };
+  }
+  if (job.stage === "make-it-real" && job.profileId === ADVERTISEMENT_REALISATION_PROFILE_ID) {
     return {
       job,
       stored,

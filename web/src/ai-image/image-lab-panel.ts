@@ -2,6 +2,7 @@ export interface ImageLabPair {
   sessionId: string;
   teamId: string;
   productName: string;
+  workspaceMode?: "guided" | "assignment-sandbox";
 }
 
 export interface ImageLabStageStatus {
@@ -34,10 +35,19 @@ export interface MakeItRealChoice {
   scene: string;
 }
 
+export interface AdvertisementRealisationChoice {
+  sessionId: string;
+  teamId: string;
+}
+
 export interface ImageLabActions {
   status(signal: AbortSignal): Promise<ImageLabStatus>;
   forgeObject(input: ObjectForgeChoice, signal: AbortSignal): Promise<ImageLabStatus>;
   makeReal(input: MakeItRealChoice, signal: AbortSignal): Promise<ImageLabStatus>;
+  makeAdvertisementReal(
+    input: AdvertisementRealisationChoice,
+    signal: AbortSignal
+  ): Promise<ImageLabStatus>;
 }
 
 type PanelState = "checking" | "disabled" | "ready";
@@ -314,8 +324,11 @@ export class ImageLabPanel {
       ? this.#status.realise
       : { remaining: 0, reserved: 0 };
     const guidance = document.createElement("p");
-    guidance.textContent = "Use this after the product design is ready, before you build the ad. " +
-      "Existing words and marks will be fitted to the product surface.";
+    const sandbox = this.#pair?.workspaceMode === "assignment-sandbox";
+    guidance.textContent = sandbox
+      ? "Make the product real, or turn the complete advertisement into a realistic version."
+      : "Use this after the product design is ready, before you build the ad. " +
+        "Existing words and marks will be fitted to the product surface.";
     section.append(heading, guidance);
     if (allowance.reserved > 0) {
       const reserved = document.createElement("p");
@@ -335,17 +348,35 @@ export class ImageLabPanel {
       const unmet = document.createElement("p");
       unmet.className = "image-lab__unmet";
       unmet.textContent = "No Make It Real uses are available.";
-      const realise = button("Make it real");
+      const realise = button(sandbox ? "Make the product real" : "Make it real");
       realise.disabled = true;
       section.append(unmet, realise);
+      if (sandbox) {
+        const advertisement = button("Make this advertisement realistic");
+        advertisement.disabled = true;
+        section.append(advertisement);
+      }
       return section;
     }
     const product = labelledInput("Product kind", "product-kind", this.#pair?.productName ?? "");
     const scene = labelledSelect("Product scene", "product-scene", SCENE_CHOICES);
-    const realise = button(this.#busy === "realise" ? "Building showcase…" : "Make it real");
+    const realise = button(this.#busy === "realise"
+      ? "Building showcase…"
+      : sandbox ? "Make the product real" : "Make it real");
     realise.disabled = this.#busy !== null || !this.#pair;
     realise.addEventListener("click", () => void this.#realise(section));
     section.append(product, scene, realise);
+    if (sandbox) {
+      const warning = document.createElement("p");
+      warning.className = "image-lab__warning";
+      warning.textContent = "Image models can change lettering. Check every word and use the text tools to correct it.";
+      const advertisement = button(this.#busy === "realise"
+        ? "Building advertisement…"
+        : "Make this advertisement realistic");
+      advertisement.disabled = this.#busy !== null || !this.#pair;
+      advertisement.addEventListener("click", () => void this.#realiseAdvertisement());
+      section.append(warning, advertisement);
+    }
     return section;
   }
 
@@ -394,6 +425,20 @@ export class ImageLabPanel {
       busyMessage: "Creating your product image…",
       doneMessage: "Your product image is in the advertisement.",
       work: (signal) => this.actions.makeReal(input, signal)
+    });
+  }
+
+  async #realiseAdvertisement(): Promise<void> {
+    if (!this.#pair || this.#pair.workspaceMode !== "assignment-sandbox" || this.#busy !== null) return;
+    const input: AdvertisementRealisationChoice = {
+      sessionId: this.#pair.sessionId,
+      teamId: this.#pair.teamId
+    };
+    await this.#run({
+      operation: "realise",
+      busyMessage: "Creating a realistic version of your advertisement…",
+      doneMessage: "The realistic advertisement is selected on the canvas.",
+      work: (signal) => this.actions.makeAdvertisementReal(input, signal)
     });
   }
 

@@ -34,6 +34,11 @@ function actions(overrides: Partial<ImageLabActions> = {}): ImageLabActions {
       object: { remaining: 2, reserved: 0 },
       realise: { remaining: 0, reserved: 0 }
     }),
+    makeAdvertisementReal: vi.fn().mockResolvedValue({
+      enabled: true,
+      object: { remaining: 2, reserved: 0 },
+      realise: { remaining: 0, reserved: 0 }
+    }),
     ...overrides
   };
 }
@@ -186,6 +191,33 @@ describe("ImageLabPanel", () => {
     expect(status).toHaveBeenCalledTimes(2);
     expect(getByRole<HTMLButtonElement>(host, "button", { name: "Make it real" }).disabled)
       .toBe(false);
+  });
+
+  it("offers the advertisement operation only in assignment sandbox and shares the realise allowance", async () => {
+    const guidedHost = document.createElement("div");
+    const guided = new ImageLabPanel(guidedHost, actions());
+    guided.setPair(identity);
+    await guided.initialise();
+    expect(queryByRole(guidedHost, "button", { name: "Make this advertisement realistic" }))
+      .toBeNull();
+
+    const sandboxHost = document.createElement("div");
+    const port = actions();
+    const sandbox = new ImageLabPanel(sandboxHost, port);
+    sandbox.setPair({ ...identity, workspaceMode: "assignment-sandbox" });
+    await sandbox.initialise();
+
+    expect(sandboxHost.textContent).toContain("Make It Real: 1 use available");
+    expect(getByRole(sandboxHost, "button", { name: "Make the product real" })).toBeTruthy();
+    expect(sandboxHost.textContent).toMatch(/image models can change lettering/i);
+    fireEvent.click(getByRole(sandboxHost, "button", {
+      name: "Make this advertisement realistic"
+    }));
+
+    await waitFor(() => expect(port.makeAdvertisementReal).toHaveBeenCalledWith({
+      sessionId: identity.sessionId,
+      teamId: identity.teamId
+    }, expect.any(AbortSignal)));
   });
 
   it("offers Check request for an unknown outcome and reconciles the same submission", async () => {

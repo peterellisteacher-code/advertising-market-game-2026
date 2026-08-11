@@ -4247,6 +4247,107 @@ describe("window.AdMarketCreator", () => {
     expect(jobBody).not.toHaveProperty("height");
   });
 
+  it("realises a sandbox advertisement from the saved assignment and Advertisement AIDA context", async () => {
+    const source = createBlankCampaignDocument({
+      documentId: "sandbox-realise-document",
+      sessionId: "sandbox-realise-session",
+      teamId: "sandbox-realise-team",
+      mode: "offline"
+    });
+    source.workspaceMode = "assignment-sandbox";
+    source.product.name = "Orbit Bottle";
+    source.assignmentPlan.productFunction = "Keeps water cold through the school day";
+    source.assignmentPlan.targetAudience = "Senior students who carry water all day";
+    source.assignmentPlan.advertisingLocation = "Bus shelter near school";
+    source.strategy.aidaPlan = {
+      attention: "The icy bottle against a hot orange background",
+      interest: "A temperature display and replaceable filter",
+      desire: "Feel prepared, calm and refreshed all day",
+      action: "Scan the code to choose a colour"
+    };
+    const imageBytes = Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a);
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url = String(input);
+      if (url === "/api/image-lab/session") {
+        return Promise.resolve(Response.json({
+          enabled: true,
+          object: { remaining: 6, reserved: 0 },
+          realise: { remaining: 2, reserved: 0 }
+        }));
+      }
+      if (url === "/api/image-lab/jobs" && init?.method === "POST") {
+        return Promise.resolve(Response.json({
+          jobToken: "encrypted-advertisement-token",
+          stage: "realise",
+          remaining: { object: 6, realise: 1 }
+        }, { status: 202 }));
+      }
+      if (url.startsWith("/api/image-lab/jobs?job=")) {
+        return Promise.resolve(Response.json({ status: "completed" }));
+      }
+      if (url.startsWith("/api/image-lab/assets?job=")) {
+        return Promise.resolve(new Response(imageBytes, {
+          headers: {
+            "content-type": "image/png",
+            "content-length": String(imageBytes.byteLength)
+          }
+        }));
+      }
+      return Promise.reject(new Error(`Unexpected URL ${url}`));
+    });
+
+    await import("./main");
+    const api = window.AdMarketCreator;
+    await parsed(api, "open-sandbox-realise", "open", source);
+    activateStudioTool("image");
+    const imageLab = document.querySelector<HTMLElement>('[data-image-lab-panel]')!;
+    await waitFor(() => expect(getByRole(imageLab, "button", {
+      name: "Make this advertisement realistic"
+    })).toBeTruthy());
+
+    fireEvent.click(getByRole(imageLab, "button", {
+      name: "Make this advertisement realistic"
+    }));
+    await waitFor(() => expect(imageLab.textContent)
+      .toContain("The realistic advertisement is selected on the canvas."));
+
+    const jobCall = fetchSpy.mock.calls.find(([input, request]) =>
+      String(input) === "/api/image-lab/jobs" && request?.method === "POST");
+    expect(JSON.parse(String(jobCall?.[1]?.body))).toMatchObject({
+      stage: "realise",
+      mode: "advertisement",
+      context: {
+        productName: "Orbit Bottle",
+        productFunction: "Keeps water cold through the school day",
+        targetAudience: "Senior students who carry water all day",
+        advertisingLocation: "Bus shelter near school",
+        attention: "The icy bottle against a hot orange background",
+        interest: "A temperature display and replaceable filter",
+        desire: "Feel prepared, calm and refreshed all day",
+        action: "Scan the code to choose a colour"
+      }
+    });
+    expect(jobCall?.[1]?.body).not.toContain("sandbox-realise-session");
+    expect(jobCall?.[1]?.body).not.toContain("sandbox-realise-team");
+
+    const realised = CampaignDocumentSchema.parse(
+      (await parsed(api, "state-sandbox-realise", "getState", null)).payload
+    );
+    expect(realised.fabricState.objects).toHaveLength(1);
+    expect(realised.assetReferences).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: "generated-image",
+        stage: "make-it-real",
+        profileId: "make-it-real-advertisement-v1"
+      })
+    ]));
+
+    fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));
+    await waitFor(() => expect(currentObjects()).toEqual([]));
+    fireEvent.click(getByRole(document.body, "button", { name: "Redo" }));
+    await waitFor(() => expect(currentObjects()).toHaveLength(1));
+  });
+
   it("aborts Image Lab at the start of close so a late job cannot recreate the canvas", async () => {
     let resolveJob!: (response: Response) => void;
     let jobSignal: AbortSignal | null | undefined;

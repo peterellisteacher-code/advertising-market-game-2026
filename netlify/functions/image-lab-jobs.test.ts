@@ -13,12 +13,15 @@ import type {
 import {
   MAKE_IT_REAL_PROFILE,
   OBJECT_FORGE_PROFILE,
+  composeAdvertisementRealisationPrompt,
   composeMakeItRealPrompt,
   composeObjectForgePrompt,
   parseMakeItRealRequest,
+  parseAdvertisementRealisationRequest,
   parseObjectForgeRequest
 } from "./lib/fal-image-policy";
 import {
+  ADVERTISEMENT_REALISATION_PROFILE_ID,
   IMAGE_LAB_ASSET_MAX_BYTES,
   LEGACY_MAKE_IT_REAL_PROFILE_ID,
   MAKE_IT_REAL_PROFILE_ID,
@@ -103,6 +106,23 @@ const responseBody = (bytes: Uint8Array): ArrayBuffer =>
   bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 
 const designDataUrl = `data:image/png;base64,${Buffer.from(pngBytes(1_024, 576)).toString("base64")}`;
+
+const advertisementRequest = {
+  stage: "realise",
+  mode: "advertisement",
+  ...identity,
+  designDataUrl,
+  context: {
+    productName: "Orbit Bottle",
+    productFunction: "Keeps water cold through the school day",
+    targetAudience: "Senior students who carry water all day",
+    advertisingLocation: "Bus shelter near school",
+    attention: "The icy bottle against a hot orange background",
+    interest: "A temperature display and replaceable filter",
+    desire: "Feel prepared, calm and refreshed all day",
+    action: "Scan the code to choose a colour"
+  }
+} as const;
 
 const authenticatedSession: ResolvedAccountSession = {
   authenticated: true,
@@ -481,6 +501,38 @@ describe("Image Lab jobs transport", () => {
       stage: "realise",
       remaining: { object: 2, realise: 0 }
     });
+  });
+
+  it("pins advertisement realisation to GPT Image 2 edit and the shared realise allowance", async () => {
+    expect(ADVERTISEMENT_REALISATION_PROFILE_ID).toBe("make-it-real-advertisement-v1");
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ request_id: requestId }));
+    const state = stateFixture();
+    const allowances = allowanceFixture();
+    const response = await handlerWith(fetcher, 1_000, state, allowances)(post(advertisementRequest));
+
+    expect(response.status).toBe(202);
+    const [url, init] = fetcher.mock.calls[0]!;
+    expect(String(url)).toBe(`https://queue.fal.run/${MAKE_IT_REAL_PROFILE.model}`);
+    expect(JSON.parse(String(init?.body))).toEqual({
+      image_urls: [designDataUrl],
+      image_size: { width: 1_280, height: 720 },
+      quality: "high",
+      output_format: "png",
+      num_images: 1,
+      prompt: composeAdvertisementRealisationPrompt(
+        parseAdvertisementRealisationRequest(advertisementRequest)
+      )
+    });
+    expect(state.reserve).toHaveBeenCalledWith(
+      { userId },
+      expect.objectContaining({ profileId: ADVERTISEMENT_REALISATION_PROFILE_ID })
+    );
+    expect(allowances.reserve).toHaveBeenCalledWith(
+      expect.objectContaining({ userId, stage: "realise", jobKey: jobId })
+    );
+    const body = await response.json() as { jobToken: string };
+    expect(readJobToken(body.jobToken, secret, { userId, nowSeconds: 1_000 }).profileId)
+      .toBe(ADVERTISEMENT_REALISATION_PROFILE_ID);
   });
 
   it("submits the exact server-owned Z-Image LoRA A/B profile and binds its stable ID", async () => {

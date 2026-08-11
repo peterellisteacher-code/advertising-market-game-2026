@@ -113,7 +113,10 @@ import type {
   CanvasSelectionSnapshot,
   LogoMarkSnapshot
 } from "./fabric/canvas-port";
-import { ImageLabClient } from "./ai-image/image-lab-client";
+import {
+  ImageLabClient,
+  type AdvertisementRealisationContext
+} from "./ai-image/image-lab-client";
 import { ImageLabPanel } from "./ai-image/image-lab-panel";
 import { ImageLabRuntime, type ImageLabPairIdentity } from "./ai-image/image-lab-runtime";
 import { BrowserImageLabSubmissionPersistence } from "./ai-image/browser-image-lab-submission-persistence";
@@ -684,7 +687,8 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       this.#imageLab?.setPair({
         sessionId: this.#document.sessionId,
         teamId: this.#document.teamId ?? this.#document.documentId,
-        productName: this.#document.product.name
+        productName: this.#document.product.name,
+        workspaceMode: this.#document.workspaceMode
       });
     }
     this.#refreshStudioCoachCampaign();
@@ -760,6 +764,33 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     const runtime = this.#runtime;
     if (!runtime) throw new Error("Campaign creator is not open");
     return runtime.adapter.exportCleanPngDataUrl();
+  }
+
+  advertisementRealisationContext(
+    pair: ImageLabPairIdentity
+  ): AdvertisementRealisationContext {
+    this.#assertCurrentImageLabPair(pair);
+    const document = this.#document;
+    if (!document || document.workspaceMode !== "assignment-sandbox") {
+      throw new Error("Advertisement realisation is available only in Assignment Sandbox.");
+    }
+    const context: AdvertisementRealisationContext = {
+      productName: document.product.name.trim(),
+      productFunction: document.assignmentPlan.productFunction.trim(),
+      targetAudience: document.assignmentPlan.targetAudience.trim(),
+      advertisingLocation: document.assignmentPlan.advertisingLocation.trim(),
+      attention: document.strategy.aidaPlan.attention.trim(),
+      interest: document.strategy.aidaPlan.interest.trim(),
+      desire: document.strategy.aidaPlan.desire.trim(),
+      action: document.strategy.aidaPlan.action.trim()
+    };
+    const missing = Object.entries(context)
+      .filter(([, value]) => value.length === 0)
+      .map(([field]) => field);
+    if (missing.length > 0) {
+      throw new Error("Complete the product details and all four Advertisement AIDA decisions first.");
+    }
+    return context;
   }
 
   async captureStudioCoachCanvas(): Promise<StudioCoachCanvasEvidence> {
@@ -1070,7 +1101,8 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       this.#imageLab?.setPair({
         sessionId: document.sessionId,
         teamId: document.teamId ?? document.documentId,
-        productName: document.product.name
+        productName: document.product.name,
+        workspaceMode: document.workspaceMode
       });
       if (this.#imageLab !== null) void this.#imageLab.initialise();
       this.#setOpen(true);
@@ -2704,6 +2736,7 @@ const imageLabRuntime = new ImageLabRuntime({
   exportDesign: (pair) => handler.exportDesignDataUrl(pair),
   place: (pair, input) => handler.placeGeneratedRaster(pair, input),
   isCurrentPair: (pair) => handler.isCurrentImageLabPair(pair),
+  getAdvertisementContext: (pair) => handler.advertisementRealisationContext(pair),
   submissionPersistence: imageLabSubmissionPersistence
 });
 const imageLabPanel = new ImageLabPanel(shell.imageLabPanel, imageLabRuntime);

@@ -97,6 +97,10 @@ describe("createEditorShell", () => {
     expect(shell.marketRoutePanel.dataset.marketRoutePanel).toBe("");
     expect(root.querySelector('[data-studio-panel="aida"][aria-label="AIDA techniques"]')).toBeTruthy();
     expect(shell.aidaPlaybookPanel.dataset.aidaPlaybookPanel).toBe("");
+    expect(shell.assignmentPlannerPanel.dataset.assignmentPlannerPanel).toBe("");
+    expect(root.querySelector("[data-sandbox-label]")?.textContent).toBe("ASSIGNMENT SANDBOX");
+    expect(root.querySelector<HTMLElement>("[data-sandbox-label]")?.hidden).toBe(true);
+    expect(root.querySelectorAll("[data-guided-only]").length).toBeGreaterThanOrEqual(2);
     expect(root.querySelector('[data-studio-panel="coach"][aria-label="Studio Coach"]')).toBeTruthy();
     expect(shell.studioCoachPanel.dataset.studioCoachPanel).toBe("");
     expect(root.querySelector('[data-studio-panel="image"][aria-label="Image Lab"]')).toBeTruthy();
@@ -290,7 +294,7 @@ describe("createEditorShell", () => {
     expect(sizeControls.contains(shell.undo)).toBe(true);
     expect(sizeControls.contains(shell.redo)).toBe(true);
     expect(sizeControls.contains(shell.saveStatus)).toBe(true);
-    expect(root.textContent).not.toMatch(/\b(?:assignment|unit|canvas)\b/i);
+    expect(root.textContent).not.toMatch(/\b(?:unit|canvas)\b/i);
   });
 
   it("opens and closes the full brief without adding a floating drawer control", () => {

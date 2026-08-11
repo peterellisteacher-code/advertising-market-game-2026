@@ -1,9 +1,11 @@
 import type { CampaignDocumentV1 } from "../domain/campaign-document";
+import type { WorkspaceMode } from "./assignment-plan";
 import { getAidaStage, type AidaStage } from "./aida-playbook";
 
 export interface AidaPlaybookPanelState {
   readonly stage: AidaStage;
   readonly plan: CampaignDocumentV1["strategy"]["aidaPlan"];
+  readonly workspaceMode?: WorkspaceMode;
 }
 
 export type AidaPlanCommitHandler = (
@@ -30,6 +32,7 @@ function element<K extends keyof HTMLElementTagNameMap>(
 export class AidaPlaybookPanel {
   #state: AidaPlaybookPanelState = {
     stage: "attention",
+    workspaceMode: "guided",
     plan: { attention: "", interest: "", desire: "", action: "" }
   };
   #operation = 0;
@@ -41,20 +44,23 @@ export class AidaPlaybookPanel {
 
   setState(state: AidaPlaybookPanelState): void {
     this.#operation += 1;
-    this.#state = structuredClone(state);
+    this.#state = { ...structuredClone(state), workspaceMode: state.workspaceMode ?? "guided" };
     this.#draw();
   }
 
   #draw(): void {
     const definition = getAidaStage(this.#state.stage);
+    const sandbox = this.#state.workspaceMode === "assignment-sandbox";
     const root = element("div", "aida-playbook");
     root.dataset.stage = definition.id;
     const heading = element("h3");
-    heading.textContent = definition.heading;
+    heading.textContent = sandbox ? `Advertisement AIDA — ${definition.heading}` : definition.heading;
     const purpose = element("p", "aida-playbook__purpose");
     purpose.textContent = definition.purpose;
     const deckLabel = element("p", "aida-playbook__deck-label");
-    deckLabel.textContent = "Choose a technique or write your own. Each technique states how a visible choice affects the audience. Select the item that delivers it.";
+    deckLabel.textContent = sandbox
+      ? "Choose how the advertisement communicates each stage. You can link it to a selected visible item, but you do not need one to save the plan."
+      : "Choose a technique or write your own. Each technique states how a visible choice affects the audience. Select the item that delivers it.";
     const deck = element("div", "aida-playbook__deck");
     deck.setAttribute("role", "group");
     deck.setAttribute("aria-label", `${definition.label} techniques`);
@@ -117,9 +123,13 @@ export class AidaPlaybookPanel {
           ...this.#state,
           plan: { ...this.#state.plan, [definition.id]: value }
         };
-        status.textContent = definition.id === "action"
-          ? "Action technique locked to the selected item. AIDA is complete. Return to the game."
-          : `${definition.label} technique locked to the selected item. Next: ${nextAidaStage[definition.id]}.`;
+        status.textContent = sandbox
+          ? (definition.id === "action"
+              ? "Advertisement Action saved. Advertisement AIDA is complete."
+              : `Advertisement ${definition.label} saved. Next: ${nextAidaStage[definition.id]}.`)
+          : (definition.id === "action"
+              ? "Action technique locked to the selected item. AIDA is complete. Return to the game."
+              : `${definition.label} technique locked to the selected item. Next: ${nextAidaStage[definition.id]}.`);
       } catch (error) {
         if (operation !== this.#operation) return;
       status.textContent = error instanceof Error ? error.message : "Save failed.";

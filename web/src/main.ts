@@ -146,6 +146,13 @@ import type { CurvedLabelFontFamily } from "./product-kit/curved-label-renderer"
 import { AidaPlaybookPanel } from "./game/aida-playbook-panel";
 import type { AidaStage } from "./game/aida-playbook";
 import {
+  AssignmentPlannerPanel
+} from "./game/assignment-planner-panel";
+import {
+  createBlankAssignmentPlan,
+  type AssignmentPlanV1
+} from "./game/assignment-plan";
+import {
   commitMarketRoute,
   createMarketRoute,
   createProductSignal,
@@ -280,6 +287,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #moneyPanel: ProductMoneyPanel | null = null;
   #marketRoutePanel: MarketRoutePanel | null = null;
   #aidaPlaybookPanel: AidaPlaybookPanel | null = null;
+  #assignmentPlannerPanel: AssignmentPlannerPanel | null = null;
   #productKitPanel: ProductKitPanel | null = null;
   #guidedJourney: GuidedJourneyController | null = null;
   #roleGuide: RoleGuideController | null = null;
@@ -528,6 +536,14 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#refreshAidaPlaybook();
   }
 
+  attachAssignmentPlannerPanel(panel: AssignmentPlannerPanel): void {
+    if (this.#assignmentPlannerPanel !== null && this.#assignmentPlannerPanel !== panel) {
+      throw new Error("Assignment planner is already attached");
+    }
+    this.#assignmentPlannerPanel = panel;
+    this.#refreshAssignmentPlanner();
+  }
+
   attachGuidedJourney(controller: GuidedJourneyController): void {
     if (this.#guidedJourney !== null && this.#guidedJourney !== controller) {
       throw new Error("Guided journey is already attached");
@@ -619,7 +635,8 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     const runtime = this.#runtime;
     if (runtime === null) throw new Error("Campaign creator is not open");
     const selectedObjectId = runtime.adapter.getSelectedObjectId();
-    if (selectedObjectId === null) {
+    const sandbox = this.#snapshot().workspaceMode === "assignment-sandbox";
+    if (!sandbox && selectedObjectId === null) {
       throw new Error("Select the item that carries this AIDA choice first.");
     }
     const commit = async (): Promise<void> => {
@@ -634,12 +651,39 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
           }
         }
       });
-      this.#document = new ChecklistStore(planned)
-        .setEvidence(stage, [selectedObjectId]);
+      this.#document = selectedObjectId === null
+        ? planned
+        : new ChecklistStore(planned).setEvidence(stage, [selectedObjectId]);
     };
     if (this.#history === null) await commit();
     else await this.#history.transaction(commit);
     this.#aidaStage = stage;
+    this.#refreshStudioCoachCampaign();
+    this.schedulePracticeAutosave();
+  }
+
+  async commitAssignmentPlan(productName: string, plan: AssignmentPlanV1): Promise<void> {
+    await this.#placements.flush();
+    const commit = async (): Promise<void> => {
+      const current = this.#snapshot();
+      this.#productName.value = productName;
+      this.#document = this.#invalidateStaleProductPricing(parseCampaignDocument({
+        ...structuredClone(current),
+        product: { ...structuredClone(current.product), name: productName },
+        assignmentPlan: structuredClone(plan)
+      }));
+    };
+    if (this.#history === null) await commit();
+    else await this.#history.transaction(commit);
+    this.#refreshMoneyCheck();
+    this.#refreshMarketRoute();
+    if (this.#document !== null) {
+      this.#imageLab?.setPair({
+        sessionId: this.#document.sessionId,
+        teamId: this.#document.teamId ?? this.#document.documentId,
+        productName: this.#document.product.name
+      });
+    }
     this.#refreshStudioCoachCampaign();
     this.schedulePracticeAutosave();
   }
@@ -985,8 +1029,12 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#document = document;
     this.#studioCoach?.setCampaign(this.#studioCoachCampaign(document));
     this.#refreshCanvasEmptyState(document.fabricState);
-    applyCreatorLevelAccess(this.root, document.gameplay.stage);
-    this.#moneyPanel?.setPriceUnlocked(creatorStageAllows(document.gameplay.stage, "price"));
+    applyCreatorLevelAccess(this.root, document.gameplay.stage, document.workspaceMode);
+    this.#moneyPanel?.setPriceUnlocked(creatorStageAllows(
+      document.gameplay.stage,
+      "price",
+      document.workspaceMode
+    ));
     this.#blobs.clear();
     blobs.forEach((blob, key) => this.#blobs.set(key, blob));
     this.#ownedRasterUrls.clear();
@@ -997,6 +1045,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#refreshMoneyCheck();
     this.#refreshMarketRoute();
     this.#refreshAidaPlaybook();
+    this.#refreshAssignmentPlanner();
     this.#refreshProductKitPanel();
     this.#restoreProductShellRegions(document);
     try {
@@ -1440,7 +1489,12 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     });
     this.#aidaPlaybookPanel?.setState({
       stage: this.#aidaStage,
+      workspaceMode: "guided",
       plan: { attention: "", interest: "", desire: "", action: "" }
+    });
+    this.#assignmentPlannerPanel?.setState({
+      productName: "",
+      plan: createBlankAssignmentPlan()
     });
     attempt(() => this.#logoLab?.setMarks([]));
     attempt(() => this.#guidedJourney?.setCampaign(null));
@@ -1564,6 +1618,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#refreshMoneyCheck();
     this.#refreshMarketRoute();
     this.#refreshAidaPlaybook();
+    this.#refreshAssignmentPlanner();
     this.#refreshProductKitPanel();
     this.schedulePracticeAutosave();
   }
@@ -1643,7 +1698,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
 
   #refreshGuidedJourney(): void {
     if (this.#guidedJourney === null) return;
-    if (this.#document === null) {
+    if (this.#document === null || this.#document.workspaceMode === "assignment-sandbox") {
       this.#guidedJourney.setCampaign(null);
       return;
     }
@@ -1655,7 +1710,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
 
   #refreshRoleGuide(): void {
     if (this.#roleGuide === null) return;
-    if (this.#document === null) {
+    if (this.#document === null || this.#document.workspaceMode === "assignment-sandbox") {
       this.#roleGuide.setCampaign(null);
       return;
     }
@@ -1667,7 +1722,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
 
   #refreshStudioOnboarding(): void {
     if (this.#studioOnboarding === null) return;
-    if (this.#document === null) {
+    if (this.#document === null || this.#document.workspaceMode === "assignment-sandbox") {
       this.#studioOnboarding.setCampaign(null);
       return;
     }
@@ -1715,12 +1770,20 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #refreshAidaPlaybook(): void {
     this.#aidaPlaybookPanel?.setState({
       stage: this.#aidaStage,
+      workspaceMode: this.#document?.workspaceMode ?? "guided",
       plan: this.#document?.strategy.aidaPlan ?? {
         attention: "",
         interest: "",
         desire: "",
         action: ""
       }
+    });
+  }
+
+  #refreshAssignmentPlanner(): void {
+    this.#assignmentPlannerPanel?.setState({
+      productName: this.#document?.product.name ?? "",
+      plan: this.#document?.assignmentPlan ?? createBlankAssignmentPlan()
     });
   }
 
@@ -1799,7 +1862,9 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
 
   #assertStageAllows(feature: "aida" | "price" | "route"): void {
     const stage = this.#document?.gameplay.stage;
-    if (stage === undefined || !creatorStageAllows(stage, feature)) {
+    const workspaceMode = this.#document?.workspaceMode;
+    if (stage === undefined || workspaceMode === undefined ||
+      !creatorStageAllows(stage, feature, workspaceMode)) {
       const nextLevel = feature === "aida" ? "Level 2" : "Level 3";
       throw new Error(`${nextLevel} unlocks that move.`);
     }
@@ -2554,6 +2619,11 @@ const aidaPlaybookPanel = new AidaPlaybookPanel(
   (stage, value) => handler.commitAidaPlan(stage, value)
 );
 handler.attachAidaPlaybookPanel(aidaPlaybookPanel);
+const assignmentPlannerPanel = new AssignmentPlannerPanel(
+  shell.assignmentPlannerPanel,
+  (productName, plan) => handler.commitAssignmentPlan(productName, plan)
+);
+handler.attachAssignmentPlannerPanel(assignmentPlannerPanel);
 const pairGame = new PairGameController(
   shell,
   handler,

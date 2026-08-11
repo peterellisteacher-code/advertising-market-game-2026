@@ -5,6 +5,8 @@ function fixture(): HTMLElement {
   document.body.innerHTML = `
     <main data-creator-root>
       <p data-creator-level-label></p>
+      <p data-sandbox-only hidden>ASSIGNMENT SANDBOX</p>
+      <section data-guided-only></section>
       <nav data-creator-checklist>
         <button data-slot="price">Price</button>
         <button data-slot="attention">Attention</button>
@@ -92,5 +94,24 @@ describe("creator level access", () => {
     expect(creatorStageAllows("sell", "price")).toBe(false);
     expect(creatorStageAllows("irresistible", "price")).toBe(true);
     expect(creatorStageAllows("irresistible", "route")).toBe(true);
+  });
+
+  it("unlocks every creator feature and removes campaign-only chrome in assignment sandbox", () => {
+    const root = fixture();
+
+    applyCreatorLevelAccess(root, "invent", "assignment-sandbox");
+
+    expect(root.dataset.workspaceMode).toBe("assignment-sandbox");
+    for (const name of ["product", "price", "aida", "route", "coach"]) {
+      expect(feature(root, name).dataset.creatorFeatureAvailable).toBe("true");
+    }
+    expect(root.querySelector<HTMLElement>("[data-guided-only]")!.hidden).toBe(true);
+    expect(root.querySelector<HTMLElement>("[data-guided-only]")!.inert).toBe(true);
+    expect(root.querySelector<HTMLElement>("[data-sandbox-only]")!.hidden).toBe(false);
+    expect(root.querySelector("[data-creator-level-label]")?.textContent)
+      .toBe("ASSIGNMENT SANDBOX");
+    expect(creatorStageAllows("invent", "aida", "assignment-sandbox")).toBe(true);
+    expect(creatorStageAllows("invent", "price", "assignment-sandbox")).toBe(true);
+    expect(creatorStageAllows("invent", "route", "assignment-sandbox")).toBe(true);
   });
 });

@@ -2811,6 +2811,48 @@ describe("window.AdMarketCreator", () => {
     expect(state.evidence.attention).toEqual([]);
   });
 
+  it("saves assignment planning and Advertisement AIDA without selected proof in sandbox mode", async () => {
+    const source = CampaignDocumentSchema.parse({
+      ...documentAtStage("invent"),
+      workspaceMode: "assignment-sandbox"
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-assignment-sandbox", "open", source))
+      .toMatchObject({ ok: true });
+    expect(document.querySelector<HTMLElement>("#creator-root")?.dataset.workspaceMode)
+      .toBe("assignment-sandbox");
+    expect(document.querySelector<HTMLElement>("[data-guide-bar]")?.hidden).toBe(true);
+    activateStudioTool("aida");
+
+    fireEvent.change(getByRole(document.body, "textbox", {
+      name: "What does the product do?"
+    }), { target: { value: "Lights a walking path after dark." } });
+    await waitFor(async () => {
+      const response = await parsed(api, "sandbox-plan-state", "getState", null);
+      if (!response.ok) throw new Error(JSON.stringify(response.error));
+      expect(CampaignDocumentSchema.parse(response.payload).assignmentPlan.productFunction)
+        .toBe("Lights a walking path after dark.");
+    });
+    await waitFor(() => expect(document.querySelector<HTMLElement>(
+      "[data-assignment-planner-panel] [role=status]"
+    )?.textContent).toBe("Saved"));
+
+    fireEvent.input(getByRole(document.body, "textbox", {
+      name: "Your Attention technique"
+    }), { target: { value: "Use one bright beam against the dark campsite." } });
+    fireEvent.click(getByRole(document.body, "button", { name: "Lock in Attention" }));
+    await waitFor(() => expect(document.querySelector<HTMLElement>(
+      "[data-aida-playbook-panel] [role=status]"
+    )?.textContent).toContain("Advertisement Attention saved"));
+    const response = await parsed(api, "sandbox-aida-state", "getState", null);
+    if (!response.ok) throw new Error(JSON.stringify(response.error));
+    const state = CampaignDocumentSchema.parse(response.payload);
+    expect(state.strategy.aidaPlan.attention)
+      .toBe("Use one bright beam against the dark campsite.");
+    expect(state.evidence.attention).toEqual([]);
+  });
+
   it("keeps the visible price, charged price and price evidence identical", async () => {
     const source = CampaignDocumentSchema.parse({
       ...blankDocument,

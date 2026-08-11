@@ -27,12 +27,23 @@ function expectRecursivelyFrozen(value: unknown): void {
 }
 
 describe("student copy", () => {
-  it("contains no undefined interface jargon or assessment framing in any student-facing string", () => {
-    const strings = collectStrings([STUDENT_COPY, AUDIENCE_BRIEFS, CREATOR_STAGES]);
-    expect(strings.length).toBeGreaterThan(0);
-    for (const value of strings) {
+  it("contains no undefined interface jargon or assessment framing in campaign copy", () => {
+    const { assignmentSandbox: _assignmentSandbox, ...campaignCopy } = STUDENT_COPY;
+    const campaignStrings = collectStrings([campaignCopy, AUDIENCE_BRIEFS, CREATOR_STAGES]);
+    expect(campaignStrings.length).toBeGreaterThan(0);
+    for (const value of campaignStrings) {
       expect(value).not.toMatch(/\b(?:assignment|unit|canvas)\b/i);
       expect(value).not.toMatch(/\b(?:assessment|criteria|grade|mark|rubric|quiz|score|points)\b/i);
+    }
+  });
+
+  it("allows the approved assignment label without importing grading or canvas jargon", () => {
+    expect(STUDENT_COPY.assignmentSandbox.label).toBe("ASSIGNMENT SANDBOX");
+    const sandboxStrings = collectStrings(STUDENT_COPY.assignmentSandbox);
+    expect(sandboxStrings.length).toBeGreaterThan(0);
+    for (const value of sandboxStrings) {
+      expect(value).not.toMatch(/\b(?:unit|canvas)\b/i);
+      expect(value).not.toMatch(/\b(?:assessment|criteria|grade|rubric|quiz|score|points)\b/i);
     }
   });
 

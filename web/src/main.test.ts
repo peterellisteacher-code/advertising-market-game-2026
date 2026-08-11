@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { fireEvent, findByRole, getByLabelText, getByRole, waitFor } from "@testing-library/dom";
+import { fireEvent, findByRole, getByLabelText, getByRole, waitFor, within } from "@testing-library/dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CreatorPublicApi } from "./bridge/creator-public-api";
 import type { AccountBootstrapPublicApi } from "./account/account-bootstrap";
@@ -24,6 +24,7 @@ import type {
   RasterSectionFillRecipe
 } from "./fabric/canvas-port";
 import { AUDIENCE_BRIEFS } from "./game/audience-briefs";
+import { STUDENT_COPY } from "./game/student-copy";
 import { parseLogoIconCatalogue } from "./logo-lab/logo-icon-catalogue";
 import {
   MARKET_BRIDGE_CONTRACT,
@@ -2842,7 +2843,7 @@ describe("window.AdMarketCreator", () => {
     activateStudioTool("aida");
 
     fireEvent.change(getByRole(document.body, "textbox", {
-      name: "What does the product do?"
+      name: STUDENT_COPY.assignmentSandbox.planner.fields.productFunction
     }), { target: { value: "Lights a walking path after dark." } });
     await waitFor(async () => {
       const response = await parsed(api, "sandbox-plan-state", "getState", null);
@@ -4009,39 +4010,37 @@ describe("window.AdMarketCreator", () => {
     const api = window.AdMarketCreator;
     expect(await parsed(api, "open-logo-lab", "open", blankDocument)).toMatchObject({ ok: true });
     activateStudioTool("logo");
-    await findByRole(document.body, "button", { name: "Rocket" });
+    const logoLabHost = document.querySelector<HTMLElement>("[data-logo-lab-panel]")!;
+    const logoUi = within(logoLabHost);
+    await logoUi.findByRole("button", { name: "Rocket" });
 
-    const incompleteAction = getByRole<HTMLButtonElement>(
-      document.body,
-      "button",
-      { name: "Add logo" }
-    );
+    const incompleteAction = logoUi.getByRole<HTMLButtonElement>("button", { name: "Add logo" });
     expect(incompleteAction.disabled).toBe(false);
     fireEvent.click(incompleteAction);
-    expect(getByRole(document.body, "alert").textContent)
+    expect(logoUi.getByRole("alert").textContent)
       .toBe("Add words and choose a symbol before adding the logo.");
-    expect(document.activeElement).toBe(getByRole(document.body, "textbox", {
+    expect(document.activeElement).toBe(logoUi.getByRole("textbox", {
       name: "Logo words"
     }));
     expect(currentObjects().filter(({ elementKind }) => elementKind === "logo-mark"))
       .toHaveLength(0);
 
-    fireEvent.input(getByRole<HTMLInputElement>(document.body, "textbox", {
+    fireEvent.input(logoUi.getByRole<HTMLInputElement>("textbox", {
       name: "Logo words"
     }), { target: { value: "Draft logo" } });
-    fireEvent.click(getByRole(document.body, "button", { name: "Add logo" }));
-    expect(getByRole(document.body, "alert").textContent)
+    fireEvent.click(logoUi.getByRole("button", { name: "Add logo" }));
+    expect(logoUi.getByRole("alert").textContent)
       .toBe("Choose a symbol before adding the logo.");
     expect((document.activeElement as HTMLElement | null)?.dataset.logoIconId).toBeTruthy();
 
-    fireEvent.click(getByRole(document.body, "button", { name: "Rocket" }));
-    fireEvent.input(getByRole<HTMLInputElement>(document.body, "textbox", {
+    fireEvent.click(logoUi.getByRole("button", { name: "Rocket" }));
+    fireEvent.input(logoUi.getByRole<HTMLInputElement>("textbox", {
       name: "Logo words"
     }), { target: { value: "" } });
-    fireEvent.click(getByRole(document.body, "button", { name: "Add logo" }));
-    expect(getByRole(document.body, "alert").textContent)
+    fireEvent.click(logoUi.getByRole("button", { name: "Add logo" }));
+    expect(logoUi.getByRole("alert").textContent)
       .toBe("Add words before adding the logo.");
-    expect(document.activeElement).toBe(getByRole(document.body, "textbox", {
+    expect(document.activeElement).toBe(logoUi.getByRole("textbox", {
       name: "Logo words"
     }));
 
@@ -4052,22 +4051,22 @@ describe("window.AdMarketCreator", () => {
       ["Mascot / Emblem", "Burger Buddy", "Burger"]
     ] as const;
     for (const [recipe, words, symbol] of recipes) {
-      const chooser = getByRole<HTMLSelectElement>(document.body, "combobox", {
+      const chooser = logoUi.getByRole<HTMLSelectElement>("combobox", {
         name: "Logo in the advertisement"
       });
       chooser.value = "";
       fireEvent.change(chooser);
-      fireEvent.click(getByRole(document.body, "radio", { name: recipe }));
-      fireEvent.input(getByRole<HTMLInputElement>(document.body, "textbox", {
+      fireEvent.click(logoUi.getByRole("radio", { name: recipe }));
+      fireEvent.input(logoUi.getByRole<HTMLInputElement>("textbox", {
         name: "Logo words"
       }), { target: { value: words } });
-      fireEvent.click(getByRole(document.body, "button", { name: symbol }));
-      fireEvent.click(getByRole(document.body, "button", { name: "Add logo" }));
+      fireEvent.click(logoUi.getByRole("button", { name: symbol }));
+      fireEvent.click(logoUi.getByRole("button", { name: "Add logo" }));
       await waitFor(() => expect(currentObjects()
         .filter(({ elementKind }) => elementKind === "logo-mark")).toHaveLength(
           recipes.findIndex(([candidate]) => candidate === recipe) + 1
         ));
-      await waitFor(() => expect(getByRole(document.body, "button", {
+      await waitFor(() => expect(logoUi.getByRole("button", {
         name: "Update logo"
       })).toBeTruthy());
       expect(runtime.selectedObjectId).toBe(currentObjects()
@@ -4090,10 +4089,10 @@ describe("window.AdMarketCreator", () => {
     await waitFor(() => expect(currentObjects()
       .find(({ objectId }) => objectId === finalLogo.objectId)?.left).toBe(finalLogoLeft + 5));
 
-    const details = document.querySelector<HTMLDetailsElement>(".logo-lab details")!;
+    const details = logoLabHost.querySelector<HTMLDetailsElement>("details")!;
     details.open = true;
     fireEvent(details, new Event("toggle"));
-    fireEvent.click(getByRole(document.body, "button", { name: "Random logo" }));
+    fireEvent.click(logoUi.getByRole("button", { name: "Random logo" }));
     await waitFor(() => expect(currentObjects().at(-1)).toMatchObject({
       elementKind: "logo-mark",
       logoRecipe: "mascot-emblem",
@@ -4148,7 +4147,7 @@ describe("window.AdMarketCreator", () => {
       }));
     expect(afterReload).toEqual(beforeSave);
     activateStudioTool("logo");
-    expect(getByRole<HTMLSelectElement>(document.body, "combobox", {
+    expect(logoUi.getByRole<HTMLSelectElement>("combobox", {
       name: "Logo in the advertisement"
     }).options).toHaveLength(5);
 
@@ -4309,7 +4308,7 @@ describe("window.AdMarketCreator", () => {
       name: "Make this advertisement realistic"
     }));
     await waitFor(() => expect(imageLab.textContent)
-      .toContain("The realistic advertisement is selected on the canvas."));
+      .toContain(STUDENT_COPY.assignmentSandbox.imageLab.doneAdvertisement));
 
     const jobCall = fetchSpy.mock.calls.find(([input, request]) =>
       String(input) === "/api/image-lab/jobs" && request?.method === "POST");

@@ -244,14 +244,14 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           <div class="creator__canvas-size" role="group" aria-label="Advertisement toolbar">
             <button type="button" data-command="undo">Undo</button>
             <button type="button" data-command="redo">Redo</button>
-            <span class="creator__save-status" role="status" aria-label="Saved progress" data-save-status></span>
+            <span class="creator__save-status sr-only" role="status" aria-label="Saved progress" data-save-status></span>
             <button type="button" data-canvas-zoom="out" aria-label="Make selected product or image smaller" title="Make selected product or image smaller">−</button>
             <button type="button" data-canvas-zoom="fill" aria-label="Fill ad with selected image" title="Fill the ad, then drag the image to choose the crop">Fill ad</button>
             <button type="button" data-canvas-zoom="in" aria-label="Make selected product or image larger" title="Make selected product or image larger">+</button>
             <button type="button" data-canvas-layers aria-label="Open item list">Items</button>
-            <span role="status" data-canvas-zoom-status>Select a product or image</span>
+            <span class="sr-only" role="status" data-canvas-zoom-status>Select a product or image</span>
             <button type="button" data-canvas-delete aria-describedby="canvas-delete-status" disabled>Delete selected item</button>
-            <span id="canvas-delete-status" data-canvas-delete-status>Select an item to delete</span>
+            <span class="sr-only" id="canvas-delete-status" data-canvas-delete-status>Select an item to delete</span>
           </div>
           <div class="creator__canvas-empty" role="status" aria-label="Empty advertisement" data-canvas-empty-state>
             <div class="creator__canvas-empty-card">

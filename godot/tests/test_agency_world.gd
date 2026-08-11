@@ -72,8 +72,7 @@ func run() -> bool:
 	await _assert_modal_shortcuts_and_station_focus(world, progress, tree)
 	assert(world.direct_travel("reception"))
 	assert(world.current_station_id() == "reception")
-	_assert_pair_arrives_beside_station(world, "Reception")
-	_assert_pair_clears_upper_divider(world, "Reception")
+	_assert_pair_arrives_at_safe_station_marker(world, "Reception")
 	_assert_station_labels_are_unique_and_contextual(world, "Reception")
 	_assert_pair_has_single_visual_and_collision_set(world)
 	_assert_world_travel_and_label_contract(world)
@@ -82,8 +81,7 @@ func run() -> bool:
 	strategy_station.position += Vector2(0.0, -28.0)
 	assert(world.direct_travel("strategy-room"))
 	assert(world.current_station_id() == "strategy-room")
-	_assert_pair_arrives_beside_station(world, "StrategyRoom")
-	_assert_pair_clears_upper_divider(world, "StrategyRoom")
+	_assert_pair_arrives_at_safe_station_marker(world, "StrategyRoom")
 	_assert_station_labels_are_unique_and_contextual(world, "StrategyRoom")
 	assert(not world.direct_travel("executive-lift"))
 	world.set_input_enabled(false)
@@ -268,9 +266,11 @@ func _assert_world_travel_and_label_contract(world: Node) -> void:
 		var station := world.get_node("Stations/%s" % String(record[1])) as Area2D
 		assert(world.direct_travel(station_id))
 		assert(pair.movement_bounds.has_point(pair.position))
-		assert(pair.position.distance_to(station.position) <= 92.0)
+		_assert_pair_arrives_at_safe_station_marker(world, String(record[1]))
+		_assert_pair_clear_of_world_collision(world, String(record[0]))
 	assert(world.direct_travel("client-briefing"))
-	assert(pair.position == Vector2(421.0, 498.0))
+	var client_station := world.get_node("Stations/ClientBriefing") as Area2D
+	assert(pair.position.is_equal_approx(client_station.position + Vector2(0.0, 48.0)))
 	var world_bounds := world.get_node("WorldBounds") as StaticBody2D
 	var client_collision := world.get_node("WorldBounds/ClientBriefingFixture") as CollisionShape2D
 	var client_shape := client_collision.shape as RectangleShape2D
@@ -288,7 +288,6 @@ func _assert_world_travel_and_label_contract(world: Node) -> void:
 	assert(PhysicsServer2D.body_test_motion(pair.get_rid(), motion_parameters, motion_result))
 	assert(motion_result.get_collider_id() == world_bounds.get_instance_id())
 	assert(motion_result.get_travel().y > motion_parameters.motion.y)
-	var client_station := world.get_node("Stations/ClientBriefing") as Area2D
 	assert(pair.position.y > client_station.position.y)
 	var labels := client_station.find_children("*", "Label", true, false)
 	assert(labels.size() == 1)
@@ -397,7 +396,6 @@ func _assert_modal_shortcuts_and_station_focus(
 	assert(not guide_panel.visible)
 	assert(pair.modal_open)
 	assert(not pair.input_enabled)
-	world.call("_finish_direct_travel")
 	assert(pair.modal_open)
 	assert(not pair.input_enabled)
 	assert(world.get_viewport().gui_get_focus_owner() == available_handoff)
@@ -448,16 +446,34 @@ func _assert_mission_panel_is_readable_and_bounded(panel: Control) -> void:
 func _perceived_luminance(color: Color) -> float:
 	return color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722
 
-func _assert_pair_arrives_beside_station(world: Node, station_name: String) -> void:
+func _assert_pair_arrives_at_safe_station_marker(world: Node, station_name: String) -> void:
 	var pair := world.get_node("%AgencyPair") as CharacterBody2D
 	var station := world.get_node("Stations/%s" % station_name) as Area2D
-	var arrival_distance := pair.position.distance_to(station.position)
-	assert(is_equal_approx(arrival_distance, 64.0))
+	assert(pair.position.distance_to(station.position) <= 48.0)
 
-func _assert_pair_clears_upper_divider(world: Node, station_name: String) -> void:
+func _assert_pair_clear_of_world_collision(world: Node, station_id: String) -> void:
 	var pair := world.get_node("%AgencyPair") as CharacterBody2D
-	var station := world.get_node("Stations/%s" % station_name) as Area2D
-	assert(pair.position.y <= station.position.y - 20.0)
+	var body_collision := pair.get_node("BodyCollision") as CollisionShape2D
+	var world_bounds := world.get_node("WorldBounds") as StaticBody2D
+	var query := PhysicsShapeQueryParameters2D.new()
+	query.shape = body_collision.shape
+	query.transform = body_collision.global_transform
+	query.collision_mask = pair.collision_mask
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
+	query.exclude = [pair.get_rid()]
+	var collisions: Array[Dictionary] = (
+		world.get_world_2d().direct_space_state.intersect_shape(query, 16)
+	)
+	for collision: Dictionary in collisions:
+		assert(
+			collision.get("collider") != world_bounds,
+			"Arrival for %s overlaps WorldBounds shape %s" % [
+				station_id,
+				str(collision.get("collider_shape", "unknown")),
+			]
+		)
+
 
 func _assert_station_labels_are_unique_and_contextual(world: Node, current_station_name: String) -> void:
 	var stations := world.get_node("Stations")
@@ -502,7 +518,12 @@ func _assert_motion_and_ambient_contract(world: Node) -> void:
 	root_position = pair.position
 	world.set_reduced_motion_enabled(false)
 	assert(world.direct_travel("strategy-room"))
-	assert(pair.call("visual_motion_state") == "walking")
+	assert(pair.position != root_position)
+	assert(not pair.call("is_auto_travelling"))
+	assert(pair.call("visual_motion_state") == "idle")
+	root_position = pair.position
+	pair.set_input_enabled(false)
+	pair.call("begin_auto_travel", Vector2.RIGHT)
 	# The sheet carries a real gait, so the frames have to be running while the pair
 	# walks and held on the standing pose whenever it is not.
 	assert(art_director.is_playing())
@@ -511,7 +532,7 @@ func _assert_motion_and_ambient_contract(world: Node) -> void:
 	assert(pair.call("visual_motion_state") == "walking")
 	assert(pair.facing_direction == "right")
 	assert(art_director.rotation > 0.0)
-	world.call("_begin_direct_travel_leg", pair, Vector2(-59.0, -134.0))
+	pair.call("update_auto_travel_direction", Vector2(-59.0, -134.0))
 	pair.call("_physics_process", 0.016)
 	assert(pair.call("visual_motion_state") == "walking")
 	assert(pair.facing_direction == "back")
@@ -523,7 +544,8 @@ func _assert_motion_and_ambient_contract(world: Node) -> void:
 	assert(art_director.scale.is_equal_approx(expected_sprite_scale))
 	assert(strategist.scale.is_equal_approx(expected_sprite_scale))
 	assert(pair.call("sprite_transforms_are_neutral") == false)
-	world.call("_finish_direct_travel")
+	pair.call("end_auto_travel")
+	pair.set_input_enabled(true)
 	assert(pair.call("visual_motion_state") == "idle")
 	assert(not art_director.is_playing())
 	assert(not strategist.is_playing())
@@ -531,7 +553,7 @@ func _assert_motion_and_ambient_contract(world: Node) -> void:
 	ambient.call("advance_ambient_motion", 0.25)
 	assert(ambient.call("pulse_amount") > 0.0)
 	assert(world.direct_travel("copy-room"))
-	assert(pair.call("is_auto_travelling"))
+	assert(not pair.call("is_auto_travelling"))
 	world.set_reduced_motion_enabled(true)
 	assert(pair.call("visual_motion_state") == "idle")
 	assert(not art_director.is_playing())

@@ -96,6 +96,14 @@ body:has([data-admarket-route="teacher-playtest"]) #creator-root {
   bottom: 0;
 }
 
+body:has([data-admarket-route="teacher-playtest"]) .creator__layers {
+  top: 84px;
+}
+
+body:has(.teacher-playtest-strip[data-expanded="true"]) .creator__layers {
+  top: 160px;
+}
+
 .teacher-page {
   width: min(1120px, calc(100% - 40px));
   margin: 0 auto;

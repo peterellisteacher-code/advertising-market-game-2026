@@ -59,6 +59,12 @@ describe("TeacherPlaytestController", () => {
       const creatorRoot = document.createElement("div");
       creatorRoot.id = "creator-root";
       document.body.append(creatorRoot);
+      const workspace = document.createElement("section");
+      workspace.className = "creator__workspace";
+      const layers = document.createElement("aside");
+      layers.className = "creator__layers";
+      workspace.append(layers);
+      creatorRoot.append(workspace);
       const root = createRoot();
       const controller = new TeacherPlaytestController({
         root,
@@ -84,6 +90,11 @@ describe("TeacherPlaytestController", () => {
       );
       expect(creatorStyle.top).toBe("0px");
       expect(creatorStyle.bottom).toBe("0px");
+      expect(getComputedStyle(layers).top).toBe("84px");
+
+      fireEvent.click(getByRole(root, "button", { name: "Show teacher controls" }));
+
+      expect(getComputedStyle(layers).top).toBe("160px");
     } finally {
       style.remove();
     }

@@ -173,8 +173,23 @@ describe("Fabric canvas layer styling", () => {
     expect(css).toMatch(
       /\.creator__canvas-size\s*\{[^}]*z-index:\s*11[^}]*\}/i
     );
+  });
+
+  it("keeps every canvas command reachable in one compact row at the widest library split", () => {
     expect(css).toMatch(
-      /\.creator__layers\s*\{[^}]*bottom:\s*6\.5rem[^}]*max-height:\s*calc\(100%\s*-\s*7\.5rem\)[^}]*\}/i
+      /\.creator__workspace\s*\{[^}]*--canvas-command-dock-bottom:\s*12px[^}]*--canvas-command-dock-height:\s*60px[^}]*--canvas-command-dock-clearance:\s*calc\(var\(--canvas-command-dock-bottom\)\s*\+\s*var\(--canvas-command-dock-height\)\s*\+\s*12px\)[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator__canvas-size\s*\{[^}]*left:\s*50%[^}]*bottom:\s*var\(--canvas-command-dock-bottom\)[^}]*width:\s*max-content[^}]*max-width:\s*calc\(100%\s*-\s*24px\)[^}]*display:\s*flex[^}]*flex-wrap:\s*nowrap[^}]*justify-content:\s*flex-start[^}]*overflow-x:\s*auto[^}]*scrollbar-width:\s*thin[^}]*transform:\s*translateX\(-50%\)[^}]*\}/i
+    );
+    expect(css).not.toMatch(
+      /\.creator__canvas-size\s*\{[^}]*grid-template-areas/i
+    );
+    expect(css).toMatch(
+      /\.creator__canvas-size\s+button\s*\{[^}]*width:\s*max-content[^}]*flex:\s*0\s+0\s+auto[^}]*white-space:\s*nowrap[^}]*\}/i
+    );
+    expect(css).toMatch(
+      /\.creator__layers\s*\{[^}]*bottom:\s*var\(--canvas-command-dock-clearance\)[^}]*max-height:\s*calc\(100%\s*-\s*var\(--canvas-command-dock-clearance\)\s*-\s*16px\)[^}]*overflow:\s*auto[^}]*\}/i
     );
   });
 

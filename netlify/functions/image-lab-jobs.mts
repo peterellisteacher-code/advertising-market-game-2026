@@ -8,10 +8,12 @@ import {
   OBJECT_FORGE_PROFILE,
   Z_IMAGE_LORA_PROFILE,
   assertGptImage2ConcreteSize,
+  composeAdvertisementRealisationPrompt,
   composeMakeItRealPrompt,
   composeObjectForgePrompt,
   parseFalImageRequest,
   type FalImageRequest,
+  type AdvertisementRealisationRequest,
   type MakeItRealRequest,
   type ObjectForgeRequest
 } from "./lib/fal-image-policy";
@@ -32,6 +34,7 @@ import {
   resolveAccountSession,
   type ResolvedAccountSession
 } from "./lib/account-backend";
+import { parseCloudProgressDocument } from "./lib/account-progress-document";
 import {
   clearAccountSessionCookies,
   serialiseAccountSessionCookies
@@ -67,6 +70,7 @@ import {
 export const OBJECT_FORGE_PROFILE_ID = "object-forge-gpt-image-2-low-v1";
 export const LEGACY_MAKE_IT_REAL_PROFILE_ID = "make-it-real-gpt-image-2-high-v1";
 export const MAKE_IT_REAL_PROFILE_ID = "make-it-real-gpt-image-2-high-v2";
+export const ADVERTISEMENT_REALISATION_PROFILE_ID = "make-it-real-advertisement-v1";
 export const Z_IMAGE_LORA_PROFILE_ID = "z-image-lora-v1";
 export const FLUX2_TURBO_EDIT_PROFILE_ID = "flux2-turbo-edit-v1";
 export const IMAGE_LAB_ASSET_MAX_BYTES = 8 * 1_048_576;
@@ -104,6 +108,10 @@ export interface ImageLabJobsDependencies {
   state?: ImageLabJobsState;
   resolveSession?: (request: Request) => Promise<ResolvedAccountSession>;
   allowances?: ImageLabAllowanceStore;
+  authoriseAdvertisement?: (
+    userId: string,
+    request: AdvertisementRealisationRequest
+  ) => Promise<boolean>;
 }
 
 export interface ImageLabJobsState {
@@ -161,6 +169,10 @@ interface ResolvedDependencies {
   state?: ImageLabJobsState;
   resolveSession?: (request: Request) => Promise<ResolvedAccountSession>;
   allowances?: ImageLabAllowanceStore;
+  authoriseAdvertisement?: (
+    userId: string,
+    request: AdvertisementRealisationRequest
+  ) => Promise<boolean>;
 }
 
 interface JobBinding {
@@ -217,7 +229,10 @@ const resolveDependencies = (dependencies: ImageLabJobsDependencies): ResolvedDe
   createDeadlineSignal: dependencies.createDeadlineSignal ?? (() => AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)),
   ...(dependencies.state === undefined ? {} : { state: dependencies.state }),
   ...(dependencies.resolveSession === undefined ? {} : { resolveSession: dependencies.resolveSession }),
-  ...(dependencies.allowances === undefined ? {} : { allowances: dependencies.allowances })
+  ...(dependencies.allowances === undefined ? {} : { allowances: dependencies.allowances }),
+  ...(dependencies.authoriseAdvertisement === undefined
+    ? {}
+    : { authoriseAdvertisement: dependencies.authoriseAdvertisement })
 });
 
 function requireReadyEnvironment(record: ImageLabEnvironmentRecord): ReadyImageLabEnvironment {
@@ -227,6 +242,50 @@ function requireReadyEnvironment(record: ImageLabEnvironmentRecord): ReadyImageL
 }
 
 type AuthenticatedAccountSession = Extract<ResolvedAccountSession, { authenticated: true }>;
+
+const advertisementText = (value: string, maximum: number): string =>
+  value.replace(/\s+/gu, " ").trim().slice(0, maximum);
+
+const plainRecord = (value: unknown): Record<string, unknown> | null =>
+  value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+
+async function defaultAuthoriseAdvertisement(
+  userId: string,
+  request: AdvertisementRealisationRequest,
+  environment: ImageLabEnvironmentRecord,
+  fetcher: typeof fetch
+): Promise<boolean> {
+  const client = new SupabaseAccountClient(parseAccountEnvironment(environment), fetcher);
+  const result = plainRecord(await client.progressRpc({
+    userId,
+    operation: "load",
+    documentId: request.documentId,
+    schema: "advertising-game-progress",
+    version: 1
+  }));
+  if (result?.status !== "found") return false;
+  let document;
+  try {
+    document = parseCloudProgressDocument(result.document, request.documentId);
+  } catch {
+    return false;
+  }
+  if (document.workspaceMode !== "assignment-sandbox") return false;
+  const expected: AdvertisementRealisationRequest["context"] = {
+    productName: advertisementText(document.product.name, 96),
+    productFunction: advertisementText(document.assignmentPlan.productFunction, 280),
+    targetAudience: advertisementText(document.assignmentPlan.targetAudience, 160),
+    advertisingLocation: advertisementText(document.assignmentPlan.advertisingLocation, 160),
+    attention: advertisementText(document.strategy.aidaPlan.attention, 280),
+    interest: advertisementText(document.strategy.aidaPlan.interest, 280),
+    desire: advertisementText(document.strategy.aidaPlan.desire, 280),
+    action: advertisementText(document.strategy.aidaPlan.action, 280)
+  };
+  return Object.entries(expected).every(([key, value]) =>
+    request.context[key as keyof typeof expected] === value);
+}
 
 const rotatedAccountCookies = (
   session: AuthenticatedAccountSession
@@ -393,6 +452,19 @@ function makeItRealInput(request: MakeItRealRequest): Readonly<Record<string, un
   };
 }
 
+function advertisementRealisationInput(
+  request: AdvertisementRealisationRequest
+): Readonly<Record<string, unknown>> {
+  return {
+    image_urls: [request.designDataUrl],
+    image_size: gptImage2InputSize(MAKE_IT_REAL_PROFILE.imageSize),
+    quality: MAKE_IT_REAL_PROFILE.quality,
+    output_format: MAKE_IT_REAL_PROFILE.outputFormat,
+    num_images: MAKE_IT_REAL_PROFILE.images,
+    prompt: composeAdvertisementRealisationPrompt(request)
+  };
+}
+
 function flux2TurboEditInput(request: MakeItRealRequest): Readonly<Record<string, unknown>> {
   return {
     image_urls: [request.designDataUrl],
@@ -431,6 +503,15 @@ function resolveSubmissionProfile(
   request: FalImageRequest,
   environment: ImageLabEnvironmentRecord
 ): SubmissionProfile {
+  if ("mode" in request) {
+    return {
+      profileId: ADVERTISEMENT_REALISATION_PROFILE_ID,
+      modelId: MAKE_IT_REAL_PROFILE.model,
+      width: MAKE_IT_REAL_PROFILE.width,
+      height: MAKE_IT_REAL_PROFILE.height,
+      input: advertisementRealisationInput(request)
+    };
+  }
   const objectProfileId = environment.IMAGE_LAB_OBJECT_PROFILE_ID ?? OBJECT_FORGE_PROFILE_ID;
   const realiseProfileId = environment.IMAGE_LAB_REALISE_PROFILE_ID ?? MAKE_IT_REAL_PROFILE_ID;
   if (objectProfileId !== OBJECT_FORGE_PROFILE_ID && objectProfileId !== Z_IMAGE_LORA_PROFILE_ID ||
@@ -601,6 +682,17 @@ async function submitJob(
     }
     throw error;
   }
+  if ("mode" in parsed && parsed.mode === "advertisement") {
+    const authorised = dependencies.authoriseAdvertisement === undefined
+      ? await defaultAuthoriseAdvertisement(
+          account.identity.userId,
+          parsed,
+          environmentRecord,
+          dependencies.fetch
+        )
+      : await dependencies.authoriseAdvertisement(account.identity.userId, parsed);
+    if (!authorised) throw new ImageLabJobsError("INVALID_REQUEST", 403);
+  }
   const profile = resolveSubmissionProfile(parsed, environmentRecord);
   const stage = jobStage(parsed);
   const identity = { userId: account.identity.userId };
@@ -732,6 +824,15 @@ async function requireBoundJob(
     };
   }
   if (job.stage === "make-it-real" && job.profileId === MAKE_IT_REAL_PROFILE_ID) {
+    return {
+      job,
+      stored,
+      modelId: MAKE_IT_REAL_PROFILE.model,
+      width: MAKE_IT_REAL_PROFILE.width,
+      height: MAKE_IT_REAL_PROFILE.height
+    };
+  }
+  if (job.stage === "make-it-real" && job.profileId === ADVERTISEMENT_REALISATION_PROFILE_ID) {
     return {
       job,
       stored,

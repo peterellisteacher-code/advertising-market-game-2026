@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createEditorShell } from "./editor-shell";
+import { STUDENT_COPY } from "../game/student-copy";
 
 describe("createEditorShell", () => {
   it("applies one large-text token across creator controls and dialogs", () => {
@@ -97,10 +98,25 @@ describe("createEditorShell", () => {
     expect(shell.marketRoutePanel.dataset.marketRoutePanel).toBe("");
     expect(root.querySelector('[data-studio-panel="aida"][aria-label="AIDA techniques"]')).toBeTruthy();
     expect(shell.aidaPlaybookPanel.dataset.aidaPlaybookPanel).toBe("");
+    expect(shell.assignmentPlannerPanel.dataset.assignmentPlannerPanel).toBe("");
+    expect(root.querySelector("[data-sandbox-label]")?.textContent)
+      .toBe(STUDENT_COPY.assignmentSandbox.label);
+    expect(root.querySelector<HTMLElement>("[data-sandbox-label]")?.hidden).toBe(true);
+    expect(root.querySelector<HTMLElement>("[data-sandbox-label]")?.hasAttribute("inert"))
+      .toBe(true);
+    expect(shell.assignmentPlannerPanel.hidden).toBe(true);
+    expect(shell.assignmentPlannerPanel.hasAttribute("inert")).toBe(true);
+    expect(root.querySelectorAll("[data-guided-only]").length).toBeGreaterThanOrEqual(2);
     expect(root.querySelector('[data-studio-panel="coach"][aria-label="Studio Coach"]')).toBeTruthy();
     expect(shell.studioCoachPanel.dataset.studioCoachPanel).toBe("");
     expect(root.querySelector('[data-studio-panel="image"][aria-label="Image Lab"]')).toBeTruthy();
     expect(shell.imageLabPanel.dataset.imageLabPanel).toBe("");
+    expect(shell.studentImageUploadPanel.dataset.studentImageUploadPanel).toBe("");
+    expect(shell.studentImageUploadPanel.dataset.sandboxOnly).toBe("");
+    expect(shell.studentImageUploadPanel.hidden).toBe(true);
+    expect(shell.studentImageUploadPanel.hasAttribute("inert")).toBe(true);
+    expect(shell.studentImageUploadPanel.compareDocumentPosition(shell.imageLabPanel) &
+      Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     expect(root.querySelector('[data-product-shell-select]')).toBeNull();
     const livePhotos = getByRole<HTMLInputElement>(root, "checkbox", { name: "Show photo products", hidden: true });
     expect(livePhotos.checked).toBe(false);
@@ -290,7 +306,7 @@ describe("createEditorShell", () => {
     expect(sizeControls.contains(shell.undo)).toBe(true);
     expect(sizeControls.contains(shell.redo)).toBe(true);
     expect(sizeControls.contains(shell.saveStatus)).toBe(true);
-    expect(root.textContent).not.toMatch(/\b(?:assignment|unit|canvas)\b/i);
+    expect(root.textContent).not.toMatch(/\b(?:unit|canvas)\b/i);
   });
 
   it("opens and closes the full brief without adding a floating drawer control", () => {

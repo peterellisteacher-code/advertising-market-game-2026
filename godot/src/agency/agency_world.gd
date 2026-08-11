@@ -138,6 +138,7 @@ const OBJECTIVE_STATIONS := {
 	"present-campaign": "pitch-theatre",
 }
 const NEAR_STATION_DISTANCE := 92.0
+const STATION_PANEL_VIEWPORT_MARGIN := Vector2(16.0, 16.0)
 
 var reduced_motion_enabled: bool = false
 var _progress: AdMarketAgencyProgress
@@ -146,6 +147,9 @@ var _station_details_visible: bool = false
 var _station_panel_tucked: bool = false
 
 func _ready() -> void:
+	var viewport := get_viewport()
+	if viewport != null and not viewport.size_changed.is_connected(_fit_station_panel_to_viewport):
+		viewport.size_changed.connect(_fit_station_panel_to_viewport)
 	_connect_controls()
 	_ensure_travel_items()
 	_configure_stations()
@@ -235,13 +239,12 @@ func current_station_id() -> String:
 	return _current_station_id
 
 func objective_station_id() -> String:
-	if _progress == null:
-		return "client-briefing"
-	return String(OBJECTIVE_STATIONS.get(_progress.current_objective_id, "reception"))
+	var objective := _guidance_objective()
+	return String(objective.get("stationId", "reception"))
 
 func accessibility_state() -> Dictionary:
 	var objective_id := "meet-client" if _progress == null else _progress.current_objective_id
-	var objective: Dictionary = MissionCatalog.objective(objective_id)
+	var objective := _guidance_objective()
 	var station: Dictionary = STATION_DATA.get(_current_station_id, STATION_DATA.get("reception", {}))
 	var active_role := "strategist" if _progress == null else _progress.active_role
 	var role_name := "Art Director" if active_role == "art-director" else "Strategist"
@@ -280,6 +283,8 @@ func _connect_controls() -> void:
 	if hud != null:
 		if not hud.direct_travel_requested.is_connected(_on_guidance_travel_requested):
 			hud.direct_travel_requested.connect(_on_guidance_travel_requested)
+		if not hud.objective_task_requested.is_connected(_on_objective_task_requested):
+			hud.objective_task_requested.connect(_on_objective_task_requested)
 		if not hud.guide_requested.is_connected(_on_hud_guide_requested):
 			hud.guide_requested.connect(_on_hud_guide_requested)
 		if not hud.sound_muted_requested.is_connected(_on_hud_sound_muted_requested):
@@ -288,6 +293,8 @@ func _connect_controls() -> void:
 	if guide != null:
 		if not guide.direct_travel_requested.is_connected(_on_guidance_travel_requested):
 			guide.direct_travel_requested.connect(_on_guidance_travel_requested)
+		if not guide.objective_task_requested.is_connected(_on_objective_task_requested):
+			guide.objective_task_requested.connect(_on_objective_task_requested)
 		if not guide.role_handoff_requested.is_connected(_on_guide_role_handoff_requested):
 			guide.role_handoff_requested.connect(_on_guide_role_handoff_requested)
 		if not guide.audio_settings_requested.is_connected(_on_guide_audio_settings_requested):
@@ -402,7 +409,7 @@ func _set_current_station(station_id: String, update_progress: bool) -> void:
 
 func _update_objective_bar() -> void:
 	var objective_id := "meet-client" if _progress == null else _progress.current_objective_id
-	var objective: Dictionary = MissionCatalog.objective(objective_id)
+	var objective := _guidance_objective()
 	var objective_label := get_node_or_null("%ObjectiveLabel") as Label
 	if objective_label != null:
 		objective_label.text = String(objective.get("title", objective_id.capitalize()))
@@ -455,6 +462,7 @@ func _update_station_state() -> void:
 		hud.select_station(_current_station_id)
 	_set_station_details_visible(_station_details_visible)
 	_set_station_panel_tucked(_station_panel_tucked)
+	call_deferred("_fit_station_panel_to_viewport")
 
 func _set_station_details_visible(visible: bool) -> void:
 	_station_details_visible = visible
@@ -464,6 +472,7 @@ func _set_station_details_visible(visible: bool) -> void:
 	var button := get_node_or_null("%StationDetailsToggle") as Button
 	if button != null:
 		button.text = "Hide room details" if visible else "Show room details"
+	call_deferred("_fit_station_panel_to_viewport")
 
 func _set_station_panel_tucked(tucked: bool) -> void:
 	_station_panel_tucked = tucked
@@ -475,6 +484,27 @@ func _set_station_panel_tucked(tucked: bool) -> void:
 		var record: Dictionary = STATION_DATA.get(_current_station_id, {})
 		tab.text = "Open %s" % String(record.get("title", "room card"))
 		tab.visible = tucked
+	if not tucked:
+		call_deferred("_fit_station_panel_to_viewport")
+
+func _fit_station_panel_to_viewport() -> void:
+	var panel := get_node_or_null("%StationPanel") as Control
+	if panel == null or not panel.visible or not panel.is_inside_tree():
+		return
+	panel.reset_size()
+	var viewport_size := get_viewport_rect().size
+	var maximum_size := Vector2(
+		maxf(1.0, viewport_size.x - STATION_PANEL_VIEWPORT_MARGIN.x * 2.0),
+		maxf(1.0, viewport_size.y - STATION_PANEL_VIEWPORT_MARGIN.y * 2.0)
+	)
+	panel.size = panel.size.min(maximum_size)
+	var maximum_position := (
+		viewport_size - panel.size - STATION_PANEL_VIEWPORT_MARGIN
+	).max(STATION_PANEL_VIEWPORT_MARGIN)
+	panel.global_position = panel.global_position.clamp(
+		STATION_PANEL_VIEWPORT_MARGIN,
+		maximum_position
+	)
 
 func _focus_visible_station_control() -> void:
 	if reading_active():
@@ -583,6 +613,19 @@ func _on_hud_sound_muted_requested(muted: bool) -> void:
 
 func _on_guidance_travel_requested(station_id: String) -> void:
 	direct_travel(station_id)
+
+func _on_objective_task_requested(station_id: String) -> void:
+	var mission := _next_required_mission()
+	if not mission.is_empty():
+		var mission_station_id := String(mission.get("stationId", station_id))
+		if not direct_travel(mission_station_id) or _progress == null:
+			return
+		var controller := _mission_controller()
+		if controller != null:
+			controller.open_mission(String(mission.get("id", "")), _progress.active_role)
+		return
+	if direct_travel(station_id):
+		station_requested.emit(station_id)
 
 func _on_guide_tucked_changed(tucked: bool) -> void:
 	var hud := _hud()
@@ -736,6 +779,35 @@ func _station_node(station_id: String) -> AdMarketAgencyStation:
 	if node_name.is_empty():
 		return null
 	return get_node_or_null("Stations/%s" % node_name) as AdMarketAgencyStation
+
+func _next_required_mission() -> Dictionary:
+	var required_records: Array[Dictionary] = MissionCatalog.required_missions()
+	var total := required_records.size()
+	if _progress == null:
+		return required_records[0].duplicate(true) if total > 0 else {}
+	for index in total:
+		var record := required_records[index]
+		var mission_id := String(record.get("id", ""))
+		if mission_id.is_empty() or _progress.completed_mission_ids.has(mission_id):
+			continue
+		return {
+			"id": mission_id,
+			"missionId": mission_id,
+			"stationId": String(record.get("stationId", "reception")),
+			"title": "Task %d of %d: %s" % [index + 1, total, String(record.get("title", "Agency task"))],
+			"action": String(record.get("instruction", "Complete the task.")),
+			"reason": String(record.get("goal", "Use the result in the advertisement.")),
+			"ownerRole": String(record.get("ownerRole", "strategist")),
+			"holdingAction": String(record.get("holdingAction", "Check the decision against the audience.")),
+		}
+	return {}
+
+func _guidance_objective() -> Dictionary:
+	var mission := _next_required_mission()
+	if not mission.is_empty():
+		return mission
+	var objective_id := "meet-client" if _progress == null else _progress.current_objective_id
+	return MissionCatalog.objective(objective_id)
 
 func _next_mission_for_station(station_id: String) -> Dictionary:
 	if _progress == null:

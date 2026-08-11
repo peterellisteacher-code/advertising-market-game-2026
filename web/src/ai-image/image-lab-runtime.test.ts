@@ -44,6 +44,17 @@ const preparedObject = () => ({
   height: 512
 });
 
+const advertisementContext = {
+  productName: "Orbit Bottle",
+  productFunction: "Keeps water cold through the school day",
+  targetAudience: "Senior students who carry water all day",
+  advertisingLocation: "Bus shelter near school",
+  attention: "The icy bottle against a hot orange background",
+  interest: "A temperature display and replaceable filter",
+  desire: "Feel prepared, calm and refreshed all day",
+  action: "Scan the code to choose a colour"
+};
+
 describe("ImageLabRuntime", () => {
   it("loads fresh account status and restarts an aborted first lookup", async () => {
     const calls: AbortSignal[] = [];
@@ -207,6 +218,63 @@ describe("ImageLabRuntime", () => {
         stage: "make-it-real",
         profileId: "make-it-real-v1",
         requestId: "generation-real-1"
+      })
+    );
+  });
+
+  it("reads advertisement context once, submits the separate profile, and places one editable result", async () => {
+    const api = client({
+      createJob: vi.fn().mockResolvedValue({
+        jobToken: "opaque-advertisement-token",
+        stage: "realise",
+        remaining: { object: 6, realise: 1 }
+      })
+    });
+    const exported = "data:image/png;base64,iVBORw0KGgo=";
+    const preparedReference = "data:image/png;base64,cmVmZXJlbmNl";
+    const prepare = vi.fn().mockResolvedValue({
+      blob: new Blob(["reference"], { type: "image/png" }),
+      dataUrl: preparedReference,
+      width: 1024,
+      height: 576
+    });
+    const getAdvertisementContext = vi.fn(() => ({
+      documentId: "assignment-sandbox",
+      context: advertisementContext
+    }));
+    const place = vi.fn().mockResolvedValue(undefined);
+    const runtime = new ImageLabRuntime({
+      client: api,
+      exportDesign: vi.fn(() => exported),
+      getAdvertisementContext,
+      place,
+      prepare,
+      createId: () => "generation-advertisement-1",
+      isCurrentPair: () => true
+    });
+
+    await runtime.makeAdvertisementReal({
+      sessionId: "session-a",
+      teamId: "team-a"
+    }, new AbortController().signal);
+
+    expect(getAdvertisementContext).toHaveBeenCalledOnce();
+    expect(getAdvertisementContext).toHaveBeenCalledWith({ sessionId: "session-a", teamId: "team-a" });
+    expect(api.createJob).toHaveBeenCalledWith({
+      stage: "realise",
+      mode: "advertisement",
+      idempotencyKey: "generation-advertisement-1",
+      documentId: "assignment-sandbox",
+      designDataUrl: preparedReference,
+      context: advertisementContext
+    }, { signal: expect.any(AbortSignal) });
+    expect(place).toHaveBeenCalledWith(
+      { sessionId: "session-a", teamId: "team-a" },
+      expect.objectContaining({
+        title: "Orbit Bottle advertisement",
+        stage: "make-it-real",
+        profileId: "make-it-real-advertisement-v1",
+        requestId: "generation-advertisement-1"
       })
     );
   });

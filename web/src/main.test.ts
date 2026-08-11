@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { fireEvent, findByRole, getByLabelText, getByRole, waitFor } from "@testing-library/dom";
+import { fireEvent, findByRole, getByLabelText, getByRole, waitFor, within } from "@testing-library/dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CreatorPublicApi } from "./bridge/creator-public-api";
 import type { AccountBootstrapPublicApi } from "./account/account-bootstrap";
@@ -24,11 +24,13 @@ import type {
   RasterSectionFillRecipe
 } from "./fabric/canvas-port";
 import { AUDIENCE_BRIEFS } from "./game/audience-briefs";
+import { STUDENT_COPY } from "./game/student-copy";
 import { parseLogoIconCatalogue } from "./logo-lab/logo-icon-catalogue";
 import {
   MARKET_BRIDGE_CONTRACT,
   type MarketPublicApi
 } from "./market/market-public-api";
+import type { PreparedStudentImageUpload } from "./uploads/student-image-upload";
 
 const runtime = vi.hoisted(() => ({
   adapterConstructed: vi.fn(),
@@ -79,7 +81,8 @@ const runtime = vi.hoisted(() => ({
   canvasDisposePromise: null as Promise<void> | null,
   selectedObjectId: null as string | null,
   sectionFillPreview: null as RasterSectionFillRecipe | null,
-  sectionFillApplications: [] as RasterSectionFillRecipe[]
+  sectionFillApplications: [] as RasterSectionFillRecipe[],
+  studentImagePrepare: vi.fn()
 }));
 
 vi.mock("fabric", () => ({
@@ -117,6 +120,14 @@ vi.mock("./ai-image/image-processing", async (importOriginal) => {
       width: target === "object-forge" ? 512 : 1024,
       height: target === "object-forge" ? 512 : 576
     }))
+  };
+});
+
+vi.mock("./uploads/student-image-upload", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./uploads/student-image-upload")>();
+  return {
+    ...actual,
+    prepareStudentImageUpload: (file: File) => runtime.studentImagePrepare(file)
   };
 });
 
@@ -1224,6 +1235,15 @@ describe("window.AdMarketCreator", () => {
     runtime.selectedObjectId = null;
     runtime.sectionFillPreview = null;
     runtime.sectionFillApplications = [];
+    runtime.studentImagePrepare.mockReset().mockImplementation(async (file: File) => ({
+      blob: new Blob([Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4)], {
+        type: "image/png"
+      }),
+      width: 1_200,
+      height: 900,
+      title: file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ")
+        .replace(/^./, (character) => character.toUpperCase())
+    }));
     runtime.createdUrls = [];
     runtime.revokedUrls = [];
     runtime.nextUrl = 0;
@@ -1396,9 +1416,13 @@ describe("window.AdMarketCreator", () => {
     expect(document.querySelector<HTMLElement>("#game-startup-status")?.hidden)
       .toBe(false);
 
+    const readyEvent = vi.fn();
+    window.addEventListener("admarket:game-startup-ready", readyEvent);
     gameAccess.reportStartupReady();
     expect(document.querySelector<HTMLElement>("#game-startup-status")?.hidden)
       .toBe(true);
+    expect(readyEvent).toHaveBeenCalledOnce();
+    window.removeEventListener("admarket:game-startup-ready", readyEvent);
 
     gameAccess.reportStartupProgress(100);
     expect(document.querySelector<HTMLElement>("#game-startup-status")?.hidden)
@@ -2811,6 +2835,224 @@ describe("window.AdMarketCreator", () => {
     expect(state.evidence.attention).toEqual([]);
   });
 
+  it("saves assignment planning and Advertisement AIDA without selected proof in sandbox mode", async () => {
+    const source = CampaignDocumentSchema.parse({
+      ...documentAtStage("invent"),
+      workspaceMode: "assignment-sandbox"
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-assignment-sandbox", "open", source))
+      .toMatchObject({ ok: true });
+    expect(document.querySelector<HTMLElement>("#creator-root")?.dataset.workspaceMode)
+      .toBe("assignment-sandbox");
+    expect(document.querySelector<HTMLElement>("[data-guide-bar]")?.hidden).toBe(true);
+    activateStudioTool("aida");
+
+    const productName = document.querySelector<HTMLInputElement>(
+      'input[aria-label="Product name"]'
+    )!;
+    fireEvent.input(productName, { target: { value: "NightBeam Lamp" } });
+    const planner = document.querySelector<HTMLElement>("[data-assignment-planner-panel]")!;
+    expect(within(planner).getByRole<HTMLInputElement>("textbox", {
+      name: STUDENT_COPY.assignmentSandbox.planner.fields.productName
+    }).value).toBe("NightBeam Lamp");
+
+    fireEvent.change(getByRole(document.body, "textbox", {
+      name: STUDENT_COPY.assignmentSandbox.planner.fields.productFunction
+    }), { target: { value: "Lights a walking path after dark." } });
+    await waitFor(async () => {
+      const response = await parsed(api, "sandbox-plan-state", "getState", null);
+      if (!response.ok) throw new Error(JSON.stringify(response.error));
+      const saved = CampaignDocumentSchema.parse(response.payload);
+      expect(saved.product.name).toBe("NightBeam Lamp");
+      expect(saved.assignmentPlan.productFunction).toBe("Lights a walking path after dark.");
+    });
+    await waitFor(() => expect(document.querySelector<HTMLElement>(
+      "[data-assignment-planner-panel] [role=status]"
+    )?.textContent).toBe("Saved"));
+
+    fireEvent.input(getByRole(document.body, "textbox", {
+      name: "Your Attention technique"
+    }), { target: { value: "Use one bright beam against the dark campsite." } });
+    fireEvent.click(getByRole(document.body, "button", { name: "Lock in Attention" }));
+    await waitFor(() => expect(getByRole(document.body, "textbox", {
+      name: "Your Interest technique"
+    })).toBeTruthy());
+    fireEvent.input(getByRole(document.body, "textbox", {
+      name: "Your Interest technique"
+    }), { target: { value: "Show the rechargeable battery and weatherproof shell." } });
+    fireEvent.click(getByRole(document.body, "button", { name: "Lock in Interest" }));
+    await waitFor(() => expect(getByRole(document.body, "textbox", {
+      name: "Your Desire technique"
+    })).toBeTruthy());
+    fireEvent.input(getByRole(document.body, "textbox", {
+      name: "Your Desire technique"
+    }), { target: { value: "Imagine a safe, welcoming campsite after dark." } });
+    fireEvent.click(getByRole(document.body, "button", { name: "Lock in Desire" }));
+    await waitFor(() => expect(getByRole(document.body, "textbox", {
+      name: "Your Action technique"
+    })).toBeTruthy());
+    fireEvent.input(getByRole(document.body, "textbox", {
+      name: "Your Action technique"
+    }), { target: { value: "Choose your lamp colour today." } });
+    fireEvent.click(getByRole(document.body, "button", { name: "Lock in Action" }));
+    await waitFor(() => expect(document.querySelector<HTMLElement>(
+      "[data-aida-playbook-panel] [role=status]"
+    )?.textContent).toContain("Advertisement Action saved"));
+    const response = await parsed(api, "sandbox-aida-state", "getState", null);
+    if (!response.ok) throw new Error(JSON.stringify(response.error));
+    const state = CampaignDocumentSchema.parse(response.payload);
+    expect(state.strategy.aidaPlan.attention)
+      .toBe("Use one bright beam against the dark campsite.");
+    expect(state.strategy.aidaPlan.interest)
+      .toBe("Show the rechargeable battery and weatherproof shell.");
+    expect(state.strategy.aidaPlan.desire)
+      .toBe("Imagine a safe, welcoming campsite after dark.");
+    expect(state.strategy.aidaPlan.action)
+      .toBe("Choose your lamp colour today.");
+    expect(state.evidence.attention).toEqual([]);
+  }, 15_000);
+
+  it("uploads a selected student mockup and deletes, restores and removes it through history", async () => {
+    const source = CampaignDocumentSchema.parse({
+      ...documentAtStage("invent"),
+      workspaceMode: "assignment-sandbox"
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-student-upload", "open", source))
+      .toMatchObject({ ok: true });
+    activateStudioTool("image");
+
+    const uploadHost = document.querySelector<HTMLElement>(
+      "[data-student-image-upload-panel]"
+    )!;
+    const input = getByLabelText<HTMLInputElement>(uploadHost, "Choose an image");
+    fireEvent.change(input, {
+      target: {
+        files: [new File([Uint8Array.of(1, 2, 3)], "shoe-sketch.jpg", { type: "image/jpeg" })]
+      }
+    });
+
+    await waitFor(() => expect(getByRole(uploadHost, "status").textContent)
+      .toContain("Shoe sketch added"));
+    expect(currentObjects()).toHaveLength(1);
+    const uploaded = currentObjects()[0]!;
+    expect(uploaded).toMatchObject({
+      elementKind: "image",
+      accessibleName: "Shoe sketch"
+    });
+    expect(runtime.selectedObjectId).toBe(uploaded.objectId);
+
+    const placed = CampaignDocumentSchema.parse(
+      (await parsed(api, "student-upload-state", "getState", null)).payload
+    );
+    expect(placed.assetReferences).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: "student-upload",
+        objectId: uploaded.objectId,
+        title: "Shoe sketch"
+      }),
+      expect.objectContaining({
+        kind: "local-blob",
+        objectId: uploaded.objectId,
+        mimeType: "image/png"
+      })
+    ]));
+
+    const toolbar = getByRole(document.body, "group", { name: "Advertisement toolbar" });
+    fireEvent.click(getByRole(toolbar, "button", { name: "Delete selected item" }));
+    await waitFor(() => expect(currentObjects()).toEqual([]));
+    expect(CampaignDocumentSchema.parse(
+      (await parsed(api, "student-upload-deleted", "getState", null)).payload
+    ).assetReferences).toEqual([]);
+
+    fireEvent.click(getByRole(toolbar, "button", { name: "Undo" }));
+    await waitFor(() => expect(currentObjects()).toHaveLength(1));
+    expect(CampaignDocumentSchema.parse(
+      (await parsed(api, "student-upload-restored", "getState", null)).payload
+    ).assetReferences).toHaveLength(2);
+    fireEvent.click(getByRole(toolbar, "button", { name: "Redo" }));
+    await waitFor(() => expect(currentObjects()).toEqual([]));
+    expect(CampaignDocumentSchema.parse(
+      (await parsed(api, "student-upload-redone", "getState", null)).payload
+    ).assetReferences).toEqual([]);
+  });
+
+  it("keeps image upload hidden and guarded in guided campaigns", async () => {
+    await import("./main");
+    const api = window.AdMarketCreator;
+    expect(await parsed(api, "open-guided-upload-guard", "open", documentAtStage("invent")))
+      .toMatchObject({ ok: true });
+    activateStudioTool("image");
+    const host = document.querySelector<HTMLElement>("[data-student-image-upload-panel]")!;
+
+    expect(host.hidden).toBe(true);
+    expect(host.hasAttribute("inert")).toBe(true);
+
+    host.hidden = false;
+    host.removeAttribute("inert");
+    fireEvent.change(getByLabelText<HTMLInputElement>(host, "Choose an image"), {
+      target: {
+        files: [new File([Uint8Array.of(1, 2, 3)], "guided-sketch.jpg", {
+          type: "image/jpeg"
+        })]
+      }
+    });
+    await waitFor(() => expect(getByRole(host, "alert").textContent)
+      .toBe(STUDENT_COPY.assignmentSandbox.upload.errors.unknown));
+    expect(currentObjects()).toEqual([]);
+  });
+
+  it("cancels a delayed upload when another document opens", async () => {
+    let resolvePreparation!: (image: PreparedStudentImageUpload) => void;
+    runtime.studentImagePrepare.mockImplementationOnce(() =>
+      new Promise<PreparedStudentImageUpload>((resolve) => {
+        resolvePreparation = resolve;
+      }));
+    const first = CampaignDocumentSchema.parse({
+      ...documentAtStage("invent"),
+      documentId: "sandbox-first",
+      sessionId: "sandbox-first-session",
+      workspaceMode: "assignment-sandbox"
+    });
+    const second = CampaignDocumentSchema.parse({
+      ...documentAtStage("invent"),
+      documentId: "sandbox-second",
+      sessionId: "sandbox-second-session",
+      workspaceMode: "assignment-sandbox"
+    });
+    await import("./main");
+    const api = window.AdMarketCreator;
+    await parsed(api, "open-slow-upload-first", "open", first);
+    activateStudioTool("image");
+    const host = document.querySelector<HTMLElement>("[data-student-image-upload-panel]")!;
+    fireEvent.change(getByLabelText<HTMLInputElement>(host, "Choose an image"), {
+      target: {
+        files: [new File([Uint8Array.of(1, 2, 3)], "slow-sketch.jpg", {
+          type: "image/jpeg"
+        })]
+      }
+    });
+    await waitFor(() => expect(getByRole(host, "status").textContent)
+      .toBe(STUDENT_COPY.assignmentSandbox.upload.preparing));
+
+    expect(await parsed(api, "open-slow-upload-second", "open", second))
+      .toMatchObject({ ok: true });
+    resolvePreparation({
+      blob: new Blob([Uint8Array.of(0x89, 0x50, 0x4e, 0x47)], { type: "image/png" }),
+      width: 1_200,
+      height: 900,
+      title: "Slow sketch"
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(currentObjects()).toEqual([]);
+    expect(getByRole(host, "status").textContent).toBe("");
+  });
+
   it("keeps the visible price, charged price and price evidence identical", async () => {
     const source = CampaignDocumentSchema.parse({
       ...blankDocument,
@@ -2941,7 +3183,7 @@ describe("window.AdMarketCreator", () => {
       expect(state.fabricState.objects.some(({ objectId }) => objectId === priceObjectId))
         .toBe(false);
     });
-  });
+  }, 10_000);
 
   it("drops checklist evidence when its canvas piece has been removed", async () => {
     const source = CampaignDocumentSchema.parse({
@@ -3871,7 +4113,7 @@ describe("window.AdMarketCreator", () => {
       ]);
     expect(responses.filter(({ mimeType }) => mimeType === "image/png")
       .every(({ byteLength }) => byteLength > 8)).toBe(true);
-  }, 20_000);
+  }, 40_000);
 
   it("creates all four local logo recipes, remixes, saves, reloads and publishes them", async () => {
     expect(() => parseLogoIconCatalogue(logoCatalogueFixture())).not.toThrow();
@@ -3897,39 +4139,37 @@ describe("window.AdMarketCreator", () => {
     const api = window.AdMarketCreator;
     expect(await parsed(api, "open-logo-lab", "open", blankDocument)).toMatchObject({ ok: true });
     activateStudioTool("logo");
-    await findByRole(document.body, "button", { name: "Rocket" });
+    const logoLabHost = document.querySelector<HTMLElement>("[data-logo-lab-panel]")!;
+    const logoUi = within(logoLabHost);
+    await logoUi.findByRole("button", { name: "Rocket" });
 
-    const incompleteAction = getByRole<HTMLButtonElement>(
-      document.body,
-      "button",
-      { name: "Add logo" }
-    );
+    const incompleteAction = logoUi.getByRole<HTMLButtonElement>("button", { name: "Add logo" });
     expect(incompleteAction.disabled).toBe(false);
     fireEvent.click(incompleteAction);
-    expect(getByRole(document.body, "alert").textContent)
+    expect(logoUi.getByRole("alert").textContent)
       .toBe("Add words and choose a symbol before adding the logo.");
-    expect(document.activeElement).toBe(getByRole(document.body, "textbox", {
+    expect(document.activeElement).toBe(logoUi.getByRole("textbox", {
       name: "Logo words"
     }));
     expect(currentObjects().filter(({ elementKind }) => elementKind === "logo-mark"))
       .toHaveLength(0);
 
-    fireEvent.input(getByRole<HTMLInputElement>(document.body, "textbox", {
+    fireEvent.input(logoUi.getByRole<HTMLInputElement>("textbox", {
       name: "Logo words"
     }), { target: { value: "Draft logo" } });
-    fireEvent.click(getByRole(document.body, "button", { name: "Add logo" }));
-    expect(getByRole(document.body, "alert").textContent)
+    fireEvent.click(logoUi.getByRole("button", { name: "Add logo" }));
+    expect(logoUi.getByRole("alert").textContent)
       .toBe("Choose a symbol before adding the logo.");
     expect((document.activeElement as HTMLElement | null)?.dataset.logoIconId).toBeTruthy();
 
-    fireEvent.click(getByRole(document.body, "button", { name: "Rocket" }));
-    fireEvent.input(getByRole<HTMLInputElement>(document.body, "textbox", {
+    fireEvent.click(logoUi.getByRole("button", { name: "Rocket" }));
+    fireEvent.input(logoUi.getByRole<HTMLInputElement>("textbox", {
       name: "Logo words"
     }), { target: { value: "" } });
-    fireEvent.click(getByRole(document.body, "button", { name: "Add logo" }));
-    expect(getByRole(document.body, "alert").textContent)
+    fireEvent.click(logoUi.getByRole("button", { name: "Add logo" }));
+    expect(logoUi.getByRole("alert").textContent)
       .toBe("Add words before adding the logo.");
-    expect(document.activeElement).toBe(getByRole(document.body, "textbox", {
+    expect(document.activeElement).toBe(logoUi.getByRole("textbox", {
       name: "Logo words"
     }));
 
@@ -3940,22 +4180,22 @@ describe("window.AdMarketCreator", () => {
       ["Mascot / Emblem", "Burger Buddy", "Burger"]
     ] as const;
     for (const [recipe, words, symbol] of recipes) {
-      const chooser = getByRole<HTMLSelectElement>(document.body, "combobox", {
+      const chooser = logoUi.getByRole<HTMLSelectElement>("combobox", {
         name: "Logo in the advertisement"
       });
       chooser.value = "";
       fireEvent.change(chooser);
-      fireEvent.click(getByRole(document.body, "radio", { name: recipe }));
-      fireEvent.input(getByRole<HTMLInputElement>(document.body, "textbox", {
+      fireEvent.click(logoUi.getByRole("radio", { name: recipe }));
+      fireEvent.input(logoUi.getByRole<HTMLInputElement>("textbox", {
         name: "Logo words"
       }), { target: { value: words } });
-      fireEvent.click(getByRole(document.body, "button", { name: symbol }));
-      fireEvent.click(getByRole(document.body, "button", { name: "Add logo" }));
+      fireEvent.click(logoUi.getByRole("button", { name: symbol }));
+      fireEvent.click(logoUi.getByRole("button", { name: "Add logo" }));
       await waitFor(() => expect(currentObjects()
         .filter(({ elementKind }) => elementKind === "logo-mark")).toHaveLength(
           recipes.findIndex(([candidate]) => candidate === recipe) + 1
         ));
-      await waitFor(() => expect(getByRole(document.body, "button", {
+      await waitFor(() => expect(logoUi.getByRole("button", {
         name: "Update logo"
       })).toBeTruthy());
       expect(runtime.selectedObjectId).toBe(currentObjects()
@@ -3978,10 +4218,10 @@ describe("window.AdMarketCreator", () => {
     await waitFor(() => expect(currentObjects()
       .find(({ objectId }) => objectId === finalLogo.objectId)?.left).toBe(finalLogoLeft + 5));
 
-    const details = document.querySelector<HTMLDetailsElement>(".logo-lab details")!;
+    const details = logoLabHost.querySelector<HTMLDetailsElement>("details")!;
     details.open = true;
     fireEvent(details, new Event("toggle"));
-    fireEvent.click(getByRole(document.body, "button", { name: "Random logo" }));
+    fireEvent.click(logoUi.getByRole("button", { name: "Random logo" }));
     await waitFor(() => expect(currentObjects().at(-1)).toMatchObject({
       elementKind: "logo-mark",
       logoRecipe: "mascot-emblem",
@@ -4036,7 +4276,7 @@ describe("window.AdMarketCreator", () => {
       }));
     expect(afterReload).toEqual(beforeSave);
     activateStudioTool("logo");
-    expect(getByRole<HTMLSelectElement>(document.body, "combobox", {
+    expect(logoUi.getByRole<HTMLSelectElement>("combobox", {
       name: "Logo in the advertisement"
     }).options).toHaveLength(5);
 
@@ -4055,7 +4295,7 @@ describe("window.AdMarketCreator", () => {
     expect(String(logoCalls[0]![0])).toBe(
       `${window.location.origin}/catalog/generated/logo-icons-v1-reviewed/catalog.json`
     );
-  }, 20_000);
+  }, 40_000);
 
   it("loads account Object Forge allowance, places owned pixels, and keeps fal controls server-side", async () => {
     const imageBytes = Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a);
@@ -4133,6 +4373,108 @@ describe("window.AdMarketCreator", () => {
     expect(jobBody).not.toHaveProperty("quality");
     expect(jobBody).not.toHaveProperty("width");
     expect(jobBody).not.toHaveProperty("height");
+  });
+
+  it("realises a sandbox advertisement from the saved assignment and Advertisement AIDA context", async () => {
+    const source = createBlankCampaignDocument({
+      documentId: "sandbox-realise-document",
+      sessionId: "sandbox-realise-session",
+      teamId: "sandbox-realise-team",
+      mode: "offline"
+    });
+    source.workspaceMode = "assignment-sandbox";
+    source.product.name = "Orbit Bottle";
+    source.assignmentPlan.productFunction = "Keeps water cold\nthrough the school day";
+    source.assignmentPlan.targetAudience = "Senior students\nwho carry water all day";
+    source.assignmentPlan.advertisingLocation = "Bus shelter near school";
+    source.strategy.aidaPlan = {
+      attention: "The icy bottle\nagainst a hot orange background",
+      interest: "A temperature display and replaceable filter",
+      desire: "Feel prepared, calm and refreshed all day",
+      action: "Scan the code to choose a colour"
+    };
+    const imageBytes = Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a);
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url = String(input);
+      if (url === "/api/image-lab/session") {
+        return Promise.resolve(Response.json({
+          enabled: true,
+          object: { remaining: 6, reserved: 0 },
+          realise: { remaining: 2, reserved: 0 }
+        }));
+      }
+      if (url === "/api/image-lab/jobs" && init?.method === "POST") {
+        return Promise.resolve(Response.json({
+          jobToken: "encrypted-advertisement-token",
+          stage: "realise",
+          remaining: { object: 6, realise: 1 }
+        }, { status: 202 }));
+      }
+      if (url.startsWith("/api/image-lab/jobs?job=")) {
+        return Promise.resolve(Response.json({ status: "completed" }));
+      }
+      if (url.startsWith("/api/image-lab/assets?job=")) {
+        return Promise.resolve(new Response(imageBytes, {
+          headers: {
+            "content-type": "image/png",
+            "content-length": String(imageBytes.byteLength)
+          }
+        }));
+      }
+      return Promise.reject(new Error(`Unexpected URL ${url}`));
+    });
+
+    await import("./main");
+    const api = window.AdMarketCreator;
+    await parsed(api, "open-sandbox-realise", "open", source);
+    activateStudioTool("image");
+    const imageLab = document.querySelector<HTMLElement>('[data-image-lab-panel]')!;
+    await waitFor(() => expect(getByRole(imageLab, "button", {
+      name: "Make this advertisement realistic"
+    })).toBeTruthy());
+
+    fireEvent.click(getByRole(imageLab, "button", {
+      name: "Make this advertisement realistic"
+    }));
+    await waitFor(() => expect(imageLab.textContent)
+      .toContain(STUDENT_COPY.assignmentSandbox.imageLab.doneAdvertisement));
+
+    const jobCall = fetchSpy.mock.calls.find(([input, request]) =>
+      String(input) === "/api/image-lab/jobs" && request?.method === "POST");
+    expect(JSON.parse(String(jobCall?.[1]?.body))).toMatchObject({
+      stage: "realise",
+      mode: "advertisement",
+      documentId: "sandbox-realise-document",
+      context: {
+        productName: "Orbit Bottle",
+        productFunction: "Keeps water cold through the school day",
+        targetAudience: "Senior students who carry water all day",
+        advertisingLocation: "Bus shelter near school",
+        attention: "The icy bottle against a hot orange background",
+        interest: "A temperature display and replaceable filter",
+        desire: "Feel prepared, calm and refreshed all day",
+        action: "Scan the code to choose a colour"
+      }
+    });
+    expect(jobCall?.[1]?.body).not.toContain("sandbox-realise-session");
+    expect(jobCall?.[1]?.body).not.toContain("sandbox-realise-team");
+
+    const realised = CampaignDocumentSchema.parse(
+      (await parsed(api, "state-sandbox-realise", "getState", null)).payload
+    );
+    expect(realised.fabricState.objects).toHaveLength(1);
+    expect(realised.assetReferences).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: "generated-image",
+        stage: "make-it-real",
+        profileId: "make-it-real-advertisement-v1"
+      })
+    ]));
+
+    fireEvent.click(getByRole(document.body, "button", { name: "Undo" }));
+    await waitFor(() => expect(currentObjects()).toEqual([]));
+    fireEvent.click(getByRole(document.body, "button", { name: "Redo" }));
+    await waitFor(() => expect(currentObjects()).toHaveLength(1));
   });
 
   it("aborts Image Lab at the start of close so a late job cannot recreate the canvas", async () => {

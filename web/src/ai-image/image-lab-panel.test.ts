@@ -6,6 +6,7 @@ import {
   type ImageLabActions,
   type ImageLabStatus
 } from "./image-lab-panel";
+import { STUDENT_COPY } from "../game/student-copy";
 
 const identity = {
   sessionId: "session-pair-7",
@@ -30,6 +31,11 @@ function actions(overrides: Partial<ImageLabActions> = {}): ImageLabActions {
     status: vi.fn().mockResolvedValue(ready),
     forgeObject: vi.fn().mockResolvedValue(afterObject),
     makeReal: vi.fn().mockResolvedValue({
+      enabled: true,
+      object: { remaining: 2, reserved: 0 },
+      realise: { remaining: 0, reserved: 0 }
+    }),
+    makeAdvertisementReal: vi.fn().mockResolvedValue({
       enabled: true,
       object: { remaining: 2, reserved: 0 },
       realise: { remaining: 0, reserved: 0 }
@@ -186,6 +192,36 @@ describe("ImageLabPanel", () => {
     expect(status).toHaveBeenCalledTimes(2);
     expect(getByRole<HTMLButtonElement>(host, "button", { name: "Make it real" }).disabled)
       .toBe(false);
+  });
+
+  it("offers the advertisement operation only in assignment sandbox and shares the realise allowance", async () => {
+    const guidedHost = document.createElement("div");
+    const guided = new ImageLabPanel(guidedHost, actions());
+    guided.setPair(identity);
+    await guided.initialise();
+    expect(queryByRole(guidedHost, "button", { name: "Make this advertisement realistic" }))
+      .toBeNull();
+
+    const sandboxHost = document.createElement("div");
+    const port = actions();
+    const sandbox = new ImageLabPanel(sandboxHost, port);
+    sandbox.setPair({ ...identity, workspaceMode: "assignment-sandbox" });
+    await sandbox.initialise();
+
+    expect(sandboxHost.textContent).toContain("Make It Real: 1 use available");
+    expect(getByRole(sandboxHost, "button", {
+      name: STUDENT_COPY.assignmentSandbox.imageLab.makeProductReal
+    })).toBeTruthy();
+    expect(getByRole(sandboxHost, "note").textContent)
+      .toBe(STUDENT_COPY.assignmentSandbox.imageLab.textWarning);
+    fireEvent.click(getByRole(sandboxHost, "button", {
+      name: STUDENT_COPY.assignmentSandbox.imageLab.makeAdvertisementRealistic
+    }));
+
+    await waitFor(() => expect(port.makeAdvertisementReal).toHaveBeenCalledWith({
+      sessionId: identity.sessionId,
+      teamId: identity.teamId
+    }, expect.any(AbortSignal)));
   });
 
   it("offers Check request for an unknown outcome and reconciles the same submission", async () => {

@@ -10,6 +10,11 @@ import {
   MARKET_ZONES,
   PRODUCT_TRAITS
 } from "../game/market-route";
+import {
+  AssignmentPlanSchema,
+  WORKSPACE_MODES,
+  createBlankAssignmentPlan
+} from "../game/assignment-plan";
 import { ProductKitCompositionReferenceSchema } from
   "../product-kit/product-kit-document";
 import { ELEMENT_KINDS } from "./editor-object";
@@ -266,6 +271,8 @@ export const CampaignDocumentSchema = z.object({
   documentId: z.string().min(1),
   sessionId: z.string().min(1),
   mode: z.enum(["offline", "room"]),
+  workspaceMode: z.enum(WORKSPACE_MODES).default("guided"),
+  assignmentPlan: AssignmentPlanSchema.default(createBlankAssignmentPlan()),
   roomId: z.string().min(1).optional(),
   teamId: z.string().min(1).optional(),
   revision: z.number().int().nonnegative(),
@@ -362,6 +369,8 @@ export function createBlankCampaignDocument(ids: {
     schemaVersion: 1,
     editorVersion: CREATOR_CONFIG.editorVersion,
     ...ids,
+    workspaceMode: "guided",
+    assignmentPlan: createBlankAssignmentPlan(),
     revision: 0,
     canvas: {
       width: CREATOR_CONFIG.canvasWidth,

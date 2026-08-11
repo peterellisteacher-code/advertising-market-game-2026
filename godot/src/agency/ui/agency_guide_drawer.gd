@@ -2,6 +2,7 @@ extends Control
 class_name AdMarketAgencyGuideDrawer
 
 signal direct_travel_requested(station_id: String)
+signal objective_task_requested(station_id: String)
 signal role_handoff_requested(role: String)
 signal audio_settings_requested
 signal audio_settings_changed(settings: Dictionary)
@@ -22,6 +23,7 @@ const ORIENTATION_ITEM_SUFFIXES: Array[String] = ["One", "Two", "Three"]
 const ORIENTATION_PANEL_MARGIN := Vector2(48.0, 48.0)
 const ORIENTATION_CONTENT_MAX_WIDTH := 1120.0
 const ORIENTATION_CONTENT_MIN_INSET := 32.0
+const GUIDE_VIEWPORT_MARGIN := Vector2(16.0, 16.0)
 const DARK_BUTTON_TEXT := Color(0.98, 0.965, 0.91, 1)
 const DARK_BUTTON_PATHS: Array[String] = [
 	"%GuideTab",
@@ -123,6 +125,8 @@ var _opener: Control
 func _ready() -> void:
 	_apply_dark_button_theme()
 	_connect_controls()
+	if not resized.is_connected(_fit_guide_to_viewport):
+		resized.connect(_fit_guide_to_viewport)
 	set_tucked(_tucked)
 
 func _apply_dark_button_theme() -> void:
@@ -199,6 +203,8 @@ func set_tucked(tucked: bool) -> void:
 		guide_tab.visible = tucked
 	if guide_panel != null:
 		guide_panel.visible = not tucked
+		if not tucked:
+			call_deferred("_fit_guide_to_viewport")
 	_update_resume_orientation()
 	if tucked:
 		var focus_target := _opener if is_instance_valid(_opener) and _opener.visible else guide_tab
@@ -211,7 +217,7 @@ func go_to_objective() -> void:
 	if station_id.is_empty():
 		return
 	set_tucked(true)
-	direct_travel_requested.emit(station_id)
+	objective_task_requested.emit(station_id)
 
 func orientation_required() -> bool:
 	return _progress != null and not _progress.orientation_acknowledged
@@ -323,6 +329,21 @@ func _stabilise_guide_layout(tabs: TabContainer, target_tab: int) -> void:
 	var panel := get_node_or_null("%GuidePanel") as Control
 	if panel != null:
 		panel.reset_size()
+		call_deferred("_fit_guide_to_viewport")
+
+func _fit_guide_to_viewport() -> void:
+	var panel := get_node_or_null("%GuidePanel") as Control
+	if panel == null or not panel.visible or not panel.is_inside_tree():
+		return
+	panel.reset_size()
+	var viewport_size := get_viewport_rect().size
+	var maximum_size := Vector2(
+		maxf(1.0, viewport_size.x - GUIDE_VIEWPORT_MARGIN.x * 2.0),
+		maxf(1.0, viewport_size.y - GUIDE_VIEWPORT_MARGIN.y * 2.0)
+	)
+	panel.size = panel.size.min(maximum_size)
+	var maximum_position := (viewport_size - panel.size - GUIDE_VIEWPORT_MARGIN).max(GUIDE_VIEWPORT_MARGIN)
+	panel.global_position = panel.global_position.clamp(GUIDE_VIEWPORT_MARGIN, maximum_position)
 
 func _connect_controls() -> void:
 	_connect_button("%GuideTab", _on_guide_tab_pressed)

@@ -18,7 +18,9 @@ export interface EditorShell extends PairGameView {
   moneyCheckPanel: HTMLElement;
   marketRoutePanel: HTMLElement;
   aidaPlaybookPanel: HTMLElement;
+  assignmentPlannerPanel: HTMLElement;
   imageLabPanel: HTMLElement;
+  studentImageUploadPanel: HTMLElement;
   studioCoachPanel: HTMLElement;
   logoLabPanel: HTMLElement;
   librarySearch: HTMLInputElement;
@@ -56,6 +58,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         <div class="creator__tuck-tabs" data-tuck-tabs="top" role="group" aria-label="Studio menus"></div>
         <header class="creator__topbar" id="studio-menu-panel" role="region" aria-label="Studio menu">
           <p class="creator__brand"><strong>AD MARKET</strong><span>Studio</span></p>
+          <span class="creator__eyebrow" data-sandbox-only data-sandbox-label hidden inert>${STUDENT_COPY.assignmentSandbox.label}</span>
           <input aria-label="Product name" maxlength="48" placeholder="Name your product">
           <button type="button" data-guide-review-top>How to use this site</button>
           <button type="button" data-studio-tour-open>Studio tour</button>
@@ -64,7 +67,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           <button type="button" data-command="return">Return to game</button>
           <section class="creator__display-panel" id="studio-display-panel" aria-label="Display preferences" hidden data-display-panel><fieldset><legend>Interface text</legend><label><input type="radio" name="display-text" value="standard" checked> Standard</label><label><input type="radio" name="display-text" value="large"> Large</label></fieldset><fieldset><legend>Interface colours</legend><label><input type="radio" name="display-colours" value="standard" checked> Standard</label><label><input type="radio" name="display-colours" value="high-contrast"> High contrast</label></fieldset><button type="button" data-display-close>Close display preferences</button></section>
         </header>
-        <section class="creator__pair-strip" id="studio-task-bar" role="region" aria-label="${STUDENT_COPY.labels.pairPlay}">
+        <section class="creator__pair-strip" id="studio-task-bar" role="region" aria-label="${STUDENT_COPY.labels.pairPlay}" data-guided-only>
         <div class="creator__level-chip">
           <span class="creator__eyebrow" data-creator-level-label>${STUDENT_COPY.phaseLabels["round-zero"]}</span>
         </div>
@@ -116,7 +119,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
         </article>
         </section>
       </div>
-      <section class="creator__journey-bar" role="region" aria-label="Current instruction" data-guide-bar>
+      <section class="creator__journey-bar" role="region" aria-label="Current instruction" data-guide-bar data-guided-only>
         <p class="creator__guide-progress" data-guide-progress>Task 1 of 11</p>
         <div class="creator__journey-bar-body">
           <h2 data-guide-title>Audience evidence</h2>
@@ -207,6 +210,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           </section>
           <section class="creator__tool-panel creator__image-lab" id="studio-panel-image" role="region" aria-label="Image Lab" data-studio-panel="image" hidden>
             <h2>Image Lab</h2>
+            <div data-student-image-upload-panel data-sandbox-only hidden inert><p role="status">${STUDENT_COPY.assignmentSandbox.uploadLoading}</p></div>
             <div data-image-lab-panel><p role="status">Image options loading</p></div>
           </section>
           <section class="creator__tool-panel creator__money-check" id="studio-panel-price" role="region" aria-label="Money check" data-studio-panel="price" data-creator-feature="price" hidden>
@@ -219,6 +223,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           </section>
           <section class="creator__tool-panel creator__aida-playbook" id="studio-panel-aida" role="region" aria-label="AIDA techniques" data-studio-panel="aida" data-creator-feature="aida" hidden>
             <h2>AIDA techniques</h2>
+            <div data-assignment-planner-panel data-sandbox-only hidden inert><p role="status">${STUDENT_COPY.assignmentSandbox.plannerLoading}</p></div>
             <div data-aida-playbook-panel><p role="status">AIDA techniques loading</p></div>
           </section>
           <section class="creator__tool-panel creator__studio-coach" id="studio-panel-coach" role="region" aria-label="Studio Coach" data-studio-panel="coach" data-creator-feature="coach" hidden>
@@ -418,7 +423,9 @@ export function createEditorShell(root: HTMLElement): EditorShell {
     moneyCheckPanel: root.querySelector('[data-money-check-panel]')!,
     marketRoutePanel: root.querySelector('[data-market-route-panel]')!,
     aidaPlaybookPanel: root.querySelector('[data-aida-playbook-panel]')!,
+    assignmentPlannerPanel: root.querySelector('[data-assignment-planner-panel]')!,
     imageLabPanel: root.querySelector('[data-image-lab-panel]')!,
+    studentImageUploadPanel: root.querySelector('[data-student-image-upload-panel]')!,
     studioCoachPanel: root.querySelector('[data-studio-coach-panel]')!,
     logoLabPanel: root.querySelector('[data-logo-lab-panel]')!,
     activeRole: root.querySelector('[data-active-role]')!,

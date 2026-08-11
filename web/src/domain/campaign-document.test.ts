@@ -49,6 +49,89 @@ describe("CampaignDocumentV1", () => {
         roleGuideAcknowledged: false
       }
     });
+    expect(doc.workspaceMode).toBe("guided");
+    expect(doc.assignmentPlan).toEqual({
+      productFunction: "",
+      targetAudience: "",
+      advertisingLocation: "",
+      featureToEmphasise: "",
+      differenceFromAlternatives: "",
+      materials: "",
+      estimatedProductionCost: "",
+      salePrice: "",
+      desireValueIds: [],
+      primaryDesireValueId: "",
+      productAidaPlan: { attention: "", interest: "", desire: "", action: "" }
+    });
+  });
+
+  it("loads a guided blank assignment plan for documents saved before sandbox mode", () => {
+    const current = createBlankCampaignDocument({
+      documentId: "legacy-sandbox-doc",
+      sessionId: "legacy-sandbox-session",
+      mode: "offline"
+    });
+    const legacy = structuredClone(current) as unknown as Record<string, unknown>;
+    delete legacy.workspaceMode;
+    delete legacy.assignmentPlan;
+
+    const parsed = parseCampaignDocument(legacy);
+
+    expect(parsed.workspaceMode).toBe("guided");
+    expect(parsed.assignmentPlan.productAidaPlan).toEqual({
+      attention: "", interest: "", desire: "", action: ""
+    });
+    expect(parsed.assignmentPlan.desireValueIds).toEqual([]);
+  });
+
+  it("round-trips the complete assignment sandbox plan separately from advertisement AIDA", () => {
+    const doc = createBlankCampaignDocument({
+      documentId: "assignment-sandbox",
+      sessionId: "assignment-sandbox-session",
+      mode: "offline"
+    });
+    const assignmentPlan = {
+      productFunction: "Lights a walking path without disposable batteries.",
+      targetAudience: "Teen campers",
+      advertisingLocation: "Outdoor magazine",
+      featureToEmphasise: "Emergency beam",
+      differenceFromAlternatives: "Charges from its own solar panel",
+      materials: "Recycled aluminium and repairable cells",
+      estimatedProductionCost: "$24",
+      salePrice: "$49",
+      desireValueIds: ["responsibility:sustainability", "performance:quality"],
+      primaryDesireValueId: "responsibility:sustainability",
+      productAidaPlan: {
+        attention: "Lead with reliable light after dark.",
+        interest: "Show solar charging and the emergency beam.",
+        desire: "Imagine reaching camp safely without carrying spare batteries.",
+        action: "Try the beam at the camping expo."
+      }
+    };
+    const advertisementAida = {
+      attention: "Use one bright beam against a dark campsite.",
+      interest: "Add a close-up of the solar charging panel.",
+      desire: "Show the calm final walk into camp.",
+      action: "Invite readers to try it at the expo."
+    };
+
+    const parsed = parseCampaignDocument({
+      ...doc,
+      workspaceMode: "assignment-sandbox",
+      assignmentPlan,
+      strategy: { ...doc.strategy, aidaPlan: advertisementAida }
+    });
+
+    expect(parsed.workspaceMode).toBe("assignment-sandbox");
+    expect(parsed.assignmentPlan).toEqual(assignmentPlan);
+    expect(parsed.strategy.aidaPlan).toEqual(advertisementAida);
+    expect(() => parseCampaignDocument({
+      ...parsed,
+      assignmentPlan: {
+        ...assignmentPlan,
+        desireValueIds: ["invented:value"]
+      }
+    })).toThrow();
   });
 
   it("round-trips the authoritative creator level and bounded pair progress", () => {

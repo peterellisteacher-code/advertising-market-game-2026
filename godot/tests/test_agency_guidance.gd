@@ -7,6 +7,7 @@ const AgencyProgress = preload("res://src/agency/agency_progress.gd")
 const MissionCatalog = preload("res://src/agency/agency_mission_catalog.gd")
 
 var _requested_station_id: String = ""
+var _requested_task_station_id: String = ""
 var _requested_guide_section: String = ""
 
 func run() -> bool:
@@ -45,8 +46,9 @@ func _assert_guide(progress: AdMarketAgencyProgress) -> void:
 	assert(guide.get_node("%GuideTabs").get_tab_count() == 5)
 	assert(guide.get_node("%GoToObjective").focus_mode == Control.FOCUS_ALL)
 	guide.direct_travel_requested.connect(_capture_station)
+	guide.objective_task_requested.connect(_capture_task_station)
 	guide.go_to_objective()
-	assert(_requested_station_id == "client-briefing")
+	assert(_requested_task_station_id == "client-briefing")
 	guide.set_progress(2, 7, 1)
 	assert(guide.get_node("%RequiredProgress").text.contains("2 of 7 required"))
 	assert(guide.get_node("%OptionalProgress").text.contains("1 optional"))
@@ -55,8 +57,20 @@ func _assert_guide(progress: AdMarketAgencyProgress) -> void:
 	assert(guide.get_node("%GuideTab").visible)
 	assert(not guide.get_node("%GuidePanel").visible)
 	guide.open_guide("roles")
+	await tree.process_frame
 	assert(not guide.get_node("%GuideTab").visible)
-	assert(guide.get_node("%GuidePanel").visible)
+	var guide_panel := guide.get_node("%GuidePanel") as Control
+	assert(guide_panel.visible)
+	var viewport_size := guide_panel.get_viewport_rect().size
+	var guide_rect := guide_panel.get_global_rect()
+	assert(guide_rect.position.y >= 0.0)
+	assert(guide_rect.end.y <= viewport_size.y)
+	guide.open_guide("objective")
+	_requested_task_station_id = ""
+	await _click_button(guide.get_node("%GoToObjective") as Button, tree)
+	assert(_requested_task_station_id == "client-briefing")
+	assert(not guide_panel.visible)
+	guide.open_guide("roles")
 	assert(guide.orientation_required())
 	guide.open_orientation()
 	await tree.process_frame
@@ -211,10 +225,11 @@ func _assert_hud(progress: AdMarketAgencyProgress) -> void:
 	assert(hud.get_node("%HudGuideButton").focus_mode == Control.FOCUS_ALL)
 	assert(hud.get_node("%HudGoToObjective").focus_mode == Control.FOCUS_ALL)
 	hud.direct_travel_requested.connect(_capture_station)
+	hud.objective_task_requested.connect(_capture_task_station)
 	hud.guide_requested.connect(_capture_guide_section)
-	_requested_station_id = ""
+	_requested_task_station_id = ""
 	hud.go_to_objective()
-	assert(_requested_station_id == "client-briefing")
+	assert(_requested_task_station_id == "client-briefing")
 	hud.open_guide("controls")
 	assert(_requested_guide_section == "controls")
 	hud.free()
@@ -258,6 +273,9 @@ func _activate_button_with_keyboard(button: Button, tree: SceneTree) -> void:
 
 func _capture_station(station_id: String) -> void:
 	_requested_station_id = station_id
+
+func _capture_task_station(station_id: String) -> void:
+	_requested_task_station_id = station_id
 
 func _capture_guide_section(section: String) -> void:
 	_requested_guide_section = section

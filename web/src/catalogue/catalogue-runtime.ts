@@ -307,6 +307,13 @@ export interface GeneratedRasterPlacement {
   requestId: string;
 }
 
+export interface StudentRasterPlacement {
+  assetId: string;
+  title: string;
+  blob: Blob;
+  stage: "student-upload";
+}
+
 function errorFrom(value: unknown): Error {
   return value instanceof Error ? value : new Error("Catalogue placement failed.");
 }
@@ -335,6 +342,21 @@ function validatedGeneratedRaster(input: GeneratedRasterPlacement): GeneratedRas
     stage: input.stage,
     profileId: requiredGeneratedText(input.profileId, "profile ID"),
     requestId: requiredGeneratedText(input.requestId, "request ID")
+  });
+}
+
+function validatedStudentRaster(input: StudentRasterPlacement): StudentRasterPlacement {
+  if (!(input.blob instanceof Blob) || input.blob.type !== "image/png") {
+    throw new Error("Student upload must be a prepared PNG");
+  }
+  if (input.blob.size === 0) throw new Error("Student upload is empty");
+  if (input.blob.size > MAX_LIVE_IMAGE_BYTES) throw new Error("Student upload is too large");
+  if (input.stage !== "student-upload") throw new Error("Student upload stage is invalid");
+  return Object.freeze({
+    assetId: requiredGeneratedText(input.assetId, "asset ID"),
+    title: requiredGeneratedText(input.title, "title"),
+    blob: input.blob,
+    stage: "student-upload"
   });
 }
 
@@ -593,6 +615,11 @@ export class CataloguePlacementQueue {
   enqueueGeneratedRaster(input: GeneratedRasterPlacement): void {
     const frozenInput = Object.freeze({ ...input });
     this.#enqueue(async () => this.#placeGeneratedRaster(frozenInput));
+  }
+
+  enqueueStudentRaster(input: StudentRasterPlacement): void {
+    const frozenInput = Object.freeze({ ...input });
+    this.#enqueue(async () => this.#placeStudentRaster(frozenInput));
   }
 
   enqueueProductKit(
@@ -865,6 +892,88 @@ export class CataloguePlacementQueue {
           (this.host.revokeObjectURL ?? ((url) => URL.revokeObjectURL(url)))(localBlob.objectUrl);
         } catch {
           // Preserve the generated-image placement failure.
+        }
+      }
+      throw error;
+    }
+  }
+
+  async #placeStudentRaster(input: StudentRasterPlacement): Promise<void> {
+    const upload = validatedStudentRaster(input);
+    const current = this.host.getDocument();
+    if (!current) throw new Error("Open a campaign before adding a student upload");
+    const canvas = await this.host.getCanvas();
+    const objectId = (this.host.createObjectId ?? (() => globalThis.crypto.randomUUID()))();
+    const commands = new ObjectCommandService(canvas, () => objectId);
+    if (campaignSemanticObjectMap(current.fabricState).has(objectId) ||
+      campaignSemanticObjectMap(commands.serialize()).has(objectId)) {
+      throw new Error(`Student upload object ID ${objectId} already exists`);
+    }
+
+    let localBlob: LocalCatalogueBlob | undefined;
+    let attemptedAdd = false;
+    try {
+      const objectUrl = (this.host.createObjectURL ?? ((value) => URL.createObjectURL(value)))(
+        upload.blob
+      );
+      localBlob = {
+        blobKey: `student-upload-${objectId}`,
+        blob: upload.blob,
+        objectUrl
+      };
+      attemptedAdd = true;
+      await commands.addRaster({
+        assetId: upload.assetId,
+        sameOriginUrl: objectUrl,
+        accessibleName: upload.title
+      });
+      const fabricState = commands.serialize();
+      const object = campaignSemanticObjectMap(fabricState).get(objectId);
+      if (!object || object.path.length !== 1 || object.elementKind !== "image" ||
+        object.assetId !== upload.assetId || object.object.accessibleName !== upload.title) {
+        throw new Error("Placed student upload did not reconcile with the canvas");
+      }
+      const latest = this.host.getDocument();
+      if (!latest || latest.documentId !== current.documentId ||
+        latest.sessionId !== current.sessionId ||
+        (latest.teamId ?? null) !== (current.teamId ?? null)) {
+        throw new Error("The open campaign changed while the image was loading");
+      }
+      const next = parseCampaignDocument({
+        ...structuredClone(latest),
+        fabricState,
+        assetReferences: [
+          ...latest.assetReferences,
+          {
+            kind: "student-upload",
+            version: 1,
+            objectId,
+            assetId: upload.assetId,
+            title: upload.title
+          },
+          {
+            kind: "local-blob",
+            objectId,
+            assetId: upload.assetId,
+            blobKey: localBlob.blobKey,
+            mimeType: "image/png"
+          }
+        ]
+      });
+      this.host.commit(next, localBlob);
+    } catch (error) {
+      if (attemptedAdd) {
+        try {
+          canvas.remove(objectId);
+        } catch {
+          // Preserve the student-upload placement failure.
+        }
+      }
+      if (localBlob) {
+        try {
+          (this.host.revokeObjectURL ?? ((url) => URL.revokeObjectURL(url)))(localBlob.objectUrl);
+        } catch {
+          // Preserve the student-upload placement failure.
         }
       }
       throw error;

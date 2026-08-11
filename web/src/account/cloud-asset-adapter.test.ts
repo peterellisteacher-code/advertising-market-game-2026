@@ -50,6 +50,34 @@ function assetClient(): AccountAssetClient {
 }
 
 describe("CloudProgressAssetAdapter", () => {
+  it("preserves the student-upload provenance while uploading its local PNG", async () => {
+    const document = createBlankCampaignDocument({
+      documentId: "student-upload-cloud", sessionId: "student-upload-session", mode: "offline"
+    });
+    document.assetReferences = [
+      {
+        kind: "student-upload", version: 1, objectId: "sketch", assetId: "student-sketch",
+        title: "Shoe sketch"
+      },
+      {
+        kind: "local-blob", objectId: "sketch", assetId: "student-sketch",
+        blobKey: "student-sketch-png", mimeType: "image/png"
+      }
+    ];
+    const body = new Blob([png], { type: "image/png" });
+    const adapter = new CloudProgressAssetAdapter({
+      revisionSource: source(document, new Map([["student-sketch-png", body]])),
+      client: assetClient()
+    });
+
+    const prepared = await adapter.prepare(document);
+
+    expect(prepared.assetReferences[0]).toEqual(document.assetReferences[0]);
+    expect(prepared.assetReferences).toContainEqual(expect.objectContaining({
+      kind: "cloud-blob", objectId: "sketch", blobKey: "student-sketch-png"
+    }));
+  });
+
   it("preserves asset authentication expiry from upload", async () => {
     const document = documentWithLocalBlob();
     const expired = new AccountAssetClientError("AUTHENTICATION_REQUIRED");

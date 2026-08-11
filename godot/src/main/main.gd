@@ -12,6 +12,8 @@ const GameRun = preload("res://src/game/game_run.gd")
 const WebRunProgressStore = preload("res://src/game/web_run_progress_store.gd")
 const GameAccessibilityMirror = preload("res://src/main/game_accessibility_mirror.gd")
 const AGENCY_CAMPAIGN_CONTROLLER_PATH := "res://src/agency/agency_campaign_controller.gd"
+const ASSIGNMENT_SANDBOX_DOCUMENT_PATH := "res://src/main/assignment_sandbox_document.gd"
+const ASSIGNMENT_SANDBOX_DOCUMENT_ID := "assignment-sandbox"
 const MARKET_COMPATIBILITY_WALLET_CENTS := 10000
 const LIVE_PROGRESS_CONTRACT := WebRunProgressStore.CONTRACT
 const MAX_LIVE_PROGRESS_BYTES := WebRunProgressStore.MAX_PROGRESS_BYTES
@@ -71,6 +73,7 @@ const AIDA_NEXT_ACTIONS := {
 @onready var max_teams: SpinBox = %MaxTeams
 @onready var create_live_market: Button = %CreateLiveMarket
 @onready var start_button: Button = %StartRun
+@onready var open_assignment_sandbox: Button = %OpenAssignmentSandbox
 @onready var run_panel: Control = %RunPanel
 @onready var level_progress: HBoxContainer = %LevelProgress
 @onready var level_eyebrow: Label = %LevelEyebrow
@@ -137,6 +140,10 @@ var _startup_progress_matched: bool = false
 var _startup_expected_document_revision: int = -1
 var _accessibility_mirror: RefCounted = GameAccessibilityMirror.new()
 var _dialog_focus_target: Control
+var _sandbox_load_pending: bool = false
+var _sandbox_load_request_id: String = ""
+var _sandbox_document: Dictionary = {}
+var _sandbox_open: bool = false
 
 func _process(_delta: float) -> void:
     if agency_audio != null and agency_world != null:
@@ -246,6 +253,7 @@ func _ready() -> void:
     teacher_setup_toggle.pressed.connect(_toggle_teacher_setup)
     create_live_market.pressed.connect(_create_live_room)
     start_button.pressed.connect(_start_run)
+    open_assignment_sandbox.pressed.connect(_open_assignment_sandbox)
     launch_button.pressed.connect(_open_creator)
     lock_level.pressed.connect(_lock_current_level)
     advance_level.pressed.connect(_advance_level)
@@ -395,6 +403,7 @@ func _setup_practice_recovery() -> void:
 func _begin_startup() -> void:
     _startup_state = "live-resume"
     start_button.disabled = false
+    open_assignment_sandbox.disabled = false
     status.text = "Checking live market status. Practice is ready now."
     market_host.resume_session()
 
@@ -430,7 +439,34 @@ func _on_room_resume_failed(code: String, _message: String) -> void:
     market_screen.hide()
     status.text = _student_market_error(code)
 
-func _on_latest_draft_received(document: Variant) -> void:
+func _on_latest_draft_received(request_id: String, document: Variant) -> void:
+    if _sandbox_load_pending:
+        if request_id != _sandbox_load_request_id:
+            return
+        _sandbox_load_pending = false
+        _sandbox_load_request_id = ""
+        if document == null:
+            var document_script := _assignment_sandbox_document_script()
+            if document_script == null:
+                _fail_assignment_sandbox_open(
+                    "The assignment sandbox could not be prepared. Try again."
+                )
+                return
+            var created: Variant = document_script.call("create", _blank_campaign_document())
+            if typeof(created) != TYPE_DICTIONARY:
+                _fail_assignment_sandbox_open(
+                    "The assignment sandbox could not be prepared. Try again."
+                )
+                return
+            _open_assignment_sandbox_document(created)
+            return
+        if not _assignment_sandbox_matches(document):
+            _fail_assignment_sandbox_open(
+                "That saved assignment sandbox did not match this workspace. Nothing was replaced."
+            )
+            return
+        _open_assignment_sandbox_document(document)
+        return
     if _startup_state != "team-hydrating":
         return
     if document == null:
@@ -753,7 +789,15 @@ func _choose_new_route() -> void:
     _startup_state = "manual"
     market_host.call("invalidate_room_intent")
 
+func _cancel_assignment_sandbox_load() -> void:
+    if not _sandbox_load_pending:
+        return
+    _sandbox_load_pending = false
+    _sandbox_load_request_id = ""
+    open_assignment_sandbox.disabled = false
+
 func _start_run() -> void:
+    _cancel_assignment_sandbox_load()
     if _startup_state in ["live-resume", "practice-resume", "live-error"]:
         _abandon_practice_request()
         _practice_ready = true
@@ -782,6 +826,7 @@ func _start_run() -> void:
     _remember_practice_request_id("begin", request_id)
 
 func _join_live_room() -> void:
+    _cancel_assignment_sandbox_load()
     _abandon_practice_request()
     market_screen.call("set_market_host", market_host)
     var alias := team_alias.text.strip_edges()
@@ -795,6 +840,7 @@ func _join_live_room() -> void:
     market_host.join_room(code, alias)
 
 func _create_live_room() -> void:
+    _cancel_assignment_sandbox_load()
     _abandon_practice_request()
     market_screen.call("set_market_host", market_host)
     var code := classroom_code.text.strip_edges()
@@ -1072,6 +1118,59 @@ func _student_market_error(code: String) -> String:
         STUDENT_MARKET_ERRORS.get("CONNECTION_UNAVAILABLE")
     ))
 
+func _open_assignment_sandbox() -> void:
+    if (
+        _sandbox_load_pending
+        or _sandbox_open
+        or bool(creator_host.get("creator_is_open"))
+    ):
+        return
+    if _startup_state in ["live-resume", "practice-resume", "live-error"]:
+        _abandon_practice_request()
+    _choose_new_route()
+    _sandbox_load_pending = true
+    open_assignment_sandbox.disabled = true
+    status.text = "Checking this computer for your assignment sandbox."
+    _sandbox_load_request_id = creator_host.load_latest(ASSIGNMENT_SANDBOX_DOCUMENT_ID)
+    if _sandbox_load_request_id.is_empty():
+        _fail_assignment_sandbox_open(
+            "The saved assignment sandbox could not be checked. Try again."
+        )
+
+func _assignment_sandbox_document_script() -> Script:
+    return load(ASSIGNMENT_SANDBOX_DOCUMENT_PATH) as Script
+
+func _assignment_sandbox_matches(document: Variant) -> bool:
+    var document_script := _assignment_sandbox_document_script()
+    return (
+        document_script != null
+        and bool(document_script.call("matches", document))
+    )
+
+func _open_assignment_sandbox_document(document_value: Variant) -> void:
+    if not _assignment_sandbox_matches(document_value):
+        _fail_assignment_sandbox_open(
+            "That saved assignment sandbox did not match this workspace. Nothing was replaced."
+        )
+        return
+    var document: Dictionary = document_value
+    _sandbox_document = document.duplicate(true)
+    _sandbox_open = true
+    status.text = "Opening the assignment sandbox."
+    var request_id: String = creator_host.open_creator(_sandbox_document)
+    if request_id.is_empty():
+        _fail_assignment_sandbox_open(
+            "The assignment sandbox could not be opened. Try again."
+        )
+
+func _fail_assignment_sandbox_open(message: String) -> void:
+    _sandbox_load_pending = false
+    _sandbox_load_request_id = ""
+    _sandbox_open = false
+    open_assignment_sandbox.disabled = false
+    status.text = message
+    _focus_if_ready(open_assignment_sandbox)
+
 func _open_creator() -> void:
     if not LEVEL_COPY.has(_game_run.phase):
         status.text = "The creative studio opens during the three pitch levels."
@@ -1083,6 +1182,9 @@ func _open_creator() -> void:
 func _on_creator_opened() -> void:
     if agency_world != null:
         agency_world.set_input_enabled(false)
+    if _sandbox_open:
+        status.text = "Assignment sandbox open. Your work saves on this computer."
+        return
     if _publish_after_open:
         status.text = "Building the market card."
         if creator_host.publish_creator().is_empty():
@@ -1093,6 +1195,16 @@ func _on_creator_opened() -> void:
     status.text = "Advertisement editor open. Game input paused."
 
 func _on_creator_closed() -> void:
+    if _sandbox_open:
+        _sandbox_open = false
+        open_assignment_sandbox.disabled = false
+        _hide_agency()
+        run_panel.hide()
+        market_screen.hide()
+        lobby_panel.show()
+        status.text = "Assignment sandbox saved. Choose what to do next."
+        _focus_if_ready(open_assignment_sandbox)
+        return
     if agency_world != null and agency_world.visible:
         agency_world.set_input_enabled(true)
     if enter_market.visible:
@@ -1121,6 +1233,16 @@ func _on_creator_closed() -> void:
     _focus_if_ready(lock_level)
 
 func _on_creator_state_received(document: Dictionary) -> void:
+    if _sandbox_open:
+        if not _assignment_sandbox_matches(document):
+            status.text = (
+                "A mismatched assignment sandbox save was ignored. "
+                + "Your current sandbox was kept untouched."
+            )
+            return
+        _sandbox_document = document.duplicate(true)
+        status.text = "Saving the assignment sandbox."
+        return
     if _room_role.is_empty() and not _practice_recovery.is_empty():
         _pending_creator_document = document.duplicate(true)
         if _practice_pending_method.is_empty():
@@ -1586,6 +1708,15 @@ func _saved_campaign_status() -> String:
     )
 
 func _show_diagnostic(message: String) -> void:
+    if (
+        _sandbox_load_pending
+        or (
+            _sandbox_open
+            and not bool(creator_host.get("creator_is_open"))
+        )
+    ):
+        _fail_assignment_sandbox_open(message)
+        return
     if _startup_state == "team-hydrating":
         _fail_live_hydration()
         return

@@ -68,7 +68,8 @@ import { CataloguePanel } from "./catalogue/catalogue-panel";
 import {
   CataloguePlacementQueue,
   CatalogueRuntime,
-  type LocalCatalogueBlob
+  type LocalCatalogueBlob,
+  type StudentRasterPlacement
 } from "./catalogue/catalogue-runtime";
 import { loadOfflineCatalogueWithHash } from "./catalogue/catalogue-store";
 import { loadRasterPricing, type RasterPricingIndex } from "./catalogue/raster-pricing";
@@ -112,10 +113,16 @@ import type {
   CanvasSelectionSnapshot,
   LogoMarkSnapshot
 } from "./fabric/canvas-port";
-import { ImageLabClient } from "./ai-image/image-lab-client";
+import {
+  ImageLabClient,
+  type AdvertisementRealisationContext,
+  type AdvertisementRealisationSource
+} from "./ai-image/image-lab-client";
 import { ImageLabPanel } from "./ai-image/image-lab-panel";
 import { ImageLabRuntime, type ImageLabPairIdentity } from "./ai-image/image-lab-runtime";
 import { BrowserImageLabSubmissionPersistence } from "./ai-image/browser-image-lab-submission-persistence";
+import { StudentImageUploadPanel } from "./uploads/student-image-upload-panel";
+import type { PreparedStudentImageUpload } from "./uploads/student-image-upload";
 import { captureStudioCoachEvidence, type StudioCoachCanvasEvidence } from "./studio-coach/canvas-evidence";
 import { StudioCoachClient } from "./studio-coach/studio-coach-client";
 import { StudioCoachPanel } from "./studio-coach/studio-coach-panel";
@@ -144,7 +151,14 @@ import {
 import type { AudienceBrief } from "./game/audience-briefs";
 import type { CurvedLabelFontFamily } from "./product-kit/curved-label-renderer";
 import { AidaPlaybookPanel } from "./game/aida-playbook-panel";
-import type { AidaStage } from "./game/aida-playbook";
+import { AIDA_STAGES, type AidaStage } from "./game/aida-playbook";
+import {
+  AssignmentPlannerPanel
+} from "./game/assignment-planner-panel";
+import {
+  createBlankAssignmentPlan,
+  type AssignmentPlanV1
+} from "./game/assignment-plan";
 import {
   commitMarketRoute,
   createMarketRoute,
@@ -173,7 +187,10 @@ import { createTuckShell, type TuckPanelHandle } from "./ui/tuck-shell";
 import { createOverlayExclusivity, type OverlayExclusivity } from "./ui/overlay-exclusivity";
 import { createWritersStatementView, type WritersStatementView } from "./ui/writers-statement";
 import { catalogueRecordsWithBackgrounds, isAdBackgroundPreset } from "./assets/ad-background-presets";
-import { registerReleaseServiceWorker } from "./service-worker-registration";
+import {
+  GAME_STARTUP_READY_EVENT,
+  registerReleaseServiceWorker
+} from "./service-worker-registration";
 import { createStudioToolDrawer } from "./ui/studio-tool-drawer";
 import {
   STUDENT_STUDIO_SPLIT_STORAGE_KEY,
@@ -220,6 +237,9 @@ function nextUpdatedAt(current: string, latest?: string): string {
   }
   return new Date(Math.max(...candidates)).toISOString();
 }
+
+const normaliseAdvertisementText = (value: string, maximum: number): string =>
+  value.replace(/\s+/gu, " ").trim().slice(0, maximum);
 
 async function createCanvasRuntime(canvasElement: HTMLCanvasElement): Promise<CanvasRuntime> {
   const [{ Canvas }, { FabricCanvasAdapter }] = await Promise.all([
@@ -276,10 +296,12 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #pairGame: PairGameController | null = null;
   #logoLab: LogoLabPanel | null = null;
   #imageLab: ImageLabPanel | null = null;
+  #studentImageUpload: StudentImageUploadPanel | null = null;
   #studioCoach: StudioCoachRuntime | null = null;
   #moneyPanel: ProductMoneyPanel | null = null;
   #marketRoutePanel: MarketRoutePanel | null = null;
   #aidaPlaybookPanel: AidaPlaybookPanel | null = null;
+  #assignmentPlannerPanel: AssignmentPlannerPanel | null = null;
   #productKitPanel: ProductKitPanel | null = null;
   #guidedJourney: GuidedJourneyController | null = null;
   #roleGuide: RoleGuideController | null = null;
@@ -290,6 +312,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #editorOpen = false;
   #practiceAutosave: SerializedAutosave<LocalPracticeRecoveryV1> | null = null;
   #practiceSaveMatched = false;
+  readonly #cloudSync: Pick<CloudProgressSync, "enqueue" | "settled"> | null;
   readonly #writersStatement: WritersStatementView;
 
   constructor(
@@ -299,9 +322,10 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     private readonly gameCanvas: HTMLCanvasElement | null,
     private readonly drafts: DraftStore = new IndexedDbDraftStore(),
     practice: LocalPracticeService | null = null,
-    cloudSync: Pick<CloudProgressSync, "enqueue"> | null = null,
+    cloudSync: Pick<CloudProgressSync, "enqueue" | "settled"> | null = null,
     overlayExclusivity: OverlayExclusivity = createOverlayExclusivity()
   ) {
+    this.#cloudSync = cloudSync;
     this.#overlayExclusivity = overlayExclusivity;
     const productName = shell.overlay.querySelector<HTMLInputElement>(
       'input[aria-label="Product name"]'
@@ -317,6 +341,9 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
             name: this.#productName.value
           }
         }));
+        if (this.#document.workspaceMode === "assignment-sandbox") {
+          this.#refreshAssignmentPlanner();
+        }
         this.#refreshMoneyCheck();
         this.#refreshMarketRoute();
       }
@@ -496,6 +523,17 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#imageLab = panel;
   }
 
+  attachStudentImageUploadPanel(panel: StudentImageUploadPanel): void {
+    if (this.#studentImageUpload !== null && this.#studentImageUpload !== panel) {
+      throw new Error("Student image upload is already attached");
+    }
+    this.#studentImageUpload = panel;
+  }
+
+  cancelStudentImageUpload(): void {
+    this.#studentImageUpload?.cancel();
+  }
+
   attachStudioCoach(runtime: StudioCoachRuntime): void {
     if (this.#studioCoach !== null && this.#studioCoach !== runtime) {
       throw new Error("Studio Coach is already attached");
@@ -526,6 +564,14 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     }
     this.#aidaPlaybookPanel = panel;
     this.#refreshAidaPlaybook();
+  }
+
+  attachAssignmentPlannerPanel(panel: AssignmentPlannerPanel): void {
+    if (this.#assignmentPlannerPanel !== null && this.#assignmentPlannerPanel !== panel) {
+      throw new Error("Assignment planner is already attached");
+    }
+    this.#assignmentPlannerPanel = panel;
+    this.#refreshAssignmentPlanner();
   }
 
   attachGuidedJourney(controller: GuidedJourneyController): void {
@@ -588,6 +634,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 
   async isolateAccountWork(): Promise<void> {
+    this.#studentImageUpload?.cancel();
     this.#imageLab?.cancel();
     await this.#practiceAutosave?.dispose();
     try {
@@ -619,7 +666,8 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     const runtime = this.#runtime;
     if (runtime === null) throw new Error("Campaign creator is not open");
     const selectedObjectId = runtime.adapter.getSelectedObjectId();
-    if (selectedObjectId === null) {
+    const sandbox = this.#snapshot().workspaceMode === "assignment-sandbox";
+    if (!sandbox && selectedObjectId === null) {
       throw new Error("Select the item that carries this AIDA choice first.");
     }
     const commit = async (): Promise<void> => {
@@ -634,12 +682,45 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
           }
         }
       });
-      this.#document = new ChecklistStore(planned)
-        .setEvidence(stage, [selectedObjectId]);
+      this.#document = selectedObjectId === null
+        ? planned
+        : new ChecklistStore(planned).setEvidence(stage, [selectedObjectId]);
     };
     if (this.#history === null) await commit();
     else await this.#history.transaction(commit);
-    this.#aidaStage = stage;
+    const stageIndex = AIDA_STAGES.findIndex(({ id }) => id === stage);
+    const nextStage = sandbox && stageIndex >= 0 && stageIndex < AIDA_STAGES.length - 1
+      ? AIDA_STAGES[stageIndex + 1]!.id
+      : stage;
+    this.#aidaStage = nextStage;
+    if (nextStage !== stage) this.#refreshAidaPlaybook();
+    this.#refreshStudioCoachCampaign();
+    this.schedulePracticeAutosave();
+  }
+
+  async commitAssignmentPlan(productName: string, plan: AssignmentPlanV1): Promise<void> {
+    await this.#placements.flush();
+    const commit = async (): Promise<void> => {
+      const current = this.#snapshot();
+      this.#productName.value = productName;
+      this.#document = this.#invalidateStaleProductPricing(parseCampaignDocument({
+        ...structuredClone(current),
+        product: { ...structuredClone(current.product), name: productName },
+        assignmentPlan: structuredClone(plan)
+      }));
+    };
+    if (this.#history === null) await commit();
+    else await this.#history.transaction(commit);
+    this.#refreshMoneyCheck();
+    this.#refreshMarketRoute();
+    if (this.#document !== null) {
+      this.#imageLab?.setPair({
+        sessionId: this.#document.sessionId,
+        teamId: this.#document.teamId ?? this.#document.documentId,
+        productName: this.#document.product.name,
+        workspaceMode: this.#document.workspaceMode
+      });
+    }
     this.#refreshStudioCoachCampaign();
     this.schedulePracticeAutosave();
   }
@@ -695,6 +776,34 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#assertCurrentImageLabPair(pair);
   }
 
+  captureStudentImageUploadPair(): ImageLabPairIdentity {
+    const document = this.#document;
+    if (!this.#editorOpen || this.#runtime === null || document === null ||
+      document.workspaceMode !== "assignment-sandbox") {
+      throw new Error(STUDENT_COPY.assignmentSandbox.upload.errors.unknown);
+    }
+    return Object.freeze({
+      sessionId: document.sessionId,
+      teamId: document.teamId ?? document.documentId
+    });
+  }
+
+  async placeStudentImageUpload(
+    image: PreparedStudentImageUpload,
+    pair: ImageLabPairIdentity
+  ): Promise<void> {
+    this.#assertStudentImageUploadPair(pair);
+    const placement: StudentRasterPlacement = {
+      assetId: `student-upload-${globalThis.crypto.randomUUID()}`,
+      title: image.title,
+      blob: image.blob,
+      stage: "student-upload"
+    };
+    this.#placements.enqueueStudentRaster(placement);
+    await this.#placements.flush();
+    this.#assertStudentImageUploadPair(pair);
+  }
+
   async exportDesignDataUrl(pair: ImageLabPairIdentity): Promise<string> {
     this.#assertCurrentImageLabPair(pair);
     await this.#placements.flush();
@@ -702,6 +811,37 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     const runtime = this.#runtime;
     if (!runtime) throw new Error("Campaign creator is not open");
     return runtime.adapter.exportCleanPngDataUrl();
+  }
+
+  async advertisementRealisationContext(
+    pair: ImageLabPairIdentity
+  ): Promise<AdvertisementRealisationSource> {
+    this.#assertCurrentImageLabPair(pair);
+    this.schedulePracticeAutosave();
+    await this.flushPracticeAutosave();
+    await this.#cloudSync?.settled();
+    this.#assertCurrentImageLabPair(pair);
+    const document = this.#document;
+    if (!document || document.workspaceMode !== "assignment-sandbox") {
+      throw new Error("Advertisement realisation is available only in Assignment Sandbox.");
+    }
+    const context: AdvertisementRealisationContext = {
+      productName: normaliseAdvertisementText(document.product.name, 96),
+      productFunction: normaliseAdvertisementText(document.assignmentPlan.productFunction, 280),
+      targetAudience: normaliseAdvertisementText(document.assignmentPlan.targetAudience, 160),
+      advertisingLocation: normaliseAdvertisementText(document.assignmentPlan.advertisingLocation, 160),
+      attention: normaliseAdvertisementText(document.strategy.aidaPlan.attention, 280),
+      interest: normaliseAdvertisementText(document.strategy.aidaPlan.interest, 280),
+      desire: normaliseAdvertisementText(document.strategy.aidaPlan.desire, 280),
+      action: normaliseAdvertisementText(document.strategy.aidaPlan.action, 280)
+    };
+    const missing = Object.entries(context)
+      .filter(([, value]) => value.length === 0)
+      .map(([field]) => field);
+    if (missing.length > 0) {
+      throw new Error("Complete the product details and all four Advertisement AIDA decisions first.");
+    }
+    return { documentId: document.documentId, context };
   }
 
   async captureStudioCoachCanvas(): Promise<StudioCoachCanvasEvidence> {
@@ -893,6 +1033,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 
   async open(value: CampaignDocumentV1): Promise<void> {
+    this.#studentImageUpload?.cancel();
     this.#imageLab?.cancel();
     this.#studioCoach?.clearCampaign();
     await this.flushPracticeAutosave();
@@ -985,8 +1126,12 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#document = document;
     this.#studioCoach?.setCampaign(this.#studioCoachCampaign(document));
     this.#refreshCanvasEmptyState(document.fabricState);
-    applyCreatorLevelAccess(this.root, document.gameplay.stage);
-    this.#moneyPanel?.setPriceUnlocked(creatorStageAllows(document.gameplay.stage, "price"));
+    applyCreatorLevelAccess(this.root, document.gameplay.stage, document.workspaceMode);
+    this.#moneyPanel?.setPriceUnlocked(creatorStageAllows(
+      document.gameplay.stage,
+      "price",
+      document.workspaceMode
+    ));
     this.#blobs.clear();
     blobs.forEach((blob, key) => this.#blobs.set(key, blob));
     this.#ownedRasterUrls.clear();
@@ -997,6 +1142,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#refreshMoneyCheck();
     this.#refreshMarketRoute();
     this.#refreshAidaPlaybook();
+    this.#refreshAssignmentPlanner();
     this.#refreshProductKitPanel();
     this.#restoreProductShellRegions(document);
     try {
@@ -1007,7 +1153,8 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       this.#imageLab?.setPair({
         sessionId: document.sessionId,
         teamId: document.teamId ?? document.documentId,
-        productName: document.product.name
+        productName: document.product.name,
+        workspaceMode: document.workspaceMode
       });
       if (this.#imageLab !== null) void this.#imageLab.initialise();
       this.#setOpen(true);
@@ -1363,6 +1510,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   }
 
   async close(): Promise<void> {
+    this.#studentImageUpload?.cancel();
     this.#imageLab?.cancel();
     this.#studioCoach?.clearCampaign();
     await this.flushPracticeAutosave();
@@ -1440,7 +1588,12 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     });
     this.#aidaPlaybookPanel?.setState({
       stage: this.#aidaStage,
+      workspaceMode: "guided",
       plan: { attention: "", interest: "", desire: "", action: "" }
+    });
+    this.#assignmentPlannerPanel?.setState({
+      productName: "",
+      plan: createBlankAssignmentPlan()
     });
     attempt(() => this.#logoLab?.setMarks([]));
     attempt(() => this.#guidedJourney?.setCampaign(null));
@@ -1564,6 +1717,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#refreshMoneyCheck();
     this.#refreshMarketRoute();
     this.#refreshAidaPlaybook();
+    this.#refreshAssignmentPlanner();
     this.#refreshProductKitPanel();
     this.schedulePracticeAutosave();
   }
@@ -1576,6 +1730,11 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     const selection = runtime.adapter.captureSelection();
     await this.#history.transaction(async () => {
       new ObjectCommandService(runtime.adapter).remove(id);
+      const current = this.#snapshot();
+      this.#document = parseCampaignDocument({
+        ...structuredClone(current),
+        assetReferences: current.assetReferences.filter((reference) => reference.objectId !== id)
+      });
     });
     this.#removalHistory.push({
       beforeState,
@@ -1643,7 +1802,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
 
   #refreshGuidedJourney(): void {
     if (this.#guidedJourney === null) return;
-    if (this.#document === null) {
+    if (this.#document === null || this.#document.workspaceMode === "assignment-sandbox") {
       this.#guidedJourney.setCampaign(null);
       return;
     }
@@ -1655,7 +1814,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
 
   #refreshRoleGuide(): void {
     if (this.#roleGuide === null) return;
-    if (this.#document === null) {
+    if (this.#document === null || this.#document.workspaceMode === "assignment-sandbox") {
       this.#roleGuide.setCampaign(null);
       return;
     }
@@ -1667,7 +1826,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
 
   #refreshStudioOnboarding(): void {
     if (this.#studioOnboarding === null) return;
-    if (this.#document === null) {
+    if (this.#document === null || this.#document.workspaceMode === "assignment-sandbox") {
       this.#studioOnboarding.setCampaign(null);
       return;
     }
@@ -1715,12 +1874,20 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #refreshAidaPlaybook(): void {
     this.#aidaPlaybookPanel?.setState({
       stage: this.#aidaStage,
+      workspaceMode: this.#document?.workspaceMode ?? "guided",
       plan: this.#document?.strategy.aidaPlan ?? {
         attention: "",
         interest: "",
         desire: "",
         action: ""
       }
+    });
+  }
+
+  #refreshAssignmentPlanner(): void {
+    this.#assignmentPlannerPanel?.setState({
+      productName: this.#document?.product.name ?? "",
+      plan: this.#document?.assignmentPlan ?? createBlankAssignmentPlan()
     });
   }
 
@@ -1797,9 +1964,18 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     }
   }
 
+  #assertStudentImageUploadPair(pair: ImageLabPairIdentity): void {
+    this.#assertCurrentImageLabPair(pair);
+    if (this.#document?.workspaceMode !== "assignment-sandbox") {
+      throw new DOMException("Student image upload is no longer current.", "AbortError");
+    }
+  }
+
   #assertStageAllows(feature: "aida" | "price" | "route"): void {
     const stage = this.#document?.gameplay.stage;
-    if (stage === undefined || !creatorStageAllows(stage, feature)) {
+    const workspaceMode = this.#document?.workspaceMode;
+    if (stage === undefined || workspaceMode === undefined ||
+      !creatorStageAllows(stage, feature, workspaceMode)) {
       const nextLevel = feature === "aida" ? "Level 2" : "Level 3";
       throw new Error(`${nextLevel} unlocks that move.`);
     }
@@ -1977,6 +2153,7 @@ window.AdMarketGameAccess = Object.freeze({
     gameStartupReady = true;
     const status = document.querySelector<HTMLElement>("#game-startup-status");
     if (status !== null) status.hidden = true;
+    window.dispatchEvent(new Event(GAME_STARTUP_READY_EVENT));
   },
   reportStartupFailure: (reason: "timeout" | "engine") => {
     reportGameStartupFailure(reason);
@@ -2518,6 +2695,7 @@ shell.zoomIn.addEventListener("click", () => {
 if (mode.kind === "student") {
   accountMutations.subscribe((mutation) => {
     if (mutation.kind === "session") {
+      handler.cancelStudentImageUpload();
       accountController?.requireReauthentication();
       return;
     }
@@ -2554,6 +2732,11 @@ const aidaPlaybookPanel = new AidaPlaybookPanel(
   (stage, value) => handler.commitAidaPlan(stage, value)
 );
 handler.attachAidaPlaybookPanel(aidaPlaybookPanel);
+const assignmentPlannerPanel = new AssignmentPlannerPanel(
+  shell.assignmentPlannerPanel,
+  (productName, plan) => handler.commitAssignmentPlan(productName, plan)
+);
+handler.attachAssignmentPlannerPanel(assignmentPlannerPanel);
 const pairGame = new PairGameController(
   shell,
   handler,
@@ -2620,10 +2803,18 @@ const imageLabRuntime = new ImageLabRuntime({
   exportDesign: (pair) => handler.exportDesignDataUrl(pair),
   place: (pair, input) => handler.placeGeneratedRaster(pair, input),
   isCurrentPair: (pair) => handler.isCurrentImageLabPair(pair),
+  getAdvertisementContext: (pair) => handler.advertisementRealisationContext(pair),
   submissionPersistence: imageLabSubmissionPersistence
 });
 const imageLabPanel = new ImageLabPanel(shell.imageLabPanel, imageLabRuntime);
 handler.attachImageLab(imageLabPanel);
+const studentImageUploadPanel = new StudentImageUploadPanel(
+  shell.studentImageUploadPanel,
+  (image, pair) => handler.placeStudentImageUpload(image, pair),
+  undefined,
+  () => handler.captureStudentImageUploadPair()
+);
+handler.attachStudentImageUploadPanel(studentImageUploadPanel);
 const studioCoachPanel = new StudioCoachPanel(shell.studioCoachPanel, studioCoachRuntime);
 handler.attachStudioCoach(studioCoachRuntime);
 const logCreatorDiagnostic = (diagnostic: CreatorBridgeDiagnostic): void => {

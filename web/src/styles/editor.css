@@ -329,6 +329,31 @@
 .studio-coach__preview[data-technique-preview="rule-of-odds"] span:nth-child(1) { left: 20%; }
 .studio-coach__preview[data-technique-preview="rule-of-odds"] span:nth-child(2) { left: 43%; transform: none; background: #e15a3f; }
 .studio-coach__preview[data-technique-preview="rule-of-odds"] span:nth-child(3) { left: 66%; }
+.assignment-planner { max-height: min(50vh, 34rem); min-height: 12rem; padding: 0 .25rem .25rem 0; display: grid; align-content: start; gap: .45rem; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; color: #253249; }
+.assignment-planner__intro { margin: 0; padding: .55rem .65rem; border-left: 4px solid var(--blue); background: #eef8fa; color: #294b58; font-size: .875rem; font-weight: 800; line-height: 1.35; }
+.assignment-planner__section { min-width: 0; border: 1px solid #a8bdc5; border-radius: .6rem; background: #fffdf8; }
+.assignment-planner__summary { min-height: 44px; padding: .55rem .65rem; cursor: pointer; color: var(--ink); font-weight: 900; line-height: 1.25; }
+.assignment-planner__summary::marker { color: var(--blue); }
+.assignment-planner__section[open] > .assignment-planner__summary { border-bottom: 1px solid #b8ced5; background: #edf7fa; }
+.assignment-planner__section-body { padding: .65rem; display: grid; gap: .55rem; }
+.assignment-planner__section-body > p { margin: 0; color: #42566a; font-size: .875rem; line-height: 1.4; }
+.assignment-planner__field { min-width: 0; display: grid; gap: .25rem; color: #334155; font-size: .875rem; font-weight: 800; line-height: 1.3; }
+.assignment-planner__field :is(input, textarea) { min-width: 0; width: 100%; padding: .45rem .55rem; border: 1px solid #7898a4; border-radius: .45rem; background: #fff; color: var(--ink); font: inherit; }
+.assignment-planner__field textarea { min-height: 5rem; resize: vertical; }
+.assignment-planner__values { min-width: 0; margin: 0; padding: .5rem; display: grid; gap: .3rem; border: 1px solid #c6d5da; border-radius: .5rem; }
+.assignment-planner__values legend { padding: 0 .25rem; color: var(--blue); font-weight: 900; }
+.assignment-planner__value { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .4rem; align-items: center; }
+.assignment-planner__value label { min-width: 0; min-height: 36px; display: flex; gap: .4rem; align-items: center; color: #334155; font-size: .875rem; font-weight: 750; }
+.assignment-planner__value input { width: 1.15rem; min-height: 1.15rem; margin: 0; accent-color: var(--blue); }
+.assignment-planner__techniques { padding: .5rem .6rem; border-left: 4px solid #c28a00; background: #fff7dc; color: #533c00 !important; }
+.assignment-planner__status { min-height: 1.3em; margin: 0; color: #334155; font-size: .875rem; font-weight: 800; }
+.student-image-upload { margin-bottom: .65rem; padding: .6rem; display: grid; gap: .4rem; border: 1px solid #8faeb8; border-radius: .55rem; background: #f8fdff; color: #253249; }
+.student-image-upload h3, .student-image-upload p { margin: 0; }
+.student-image-upload h3 { color: var(--ink); font-size: .95rem; }
+.student-image-upload p { color: #42566a; font-size: .875rem; line-height: 1.35; }
+.student-image-upload label { display: grid; gap: .25rem; color: #334155; font-size: .875rem; font-weight: 850; }
+.student-image-upload input[type="file"] { min-width: 0; width: 100%; padding: .3rem; border: 1px solid #7898a4; border-radius: .45rem; background: #fff; color: var(--ink); font: inherit; }
+.student-image-upload [role="alert"] { padding: .4rem .5rem; border-left: 4px solid #b42318; background: #fff0ed; color: #7a201c; font-weight: 800; }
 .image-lab { min-height: 0; display: grid; gap: .55rem; }
 .image-lab p { margin: 0; color: #4b3d58; font-size: .875rem; line-height: 1.3; }
 .image-lab label { min-width: 0; display: grid; gap: .2rem; color: #3f3250; font-size: .875rem; font-weight: 800; }
@@ -341,6 +366,7 @@
 .image-lab__stage > p { color: #5f5269; }
 .image-lab__stage .image-lab__reserved { padding: .35rem .45rem; border-left: 4px solid #b77815; background: #fff7dc; color: #604004; font-weight: 850; }
 .image-lab__stage .image-lab__unmet { padding: .35rem .45rem; border-left: 4px solid #78716c; background: #f5f5f4; color: #44403c; font-weight: 800; }
+.image-lab__stage .image-lab__warning { padding: .4rem .5rem; border-left: 4px solid #9a6700; background: #fff7dc; color: #533c00; font-weight: 800; }
 .image-lab__stage label:has(input[type="checkbox"]) { min-height: 44px; grid-template-columns: auto minmax(0, 1fr); align-items: center; }
 .image-lab__stage input[type="checkbox"] { width: 1.2rem; min-height: 1.2rem; margin: 0; accent-color: #6b3fa0; }
 .image-lab [role="alert"] { padding: .4rem .5rem; border-left: 4px solid #c2413b; border-radius: .35rem; background: #fff0ed; color: #7a201c; font-weight: 800; }
@@ -464,6 +490,10 @@ button, input, select { min-height: 44px; }
 .creator[data-display-text="large"] :is(button, input, select, textarea, output, label, legend, p, a, li, dt, dd, summary, th, td, span:not([aria-hidden="true"])) { font-size: var(--creator-chrome-font-size) !important; }
 .creator[data-display-colours="high-contrast"] { --ink: #000; --panel: #fff; --blue: #003b73; --gold: #ffdf00; }
 .creator[data-display-colours="high-contrast"] :is(button, input, select, .creator__library, .creator__tool-rail) { border-color: #000 !important; }
+.creator[data-display-colours="high-contrast"] :is(.assignment-planner, .assignment-planner__section, .assignment-planner__section-body, .assignment-planner__intro, .assignment-planner__techniques) { border-color: #000 !important; background: #fff !important; color: #000 !important; }
+.creator[data-display-colours="high-contrast"] :is(.student-image-upload, .student-image-upload p, .student-image-upload label) { border-color: #000 !important; background: #fff !important; color: #000 !important; }
+.creator[data-display-colours="high-contrast"] :is(.image-lab__stage, .image-lab__stage p, .image-lab__warning) { border-color: #000 !important; background: #fff !important; color: #000 !important; }
+.creator[data-display-colours="high-contrast"] .image-lab button { background: #003b73; color: #fff; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 @media (max-height: 820px) {

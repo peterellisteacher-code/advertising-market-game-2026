@@ -27,6 +27,24 @@ const objectRequest = (): ImageLabJobRequest => ({
   colour: "electric blue"
 });
 
+const advertisementRequest = (): ImageLabJobRequest => ({
+  stage: "realise",
+  mode: "advertisement",
+  idempotencyKey: "advertisement-try-1",
+  documentId: "assignment-sandbox",
+  designDataUrl: "data:image/png;base64,iVBORw0KGgo=",
+  context: {
+    productName: "Orbit Bottle",
+    productFunction: "Keeps water cold through the school day",
+    targetAudience: "Senior students who carry water all day",
+    advertisingLocation: "Bus shelter near school",
+    attention: "The icy bottle against a hot orange background",
+    interest: "A temperature display and replaceable filter",
+    desire: "Feel prepared, calm and refreshed all day",
+    action: "Scan the code to choose a colour"
+  }
+});
+
 describe("ImageLabClient account status", () => {
   it("loads disabled status for the authenticated account with same-origin JSON controls", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
@@ -118,6 +136,39 @@ describe("ImageLabClient jobs", () => {
 
     const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
     expect(JSON.parse(String(init.body))).toEqual(request);
+  });
+
+  it("posts a disjoint exact advertisement-realisation policy shape", async () => {
+    const request = advertisementRequest();
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
+      jobToken: "signed-advertisement-token",
+      stage: "realise",
+      remaining: { object: 5, realise: 1 }
+    }));
+    const client = new ImageLabClient({ fetch: fetchMock });
+
+    await client.createJob(request);
+
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(JSON.parse(String(init.body))).toEqual(request);
+  });
+
+  it("rejects mixed product and advertisement realisation fields without fetching", async () => {
+    const fetchMock = vi.fn();
+    const client = new ImageLabClient({ fetch: fetchMock });
+
+    await expectClientError(client.createJob({
+      ...advertisementRequest(),
+      productKind: "bottle"
+    } as never), "INVALID_REQUEST");
+    await expectClientError(client.createJob({
+      ...advertisementRequest(),
+      context: {
+        ...(advertisementRequest() as Extract<ImageLabJobRequest, { mode: "advertisement" }>).context,
+        model: "fal-ai/anything"
+      }
+    } as never), "INVALID_REQUEST");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("rejects model, slug, step, or dimension controls without fetching", async () => {

@@ -1,6 +1,7 @@
 // @vitest-environment node
 
 import { describe, expect, it, vi } from "vitest";
+import { createBlankCampaignDocument } from "../../web/src/domain/campaign-document";
 import {
   createJobToken,
   readJobToken
@@ -13,12 +14,15 @@ import type {
 import {
   MAKE_IT_REAL_PROFILE,
   OBJECT_FORGE_PROFILE,
+  composeAdvertisementRealisationPrompt,
   composeMakeItRealPrompt,
   composeObjectForgePrompt,
   parseMakeItRealRequest,
+  parseAdvertisementRealisationRequest,
   parseObjectForgeRequest
 } from "./lib/fal-image-policy";
 import {
+  ADVERTISEMENT_REALISATION_PROFILE_ID,
   IMAGE_LAB_ASSET_MAX_BYTES,
   LEGACY_MAKE_IT_REAL_PROFILE_ID,
   MAKE_IT_REAL_PROFILE_ID,
@@ -103,6 +107,24 @@ const responseBody = (bytes: Uint8Array): ArrayBuffer =>
   bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 
 const designDataUrl = `data:image/png;base64,${Buffer.from(pngBytes(1_024, 576)).toString("base64")}`;
+
+const advertisementRequest = {
+  stage: "realise",
+  mode: "advertisement",
+  ...identity,
+  documentId: "assignment-sandbox",
+  designDataUrl,
+  context: {
+    productName: "Orbit Bottle",
+    productFunction: "Keeps water cold through the school day",
+    targetAudience: "Senior students who carry water all day",
+    advertisingLocation: "Bus shelter near school",
+    attention: "The icy bottle against a hot orange background",
+    interest: "A temperature display and replaceable filter",
+    desire: "Feel prepared, calm and refreshed all day",
+    action: "Scan the code to choose a colour"
+  }
+} as const;
 
 const authenticatedSession: ResolvedAccountSession = {
   authenticated: true,
@@ -276,7 +298,8 @@ const handlerWith = (
   state: ImageLabJobsState = stateFixture(),
   allowances: ImageLabAllowanceStore = allowanceFixture(),
   resolveSession: (request: Request) => Promise<ResolvedAccountSession> =
-    async () => authenticatedSession
+    async () => authenticatedSession,
+  authoriseAdvertisement = vi.fn(async () => true)
 ) => createImageLabJobsHandler({
   environment,
   fetch: fetcher,
@@ -284,7 +307,8 @@ const handlerWith = (
   createDeadlineSignal: () => new AbortController().signal,
   state,
   allowances,
-  resolveSession
+  resolveSession,
+  authoriseAdvertisement
 });
 
 const handlerWithEnvironment = (
@@ -299,7 +323,8 @@ const handlerWithEnvironment = (
   createDeadlineSignal: () => new AbortController().signal,
   state,
   allowances,
-  resolveSession: async () => authenticatedSession
+  resolveSession: async () => authenticatedSession,
+  authoriseAdvertisement: async () => true
 });
 
 const jobToken = (
@@ -481,6 +506,112 @@ describe("Image Lab jobs transport", () => {
       stage: "realise",
       remaining: { object: 2, realise: 0 }
     });
+  });
+
+  it("pins advertisement realisation to GPT Image 2 edit and the shared realise allowance", async () => {
+    expect(ADVERTISEMENT_REALISATION_PROFILE_ID).toBe("make-it-real-advertisement-v1");
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ request_id: requestId }));
+    const state = stateFixture();
+    const allowances = allowanceFixture();
+    const response = await handlerWith(fetcher, 1_000, state, allowances)(post(advertisementRequest));
+
+    expect(response.status).toBe(202);
+    const [url, init] = fetcher.mock.calls[0]!;
+    expect(String(url)).toBe(`https://queue.fal.run/${MAKE_IT_REAL_PROFILE.model}`);
+    expect(JSON.parse(String(init?.body))).toEqual({
+      image_urls: [designDataUrl],
+      image_size: { width: 1_280, height: 720 },
+      quality: "high",
+      output_format: "png",
+      num_images: 1,
+      prompt: composeAdvertisementRealisationPrompt(
+        parseAdvertisementRealisationRequest(advertisementRequest)
+      )
+    });
+    expect(state.reserve).toHaveBeenCalledWith(
+      { userId },
+      expect.objectContaining({ profileId: ADVERTISEMENT_REALISATION_PROFILE_ID })
+    );
+    expect(allowances.reserve).toHaveBeenCalledWith(
+      expect.objectContaining({ userId, stage: "realise", jobKey: jobId })
+    );
+    const body = await response.json() as { jobToken: string };
+    expect(readJobToken(body.jobToken, secret, { userId, nowSeconds: 1_000 }).profileId)
+      .toBe(ADVERTISEMENT_REALISATION_PROFILE_ID);
+  });
+
+  it("rejects advertisement realisation before reservation when the saved account document is not authorised", async () => {
+    const fetcher = vi.fn<typeof fetch>();
+    const state = stateFixture();
+    const allowances = allowanceFixture();
+    const authoriseAdvertisement = vi.fn(async () => false);
+    const response = await handlerWith(
+      fetcher,
+      1_000,
+      state,
+      allowances,
+      async () => authenticatedSession,
+      authoriseAdvertisement
+    )(post(advertisementRequest));
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: "INVALID_REQUEST" });
+    expect(authoriseAdvertisement).toHaveBeenCalledWith(userId, advertisementRequest);
+    expect(state.reserve).not.toHaveBeenCalled();
+    expect(allowances.reserve).not.toHaveBeenCalled();
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("authorises advertisement realisation from the authenticated account's exact saved sandbox", async () => {
+    const cloudDocument = createBlankCampaignDocument({
+      documentId: "assignment-sandbox",
+      sessionId: "assignment-sandbox-session",
+      teamId: "assignment-sandbox-team",
+      mode: "offline"
+    });
+    cloudDocument.workspaceMode = "assignment-sandbox";
+    cloudDocument.product.name = advertisementRequest.context.productName;
+    cloudDocument.assignmentPlan.productFunction = advertisementRequest.context.productFunction;
+    cloudDocument.assignmentPlan.targetAudience = advertisementRequest.context.targetAudience;
+    cloudDocument.assignmentPlan.advertisingLocation = advertisementRequest.context.advertisingLocation;
+    cloudDocument.strategy.aidaPlan = {
+      attention: advertisementRequest.context.attention,
+      interest: advertisementRequest.context.interest,
+      desire: advertisementRequest.context.desire,
+      action: advertisementRequest.context.action
+    };
+    const selectedEnvironment = {
+      ...environment,
+      SUPABASE_URL: "https://abcdefghijklmnopqrst.supabase.co",
+      SUPABASE_PUBLISHABLE_KEY: `sb_publishable_${"p".repeat(32)}`,
+      ADVERTISING_GAME_EDGE_GATEWAY_SECRET: "g".repeat(43),
+      ADVERTISING_GAME_USERNAME_HMAC_SECRET: "h".repeat(32),
+      ADVERTISING_GAME_CLASSROOM_CODE: "classroom-access"
+    };
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(Response.json({
+        status: "found",
+        revision: 1,
+        document: cloudDocument
+      }))
+      .mockResolvedValueOnce(Response.json({ request_id: requestId }));
+    const state = stateFixture();
+    const handler = createImageLabJobsHandler({
+      environment: selectedEnvironment,
+      fetch: fetcher,
+      nowSeconds: () => 1_000,
+      createDeadlineSignal: () => new AbortController().signal,
+      state,
+      allowances: allowanceFixture(),
+      resolveSession: async () => authenticatedSession
+    });
+
+    const response = await handler(post(advertisementRequest));
+
+    expect(response.status).toBe(202);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(String(fetcher.mock.calls[0]?.[0])).toContain("/functions/v1/advertising-game-backend");
+    expect(state.reserve).toHaveBeenCalledOnce();
   });
 
   it("submits the exact server-owned Z-Image LoRA A/B profile and binds its stable ID", async () => {

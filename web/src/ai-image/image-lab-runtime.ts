@@ -1,6 +1,8 @@
 import type { GeneratedRasterPlacement } from "../catalogue/catalogue-runtime";
 import type {
   ImageLabClient,
+  AdvertisementRealisationContext,
+  AdvertisementRealisationSource,
   ImageLabJobCreated,
   ImageLabJobRequest,
   ImageLabJobStatus,
@@ -16,6 +18,7 @@ import {
 import type {
   ImageLabActions,
   ImageLabStatus,
+  AdvertisementRealisationChoice,
   MakeItRealChoice,
   ObjectForgeChoice
 } from "./image-lab-panel";
@@ -63,6 +66,9 @@ export interface ImageLabRuntimeDependencies {
   exportDesign(pair: ImageLabPairIdentity): string | Promise<string>;
   place(pair: ImageLabPairIdentity, input: GeneratedRasterPlacement): Promise<void>;
   isCurrentPair(pair: ImageLabPairIdentity): boolean;
+  getAdvertisementContext?: (
+    pair: ImageLabPairIdentity
+  ) => AdvertisementRealisationSource | Promise<AdvertisementRealisationSource>;
   prepare?: (
     dataUrl: string,
     target: AiImageTarget,
@@ -128,6 +134,7 @@ export class ImageLabRuntime implements ImageLabActions {
   readonly #exportDesign: (pair: ImageLabPairIdentity) => string | Promise<string>;
   readonly #place: (pair: ImageLabPairIdentity, input: GeneratedRasterPlacement) => Promise<void>;
   readonly #isCurrentPair: (pair: ImageLabPairIdentity) => boolean;
+  readonly #getAdvertisementContext: NonNullable<ImageLabRuntimeDependencies["getAdvertisementContext"]>;
   readonly #prepare: NonNullable<ImageLabRuntimeDependencies["prepare"]>;
   readonly #createId: () => string;
   readonly #submissionPersistence: ImageLabSubmissionPersistence;
@@ -137,6 +144,9 @@ export class ImageLabRuntime implements ImageLabActions {
     this.#exportDesign = dependencies.exportDesign;
     this.#place = dependencies.place;
     this.#isCurrentPair = dependencies.isCurrentPair;
+    this.#getAdvertisementContext = dependencies.getAdvertisementContext ?? (() => {
+      throw new Error("Advertisement realisation is not available in this workspace.");
+    });
     this.#prepare = dependencies.prepare ?? prepareImageForAi;
     this.#createId = dependencies.createId ?? (() => globalThis.crypto.randomUUID());
     this.#submissionPersistence = dependencies.submissionPersistence ??
@@ -226,6 +236,56 @@ export class ImageLabRuntime implements ImageLabActions {
       blob: asset,
       stage: "make-it-real",
       profileId: "make-it-real-v1",
+      requestId: generationId
+    });
+    await this.#submissionPersistence.remove(fingerprint);
+    this.#assertActive(pair, signal);
+    return this.status(signal);
+  }
+
+  async makeAdvertisementReal(
+    input: AdvertisementRealisationChoice,
+    signal: AbortSignal
+  ): Promise<ImageLabStatus> {
+    const pair = { sessionId: input.sessionId, teamId: input.teamId };
+    this.#assertActive(pair, signal);
+    const exported = await this.#exportDesign(pair);
+    this.#assertActive(pair, signal);
+    const reference = await this.#prepare(exported, "make-it-real", {
+      removeWhiteBackground: false
+    });
+    this.#assertActive(pair, signal);
+    const source = await this.#getAdvertisementContext(pair);
+    const documentId = source.documentId;
+    const context: AdvertisementRealisationContext = { ...source.context };
+    this.#assertActive(pair, signal);
+    const submission = JSON.stringify({
+      stage: "realise",
+      mode: "advertisement",
+      sessionId: input.sessionId,
+      teamId: input.teamId,
+      documentId,
+      designDataUrl: reference.dataUrl,
+      context
+    });
+    const { fingerprint, generationId, resumed } = await this.#submissionId(submission);
+    const created = await this.#createJob({
+      stage: "realise",
+      mode: "advertisement",
+      idempotencyKey: generationId,
+      documentId,
+      designDataUrl: reference.dataUrl,
+      context
+    }, fingerprint, signal);
+    this.#assertActive(pair, signal);
+    const asset = await this.#completedAsset(created, pair, fingerprint, resumed, signal);
+    this.#assertActive(pair, signal);
+    await this.#place(pair, {
+      assetId: `ai-${generationId}`,
+      title: `${displayTitle(context.productName)} advertisement`,
+      blob: asset,
+      stage: "make-it-real",
+      profileId: "make-it-real-advertisement-v1",
       requestId: generationId
     });
     await this.#submissionPersistence.remove(fingerprint);

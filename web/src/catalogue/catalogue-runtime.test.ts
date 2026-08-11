@@ -1619,6 +1619,73 @@ describe("CataloguePlacementQueue", () => {
     expect(reloadRevoke).toHaveBeenCalledWith(reloadedUrl);
   });
 
+  it("places a student upload as a selected editable raster without labelling it AI-generated", async () => {
+    const canvas = new PlacementCanvas();
+    let document: CampaignDocumentV1 = createBlankCampaignDocument({
+      documentId: "student-upload-document",
+      sessionId: "student-upload-session",
+      mode: "offline"
+    });
+    const blob = new Blob([Uint8Array.from([137, 80, 78, 71, 1])], { type: "image/png" });
+    const objectUrl = `blob:${window.location.origin}/student-upload-object`;
+    let attachment: { blobKey: string; blob: Blob; objectUrl: string } | undefined;
+    const queue = new CataloguePlacementQueue({
+      getDocument: () => document,
+      getCanvas: async () => canvas,
+      commit: (next, localBlob) => { document = next; attachment = localBlob; },
+      createObjectId: () => "student-upload-object",
+      createObjectURL: () => objectUrl
+    });
+
+    queue.enqueueStudentRaster({
+      assetId: "student-upload-shoe-sketch",
+      title: "Shoe sketch",
+      blob,
+      stage: "student-upload"
+    });
+    await queue.flush();
+
+    expect(canvas.objects).toContainEqual(expect.objectContaining({
+      objectId: "student-upload-object",
+      elementKind: "image",
+      assetId: "student-upload-shoe-sketch",
+      accessibleName: "Shoe sketch",
+      src: objectUrl
+    }));
+    expect(canvas.selectedId).toBe("student-upload-object");
+    expect(document.assetReferences).toEqual([
+      {
+        kind: "student-upload",
+        version: 1,
+        objectId: "student-upload-object",
+        assetId: "student-upload-shoe-sketch",
+        title: "Shoe sketch"
+      },
+      {
+        kind: "local-blob",
+        objectId: "student-upload-object",
+        assetId: "student-upload-shoe-sketch",
+        blobKey: "student-upload-student-upload-object",
+        mimeType: "image/png"
+      }
+    ]);
+    expect(document.assetReferences.some(({ kind }) => kind === "generated-image")).toBe(false);
+    expect(attachment).toMatchObject({
+      blobKey: "student-upload-student-upload-object",
+      blob,
+      objectUrl
+    });
+    const rehydrated = rehydrateLocalAssetBlobs(
+      document,
+      new Map([[attachment!.blobKey, attachment!.blob]]),
+      { createObjectURL: () => "blob:https://example.test/reloaded", revokeObjectURL: vi.fn() }
+    );
+    expect(findSemanticObject(
+      stateObjects(rehydrated.document.fabricState),
+      "student-upload-object"
+    )?.src).toBe("blob:https://example.test/reloaded");
+  });
+
   it("fills the ad with a Make It Real result while leaving it movable and zoomable", async () => {
     const canvas = new PlacementCanvas();
     let document: CampaignDocumentV1 = createBlankCampaignDocument({

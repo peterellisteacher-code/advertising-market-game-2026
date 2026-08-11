@@ -10,18 +10,19 @@ func run() -> bool:
 	assert(_owner_role_holds_the_choice_until_handoff())
 	assert(_close_emits_a_safe_closed_snapshot())
 	assert(_choice_effect_and_demonstration_complete_required_progress())
+	assert(_required_tasks_continue_without_world_interludes())
 	assert(_optional_contract_awards_only_progress_metadata())
 	assert(_panel_sequences_one_action_without_transfer())
 	assert(_panel_exposes_reference_and_direct_handoff())
 	assert(_panel_scene_exposes_the_mission_contract())
 	return true
 
-func _new_controller(progress: RefCounted) -> Node:
+func _new_controller(progress: RefCounted, panel: Control = null) -> Node:
 	var controller_script := load(CONTROLLER_PATH) as Script
 	if controller_script == null or not controller_script.can_instantiate():
 		return null
 	var controller := controller_script.new() as Node
-	controller.call("configure", progress)
+	controller.call("configure", progress, panel)
 	return controller
 
 func _owner_role_holds_the_choice_until_handoff() -> bool:
@@ -88,6 +89,49 @@ func _choice_effect_and_demonstration_complete_required_progress() -> bool:
 	controller.free()
 	return true
 
+func _required_tasks_continue_without_world_interludes() -> bool:
+	var progress: RefCounted = AgencyProgress.new()
+	assert(progress.call("begin"))
+	var panel_scene := load(PANEL_SCENE_PATH) as PackedScene
+	if panel_scene == null:
+		return false
+	var panel := panel_scene.instantiate() as Control
+	var tree := Engine.get_main_loop() as SceneTree
+	assert(tree != null)
+	tree.root.add_child(panel)
+	if not panel.is_node_ready():
+		panel.call("_ready")
+	var controller := _new_controller(progress, panel)
+	if controller == null:
+		panel.free()
+		return false
+	assert(controller.call("open_mission", "audience-brief", "strategist").get("opened") == true)
+	assert(controller.call("choose", "independence").get("correct") == true)
+	assert(controller.call("continue_to_demonstration").get("state") == "demonstration")
+	var completed: Dictionary = controller.call("submit_demonstration", {
+		"passed": true,
+		"evidence": "The brief facts support a self-directed audience."
+	})
+	assert(completed.get("accepted") == true)
+	assert(completed.get("taskIndex") == 1)
+	assert(completed.get("taskTotal") == 7)
+	assert(completed.get("hasNextRequired") == true)
+	var content_path := "Backdrop/Dialog/Margin/Content"
+	var completed_button := panel.get_node("%s/CompletedStage/CompletedCloseButton" % content_path) as Button
+	assert(completed_button.text == "Next task")
+	assert((panel.get_node("%s/Header/MissionBadge" % content_path) as Label).text.begins_with("TASK 1 OF 7"))
+	assert((panel.get_node("%s/Instruction" % content_path) as Label).text == "Task complete. Continue straight to the next task.")
+	completed_button.pressed.emit()
+	var next: Dictionary = controller.call("snapshot")
+	assert(next.get("missionId") == "salience")
+	assert(next.get("taskIndex") == 2)
+	assert(next.get("taskTotal") == 7)
+	assert(next.get("state") == "holding")
+	assert(panel.visible)
+	controller.free()
+	panel.free()
+	return true
+
 func _optional_contract_awards_only_progress_metadata() -> bool:
 	var progress: RefCounted = AgencyProgress.new()
 	assert(progress.call("begin"))
@@ -138,8 +182,12 @@ func _panel_sequences_one_action_without_transfer() -> bool:
 		"required": true,
 		"reward": "A visible campaign milestone.",
 		"applicationObjective": "Apply the decision at the Studio.",
+		"taskIndex": 2,
+		"taskTotal": 7,
+		"hasNextRequired": true,
 	})
-	assert(instruction.text == "Review the result, then return to the agency.")
+	assert(instruction.text == "Task complete. Continue straight to the next task.")
+	assert((panel.get_node("%s/CompletedStage/CompletedCloseButton" % content_path) as Button).text == "Next task")
 	panel.free()
 	return true
 
@@ -239,6 +287,7 @@ func _panel_scene_exposes_the_mission_contract() -> bool:
 	assert(panel.has_signal("continue_requested"))
 	assert(panel.has_signal("retry_requested"))
 	assert(panel.has_signal("close_requested"))
+	assert(panel.has_signal("next_requested"))
 	assert(panel.has_signal("role_handoff_requested"))
 	assert(panel.has_method("show_choice"))
 	assert(panel.has_method("show_effect"))

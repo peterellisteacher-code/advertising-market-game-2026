@@ -180,5 +180,87 @@ export const STUDENT_COPY = deepFreeze({
       "strategist-action": "The Strategist needs one visible message change."
     }
   },
+  assignmentSandbox: {
+    label: "ASSIGNMENT SANDBOX",
+    plannerLoading: "Assignment planner loading",
+    uploadLoading: "Image upload loading",
+    planner: {
+      intro:
+        "Start with the product. Then apply AIDA again to the choices in the advertisement.",
+      sections: {
+        defineProduct: "Define the product",
+        productAida: "Product AIDA",
+        desireValues: "Values for Desire",
+        advertisementAida: "Advertisement AIDA"
+      },
+      fields: {
+        productName: "Product name for this assignment",
+        productFunction: "What does the product do, and how does that benefit its user?",
+        targetAudience: "Who is the target audience?",
+        advertisingLocation: "Where will the advertisement appear?",
+        featureToEmphasise: "Which feature will you emphasise?",
+        differenceFromAlternatives: "How is it different from alternatives?",
+        materials: "What materials will it use?",
+        estimatedProductionCost: "Estimated production cost",
+        salePrice: "Planned sale price"
+      },
+      productAidaNote:
+        "Product AIDA explains the product promise. A feature is what it has or does; a benefit is how that helps; a value is why that matters; an audience response is what you want the audience to think, feel or do.",
+      productAidaPrompts: {
+        attention:
+          "Attention — what about the product should grab Attention? This could be what it looks like or what it does.",
+        interest:
+          "Interest — which additional features or benefits should make the audience want to know more?",
+        desire:
+          "Desire — how should the audience imagine life with this product?",
+        action:
+          "Action — what honest next step should the audience take?"
+      },
+      valuesNote:
+        "Choose up to twelve values from page 5, then mark one as the main value behind Desire.",
+      mainValuePrefix: "Make",
+      mainValueSuffix: "the main value",
+      mainValueLabel: "Main",
+      advertisementAidaNote:
+        "Apply AIDA again to the advertisement. Decide which visible or written evidence will gain Attention, build Interest, create Desire and prompt Action.",
+      compositionTechniques:
+        "Check the advertisement's salience, framing, reading pathway, vector lines, rule of thirds, colour contrast and harmony, pattern, balance and symmetry.",
+      saving: "Saving…",
+      saved: "Saved",
+      saveFailed: "The assignment plan could not be saved."
+    },
+    upload: {
+      heading: "Upload your drawing or mockup",
+      note:
+        "Choose a PNG, JPEG or WebP, up to 12 MiB. Your image is saved with your work on this device and in your account. It is sent to the image service only when you choose an Image Lab action.",
+      chooseImage: "Choose an image",
+      preparing: "Preparing image…",
+      addedSuffix:
+        " added. Use the advertisement toolbar to resize, fill, layer or delete it.",
+      errors: {
+        unknown: "The image could not be prepared.",
+        emptyFile: "Choose a non-empty image file.",
+        tooLarge: "Choose an image no larger than 12 MiB.",
+        unsupportedType: "Choose a PNG, JPEG or WebP image.",
+        signatureMismatch: "The file contents do not match its image type.",
+        invalidDimensions: "The image has invalid dimensions.",
+        browserCannotPrepare: "This browser cannot prepare the image.",
+        encodeFailed: "The image could not be encoded as PNG.",
+        decodeFailed: "The image could not be decoded. Try exporting it as PNG, JPEG or WebP.",
+        preparedBounds: "The prepared image is not a valid bounded PNG.",
+        preparedPng: "The prepared image is not a valid PNG."
+      }
+    },
+    imageLab: {
+      guidance:
+        "Make the product realistic, or turn the complete advertisement into a realistic version.",
+      makeProductReal: "Make the product real",
+      makeAdvertisementRealistic: "Make this advertisement realistic",
+      textWarning:
+        "Image models can change lettering. Check every word, then use the Words tool to correct it.",
+      busyAdvertisement: "Creating a realistic version of your advertisement…",
+      doneAdvertisement: "The realistic advertisement is selected."
+    }
+  },
   firstUseTooltips
 });

@@ -23,14 +23,14 @@ interface NavigatorLike {
 }
 
 interface WindowLike {
-  readonly document: { readonly readyState: string };
   addEventListener(
-    type: "load",
+    type: typeof GAME_STARTUP_READY_EVENT,
     listener: () => void,
     options: { once: true }
   ): void;
-  queueMicrotask(callback: () => void): void;
 }
+
+export const GAME_STARTUP_READY_EVENT = "admarket:game-startup-ready";
 
 export interface ReleaseServiceWorkerOptions {
   navigatorObject?: NavigatorLike;
@@ -72,9 +72,9 @@ export function registerReleaseServiceWorker({
       // Offline use remains available even when registration or update checks fail.
     }
   };
-  if (windowObject.document.readyState === "complete") {
-    windowObject.queueMicrotask(() => { void register(); });
-  } else {
-    windowObject.addEventListener("load", () => { void register(); }, { once: true });
-  }
+  windowObject.addEventListener(
+    GAME_STARTUP_READY_EVENT,
+    () => { void register(); },
+    { once: true }
+  );
 }

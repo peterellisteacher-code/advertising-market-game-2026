@@ -11,8 +11,11 @@ describe("registerReleaseServiceWorker", () => {
       update
     };
     const register = vi.fn(async () => registration);
+    const listeners = new Map<string, () => void>();
     const windowObject = {
-      addEventListener: vi.fn(),
+      addEventListener: vi.fn((type: string, listener: () => void) => {
+        listeners.set(type, listener);
+      }),
       document: { readyState: "complete" },
       queueMicrotask
     };
@@ -24,6 +27,11 @@ describe("registerReleaseServiceWorker", () => {
       windowObject,
       onUpdateReady: vi.fn()
     });
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
+
+    expect(register).not.toHaveBeenCalled();
+    expect(listeners.has("admarket:game-startup-ready")).toBe(true);
+    listeners.get("admarket:game-startup-ready")?.();
     await new Promise<void>((resolve) => queueMicrotask(resolve));
     await new Promise<void>((resolve) => queueMicrotask(resolve));
 
@@ -42,8 +50,11 @@ describe("registerReleaseServiceWorker", () => {
       addEventListener: vi.fn(),
       update: vi.fn(async () => undefined)
     };
+    const listeners = new Map<string, () => void>();
     const windowObject = {
-      addEventListener: vi.fn(),
+      addEventListener: vi.fn((type: string, listener: () => void) => {
+        listeners.set(type, listener);
+      }),
       document: { readyState: "complete" },
       queueMicrotask
     };
@@ -58,6 +69,8 @@ describe("registerReleaseServiceWorker", () => {
       windowObject,
       onUpdateReady
     });
+    expect(onUpdateReady).not.toHaveBeenCalled();
+    listeners.get("admarket:game-startup-ready")?.();
     await new Promise<void>((resolve) => queueMicrotask(resolve));
     await new Promise<void>((resolve) => queueMicrotask(resolve));
 

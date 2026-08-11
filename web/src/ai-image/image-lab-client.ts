@@ -40,7 +40,7 @@ export interface ObjectForgeJobRequest {
   colour: string;
 }
 
-export interface RealiseJobRequest {
+export interface ProductRealisationJobRequest {
   stage: "realise";
   idempotencyKey: string;
   designDataUrl: string;
@@ -48,7 +48,36 @@ export interface RealiseJobRequest {
   scene: string;
 }
 
-export type ImageLabJobRequest = ObjectForgeJobRequest | RealiseJobRequest;
+export type RealiseJobRequest = ProductRealisationJobRequest;
+
+export interface AdvertisementRealisationContext {
+  productName: string;
+  productFunction: string;
+  targetAudience: string;
+  advertisingLocation: string;
+  attention: string;
+  interest: string;
+  desire: string;
+  action: string;
+}
+
+export interface AdvertisementRealisationSource {
+  documentId: string;
+  context: AdvertisementRealisationContext;
+}
+
+export interface AdvertisementRealisationJobRequest {
+  stage: "realise";
+  mode: "advertisement";
+  idempotencyKey: string;
+  documentId: string;
+  designDataUrl: string;
+  context: AdvertisementRealisationContext;
+}
+
+export type ImageLabJobRequest = ObjectForgeJobRequest |
+  ProductRealisationJobRequest |
+  AdvertisementRealisationJobRequest;
 export type ImageLabStage = ImageLabJobRequest["stage"];
 
 export interface ImageLabJobCreated {
@@ -409,6 +438,40 @@ const validateJobRequest = (value: unknown): ImageLabJobRequest => {
       designDataUrl: record.designDataUrl,
       productKind: record.productKind,
       scene: record.scene
+    };
+  }
+  const context = ownRecord(record.context);
+  if (record.stage === "realise" && record.mode === "advertisement" &&
+    hasExactKeys(record, [
+      "stage", "mode", "idempotencyKey", "documentId", "designDataUrl", "context"
+    ]) && boundedString(record.documentId, 64) &&
+    boundedString(record.designDataUrl, DESIGN_DATA_URL_LIMIT) &&
+    /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(record.designDataUrl) &&
+    context && hasExactKeys(context, [
+      "productName", "productFunction", "targetAudience", "advertisingLocation",
+      "attention", "interest", "desire", "action"
+    ]) && boundedString(context.productName, 96) &&
+    boundedString(context.productFunction, 280) &&
+    boundedString(context.targetAudience, 160) &&
+    boundedString(context.advertisingLocation, 160) &&
+    boundedString(context.attention, 280) && boundedString(context.interest, 280) &&
+    boundedString(context.desire, 280) && boundedString(context.action, 280)) {
+    return {
+      stage: "realise",
+      mode: "advertisement",
+      idempotencyKey: record.idempotencyKey as string,
+      documentId: record.documentId,
+      designDataUrl: record.designDataUrl,
+      context: {
+        productName: context.productName,
+        productFunction: context.productFunction,
+        targetAudience: context.targetAudience,
+        advertisingLocation: context.advertisingLocation,
+        attention: context.attention,
+        interest: context.interest,
+        desire: context.desire,
+        action: context.action
+      }
     };
   }
   fail("INVALID_REQUEST", "The Image Lab job request was invalid.");

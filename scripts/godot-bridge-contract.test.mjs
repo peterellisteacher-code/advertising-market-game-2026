@@ -13,7 +13,7 @@ const godotBridgeDocuments = [
 
 function recoveryProgram(shell) {
   const start = shell.indexOf('const GAME_ACCESS_RECOVERY_KEY =');
-  const end = shell.indexOf('const engine = new Engine(', start);
+  const end = shell.indexOf('async function startGame()', start);
   assert.ok(start >= 0, "recovery program start must remain identifiable");
   assert.ok(end > start, "recovery program end must remain identifiable");
   return shell.slice(start, end);
@@ -195,6 +195,35 @@ test("CreatorHost never prefixes student diagnostics with internal bridge codes 
   );
 });
 
+test("the lobby opens only the isolated assignment sandbox document", async () => {
+  const [main, scene, documentHelper, routeTests, hostTests] = await Promise.all([
+    readFile(new URL("godot/src/main/main.gd", root), "utf8"),
+    readFile(new URL("godot/src/main/Main.tscn", root), "utf8"),
+    readFile(new URL("godot/src/main/assignment_sandbox_document.gd", root), "utf8"),
+    readFile(new URL("godot/tests/test_assignment_sandbox_document.gd", root), "utf8"),
+    readFile(new URL("godot/tests/test_creator_host.gd", root), "utf8")
+  ]);
+
+  assert.match(
+    scene,
+    /\[node name="OpenAssignmentSandbox" type="Button"[^\]]*\][\s\S]*?unique_name_in_owner = true[\s\S]*?(?=\n\[node |\s*$)/
+  );
+  assert.match(scene, /text = "Assignment sandbox"/);
+  assert.match(main, /creator_host\.load_latest\(ASSIGNMENT_SANDBOX_DOCUMENT_ID\)/);
+  assert.match(
+    main,
+    /func _on_latest_draft_received\(request_id: String, document: Variant\) -> void:\s+if _sandbox_load_pending:\s+if request_id != _sandbox_load_request_id:\s+return/
+  );
+  assert.match(main, /func _on_creator_state_received\(document: Dictionary\) -> void:\s+if _sandbox_open:/);
+  assert.match(main, /func _on_creator_closed\(\) -> void:\s+if _sandbox_open:/);
+  assert.match(documentHelper, /const DOCUMENT_ID := "assignment-sandbox"/);
+  assert.match(documentHelper, /const SESSION_ID := "assignment-sandbox-session"/);
+  assert.match(documentHelper, /document\["workspaceMode"\] = WORKSPACE_MODE/);
+  assert.match(documentHelper, /document\["assignmentPlan"\] = _blank_assignment_plan\(\)/);
+  assert.match(routeTests, /That saved assignment sandbox did not match this workspace\. Nothing was replaced\./);
+  assert.match(hostTests, /host\.load_latest\("assignment-sandbox"\)/);
+});
+
 test("the Godot shell mirrors current instructions semantically without pretending to be an editor", async () => {
   const [shell, main, scene] = await Promise.all([
     readFile(new URL("godot/web/godot_shell.html", root), "utf8"),
@@ -210,8 +239,11 @@ test("the Godot shell mirrors current instructions semantically without pretendi
   assert.match(shell, /\.textContent\s*=/);
   assert.doesNotMatch(shell, /game-a11y[^]*?\.innerHTML\s*=/);
   assert.doesNotMatch(shell, /status\.textContent\s*=\s*`Unable to start:\s*\$\{error\.message\}`/);
-  assert.match(shell, /AdMarketGameAccess\.reportStartupFailure\("timeout"\)/);
-  assert.match(shell, /AdMarketGameAccess\.reportStartupFailure\("engine"\)/);
+  assert.match(
+    shell,
+    /const reason = error instanceof GameStartupTimeoutError \? "timeout" : "engine";/
+  );
+  assert.match(shell, /AdMarketGameAccess\.reportStartupFailure\(reason\)/);
   assert.match(shell, /if\s*\(\s*!window\.AdMarketGameAccess\s*\)/);
   assert.match(shell, /sessionStorage\.getItem\(GAME_ACCESS_RECOVERY_KEY\)/);
   assert.match(shell, /const GAME_ACCESS_RECOVERY_QUERY\s*=/);
@@ -220,7 +252,10 @@ test("the Godot shell mirrors current instructions semantically without pretendi
   assert.match(shell, /window\.history\.replaceState/);
   assert.match(shell, /window\.location\.reload\(\)/);
   assert.match(shell, /window\.AdMarketGameAccess\s*=\s*Object\.freeze\(\{/);
-  assert.match(shell, /console\.error\("\[AdMarket game startup failed\]", \{ reason \}\)/);
+  assert.match(
+    shell,
+    /console\.error\("\[AdMarket game startup failed\]", \{\s+reason,\s+errorName:/
+  );
   assert.match(main, /GameAccessibilityMirror\.new\(\)/);
   assert.match(main, /func _process\(_delta: float\) -> void:/);
   assert.match(

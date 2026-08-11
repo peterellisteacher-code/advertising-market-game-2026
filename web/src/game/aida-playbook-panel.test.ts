@@ -88,4 +88,28 @@ describe("AidaPlaybookPanel", () => {
     }))
       .toBeTruthy();
   });
+
+  it("distinguishes Advertisement AIDA from Product AIDA in sandbox mode", async () => {
+    const host = document.createElement("div");
+    const save = vi.fn().mockResolvedValue(undefined);
+    const panel = new AidaPlaybookPanel(host, save);
+    panel.setState({
+      stage: "attention",
+      workspaceMode: "assignment-sandbox",
+      plan: { attention: "", interest: "", desire: "", action: "" }
+    });
+
+    expect(getByRole(host, "heading", {
+      name: "Advertisement AIDA — Attention: use one element to attract attention immediately."
+    })).toBeTruthy();
+    expect(host.textContent).toContain("advertisement communicates");
+    expect(host.textContent).not.toContain("Select the item that delivers it");
+    fireEvent.input(getByRole(host, "textbox", { name: "Your Attention technique" }), {
+      target: { value: "Use one bright beam against the dark campsite." }
+    });
+    fireEvent.click(getByRole(host, "button", { name: "Lock in Attention" }));
+
+    await vi.waitFor(() => expect(getByRole(host, "status").textContent)
+      .toBe("Advertisement Attention saved. Next: Interest."));
+  });
 });

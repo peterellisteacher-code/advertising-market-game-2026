@@ -7,10 +7,11 @@ import {
   defaultAccountCookieRequestSerialiser,
   type AccountCookieRequestSerialiser
 } from "./account-cookie-request-serialiser";
+import { MAX_ACCOUNT_ASSET_BYTES } from "./account-asset-limits";
 
 const ACCOUNT_ASSET_SCHEMA = "advertising-game-account-asset";
 const ACCOUNT_ASSET_VERSION = 1;
-const MAX_ASSET_BYTES = 4 * 1_024 * 1_024;
+const MAX_ASSET_BYTES = MAX_ACCOUNT_ASSET_BYTES;
 const MAX_ASSET_DOWNLOAD_BYTES = MAX_ASSET_BYTES + 1;
 const JSON_RESPONSE_LIMIT = 16 * 1_024;
 const SHA256 = /^[a-f0-9]{64}$/u;

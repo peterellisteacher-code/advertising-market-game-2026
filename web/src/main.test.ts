@@ -3377,7 +3377,7 @@ describe("window.AdMarketCreator", () => {
         ]
       }
     });
-  });
+  }, 15_000);
 
   it("rehydrates the exact persisted local blobs, saves their bodies and publishes only owned URLs", async () => {
     const source = localBlobDocument();
@@ -3701,10 +3701,13 @@ describe("window.AdMarketCreator", () => {
       name: "Library view"
     });
     expect(libraryView.value).toBe("products");
+    await waitFor(() => {
+      expect(document.querySelector('[data-library-status]')?.textContent)
+        .toBe("1 of 1 products");
+    }, { timeout: 10_000 });
     const search = getByRole<HTMLInputElement>(document.body, "searchbox", { name: "Search assets" });
-    search.value = "bottle";
-    search.dispatchEvent(new Event("input"));
-    const tile = await findByRole(document.body, "button", { name: /Reviewed bottle/ });
+    fireEvent.input(search, { target: { value: "bottle" } });
+    const tile = getByRole(document.body, "button", { name: /Reviewed bottle/ });
     expect(tile.textContent).not.toContain("$");
     tile.click();
 

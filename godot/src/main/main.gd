@@ -144,6 +144,7 @@ var _sandbox_load_pending: bool = false
 var _sandbox_load_request_id: String = ""
 var _sandbox_document: Dictionary = {}
 var _sandbox_open: bool = false
+var _campaign_creator_boundary: String = ""
 
 func _process(_delta: float) -> void:
     if agency_audio != null and agency_world != null:
@@ -213,6 +214,9 @@ func _ready() -> void:
     if mission_controller != null:
         mission_controller.mission_completed.connect(_on_agency_mission_completed)
         mission_controller.sidequest_completed.connect(_on_agency_sidequest_completed)
+    var mission_panel := agency_world.get_node_or_null("%AgencyMissionPanel") as AdMarketAgencyMissionPanel
+    if mission_panel != null:
+        mission_panel.next_requested.connect(_on_agency_next_requested)
     var selected_transport: RefCounted = creator_transport_override
     if selected_transport == null:
         selected_transport = WebCreatorTransport.new()
@@ -345,6 +349,19 @@ func _on_agency_mission_completed(mission_id: String, evidence: Dictionary) -> v
         agency_audio.play_cue("portfolio-stamp")
         _agency_campaign.reconcile_level_readiness(_readiness_clue())
         _render_level()
+
+func _on_agency_next_requested() -> void:
+    if _agency_campaign == null or agency_world == null:
+        return
+    var step: Dictionary = _agency_campaign.next_campaign_step()
+    var kind := String(step.get("kind", ""))
+    if kind not in ["build-product", "polish-campaign"]:
+        return
+    _campaign_creator_boundary = kind
+    var mission_controller := agency_world.get_node_or_null("%AgencyMissionController") as Node
+    if mission_controller != null:
+        mission_controller.call("close")
+    _open_creator()
 
 func _on_agency_sidequest_completed(sidequest_id: String) -> void:
     if _agency_campaign != null and _agency_campaign.complete_sidequest(sidequest_id):
@@ -1207,6 +1224,26 @@ func _on_creator_closed() -> void:
         return
     if agency_world != null and agency_world.visible:
         agency_world.set_input_enabled(true)
+    if not _campaign_creator_boundary.is_empty():
+        var completed_boundary := _campaign_creator_boundary
+        _campaign_creator_boundary = ""
+        var next_step: Dictionary = (
+            _agency_campaign.next_campaign_step()
+            if _agency_campaign != null
+            else {}
+        )
+        if (
+            completed_boundary == "build-product"
+            and String(next_step.get("kind", "")) == "required-mission"
+            and agency_world != null
+            and agency_world.open_campaign_mission(String(next_step.get("missionId", "")))
+        ):
+            status.text = "Product ready. Continue with the next advertising task."
+            return
+        if completed_boundary == "polish-campaign" and agency_world != null:
+            agency_world.direct_travel("pitch-theatre")
+            status.text = "Campaign ready. Prepare the final pitch."
+            return
     if enter_market.visible:
         status.text = "Market card built. Select Enter market to continue."
         _focus_if_ready(enter_market)

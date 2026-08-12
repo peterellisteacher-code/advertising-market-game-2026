@@ -225,6 +225,18 @@ func direct_travel(station_id: String) -> bool:
 		call_deferred("_focus_visible_station_control")
 	return true
 
+func open_campaign_mission(mission_id: String) -> bool:
+	if _progress == null:
+		return false
+	var record: Dictionary = MissionCatalog.mission(mission_id)
+	if record.is_empty() or not bool(record.get("required", true)):
+		return false
+	var controller := _mission_controller()
+	if controller == null:
+		return false
+	var result: Dictionary = controller.open_mission(mission_id, _progress.active_role)
+	return bool(result.get("opened", false))
+
 func reading_active() -> bool:
 	var guide := _guide()
 	if guide != null and guide.reading_active():

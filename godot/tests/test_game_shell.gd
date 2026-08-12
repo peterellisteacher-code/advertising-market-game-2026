@@ -40,6 +40,7 @@ class FakeAccessibilityMirror:
 func run() -> bool:
 	assert(_reduced_motion_bridge_drives_game_surfaces())
 	assert(_agency_world_replaces_the_run_panel_and_coordinates_roles())
+	assert(await _campaign_boundaries_open_productive_surfaces())
 	assert(_authored_shell_is_fun_first_and_accessible())
 	assert(_live_room_routes_are_primary_and_accessible())
 	assert(_instructions_remain_available_as_a_complete_reference())
@@ -160,6 +161,91 @@ func _agency_world_replaces_the_run_panel_and_coordinates_roles() -> bool:
 	assert(pair_state.get("activeRole") == "strategist")
 	shell.free()
 	return true
+
+func _campaign_boundaries_open_productive_surfaces() -> bool:
+	var setup_fake := FakeCreatorTransport.new()
+	var setup_shell := _mount_shell(setup_fake, null, FakePracticeTransport.new())
+	var setup_run := AdMarketGameRun.new()
+	assert(setup_run.begin("North Star Studio", "session-direct-setup", "team-direct-setup"))
+	setup_shell.set("_game_run", setup_run)
+	var blank_document: Dictionary = setup_shell.call("_blank_campaign_document")
+	blank_document["documentId"] = "direct-setup-document"
+	blank_document["sessionId"] = "session-direct-setup"
+	blank_document["teamId"] = "team-direct-setup"
+	setup_shell.set("_campaign_document", blank_document)
+	var setup_campaign := setup_shell.get("_agency_campaign") as AdMarketAgencyCampaignController
+	setup_campaign.begin_agency(setup_run, blank_document)
+	var setup_world := setup_shell.get_node("%AgencyWorld") as AdMarketAgencyWorld
+	setup_world.configure(setup_run.agency_progress() as AdMarketAgencyProgress)
+	setup_shell.call("_on_agency_mission_completed", "audience-brief", _mission_evidence("audience-brief"))
+	assert(setup_fake.request_count() == 0)
+	var setup_panel := setup_world.get_node("%AgencyMissionPanel") as AdMarketAgencyMissionPanel
+	setup_panel.next_requested.emit()
+	await (Engine.get_main_loop() as SceneTree).process_frame
+	assert(setup_fake.request_count() == 1)
+	var setup_open: Dictionary = setup_fake.request_for(setup_fake.last_request_id())
+	assert(setup_open.get("method") == "open")
+	setup_fake.resolve_success(setup_fake.last_request_id())
+	var product_document := _invent_ready_document(setup_shell)
+	product_document["documentId"] = "direct-setup-document"
+	product_document["sessionId"] = "session-direct-setup"
+	product_document["teamId"] = "team-direct-setup"
+	setup_shell.set("_practice_recovery", {})
+	setup_shell.call("_on_creator_state_received", product_document)
+	setup_shell.call("_on_creator_closed")
+	var mission_controller := setup_world.get_node("%AgencyMissionController") as Node
+	var setup_snapshot: Dictionary = mission_controller.call("snapshot")
+	assert(setup_snapshot.get("missionId") == "salience")
+	assert(setup_snapshot.get("state") in ["choice", "holding"])
+	mission_controller.call("close")
+	setup_shell.free()
+
+	var polish_fake := FakeCreatorTransport.new()
+	var polish_shell := _mount_shell(polish_fake, null, FakePracticeTransport.new())
+	var polish_run := AdMarketGameRun.new()
+	assert(polish_run.begin("North Star Studio", "session-direct-polish", "team-direct-polish"))
+	polish_shell.set("_game_run", polish_run)
+	var polish_document: Dictionary = polish_shell.call("_blank_campaign_document")
+	polish_document["documentId"] = "direct-polish-document"
+	polish_document["sessionId"] = "session-direct-polish"
+	polish_document["teamId"] = "team-direct-polish"
+	polish_document["product"]["name"] = "Orbit Bottle"
+	polish_document["product"]["build"] = {"blueprintId": "orbit-bottle"}
+	polish_shell.set("_campaign_document", polish_document)
+	var polish_campaign := polish_shell.get("_agency_campaign") as AdMarketAgencyCampaignController
+	polish_campaign.begin_agency(polish_run, polish_document)
+	for mission_id: String in [
+		"audience-brief",
+		"salience",
+		"reading-path",
+		"contrast",
+		"framing",
+		"aida",
+	]:
+		assert(polish_campaign.complete_mission(mission_id, _mission_evidence(mission_id)))
+	polish_shell.call("_on_agency_mission_completed", "claim-proof", _mission_evidence("claim-proof"))
+	assert(polish_fake.request_count() == 0)
+	var polish_world := polish_shell.get_node("%AgencyWorld") as AdMarketAgencyWorld
+	var polish_panel := polish_world.get_node("%AgencyMissionPanel") as AdMarketAgencyMissionPanel
+	polish_panel.next_requested.emit()
+	await (Engine.get_main_loop() as SceneTree).process_frame
+	assert(polish_fake.request_count() == 1)
+	var polish_open: Dictionary = polish_fake.request_for(polish_fake.last_request_id())
+	assert(polish_open.get("method") == "open")
+	polish_fake.resolve_success(polish_fake.last_request_id())
+	polish_shell.set("_practice_recovery", {})
+	polish_shell.call("_on_creator_state_received", polish_document)
+	polish_shell.call("_on_creator_closed")
+	assert(polish_campaign.next_campaign_step() == {"kind": "prepare-pitch"})
+	assert(polish_world.current_station_id() == "pitch-theatre")
+	polish_shell.free()
+	return true
+
+func _mission_evidence(mission_id: String) -> Dictionary:
+	return {
+		"decision": mission_id,
+		"effect": "This decision changes how the intended audience understands the advertisement.",
+	}
 
 func _practice_start_and_lock_wait_for_storage_ack() -> bool:
 	var creator_fake := FakeCreatorTransport.new()

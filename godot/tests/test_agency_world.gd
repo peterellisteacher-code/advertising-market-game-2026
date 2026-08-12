@@ -68,6 +68,7 @@ func run() -> bool:
 	assert(not handoff_panel.visible)
 	await _assert_station_card_can_be_tucked(world, progress, tree)
 	_assert_station_mission_panel_uses_role_and_modal_state(world, progress)
+	_assert_named_campaign_mission_opens_without_travel(world, progress)
 	_assert_keyboard_handoff_and_guide_shortcuts(world, progress)
 	await _assert_modal_shortcuts_and_station_focus(world, progress, tree)
 	assert(world.direct_travel("reception"))
@@ -321,6 +322,27 @@ func _assert_world_travel_and_label_contract(world: Node) -> void:
 	tuck.pressed.emit()
 	assert(tab.text == "Open Client briefing")
 	tab.pressed.emit()
+
+func _assert_named_campaign_mission_opens_without_travel(
+	world: Node,
+	progress: RefCounted
+) -> void:
+	var station_before: String = world.call("current_station_id")
+	var pair := world.get_node("%AgencyPair") as CharacterBody2D
+	var controller := world.get_node("%AgencyMissionController") as Node
+	assert(world.call("open_campaign_mission", "salience"))
+	assert(world.call("current_station_id") == station_before)
+	var snapshot: Dictionary = controller.call("snapshot")
+	assert(snapshot.get("missionId") == "salience")
+	assert(snapshot.get("state") == "holding")
+	assert(snapshot.get("activeRole") == progress.get("active_role"))
+	assert(snapshot.get("ownerRole") == "art-director")
+	assert(not pair.input_enabled)
+	assert(pair.modal_open)
+	controller.call("close")
+	assert(not world.call("open_campaign_mission", "not-a-mission"))
+	assert(pair.input_enabled)
+	assert(not pair.modal_open)
 
 func _assert_station_mission_panel_uses_role_and_modal_state(
 	world: Node,

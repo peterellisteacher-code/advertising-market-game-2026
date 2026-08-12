@@ -54,6 +54,27 @@ func current_objective() -> Dictionary:
 		return {}
 	return MissionCatalog.objective(_progress.current_objective_id)
 
+func next_campaign_step() -> Dictionary:
+	if _progress == null:
+		return {}
+	match _progress.current_objective_id:
+		"build-product":
+			return {"kind": "build-product"}
+		"polish-campaign":
+			return {"kind": "polish-campaign"}
+		"prepare-pitch":
+			return {"kind": "prepare-pitch"}
+		"present-campaign":
+			return {"kind": "complete"}
+	for mission: Dictionary in MissionCatalog.required_missions():
+		var mission_id := String(mission.get("id", ""))
+		if not mission_id.is_empty() and not _progress.completed_mission_ids.has(mission_id):
+			return {
+				"kind": "required-mission",
+				"missionId": mission_id,
+			}
+	return {"kind": "complete"}
+
 func open_station(station_id: String) -> Dictionary:
 	var objective: Dictionary = current_objective()
 	if _progress == null or objective.is_empty():
@@ -117,6 +138,8 @@ func handoff_to(role: String) -> bool:
 func on_creator_returned(document: Dictionary) -> void:
 	_document = document.duplicate(true)
 	_reconcile_document_objective()
+	if _progress != null and _progress.current_objective_id == "polish-campaign" and all_required_missions_complete():
+		_set_objective("prepare-pitch")
 	_emit_progress()
 
 func on_publication(publication: Dictionary) -> void:
@@ -222,8 +245,6 @@ func _reconcile_document_objective() -> void:
 		return
 	if _progress.current_objective_id == "build-product" and _has_initial_product():
 		_set_objective(_objective_for_current_work())
-	elif _progress.current_objective_id == "polish-campaign" and all_required_missions_complete():
-		_set_objective("prepare-pitch")
 
 func _has_initial_product() -> bool:
 	var product: Dictionary = _dictionary_child(_document, "product")

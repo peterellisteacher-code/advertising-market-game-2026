@@ -38,7 +38,6 @@ func run() -> bool:
 	guide.advance_orientation()
 	guide.advance_orientation()
 	guide.advance_orientation()
-	guide.advance_orientation()
 	assert(not orientation.visible)
 	assert(not guide_panel.visible)
 	assert(not guide.orientation_required())
@@ -46,7 +45,7 @@ func run() -> bool:
 	assert(not pair.modal_open)
 	assert(not guide.get_node("GuideTab").visible)
 	var agency_hud := world.get_node("%AgencyHud") as AdMarketAgencyHud
-	agency_hud.open_guide("roles")
+	agency_hud.open_guide("objective")
 	assert(guide_panel.visible)
 	assert(not pair.input_enabled)
 	assert(pair.modal_open)
@@ -57,19 +56,11 @@ func run() -> bool:
 	assert(world.get_viewport().gui_get_focus_owner() == visible_guide_button)
 	assert(pair.input_enabled)
 	assert(not pair.modal_open)
-	agency_hud.open_guide("roles")
-	guide.role_handoff_requested.emit("art-director")
-	await tree.process_frame
-	var handoff_panel := world.get_node("%HandoffPanel") as Control
-	var requested_handoff := world.get_node("%ArtDirectorHandoff") as Button
-	assert(handoff_panel.visible)
-	assert(world.get_viewport().gui_get_focus_owner() == requested_handoff)
-	(world.get_node("%CancelHandoff") as Button).pressed.emit()
-	assert(not handoff_panel.visible)
+	assert(world.get_node_or_null("%HandoffPanel") == null)
 	await _assert_station_card_can_be_tucked(world, progress, tree)
-	_assert_station_mission_panel_uses_role_and_modal_state(world, progress)
+	_assert_station_mission_panel_uses_team_and_modal_state(world)
 	_assert_named_campaign_mission_opens_without_travel(world, progress)
-	_assert_keyboard_handoff_and_guide_shortcuts(world, progress)
+	_assert_guide_shortcut(world)
 	await _assert_modal_shortcuts_and_station_focus(world, progress, tree)
 	assert(world.direct_travel("reception"))
 	assert(world.current_station_id() == "reception")
@@ -135,7 +126,6 @@ func _assert_quick_start_opens_product_workspace(tree: SceneTree) -> void:
 	assert(orientation.visible)
 	for expected_title: String in [
 		"Move to the first task",
-		"Share the decisions",
 		"Begin the work",
 	]:
 		await _click_button(orientation_next, tree)
@@ -334,7 +324,7 @@ func _assert_named_campaign_mission_opens_without_travel(
 	assert(world.call("current_station_id") == station_before)
 	var snapshot: Dictionary = controller.call("snapshot")
 	assert(snapshot.get("missionId") == "salience")
-	assert(snapshot.get("state") == "holding")
+	assert(snapshot.get("state") == "choice")
 	assert(snapshot.get("activeRole") == progress.get("active_role"))
 	assert(snapshot.get("ownerRole") == "art-director")
 	assert(not pair.input_enabled)
@@ -344,10 +334,7 @@ func _assert_named_campaign_mission_opens_without_travel(
 	assert(pair.input_enabled)
 	assert(not pair.modal_open)
 
-func _assert_station_mission_panel_uses_role_and_modal_state(
-	world: Node,
-	progress: RefCounted
-) -> void:
+func _assert_station_mission_panel_uses_team_and_modal_state(world: Node) -> void:
 	assert(world.call("direct_travel", "client-briefing"))
 	var pair: CharacterBody2D = world.get_node("%AgencyPair") as CharacterBody2D
 	var panel: Control = world.get_node("%AgencyMissionPanel") as Control
@@ -357,26 +344,16 @@ func _assert_station_mission_panel_uses_role_and_modal_state(
 	var station_action: Button = world.get_node("%StationActionButton") as Button
 	station_action.pressed.emit()
 	assert(panel.visible)
-	assert(controller.call("snapshot").get("state") == "holding")
+	assert(controller.call("snapshot").get("state") == "choice")
 	var content_path: String = "Backdrop/Dialog/Margin/Content"
-	var holding_label: Label = panel.get_node("%s/OwnerCard/HoldingLabel" % content_path) as Label
-	assert(not holding_label.visible)
 	var instruction: Label = panel.get_node("%s/Instruction" % content_path) as Label
-	assert(instruction.text == "Make the Strategist active to answer this question.")
+	assert(instruction.text == "Click one answer.")
 	var choice_stage: VBoxContainer = panel.get_node("%s/ChoiceStage" % content_path) as VBoxContainer
-	assert(not choice_stage.visible)
-	var handoff_button: Button = panel.get_node("%s/RoleHandoffButton" % content_path) as Button
-	assert(handoff_button.visible)
-	assert(handoff_button.text == "Make Strategist active")
+	assert(choice_stage.visible)
+	assert(panel.get_node_or_null("%s/OwnerCard" % content_path) == null)
+	assert(panel.get_node_or_null("%s/RoleHandoffButton" % content_path) == null)
 	assert(not pair.input_enabled)
 	assert(pair.modal_open)
-	handoff_button.pressed.emit()
-	assert(progress.get("active_role") == "strategist")
-	assert(pair.get("active_role") == "strategist")
-	assert(panel.visible)
-	assert(controller.call("snapshot").get("state") == "choice")
-	assert(choice_stage.visible)
-	assert(not handoff_button.visible)
 	var choice_one: Button = panel.get_node("%s/ChoiceStage/ChoiceGrid/ChoiceOne" % content_path) as Button
 	assert(not choice_one.disabled)
 	assert(_perceived_luminance(choice_one.get_theme_color("font_disabled_color")) < 0.45)
@@ -386,21 +363,7 @@ func _assert_station_mission_panel_uses_role_and_modal_state(
 	assert(pair.input_enabled)
 	assert(not pair.modal_open)
 
-func _assert_keyboard_handoff_and_guide_shortcuts(world: Node, progress: RefCounted) -> void:
-	var pair: CharacterBody2D = world.get_node("%AgencyPair") as CharacterBody2D
-	var handoff_panel: Control = world.get_node("%HandoffPanel") as Control
-	var handoff_event: InputEventKey = InputEventKey.new()
-	handoff_event.keycode = KEY_H
-	handoff_event.pressed = true
-	world.call("_unhandled_key_input", handoff_event)
-	assert(handoff_panel.visible)
-	assert(pair.modal_open)
-	var art_director_button: Button = world.get_node("%ArtDirectorHandoff") as Button
-	art_director_button.pressed.emit()
-	assert(progress.get("active_role") == "art-director")
-	assert(pair.get("active_role") == "art-director")
-	assert(not handoff_panel.visible)
-	assert(not pair.modal_open)
+func _assert_guide_shortcut(world: Node) -> void:
 	var guide_event: InputEventKey = InputEventKey.new()
 	guide_event.keycode = KEY_G
 	guide_event.pressed = true
@@ -411,58 +374,35 @@ func _assert_keyboard_handoff_and_guide_shortcuts(world: Node, progress: RefCoun
 
 func _assert_modal_shortcuts_and_station_focus(
 	world: Node,
-	progress: RefCounted,
+	_progress: RefCounted,
 	tree: SceneTree
 ) -> void:
 	var pair: CharacterBody2D = world.get_node("%AgencyPair") as CharacterBody2D
-	var handoff_panel: Control = world.get_node("%HandoffPanel") as Control
 	var guide: AdMarketAgencyGuideDrawer = world.get_node("%AgencyGuideDrawer") as AdMarketAgencyGuideDrawer
 	var guide_panel: Control = guide.get_node("GuidePanel") as Control
 	var station_panel: Control = world.get_node("%StationPanel") as Control
 	var station_tab: Button = world.get_node("%StationPanelTab") as Button
 	var station_tuck: Button = world.get_node("%StationPanelTuck") as Button
-	var art_button: Button = world.get_node("%ArtDirectorHandoff") as Button
-	var strategist_button: Button = world.get_node("%StrategistHandoff") as Button
 	if not station_tab.visible:
 		station_tuck.pressed.emit()
 	assert(station_tab.visible)
-	world.call("_show_handoff_dialog")
-	var active_role: String = String(progress.get("active_role"))
-	assert(art_button.disabled == (active_role == "art-director"))
-	assert(strategist_button.disabled == (active_role == "strategist"))
-	var available_handoff: Button = strategist_button if active_role == "art-director" else art_button
-	assert(world.get_viewport().gui_get_focus_owner() == available_handoff)
 	var guide_event: InputEventAction = InputEventAction.new()
 	guide_event.action = &"guide"
 	guide_event.pressed = true
 	world.call("_unhandled_input", guide_event)
-	assert(handoff_panel.visible)
+	assert(guide_panel.visible)
+	assert(pair.modal_open)
+	assert(not pair.input_enabled)
+	guide.set_tucked(true)
+	await tree.process_frame
 	assert(not guide_panel.visible)
-	assert(pair.modal_open)
-	assert(not pair.input_enabled)
-	assert(pair.modal_open)
-	assert(not pair.input_enabled)
-	assert(world.get_viewport().gui_get_focus_owner() == available_handoff)
-	(world.get_node("%CancelHandoff") as Button).pressed.emit()
-	assert(not handoff_panel.visible)
-	assert(station_tab.visible)
-	assert(world.get_viewport().gui_get_focus_owner() == station_tab)
+	assert(not pair.modal_open)
+	assert(pair.input_enabled)
 	station_tab.pressed.emit()
 	await tree.process_frame
 	assert(station_panel.visible)
 	station_tuck.pressed.emit()
 	assert(station_tab.visible)
-	world.call("_show_handoff_dialog")
-	assert(world.get_viewport().gui_get_focus_owner() == available_handoff)
-	await tree.process_frame
-	assert(handoff_panel.visible)
-	assert(pair.modal_open)
-	assert(not pair.input_enabled)
-	assert(world.get_viewport().gui_get_focus_owner() == available_handoff)
-	(world.get_node("%CancelHandoff") as Button).pressed.emit()
-	assert(not handoff_panel.visible)
-	assert(station_tab.visible)
-	assert(world.get_viewport().gui_get_focus_owner() == station_tab)
 
 func _assert_mission_panel_is_readable_and_bounded(panel: Control) -> void:
 	# The panel is the full-screen backdrop, so it tracks the viewport rather than the
@@ -476,7 +416,6 @@ func _assert_mission_panel_is_readable_and_bounded(panel: Control) -> void:
 	var readable_labels := [
 		panel.get_node("%s/Title" % content_path) as Label,
 		panel.get_node("%s/Goal" % content_path) as Label,
-		panel.get_node("%s/OwnerCard/HoldingLabel" % content_path) as Label,
 		panel.get_node("%s/Instruction" % content_path) as Label,
 		panel.get_node("%s/ChoiceStage/KeyboardHint" % content_path) as Label,
 		panel.get_node("%s/EffectStage/EffectHeading" % content_path) as Label,

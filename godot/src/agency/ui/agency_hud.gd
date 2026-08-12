@@ -22,8 +22,7 @@ func _ready() -> void:
 func show_objective(objective: Dictionary) -> void:
 	_objective = objective.duplicate(true)
 	_set_label_text("HudMargin/HudStack/PrimaryRow/ObjectiveBlock/HudObjective", String(objective.get("title", "Next task")))
-	var owner_role := String(objective.get("ownerRole", "strategist"))
-	_set_label_text("HudMargin/HudStack/PrimaryRow/ObjectiveBlock/HudOwner", "%s leads" % ("Art Director" if owner_role == "art-director" else "Strategist"))
+	_set_label_text("HudMargin/HudStack/PrimaryRow/ObjectiveBlock/HudOwner", "Decide together")
 
 func set_progress(required_done: int, required_total: int, optional_done: int) -> void:
 	_set_label_text("HudMargin/HudStack/ExpandedDetails/ProgressBlock/HudProgress", "%d of %d required · %d optional" % [required_done, required_total, optional_done])

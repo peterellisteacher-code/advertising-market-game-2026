@@ -39,7 +39,7 @@ class FakeAccessibilityMirror:
 
 func run() -> bool:
 	assert(_reduced_motion_bridge_drives_game_surfaces())
-	assert(_agency_world_replaces_the_run_panel_and_coordinates_roles())
+	assert(_agency_world_replaces_the_run_panel_and_coordinates_teamwork())
 	assert(await _campaign_boundaries_open_productive_surfaces())
 	assert(_authored_shell_is_fun_first_and_accessible())
 	assert(_live_room_routes_are_primary_and_accessible())
@@ -79,7 +79,7 @@ func _reduced_motion_bridge_drives_game_surfaces() -> bool:
 	shell.free()
 	return true
 
-func _agency_world_replaces_the_run_panel_and_coordinates_roles() -> bool:
+func _agency_world_replaces_the_run_panel_and_coordinates_teamwork() -> bool:
 	var practice_fake := FakePracticeTransport.new()
 	var shell := _mount_shell(FakeCreatorTransport.new(), null, practice_fake)
 	var agency := shell.get_node_or_null("%AgencyWorld") as Node2D
@@ -125,7 +125,7 @@ func _agency_world_replaces_the_run_panel_and_coordinates_roles() -> bool:
 	assert(accessibility.get("eyebrow") == "ADVERTISEMENT WORK")
 	assert(String(accessibility.get("heading")).contains("Create and pitch one persuasive advertisement"))
 	assert(String(accessibility.get("currentInstruction")).contains("Next task:"))
-	assert(String(accessibility.get("currentInstruction")).contains("Active role:"))
+	assert(String(accessibility.get("currentInstruction")).contains("Decide together"))
 	assert(not String(mirror.get("_last_payload")).contains("LIVE MARKET"))
 	var pair := agency.get_node("%AgencyPair") as AdMarketAgencyPair
 	assert(pair.input_enabled)
@@ -151,14 +151,11 @@ func _agency_world_replaces_the_run_panel_and_coordinates_roles() -> bool:
 	shell.call("_on_creator_closed")
 	assert(pair.input_enabled)
 	assert(agency.current_station_id() == prior_station)
-	shell.call("_on_agency_role_handoff_requested", "strategist")
-	var pending_request := practice_fake.request_for("practice-5")
-	assert(pending_request.get("method") == "saveProgress")
-	var queued_pitch: Dictionary = shell.get("_queued_practice_pitch")
-	assert(queued_pitch.get("activeRole") == "strategist")
-	var document: Dictionary = shell.get("_campaign_document")
-	var pair_state: Dictionary = Dictionary(Dictionary(document.get("gameplay")).get("pair"))
-	assert(pair_state.get("activeRole") == "strategist")
+	var guide := agency.get_node("%AgencyGuideDrawer") as AdMarketAgencyGuideDrawer
+	assert(guide.get_node_or_null("%Roles") == null)
+	var mission_panel := agency.get_node("%AgencyMissionPanel") as Control
+	assert(mission_panel.get_node_or_null("%OwnerCard") == null)
+	assert(mission_panel.get_node_or_null("%RoleHandoffButton") == null)
 	shell.free()
 	return true
 

@@ -9,7 +9,7 @@
 [ext_resource type="PackedScene" path="res://src/agency/AgencyAmbientMotion.tscn" id="8_ambient"]
 [ext_resource type="PackedScene" uid="uid://dmdn0nl418hup" path="res://src/agency/missions/AgencyMissionPanel.tscn" id="9_t5o2e"]
 [ext_resource type="Script" uid="uid://dt5d3rtsxgwyr" path="res://src/agency/missions/agency_mission_controller.gd" id="11_dufgl"]
-[ext_resource type="Theme" path="res://src/agency/ui/agency_theme.tres" id="12_theme"]
+[ext_resource type="Theme" uid="uid://brlfemvuia7o8" path="res://src/agency/ui/agency_theme.tres" id="12_theme"]
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_iardm"]
 vertices = PackedVector2Array(30, 104, 1250, 104, 1250, 772, 30, 772)
@@ -29,6 +29,9 @@ size = Vector2(20, 700)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_jfxdp"]
 size = Vector2(300, 75)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_client_briefing"]
+size = Vector2(112, 118)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_xe7p1"]
 size = Vector2(240, 80)
@@ -50,9 +53,6 @@ size = Vector2(280, 90)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_k282e"]
 size = Vector2(330, 105)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_client_briefing"]
-size = Vector2(112, 118)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vxlg1"]
 content_margin_left = 12.0
@@ -231,214 +231,6 @@ corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4mwv4"]
-content_margin_left = 12.0
-content_margin_top = 9.0
-content_margin_right = 12.0
-content_margin_bottom = 9.0
-bg_color = Color(0.0627451, 0.12941177, 0.23529412, 0)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(1, 0.96862745, 0.9098039, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5l0p5"]
-content_margin_left = 12.0
-content_margin_top = 9.0
-content_margin_right = 12.0
-content_margin_bottom = 9.0
-bg_color = Color(0.0627451, 0.12941177, 0.23529412, 0.99215686)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(1, 0.43529412, 0.38039216, 1)
-corner_radius_top_left = 16
-corner_radius_top_right = 16
-corner_radius_bottom_right = 16
-corner_radius_bottom_left = 16
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_02utw"]
-content_margin_left = 12.0
-content_margin_top = 9.0
-content_margin_right = 12.0
-content_margin_bottom = 9.0
-bg_color = Color(0.0627451, 0.12941177, 0.23529412, 0.9490196)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(1, 0.43529412, 0.38039216, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dvlep"]
-content_margin_left = 12.0
-content_margin_top = 9.0
-content_margin_right = 12.0
-content_margin_bottom = 9.0
-bg_color = Color(0.02745098, 0.08235294, 0.17254902, 0.9843137)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(1, 0.7411765, 0.22352941, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cixom"]
-content_margin_left = 12.0
-content_margin_top = 9.0
-content_margin_right = 12.0
-content_margin_bottom = 9.0
-bg_color = Color(0.09019608, 0.20392157, 0.34901962, 0.98039216)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(1, 0.9411765, 0.7764706, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_56mdo"]
-content_margin_left = 12.0
-content_margin_top = 9.0
-content_margin_right = 12.0
-content_margin_bottom = 9.0
-bg_color = Color(0.0627451, 0.12941177, 0.23529412, 0)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(1, 0.96862745, 0.9098039, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3hwlo"]
-content_margin_left = 12.0
-content_margin_top = 9.0
-content_margin_right = 12.0
-content_margin_bottom = 9.0
-bg_color = Color(0.0627451, 0.12941177, 0.23529412, 0.9490196)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.15686275, 0.7764706, 0.72156864, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_so5mu"]
-content_margin_left = 12.0
-content_margin_top = 9.0
-content_margin_right = 12.0
-content_margin_bottom = 9.0
-bg_color = Color(0.02745098, 0.08235294, 0.17254902, 0.9843137)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(1, 0.7411765, 0.22352941, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_73kxu"]
-content_margin_left = 12.0
-content_margin_top = 9.0
-content_margin_right = 12.0
-content_margin_bottom = 9.0
-bg_color = Color(0.09019608, 0.20392157, 0.34901962, 0.98039216)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(1, 0.9411765, 0.7764706, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7lef7"]
-content_margin_left = 12.0
-content_margin_top = 9.0
-content_margin_right = 12.0
-content_margin_bottom = 9.0
-bg_color = Color(0.0627451, 0.12941177, 0.23529412, 0)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(1, 0.96862745, 0.9098039, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_l6arw"]
-content_margin_left = 12.0
-content_margin_top = 9.0
-content_margin_right = 12.0
-content_margin_bottom = 9.0
-bg_color = Color(0.0627451, 0.12941177, 0.23529412, 0.9490196)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.15686275, 0.7764706, 0.72156864, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4wuo7"]
-content_margin_left = 12.0
-content_margin_top = 9.0
-content_margin_right = 12.0
-content_margin_bottom = 9.0
-bg_color = Color(0.02745098, 0.08235294, 0.17254902, 0.9843137)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(1, 0.7411765, 0.22352941, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pxbc1"]
-content_margin_left = 12.0
-content_margin_top = 9.0
-content_margin_right = 12.0
-content_margin_bottom = 9.0
-bg_color = Color(0.09019608, 0.20392157, 0.34901962, 0.98039216)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(1, 0.9411765, 0.7764706, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qqyns"]
 content_margin_left = 12.0
 content_margin_top = 9.0
 content_margin_right = 12.0
@@ -677,7 +469,6 @@ unique_name_in_owner = true
 script = ExtResource("1_gscui")
 
 [node name="AgencyFloor" type="Sprite2D" parent="." unique_id=1336746350]
-z_index = 0
 texture_filter = 1
 position = Vector2(640, 440)
 scale = Vector2(0.76555, 0.76514)
@@ -715,7 +506,7 @@ shape = SubResource("RectangleShape2D_0f4an")
 position = Vector2(315, 220)
 shape = SubResource("RectangleShape2D_jfxdp")
 
-[node name="ClientBriefingFixture" type="CollisionShape2D" parent="WorldBounds"]
+[node name="ClientBriefingFixture" type="CollisionShape2D" parent="WorldBounds" unique_id=202968163]
 position = Vector2(430, 369)
 shape = SubResource("RectangleShape2D_client_briefing")
 
@@ -754,10 +545,10 @@ y_sort_enabled = true
 position = Vector2(319.9, 290.9)
 
 [node name="ClientBriefing" parent="Stations" unique_id=1212045144 instance=ExtResource("3_ytwji")]
-position = Vector2(421.0, 408.0)
+position = Vector2(421, 408)
 
 [node name="StrategyRoom" parent="Stations" unique_id=1683905649 instance=ExtResource("3_ytwji")]
-position = Vector2(639.0, 289.4)
+position = Vector2(639, 289.4)
 
 [node name="ArtStudio" parent="Stations" unique_id=1203801639 instance=ExtResource("3_ytwji")]
 position = Vector2(949.3, 301.9)
@@ -945,17 +736,6 @@ layout_mode = 2
 theme = ExtResource("12_theme")
 text = "Hide"
 
-[node name="StationResponsibilities" type="Label" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent" unique_id=896154039]
-unique_name_in_owner = true
-visible = false
-custom_minimum_size = Vector2(520, 44)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.9098039, 0.9490196, 1, 1)
-theme_override_font_sizes/font_size = 13
-text = "Room responsibilities"
-autowrap_mode = 2
-
 [node name="StationActionButton" type="Button" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent/StationHeader" unique_id=446819562]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(360, 48)
@@ -968,6 +748,17 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_nyk50")
 theme_override_styles/hover = SubResource("StyleBoxFlat_h0l3y")
 theme_override_styles/focus = SubResource("StyleBoxFlat_4mwv4")
 text = "Work in this room"
+
+[node name="StationResponsibilities" type="Label" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent" unique_id=896154039]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(520, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.9098039, 0.9490196, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "Room responsibilities"
+autowrap_mode = 2
 
 [node name="StationPanelTab" type="Button" parent="HUD/HUDRoot" unique_id=2026080316]
 unique_name_in_owner = true
@@ -986,92 +777,6 @@ grow_vertical = 0
 theme = ExtResource("12_theme")
 theme_override_font_sizes/font_size = 16
 text = "Open room card"
-
-[node name="HandoffPanel" type="PanelContainer" parent="HUD/HUDRoot" unique_id=409753894]
-unique_name_in_owner = true
-visible = false
-z_index = 100
-layout_mode = 0
-offset_left = 260.0
-offset_top = 190.0
-offset_right = 1020.0
-offset_bottom = 610.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_5l0p5")
-
-[node name="HandoffMargin" type="MarginContainer" parent="HUD/HUDRoot/HandoffPanel" unique_id=582871334]
-layout_mode = 2
-theme_override_constants/margin_left = 22
-theme_override_constants/margin_top = 22
-theme_override_constants/margin_right = 22
-theme_override_constants/margin_bottom = 22
-
-[node name="HandoffContent" type="VBoxContainer" parent="HUD/HUDRoot/HandoffPanel/HandoffMargin" unique_id=443277575]
-layout_mode = 2
-
-[node name="HandoffEyebrow" type="Label" parent="HUD/HUDRoot/HandoffPanel/HandoffMargin/HandoffContent" unique_id=1520362597]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.15686275, 0.7764706, 0.72156864, 1)
-theme_override_font_sizes/font_size = 11
-text = "ROLE HANDOFF"
-
-[node name="HandoffTitle" type="Label" parent="HUD/HUDRoot/HandoffPanel/HandoffMargin/HandoffContent" unique_id=1967538526]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
-theme_override_font_sizes/font_size = 27
-text = "Who controls the next decision?"
-
-[node name="HandoffExplanation" type="Label" parent="HUD/HUDRoot/HandoffPanel/HandoffMargin/HandoffContent" unique_id=151581138]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_colors/font_color = Color(0.92941177, 0.9607843, 1, 1)
-theme_override_font_sizes/font_size = 17
-text = "Both partners keep a defined responsibility."
-autowrap_mode = 2
-
-[node name="HandoffChoices" type="HBoxContainer" parent="HUD/HUDRoot/HandoffPanel/HandoffMargin/HandoffContent" unique_id=347746454]
-layout_mode = 2
-theme_override_constants/separation = 18
-alignment = 1
-
-[node name="ArtDirectorHandoff" type="Button" parent="HUD/HUDRoot/HandoffPanel/HandoffMargin/HandoffContent/HandoffChoices" unique_id=552531368]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_02utw")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_dvlep")
-theme_override_styles/hover = SubResource("StyleBoxFlat_cixom")
-theme_override_styles/focus = SubResource("StyleBoxFlat_56mdo")
-text = "Art Director takes control"
-
-[node name="StrategistHandoff" type="Button" parent="HUD/HUDRoot/HandoffPanel/HandoffMargin/HandoffContent/HandoffChoices" unique_id=830099789]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_3hwlo")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_so5mu")
-theme_override_styles/hover = SubResource("StyleBoxFlat_73kxu")
-theme_override_styles/focus = SubResource("StyleBoxFlat_7lef7")
-text = "Strategist takes control"
-
-[node name="CancelHandoff" type="Button" parent="HUD/HUDRoot/HandoffPanel/HandoffMargin/HandoffContent" unique_id=1370101239]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_l6arw")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_4wuo7")
-theme_override_styles/hover = SubResource("StyleBoxFlat_pxbc1")
-theme_override_styles/focus = SubResource("StyleBoxFlat_qqyns")
-text = "Cancel"
 
 [node name="AgencyHud" parent="HUD/HUDRoot" unique_id=603327499 instance=ExtResource("5_xifuf")]
 unique_name_in_owner = true
@@ -1198,11 +903,6 @@ text = "Open guide · G"
 [node name="AgencyGuideDrawer" parent="HUD/HUDRoot" unique_id=1880896600 instance=ExtResource("7_ukfyu")]
 unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 
 [node name="LegacyGuideTab" type="Button" parent="HUD/HUDRoot/AgencyGuideDrawer" unique_id=436268978]
 unique_name_in_owner = true
@@ -1530,11 +1230,6 @@ text = "Continue"
 [node name="AgencyMissionPanel" parent="HUD/HUDRoot" unique_id=2062866337 instance=ExtResource("9_t5o2e")]
 unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
 
 [node name="Backdrop2" type="ColorRect" parent="HUD/HUDRoot/AgencyMissionPanel" unique_id=1838012177]
 visible = false

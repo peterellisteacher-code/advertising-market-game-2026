@@ -1,22 +1,10 @@
 [gd_scene format=3 uid="uid://y0p8byuynib7"]
 
 [ext_resource type="Script" uid="uid://c5ttupvkmue84" path="res://src/agency/ui/agency_guide_drawer.gd" id="1_3sbd4"]
-[ext_resource type="Texture2D" path="res://assets/agency/onboarding-brief.png" id="2_brief"]
-[ext_resource type="Texture2D" path="res://assets/agency/onboarding-build.png" id="3_build"]
-[ext_resource type="Texture2D" path="res://assets/agency/onboarding-approval.png" id="4_approval"]
-[ext_resource type="Theme" path="res://src/agency/ui/agency_theme.tres" id="5_theme"]
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_brief"]
-atlas = ExtResource("2_brief")
-region = Rect2(0, 44, 1280, 756)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_build"]
-atlas = ExtResource("3_build")
-region = Rect2(0, 44, 1280, 756)
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_approval"]
-atlas = ExtResource("4_approval")
-region = Rect2(0, 44, 1280, 756)
+[ext_resource type="Texture2D" uid="uid://cjwovlcercvau" path="res://assets/agency/onboarding-brief.png" id="2_brief"]
+[ext_resource type="Texture2D" uid="uid://8x1qwhdnx6m3" path="res://assets/agency/onboarding-build.png" id="3_build"]
+[ext_resource type="Texture2D" uid="uid://cgvio5opykv34" path="res://assets/agency/onboarding-approval.png" id="4_approval"]
+[ext_resource type="Theme" uid="uid://brlfemvuia7o8" path="res://src/agency/ui/agency_theme.tres" id="5_theme"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3sbd4"]
 bg_color = Color(0.035, 0.11, 0.17, 0.98)
@@ -174,6 +162,18 @@ corner_radius_top_right = 18
 corner_radius_bottom_right = 18
 corner_radius_bottom_left = 18
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_brief"]
+atlas = ExtResource("2_brief")
+region = Rect2(0, 44, 1280, 756)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_build"]
+atlas = ExtResource("3_build")
+region = Rect2(0, 44, 1280, 756)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_approval"]
+atlas = ExtResource("4_approval")
+region = Rect2(0, 44, 1280, 756)
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vn85y"]
 bg_color = Color(0.035, 0.11, 0.17, 1)
 border_width_left = 2
@@ -268,7 +268,7 @@ theme_override_constants/margin_top = 18
 theme_override_constants/margin_right = 22
 theme_override_constants/margin_bottom = 18
 
-[node name="GuideScroll" type="ScrollContainer" parent="GuidePanel/GuideMargin"]
+[node name="GuideScroll" type="ScrollContainer" parent="GuidePanel/GuideMargin" unique_id=551527193]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -389,7 +389,7 @@ custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 16
-text = "Lead role: The Strategist reads the brief aloud and checks the audience purpose."
+text = "Decide together."
 autowrap_mode = 2
 
 [node name="PartnerHoldingAction" type="Label" parent="GuidePanel/GuideMargin/GuideScroll/GuideContent/GuideTabs/Current objective" unique_id=1463285850]
@@ -398,7 +398,7 @@ custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 16
-text = "Partner action: The Art Director identifies visual ideas that could suit that audience."
+text = "Check the decision against the audience brief together."
 autowrap_mode = 2
 
 [node name="GoToObjective" type="Button" parent="GuidePanel/GuideMargin/GuideScroll/GuideContent/GuideTabs/Current objective" unique_id=526148260]
@@ -434,66 +434,7 @@ theme_override_font_sizes/font_size = 15
 text = "Move: WASD or arrow keys.
 Use a nearby station: E, Space or Enter.
 Open this guide: G or F1. Close a panel: Escape.
-Record a role handover: H or a role button.
 Go straight to a task: choose its room from Direct travel."
-autowrap_mode = 2
-
-[node name="Roles" type="VBoxContainer" parent="GuidePanel/GuideMargin/GuideScroll/GuideContent/GuideTabs" unique_id=155131397]
-visible = false
-custom_minimum_size = Vector2(520, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 10
-metadata/_tab_index = 3
-
-[node name="RolesHeading" type="Label" parent="GuidePanel/GuideMargin/GuideScroll/GuideContent/GuideTabs/Roles" unique_id=409289090]
-modulate = Color(0.18, 0.84, 0.9, 1)
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "What each role is responsible for"
-
-[node name="ArtDirectorDefinition" type="Label" parent="GuidePanel/GuideMargin/GuideScroll/GuideContent/GuideTabs/Roles" unique_id=27676370]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(520, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 17
-text = "Art Director: leads choices about layout, colour, type, images and visual emphasis. This partner explains where the audience will look first, what they will notice next, and how the design supports the message."
-autowrap_mode = 2
-
-[node name="ArtDirectorControl" type="Button" parent="GuidePanel/GuideMargin/GuideScroll/GuideContent/GuideTabs/Roles" unique_id=267507291]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_type_variation = &"PrimaryAction"
-text = "Make Art Director active"
-autowrap_mode = 2
-
-[node name="StrategistDefinition" type="Label" parent="GuidePanel/GuideMargin/GuideScroll/GuideContent/GuideTabs/Roles" unique_id=1530406804]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(520, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 17
-text = "Strategist: leads choices about the audience, message, evidence, offer and call to action. This partner explains why those choices should persuade the intended audience."
-autowrap_mode = 2
-
-[node name="StrategistControl" type="Button" parent="GuidePanel/GuideMargin/GuideScroll/GuideContent/GuideTabs/Roles" unique_id=1848559865]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_type_variation = &"PrimaryAction"
-text = "Make Strategist active"
-autowrap_mode = 2
-
-[node name="RoleTurnOrder" type="Label" parent="GuidePanel/GuideMargin/GuideScroll/GuideContent/GuideTabs/Roles" unique_id=41760919]
-custom_minimum_size = Vector2(520, 0)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 15
-text = "Both partners can use every control and room. The roles divide responsibility; they do not unlock different controls. The named lead makes the first recommendation, and the other partner checks it against the brief. Press H whenever the other partner takes the lead."
 autowrap_mode = 2
 
 [node name="Progress" type="VBoxContainer" parent="GuidePanel/GuideMargin/GuideScroll/GuideContent/GuideTabs" unique_id=159230697]
@@ -502,7 +443,7 @@ custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 14
-metadata/_tab_index = 4
+metadata/_tab_index = 3
 
 [node name="ProgressHeading" type="Label" parent="GuidePanel/GuideMargin/GuideScroll/GuideContent/GuideTabs/Progress" unique_id=1601381172]
 modulate = Color(0.18, 0.84, 0.9, 1)
@@ -605,13 +546,13 @@ value = 0.7
 [node name="OrientationLayer" type="Control" parent="." unique_id=1243229796]
 unique_name_in_owner = true
 visible = false
-mouse_filter = 2
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
 [node name="OrientationScrim" type="ColorRect" parent="OrientationLayer" unique_id=1860475229]
 layout_mode = 1
@@ -658,7 +599,7 @@ modulate = Color(0.18, 0.84, 0.9, 1)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
-text = "QUICK START 1 OF 4"
+text = "QUICK START 1 OF 3"
 
 [node name="OrientationTitle" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=777688689]
 unique_name_in_owner = true
@@ -744,7 +685,6 @@ horizontal_alignment = 1
 
 [node name="OrientationItems" type="VBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent" unique_id=1840799099]
 layout_mode = 2
-size_flags_vertical = 1
 theme_override_constants/separation = 6
 
 [node name="OrientationItemOne" type="HBoxContainer" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems" unique_id=2026080302]
@@ -755,8 +695,8 @@ theme_override_constants/separation = 12
 [node name="OrientationItemOneLabel" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems/OrientationItemOne" unique_id=2026080303]
 unique_name_in_owner = true
 modulate = Color(0.18, 0.84, 0.9, 1)
-layout_mode = 2
 custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "THE WORK"
 
@@ -777,8 +717,8 @@ theme_override_constants/separation = 12
 [node name="OrientationItemTwoLabel" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems/OrientationItemTwo" unique_id=2026080306]
 unique_name_in_owner = true
 modulate = Color(0.18, 0.84, 0.9, 1)
-layout_mode = 2
 custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "THE TASKS"
 
@@ -799,8 +739,8 @@ theme_override_constants/separation = 12
 [node name="OrientationItemThreeLabel" type="Label" parent="OrientationLayer/OrientationPanel/OrientationMargin/OrientationContent/OrientationItems/OrientationItemThree" unique_id=2026080309]
 unique_name_in_owner = true
 modulate = Color(0.18, 0.84, 0.9, 1)
-layout_mode = 2
 custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "PREPARE"
 

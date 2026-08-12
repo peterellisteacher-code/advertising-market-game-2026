@@ -2,7 +2,6 @@ extends PanelContainer
 class_name AdMarketAgencyAcademyHeader
 
 signal brief_requested
-signal teacher_requested
 signal close_requested
 
 const Tokens = preload("res://src/ui/agency_academy_tokens.gd")
@@ -12,12 +11,10 @@ const Tokens = preload("res://src/ui/agency_academy_tokens.gd")
 @onready var term_label: Label = %TermLabel
 @onready var progress_dots: HBoxContainer = %ProgressDots
 @onready var brief_button: Button = %BriefButton
-@onready var teacher_button: Button = %TeacherButton
 @onready var close_button: Button = %CloseButton
 
 func _ready() -> void:
 	brief_button.pressed.connect(_on_brief_pressed)
-	teacher_button.pressed.connect(_on_teacher_pressed)
 	close_button.pressed.connect(_on_close_pressed)
 
 func configure(
@@ -55,9 +52,6 @@ func _render_progress(states: Array[String]) -> void:
 
 func _on_brief_pressed() -> void:
 	brief_requested.emit()
-
-func _on_teacher_pressed() -> void:
-	teacher_requested.emit()
 
 func _on_close_pressed() -> void:
 	close_requested.emit()

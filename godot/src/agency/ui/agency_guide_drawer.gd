@@ -3,7 +3,6 @@ class_name AdMarketAgencyGuideDrawer
 
 signal direct_travel_requested(station_id: String)
 signal objective_task_requested(station_id: String)
-signal role_handoff_requested(role: String)
 signal audio_settings_requested
 signal audio_settings_changed(settings: Dictionary)
 signal tucked_changed(tucked: bool)
@@ -14,8 +13,7 @@ const SECTION_INDEX := {
 	"goal": 0,
 	"objective": 1,
 	"controls": 2,
-	"roles": 3,
-	"progress": 4,
+	"progress": 3,
 }
 const ORIENTATION_ITEM_SUFFIXES: Array[String] = ["One", "Two", "Three"]
 # The panel is anchored to the full viewport rather than centred at a fixed size, so
@@ -71,25 +69,6 @@ const ORIENTATION_STEPS := [
 			{
 				"label": "TRACKPAD",
 				"text": "You can click every menu, button and answer.",
-			},
-		],
-		"button": "Who leads each choice?",
-	},
-	{
-		"title": "Share the decisions",
-		"action": "The lead role makes the first recommendation. Both partners discuss the decision.",
-		"items": [
-			{
-				"label": "STRATEGIST",
-				"text": "Leads choices about the audience, message, evidence and offer.",
-			},
-			{
-				"label": "ART DIRECTOR",
-				"text": "Leads choices about layout, colour, type and image.",
-			},
-			{
-				"label": "BOTH PARTNERS",
-				"text": "Have the same controls and access. The roles divide responsibility, not permissions.",
 			},
 		],
 		"button": "Why complete each task?",
@@ -168,12 +147,8 @@ func show_objective(objective: Dictionary) -> void:
 	_set_label_text("%CurrentObjective", String(objective.get("title", "Next task")))
 	_set_label_text("%ObjectiveAction", "Action: %s" % String(objective.get("action", "Read the task and choose the next useful room.")))
 	_set_label_text("%ObjectiveReason", "Reason: %s" % String(objective.get("reason", "This decision supplies evidence for the next advertisement choice.")))
-	var owner_role := String(objective.get("ownerRole", "strategist"))
-	_set_label_text("%ObjectiveOwner", "%s leads this decision." % _role_title(owner_role))
-	_set_label_text(
-		"%PartnerHoldingAction",
-		"Partner holding action: %s" % String(objective.get("holdingAction", "Check that the decision still serves the audience."))
-	)
+	_set_label_text("%ObjectiveOwner", "Decide together.")
+	_set_label_text("%PartnerHoldingAction", "Check the decision against the audience brief together.")
 
 func set_progress(required_done: int, required_total: int, optional_done: int) -> void:
 	_set_label_text("%RequiredProgress", "%d of %d required tasks complete" % [required_done, required_total])
@@ -369,8 +344,6 @@ func _connect_controls() -> void:
 	_connect_button("%OrientationNext", _on_orientation_next_pressed)
 	_connect_button("%MinimiseOrientation", _on_minimise_orientation_pressed)
 	_connect_button("%ResumeOrientation", _on_resume_orientation_pressed)
-	_connect_button("%ArtDirectorControl", _on_art_director_pressed)
-	_connect_button("%StrategistControl", _on_strategist_pressed)
 	_connect_button("%AudioSettings", _on_audio_settings_pressed)
 	_connect_audio_controls()
 
@@ -475,9 +448,6 @@ func _set_label_text(path: String, value: String) -> void:
 	if label != null:
 		label.text = value
 
-func _role_title(role: String) -> String:
-	return "Art Director" if role == "art-director" else "Strategist"
-
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		var orientation := get_node_or_null("%OrientationPanel") as Control
@@ -510,12 +480,6 @@ func _on_minimise_orientation_pressed() -> void:
 
 func _on_resume_orientation_pressed() -> void:
 	resume_orientation()
-
-func _on_art_director_pressed() -> void:
-	role_handoff_requested.emit("art-director")
-
-func _on_strategist_pressed() -> void:
-	role_handoff_requested.emit("strategist")
 
 func _on_audio_settings_pressed() -> void:
 	var panel := get_node_or_null("%AudioSettingsPanel") as Control

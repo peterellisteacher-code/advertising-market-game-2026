@@ -199,7 +199,6 @@ func _ready() -> void:
     var agency_controller_script: Script = load(AGENCY_CAMPAIGN_CONTROLLER_PATH) as Script
     _agency_campaign = agency_controller_script.new() as AdMarketAgencyCampaignController
     agency_world.station_requested.connect(_on_agency_station_requested)
-    agency_world.role_handoff_requested.connect(_on_agency_role_handoff_requested)
     agency_world.audio_settings_requested.connect(_on_agency_audio_settings_requested)
     agency_world.audio_settings_changed.connect(_on_agency_audio_settings_changed)
     _agency_campaign.creator_requested.connect(_open_creator)
@@ -334,13 +333,6 @@ func _on_agency_station_requested(station_id: String) -> void:
     var result: Dictionary = _agency_campaign.open_station(station_id)
     if not bool(result.get("allowed", false)):
         status.text = String(result.get("reason", "That room is not available yet."))
-
-func _on_agency_role_handoff_requested(role: String) -> void:
-    agency_audio.confirm_user_gesture()
-    agency_audio.play_sfx("ui-confirm")
-    agency_audio.play_ambience("office")
-    if _agency_campaign != null:
-        _agency_campaign.handoff_to(role)
 
 func _on_agency_mission_completed(mission_id: String, evidence: Dictionary) -> void:
     if _agency_campaign == null:

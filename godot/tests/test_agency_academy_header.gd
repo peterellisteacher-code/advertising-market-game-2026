@@ -52,11 +52,10 @@ func _header_exposes_seven_task_progress_and_actions() -> bool:
 	assert(header.find_child("*Score*", true, false) == null)
 	var requested: Array[String] = []
 	header.brief_requested.connect(func() -> void: requested.append("brief"))
-	header.teacher_requested.connect(func() -> void: requested.append("teacher"))
 	header.close_requested.connect(func() -> void: requested.append("close"))
 	(header.get_node("%BriefButton") as Button).pressed.emit()
-	(header.get_node("%TeacherButton") as Button).pressed.emit()
+	assert(header.get_node_or_null("%TeacherButton") == null)
 	(header.get_node("%CloseButton") as Button).pressed.emit()
-	assert(requested == ["brief", "teacher", "close"])
+	assert(requested == ["brief", "close"])
 	header.free()
 	return true

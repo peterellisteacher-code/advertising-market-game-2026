@@ -48,11 +48,9 @@ func set_highlighted(value: bool) -> void:
 	_update_visuals()
 
 func responsibility_summary() -> String:
-	var owner_name := "Art Director" if owner_role == "art-director" else "Strategist"
-	var partner_name := "Strategist" if owner_role == "art-director" else "Art Director"
 	return (
-		"%s leads: %s\n%s holding action: %s\nAgree before completing: %s"
-		% [owner_name, owner_action, partner_name, partner_holding_action, shared_evidence]
+		"DO: %s\nCHECK: %s\nBEFORE YOU FINISH: %s"
+		% [owner_action, partner_holding_action, shared_evidence]
 	)
 
 func _on_body_entered(body: Node) -> void:

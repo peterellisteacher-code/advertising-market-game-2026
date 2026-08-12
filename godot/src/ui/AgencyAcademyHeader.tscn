@@ -4,11 +4,11 @@
 [ext_resource type="Theme" path="res://src/ui/agency_academy_theme.tres" id="2_theme"]
 
 [node name="AgencyAcademyHeader" type="PanelContainer"]
-custom_minimum_size = Vector2(0, 96)
+custom_minimum_size = Vector2(0, 86)
 layout_mode = 3
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 112.0
+offset_bottom = 96.0
 grow_horizontal = 2
 theme = ExtResource("2_theme")
 script = ExtResource("1_header")
@@ -18,7 +18,7 @@ layout_mode = 2
 theme_override_constants/separation = 24
 
 [node name="Identity" type="VBoxContainer" parent="HeaderRow"]
-custom_minimum_size = Vector2(340, 0)
+custom_minimum_size = Vector2(280, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 2
@@ -35,7 +35,7 @@ uppercase = true
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.98, 0.98, 1, 1)
-theme_override_font_sizes/font_size = 30
+theme_override_font_sizes/font_size = 26
 text = "Audience Brief"
 
 [node name="TermLabel" type="Label" parent="HeaderRow/Identity"]
@@ -46,7 +46,7 @@ theme_override_font_sizes/font_size = 17
 text = "Audience brief"
 
 [node name="ProgressGroup" type="VBoxContainer" parent="HeaderRow"]
-custom_minimum_size = Vector2(240, 0)
+custom_minimum_size = Vector2(190, 0)
 layout_mode = 2
 theme_override_constants/separation = 4
 
@@ -68,22 +68,22 @@ theme_override_constants/separation = 10
 
 [node name="BriefButton" type="Button" parent="HeaderRow/Actions"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(112, 48)
+custom_minimum_size = Vector2(88, 44)
 layout_mode = 2
 focus_neighbor_right = NodePath("../TeacherButton")
 text = "Brief"
 
 [node name="TeacherButton" type="Button" parent="HeaderRow/Actions"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(168, 48)
+custom_minimum_size = Vector2(126, 44)
 layout_mode = 2
 focus_neighbor_left = NodePath("../BriefButton")
 focus_neighbor_right = NodePath("../CloseButton")
-text = "Teacher controls"
+text = "Pair roles"
 
 [node name="CloseButton" type="Button" parent="HeaderRow/Actions"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(88, 48)
+custom_minimum_size = Vector2(76, 44)
 layout_mode = 2
 focus_neighbor_left = NodePath("../TeacherButton")
 text = "Close"

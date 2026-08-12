@@ -38,7 +38,7 @@ func _render_progress(states: Array[String]) -> void:
 	for index: int in range(states.size()):
 		var state: String = states[index]
 		var dot := Label.new()
-		dot.custom_minimum_size = Vector2(26, 26)
+		dot.custom_minimum_size = Vector2(18, 22)
 		dot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		dot.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		dot.text = "●" if state != "remaining" else "○"

@@ -18,7 +18,7 @@ const PLATE_GRID_ROWS := 12
 # The stage SalienceStage.tscn is drawn at. Records carry their own stageSize; this
 # fallback shipped 120px taller than the scene, so a record that left stageSize out would
 # measure and clamp against a stage the pair could not see.
-const DEFAULT_STAGE_SIZE := Vector2(880, 320)
+const DEFAULT_STAGE_SIZE := Vector2(880, 300)
 const NUDGE_STEP := 8.0
 const COARSE_NUDGE_STEP := 32.0
 const SELECTION_INSET := 6.0

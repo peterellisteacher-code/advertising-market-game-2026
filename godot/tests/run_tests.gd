@@ -18,6 +18,7 @@ func _run_suites() -> void:
         "res://tests/test_local_market_session.gd",
         "res://tests/test_agency_button_theme.gd",
         "res://tests/test_agency_academy_header.gd",
+        "res://tests/test_agency_mission_layout.gd",
         "res://tests/test_agency_mission_catalog.gd",
         "res://tests/test_agency_missions.gd",
         "res://tests/test_salience_measure.gd",
@@ -50,6 +51,7 @@ func _run_suites() -> void:
         var passed: Variant
         if suite_path in [
             "res://tests/test_agency_world.gd",
+            "res://tests/test_agency_mission_layout.gd",
             "res://tests/test_agency_hud_layout.gd",
             "res://tests/test_agency_guidance.gd",
             "res://tests/test_game_shell.gd",

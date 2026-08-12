@@ -347,10 +347,17 @@ func _the_panel_focuses_the_first_chip_and_records_evidence() -> bool:
 		panel.queue_free()
 		return false
 	var first := _retained_button(stage, "the")
-	var focused := stage.get_viewport().gui_get_focus_owner() == first
+	var focus_owner := stage.get_viewport().gui_get_focus_owner()
+	var focused := focus_owner == first
+	assert(focused, "focus owner=%s first=%s" % [focus_owner, first])
 	var dialog := panel.get_node("Backdrop/Dialog") as PanelContainer
 	var demonstration_height := dialog.get_combined_minimum_size().y
 	var fits := demonstration_height <= 760.0
+	assert(fits, "Word chip demonstration dialog=%s stage=%s workspace=%s" % [
+		demonstration_height,
+		stage.get_combined_minimum_size(),
+		(stage.get_node("Workspace") as Control).get_combined_minimum_size(),
+	])
 	var submitted := []
 	stage.connect("arrangement_submitted", func(result: Dictionary) -> void: submitted.append(result))
 	stage.call("set_retained_ids", REQUIRED.duplicate())

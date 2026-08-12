@@ -1,55 +1,56 @@
-[gd_scene format=3 uid="uid://dmdn0nl418hup"]
+[gd_scene load_steps=7 format=3 uid="uid://dmdn0nl418hup"]
 
-[ext_resource type="Script" uid="uid://ixe15b1sg2jg" path="res://src/agency/missions/agency_mission_panel.gd" id="1_mm4e4"]
-[ext_resource type="Theme" path="res://src/agency/ui/agency_theme.tres" id="2_theme"]
+[ext_resource type="Script" uid="uid://ixe15b1sg2jg" path="res://src/agency/missions/agency_mission_panel.gd" id="1_panel"]
+[ext_resource type="Theme" path="res://src/agency/ui/agency_theme.tres" id="2_legacy_theme"]
+[ext_resource type="PackedScene" path="res://src/ui/AgencyAcademyHeader.tscn" id="3_academy_header"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mm4e4"]
-bg_color = Color(0.98, 0.965, 0.91, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.04, 0.14, 0.25, 1)
-corner_radius_top_left = 18
-corner_radius_top_right = 18
-corner_radius_bottom_right = 18
-corner_radius_bottom_left = 18
-shadow_color = Color(0, 0, 0, 0.35)
-shadow_size = 12
+[sub_resource type="StyleBoxFlat" id="DialogCard"]
+bg_color = Color(1, 0.973, 0.922, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.298, 0.192, 0.373, 1)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+shadow_color = Color(0, 0, 0, 0.42)
+shadow_size = 14
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qm1oy"]
-content_margin_left = 24.0
-content_margin_top = 22.0
-content_margin_right = 24.0
-content_margin_bottom = 22.0
-bg_color = Color(0.91, 0.96, 0.96, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0, 0.48, 0.62, 1)
+[sub_resource type="StyleBoxFlat" id="ReferenceCard"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.975, 0.963, 0.93, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.61, 0.48, 0.68, 0.75)
 corner_radius_top_left = 12
 corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0cl5e"]
-content_margin_left = 24.0
-content_margin_top = 22.0
-content_margin_right = 24.0
-content_margin_bottom = 22.0
-bg_color = Color(0.91, 0.96, 0.96, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0, 0.48, 0.62, 1)
+[sub_resource type="StyleBoxFlat" id="FeedbackCard"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(1, 0.941, 0.82, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.941, 0.647, 0.212, 1)
 corner_radius_top_left = 12
 corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
 
-[node name="AgencyMissionPanel" type="Control" unique_id=2062866337]
+[node name="AgencyMissionPanel" type="Control"]
 visible = false
 custom_minimum_size = Vector2(1280, 800)
 layout_mode = 3
@@ -58,299 +59,304 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = ExtResource("2_theme")
-script = ExtResource("1_mm4e4")
+mouse_filter = 0
+theme = ExtResource("2_legacy_theme")
+script = ExtResource("1_panel")
 
-[node name="Backdrop" type="ColorRect" parent="." unique_id=1838012177]
+[node name="Backdrop" type="ColorRect" parent="."]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.02, 0.05, 0.1, 0.82)
+mouse_filter = 0
+color = Color(0.025, 0.031, 0.102, 0.9)
 
-[node name="Dialog" type="PanelContainer" parent="Backdrop" unique_id=1571851841]
-custom_minimum_size = Vector2(980, 700)
+[node name="Dialog" type="PanelContainer" parent="Backdrop"]
+custom_minimum_size = Vector2(1180, 750)
 layout_mode = 0
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -490.0
-offset_top = -350.0
-offset_right = 490.0
-offset_bottom = 350.0
+offset_left = -590.0
+offset_top = -375.0
+offset_right = 590.0
+offset_bottom = 375.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_mm4e4")
+theme_override_styles/panel = SubResource("DialogCard")
 
-[node name="Margin" type="MarginContainer" parent="Backdrop/Dialog" unique_id=1088122593]
+[node name="Margin" type="MarginContainer" parent="Backdrop/Dialog"]
 layout_mode = 2
 
-[node name="Content" type="VBoxContainer" parent="Backdrop/Dialog/Margin" unique_id=1469188447]
+[node name="Content" type="VBoxContainer" parent="Backdrop/Dialog/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="AcademyHeader" parent="Backdrop/Dialog/Margin/Content" instance=ExtResource("3_academy_header")]
+unique_name_in_owner = true
 layout_mode = 2
 
-[node name="Header" type="HBoxContainer" parent="Backdrop/Dialog/Margin/Content" unique_id=2071560622]
-custom_minimum_size = Vector2(800, 0)
+[node name="Header" type="HBoxContainer" parent="Backdrop/Dialog/Margin/Content"]
+visible = false
 layout_mode = 2
-size_flags_horizontal = 3
 
-[node name="MissionBadge" type="Label" parent="Backdrop/Dialog/Margin/Content/Header" unique_id=1102836220]
+[node name="MissionBadge" type="Label" parent="Backdrop/Dialog/Margin/Content/Header"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "AGENCY TASK"
 
-[node name="CloseButton" type="Button" parent="Backdrop/Dialog/Margin/Content/Header" unique_id=1637865031]
-custom_minimum_size = Vector2(120, 48)
+[node name="CloseButton" type="Button" parent="Backdrop/Dialog/Margin/Content/Header"]
 layout_mode = 2
 text = "Close  Esc"
 
-[node name="MissionStep" type="Label" parent="Backdrop/Dialog/Margin/Content" unique_id=2026080317]
+[node name="MissionStep" type="Label" parent="Backdrop/Dialog/Margin/Content"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.48, 0.62, 1)
-theme_override_font_sizes/font_size = 15
-text = "1. Click one answer"
+theme_override_colors/font_color = Color(0.298, 0.192, 0.373, 1)
+theme_override_font_sizes/font_size = 16
+text = "1. Choose the strongest answer"
 
-[node name="Title" type="Label" parent="Backdrop/Dialog/Margin/Content" unique_id=277245916]
-custom_minimum_size = Vector2(800, 0)
+[node name="Title" type="Label" parent="Backdrop/Dialog/Margin/Content"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.04, 0.09, 0.16, 1)
+theme_override_colors/font_color = Color(0.09, 0.13, 0.23, 1)
+theme_override_font_sizes/font_size = 28
 text = "Advertising technique task"
 autowrap_mode = 3
 
-[node name="Goal" type="Label" parent="Backdrop/Dialog/Margin/Content" unique_id=45463218]
-custom_minimum_size = Vector2(800, 0)
+[node name="Goal" type="Label" parent="Backdrop/Dialog/Margin/Content"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.14, 0.2, 0.3, 1)
+theme_override_colors/font_color = Color(0.18, 0.23, 0.34, 1)
+theme_override_font_sizes/font_size = 17
 text = "Decide what the audience should notice."
 autowrap_mode = 3
 
-[node name="OwnerCard" type="VBoxContainer" parent="Backdrop/Dialog/Margin/Content" unique_id=1326774698]
+[node name="OwnerCard" type="VBoxContainer" parent="Backdrop/Dialog/Margin/Content"]
 layout_mode = 2
+theme_override_constants/separation = 4
 
-[node name="OwnerLabel" type="Label" parent="Backdrop/Dialog/Margin/Content/OwnerCard" unique_id=1096083391]
+[node name="OwnerLabel" type="Label" parent="Backdrop/Dialog/Margin/Content/OwnerCard"]
 layout_mode = 2
-text = "ART DIRECTOR DECIDES"
+text = "ART DIRECTOR LEADS"
 
-[node name="RoleDetailsToggle" type="Button" parent="Backdrop/Dialog/Margin/Content/OwnerCard" unique_id=2026080318]
+[node name="RoleDetailsToggle" type="Button" parent="Backdrop/Dialog/Margin/Content/OwnerCard"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 36)
+custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 text = "Show pair roles"
 
-[node name="RoleDefinitionLabel" type="Label" parent="Backdrop/Dialog/Margin/Content/OwnerCard" unique_id=2026080322]
+[node name="RoleDefinitionLabel" type="Label" parent="Backdrop/Dialog/Margin/Content/OwnerCard"]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(800, 0)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.14, 0.2, 0.3, 1)
 text = "Both partners use the same controls. Strategist decides audience, purpose, product and message. Art Director decides visual design and execution."
 autowrap_mode = 3
 
-[node name="HoldingLabel" type="Label" parent="Backdrop/Dialog/Margin/Content/OwnerCard" unique_id=2121413035]
+[node name="HoldingLabel" type="Label" parent="Backdrop/Dialog/Margin/Content/OwnerCard"]
+unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(800, 0)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.14, 0.2, 0.3, 1)
 text = "The other partner checks the audience effect."
 autowrap_mode = 3
 
-[node name="RoleHandoffButton" type="Button" parent="Backdrop/Dialog/Margin/Content" unique_id=2026080319]
+[node name="RoleHandoffButton" type="Button" parent="Backdrop/Dialog/Margin/Content"]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(0, 48)
+custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 theme_type_variation = &"PrimaryAction"
 text = "Make the lead role active"
 
-[node name="Instruction" type="Label" parent="Backdrop/Dialog/Margin/Content" unique_id=681311123]
-custom_minimum_size = Vector2(800, 0)
+[node name="Instruction" type="Label" parent="Backdrop/Dialog/Margin/Content"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.14, 0.2, 0.3, 1)
+theme_override_colors/font_color = Color(0.18, 0.23, 0.34, 1)
+theme_override_font_sizes/font_size = 17
 text = "Choose one treatment."
 autowrap_mode = 3
 
-[node name="ReferenceToggle" type="Button" parent="Backdrop/Dialog/Margin/Content" unique_id=2026080323]
+[node name="ReferenceToggle" type="Button" parent="Backdrop/Dialog/Margin/Content"]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(0, 36)
+custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 text = "Hide audience brief"
 
-[node name="ReferenceCard" type="PanelContainer" parent="Backdrop/Dialog/Margin/Content" unique_id=2026080320]
+[node name="ReferenceCard" type="PanelContainer" parent="Backdrop/Dialog/Margin/Content"]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(800, 0)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_qm1oy")
+theme_override_styles/panel = SubResource("ReferenceCard")
 
-[node name="ReferenceLabel" type="Label" parent="Backdrop/Dialog/Margin/Content/ReferenceCard" unique_id=2026080321]
+[node name="ReferenceLabel" type="Label" parent="Backdrop/Dialog/Margin/Content/ReferenceCard"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(760, 0)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.14, 0.2, 0.3, 1)
+theme_override_colors/font_color = Color(0.18, 0.23, 0.34, 1)
 theme_override_font_sizes/font_size = 15
 text = "Audience brief facts"
 autowrap_mode = 3
 
-[node name="ChoiceStage" type="VBoxContainer" parent="Backdrop/Dialog/Margin/Content" unique_id=1577818898]
+[node name="ChoiceStage" type="VBoxContainer" parent="Backdrop/Dialog/Margin/Content"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="ChoiceGrid" type="GridContainer" parent="Backdrop/Dialog/Margin/Content/ChoiceStage" unique_id=2066972277]
+[node name="ChoiceGrid" type="GridContainer" parent="Backdrop/Dialog/Margin/Content/ChoiceStage"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 columns = 2
 
-[node name="ChoiceOne" type="Button" parent="Backdrop/Dialog/Margin/Content/ChoiceStage/ChoiceGrid" unique_id=1579403070]
-custom_minimum_size = Vector2(420, 118)
+[node name="ChoiceOne" type="Button" parent="Backdrop/Dialog/Margin/Content/ChoiceStage/ChoiceGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 82)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_colors/font_color = Color(0.04, 0.09, 0.16, 1)
-theme_override_colors/font_focus_color = Color(0.04, 0.09, 0.16, 1)
-theme_override_colors/font_pressed_color = Color(0.04, 0.09, 0.16, 1)
-theme_override_colors/font_hover_color = Color(0.04, 0.09, 0.16, 1)
 text = "1  Treatment"
 autowrap_mode = 3
 
-[node name="ChoiceTwo" type="Button" parent="Backdrop/Dialog/Margin/Content/ChoiceStage/ChoiceGrid" unique_id=1451416139]
-custom_minimum_size = Vector2(420, 118)
+[node name="ChoiceTwo" type="Button" parent="Backdrop/Dialog/Margin/Content/ChoiceStage/ChoiceGrid"]
+custom_minimum_size = Vector2(420, 82)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_colors/font_color = Color(0.04, 0.09, 0.16, 1)
-theme_override_colors/font_focus_color = Color(0.04, 0.09, 0.16, 1)
-theme_override_colors/font_pressed_color = Color(0.04, 0.09, 0.16, 1)
-theme_override_colors/font_hover_color = Color(0.04, 0.09, 0.16, 1)
 text = "2  Treatment"
 autowrap_mode = 3
 
-[node name="ChoiceThree" type="Button" parent="Backdrop/Dialog/Margin/Content/ChoiceStage/ChoiceGrid" unique_id=333455899]
-custom_minimum_size = Vector2(420, 118)
+[node name="ChoiceThree" type="Button" parent="Backdrop/Dialog/Margin/Content/ChoiceStage/ChoiceGrid"]
+custom_minimum_size = Vector2(420, 82)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_colors/font_color = Color(0.04, 0.09, 0.16, 1)
-theme_override_colors/font_focus_color = Color(0.04, 0.09, 0.16, 1)
-theme_override_colors/font_pressed_color = Color(0.04, 0.09, 0.16, 1)
-theme_override_colors/font_hover_color = Color(0.04, 0.09, 0.16, 1)
 text = "3  Treatment"
 autowrap_mode = 3
 
-[node name="ChoiceFour" type="Button" parent="Backdrop/Dialog/Margin/Content/ChoiceStage/ChoiceGrid" unique_id=1853267231]
-custom_minimum_size = Vector2(420, 118)
+[node name="ChoiceFour" type="Button" parent="Backdrop/Dialog/Margin/Content/ChoiceStage/ChoiceGrid"]
+custom_minimum_size = Vector2(420, 82)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_colors/font_color = Color(0.04, 0.09, 0.16, 1)
-theme_override_colors/font_focus_color = Color(0.04, 0.09, 0.16, 1)
-theme_override_colors/font_pressed_color = Color(0.04, 0.09, 0.16, 1)
-theme_override_colors/font_hover_color = Color(0.04, 0.09, 0.16, 1)
 text = "4  Treatment"
 autowrap_mode = 3
 
-[node name="KeyboardHint" type="Label" parent="Backdrop/Dialog/Margin/Content/ChoiceStage" unique_id=1096510344]
-custom_minimum_size = Vector2(800, 0)
+[node name="KeyboardHint" type="Label" parent="Backdrop/Dialog/Margin/Content/ChoiceStage"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.25, 0.31, 0.4, 1)
-text = "Touchpad or Tab + Return; number keys 1–4; Esc closes."
+theme_override_colors/font_color = Color(0.31, 0.35, 0.44, 1)
+theme_override_font_sizes/font_size = 14
+text = "Click an answer, or use Tab and Return or number keys 1–4."
 autowrap_mode = 3
 
-[node name="EffectStage" type="VBoxContainer" parent="Backdrop/Dialog/Margin/Content" unique_id=1184243344]
+[node name="EffectStage" type="VBoxContainer" parent="Backdrop/Dialog/Margin/Content"]
 visible = false
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="EffectHeading" type="Label" parent="Backdrop/Dialog/Margin/Content/EffectStage" unique_id=766432590]
+[node name="EffectHeading" type="Label" parent="Backdrop/Dialog/Margin/Content/EffectStage"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.48, 0.58, 1)
-text = "EFFECT EXPLANATION"
+text = "WHY THIS WORKS"
 
-[node name="EffectCard" type="PanelContainer" parent="Backdrop/Dialog/Margin/Content/EffectStage" unique_id=1045493655]
-custom_minimum_size = Vector2(800, 0)
+[node name="EffectCard" type="PanelContainer" parent="Backdrop/Dialog/Margin/Content/EffectStage"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_qm1oy")
+theme_override_styles/panel = SubResource("ReferenceCard")
 
-[node name="EffectLabel" type="Label" parent="Backdrop/Dialog/Margin/Content/EffectStage/EffectCard" unique_id=1307892029]
-custom_minimum_size = Vector2(760, 0)
+[node name="EffectLabel" type="Label" parent="Backdrop/Dialog/Margin/Content/EffectStage/EffectCard"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.14, 0.2, 0.3, 1)
+theme_override_colors/font_color = Color(0.18, 0.23, 0.34, 1)
+theme_override_font_sizes/font_size = 22
 text = "The design choice changes what the audience notices."
 autowrap_mode = 3
 
-[node name="EffectActions" type="HBoxContainer" parent="Backdrop/Dialog/Margin/Content/EffectStage" unique_id=886185531]
+[node name="EffectActions" type="HBoxContainer" parent="Backdrop/Dialog/Margin/Content/EffectStage"]
+visible = false
 layout_mode = 2
 
-[node name="RetryButton" type="Button" parent="Backdrop/Dialog/Margin/Content/EffectStage/EffectActions" unique_id=947636981]
-custom_minimum_size = Vector2(230, 52)
+[node name="RetryButton" type="Button" parent="Backdrop/Dialog/Margin/Content/EffectStage/EffectActions"]
 layout_mode = 2
 text = "Try another treatment"
 
-[node name="EffectSpacer" type="Control" parent="Backdrop/Dialog/Margin/Content/EffectStage/EffectActions" unique_id=329127563]
+[node name="EffectSpacer" type="Control" parent="Backdrop/Dialog/Margin/Content/EffectStage/EffectActions"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ContinueButton" type="Button" parent="Backdrop/Dialog/Margin/Content/EffectStage/EffectActions" unique_id=1840059499]
-custom_minimum_size = Vector2(230, 52)
+[node name="ContinueButton" type="Button" parent="Backdrop/Dialog/Margin/Content/EffectStage/EffectActions"]
 layout_mode = 2
-theme_type_variation = &"PrimaryAction"
 text = "Apply this decision"
 
-[node name="DemonstrationStage" type="VBoxContainer" parent="Backdrop/Dialog/Margin/Content" unique_id=2026080801]
+[node name="DemonstrationStage" type="VBoxContainer" parent="Backdrop/Dialog/Margin/Content"]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(800, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="CompletedStage" type="VBoxContainer" parent="Backdrop/Dialog/Margin/Content" unique_id=1044366139]
+[node name="CompletedStage" type="VBoxContainer" parent="Backdrop/Dialog/Margin/Content"]
 visible = false
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="CompletedHeading" type="Label" parent="Backdrop/Dialog/Margin/Content/CompletedStage" unique_id=1863281277]
+[node name="CompletedHeading" type="Label" parent="Backdrop/Dialog/Margin/Content/CompletedStage"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0, 0.48, 0.58, 1)
+theme_override_colors/font_color = Color(0.184, 0.639, 0.357, 1)
 text = "TASK COMPLETE"
 
-[node name="RewardCard" type="PanelContainer" parent="Backdrop/Dialog/Margin/Content/CompletedStage" unique_id=664451054]
-custom_minimum_size = Vector2(800, 0)
+[node name="RewardCard" type="PanelContainer" parent="Backdrop/Dialog/Margin/Content/CompletedStage"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_0cl5e")
+theme_override_styles/panel = SubResource("ReferenceCard")
 
-[node name="RewardLabel" type="Label" parent="Backdrop/Dialog/Margin/Content/CompletedStage/RewardCard" unique_id=435259285]
-custom_minimum_size = Vector2(760, 0)
+[node name="RewardLabel" type="Label" parent="Backdrop/Dialog/Margin/Content/CompletedStage/RewardCard"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.04, 0.09, 0.16, 1)
-text = "REWARD"
+theme_override_colors/font_color = Color(0.09, 0.13, 0.23, 1)
+theme_override_font_sizes/font_size = 22
+text = "Result saved."
 autowrap_mode = 3
 
-[node name="ApplicationSummary" type="Label" parent="Backdrop/Dialog/Margin/Content/CompletedStage" unique_id=777381842]
-custom_minimum_size = Vector2(800, 0)
+[node name="ApplicationSummary" type="Label" parent="Backdrop/Dialog/Margin/Content/CompletedStage"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.14, 0.2, 0.3, 1)
+theme_override_colors/font_color = Color(0.18, 0.23, 0.34, 1)
 text = "Apply this decision at the Studio."
 autowrap_mode = 3
 
-[node name="CompletedCloseButton" type="Button" parent="Backdrop/Dialog/Margin/Content/CompletedStage" unique_id=1776812330]
-custom_minimum_size = Vector2(0, 54)
+[node name="CompletedCloseButton" type="Button" parent="Backdrop/Dialog/Margin/Content/CompletedStage"]
+visible = false
+layout_mode = 2
+text = "Return to the agency"
+
+[node name="FeedbackStrip" type="PanelContainer" parent="Backdrop/Dialog/Margin/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_styles/panel = SubResource("FeedbackCard")
+
+[node name="FeedbackStatus" type="Label" parent="Backdrop/Dialog/Margin/Content/FeedbackStrip"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.31, 0.2, 0.06, 1)
+theme_override_font_sizes/font_size = 16
+text = "Choose the answer that best supports the audience."
+autowrap_mode = 3
+
+[node name="ActionRow" type="HBoxContainer" parent="Backdrop/Dialog/Margin/Content"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+alignment = 2
+
+[node name="PrimaryAction" type="Button" parent="Backdrop/Dialog/Margin/Content/ActionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 50)
 layout_mode = 2
 theme_type_variation = &"PrimaryAction"
-text = "Return to the agency"
+text = "Continue"

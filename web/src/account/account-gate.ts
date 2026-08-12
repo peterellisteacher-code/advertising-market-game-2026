@@ -587,6 +587,15 @@ export class AccountAccessController {
     const section = document.createElement("section");
     section.className = "account-access__card";
     section.setAttribute("aria-label", "Account access");
+    const identity = document.createElement("div");
+    identity.className = "account-access__identity";
+    const crest = document.createElement("span");
+    crest.className = "account-access__crest";
+    crest.dataset.academyCrest = "true";
+    crest.setAttribute("aria-hidden", "true");
+    crest.textContent = "A";
+    const identityCopy = document.createElement("div");
+    identityCopy.className = "account-access__identity-copy";
     const mark = document.createElement("p");
     mark.className = "account-access__mark";
     mark.dataset.academyMark = "true";
@@ -594,7 +603,9 @@ export class AccountAccessController {
     const heading = document.createElement("h1");
     heading.tabIndex = -1;
     heading.textContent = title;
-    section.append(mark, heading);
+    identityCopy.append(mark, heading);
+    identity.append(crest, identityCopy);
+    section.append(identity);
     return section;
   }
 

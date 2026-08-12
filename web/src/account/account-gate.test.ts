@@ -200,6 +200,9 @@ describe("AccountAccessController", () => {
     expect(harness.gateRoot.classList).toContain("account-access--academy");
     expect(harness.gateRoot.querySelector("[data-academy-mark]")?.textContent)
       .toBe("Agency Academy");
+    const crest = harness.gateRoot.querySelector<HTMLElement>("[data-academy-crest]");
+    expect(crest?.getAttribute("aria-hidden")).toBe("true");
+    expect(crest?.textContent).toBe("A");
     expect(harness.gateRoot.querySelector("[data-recovery-actions]")).toBeTruthy();
     expect(getByRole(harness.gateRoot, "heading", {
       name: "The game could not start"
@@ -253,6 +256,8 @@ describe("AccountAccessController", () => {
     expect(harness.gateRoot.classList).toContain("account-access--academy");
     expect(harness.gateRoot.querySelector("[data-academy-mark]")?.textContent)
       .toBe("Agency Academy");
+    expect(harness.gateRoot.querySelector("[data-academy-crest]"))
+      .toBeTruthy();
     expect(resolved).toBe(false);
 
     session.resolve({ authenticated: false });

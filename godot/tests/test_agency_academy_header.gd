@@ -7,6 +7,19 @@ const HEADER_SCENE_PATH := "res://src/ui/AgencyAcademyHeader.tscn"
 func run() -> bool:
 	assert(_progress_states_are_truthful())
 	assert(_header_exposes_seven_task_progress_and_actions())
+	assert(_header_carries_the_academy_identity())
+	return true
+
+func _header_carries_the_academy_identity() -> bool:
+	var header_scene := load(HEADER_SCENE_PATH) as PackedScene
+	assert(header_scene != null)
+	var header := header_scene.instantiate() as Control
+	assert(header != null)
+	var crest := header.get_node_or_null("%AcademyCrest") as Label
+	assert(crest != null)
+	assert(crest.text == "A")
+	assert(crest.tooltip_text == "Agency Academy")
+	header.free()
 	return true
 
 func _progress_states_are_truthful() -> bool:

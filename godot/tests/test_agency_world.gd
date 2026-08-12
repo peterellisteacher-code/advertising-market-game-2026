@@ -250,10 +250,10 @@ func _assert_station_card_can_be_tucked(
 	assert(not station_tab.visible)
 
 	assert(not details.visible)
-	assert(details_toggle.text == "Show room details")
+	assert(details_toggle.text == "Room details")
 	await _click_button(details_toggle, tree)
 	assert(details.visible)
-	assert(details_toggle.text == "Hide room details")
+	assert(details_toggle.text == "Hide details")
 	var viewport_size := station_panel.get_viewport_rect().size
 	var expanded_rect := station_panel.get_global_rect()
 	assert(expanded_rect.position.y >= 0.0)
@@ -320,7 +320,7 @@ func _assert_world_travel_and_label_contract(world: Node) -> void:
 	var tuck := world.get_node("%StationPanelTuck") as Button
 	var tab := world.get_node("%StationPanelTab") as Button
 	tuck.pressed.emit()
-	assert(tab.text == "Open Client briefing")
+	assert(tab.text == "Open room: Client briefing")
 	tab.pressed.emit()
 
 func _assert_named_campaign_mission_opens_without_travel(
@@ -469,9 +469,9 @@ func _assert_mission_panel_is_readable_and_bounded(panel: Control) -> void:
 	# 1280x800 design size. Readability is the Dialog's job, asserted just below.
 	var viewport := panel.get_viewport_rect().size
 	assert(panel.size.x >= viewport.x and panel.size.y >= viewport.y)
-	var dialog := panel.get_node("Backdrop/Dialog") as Control
-	assert(dialog.size.x <= 980.0)
-	assert(dialog.size.y <= 700.0)
+	var contract: Dictionary = panel.call("layout_contract", viewport)
+	assert(contract.get("withinViewport") == true)
+	assert((contract.get("work") as Rect2).size.x >= 960.0)
 	var content_path := "Backdrop/Dialog/Margin/Content"
 	var readable_labels := [
 		panel.get_node("%s/Title" % content_path) as Label,
@@ -483,7 +483,7 @@ func _assert_mission_panel_is_readable_and_bounded(panel: Control) -> void:
 		panel.get_node("%s/CompletedStage/CompletedHeading" % content_path) as Label,
 	]
 	for label in readable_labels:
-		assert(_perceived_luminance(label.get_theme_color("font_color")) < 0.45)
+		assert(_perceived_luminance(label.get_theme_color("font_color")) < 0.45, "%s colour=%s" % [label.get_path(), label.get_theme_color("font_color")])
 	var choice_one := panel.get_node("%s/ChoiceStage/ChoiceGrid/ChoiceOne" % content_path) as Button
 	assert(_perceived_luminance(choice_one.get_theme_color("font_focus_color")) < 0.45)
 

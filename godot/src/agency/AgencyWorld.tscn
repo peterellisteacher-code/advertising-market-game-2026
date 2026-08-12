@@ -867,7 +867,7 @@ text = "DIRECT TRAVEL"
 
 [node name="DirectTravel" type="OptionButton" parent="HUD/HUDRoot/ObjectiveBar/ObjectiveMargin/ObjectiveRow/TravelBlock" unique_id=104493656]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
+custom_minimum_size = Vector2(220, 48)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
 theme_override_font_sizes/font_size = 14
@@ -889,10 +889,16 @@ text = "Open guide  G / F1"
 [node name="StationPanel" type="PanelContainer" parent="HUD/HUDRoot" unique_id=786183465]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 300.0
-offset_top = 598.0
-offset_right = 980.0
-offset_bottom = 756.0
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -520.0
+offset_top = -108.0
+offset_right = 520.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 0
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_10y4f")
 
@@ -908,6 +914,7 @@ layout_mode = 2
 
 [node name="StationHeader" type="HBoxContainer" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent" unique_id=281084114]
 layout_mode = 2
+theme_override_constants/separation = 10
 
 [node name="StationTitle" type="Label" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent/StationHeader" unique_id=1703388437]
 unique_name_in_owner = true
@@ -918,6 +925,7 @@ theme_override_font_sizes/font_size = 20
 text = "Agency reception"
 
 [node name="HandoffHint" type="Label" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent/StationHeader" unique_id=1267355177]
+visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.7411765, 0.22352941, 1)
 theme_override_font_sizes/font_size = 12
@@ -925,31 +933,32 @@ text = "H: hand control to partner"
 
 [node name="StationDetailsToggle" type="Button" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent/StationHeader" unique_id=2026080314]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(112, 36)
+custom_minimum_size = Vector2(156, 44)
 layout_mode = 2
 theme = ExtResource("12_theme")
-text = "Show room details"
+text = "Room details"
 
 [node name="StationPanelTuck" type="Button" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent/StationHeader" unique_id=2026080315]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(88, 36)
+custom_minimum_size = Vector2(96, 44)
 layout_mode = 2
 theme = ExtResource("12_theme")
-text = "Hide card"
+text = "Hide"
 
 [node name="StationResponsibilities" type="Label" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent" unique_id=896154039]
 unique_name_in_owner = true
 visible = false
+custom_minimum_size = Vector2(520, 44)
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.9098039, 0.9490196, 1, 1)
 theme_override_font_sizes/font_size = 13
 text = "Room responsibilities"
 autowrap_mode = 2
 
-[node name="StationActionButton" type="Button" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent" unique_id=446819562]
+[node name="StationActionButton" type="Button" parent="HUD/HUDRoot/StationPanel/StationMargin/StationContent/StationHeader" unique_id=446819562]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 48)
+custom_minimum_size = Vector2(360, 48)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.96862745, 0.9098039, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -964,10 +973,16 @@ text = "Work in this room"
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
-offset_left = 500.0
-offset_top = 700.0
-offset_right = 780.0
-offset_bottom = 752.0
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -150.0
+offset_top = -68.0
+offset_right = 150.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 0
 theme = ExtResource("12_theme")
 theme_override_font_sizes/font_size = 16
 text = "Open room card"

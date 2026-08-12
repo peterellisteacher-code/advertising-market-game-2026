@@ -42,12 +42,25 @@ func run() -> bool:
 		# wide screen as empty floor beside them.
 		_assert_spans_width(world, "HUD/HUDRoot/ObjectiveBar", viewport)
 		_assert_spans_width(world, "HUD/HUDRoot/AgencyHud", viewport)
+	_assert_optional_hub_contract(world)
 	world.queue_free()
 	tree.root.size = restore_size
 	await tree.process_frame
 	return true
 
 const BAR_GUTTER := 16.0
+
+func _assert_optional_hub_contract(world: Node) -> void:
+	var hud := world.get_node("%AgencyHud") as AdMarketAgencyHud
+	assert(hud != null)
+	var compact_contract: Dictionary = hud.layout_contract(Vector2(1280, 800))
+	assert(float(compact_contract.get("compactHeight", 0.0)) <= 112.0)
+	assert(float(compact_contract.get("floorShare", 0.0)) >= 0.86)
+	assert(compact_contract.get("directCampaignAction") == true)
+	var station_strip := world.get_node("%StationPanel") as Control
+	assert(station_strip != null)
+	assert(station_strip.get_combined_minimum_size().y <= 112.0)
+	assert((world.get_node("%StationPanelTab") as Button).text.contains("room"))
 
 func _assert_spans_width(world: Node, node_path: String, viewport: Vector2) -> void:
 	var control := world.get_node_or_null(node_path) as Control

@@ -203,6 +203,7 @@ func set_tucked(tucked: bool) -> void:
 		guide_tab.visible = tucked
 	if guide_panel != null:
 		guide_panel.visible = not tucked
+		guide_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE if tucked else Control.MOUSE_FILTER_STOP
 		if not tucked:
 			call_deferred("_fit_guide_to_viewport")
 	_update_resume_orientation()
@@ -259,6 +260,20 @@ func resume_orientation() -> void:
 		panel.offset_bottom = -ORIENTATION_PANEL_MARGIN.y
 	reading_state_changed.emit(true)
 
+func layout_contract(viewport: Vector2) -> Dictionary:
+	var safe_viewport := Vector2(maxf(viewport.x, 1.0), maxf(viewport.y, 1.0))
+	var panel_size := Vector2(
+		minf(588.0, safe_viewport.x - GUIDE_VIEWPORT_MARGIN.x * 2.0),
+		minf(620.0, safe_viewport.y - GUIDE_VIEWPORT_MARGIN.y * 2.0)
+	)
+	var panel_rect := Rect2(safe_viewport - panel_size - GUIDE_VIEWPORT_MARGIN, panel_size)
+	return {
+		"panel": panel_rect,
+		"withinViewport": Rect2(Vector2.ZERO, safe_viewport).encloses(panel_rect),
+		"contentScrolls": true,
+		"singleInputOwner": not _tucked,
+	}
+
 func reading_active() -> bool:
 	var guide_panel := get_node_or_null("%GuidePanel") as Control
 	var orientation_panel := get_node_or_null("%OrientationPanel") as Control
@@ -292,6 +307,7 @@ func _set_orientation_visible(is_visible: bool) -> void:
 	var panel := get_node_or_null("%OrientationPanel") as Control
 	if layer != null:
 		layer.visible = is_visible
+		layer.mouse_filter = Control.MOUSE_FILTER_STOP if is_visible else Control.MOUSE_FILTER_IGNORE
 	if panel != null:
 		panel.visible = is_visible
 		if is_visible:

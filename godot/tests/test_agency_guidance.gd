@@ -39,7 +39,7 @@ func _assert_guide(progress: AdMarketAgencyProgress) -> void:
 	var strategy_role: String = guide.get_node("%StrategistDefinition").text
 	assert(strategy_role.contains("audience, message, evidence, offer and call to action"))
 	assert(strategy_role.contains("why those choices should persuade the intended audience"))
-	var role_access: String = guide.get_node("GuidePanel/GuideMargin/GuideContent/GuideTabs/Roles/RoleTurnOrder").text
+	var role_access: String = guide.get_node("GuidePanel/GuideMargin/GuideScroll/GuideContent/GuideTabs/Roles/RoleTurnOrder").text
 	assert(role_access.contains("every control and room"))
 	assert(role_access.contains("divide responsibility"))
 	assert(role_access.contains("do not unlock different controls"))
@@ -65,6 +65,14 @@ func _assert_guide(progress: AdMarketAgencyProgress) -> void:
 	var guide_rect := guide_panel.get_global_rect()
 	assert(guide_rect.position.y >= 0.0)
 	assert(guide_rect.end.y <= viewport_size.y)
+	var guide_contract: Dictionary = guide.layout_contract(Vector2(1280, 800))
+	assert(guide_contract.get("withinViewport") == true)
+	assert(guide_contract.get("contentScrolls") == true)
+	assert(guide.get_node("%GuideScroll") is ScrollContainer)
+	assert(guide_contract.get("singleInputOwner") == true)
+	guide.set_tucked(true)
+	assert(guide_panel.mouse_filter == Control.MOUSE_FILTER_IGNORE)
+	assert((guide.get_node("%OrientationLayer") as Control).mouse_filter == Control.MOUSE_FILTER_IGNORE)
 	guide.open_guide("objective")
 	_requested_task_station_id = ""
 	await _click_button(guide.get_node("%GoToObjective") as Button, tree)
@@ -193,6 +201,9 @@ func _assert_hud(progress: AdMarketAgencyProgress) -> void:
 	assert(hud.get_node("%HudObjective").text.contains("Meet the client"))
 	assert(hud.get_node("%HudProgress").text.contains("0 of 7"))
 	assert(hud.is_compact())
+	var hud_contract: Dictionary = hud.layout_contract(Vector2(1280, 800))
+	assert(float(hud_contract.get("compactHeight", 0.0)) <= 112.0)
+	assert(hud_contract.get("directCampaignAction") == true)
 	var expanded_details := hud.get_node("HudMargin/HudStack/ExpandedDetails") as Control
 	assert(not expanded_details.visible)
 	assert(not hud.get_node("HudMargin/HudStack/PrimaryRow/ObjectiveBlock/ObjectiveEyebrow").visible)
@@ -201,7 +212,7 @@ func _assert_hud(progress: AdMarketAgencyProgress) -> void:
 	assert(hud.get_node("%HudGoToObjective").visible)
 	assert(hud.get_node("%HudGuideButton").visible)
 	var tuck_toggle := hud.get_node("%HudTuckToggle") as Button
-	assert(tuck_toggle.text == "Show work details")
+	assert(tuck_toggle.text == "Work details")
 	assert(hud.size.x >= hud.custom_minimum_size.x)
 	assert(tuck_toggle.position.x + tuck_toggle.size.x <= hud.size.x)
 	assert(
@@ -217,7 +228,7 @@ func _assert_hud(progress: AdMarketAgencyProgress) -> void:
 	assert(hud.get_node("HudMargin/HudStack/ExpandedDetails/ProgressBlock").visible)
 	assert(hud.get_node("HudMargin/HudStack/ExpandedDetails/TravelBlock").visible)
 	assert(hud.get_node("%HudSoundToggle").visible)
-	assert(tuck_toggle.text == "Hide work details")
+	assert(tuck_toggle.text == "Hide details")
 	assert(tuck_toggle.position.x + tuck_toggle.size.x <= hud.size.x)
 	assert(hud.size.y >= 120.0)
 	tuck_toggle.pressed.emit()

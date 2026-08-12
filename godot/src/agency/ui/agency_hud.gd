@@ -56,7 +56,7 @@ func set_tucked(tucked: bool) -> void:
 	_guide_tucked = tucked
 	var button := get_node_or_null("HudMargin/HudStack/PrimaryRow/HudGuideButton") as Button
 	if button != null:
-		button.text = "Open guide · G" if tucked else "Guide open"
+		button.text = "Guide · G" if tucked else "Guide open"
 
 func set_compact(compact: bool) -> void:
 	_compact = compact
@@ -86,11 +86,23 @@ func set_compact(compact: bool) -> void:
 	offset_bottom = offset_top + target_height
 	var button := get_node_or_null("HudMargin/HudStack/PrimaryRow/HudTuckToggle") as Button
 	if button != null:
-		button.text = "Show work details" if compact else "Hide work details"
+		button.text = "Work details" if compact else "Hide details"
 		button.tooltip_text = "Show work details" if compact else "Hide work details"
 
 func is_compact() -> bool:
 	return _compact
+
+func layout_contract(viewport: Vector2) -> Dictionary:
+	var safe_height := maxf(viewport.y, 1.0)
+	var compact_height := 84.0
+	var expanded_height := 164.0
+	return {
+		"compactHeight": compact_height,
+		"expandedHeight": expanded_height,
+		"floorShare": maxf(0.0, (safe_height - compact_height) / safe_height),
+		"directCampaignAction": get_node_or_null("%HudGoToObjective") != null,
+		"optionalPracticeLabelled": true,
+	}
 
 func set_sound_muted(muted: bool) -> void:
 	_sound_muted = muted

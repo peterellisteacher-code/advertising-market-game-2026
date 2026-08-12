@@ -455,13 +455,14 @@ func _update_station_state() -> void:
 	if responsibilities != null:
 		var station_node := _station_node(_current_station_id)
 		responsibilities.text = station_node.responsibility_summary() if station_node != null else ""
+		responsibilities.tooltip_text = responsibilities.text
 	if action_button != null:
 		var next_mission := _next_mission_for_station(_current_station_id)
 		if next_mission.is_empty():
 			action_button.text = "No open work at %s" % String(record.get("title", "this room"))
 			action_button.disabled = true
 		else:
-			var action_prefix := "Start task" if bool(next_mission.get("required", true)) else "Optional practice"
+			var action_prefix := "Enter current task" if bool(next_mission.get("required", true)) else "Optional practice"
 			action_button.text = "%s: %s" % [action_prefix, String(next_mission.get("title", "Agency task"))]
 			action_button.disabled = false
 	var menu := get_node_or_null("%DirectTravel") as OptionButton
@@ -483,7 +484,7 @@ func _set_station_details_visible(visible: bool) -> void:
 		responsibilities.visible = visible
 	var button := get_node_or_null("%StationDetailsToggle") as Button
 	if button != null:
-		button.text = "Hide room details" if visible else "Show room details"
+		button.text = "Hide details" if visible else "Room details"
 	call_deferred("_fit_station_panel_to_viewport")
 
 func _set_station_panel_tucked(tucked: bool) -> void:
@@ -494,7 +495,7 @@ func _set_station_panel_tucked(tucked: bool) -> void:
 		panel.visible = not tucked
 	if tab != null:
 		var record: Dictionary = STATION_DATA.get(_current_station_id, {})
-		tab.text = "Open %s" % String(record.get("title", "room card"))
+		tab.text = "Open room: %s" % String(record.get("title", "Agency room"))
 		tab.visible = tucked
 	if not tucked:
 		call_deferred("_fit_station_panel_to_viewport")

@@ -79,15 +79,15 @@ text = "Strategist leads"
 
 [node name="HudTuckToggle" type="Button" parent="HudMargin/HudStack/PrimaryRow" unique_id=2026080313]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(220, 60)
+custom_minimum_size = Vector2(156, 52)
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_font_sizes/font_size = 18
-text = "Show work details"
+text = "Work details"
 
 [node name="HudGoToObjective" type="Button" parent="HudMargin/HudStack/PrimaryRow" unique_id=823806934]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(176, 60)
+custom_minimum_size = Vector2(168, 52)
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_colors/font_color = Color(0.047, 0.086, 0.145, 1)
@@ -95,11 +95,11 @@ theme_override_colors/font_hover_color = Color(0.047, 0.086, 0.145, 1)
 theme_override_colors/font_pressed_color = Color(0.047, 0.086, 0.145, 1)
 theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_4iwib")
-text = "Go to task"
+text = "Enter current task"
 
 [node name="HudGuideButton" type="Button" parent="HudMargin/HudStack/PrimaryRow" unique_id=1438983335]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(170, 60)
+custom_minimum_size = Vector2(132, 52)
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_colors/font_color = Color(0.047, 0.086, 0.145, 1)
@@ -107,7 +107,7 @@ theme_override_colors/font_hover_color = Color(0.047, 0.086, 0.145, 1)
 theme_override_colors/font_pressed_color = Color(0.047, 0.086, 0.145, 1)
 theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_w7xqt")
-text = "Open guide · G"
+text = "Guide · G"
 
 [node name="ExpandedDetails" type="HBoxContainer" parent="HudMargin/HudStack" unique_id=2026080402]
 unique_name_in_owner = true

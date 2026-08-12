@@ -1242,7 +1242,7 @@ func _on_creator_closed() -> void:
             return
         if completed_boundary == "polish-campaign" and agency_world != null:
             agency_world.direct_travel("pitch-theatre")
-            status.text = "Campaign ready. Prepare the final pitch."
+            status.text = "Advertisement ready. Prepare the final pitch."
             return
     if enter_market.visible:
         status.text = "Market card built. Select Enter market to continue."

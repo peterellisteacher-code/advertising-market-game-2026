@@ -668,7 +668,7 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
 	assert(hero_copy.text.contains("Level 1"))
 	assert(brand.text == "AGENCY ACADEMY")
 	assert(hero_heading.text == "Build one persuasive advertisement with your partner.")
-	assert(lobby_eyebrow.text == "CAMPAIGN READY")
+	assert(lobby_eyebrow.text == "ADVERTISEMENT READY")
 	assert(lobby_heading.text == "Choose where to begin.")
 	assert(heading.text.contains("matches the audience need"))
 	assert(lock.text == "Lock this level")
@@ -695,7 +695,7 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
 		assert(_contrast_with_white(normal.bg_color) >= 4.5)
 		assert(_contrast_with_white(hover.bg_color) >= 4.5)
 
-	assert(start.text == "Start campaign")
+	assert(start.text == "Start advertisement")
 	assert(sandbox.text == "Open assignment sandbox")
 	assert((shell.get_node("%JoinMarketToggle") as Button).text == "Join a class market")
 	assert(join_live.text == "Join the live market")
@@ -737,7 +737,7 @@ func _live_room_routes_are_primary_and_accessible() -> bool:
 	assert(max_teams.value == 15.0)
 	assert(max_teams.min_value == 3.0 and max_teams.max_value == 30.0)
 	assert(create_live.text == "Open a class market")
-	assert(practice.text == "Start campaign")
+	assert(practice.text == "Start advertisement")
 	for control in [alias, room_code, join_live, classroom_code, max_teams, create_live, practice]:
 		assert((control as Control).custom_minimum_size.y >= 44.0)
 	shell.free()
@@ -826,7 +826,7 @@ func _host_defaults_open_a_teacher_dashboard() -> bool:
 	teacher_setup.pressed.emit()
 	assert(host_area.visible)
 	assert(teacher_setup.text == "Hide teacher setup")
-	assert((shell.get_node("MainMargin/GameInput/BrandRow/PlayMode") as Label).text == "PARTNER CAMPAIGN  •  DESKTOP")
+	assert((shell.get_node("MainMargin/GameInput/BrandRow/PlayMode") as Label).text == "PARTNER ADVERTISING  •  DESKTOP")
 	(shell.get_node("%ClassroomCode") as LineEdit).text = "teacher-code-7"
 	(shell.get_node("%CreateLiveMarket") as Button).pressed.emit()
 	var create_id: String = market_fake.last_request_id()

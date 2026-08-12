@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://doan4o3pmvgq1" path="res://src/main/main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://dl55b4msofffb" path="res://src/creator/creator_host.gd" id="2_host"]
 [ext_resource type="Script" uid="uid://djc28dwhxy50v" path="res://src/market/market_host.gd" id="3_market_host"]
-[ext_resource type="PackedScene" path="res://src/market/ui/MarketScreen.tscn" id="4_market_screen"]
+[ext_resource type="PackedScene" uid="uid://dnqe47psfjrrj" path="res://src/market/ui/MarketScreen.tscn" id="4_market_screen"]
 [ext_resource type="PackedScene" uid="uid://3wygkl7yhyny" path="res://src/agency/AgencyWorld.tscn" id="5_gm8pl"]
 [ext_resource type="PackedScene" uid="uid://5c3ywf63f34q" path="res://src/presentation/PitchTheatre.tscn" id="6_dewna"]
 [ext_resource type="PackedScene" uid="uid://by2k08y6c6buo" path="res://src/audio/AgencyAudio.tscn" id="9_v6dgk"]
@@ -231,7 +231,7 @@ text = "AGENCY ACADEMY"
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.972549, 0.92156863, 1)
 theme_override_font_sizes/font_size = 15
-text = "PARTNER CAMPAIGN  •  DESKTOP"
+text = "PARTNER ADVERTISING  •  DESKTOP"
 
 [node name="ReviewInstructions" type="Button" parent="MainMargin/GameInput/BrandRow" unique_id=1182776230]
 unique_name_in_owner = true
@@ -297,7 +297,7 @@ theme_override_constants/separation = 12
 layout_mode = 2
 theme_override_colors/font_color = Color(0.41960785, 0.23921569, 0.5137255, 1)
 theme_override_font_sizes/font_size = 14
-text = "CAMPAIGN READY"
+text = "ADVERTISEMENT READY"
 
 [node name="LobbyHeading" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent" unique_id=1210751407]
 layout_mode = 2
@@ -495,7 +495,7 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_txx0u")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_dewna")
 theme_override_styles/hover = SubResource("StyleBoxFlat_74yfu")
 theme_override_styles/focus = SubResource("Style_focus")
-text = "Start campaign"
+text = "Start advertisement"
 
 [node name="OpenAssignmentSandbox" type="Button" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/PracticeRow" unique_id=1920994293]
 unique_name_in_owner = true
@@ -570,7 +570,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.894118, 0.341176, 0.180392, 1)
 theme_override_font_sizes/font_size = 14
-text = "LEVEL 1 // INVENT IT"
+text = "ADVERTISEMENT READY"
 
 [node name="LevelHeading" type="Label" parent="MainMargin/GameInput/RunPanel/RunContent" unique_id=1634364798]
 unique_name_in_owner = true
@@ -923,8 +923,6 @@ unique_name_in_owner = true
 visible = false
 z_index = 30
 layout_mode = 1
-grow_horizontal = 2
-grow_vertical = 2
 
 [node name="AgencyAudio" parent="." unique_id=1937646235 instance=ExtResource("9_v6dgk")]
 unique_name_in_owner = true

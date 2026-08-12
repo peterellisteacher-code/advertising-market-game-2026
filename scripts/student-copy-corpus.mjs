@@ -287,6 +287,8 @@ export const STUDENT_COPY_SOURCE_PATHS = Object.freeze([
   "godot/src/market/ui/MarketScreen.tscn",
   "godot/src/presentation/PitchTheatre.tscn",
   "godot/src/presentation/pitch_theatre.gd",
+  "godot/src/ui/AgencyAcademyHeader.tscn",
+  "godot/src/ui/agency_academy_header.gd",
   "godot/web/godot_shell.html",
   "web/src/account/account-gate.ts",
   "web/src/account/account-reset-dialog.ts",

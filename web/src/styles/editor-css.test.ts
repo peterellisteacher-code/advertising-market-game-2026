@@ -196,6 +196,12 @@ describe("Fabric canvas layer styling", () => {
     );
   });
 
+  it("opens Items upward inside the canvas and scrolls internally", () => {
+    expect(css).toMatch(
+      /\.creator__layers\s*\{[^}]*top:\s*auto[^}]*bottom:\s*var\(--canvas-command-dock-clearance\)[^}]*max-height:\s*calc\(100%\s*-\s*var\(--canvas-command-dock-clearance\)\s*-\s*16px\)[^}]*overflow:\s*auto[^}]*\}/i
+    );
+  });
+
   it("separates every observed-price source from its amount", () => {
     expect(css).toMatch(
       /\.money-check__evidence\s+li\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+max-content[^}]*gap:\s*\.5rem[^}]*\}/i

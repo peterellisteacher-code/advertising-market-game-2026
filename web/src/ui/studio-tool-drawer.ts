@@ -94,6 +94,7 @@ export function createStudioToolDrawer(
       if (drawer !== null) drawer.hidden = drawerCollapsed;
       if (separator !== null) separator.hidden = drawerCollapsed;
     }
+    if (drawer !== null) drawer.toggleAttribute("inert", drawer.hidden !== false);
     for (const button of matchedButtons) {
       const selected = button.dataset.studioTool === selectedTool;
       button.setAttribute("aria-selected", String(selected));
@@ -103,6 +104,7 @@ export function createStudioToolDrawer(
     const activePanel = panels.find((panel) => panel.dataset.studioPanel === selectedTool);
     for (const panel of panels) {
       panel.hidden = panel !== activePanel;
+      panel.toggleAttribute("inert", panel !== activePanel);
     }
   };
 

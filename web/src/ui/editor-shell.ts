@@ -80,7 +80,7 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           <button type="button" data-writers-statement-open>${STUDENT_COPY.writersStatement.menuLabel}</button>
           <button type="button" data-display-toggle aria-controls="studio-display-panel" aria-expanded="false">Display</button>
           <button type="button" data-command="return">Return to game</button>
-          <section class="creator__display-panel" id="studio-display-panel" aria-label="Display preferences" hidden data-display-panel><fieldset><legend>Interface text</legend><label><input type="radio" name="display-text" value="standard" checked> Standard</label><label><input type="radio" name="display-text" value="large"> Large</label></fieldset><fieldset><legend>Interface colours</legend><label><input type="radio" name="display-colours" value="standard" checked> Standard</label><label><input type="radio" name="display-colours" value="high-contrast"> High contrast</label></fieldset><button type="button" data-display-close>Close display preferences</button></section>
+          <section class="creator__display-panel" id="studio-display-panel" aria-label="Display preferences" hidden inert data-display-panel><fieldset><legend>Interface text</legend><label><input type="radio" name="display-text" value="standard" checked> Standard</label><label><input type="radio" name="display-text" value="large"> Large</label></fieldset><fieldset><legend>Interface colours</legend><label><input type="radio" name="display-colours" value="standard" checked> Standard</label><label><input type="radio" name="display-colours" value="high-contrast"> High contrast</label></fieldset><button type="button" data-display-close>Close display preferences</button></section>
         </header>
         <section class="creator__pair-strip" id="studio-task-bar" role="region" aria-label="${STUDENT_COPY.labels.pairPlay}" data-guided-only>
         <div class="creator__level-chip">
@@ -282,10 +282,10 @@ export function createEditorShell(root: HTMLElement): EditorShell {
           </div>
           <canvas width="1600" height="900"></canvas>
         </main>
-        <aside class="creator__inspector" role="region" aria-label="Selected element" hidden></aside>
+        <aside class="creator__inspector" role="region" aria-label="Selected element" hidden inert></aside>
         <aside class="creator__section-fill" role="region" aria-label="Selected item fill"
-          data-section-fill-panel hidden></aside>
-        <aside class="creator__layers" id="canvas-layers-panel" role="region" aria-label="Item list" hidden></aside>
+          data-section-fill-panel hidden inert></aside>
+        <aside class="creator__layers" id="canvas-layers-panel" role="region" aria-label="Item list" hidden inert></aside>
       </div>
       <div class="creator__instruction-dialog" role="dialog" aria-modal="true"
         aria-label="How to use this site"

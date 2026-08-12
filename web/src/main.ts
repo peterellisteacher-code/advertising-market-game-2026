@@ -1914,6 +1914,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #showProductVariantSummary(title: string): void {
     this.#overlayExclusivity.notifyOpened("inspector");
     this.shell.inspector.hidden = false;
+    this.shell.inspector.toggleAttribute("inert", false);
     const heading = document.createElement("h2");
     heading.textContent = title;
     const guidance = document.createElement("p");
@@ -2363,6 +2364,7 @@ const syncDisplayPanel = (): void => {
 shell.displayToggle.addEventListener("click", () => {
   const open = shell.displayPanel.hidden;
   shell.displayPanel.hidden = !open;
+  shell.displayPanel.toggleAttribute("inert", !open);
   shell.displayToggle.setAttribute("aria-expanded", String(open));
   if (open) {
     overlayExclusivity.notifyOpened("display");
@@ -2372,6 +2374,7 @@ shell.displayToggle.addEventListener("click", () => {
 });
 const closeDisplayPanel = (options: { focus?: boolean } = {}): void => {
   shell.displayPanel.hidden = true;
+  shell.displayPanel.toggleAttribute("inert", true);
   shell.displayToggle.setAttribute("aria-expanded", "false");
   if (options.focus ?? true) shell.displayToggle.focus();
 };

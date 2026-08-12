@@ -108,9 +108,13 @@ describe("SectionFillController", () => {
   it("offers a bounded section fill only for an admitted raster", async () => {
     const { host, controller } = setup();
 
+    expect(host.hidden).toBe(true);
+    expect(host.hasAttribute("inert")).toBe(true);
+
     await controller.setSelection("starter-1");
 
     expect(host.hidden).toBe(false);
+    expect(host.hasAttribute("inert")).toBe(false);
     expect(getByRole(host, "heading", { name: "Colour selected item" })).toBeTruthy();
     expect(getByRole(host, "button", { name: "Fill section" })).toBeTruthy();
     expect(getByLabelText<HTMLInputElement>(host, "Fill colour").value).toBe("#e4572e");

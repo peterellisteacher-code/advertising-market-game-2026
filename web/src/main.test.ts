@@ -2797,17 +2797,21 @@ describe("window.AdMarketCreator", () => {
     fireEvent.click(getByRole(document.body, "button", { name: "Open item list" }));
     const layersPanel = document.querySelector<HTMLElement>(".creator__layers")!;
     expect(layersPanel.hidden).toBe(false);
+    expect(layersPanel.hasAttribute("inert")).toBe(false);
 
     // Display lives in the Menu tuck panel, which defaults tucked (Phase A1).
     fireEvent.click(document.querySelector<HTMLButtonElement>('[data-tuck-tab="menu"]')!);
     fireEvent.click(getByRole(document.body, "button", { name: "Display" }));
     const displayPanel = document.querySelector<HTMLElement>("[data-display-panel]")!;
     expect(displayPanel.hidden).toBe(false);
+    expect(displayPanel.hasAttribute("inert")).toBe(false);
     expect(layersPanel.hidden).toBe(true);
+    expect(layersPanel.hasAttribute("inert")).toBe(true);
 
     fireEvent.click(getByRole(document.body, "button", { name: "Open item list" }));
     expect(layersPanel.hidden).toBe(false);
     expect(displayPanel.hidden).toBe(true);
+    expect(displayPanel.hasAttribute("inert")).toBe(true);
   });
 
   it("keeps an AIDA move unlocked until the pair selects canvas proof", async () => {

@@ -42,7 +42,7 @@ describe("TeacherPlaytestController", () => {
     );
   });
 
-  it("keeps teacher controls fixed above the game without reserving layout height", async () => {
+  it("keeps teacher controls inside the Academy header without a floating strip", async () => {
     const style = document.createElement("style");
     style.textContent = [
       readFileSync(
@@ -59,6 +59,9 @@ describe("TeacherPlaytestController", () => {
       const creatorRoot = document.createElement("div");
       creatorRoot.id = "creator-root";
       document.body.append(creatorRoot);
+      const academyHeader = document.createElement("header");
+      academyHeader.className = "creator__academy-header";
+      creatorRoot.append(academyHeader);
       const workspace = document.createElement("section");
       workspace.className = "creator__workspace";
       const layers = document.createElement("aside");
@@ -81,20 +84,13 @@ describe("TeacherPlaytestController", () => {
 
       const strip = getByRole(root, "banner", { name: "Teacher playtest" });
       const stripStyle = getComputedStyle(strip);
-      const creatorStyle = getComputedStyle(creatorRoot);
-      expect(stripStyle.position).toBe("fixed");
-      expect(stripStyle.top).toBe("120px");
-      expect(stripStyle.right).toBe("12px");
-      expect(Number.parseInt(stripStyle.zIndex, 10)).toBeGreaterThan(
-        Number.parseInt(creatorStyle.zIndex, 10)
-      );
-      expect(creatorStyle.top).toBe("0px");
-      expect(creatorStyle.bottom).toBe("0px");
-      expect(getComputedStyle(layers).top).toBe("84px");
+      expect(root.parentElement).toBe(academyHeader);
+      expect(stripStyle.position).toBe("relative");
+      expect(getComputedStyle(layers).top).toBe("auto");
 
       fireEvent.click(getByRole(root, "button", { name: "Show teacher controls" }));
 
-      expect(getComputedStyle(layers).top).toBe("160px");
+      expect(getComputedStyle(layers).top).toBe("auto");
     } finally {
       style.remove();
     }
@@ -120,6 +116,7 @@ describe("TeacherPlaytestController", () => {
     expect(strip.dataset.expanded).toBe("false");
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
     expect(actions?.hidden).toBe(true);
+    expect(actions?.hasAttribute("inert")).toBe(true);
 
     fireEvent.click(toggle);
 
@@ -127,6 +124,7 @@ describe("TeacherPlaytestController", () => {
     expect(toggle.textContent).toBe("Hide teacher controls");
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
     expect(actions?.hidden).toBe(false);
+    expect(actions?.hasAttribute("inert")).toBe(false);
     expect(getByRole(root, "button", { name: "Return to teacher dashboard" })).toBeTruthy();
     expect(getByRole(root, "button", { name: "Factory reset playtest" })).toBeTruthy();
 
@@ -135,6 +133,7 @@ describe("TeacherPlaytestController", () => {
     expect(strip.dataset.expanded).toBe("false");
     expect(toggle.textContent).toBe("Show teacher controls");
     expect(actions?.hidden).toBe(true);
+    expect(actions?.hasAttribute("inert")).toBe(true);
   });
 
   it("tucks expanded teacher controls with Escape and restores toggle focus", async () => {

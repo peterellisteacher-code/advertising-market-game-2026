@@ -471,7 +471,7 @@
 .creator__assets .creator__library-results::-webkit-scrollbar-track { background: #e6ded1; border-radius: 999px; }
 .creator__assets .creator__library-results::-webkit-scrollbar-thumb { border: 2px solid #e6ded1; border-radius: 999px; background: #6e9eaa; }
 .product-maker, .logo-lab { height: auto; min-height: 0; display: grid; grid-template-rows: none; gap: .5rem; }
-.creator__layers { position: absolute; top: 16px; right: 16px; bottom: var(--canvas-command-dock-clearance); z-index: 10; width: min(25rem, calc(100% - 32px)); max-height: calc(100% - var(--canvas-command-dock-clearance) - 16px); padding: 14px; overflow: auto; border: 2px solid var(--ink); border-radius: 12px; background: var(--panel); box-shadow: 0 12px 36px rgb(23 32 51 / .24); }
+.creator__layers { position: absolute; top: auto; right: 16px; bottom: var(--canvas-command-dock-clearance); z-index: 10; width: min(25rem, calc(100% - 32px)); max-height: calc(100% - var(--canvas-command-dock-clearance) - 16px); padding: 14px; overflow: auto; border: 2px solid var(--ink); border-radius: 12px; background: var(--panel); box-shadow: 0 12px 36px rgb(23 32 51 / .24); }
 .creator__layers h2, .creator__layers h3, .creator__layers p { margin: 0 0 .6rem; }
 .creator__layers-help { color: #475569; font-size: .875rem; line-height: 1.35; }
 .creator__layer-list { margin: 0; padding: 0; display: grid; gap: .55rem; list-style: none; }

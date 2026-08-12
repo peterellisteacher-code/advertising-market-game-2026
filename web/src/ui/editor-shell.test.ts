@@ -73,6 +73,7 @@ describe("createEditorShell", () => {
     const panel = shell.displayPanel;
     expect(display.getAttribute("aria-expanded")).toBe("false");
     expect(panel.hidden).toBe(true);
+    expect(panel.hasAttribute("inert")).toBe(true);
     expect(libraryView.value).toBe("products");
     expect(shell.libraryView).toBe(libraryView);
     expect(getByRole<HTMLSelectElement>(root, "combobox", { name: "Product category", hidden: true }).value)
@@ -294,11 +295,14 @@ describe("createEditorShell", () => {
     expect(getByRole(root, "button", { name: "Open item list", hidden: true })).toBeTruthy();
     expect(root.querySelector('.creator__inspector[aria-label="Selected element"]')).toBeTruthy();
     expect(shell.inspector.hidden).toBe(true);
+    expect(shell.inspector.hasAttribute("inert")).toBe(true);
     const sectionFill = root.querySelector<HTMLElement>(
       '[data-section-fill-panel][role="region"][aria-label="Selected item fill"]'
     )!;
     expect(sectionFill).toBe(shell.sectionFillPanel);
     expect(shell.sectionFillPanel.hidden).toBe(true);
+    expect(shell.sectionFillPanel.hasAttribute("inert")).toBe(true);
+    expect(shell.layers.hasAttribute("inert")).toBe(true);
     expect(getByRole(root, "group", { name: "AIDA stages", hidden: true })).toBeTruthy();
     expect(getAllByRole(root, "button", { hidden: true })
       .filter((button) => button.hasAttribute("data-slot"))

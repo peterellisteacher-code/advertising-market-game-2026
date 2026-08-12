@@ -267,7 +267,8 @@ function getExecutableInlineScriptBodies(html) {
 }
 
 function makeNetlifyHeaders(inlineScriptBody) {
-  const hash = createHash("sha256").update(Buffer.from(inlineScriptBody, "utf8")).digest("base64");
+  const browserScriptBody = inlineScriptBody.replace(/\r\n?/gu, "\n");
+  const hash = createHash("sha256").update(Buffer.from(browserScriptBody, "utf8")).digest("base64");
   return `/*\n  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self' 'sha256-${hash}' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'none'; form-action 'self'; frame-ancestors 'self';\n  Cross-Origin-Opener-Policy: same-origin\n  Cross-Origin-Embedder-Policy: require-corp\n  Cross-Origin-Resource-Policy: same-origin\n  Cache-Control: public, max-age=0, must-revalidate\n\n/service-worker.js\n  Cache-Control: no-cache, no-store, must-revalidate\n\n/asset-manifest.json\n  Cache-Control: no-cache, no-store, must-revalidate\n\n/release-manifest.json\n  Cache-Control: no-cache, no-store, must-revalidate\n\n/manifest.webmanifest\n  Cache-Control: no-cache, must-revalidate\n`;
 }
 

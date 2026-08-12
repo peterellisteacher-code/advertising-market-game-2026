@@ -1,3 +1,4 @@
+import "./styles/agency-academy-tokens.css";
 import "./styles/editor.css";
 import "./account/account.css";
 import "./teacher/teacher.css";

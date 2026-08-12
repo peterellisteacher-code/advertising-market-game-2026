@@ -47,6 +47,13 @@ describe("createEditorShell", () => {
     const root = document.querySelector<HTMLElement>("#creator-root")!;
     const shell = createEditorShell(root);
 
+    const academyHeader = getByRole(root, "banner", { name: "Agency Academy studio" });
+    expect(academyHeader.querySelector("[data-academy-mission]")?.textContent)
+      .toBe("Create your advertisement");
+    expect(academyHeader.querySelector("[data-academy-term]")?.textContent)
+      .toBe("Advertising studio");
+    expect(academyHeader.textContent).not.toMatch(/\b(?:score|points?|pts)\b/i);
+
     expect(getByRole<HTMLInputElement>(root, "textbox", { name: "Product name" }).placeholder)
       .toBe("Name your product");
     expect(getByRole<HTMLInputElement>(root, "searchbox", { name: "Search assets", hidden: true }).placeholder)
@@ -76,6 +83,8 @@ describe("createEditorShell", () => {
     expect(studioTools.map((tab) => tab.textContent?.trim())).toEqual([
       "Build", "Assets", "Words", "Logo", "Image", "Price", "Route", "AIDA", "Coach"
     ]);
+    expect(studioTools.every((tab) => Boolean(tab.dataset.glyph) && Boolean(tab.textContent?.trim())))
+      .toBe(true);
     expect(studioTools.map((tab) => tab.dataset.glyph)).toEqual([
       "◆", "✦", "Aa", "◎", "▧", "$", "↗", "A", "?"
     ]);

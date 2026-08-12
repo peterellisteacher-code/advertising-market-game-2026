@@ -54,6 +54,21 @@ const PRODUCT_TYPEFACE_OPTIONS = CURVED_LABEL_FONT_FAMILIES
 export function createEditorShell(root: HTMLElement): EditorShell {
   root.innerHTML = `
       <section class="creator" aria-label="Advertisement studio">
+      <header class="creator__academy-header" aria-label="Agency Academy studio">
+        <div class="creator__academy-mark" aria-hidden="true">AA</div>
+        <div class="creator__academy-identity">
+          <span>AGENCY ACADEMY</span>
+          <strong data-academy-mission>Create your advertisement</strong>
+          <small data-academy-term>Advertising studio</small>
+        </div>
+        <div class="creator__academy-progress" aria-label="Studio progress">
+          <span class="creator__academy-progress-dot" data-state="current"></span>
+          <span class="creator__academy-progress-dot"></span>
+          <span class="creator__academy-progress-dot"></span>
+          <span class="creator__academy-progress-dot"></span>
+        </div>
+        <p class="creator__academy-hint">Choose a tool, work on the ad, then check your decision.</p>
+      </header>
       <div class="creator__tuck-top" data-tuck-top>
         <div class="creator__tuck-tabs" data-tuck-tabs="top" role="group" aria-label="Studio menus"></div>
         <header class="creator__topbar" id="studio-menu-panel" role="region" aria-label="Studio menu">

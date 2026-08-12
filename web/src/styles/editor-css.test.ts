@@ -13,7 +13,7 @@ describe("Fabric canvas layer styling", () => {
 
   it("uses the warm game-studio identity instead of browser-default chrome", () => {
     expect(css).toMatch(
-      /#creator-root\s*\{[^}]*--ink:\s*#172033\b[^}]*--paper:\s*#f6f1e7\b[^}]*--coral:\s*#f25f5c\b[^}]*\}/i
+      /#creator-root\s*\{[^}]*--ink:\s*var\(--aa-ink\)[^}]*--paper:\s*var\(--aa-surface-muted\)[^}]*--coral:\s*#f25f5c\b[^}]*\}/i
     );
     expect(css).toMatch(
       /\.creator\s*\{[^}]*font-family:\s*"Trebuchet MS"[^;}]*;[^}]*\}/i
@@ -26,14 +26,17 @@ describe("Fabric canvas layer styling", () => {
 
   it("reserves only compact chrome above a canvas-first workspace", () => {
     expect(css).toMatch(
-      /\.creator\s*\{[^}]*grid-template-rows:\s*auto\s+auto\s+minmax\(0,\s*1fr\)[^}]*\}/i
+      /\.creator\s*\{[^}]*grid-template-rows:\s*var\(--aa-header-height\)\s+auto\s+auto\s+minmax\(0,\s*1fr\)[^}]*\}/i
     );
     expect(css).toMatch(
-      /\.creator__workspace\s*\{[^}]*--studio-rail-width:\s*64px[^}]*--studio-browse-percent:\s*40%[^}]*--studio-browse-width:\s*\.666667fr[^}]*grid-template-columns:\s*var\(--studio-rail-width\)\s+minmax\(0,\s*var\(--studio-browse-width\)\)\s+var\(--studio-separator-width\)\s+minmax\(0,\s*1fr\)[^}]*\}/i
+      /\.creator__workspace\s*\{[^}]*--studio-rail-width:\s*72px[^}]*--studio-browse-percent:\s*40%[^}]*--studio-browse-width:\s*\.666667fr[^}]*--studio-canvas-share:\s*70%[^}]*grid-template-columns:\s*var\(--studio-rail-width\)\s+minmax\(18rem,\s*var\(--studio-browse-width\)\)\s+var\(--studio-separator-width\)\s+minmax\(var\(--studio-canvas-share\),\s*1fr\)[^}]*\}/i
     );
     expect(css).toMatch(
       /\.creator__canvas\s+\.canvas-container\s*\{[^}]*width:\s*min\(100%,\s*var\(--studio-canvas-display-width,\s*calc\(\(100vh\s*-\s*[^)]*\)\s*\*\s*16\s*\/\s*9\)\)\)\s*!important[^}]*max-width:\s*1280px[^}]*aspect-ratio:\s*16\s*\/\s*9[^}]*\}/i
     );
+    expect(css).toMatch(/\.creator__academy-header\s*\{[^}]*height:\s*var\(--aa-header-height\)[^}]*\}/i);
+    expect(css).toMatch(/\.creator__canvas\s*\{[^}]*min-width:\s*var\(--studio-canvas-share\)[^}]*\}/i);
+    expect(css).toMatch(/\.creator__canvas-size\s*\{[^}]*height:\s*var\(--aa-dock-height\)[^}]*\}/i);
   });
 
   it("keeps the journey bar as a slim always-visible strip that hides with the tuck tabs during the tour", () => {
@@ -177,7 +180,7 @@ describe("Fabric canvas layer styling", () => {
 
   it("keeps every canvas command reachable in one compact row at the widest library split", () => {
     expect(css).toMatch(
-      /\.creator__workspace\s*\{[^}]*--canvas-command-dock-bottom:\s*12px[^}]*--canvas-command-dock-height:\s*60px[^}]*--canvas-command-dock-clearance:\s*calc\(var\(--canvas-command-dock-bottom\)\s*\+\s*var\(--canvas-command-dock-height\)\s*\+\s*12px\)[^}]*\}/i
+      /\.creator__workspace\s*\{[^}]*--canvas-command-dock-bottom:\s*12px[^}]*--canvas-command-dock-height:\s*var\(--aa-dock-height\)[^}]*--canvas-command-dock-clearance:\s*calc\(var\(--canvas-command-dock-bottom\)\s*\+\s*var\(--canvas-command-dock-height\)\s*\+\s*12px\)[^}]*\}/i
     );
     expect(css).toMatch(
       /\.creator__canvas-size\s*\{[^}]*left:\s*50%[^}]*bottom:\s*var\(--canvas-command-dock-bottom\)[^}]*width:\s*max-content[^}]*max-width:\s*calc\(100%\s*-\s*24px\)[^}]*display:\s*flex[^}]*flex-wrap:\s*nowrap[^}]*justify-content:\s*flex-start[^}]*overflow-x:\s*auto[^}]*scrollbar-width:\s*thin[^}]*transform:\s*translateX\(-50%\)[^}]*\}/i

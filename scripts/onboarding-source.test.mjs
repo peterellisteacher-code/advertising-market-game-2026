@@ -185,7 +185,10 @@ test("agency quick start fills the viewport rather than a fixed 1280 by 800 box"
   assert.match(panelBlock, /anchor_bottom = 1\.0/);
   assert.match(panelBlock, /offset_top = 48\.0/);
   assert.match(panelBlock, /offset_bottom = -48\.0/);
-  assert.match(itemsBlock, /size_flags_vertical = 1/);
+  // VBoxContainer's default vertical sizing is FILL (1). Godot may omit the
+  // property when saving through the editor, so reject only an explicit
+  // conflicting mode instead of requiring redundant serialization.
+  assert.doesNotMatch(itemsBlock, /size_flags_vertical = (?!1\b)\d+/);
   assert.doesNotMatch(panelBlock, /ScrollContainer/);
 });
 
@@ -207,7 +210,7 @@ test("agency floor renders above the main shell background", () => {
   const floorBlock = agencyWorldScene.match(
     /\[node name="AgencyFloor"[\s\S]*?(?=\n\[node name="WorldCamera")/
   )?.[0] ?? "";
-  assert.match(floorBlock, /z_index = 0/);
+  // CanvasItem's default z_index is 0 and editor saves may omit default values.
   assert.doesNotMatch(floorBlock, /z_index = -/);
 });
 
@@ -279,32 +282,25 @@ test("compact agency HUD keeps readable, high-contrast actions inside the laptop
   );
 });
 
-test("agency mission keeps evidence and a direct role handover beside clickable answers", () => {
+test("agency mission keeps evidence beside immediately clickable team answers", () => {
   assert.ok(missionCatalogScript.includes('"referenceFacts"'));
   for (const nodeName of [
     "MissionStep",
     "ReferenceCard",
     "ReferenceLabel",
-    "ReferenceToggle",
-    "RoleDetailsToggle",
-    "RoleDefinitionLabel",
-    "RoleHandoffButton"
+    "ReferenceToggle"
   ]) {
     assert.ok(missionPanelScene.includes(`name="${nodeName}"`), `missing ${nodeName}`);
   }
-  assert.match(missionPanelScript, /signal role_handoff_requested\(role: String\)/);
+  for (const removedNode of ["OwnerCard", "RoleDetailsToggle", "RoleDefinitionLabel", "RoleHandoffButton"]) {
+    assert.ok(!missionPanelScene.includes(`name="${removedNode}"`), `obsolete ${removedNode}`);
+  }
+  assert.doesNotMatch(missionPanelScript, /signal role_handoff_requested\(role: String\)/);
   assert.ok(missionPanelScript.includes("Click one answer"));
-  assert.ok(missionPanelScript.includes("Both partners use the same controls"));
-  assert.ok(missionPanelScript.includes("Strategist decides audience, purpose, product and message"));
-  assert.ok(missionPanelScript.includes("Art Director decides visual design and execution"));
   assert.ok(missionPanelScript.includes("Hide audience brief"));
   assert.ok(missionPanelScript.includes("Hide task reference"));
-  assert.match(missionPanelScript, /func show_handoff_error\(\) -> void:/);
-  assert.doesNotMatch(
-    missionPanelScript,
-    /Close this panel first\. Then hand control/
-  );
-  assert.match(agencyWorldScript, /func _on_mission_role_handoff_requested\(role: String\) -> void:/);
+  assert.doesNotMatch(missionPanelScript, /func show_handoff_error\(\) -> void:/);
+  assert.doesNotMatch(agencyWorldScript, /func _on_mission_role_handoff_requested\(role: String\) -> void:/);
 });
 
 test("game shell uses the full 16:10 school MacBook viewport", () => {
@@ -458,7 +454,7 @@ test("Godot advertising copy reuses AIDA stage and advertisement terminology", (
   }
 });
 
-test("the full linked argument and role guide remain available throughout pair play", () => {
+test("the full linked argument guide remains available throughout pair play", () => {
   assert.match(mainScene, /name="ReviewInstructions"[\s\S]*?text = "Review all instructions"/);
   assert.match(mainScene, /name="RoleGuide"[\s\S]*?text = "Role guide"/);
   assert.match(mainScene, /name="RoleGuideDialog"[\s\S]*?title = "Pair role guide"/);

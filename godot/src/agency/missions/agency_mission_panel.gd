@@ -10,6 +10,7 @@ signal close_requested
 signal role_handoff_requested(role: String)
 
 const Tokens = preload("res://src/ui/agency_academy_tokens.gd")
+const MISSION_THEME := preload("res://src/ui/agency_mission_theme.tres")
 
 const CHOICE_COLOURS: Array[Color] = [
     Color("f8d165"),
@@ -75,6 +76,7 @@ var _completed_opens_next: bool = false
 
 func _ready() -> void:
     _apply_visual_theme()
+    demonstration_stage.theme = MISSION_THEME
     academy_header.close_requested.connect(_request_close)
     academy_header.brief_requested.connect(_toggle_reference)
     academy_header.teacher_requested.connect(_toggle_role_details)
@@ -274,10 +276,27 @@ func _mount_demonstration(demonstration: Dictionary) -> void:
         _demonstration_view = scene.instantiate() as Control
         _demonstration_scene_path = scene_path
         demonstration_stage.add_child(_demonstration_view)
+        _style_demonstration_view(_demonstration_view)
         if _demonstration_view.has_signal("arrangement_submitted"):
             _demonstration_view.connect("arrangement_submitted", _submit_demonstration)
     if _demonstration_view.has_method("configure"):
         _demonstration_view.call("configure", demonstration)
+
+func _style_demonstration_view(view: Control) -> void:
+    view.theme = MISSION_THEME
+    for node: Node in view.find_children("*", "PanelContainer", true, false):
+        var panel := node as PanelContainer
+        if panel != null:
+            panel.theme_type_variation = &"WorkSurface"
+    var check_button := view.find_child("CheckButton", true, false) as Button
+    if check_button != null:
+        check_button.theme_type_variation = &"PrimaryAction"
+        check_button.custom_minimum_size.x = maxf(check_button.custom_minimum_size.x, 220.0)
+        check_button.custom_minimum_size.y = maxf(check_button.custom_minimum_size.y, 44.0)
+    var reset_button := view.find_child("ResetButton", true, false) as Button
+    if reset_button != null:
+        reset_button.custom_minimum_size.x = maxf(reset_button.custom_minimum_size.x, 170.0)
+        reset_button.custom_minimum_size.y = maxf(reset_button.custom_minimum_size.y, 44.0)
 
 func _submit_demonstration(result: Dictionary) -> void:
     demonstration_submitted.emit(result)

@@ -9,6 +9,7 @@ func run() -> bool:
 	assert(await _layout_stays_bounded_at(Vector2i(1440, 900)))
 	assert(await _record_identity_and_accessibility_are_visible())
 	assert(await _primary_action_tracks_the_current_stage())
+	assert(_demonstration_engines_share_the_academy_visual_system())
 	return true
 
 func _layout_stays_bounded_at(viewport_size: Vector2i) -> bool:
@@ -48,6 +49,29 @@ func _record_identity_and_accessibility_are_visible() -> bool:
 	assert(status != null and not status.text.is_empty())
 	assert((panel.get_node("%ChoiceOne") as Button).focus_mode != Control.FOCUS_NONE)
 	assert((panel.get_node("%PrimaryAction") as Button).focus_mode != Control.FOCUS_NONE)
+	panel.free()
+	return true
+
+func _demonstration_engines_share_the_academy_visual_system() -> bool:
+	var panel := _mount_panel()
+	var record := _required_record("audience-brief")
+	panel.call("show_demonstration", record)
+	var demonstration_stage := panel.get_node("Backdrop/Dialog/Margin/Content/DemonstrationStage") as VBoxContainer
+	assert(demonstration_stage != null)
+	assert(demonstration_stage.theme != null)
+	var demonstration := demonstration_stage.get_child(0) as Control
+	assert(demonstration != null)
+	var check_button := demonstration.find_child("CheckButton", true, false) as Button
+	assert(check_button != null)
+	assert(check_button.theme_type_variation == &"PrimaryAction")
+	var work_surface := demonstration.find_child("EvidencePanel", true, false) as PanelContainer
+	assert(work_surface != null)
+	assert(work_surface.theme_type_variation == &"WorkSurface")
+	var theme := demonstration_stage.theme
+	assert(theme.get_type_variation_base("WorkSurface") == &"PanelContainer")
+	var work_box := theme.get_stylebox("panel", "WorkSurface") as StyleBoxFlat
+	assert(work_box != null)
+	assert(work_box.bg_color.is_equal_approx(Color("fffaf0")))
 	panel.free()
 	return true
 

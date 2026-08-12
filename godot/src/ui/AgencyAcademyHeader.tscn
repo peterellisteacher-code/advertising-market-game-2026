@@ -70,6 +70,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(88, 44)
 layout_mode = 2
 focus_neighbor_right = NodePath("../TeacherButton")
+theme_override_colors/font_focus_color = Color(1, 0.972549, 0.92156863, 1)
 text = "Brief"
 
 [node name="TeacherButton" type="Button" parent="HeaderRow/Actions" unique_id=1145447202]
@@ -78,6 +79,7 @@ custom_minimum_size = Vector2(126, 44)
 layout_mode = 2
 focus_neighbor_left = NodePath("../BriefButton")
 focus_neighbor_right = NodePath("../CloseButton")
+theme_override_colors/font_focus_color = Color(1, 0.972549, 0.92156863, 1)
 text = "Pair roles"
 
 [node name="CloseButton" type="Button" parent="HeaderRow/Actions" unique_id=1620065920]
@@ -85,5 +87,6 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(76, 44)
 layout_mode = 2
 focus_neighbor_left = NodePath("../TeacherButton")
+theme_override_colors/font_focus_color = Color(1, 0.972549, 0.92156863, 1)
 shortcut_in_tooltip = false
 text = "Close"

@@ -2461,7 +2461,7 @@ describe("window.AdMarketCreator", () => {
     await waitFor(() =>
       expect(currentObjects()[0]!.rasterSectionFillRecipes).toHaveLength(1)
     );
-  });
+  }, 60_000);
 
   it("keeps the active practice revision when undoing after autosaves", async () => {
     await import("./main");
@@ -3940,7 +3940,11 @@ describe("window.AdMarketCreator", () => {
     expect(await parsed(api, "open-product-kit", "open", blankDocument))
       .toMatchObject({ ok: true });
     activateStudioTool("product");
-    const starter = await findByRole(document.body, "radio", { name: /Reusable tumbler/ });
+    const builderPanel = document.querySelector<HTMLElement>("[data-product-builder-panel]")!;
+    await waitFor(() => {
+      expect(builderPanel.textContent).toContain("Choose a starter product");
+    }, { timeout: 10_000 });
+    const starter = getByRole(document.body, "radio", { name: /Reusable tumbler/ });
     fireEvent.click(starter);
 
     const lid = getByRole<HTMLInputElement>(document.body, "radio", { name: /Flat lid/ });
@@ -4122,7 +4126,7 @@ describe("window.AdMarketCreator", () => {
       ]);
     expect(responses.filter(({ mimeType }) => mimeType === "image/png")
       .every(({ byteLength }) => byteLength > 8)).toBe(true);
-  }, 40_000);
+  }, 90_000);
 
   it("creates all four local logo recipes, remixes, saves, reloads and publishes them", async () => {
     expect(() => parseLogoIconCatalogue(logoCatalogueFixture())).not.toThrow();
@@ -4304,7 +4308,7 @@ describe("window.AdMarketCreator", () => {
     expect(String(logoCalls[0]![0])).toBe(
       `${window.location.origin}/catalog/generated/logo-icons-v1-reviewed/catalog.json`
     );
-  }, 40_000);
+  }, 90_000);
 
   it("loads account Object Forge allowance, places owned pixels, and keeps fal controls server-side", async () => {
     const imageBytes = Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a);

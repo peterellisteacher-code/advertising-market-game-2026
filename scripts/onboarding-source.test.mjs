@@ -189,10 +189,10 @@ test("agency quick start fills the viewport rather than a fixed 1280 by 800 box"
   assert.doesNotMatch(panelBlock, /ScrollContainer/);
 });
 
-test("the entry lobby makes the campaign primary and the assignment sandbox secondary", () => {
+test("the entry lobby makes the advertisement primary and the assignment sandbox secondary", () => {
   for (const requiredCopy of [
     "AGENCY ACADEMY",
-    "Start campaign",
+    "Start advertisement",
     "Open assignment sandbox",
     "Join a class market",
     "Teacher setup"
@@ -354,10 +354,10 @@ test("student lobby keeps teacher controls behind explicit disclosure", () => {
   assert.match(mainScene, /name="TeacherSetupToggle"[\s\S]*?text = "Teacher setup"/);
   assert.match(mainScene, /name="HostArea"[\s\S]*?unique_name_in_owner = true[\s\S]*?visible = false/);
   assert.match(mainScript, /teacher_setup_toggle\.pressed\.connect\(_toggle_teacher_setup\)/);
-  assert.match(mainScene, /text = "PARTNER CAMPAIGN  •  DESKTOP"/);
+  assert.match(mainScene, /text = "PARTNER ADVERTISING  •  DESKTOP"/);
 });
 
-test("student lobby makes the campaign the immediate route and keeps one game identity", () => {
+test("student lobby makes the advertisement the immediate route and keeps one game identity", () => {
   assert.match(mainScene, /text = "AGENCY ACADEMY"/);
   assert.match(
     mainScene,
@@ -373,7 +373,7 @@ test("student lobby makes the campaign the immediate route and keeps one game id
     /name="StartRun"[\s\S]*?theme_override_styles\/normal = SubResource\("Style_primary"\)/
   );
   assert.match(mainScene, /text = "Pair alias \(practice or live room\)"/);
-  assert.match(marketScene, /text = "AD MARKET \/\/ MEDAL GALLERY"/);
+  assert.match(marketScene, /text = "AGENCY ACADEMY \/\/ MARKET GALLERY"/);
   assert.doesNotMatch(
     mainScript,
     /func _begin_startup\(\) -> void:[\s\S]*?start_button\.disabled = true[\s\S]*?market_host\.resume_session\(\)/

@@ -84,11 +84,8 @@ const AIDA_NEXT_ACTIONS := {
 @onready var publish_campaign: Button = %PublishCampaign
 @onready var enter_market: Button = %EnterMarket
 @onready var review_instructions: Button = %ReviewInstructions
-@onready var role_guide: Button = %RoleGuide
 @onready var instructions_dialog: AcceptDialog = %InstructionsDialog
 @onready var instructions_text: RichTextLabel = %InstructionsText
-@onready var role_guide_dialog: AcceptDialog = %RoleGuideDialog
-@onready var role_guide_text: RichTextLabel = %RoleGuideText
 @onready var keyboard_hint: Label = %KeyboardHint
 @onready var final_review: Control = %FinalReview
 @onready var review_audience: CheckBox = %ReviewAudience
@@ -144,6 +141,7 @@ var _sandbox_load_pending: bool = false
 var _sandbox_load_request_id: String = ""
 var _sandbox_document: Dictionary = {}
 var _sandbox_open: bool = false
+var _campaign_creator_boundary: String = ""
 
 func _process(_delta: float) -> void:
     if agency_audio != null and agency_world != null:
@@ -198,7 +196,6 @@ func _ready() -> void:
     var agency_controller_script: Script = load(AGENCY_CAMPAIGN_CONTROLLER_PATH) as Script
     _agency_campaign = agency_controller_script.new() as AdMarketAgencyCampaignController
     agency_world.station_requested.connect(_on_agency_station_requested)
-    agency_world.role_handoff_requested.connect(_on_agency_role_handoff_requested)
     agency_world.audio_settings_requested.connect(_on_agency_audio_settings_requested)
     agency_world.audio_settings_changed.connect(_on_agency_audio_settings_changed)
     _agency_campaign.creator_requested.connect(_open_creator)
@@ -213,6 +210,9 @@ func _ready() -> void:
     if mission_controller != null:
         mission_controller.mission_completed.connect(_on_agency_mission_completed)
         mission_controller.sidequest_completed.connect(_on_agency_sidequest_completed)
+    var mission_panel := agency_world.get_node_or_null("%AgencyMissionPanel") as AdMarketAgencyMissionPanel
+    if mission_panel != null:
+        mission_panel.next_requested.connect(_on_agency_next_requested)
     var selected_transport: RefCounted = creator_transport_override
     if selected_transport == null:
         selected_transport = WebCreatorTransport.new()
@@ -260,11 +260,8 @@ func _ready() -> void:
     publish_campaign.pressed.connect(_publish_campaign)
     enter_market.pressed.connect(_enter_market)
     review_instructions.pressed.connect(_show_instructions)
-    role_guide.pressed.connect(_show_role_guide)
     instructions_dialog.confirmed.connect(_restore_dialog_focus)
     instructions_dialog.canceled.connect(_restore_dialog_focus)
-    role_guide_dialog.confirmed.connect(_restore_dialog_focus)
-    role_guide_dialog.canceled.connect(_restore_dialog_focus)
     for review_check in _final_review_checks():
         review_check.toggled.connect(_on_final_review_changed)
     run_panel.hide()
@@ -331,13 +328,6 @@ func _on_agency_station_requested(station_id: String) -> void:
     if not bool(result.get("allowed", false)):
         status.text = String(result.get("reason", "That room is not available yet."))
 
-func _on_agency_role_handoff_requested(role: String) -> void:
-    agency_audio.confirm_user_gesture()
-    agency_audio.play_sfx("ui-confirm")
-    agency_audio.play_ambience("office")
-    if _agency_campaign != null:
-        _agency_campaign.handoff_to(role)
-
 func _on_agency_mission_completed(mission_id: String, evidence: Dictionary) -> void:
     if _agency_campaign == null:
         return
@@ -345,6 +335,19 @@ func _on_agency_mission_completed(mission_id: String, evidence: Dictionary) -> v
         agency_audio.play_cue("portfolio-stamp")
         _agency_campaign.reconcile_level_readiness(_readiness_clue())
         _render_level()
+
+func _on_agency_next_requested() -> void:
+    if _agency_campaign == null or agency_world == null:
+        return
+    var step: Dictionary = _agency_campaign.next_campaign_step()
+    var kind := String(step.get("kind", ""))
+    if kind not in ["build-product", "polish-campaign"]:
+        return
+    _campaign_creator_boundary = kind
+    var mission_controller := agency_world.get_node_or_null("%AgencyMissionController") as Node
+    if mission_controller != null:
+        mission_controller.call("close")
+    _open_creator()
 
 func _on_agency_sidequest_completed(sidequest_id: String) -> void:
     if _agency_campaign != null and _agency_campaign.complete_sidequest(sidequest_id):
@@ -1207,6 +1210,26 @@ func _on_creator_closed() -> void:
         return
     if agency_world != null and agency_world.visible:
         agency_world.set_input_enabled(true)
+    if not _campaign_creator_boundary.is_empty():
+        var completed_boundary := _campaign_creator_boundary
+        _campaign_creator_boundary = ""
+        var next_step: Dictionary = (
+            _agency_campaign.next_campaign_step()
+            if _agency_campaign != null
+            else {}
+        )
+        if (
+            completed_boundary == "build-product"
+            and String(next_step.get("kind", "")) == "required-mission"
+            and agency_world != null
+            and agency_world.open_campaign_mission(String(next_step.get("missionId", "")))
+        ):
+            status.text = "Product ready. Continue with the next advertising task."
+            return
+        if completed_boundary == "polish-campaign" and agency_world != null:
+            agency_world.direct_travel("pitch-theatre")
+            status.text = "Advertisement ready. Prepare the final pitch."
+            return
     if enter_market.visible:
         status.text = "Market card built. Select Enter market to continue."
         _focus_if_ready(enter_market)
@@ -1391,7 +1414,11 @@ func _on_creator_published(publication: Dictionary) -> void:
         if run != null
         else null
     )
-    if not pitch_theatre.present(publication, progress, agency_world.reduced_motion_enabled):
+    var pitch_publication := publication.duplicate(true)
+    var strategy_value: Variant = _campaign_document.get("strategy", {})
+    if typeof(strategy_value) == TYPE_DICTIONARY:
+        pitch_publication["strategy"] = Dictionary(strategy_value).duplicate(true)
+    if not pitch_theatre.present(pitch_publication, progress, agency_world.reduced_motion_enabled):
         publish_campaign.disabled = false
         status.text = "The finished advertisement image could not be prepared. Return to the studio and publish it again."
         return
@@ -1634,11 +1661,6 @@ func _show_instructions() -> void:
     instructions_dialog.popup_centered(Vector2i(920, 640))
     _focus_if_ready(instructions_text)
 
-func _show_role_guide() -> void:
-    _dialog_focus_target = get_viewport().gui_get_focus_owner()
-    role_guide_dialog.popup_centered(Vector2i(720, 420))
-    _focus_if_ready(role_guide_text)
-
 func _restore_dialog_focus() -> void:
     var target := _dialog_focus_target
     _dialog_focus_target = null
@@ -1774,14 +1796,6 @@ func _readiness_clue_for(phase: String, document: Dictionary) -> String:
             return "Next: add a product name."
         if not _is_nonblank_string(brief.get("targetAudienceId")):
             return "Next: choose an audience brief."
-        var gameplay := _dictionary_child(document, "gameplay")
-        var pair := _dictionary_child(gameplay, "pair")
-        if int(pair.get("handoffCount", 0)) < 1:
-            return "Next: swap roles once."
-        if int(pair.get("artDirectorActions", 0)) < 1:
-            return "Next: the Art Director makes one visible image change."
-        if int(pair.get("strategistActions", 0)) < 1:
-            return "Next: the Strategist makes one visible message change."
     elif phase == "sell":
         var strategy := _dictionary_child(document, "strategy")
         var aida_plan := _dictionary_child(strategy, "aidaPlan")

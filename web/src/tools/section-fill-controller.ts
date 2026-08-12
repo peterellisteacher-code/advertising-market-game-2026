@@ -123,7 +123,7 @@ export class SectionFillController {
     this.#onVisibilityChange = options.onVisibilityChange ?? (() => undefined);
     this.#canvas.addEventListener("click", this.#handleCanvasClick, true);
     document.addEventListener("keydown", this.#handleKeydown);
-    this.#host.hidden = true;
+    this.#setVisible(false);
   }
 
   async setSelection(id: string | null): Promise<void> {
@@ -142,19 +142,19 @@ export class SectionFillController {
     this.#colourInput = null;
     this.#host.replaceChildren();
     if (id === null) {
-      this.#host.hidden = true;
+      this.#setVisible(false);
       this.#onVisibilityChange(false);
       return;
     }
     const summary = this.#port.listObjectSummaries().find((candidate) => candidate.id === id);
     if (!summary) {
-      this.#host.hidden = true;
+      this.#setVisible(false);
       this.#onVisibilityChange(false);
       return;
     }
     const fillable = await this.#port.getFillableRaster(id);
     if (generation !== this.#generation || this.#selectionId !== id) return;
-    this.#host.hidden = false;
+    this.#setVisible(true);
     this.#onVisibilityChange(true);
     if (fillable === null) {
       this.#renderUnavailable(summary);
@@ -174,7 +174,12 @@ export class SectionFillController {
     this.#canvas.removeEventListener("click", this.#handleCanvasClick, true);
     document.removeEventListener("keydown", this.#handleKeydown);
     this.#host.replaceChildren();
-    this.#host.hidden = true;
+    this.#setVisible(false);
+  }
+
+  #setVisible(visible: boolean): void {
+    this.#host.hidden = !visible;
+    this.#host.toggleAttribute("inert", !visible);
   }
 
   #renderUnavailable(summary: CanvasObjectSummary): void {

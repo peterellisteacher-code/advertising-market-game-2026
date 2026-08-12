@@ -77,12 +77,20 @@ export class TeacherPlaytestController {
     this.#renderStrip();
     try {
       await this.#startGame();
+      this.#mountInsideAcademyHeader();
     } catch {
       this.#renderBoundary(
         "Teacher playtest unavailable",
         "The teacher playtest could not open. Return to the dashboard and try again."
       );
     }
+  }
+
+  #mountInsideAcademyHeader(): void {
+    const academyHeader = document.querySelector<HTMLElement>(
+      "#creator-root .creator__academy-header"
+    );
+    if (academyHeader !== null) academyHeader.append(this.#root);
   }
 
   #renderBoundary(headingText: string, message: string): void {
@@ -123,6 +131,7 @@ export class TeacherPlaytestController {
     actions.id = "teacher-playtest-actions";
     actions.className = "teacher-playtest-strip__actions";
     actions.hidden = true;
+    actions.toggleAttribute("inert", true);
     const dashboard = actionButton("Return to teacher dashboard");
     dashboard.addEventListener("click", () => this.#navigate("/teacher"));
     const reset = actionButton("Factory reset playtest");
@@ -136,6 +145,7 @@ export class TeacherPlaytestController {
         : "Show teacher controls";
       toggle.setAttribute("aria-expanded", String(expanded));
       actions.hidden = !expanded;
+      actions.toggleAttribute("inert", !expanded);
       if (restoreToggleFocus) toggle.focus();
     };
     toggle.addEventListener("click", () => {

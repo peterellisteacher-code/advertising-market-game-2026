@@ -1,78 +1,29 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene format=3 uid="uid://dnqe47psfjrrj"]
 
-[ext_resource type="Script" path="res://src/market/ui/market_screen.gd" id="1_screen"]
+[ext_resource type="Script" uid="uid://cx7vjan3rdiyf" path="res://src/market/ui/market_screen.gd" id="1_screen"]
 
-[sub_resource type="StyleBoxFlat" id="Style_frame"]
-bg_color = Color(1, 0.980392, 0.941176, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.843137, 0.780392, 0.666667, 1)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-
-[sub_resource type="StyleBoxFlat" id="Style_kraft"]
-bg_color = Color(0.956863, 0.917647, 0.839216, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.843137, 0.780392, 0.666667, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-content_margin_left = 18.0
-content_margin_top = 16.0
-content_margin_right = 18.0
-content_margin_bottom = 16.0
-
-[sub_resource type="StyleBoxFlat" id="Style_primary"]
-bg_color = Color(0.713725, 0.227451, 0.0823529, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-content_margin_left = 18.0
-content_margin_top = 12.0
-content_margin_right = 18.0
-content_margin_bottom = 12.0
-
-[sub_resource type="StyleBoxFlat" id="Style_primary_hover"]
-bg_color = Color(0.764706, 0.278431, 0.105882, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-content_margin_left = 18.0
-content_margin_top = 12.0
-content_margin_right = 18.0
-content_margin_bottom = 12.0
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_wg3si"]
+bg_color = Color(0.0627451, 0.08235294, 0.21176471, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.3019608, 0.19215687, 0.37254903, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
 
 [sub_resource type="StyleBoxFlat" id="Style_navy"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
 bg_color = Color(0.0901961, 0.129412, 0.168627, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
-content_margin_left = 18.0
-content_margin_top = 12.0
-content_margin_right = 18.0
-content_margin_bottom = 12.0
-
-[sub_resource type="StyleBoxFlat" id="Style_disabled"]
-bg_color = Color(0.760784, 0.752941, 0.729412, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-content_margin_left = 18.0
-content_margin_top = 12.0
-content_margin_right = 18.0
-content_margin_bottom = 12.0
 
 [sub_resource type="StyleBoxFlat" id="Style_focus"]
 bg_color = Color(0, 0, 0, 0)
@@ -81,6 +32,22 @@ border_width_top = 3
 border_width_right = 3
 border_width_bottom = 3
 border_color = Color(0.894118, 0.341176, 0.180392, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="Style_kraft"]
+content_margin_left = 18.0
+content_margin_top = 16.0
+content_margin_right = 18.0
+content_margin_bottom = 16.0
+bg_color = Color(0.956863, 0.917647, 0.839216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.843137, 0.780392, 0.666667, 1)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
@@ -100,7 +67,40 @@ corner_radius_top_right = 6
 corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
-[node name="MarketScreen" type="Control"]
+[sub_resource type="StyleBoxFlat" id="Style_primary"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.713725, 0.227451, 0.0823529, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="Style_primary_hover"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.764706, 0.278431, 0.105882, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="Style_disabled"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.760784, 0.752941, 0.729412, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="MarketScreen" type="Control" unique_id=868472758]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -111,7 +111,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource("1_screen")
 
-[node name="MarketFrame" type="PanelContainer" parent="."]
+[node name="MarketFrame" type="PanelContainer" parent="." unique_id=1735237390]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -119,114 +119,113 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("Style_frame")
+theme_override_styles/panel = SubResource("StyleBoxFlat_wg3si")
 
-[node name="FrameMargin" type="MarginContainer" parent="MarketFrame"]
+[node name="FrameMargin" type="MarginContainer" parent="MarketFrame" unique_id=716406949]
 layout_mode = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 20
 
-[node name="MarketScroll" type="ScrollContainer" parent="MarketFrame/FrameMargin"]
+[node name="MarketScroll" type="ScrollContainer" parent="MarketFrame/FrameMargin" unique_id=728119943]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="Content" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll"]
+[node name="Content" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll" unique_id=1089118441]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 16
+theme_override_constants/separation = 18
 
-[node name="MarketHeader" type="HBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content"]
+[node name="MarketHeader" type="HBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content" unique_id=1483183645]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="ModeTag" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/MarketHeader"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.713725, 0.227451, 0.0823529, 1)
-theme_override_font_sizes/font_size = 16
-text = "AD MARKET // MEDAL GALLERY"
-
-[node name="MarketRoomCode" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/MarketHeader"]
+[node name="ModeTag" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/MarketHeader" unique_id=2652545]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.95686275, 0.7411765, 0.30980393, 1)
+theme_override_font_sizes/font_size = 18
+text = "AGENCY ACADEMY // MARKET GALLERY"
+
+[node name="MarketRoomCode" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/MarketHeader" unique_id=1054628900]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.972549, 0.92156863, 1)
 theme_override_font_sizes/font_size = 28
 text = "--- ----"
 
-[node name="NetworkRow" type="HBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content"]
+[node name="NetworkRow" type="HBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content" unique_id=1330534162]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="NetworkStatus" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/NetworkRow"]
+[node name="NetworkStatus" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/NetworkRow" unique_id=2063083923]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
+theme_override_colors/font_color = Color(1, 0.972549, 0.92156863, 1)
 theme_override_font_sizes/font_size = 15
 text = "Live connection ready."
 autowrap_mode = 2
 
-[node name="RetryMarket" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/NetworkRow"]
+[node name="RetryMarket" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/NetworkRow" unique_id=1109548521]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(116, 46)
 layout_mode = 2
-focus_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 16
 theme_override_styles/normal = SubResource("Style_navy")
-theme_override_styles/hover = SubResource("Style_navy")
 theme_override_styles/pressed = SubResource("Style_navy")
+theme_override_styles/hover = SubResource("Style_navy")
 theme_override_styles/focus = SubResource("Style_focus")
 text = "Retry"
 
-[node name="PhaseStatus" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content"]
+[node name="PhaseStatus" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content" unique_id=2022641204]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_color = Color(1, 0.972549, 0.92156863, 1)
 theme_override_font_sizes/font_size = 23
 text = "The room is being prepared."
 autowrap_mode = 2
 
-[node name="TeamSurface" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content"]
+[node name="TeamSurface" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content" unique_id=1448655467]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="TeamSummary" type="PanelContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface"]
+[node name="TeamSummary" type="PanelContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface" unique_id=1215763302]
 layout_mode = 2
 theme_override_styles/panel = SubResource("Style_kraft")
 
-[node name="SummaryRow" type="HBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/TeamSummary"]
+[node name="SummaryRow" type="HBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/TeamSummary" unique_id=607655993]
 layout_mode = 2
 theme_override_constants/separation = 20
 
-[node name="MoneyBlock" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/TeamSummary/SummaryRow"]
+[node name="MoneyBlock" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/TeamSummary/SummaryRow" unique_id=440818106]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="WalletLabel" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/TeamSummary/SummaryRow/MoneyBlock"]
+[node name="WalletLabel" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/TeamSummary/SummaryRow/MoneyBlock" unique_id=1957854898]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 20
 text = "Award one Gold, one Silver and one Bronze"
 
-[node name="SpendMeter" type="ProgressBar" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/TeamSummary/SummaryRow/MoneyBlock"]
+[node name="SpendMeter" type="ProgressBar" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/TeamSummary/SummaryRow/MoneyBlock" unique_id=1569399039]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(260, 18)
 layout_mode = 2
-step = 0.01
-show_percentage = false
 theme_override_styles/background = SubResource("Style_progress_background")
 theme_override_styles/fill = SubResource("Style_progress_fill")
+show_percentage = false
 
-[node name="SellerProgress" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/TeamSummary/SummaryRow"]
+[node name="SellerProgress" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/TeamSummary/SummaryRow" unique_id=681333125]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -235,51 +234,50 @@ theme_override_font_sizes/font_size = 17
 text = "Gold: open · Silver: open · Bronze: open"
 autowrap_mode = 2
 
-[node name="FinishMarket" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/TeamSummary/SummaryRow"]
+[node name="FinishMarket" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/TeamSummary/SummaryRow" unique_id=366188300]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(174, 48)
 layout_mode = 2
-focus_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_disabled_color = Color(0.247059, 0.247059, 0.247059, 1)
 theme_override_font_sizes/font_size = 16
 theme_override_styles/normal = SubResource("Style_primary")
-theme_override_styles/hover = SubResource("Style_primary_hover")
 theme_override_styles/pressed = SubResource("Style_primary")
+theme_override_styles/hover = SubResource("Style_primary_hover")
 theme_override_styles/disabled = SubResource("Style_disabled")
 theme_override_styles/focus = SubResource("Style_focus")
 disabled = true
 text = "Submit medals"
 
-[node name="MarketCriteria" type="PanelContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface"]
+[node name="MarketCriteria" type="PanelContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface" unique_id=1676301016]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_styles/panel = SubResource("Style_kraft")
 
-[node name="CriteriaCopy" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/MarketCriteria"]
+[node name="CriteriaCopy" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/MarketCriteria" unique_id=1307908303]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 16
 text = "First, score every other advertisement from 0 (missing) to 2 (clear) on five criteria: audience fit; product value and price; AIDA; visual technique; and a credible claim. Next, compare the totals out of 10. If totals are equal, compare audience fit first, then AIDA. Then award Gold, Silver and Bronze to three different advertisements in ranked order."
 autowrap_mode = 2
 
-[node name="CampaignState" type="PanelContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface"]
+[node name="CampaignState" type="PanelContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface" unique_id=75947662]
 layout_mode = 2
 theme_override_styles/panel = SubResource("Style_kraft")
 
-[node name="CampaignStateContent" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/CampaignState"]
+[node name="CampaignStateContent" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/CampaignState" unique_id=1836513522]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="CampaignStatusTitle" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/CampaignState/CampaignStateContent"]
+[node name="CampaignStatusTitle" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/CampaignState/CampaignStateContent" unique_id=1827864999]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 20
 text = "Ad preparing."
 
-[node name="CampaignStatusCopy" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/CampaignState/CampaignStateContent"]
+[node name="CampaignStatusCopy" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/CampaignState/CampaignStateContent" unique_id=902229054]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
@@ -287,27 +285,26 @@ theme_override_font_sizes/font_size = 16
 text = "Finish your ad. The host adds it to the gallery."
 autowrap_mode = 2
 
-[node name="FixCampaign" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/CampaignState/CampaignStateContent"]
+[node name="FixCampaign" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/CampaignState/CampaignStateContent" unique_id=1925240407]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(220, 46)
 layout_mode = 2
 size_flags_horizontal = 0
-focus_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 16
 theme_override_styles/normal = SubResource("Style_primary")
-theme_override_styles/hover = SubResource("Style_primary_hover")
 theme_override_styles/pressed = SubResource("Style_primary")
+theme_override_styles/hover = SubResource("Style_primary_hover")
 theme_override_styles/focus = SubResource("Style_focus")
 text = "Reopen the studio"
 
-[node name="StudentReveal" type="PanelContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface"]
+[node name="StudentReveal" type="PanelContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface" unique_id=1483700240]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_styles/panel = SubResource("Style_kraft")
 
-[node name="StudentRevealCopy" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/StudentReveal"]
+[node name="StudentRevealCopy" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface/StudentReveal" unique_id=372876715]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
@@ -316,14 +313,14 @@ text = "Market reveal is on the host display."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="TeamMarketHeading" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface"]
+[node name="TeamMarketHeading" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface" unique_id=206654934]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 24
 text = "Award the market gallery"
 
-[node name="TeamCards" type="GridContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface"]
+[node name="TeamCards" type="GridContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeamSurface" unique_id=923907482]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -331,21 +328,21 @@ theme_override_constants/h_separation = 16
 theme_override_constants/v_separation = 16
 columns = 3
 
-[node name="TeacherSurface" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content"]
+[node name="TeacherSurface" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content" unique_id=1486318312]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="TeacherStats" type="PanelContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface"]
+[node name="TeacherStats" type="PanelContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface" unique_id=1357658506]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_styles/panel = SubResource("Style_kraft")
 
-[node name="TeacherStatsRow" type="HBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherStats"]
+[node name="TeacherStatsRow" type="HBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherStats" unique_id=1276125277]
 layout_mode = 2
 theme_override_constants/separation = 24
 
-[node name="SeatsLabel" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherStats/TeacherStatsRow"]
+[node name="SeatsLabel" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherStats/TeacherStatsRow" unique_id=2129146260]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -353,7 +350,7 @@ theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 20
 text = "0 seats joined"
 
-[node name="ReadinessLabel" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherStats/TeacherStatsRow"]
+[node name="ReadinessLabel" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherStats/TeacherStatsRow" unique_id=2124511830]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -361,26 +358,26 @@ theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 18
 text = "0 ready"
 
-[node name="TeamsHeading" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface"]
+[node name="TeamsHeading" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface" unique_id=894615390]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 22
 text = "Teams in the room"
 
-[node name="TeacherTeams" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface"]
+[node name="TeacherTeams" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface" unique_id=1407296355]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="ModerationHeading" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface"]
+[node name="ModerationHeading" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface" unique_id=590508460]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 22
 text = "Advertisement desk"
 
-[node name="ModerationCards" type="GridContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface"]
+[node name="ModerationCards" type="GridContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface" unique_id=1165341135]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -388,87 +385,84 @@ theme_override_constants/h_separation = 16
 theme_override_constants/v_separation = 16
 columns = 3
 
-[node name="TeacherControls" type="HBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface"]
+[node name="TeacherControls" type="HBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface" unique_id=1168613721]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="OpenMarketControl" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherControls"]
+[node name="OpenMarketControl" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherControls" unique_id=296207496]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(168, 48)
 layout_mode = 2
-focus_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_disabled_color = Color(0.247059, 0.247059, 0.247059, 1)
 theme_override_font_sizes/font_size = 16
 theme_override_styles/normal = SubResource("Style_primary")
-theme_override_styles/hover = SubResource("Style_primary_hover")
 theme_override_styles/pressed = SubResource("Style_primary")
+theme_override_styles/hover = SubResource("Style_primary_hover")
 theme_override_styles/disabled = SubResource("Style_disabled")
 theme_override_styles/focus = SubResource("Style_focus")
 text = "Open Market"
 
-[node name="RevealControl" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherControls"]
+[node name="RevealControl" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherControls" unique_id=752796453]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(168, 48)
 layout_mode = 2
-focus_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_disabled_color = Color(0.247059, 0.247059, 0.247059, 1)
 theme_override_font_sizes/font_size = 16
 theme_override_styles/normal = SubResource("Style_navy")
-theme_override_styles/hover = SubResource("Style_navy")
 theme_override_styles/pressed = SubResource("Style_navy")
+theme_override_styles/hover = SubResource("Style_navy")
 theme_override_styles/disabled = SubResource("Style_disabled")
 theme_override_styles/focus = SubResource("Style_focus")
 text = "Reveal Podium"
 
-[node name="CloseControl" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherControls"]
+[node name="CloseControl" type="Button" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherControls" unique_id=1866290951]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(168, 48)
 layout_mode = 2
-focus_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_disabled_color = Color(0.247059, 0.247059, 0.247059, 1)
 theme_override_font_sizes/font_size = 16
 theme_override_styles/normal = SubResource("Style_navy")
-theme_override_styles/hover = SubResource("Style_navy")
 theme_override_styles/pressed = SubResource("Style_navy")
+theme_override_styles/hover = SubResource("Style_navy")
 theme_override_styles/disabled = SubResource("Style_disabled")
 theme_override_styles/focus = SubResource("Style_focus")
 text = "Close Market"
 
-[node name="TeacherReveal" type="PanelContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface"]
+[node name="TeacherReveal" type="PanelContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface" unique_id=534635747]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_styles/panel = SubResource("Style_kraft")
 
-[node name="RevealContent" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherReveal"]
+[node name="RevealContent" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherReveal" unique_id=1332779023]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="PodiumTitle" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherReveal/RevealContent"]
+[node name="PodiumTitle" type="Label" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherReveal/RevealContent" unique_id=851561291]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.713725, 0.227451, 0.0823529, 1)
 theme_override_font_sizes/font_size = 28
 text = "THE MARKET PODIUM"
 horizontal_alignment = 1
 
-[node name="PodiumList" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherReveal/RevealContent"]
+[node name="PodiumList" type="VBoxContainer" parent="MarketFrame/FrameMargin/MarketScroll/Content/TeacherSurface/TeacherReveal/RevealContent" unique_id=894711969]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="RemoveTeamDialog" type="ConfirmationDialog" parent="."]
+[node name="RemoveTeamDialog" type="ConfirmationDialog" parent="." unique_id=648540399]
 unique_name_in_owner = true
 title = "Remove team from this room?"
 initial_position = 1
-dialog_text = "Confirm the team before removing it."
 ok_button_text = "Remove team"
+dialog_text = "Confirm the team before removing it."
 cancel_button_text = "Keep team"
 
-[node name="PollTimer" type="Timer" parent="."]
+[node name="PollTimer" type="Timer" parent="." unique_id=1539526845]
 unique_name_in_owner = true
 wait_time = 4.0

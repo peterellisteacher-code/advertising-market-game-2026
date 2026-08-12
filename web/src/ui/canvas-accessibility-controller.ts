@@ -163,6 +163,7 @@ export class CanvasAccessibilityController {
     this.#unsubscribeSelection();
     this.#host.replaceChildren();
     this.#host.hidden = true;
+    this.#host.toggleAttribute("inert", true);
   }
 
   isOpen(): boolean {
@@ -179,6 +180,7 @@ export class CanvasAccessibilityController {
 
   #syncVisibility(): void {
     this.#host.hidden = !this.#open;
+    this.#host.toggleAttribute("inert", !this.#open);
     this.#toggle.setAttribute("aria-expanded", String(this.#open));
     this.#toggle.setAttribute(
       "aria-label",

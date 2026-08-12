@@ -64,6 +64,7 @@ describe("createStudioToolDrawer", () => {
       .toEqual([["true", 0, "false"], ["false", -1, "false"], ["false", -1, "false"]]);
     expect(panels.map((panel) => panel.hidden)).toEqual([false, true, true]);
     expect(drawerPane.hidden).toBe(true);
+    expect(drawerPane.hasAttribute("inert")).toBe(true);
     expect(root.hasAttribute("data-studio-drawer-collapsed")).toBe(true);
   });
 
@@ -81,6 +82,7 @@ describe("createStudioToolDrawer", () => {
     expect(drawer.current()).toBe("assets");
     expect(drawer.isTucked()).toBe(false);
     expect(drawerPane.hidden).toBe(false);
+    expect(drawerPane.hasAttribute("inert")).toBe(false);
     expect(root.querySelector<HTMLElement>('[data-studio-panel="assets"]')!.hidden).toBe(false);
     const assetsTab = root.querySelector<HTMLButtonElement>('[data-studio-tool="assets"]')!;
     expect(assetsTab.getAttribute("aria-selected")).toBe("true");
@@ -140,6 +142,8 @@ describe("createStudioToolDrawer", () => {
 
     expect(drawer.isTucked()).toBe(true);
     expect(root.querySelector<HTMLElement>("[data-studio-drawer]")!.hidden).toBe(true);
+    expect(root.querySelector<HTMLElement>("[data-studio-drawer]")!.hasAttribute("inert"))
+      .toBe(true);
     expect(document.activeElement).toBe(product);
   });
 

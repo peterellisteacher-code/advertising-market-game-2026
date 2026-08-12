@@ -60,6 +60,7 @@ func present(
 	_reduced_motion = reduced_motion
 	_assign_exact_texture(decoded)
 	_update_evidence()
+	_update_aida_plan()
 	_update_client_response()
 	_update_portfolio_stamps()
 	var stored_format: String = "billboard"
@@ -253,6 +254,28 @@ func _set_evidence(path: String, title: String, complete: bool, explanation: Str
 		if complete
 		else "%s — Complete the related task before the pitch." % title
 	)
+
+func _update_aida_plan() -> void:
+	var strategy_value: Variant = _publication.get("strategy", {})
+	var strategy: Dictionary = strategy_value if typeof(strategy_value) == TYPE_DICTIONARY else {}
+	var plan_value: Variant = strategy.get("aidaPlan", {})
+	var plan: Dictionary = plan_value if typeof(plan_value) == TYPE_DICTIONARY else {}
+	for move in ["attention", "interest", "desire", "action"]:
+		var label := get_node_or_null("%%Aida%s" % String(move).capitalize()) as Label
+		if label == null:
+			continue
+		var explanation := String(plan.get(move, "")).strip_edges()
+		if explanation.is_empty():
+			explanation = "Explain this move before the pitch."
+		label.text = "%s — %s" % [String(move).capitalize(), explanation]
+	var mastery := get_node_or_null("%MasteryStatus") as Label
+	if mastery != null:
+		var complete_count := 0
+		if is_instance_valid(_progress):
+			for mission_id in AdMarketAgencyProgress.REQUIRED_MISSIONS:
+				if _progress.completed_mission_ids.has(String(mission_id)):
+					complete_count += 1
+		mastery.text = "%d of %d complete" % [complete_count, AdMarketAgencyProgress.REQUIRED_MISSIONS.size()]
 
 func _update_client_response() -> void:
 	var response := get_node_or_null("%ClientResponse") as Label

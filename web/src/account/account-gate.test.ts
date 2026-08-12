@@ -197,6 +197,13 @@ describe("AccountAccessController", () => {
 
     harness.controller.reportGameStartFailure("timeout");
 
+    expect(harness.gateRoot.classList).toContain("account-access--academy");
+    expect(harness.gateRoot.querySelector("[data-academy-mark]")?.textContent)
+      .toBe("Agency Academy");
+    const crest = harness.gateRoot.querySelector<HTMLElement>("[data-academy-crest]");
+    expect(crest?.getAttribute("aria-hidden")).toBe("true");
+    expect(crest?.textContent).toBe("A");
+    expect(harness.gateRoot.querySelector("[data-recovery-actions]")).toBeTruthy();
     expect(getByRole(harness.gateRoot, "heading", {
       name: "The game could not start"
     })).toBeTruthy();
@@ -224,6 +231,8 @@ describe("AccountAccessController", () => {
     expect(getByRole(harness.gateRoot, "button", {
       name: "Create a pair login"
     })).toBeTruthy();
+    expect(harness.gateRoot.querySelector("[data-recovery-actions]")).toBeNull();
+    expect(harness.gateRoot.hasAttribute("inert")).toBe(false);
   });
 
   it("keeps the game unfocusable and offers pair login without teacher controls", async () => {
@@ -244,11 +253,16 @@ describe("AccountAccessController", () => {
     expect(harness.gameSurface.getAttribute("aria-hidden")).toBe("true");
     expect(harness.canvas.tabIndex).toBe(-1);
     expect(getByRole(harness.gateRoot, "status").textContent).toContain("Checking your account");
+    expect(harness.gateRoot.classList).toContain("account-access--academy");
+    expect(harness.gateRoot.querySelector("[data-academy-mark]")?.textContent)
+      .toBe("Agency Academy");
+    expect(harness.gateRoot.querySelector("[data-academy-crest]"))
+      .toBeTruthy();
     expect(resolved).toBe(false);
 
     session.resolve({ authenticated: false });
     await waitFor(() => expect(getByRole(harness.gateRoot, "heading", {
-      name: "Welcome to Ad Market"
+      name: "Welcome to Agency Academy"
     })).toBeTruthy());
     const loginUsername = getByLabelText<HTMLInputElement>(harness.gateRoot, "Username");
     expect(loginUsername.autocomplete).toBe("username");

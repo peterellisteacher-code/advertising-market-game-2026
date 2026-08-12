@@ -114,9 +114,11 @@ describe("CanvasAccessibilityController", () => {
   it("opens a top-first semantic layer list and selects a layer", () => {
     const harness = mount();
     expect(harness.host.hidden).toBe(true);
+    expect(harness.host.hasAttribute("inert")).toBe(true);
 
     fireEvent.click(harness.toggle);
 
+    expect(harness.host.hasAttribute("inert")).toBe(false);
     expect(harness.toggle.getAttribute("aria-expanded")).toBe("true");
     expect(harness.toggle.getAttribute("aria-label")).toBe("Close item list");
     expect([...harness.host.querySelectorAll(".creator__layer-name")].map((node) => node.textContent))
@@ -124,6 +126,20 @@ describe("CanvasAccessibilityController", () => {
     fireEvent.click(getByRole(harness.host, "button", { name: "Select Blue background" }));
     expect(harness.port.selectedId).toBe("shape-back");
     expect(harness.announce).toHaveBeenCalledWith("Blue background selected.", "polite");
+    harness.controller.destroy();
+  });
+
+  it("makes the closed item list non-interactive and restores the opener", () => {
+    const harness = mount();
+    fireEvent.click(harness.toggle);
+    expect(harness.host.hidden).toBe(false);
+    expect(harness.host.hasAttribute("inert")).toBe(false);
+
+    fireEvent.click(harness.toggle);
+
+    expect(harness.host.hidden).toBe(true);
+    expect(harness.host.hasAttribute("inert")).toBe(true);
+    expect(document.activeElement).toBe(harness.toggle);
     harness.controller.destroy();
   });
 

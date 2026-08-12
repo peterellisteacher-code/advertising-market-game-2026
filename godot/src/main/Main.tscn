@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://doan4o3pmvgq1" path="res://src/main/main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://dl55b4msofffb" path="res://src/creator/creator_host.gd" id="2_host"]
 [ext_resource type="Script" uid="uid://djc28dwhxy50v" path="res://src/market/market_host.gd" id="3_market_host"]
-[ext_resource type="PackedScene" path="res://src/market/ui/MarketScreen.tscn" id="4_market_screen"]
+[ext_resource type="PackedScene" uid="uid://dnqe47psfjrrj" path="res://src/market/ui/MarketScreen.tscn" id="4_market_screen"]
 [ext_resource type="PackedScene" uid="uid://3wygkl7yhyny" path="res://src/agency/AgencyWorld.tscn" id="5_gm8pl"]
 [ext_resource type="PackedScene" uid="uid://5c3ywf63f34q" path="res://src/presentation/PitchTheatre.tscn" id="6_dewna"]
 [ext_resource type="PackedScene" uid="uid://by2k08y6c6buo" path="res://src/audio/AgencyAudio.tscn" id="9_v6dgk"]
@@ -95,6 +95,72 @@ corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_txx0u"]
+content_margin_left = 20.0
+content_margin_top = 13.0
+content_margin_right = 20.0
+content_margin_bottom = 13.0
+bg_color = Color(0.95686275, 0.7411765, 0.30980393, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dewna"]
+content_margin_left = 20.0
+content_margin_top = 13.0
+content_margin_right = 20.0
+content_margin_bottom = 13.0
+bg_color = Color(0.84705883, 0.6156863, 0.1764706, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_74yfu"]
+content_margin_left = 20.0
+content_margin_top = 13.0
+content_margin_right = 20.0
+content_margin_bottom = 13.0
+bg_color = Color(1, 0.8156863, 0.41568628, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bc0i0"]
+content_margin_left = 20.0
+content_margin_top = 13.0
+content_margin_right = 20.0
+content_margin_bottom = 13.0
+bg_color = Color(0.3019608, 0.19215687, 0.37254903, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_it3ii"]
+content_margin_left = 20.0
+content_margin_top = 13.0
+content_margin_right = 20.0
+content_margin_bottom = 13.0
+bg_color = Color(0.23529412, 0.14901961, 0.29411766, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qdqpm"]
+content_margin_left = 20.0
+content_margin_top = 13.0
+content_margin_right = 20.0
+content_margin_bottom = 13.0
+bg_color = Color(0.40784314, 0.2627451, 0.49411765, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
 [sub_resource type="StyleBoxFlat" id="Style_disabled"]
 content_margin_left = 20.0
 content_margin_top = 13.0
@@ -123,7 +189,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.94902, 0.937255, 0.909804, 1)
+color = Color(0.0627451, 0.08235294, 0.21176471, 1)
 
 [node name="TopStripe" type="ColorRect" parent="." unique_id=1018588654]
 layout_mode = 1
@@ -132,17 +198,17 @@ anchor_right = 1.0
 offset_bottom = 10.0
 grow_horizontal = 2
 mouse_filter = 2
-color = Color(0.894118, 0.341176, 0.180392, 1)
+color = Color(0.95686275, 0.7411765, 0.30980393, 1)
 
 [node name="MainMargin" type="MarginContainer" parent="." unique_id=127445172]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 48.0
-offset_top = 96.0
-offset_right = -48.0
-offset_bottom = -24.0
+offset_left = 36.0
+offset_top = 72.0
+offset_right = -36.0
+offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -157,15 +223,15 @@ layout_mode = 2
 [node name="Brand" type="Label" parent="MainMargin/GameInput/BrandRow" unique_id=2124353698]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
+theme_override_colors/font_color = Color(0.95686275, 0.7411765, 0.30980393, 1)
 theme_override_font_sizes/font_size = 22
-text = "AD MARKET // GAME"
+text = "AGENCY ACADEMY"
 
 [node name="PlayMode" type="Label" parent="MainMargin/GameInput/BrandRow" unique_id=602559865]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.407843, 0.447059, 0.490196, 1)
+theme_override_colors/font_color = Color(1, 0.972549, 0.92156863, 1)
 theme_override_font_sizes/font_size = 15
-text = "PAIR PLAY  •  ONE MACBOOK"
+text = "PARTNER ADVERTISING  •  DESKTOP"
 
 [node name="ReviewInstructions" type="Button" parent="MainMargin/GameInput/BrandRow" unique_id=1182776230]
 unique_name_in_owner = true
@@ -180,19 +246,6 @@ theme_override_styles/hover = SubResource("Style_secondary")
 theme_override_styles/focus = SubResource("Style_focus")
 text = "Review all instructions"
 
-[node name="RoleGuide" type="Button" parent="MainMargin/GameInput/BrandRow" unique_id=1856009854]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 42)
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("Style_secondary")
-theme_override_styles/pressed = SubResource("Style_secondary")
-theme_override_styles/hover = SubResource("Style_secondary")
-theme_override_styles/focus = SubResource("Style_focus")
-text = "Role guide"
-
 [node name="AccountClearance" type="Control" parent="MainMargin/GameInput/BrandRow" unique_id=1055410977]
 custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
@@ -200,9 +253,9 @@ mouse_filter = 2
 
 [node name="HeroHeading" type="Label" parent="MainMargin/GameInput" unique_id=954623981]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
-theme_override_font_sizes/font_size = 40
-text = "First you will invent a product, then you will create an advertisement for it."
+theme_override_colors/font_color = Color(1, 0.972549, 0.92156863, 1)
+theme_override_font_sizes/font_size = 36
+text = "Build one persuasive advertisement with your partner."
 autowrap_mode = 2
 
 [node name="HeroCopy" type="Label" parent="MainMargin/GameInput" unique_id=676836229]
@@ -229,15 +282,15 @@ theme_override_constants/separation = 12
 
 [node name="LobbyEyebrow" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent" unique_id=1764878992]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.894118, 0.341176, 0.180392, 1)
+theme_override_colors/font_color = Color(0.41960785, 0.23921569, 0.5137255, 1)
 theme_override_font_sizes/font_size = 14
-text = "FIRST MOVE"
+text = "ADVERTISEMENT READY"
 
 [node name="LobbyHeading" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent" unique_id=1210751407]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.0901961, 0.129412, 0.168627, 1)
 theme_override_font_sizes/font_size = 26
-text = "Start the game with your pair."
+text = "Choose where to begin."
 
 [node name="AliasLabel" type="Label" parent="MainMargin/GameInput/LobbyPanel/LobbyContent" unique_id=758750720]
 layout_mode = 2
@@ -386,7 +439,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
 theme_override_font_sizes/font_size = 15
-text = "No room code? Play a local practice round."
+text = "Play the seven required tasks in order, or open the assignment workspace."
 vertical_alignment = 1
 
 [node name="JoinMarketToggle" type="Button" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/PracticeRow" unique_id=1712221944]
@@ -401,7 +454,7 @@ theme_override_styles/normal = SubResource("Style_secondary")
 theme_override_styles/pressed = SubResource("Style_secondary")
 theme_override_styles/hover = SubResource("Style_secondary")
 theme_override_styles/focus = SubResource("Style_focus")
-text = "Join the class market"
+text = "Join a class market"
 
 [node name="TeacherSetupToggle" type="Button" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/PracticeRow" unique_id=691384531]
 unique_name_in_owner = true
@@ -422,28 +475,28 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(220, 50)
 layout_mode = 2
 size_flags_horizontal = 0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_color = Color(0.09019608, 0.12941177, 0.23137255, 1)
+theme_override_colors/font_hover_color = Color(0.09019608, 0.12941177, 0.23137255, 1)
 theme_override_font_sizes/font_size = 17
-theme_override_styles/normal = SubResource("Style_primary")
-theme_override_styles/pressed = SubResource("Style_primary_pressed")
-theme_override_styles/hover = SubResource("Style_primary_hover")
+theme_override_styles/normal = SubResource("StyleBoxFlat_txx0u")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_dewna")
+theme_override_styles/hover = SubResource("StyleBoxFlat_74yfu")
 theme_override_styles/focus = SubResource("Style_focus")
-text = "Practice on this computer"
+text = "Start advertisement"
 
 [node name="OpenAssignmentSandbox" type="Button" parent="MainMargin/GameInput/LobbyPanel/LobbyContent/PracticeRow" unique_id=1920994293]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(220, 50)
 layout_mode = 2
 size_flags_horizontal = 0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_color = Color(1, 0.972549, 0.92156863, 1)
+theme_override_colors/font_hover_color = Color(1, 0.972549, 0.92156863, 1)
 theme_override_font_sizes/font_size = 17
-theme_override_styles/normal = SubResource("Style_primary")
-theme_override_styles/pressed = SubResource("Style_primary_pressed")
-theme_override_styles/hover = SubResource("Style_primary_hover")
+theme_override_styles/normal = SubResource("StyleBoxFlat_bc0i0")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_it3ii")
+theme_override_styles/hover = SubResource("StyleBoxFlat_qdqpm")
 theme_override_styles/focus = SubResource("Style_focus")
-text = "Assignment sandbox"
+text = "Open assignment sandbox"
 
 [node name="MarketScreen" parent="MainMargin/GameInput" unique_id=698235327 instance=ExtResource("4_market_screen")]
 unique_name_in_owner = true
@@ -504,7 +557,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.894118, 0.341176, 0.180392, 1)
 theme_override_font_sizes/font_size = 14
-text = "LEVEL 1 // INVENT IT"
+text = "ADVERTISEMENT READY"
 
 [node name="LevelHeading" type="Label" parent="MainMargin/GameInput/RunPanel/RunContent" unique_id=1634364798]
 unique_name_in_owner = true
@@ -712,7 +765,7 @@ autowrap_mode = 2
 [node name="Status" type="Label" parent="MainMargin/GameInput" unique_id=1694803517]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.313726, 0.352941, 0.392157, 1)
+theme_override_colors/font_color = Color(1, 0.972549, 0.92156863, 1)
 theme_override_font_sizes/font_size = 16
 text = "Choose a team name to begin."
 autowrap_mode = 2
@@ -797,47 +850,6 @@ Use the same five criteria to review your own completed market card and to score
 [b]Overall conclusion[/b]
 Therefore, a campaign that completes each linked step is likely to communicate an effective and credible offer to its audience, and the shared scoring process is likely to produce a fair comparison."
 
-[node name="RoleGuideDialog" type="AcceptDialog" parent="." unique_id=2060890745]
-unique_name_in_owner = true
-title = "Pair role guide"
-initial_position = 1
-size = Vector2i(720, 420)
-ok_button_text = "Close"
-
-[node name="RoleGuideText" type="RichTextLabel" parent="RoleGuideDialog" unique_id=386787641]
-unique_name_in_owner = true
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 24.0
-offset_top = 24.0
-offset_right = -24.0
-offset_bottom = -72.0
-grow_horizontal = 2
-grow_vertical = 2
-focus_mode = 2
-theme_override_font_sizes/normal_font_size = 17
-bbcode_enabled = true
-text = "[b]The same controls are available to both partners[/b]
-
-Both partners can use the same tools that are available in the current level. The roles do not unlock different buttons. The role names divide responsibility for decisions; they are not separate site permissions.
-
-[b]Art Director: leads visual decisions[/b]
-
-The Art Director is responsible for what the advertisement looks like: product images, colour, size, position and layout. For example, the Art Director can choose a product image, enlarge it, change a colour and decide where the headline sits.
-
-[b]Strategist: leads message and offer decisions[/b]
-
-The Strategist is responsible for what the advertisement says and why the offer should persuade the audience: product name, benefit, AIDA message, price, market route and proof point. For example, the Strategist can name the product, write its benefit, choose a suitable price and add a proof point.
-
-[b]How a turn works[/b]
-
-The active role tells you whose turn should make the next change with the keyboard or trackpad. The other partner advises, checks the audience brief and prepares the next decision. The site records the role that is active. It does not block tools or identify which person physically touched the device.
-
-[b]What Swap roles changes[/b]
-
-Swapping roles changes the active responsibility and the role recorded for later changes. Earlier work and recorded contributions stay in the campaign. Both partners should be able to explain how the image and message work together for the chosen audience."
-
 [node name="CreatorHost" type="Node" parent="." unique_id=1220491040]
 unique_name_in_owner = true
 script = ExtResource("2_host")
@@ -857,8 +869,6 @@ unique_name_in_owner = true
 visible = false
 z_index = 30
 layout_mode = 1
-grow_horizontal = 2
-grow_vertical = 2
 
 [node name="AgencyAudio" parent="." unique_id=1937646235 instance=ExtResource("9_v6dgk")]
 unique_name_in_owner = true

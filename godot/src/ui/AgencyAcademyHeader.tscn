@@ -1,0 +1,121 @@
+[gd_scene format=3 uid="uid://b2l6knwjakrg3"]
+
+[ext_resource type="Script" uid="uid://bp2o5bfyif00a" path="res://src/ui/agency_academy_header.gd" id="1_header"]
+[ext_resource type="Theme" uid="uid://ys3qs5wkw66" path="res://src/ui/agency_academy_theme.tres" id="2_theme"]
+
+[sub_resource type="StyleBoxFlat" id="CrestBadge"]
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+bg_color = Color(0.12, 0.105, 0.27, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.957, 0.741, 0.31, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+shadow_color = Color(0, 0, 0, 0.28)
+shadow_size = 5
+
+[node name="AgencyAcademyHeader" type="PanelContainer" unique_id=1446864702]
+custom_minimum_size = Vector2(0, 86)
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 96.0
+grow_horizontal = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_header")
+
+[node name="HeaderRow" type="HBoxContainer" parent="." unique_id=253696567]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="AcademyCrestBadge" type="PanelContainer" parent="HeaderRow" unique_id=1465555538]
+custom_minimum_size = Vector2(68, 68)
+layout_mode = 2
+size_flags_vertical = 4
+tooltip_text = "Agency Academy"
+mouse_filter = 2
+theme_override_styles/panel = SubResource("CrestBadge")
+
+[node name="AcademyCrest" type="Label" parent="HeaderRow/AcademyCrestBadge" unique_id=186468341]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Agency Academy"
+theme_override_colors/font_color = Color(0.957, 0.741, 0.31, 1)
+theme_override_colors/font_outline_color = Color(0.02, 0.024, 0.08, 1)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 34
+text = "A"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Identity" type="VBoxContainer" parent="HeaderRow" unique_id=219537716]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="TaskProgressLabel" type="Label" parent="HeaderRow/Identity" unique_id=936787480]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.741, 0.31, 1)
+theme_override_font_sizes/font_size = 15
+text = "Task 1 of 7"
+uppercase = true
+
+[node name="SurfaceTitle" type="Label" parent="HeaderRow/Identity" unique_id=929785114]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.98, 1, 1)
+theme_override_font_sizes/font_size = 26
+text = "Audience Brief"
+
+[node name="TermLabel" type="Label" parent="HeaderRow/Identity" unique_id=1693756059]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.77, 0.86, 1)
+theme_override_font_sizes/font_size = 17
+text = "Audience brief"
+
+[node name="ProgressGroup" type="VBoxContainer" parent="HeaderRow" unique_id=1919579531]
+custom_minimum_size = Vector2(190, 0)
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ProgressCaption" type="Label" parent="HeaderRow/ProgressGroup" unique_id=1881965459]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.77, 0.86, 1)
+theme_override_font_sizes/font_size = 14
+text = "TASK PROGRESS"
+
+[node name="ProgressDots" type="HBoxContainer" parent="HeaderRow/ProgressGroup" unique_id=132207759]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Actions" type="HBoxContainer" parent="HeaderRow" unique_id=1019802199]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 10
+
+[node name="BriefButton" type="Button" parent="HeaderRow/Actions" unique_id=1449430628]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(88, 44)
+layout_mode = 2
+focus_neighbor_right = NodePath("../CloseButton")
+theme_override_colors/font_focus_color = Color(1, 0.972549, 0.92156863, 1)
+text = "Brief"
+
+[node name="CloseButton" type="Button" parent="HeaderRow/Actions" unique_id=1620065920]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(76, 44)
+layout_mode = 2
+focus_neighbor_left = NodePath("../BriefButton")
+theme_override_colors/font_focus_color = Color(1, 0.972549, 0.92156863, 1)
+shortcut_in_tooltip = false
+text = "Close"

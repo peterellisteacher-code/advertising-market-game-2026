@@ -17,7 +17,7 @@ const PREMISE_IDS = [
 const APPROVED_TEXT = Object.freeze({
   P1: "Signing in opens the campaign and saved work assigned to the pair.",
   P2: "Reading the audience brief identifies the audience's situation, need and values.",
-  P3: "Assigning the Art Director and Strategist roles gives each partner a stated responsibility for the same audience brief.",
+  P3: "Making the advertisement together keeps every product and message choice connected to the same audience brief.",
   ICA: "Completing premises 1 to 3 is likely to give the pair a shared audience purpose.",
   P5: "If intermediate conclusion A is established, each product choice can be tested against the audience's situation, need and values.",
   P6: "Choosing a starter product provides a workable object that can be changed.",
@@ -25,8 +25,8 @@ const APPROVED_TEXT = Object.freeze({
   P8: "Naming the product gives the advertisement a clear subject.",
   ICB: "Completing premises 5 to 8 is likely to produce a named product that suits the shared audience purpose.",
   P10: "Intermediate conclusion B supplies a named, visible product for the advertisement.",
-  P11: "The Art Director's visible change supplies evidence of a deliberate visual choice.",
-  P12: "The Strategist's wording supplies evidence of a deliberate message choice.",
+  P11: "A visible change supplies evidence of a deliberate visual choice.",
+  P12: "Saved wording supplies evidence of a deliberate message choice.",
   P13: "Attention, Interest, Desire and Action each require one visible choice and one explanation connected to the product and audience.",
   ICC: "Completing premises 10 to 13 is likely to produce a coherent advertisement for the product and audience.",
   P15: "Intermediate conclusion C supplies a coherent advertisement whose offer can be evaluated.",
@@ -43,9 +43,9 @@ const APPROVED_TEXT = Object.freeze({
 });
 
 const PLAIN_EXPLANATIONS = Object.freeze({
-  A: "This section answers two basic questions: who are you trying to persuade, and which partner is responsible for the next kind of decision? The audience brief describes a group of people in a particular situation.",
+  A: "This section answers one basic question: who are you trying to persuade? The audience brief describes a group of people in a particular situation, and the pair makes every decision together.",
   B: "Choose a starter product, then change it so it responds to the audience need. A product choice can be a part, colour, material, shape or feature. The product name is the name customers would see.",
-  C: "An advertisement combines what people see with what they read. The Art Director makes a visible design choice. The Strategist writes or plans the message. AIDA gives the message four jobs: attract attention, hold interest, create desire and tell the audience what to do.",
+  C: "An advertisement combines what people see with what they read. The pair makes the visual and message choices together. AIDA gives the message four jobs: attract attention, hold interest, create desire and tell the audience what to do.",
   D: "A credible offer tells the audience what the product costs, where they would encounter the advertisement and what evidence supports its main claim. A proof point is a specific fact, feature or demonstration, not another slogan.",
   E: "The final review uses the same five criteria as the market. Building the market card saves the finished entry. Entering the market submits it for comparison. Scoring means rating the other advertisements, not your own, before awarding medals."
 });

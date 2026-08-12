@@ -487,6 +487,22 @@ test("assembly writes a deterministic CSP hash for the exact inline bootstrap bo
   );
 });
 
+test("assembly hashes inline bootstrap text after HTML newline normalisation", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "admarket-csp-newlines-"));
+  const { web } = await writeExportScaffold(root);
+  await writeFile(
+    path.join(web, "index.html"),
+    '<html><head></head><body><div id="creator-root"></div><script>first();\r\nsecond();\r\n</script><script src="./index.js"></script></body></html>'
+  );
+
+  await assembleWebExport({ root, log: () => {} });
+
+  assert.equal(
+    await readFile(path.join(web, "_headers"), "utf8"),
+    expectedCspHeaders("first();\nsecond();\n")
+  );
+});
+
 test("assembly carries Vite runtime-static backgrounds and fonts into the web export", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "admarket-runtime-static-"));
   const { web } = await writeExportScaffold(root);
@@ -794,6 +810,22 @@ test("static verification requires a matching strict Netlify CSP header", () => 
     () => inspectExportContents({ files: unsafe, pckHash: "current" }),
     /unsafe inline script policy/i
   );
+});
+
+test("static verification applies HTML newline normalisation to CSP hashes", () => {
+  const files = new Map([
+    ["index.html", '<link rel="stylesheet" href="./studio/studio.css"><script src="./studio/studio.js"></script><script>first();\r\nsecond();\r\n</script><script src="./index.js"></script>'],
+    ["index.js", "const target = 'wasm32.nothreads'; const audio = new AudioWorklet();"],
+    ["index.wasm", Buffer.from([0])],
+    ["index.pck", Buffer.from([1])],
+    ["index.audio.worklet.js", "class GodotAudioWorklet {}"],
+    ["studio/studio.css", ".creator{}"],
+    ["studio/studio.js", VALID_STUDIO_BRIDGES],
+    ["godot/export_presets.cfg", "variant/thread_support=false"],
+    ["_headers", expectedCspHeaders("first();\nsecond();\n")]
+  ]);
+
+  assert.doesNotThrow(() => inspectExportContents({ files, pckHash: "current" }));
 });
 
 test("static verification accepts Studio URLs versioned by their exact content hashes", () => {

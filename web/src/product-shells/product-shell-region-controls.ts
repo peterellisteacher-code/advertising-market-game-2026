@@ -24,6 +24,7 @@ export class ProductShellRegionControls {
 
   show(state: ProductShellRegionState): void {
     this.host.hidden = false;
+    this.host.toggleAttribute("inert", false);
     const heading = document.createElement("h2");
     heading.textContent = state.title;
     const guidance = document.createElement("p");
@@ -51,5 +52,6 @@ export class ProductShellRegionControls {
   clear(): void {
     this.host.replaceChildren();
     this.host.hidden = true;
+    this.host.toggleAttribute("inert", true);
   }
 }

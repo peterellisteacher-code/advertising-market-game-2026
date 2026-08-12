@@ -10,6 +10,7 @@ describe("ProductShellRegionControls", () => {
     controls.clear();
 
     expect(host.hidden).toBe(true);
+    expect(host.hasAttribute("inert")).toBe(true);
     expect(host.childElementCount).toBe(0);
   });
 
@@ -26,6 +27,7 @@ describe("ProductShellRegionControls", () => {
     });
 
     expect(host.hidden).toBe(false);
+    expect(host.hasAttribute("inert")).toBe(false);
     expect(getByRole(host, "heading", { name: "Classic Soft Drink Can" })).toBeTruthy();
     const accent = getByLabelText<HTMLInputElement>(host, "Accent colour");
     expect(accent.value.toUpperCase()).toBe("#E66B3F");

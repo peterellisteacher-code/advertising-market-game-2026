@@ -398,9 +398,13 @@ func _the_panel_focuses_the_first_chip_and_records_evidence() -> bool:
 		panel.queue_free()
 		return false
 	var first := _evidence_button(stage, "context")
-	var focused := stage.get_viewport().gui_get_focus_owner() == first
+	var focus_owner := stage.get_viewport().gui_get_focus_owner()
+	var focused := focus_owner == first
+	assert(focused, "focus owner=%s first=%s" % [focus_owner, first])
 	var dialog := panel.get_node("Backdrop/Dialog") as PanelContainer
-	var fits := dialog.get_combined_minimum_size().y <= 760.0
+	var dialog_minimum := dialog.get_combined_minimum_size()
+	var fits := dialog_minimum.y <= 760.0
+	assert(fits, "dialog minimum=%s" % dialog_minimum)
 	var demonstration: Dictionary = Catalog.mission("audience-brief").get("demonstration", {})
 	for evidence_value: Variant in Array(demonstration.get("evidence", [])):
 		stage.call("assign_evidence", String(Dictionary(evidence_value).get("id", "")), "self-directed")

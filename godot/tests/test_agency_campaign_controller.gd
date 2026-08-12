@@ -26,7 +26,56 @@ func run() -> bool:
 	assert(evidence_entry.get("effectText") == "The offer supports the audience's need to control the hour after school.")
 	assert(evidence_entry.get("title") == "Read the audience before making anything")
 	assert(_out_of_order_required_work_advances_to_polish())
+	assert(_productive_sequence_names_the_next_surface())
 	return true
+
+func _productive_sequence_names_the_next_surface() -> bool:
+	var controller_script: Script = load("res://src/agency/agency_campaign_controller.gd")
+	var game_run_script: Script = load("res://src/game/game_run.gd")
+	var game_run: AdMarketGameRun = game_run_script.new()
+	assert(game_run.begin("North Star Studio", "session-direct", "team-direct"))
+	var controller: RefCounted = controller_script.new()
+	var blank_product_document := _campaign_document()
+	blank_product_document["product"] = {"name": "", "build": null}
+	controller.begin_agency(game_run, blank_product_document)
+	var observed_kinds: Array[String] = []
+	var step: Dictionary = controller.call("next_campaign_step")
+	assert(step == {"kind": "required-mission", "missionId": "audience-brief"})
+	observed_kinds.append(String(step.get("kind")))
+	assert(controller.complete_mission("audience-brief", _evidence("audience-brief")))
+	step = controller.call("next_campaign_step")
+	assert(step == {"kind": "build-product"})
+	observed_kinds.append(String(step.get("kind")))
+	controller.on_creator_returned(_campaign_document())
+	var expected_missions: Array[String] = [
+		"salience",
+		"reading-path",
+		"contrast",
+		"framing",
+		"aida",
+		"claim-proof",
+	]
+	for mission_id: String in expected_missions:
+		step = controller.call("next_campaign_step")
+		assert(step == {"kind": "required-mission", "missionId": mission_id})
+		observed_kinds.append(String(step.get("kind")))
+		assert(controller.complete_mission(mission_id, _evidence(mission_id)))
+	step = controller.call("next_campaign_step")
+	assert(step == {"kind": "polish-campaign"})
+	observed_kinds.append(String(step.get("kind")))
+	controller.on_creator_returned(_campaign_document())
+	step = controller.call("next_campaign_step")
+	assert(step == {"kind": "prepare-pitch"})
+	observed_kinds.append(String(step.get("kind")))
+	for forbidden_kind: String in ["walk", "dialogue", "score"]:
+		assert(not observed_kinds.has(forbidden_kind))
+	return true
+
+func _evidence(mission_id: String) -> Dictionary:
+	return {
+		"decision": "decision-%s" % mission_id,
+		"effect": "This decision changes how the audience understands the advertisement.",
+	}
 
 func _out_of_order_required_work_advances_to_polish() -> bool:
 	var controller_script: Script = load("res://src/agency/agency_campaign_controller.gd")

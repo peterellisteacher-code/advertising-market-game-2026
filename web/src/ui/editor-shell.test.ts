@@ -24,12 +24,11 @@ describe("createEditorShell", () => {
       expect(getComputedStyle(creator).getPropertyValue("--creator-chrome-font-size").trim())
         .toBe("1.125rem");
       const coveredChrome: Array<[string, HTMLElement]> = [
-        ["task bar", shell.activeRole],
+        ["task bar", shell.audienceSignal],
         ["canvas controls", root.querySelector<HTMLElement>("[data-canvas-zoom-status]")!],
         ["display panel", shell.displayPanel.querySelector<HTMLElement>("legend")!],
         ["instruction dialog", root.querySelector<HTMLElement>("[data-guide-dialog] p")!],
         ["onboarding dialog", root.querySelector<HTMLElement>("[data-studio-onboarding-dialog] p")!],
-        ["role dialog", root.querySelector<HTMLElement>("[data-role-guide-layer] p")!],
         ["product typeface control", shell.productTypeface]
       ];
       expect(coveredChrome.map(([, element]) => element)).not.toContain(null);
@@ -46,6 +45,13 @@ describe("createEditorShell", () => {
     document.body.innerHTML = '<div id="creator-root"></div>';
     const root = document.querySelector<HTMLElement>("#creator-root")!;
     const shell = createEditorShell(root);
+
+    const academyHeader = getByRole(root, "banner", { name: "Agency Academy studio" });
+    expect(academyHeader.querySelector("[data-academy-mission]")?.textContent)
+      .toBe("Create your advertisement");
+    expect(academyHeader.querySelector("[data-academy-term]")?.textContent)
+      .toBe("Advertising studio");
+    expect(academyHeader.textContent).not.toMatch(/\b(?:score|points?|pts)\b/i);
 
     expect(getByRole<HTMLInputElement>(root, "textbox", { name: "Product name" }).placeholder)
       .toBe("Name your product");
@@ -66,6 +72,7 @@ describe("createEditorShell", () => {
     const panel = shell.displayPanel;
     expect(display.getAttribute("aria-expanded")).toBe("false");
     expect(panel.hidden).toBe(true);
+    expect(panel.hasAttribute("inert")).toBe(true);
     expect(libraryView.value).toBe("products");
     expect(shell.libraryView).toBe(libraryView);
     expect(getByRole<HTMLSelectElement>(root, "combobox", { name: "Product category", hidden: true }).value)
@@ -76,6 +83,8 @@ describe("createEditorShell", () => {
     expect(studioTools.map((tab) => tab.textContent?.trim())).toEqual([
       "Build", "Assets", "Words", "Logo", "Image", "Price", "Route", "AIDA", "Coach"
     ]);
+    expect(studioTools.every((tab) => Boolean(tab.dataset.glyph) && Boolean(tab.textContent?.trim())))
+      .toBe(true);
     expect(studioTools.map((tab) => tab.dataset.glyph)).toEqual([
       "◆", "✦", "Aa", "◎", "▧", "$", "↗", "A", "?"
     ]);
@@ -217,35 +226,12 @@ describe("createEditorShell", () => {
       .toContain("Advertisement empty");
     expect(shell.canvasEmptyState.hidden).toBe(false);
     expect(getByRole(root, "region", { name: "Pair play" })).toBeTruthy();
-    // The pair status is announced, not displayed: role teaching lives in
-    // the tour and role guide, so the strip stays a compact functional row.
+    // The pair decides together; only the collective decision count is announced.
     const pairProgress = getByRole(root, "status", { name: "Pair progress" });
     expect(pairProgress.classList.contains("sr-only")).toBe(true);
-    expect(root.querySelector(".creator__role-card [data-active-role]"))
-      .toBe(shell.activeRole);
-    expect(root.querySelector(".creator__role-card [data-partner-role]"))
-      .toBe(shell.partnerRole);
-    expect(root.querySelector("[data-active-role-action]")).toBeNull();
-    expect(root.querySelector("[data-partner-role-action]")).toBeNull();
-    expect(shell.partnerRole.textContent).toBe("Strategist");
-    expect(getByRole(root, "button", { name: "Swap roles" })).toBeTruthy();
-    const roleActions = getByRole(root, "group", { name: "Partner role controls" });
-    expect([...roleActions.querySelectorAll("button")].map(({ textContent }) => textContent))
-      .toEqual(["Swap roles", "Role guide"]);
-    const roleGuideLayer = root.querySelector<HTMLElement>("[data-role-guide-layer]")!;
-    expect(roleGuideLayer.hidden).toBe(true);
-    expect(roleGuideLayer.textContent).toContain(
-      "Controls the product's appearance, images, colour, arrangement and layout."
-    );
-    expect(roleGuideLayer.textContent).toContain(
-      "Controls the product name, advertising words, claim, price reasoning and market-route reasoning."
-    );
-    expect(roleGuideLayer.textContent).toContain(
-      "Both partners can use the same tools that are unlocked for the current level."
-    );
-    expect(roleGuideLayer.textContent).toContain(
-      "The roles do not unlock different buttons."
-    );
+    expect(root.querySelector(".creator__role-card")).toBeNull();
+    expect(root.querySelector("[data-swap-roles]")).toBeNull();
+    expect(root.querySelector("[data-role-guide-layer]")).toBeNull();
     expect(getByRole(root, "combobox", { name: "Audience brief" })).toBeTruthy();
     const audienceBrief = root.querySelector<HTMLElement>(
       '#studio-full-brief[aria-label="Audience brief"]'
@@ -285,11 +271,14 @@ describe("createEditorShell", () => {
     expect(getByRole(root, "button", { name: "Open item list", hidden: true })).toBeTruthy();
     expect(root.querySelector('.creator__inspector[aria-label="Selected element"]')).toBeTruthy();
     expect(shell.inspector.hidden).toBe(true);
+    expect(shell.inspector.hasAttribute("inert")).toBe(true);
     const sectionFill = root.querySelector<HTMLElement>(
       '[data-section-fill-panel][role="region"][aria-label="Selected item fill"]'
     )!;
     expect(sectionFill).toBe(shell.sectionFillPanel);
     expect(shell.sectionFillPanel.hidden).toBe(true);
+    expect(shell.sectionFillPanel.hasAttribute("inert")).toBe(true);
+    expect(shell.layers.hasAttribute("inert")).toBe(true);
     expect(getByRole(root, "group", { name: "AIDA stages", hidden: true })).toBeTruthy();
     expect(getAllByRole(root, "button", { hidden: true })
       .filter((button) => button.hasAttribute("data-slot"))

@@ -2,7 +2,6 @@ extends Node2D
 class_name AdMarketAgencyWorld
 
 signal station_requested(station_id: String)
-signal role_handoff_requested(role: String)
 signal guide_requested
 signal audio_settings_requested
 signal audio_settings_changed(settings: Dictionary)
@@ -180,9 +179,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("guide"):
 		_on_guide_pressed()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("role_handoff"):
-		_show_handoff_dialog()
-		get_viewport().set_input_as_handled()
 
 func configure(progress: AdMarketAgencyProgress) -> void:
 	_progress = progress
@@ -225,11 +221,23 @@ func direct_travel(station_id: String) -> bool:
 		call_deferred("_focus_visible_station_control")
 	return true
 
+func open_campaign_mission(mission_id: String) -> bool:
+	if _progress == null:
+		return false
+	var record: Dictionary = MissionCatalog.mission(mission_id)
+	if record.is_empty() or not bool(record.get("required", true)):
+		return false
+	var controller := _mission_controller()
+	if controller == null:
+		return false
+	var result: Dictionary = controller.open_mission(mission_id, _progress.active_role)
+	return bool(result.get("opened", false))
+
 func reading_active() -> bool:
 	var guide := _guide()
 	if guide != null and guide.reading_active():
 		return true
-	for path in ["%AgencyMissionPanel", "%HandoffPanel"]:
+	for path in ["%AgencyMissionPanel"]:
 		var panel := get_node_or_null(String(path)) as Control
 		if panel != null and panel.visible:
 			return true
@@ -246,8 +254,6 @@ func accessibility_state() -> Dictionary:
 	var objective_id := "meet-client" if _progress == null else _progress.current_objective_id
 	var objective := _guidance_objective()
 	var station: Dictionary = STATION_DATA.get(_current_station_id, STATION_DATA.get("reception", {}))
-	var active_role := "strategist" if _progress == null else _progress.active_role
-	var role_name := "Art Director" if active_role == "art-director" else "Strategist"
 	var action_button := get_node_or_null("%StationActionButton") as Button
 	var station_prompt := (
 		String(action_button.text)
@@ -261,11 +267,10 @@ func accessibility_state() -> Dictionary:
 		"eyebrow": "ADVERTISEMENT WORK",
 		"heading": "Create and pitch one persuasive advertisement for the audience in the client brief.",
 		"currentInstruction": (
-			"Next task: %s. Current room: %s. Active role: %s. %s"
+			"Next task: %s. Decide together. Current room: %s. %s"
 			% [
 				String(objective.get("title", objective_id.capitalize())),
 				String(station.get("title", "Agency reception")),
-				role_name,
 				station_prompt,
 			]
 		),
@@ -295,8 +300,6 @@ func _connect_controls() -> void:
 			guide.direct_travel_requested.connect(_on_guidance_travel_requested)
 		if not guide.objective_task_requested.is_connected(_on_objective_task_requested):
 			guide.objective_task_requested.connect(_on_objective_task_requested)
-		if not guide.role_handoff_requested.is_connected(_on_guide_role_handoff_requested):
-			guide.role_handoff_requested.connect(_on_guide_role_handoff_requested)
 		if not guide.audio_settings_requested.is_connected(_on_guide_audio_settings_requested):
 			guide.audio_settings_requested.connect(_on_guide_audio_settings_requested)
 		if not guide.audio_settings_changed.is_connected(_on_guide_audio_settings_changed):
@@ -323,15 +326,6 @@ func _connect_controls() -> void:
 	var station_tab := get_node_or_null("%StationPanelTab") as Button
 	if station_tab != null and not station_tab.pressed.is_connected(_on_station_panel_tab_pressed):
 		station_tab.pressed.connect(_on_station_panel_tab_pressed)
-	var art_button := get_node_or_null("%ArtDirectorHandoff") as Button
-	if art_button != null and not art_button.pressed.is_connected(_on_art_director_handoff_pressed):
-		art_button.pressed.connect(_on_art_director_handoff_pressed)
-	var strategy_button := get_node_or_null("%StrategistHandoff") as Button
-	if strategy_button != null and not strategy_button.pressed.is_connected(_on_strategist_handoff_pressed):
-		strategy_button.pressed.connect(_on_strategist_handoff_pressed)
-	var cancel_button := get_node_or_null("%CancelHandoff") as Button
-	if cancel_button != null and not cancel_button.pressed.is_connected(_hide_handoff_dialog):
-		cancel_button.pressed.connect(_hide_handoff_dialog)
 
 func _configure_stations() -> void:
 	for station_id in STATION_ORDER:
@@ -363,8 +357,6 @@ func _configure_missions() -> void:
 		return
 	var panel := _mission_panel()
 	controller.configure(_progress, panel)
-	if panel != null and not panel.role_handoff_requested.is_connected(_on_mission_role_handoff_requested):
-		panel.role_handoff_requested.connect(_on_mission_role_handoff_requested)
 	if not controller.mission_completed.is_connected(_on_mission_completed):
 		controller.mission_completed.connect(_on_mission_completed)
 	if not controller.sidequest_completed.is_connected(_on_sidequest_completed):
@@ -443,13 +435,14 @@ func _update_station_state() -> void:
 	if responsibilities != null:
 		var station_node := _station_node(_current_station_id)
 		responsibilities.text = station_node.responsibility_summary() if station_node != null else ""
+		responsibilities.tooltip_text = responsibilities.text
 	if action_button != null:
 		var next_mission := _next_mission_for_station(_current_station_id)
 		if next_mission.is_empty():
 			action_button.text = "No open work at %s" % String(record.get("title", "this room"))
 			action_button.disabled = true
 		else:
-			var action_prefix := "Start task" if bool(next_mission.get("required", true)) else "Optional practice"
+			var action_prefix := "Enter current task" if bool(next_mission.get("required", true)) else "Optional practice"
 			action_button.text = "%s: %s" % [action_prefix, String(next_mission.get("title", "Agency task"))]
 			action_button.disabled = false
 	var menu := get_node_or_null("%DirectTravel") as OptionButton
@@ -471,7 +464,7 @@ func _set_station_details_visible(visible: bool) -> void:
 		responsibilities.visible = visible
 	var button := get_node_or_null("%StationDetailsToggle") as Button
 	if button != null:
-		button.text = "Hide room details" if visible else "Show room details"
+		button.text = "Hide details" if visible else "Room details"
 	call_deferred("_fit_station_panel_to_viewport")
 
 func _set_station_panel_tucked(tucked: bool) -> void:
@@ -482,7 +475,7 @@ func _set_station_panel_tucked(tucked: bool) -> void:
 		panel.visible = not tucked
 	if tab != null:
 		var record: Dictionary = STATION_DATA.get(_current_station_id, {})
-		tab.text = "Open %s" % String(record.get("title", "room card"))
+		tab.text = "Open room: %s" % String(record.get("title", "Agency room"))
 		tab.visible = tucked
 	if not tucked:
 		call_deferred("_fit_station_panel_to_viewport")
@@ -565,20 +558,6 @@ func _on_sidequest_completed(_sidequest_id: String) -> void:
 func _on_mission_controller_state_changed(state: Dictionary) -> void:
 	_set_guidance_modal(String(state.get("state", "closed")) != "closed")
 
-func _on_mission_role_handoff_requested(role: String) -> void:
-	if _progress == null or not _progress.handoff_to(role):
-		var panel := _mission_panel()
-		if panel != null and panel.has_method("show_handoff_error"):
-			panel.call("show_handoff_error")
-		return
-	var pair := _pair()
-	if pair != null:
-		pair.set_active_role(role)
-	role_handoff_requested.emit(role)
-	var controller := _mission_controller()
-	if controller != null:
-		controller.refresh_active_role(role)
-
 func _refresh_mission_progress() -> void:
 	_update_objective_bar()
 	_update_station_state()
@@ -643,7 +622,6 @@ func _on_guide_tucked_changed(tucked: bool) -> void:
 	_set_guidance_modal(not tucked or orientation_active)
 
 func _focus_visible_hud_guide_button() -> void:
-	# A role handoff can open synchronously while this tuck-focus is deferred.
 	# Never move focus behind a modal that appeared in the meantime.
 	if reading_active():
 		return
@@ -662,24 +640,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if pair == null or not pair.input_enabled or pair.modal_open:
 		return
 	var viewport := get_viewport()
-	if key_event.keycode == KEY_H:
-		_show_handoff_dialog()
-		if viewport != null:
-			viewport.set_input_as_handled()
-	elif key_event.keycode == KEY_G:
+	if key_event.keycode == KEY_G:
 		_on_guide_pressed()
 		if viewport != null:
 			viewport.set_input_as_handled()
-
-func _on_guide_role_handoff_requested(role: String) -> void:
-	var guide := _guide()
-	if guide != null:
-		guide.set_tucked(true)
-	_show_handoff_dialog()
-	var button_path := "%ArtDirectorHandoff" if role == "art-director" else "%StrategistHandoff"
-	var requested_button := get_node_or_null(button_path) as Button
-	if requested_button != null and is_inside_tree():
-		requested_button.grab_focus()
 
 func _on_guide_audio_settings_requested() -> void:
 	audio_settings_requested.emit()
@@ -700,58 +664,6 @@ func _set_guidance_modal(is_open: bool) -> void:
 		return
 	pair.set_modal_open(is_open)
 	pair.set_input_enabled(not is_open)
-
-func _show_handoff_dialog() -> void:
-	var panel := get_node_or_null("%HandoffPanel") as Control
-	var explanation := get_node_or_null("%HandoffExplanation") as Label
-	if panel == null:
-		return
-	var station := _station_node(_current_station_id)
-	if explanation != null and station != null:
-		explanation.text = (
-			"Choose who controls the next decision. This does not remove either partner's job.\n\n%s"
-			% station.responsibility_summary()
-		)
-	var active_role := "strategist" if _progress == null else _progress.active_role
-	var art_button := get_node_or_null("%ArtDirectorHandoff") as Button
-	var strategist_button := get_node_or_null("%StrategistHandoff") as Button
-	if art_button != null:
-		art_button.disabled = active_role == "art-director"
-	if strategist_button != null:
-		strategist_button.disabled = active_role == "strategist"
-	panel.visible = true
-	set_input_enabled(false)
-	var pair := _pair()
-	if pair != null:
-		pair.set_modal_open(true)
-	var available_button := strategist_button if active_role == "art-director" else art_button
-	if available_button != null and available_button.is_visible_in_tree():
-		available_button.grab_focus()
-
-func _on_art_director_handoff_pressed() -> void:
-	_complete_handoff("art-director")
-
-func _on_strategist_handoff_pressed() -> void:
-	_complete_handoff("strategist")
-
-func _complete_handoff(role: String) -> void:
-	if _progress == null or not _progress.handoff_to(role):
-		return
-	var pair := _pair()
-	if pair != null:
-		pair.set_active_role(role)
-	role_handoff_requested.emit(role)
-	_hide_handoff_dialog()
-
-func _hide_handoff_dialog() -> void:
-	var panel := get_node_or_null("%HandoffPanel") as Control
-	if panel != null:
-		panel.visible = false
-	var pair := _pair()
-	if pair != null:
-		pair.set_modal_open(false)
-	set_input_enabled(true)
-	_focus_visible_station_control()
 
 func _nearest_station_id(from_position: Vector2) -> String:
 	var nearest_id := ""

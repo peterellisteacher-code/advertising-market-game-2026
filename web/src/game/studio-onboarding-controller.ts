@@ -10,14 +10,12 @@ function required<T extends Element>(root: ParentNode, selector: string): T {
 
 const PAGES = Object.freeze([
   ["brief", "Brief"],
-  ["roles", "Roles"],
   ["build", "Build area"],
   ["first-action", "First action"]
 ] as const);
 
 const TARGET_SELECTORS = Object.freeze([
   "[data-brief-toggle]",
-  ".creator__role-card",
   '[data-studio-tool="product"]',
   "[data-product-builder-panel]"
 ] as const);

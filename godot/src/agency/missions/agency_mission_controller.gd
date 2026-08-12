@@ -7,7 +7,6 @@ signal state_changed(state: Dictionary)
 
 const CATALOG_PATH := "res://src/agency/agency_mission_catalog.gd"
 const STATE_CLOSED := "closed"
-const STATE_HOLDING := "holding"
 const STATE_CHOICE := "choice"
 const STATE_EFFECT := "effect"
 const STATE_DEMONSTRATION := "demonstration"
@@ -46,12 +45,12 @@ func open_mission(mission_id: String, active_role: String) -> Dictionary:
 	_selected_choice_id = ""
 	_selected_effect = ""
 	_choice_correct = false
-	_state = STATE_CHOICE if _role_allowed() else STATE_HOLDING
+	_state = STATE_CHOICE
 	_show_choice()
 	_emit_state()
 	return {
 		"opened": true,
-		"allowed": _role_allowed(),
+		"allowed": true,
 		"required": _required,
 		"state": _state,
 		"missionId": _mission_id,
@@ -62,21 +61,14 @@ func open_mission(mission_id: String, active_role: String) -> Dictionary:
 	}
 
 func refresh_active_role(role: String) -> Dictionary:
+	# Kept for saved-run compatibility. Roles no longer gate any student decision.
 	_active_role = role
-	if _state == STATE_HOLDING or _state == STATE_CHOICE:
-		_state = STATE_CHOICE if _role_allowed() else STATE_HOLDING
+	if _state == STATE_CHOICE:
 		_show_choice()
 		_emit_state()
 	return snapshot()
 
 func choose(choice_id: String) -> Dictionary:
-	if _state == STATE_HOLDING:
-		return {
-			"allowed": false,
-			"correct": false,
-			"state": _state,
-			"holdingAction": String(_record.get("holdingAction"))
-		}
 	if _state != STATE_CHOICE:
 		return {
 			"allowed": false,
@@ -194,7 +186,7 @@ func snapshot() -> Dictionary:
 		"required": _required,
 		"activeRole": _active_role,
 		"ownerRole": String(_record.get("ownerRole", "")),
-		"allowed": _role_allowed(),
+		"allowed": not _record.is_empty(),
 		"choiceId": _selected_choice_id,
 		"choiceCorrect": _choice_correct,
 		"effect": _selected_effect,
@@ -225,7 +217,7 @@ func _evaluate_choice(mission_id: String, choice_id: String) -> Dictionary:
 	return Dictionary(value).duplicate(true)
 
 func _role_allowed() -> bool:
-	return not _record.is_empty() and _active_role == String(_record.get("ownerRole"))
+	return not _record.is_empty()
 
 func _complete_progress(evidence: Dictionary) -> bool:
 	if not is_instance_valid(_progress):

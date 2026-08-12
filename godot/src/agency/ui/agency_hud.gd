@@ -22,8 +22,7 @@ func _ready() -> void:
 func show_objective(objective: Dictionary) -> void:
 	_objective = objective.duplicate(true)
 	_set_label_text("HudMargin/HudStack/PrimaryRow/ObjectiveBlock/HudObjective", String(objective.get("title", "Next task")))
-	var owner_role := String(objective.get("ownerRole", "strategist"))
-	_set_label_text("HudMargin/HudStack/PrimaryRow/ObjectiveBlock/HudOwner", "%s leads" % ("Art Director" if owner_role == "art-director" else "Strategist"))
+	_set_label_text("HudMargin/HudStack/PrimaryRow/ObjectiveBlock/HudOwner", "Decide together")
 
 func set_progress(required_done: int, required_total: int, optional_done: int) -> void:
 	_set_label_text("HudMargin/HudStack/ExpandedDetails/ProgressBlock/HudProgress", "%d of %d required · %d optional" % [required_done, required_total, optional_done])
@@ -56,7 +55,7 @@ func set_tucked(tucked: bool) -> void:
 	_guide_tucked = tucked
 	var button := get_node_or_null("HudMargin/HudStack/PrimaryRow/HudGuideButton") as Button
 	if button != null:
-		button.text = "Open guide · G" if tucked else "Guide open"
+		button.text = "Guide · G" if tucked else "Guide open"
 
 func set_compact(compact: bool) -> void:
 	_compact = compact
@@ -86,11 +85,23 @@ func set_compact(compact: bool) -> void:
 	offset_bottom = offset_top + target_height
 	var button := get_node_or_null("HudMargin/HudStack/PrimaryRow/HudTuckToggle") as Button
 	if button != null:
-		button.text = "Show work details" if compact else "Hide work details"
+		button.text = "Work details" if compact else "Hide details"
 		button.tooltip_text = "Show work details" if compact else "Hide work details"
 
 func is_compact() -> bool:
 	return _compact
+
+func layout_contract(viewport: Vector2) -> Dictionary:
+	var safe_height := maxf(viewport.y, 1.0)
+	var compact_height := 84.0
+	var expanded_height := 164.0
+	return {
+		"compactHeight": compact_height,
+		"expandedHeight": expanded_height,
+		"floorShare": maxf(0.0, (safe_height - compact_height) / safe_height),
+		"directCampaignAction": get_node_or_null("%HudGoToObjective") != null,
+		"optionalPracticeLabelled": true,
+	}
 
 func set_sound_muted(muted: bool) -> void:
 	_sound_muted = muted

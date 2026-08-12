@@ -39,7 +39,8 @@ class FakeAccessibilityMirror:
 
 func run() -> bool:
 	assert(_reduced_motion_bridge_drives_game_surfaces())
-	assert(_agency_world_replaces_the_run_panel_and_coordinates_roles())
+	assert(_agency_world_replaces_the_run_panel_and_coordinates_teamwork())
+	assert(await _campaign_boundaries_open_productive_surfaces())
 	assert(_authored_shell_is_fun_first_and_accessible())
 	assert(_live_room_routes_are_primary_and_accessible())
 	assert(_instructions_remain_available_as_a_complete_reference())
@@ -78,7 +79,7 @@ func _reduced_motion_bridge_drives_game_surfaces() -> bool:
 	shell.free()
 	return true
 
-func _agency_world_replaces_the_run_panel_and_coordinates_roles() -> bool:
+func _agency_world_replaces_the_run_panel_and_coordinates_teamwork() -> bool:
 	var practice_fake := FakePracticeTransport.new()
 	var shell := _mount_shell(FakeCreatorTransport.new(), null, practice_fake)
 	var agency := shell.get_node_or_null("%AgencyWorld") as Node2D
@@ -124,7 +125,7 @@ func _agency_world_replaces_the_run_panel_and_coordinates_roles() -> bool:
 	assert(accessibility.get("eyebrow") == "ADVERTISEMENT WORK")
 	assert(String(accessibility.get("heading")).contains("Create and pitch one persuasive advertisement"))
 	assert(String(accessibility.get("currentInstruction")).contains("Next task:"))
-	assert(String(accessibility.get("currentInstruction")).contains("Active role:"))
+	assert(String(accessibility.get("currentInstruction")).contains("Decide together"))
 	assert(not String(mirror.get("_last_payload")).contains("LIVE MARKET"))
 	var pair := agency.get_node("%AgencyPair") as AdMarketAgencyPair
 	assert(pair.input_enabled)
@@ -150,16 +151,98 @@ func _agency_world_replaces_the_run_panel_and_coordinates_roles() -> bool:
 	shell.call("_on_creator_closed")
 	assert(pair.input_enabled)
 	assert(agency.current_station_id() == prior_station)
-	shell.call("_on_agency_role_handoff_requested", "strategist")
-	var pending_request := practice_fake.request_for("practice-5")
-	assert(pending_request.get("method") == "saveProgress")
-	var queued_pitch: Dictionary = shell.get("_queued_practice_pitch")
-	assert(queued_pitch.get("activeRole") == "strategist")
-	var document: Dictionary = shell.get("_campaign_document")
-	var pair_state: Dictionary = Dictionary(Dictionary(document.get("gameplay")).get("pair"))
-	assert(pair_state.get("activeRole") == "strategist")
+	var guide := agency.get_node("%AgencyGuideDrawer") as AdMarketAgencyGuideDrawer
+	assert(guide.get_node_or_null("%Roles") == null)
+	var mission_panel := agency.get_node("%AgencyMissionPanel") as Control
+	assert(mission_panel.get_node_or_null("%OwnerCard") == null)
+	assert(mission_panel.get_node_or_null("%RoleHandoffButton") == null)
 	shell.free()
 	return true
+
+func _campaign_boundaries_open_productive_surfaces() -> bool:
+	var setup_fake := FakeCreatorTransport.new()
+	var setup_shell := _mount_shell(setup_fake, null, FakePracticeTransport.new())
+	var setup_run := AdMarketGameRun.new()
+	assert(setup_run.begin("North Star Studio", "session-direct-setup", "team-direct-setup"))
+	setup_shell.set("_game_run", setup_run)
+	var blank_document: Dictionary = setup_shell.call("_blank_campaign_document")
+	blank_document["documentId"] = "direct-setup-document"
+	blank_document["sessionId"] = "session-direct-setup"
+	blank_document["teamId"] = "team-direct-setup"
+	setup_shell.set("_campaign_document", blank_document)
+	var setup_campaign := setup_shell.get("_agency_campaign") as AdMarketAgencyCampaignController
+	setup_campaign.begin_agency(setup_run, blank_document)
+	var setup_world := setup_shell.get_node("%AgencyWorld") as AdMarketAgencyWorld
+	setup_world.configure(setup_run.agency_progress() as AdMarketAgencyProgress)
+	setup_shell.call("_on_agency_mission_completed", "audience-brief", _mission_evidence("audience-brief"))
+	assert(setup_fake.request_count() == 0)
+	var setup_panel := setup_world.get_node("%AgencyMissionPanel") as AdMarketAgencyMissionPanel
+	setup_panel.next_requested.emit()
+	await (Engine.get_main_loop() as SceneTree).process_frame
+	assert(setup_fake.request_count() == 1)
+	var setup_open: Dictionary = setup_fake.request_for(setup_fake.last_request_id())
+	assert(setup_open.get("method") == "open")
+	setup_fake.resolve_success(setup_fake.last_request_id())
+	var product_document := _invent_ready_document(setup_shell)
+	product_document["documentId"] = "direct-setup-document"
+	product_document["sessionId"] = "session-direct-setup"
+	product_document["teamId"] = "team-direct-setup"
+	setup_shell.set("_practice_recovery", {})
+	setup_shell.call("_on_creator_state_received", product_document)
+	setup_shell.call("_on_creator_closed")
+	var mission_controller := setup_world.get_node("%AgencyMissionController") as Node
+	var setup_snapshot: Dictionary = mission_controller.call("snapshot")
+	assert(setup_snapshot.get("missionId") == "salience")
+	assert(setup_snapshot.get("state") in ["choice", "holding"])
+	mission_controller.call("close")
+	setup_shell.free()
+
+	var polish_fake := FakeCreatorTransport.new()
+	var polish_shell := _mount_shell(polish_fake, null, FakePracticeTransport.new())
+	var polish_run := AdMarketGameRun.new()
+	assert(polish_run.begin("North Star Studio", "session-direct-polish", "team-direct-polish"))
+	polish_shell.set("_game_run", polish_run)
+	var polish_document: Dictionary = polish_shell.call("_blank_campaign_document")
+	polish_document["documentId"] = "direct-polish-document"
+	polish_document["sessionId"] = "session-direct-polish"
+	polish_document["teamId"] = "team-direct-polish"
+	polish_document["product"]["name"] = "Orbit Bottle"
+	polish_document["product"]["build"] = {"blueprintId": "orbit-bottle"}
+	polish_shell.set("_campaign_document", polish_document)
+	var polish_campaign := polish_shell.get("_agency_campaign") as AdMarketAgencyCampaignController
+	polish_campaign.begin_agency(polish_run, polish_document)
+	for mission_id: String in [
+		"audience-brief",
+		"salience",
+		"reading-path",
+		"contrast",
+		"framing",
+		"aida",
+	]:
+		assert(polish_campaign.complete_mission(mission_id, _mission_evidence(mission_id)))
+	polish_shell.call("_on_agency_mission_completed", "claim-proof", _mission_evidence("claim-proof"))
+	assert(polish_fake.request_count() == 0)
+	var polish_world := polish_shell.get_node("%AgencyWorld") as AdMarketAgencyWorld
+	var polish_panel := polish_world.get_node("%AgencyMissionPanel") as AdMarketAgencyMissionPanel
+	polish_panel.next_requested.emit()
+	await (Engine.get_main_loop() as SceneTree).process_frame
+	assert(polish_fake.request_count() == 1)
+	var polish_open: Dictionary = polish_fake.request_for(polish_fake.last_request_id())
+	assert(polish_open.get("method") == "open")
+	polish_fake.resolve_success(polish_fake.last_request_id())
+	polish_shell.set("_practice_recovery", {})
+	polish_shell.call("_on_creator_state_received", polish_document)
+	polish_shell.call("_on_creator_closed")
+	assert(polish_campaign.next_campaign_step() == {"kind": "prepare-pitch"})
+	assert(polish_world.current_station_id() == "pitch-theatre")
+	polish_shell.free()
+	return true
+
+func _mission_evidence(mission_id: String) -> Dictionary:
+	return {
+		"decision": mission_id,
+		"effect": "This decision changes how the intended audience understands the advertisement.",
+	}
 
 func _practice_start_and_lock_wait_for_storage_ack() -> bool:
 	var creator_fake := FakeCreatorTransport.new()
@@ -563,18 +646,26 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
 	var advance := shell.get_node("%AdvanceLevel") as Button
 	var publish := shell.get_node("%PublishCampaign") as Button
 	var start := shell.get_node("%StartRun") as Button
+	var sandbox := shell.get_node("%OpenAssignmentSandbox") as Button
 	var join_live := shell.get_node("%JoinLiveMarket") as Button
 	var create_live := shell.get_node("%CreateLiveMarket") as Button
 	var launch := shell.get_node("%LaunchCreator") as Button
 	var review_instructions := shell.get_node("%ReviewInstructions") as Button
-	var role_guide := shell.get_node("%RoleGuide") as Button
 	var enter_market := shell.get_node("%EnterMarket") as Button
 	var hero_copy := shell.get_node("MainMargin/GameInput/HeroCopy") as Label
+	var brand := shell.get_node("MainMargin/GameInput/BrandRow/Brand") as Label
+	var hero_heading := shell.get_node("MainMargin/GameInput/HeroHeading") as Label
+	var lobby_eyebrow := shell.get_node("MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyEyebrow") as Label
+	var lobby_heading := shell.get_node("MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyHeading") as Label
 
 	assert(lobby.visible)
 	assert(run_panel.visible)
 	assert(not hero_copy.visible)
 	assert(hero_copy.text.contains("Level 1"))
+	assert(brand.text == "AGENCY ACADEMY")
+	assert(hero_heading.text == "Build one persuasive advertisement with your partner.")
+	assert(lobby_eyebrow.text == "ADVERTISEMENT READY")
+	assert(lobby_heading.text == "Choose where to begin.")
 	assert(heading.text.contains("matches the audience need"))
 	assert(lock.text == "Lock this level")
 	assert(advance.text == "Next level")
@@ -582,15 +673,14 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
 	assert(publish.visible)
 	assert(review_instructions.text == "Review all instructions")
 	assert(review_instructions.focus_mode == Control.FOCUS_ALL)
-	assert(role_guide.text == "Role guide")
-	assert(role_guide.focus_mode == Control.FOCUS_ALL)
+	assert(shell.get_node_or_null("%RoleGuide") == null)
 	assert(enter_market.text == "Enter market")
 	assert(not enter_market.visible)
 	assert((shell.get_node("MainMargin/GameInput/RunPanel/RunContent") as VBoxContainer).alignment == BoxContainer.ALIGNMENT_CENTER)
 
 	var accessible_normal := Color("#b63a15")
 	var accessible_hover := Color("#c3471b")
-	for button in [start, create_live, launch, publish]:
+	for button in [create_live, launch, publish]:
 		var normal := button.get_theme_stylebox("normal") as StyleBoxFlat
 		var hover := button.get_theme_stylebox("hover") as StyleBoxFlat
 		assert(normal != null)
@@ -600,7 +690,18 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
 		assert(_contrast_with_white(normal.bg_color) >= 4.5)
 		assert(_contrast_with_white(hover.bg_color) >= 4.5)
 
-	assert(start.text == "Practice on this computer")
+	assert(start.text == "Start advertisement")
+	assert(sandbox.text == "Open assignment sandbox")
+	assert((shell.get_node("%JoinMarketToggle") as Button).text == "Join a class market")
+	assert(join_live.text == "Join the live market")
+	var start_style := start.get_theme_stylebox("normal") as StyleBoxFlat
+	assert(start_style != null)
+	assert(start_style.bg_color.is_equal_approx(Color("#f4bd4f")))
+	assert(_contrast_with_white(start_style.bg_color) < 4.5)
+	assert(_contrast_ratio(start.get_theme_color("font_color"), start_style.bg_color) >= 4.5)
+	var sandbox_style := sandbox.get_theme_stylebox("normal") as StyleBoxFlat
+	assert(sandbox_style != null)
+	assert(_contrast_ratio(sandbox.get_theme_color("font_color"), sandbox_style.bg_color) >= 4.5)
 	var join_style := join_live.get_theme_stylebox("normal") as StyleBoxFlat
 	var join_hover_style := join_live.get_theme_stylebox("hover") as StyleBoxFlat
 	assert(join_style != null)
@@ -631,7 +732,7 @@ func _live_room_routes_are_primary_and_accessible() -> bool:
 	assert(max_teams.value == 15.0)
 	assert(max_teams.min_value == 3.0 and max_teams.max_value == 30.0)
 	assert(create_live.text == "Open a class market")
-	assert(practice.text == "Practice on this computer")
+	assert(practice.text == "Start advertisement")
 	for control in [alias, room_code, join_live, classroom_code, max_teams, create_live, practice]:
 		assert((control as Control).custom_minimum_size.y >= 44.0)
 	shell.free()
@@ -642,17 +743,14 @@ func _instructions_remain_available_as_a_complete_reference() -> bool:
 	var review_instructions := shell.get_node("%ReviewInstructions") as Button
 	var instructions_dialog := shell.get_node("%InstructionsDialog") as AcceptDialog
 	var instructions_text := shell.get_node("%InstructionsText") as RichTextLabel
-	var role_guide := shell.get_node("%RoleGuide") as Button
-	var role_dialog := shell.get_node("%RoleGuideDialog") as AcceptDialog
-	var role_text := shell.get_node("%RoleGuideText") as RichTextLabel
 	assert(
 		review_instructions.pressed.is_connected(Callable(shell, "_show_instructions"))
 	)
-	assert(role_guide.pressed.is_connected(Callable(shell, "_show_role_guide")))
+	assert(shell.get_node_or_null("%RoleGuide") == null)
+	assert(shell.get_node_or_null("%RoleGuideDialog") == null)
+	assert(shell.get_node_or_null("%RoleGuideText") == null)
 	assert(not instructions_dialog.visible)
-	assert(not role_dialog.visible)
 	assert(instructions_dialog.title == "Advertisement instructions")
-	assert(role_dialog.title == "Pair role guide")
 	assert(instructions_text.focus_mode == Control.FOCUS_ALL)
 	for section in [
 		"Audience and product",
@@ -662,14 +760,6 @@ func _instructions_remain_available_as_a_complete_reference() -> bool:
         "Overall conclusion"
 	]:
 		assert(instructions_text.text.contains(section))
-	for required in [
-		"The same controls are available to both partners",
-		"The roles do not unlock different buttons",
-		"Art Director: leads visual decisions",
-		"Strategist: leads message and offer decisions",
-        "Swapping roles changes the active responsibility"
-	]:
-		assert(role_text.text.contains(required))
 	instructions_dialog.hide()
 	shell.free()
 	return true
@@ -720,7 +810,7 @@ func _host_defaults_open_a_teacher_dashboard() -> bool:
 	teacher_setup.pressed.emit()
 	assert(host_area.visible)
 	assert(teacher_setup.text == "Hide teacher setup")
-	assert((shell.get_node("MainMargin/GameInput/BrandRow/PlayMode") as Label).text == "PAIR PLAY  •  ONE MACBOOK")
+	assert((shell.get_node("MainMargin/GameInput/BrandRow/PlayMode") as Label).text == "PARTNER ADVERTISING  •  DESKTOP")
 	(shell.get_node("%ClassroomCode") as LineEdit).text = "teacher-code-7"
 	(shell.get_node("%CreateLiveMarket") as Button).pressed.emit()
 	var create_id: String = market_fake.last_request_id()
@@ -770,18 +860,18 @@ func _campaign_moves_gate_each_level() -> bool:
 		assert(not bool(shell.get("_level_locked")))
 		assert(advance.disabled)
 
-	var solo_invent := invent_ready.duplicate(true)
-	solo_invent["gameplay"]["pair"] = {
+	var legacy_uneven_pair := invent_ready.duplicate(true)
+	legacy_uneven_pair["gameplay"]["pair"] = {
 		"activeRole": "art-director",
 		"handoffCount": 0,
 		"artDirectorActions": 1,
 		"strategistActions": 0
 	}
-	_deliver_saved_creator_state(shell, solo_invent)
+	_deliver_saved_creator_state(shell, legacy_uneven_pair)
 	lock.pressed.emit()
 	assert(
-		status.text == "Next: swap roles once.",
-		"Unexpected readiness status: %s" % status.text
+		status.text == _agency_mission_gate_clue(),
+		"Legacy role counters must not block shared decisions: %s" % status.text
 	)
 	assert(not bool(shell.get("_level_locked")))
 	assert(advance.disabled)
@@ -962,6 +1052,8 @@ func _closed_studio_reopens_to_publish_and_enters_the_market() -> bool:
 	var theatre := shell.get_node_or_null("%PitchTheatre") as AdMarketPitchTheatre
 	assert(theatre != null and theatre.visible)
 	var exact_texture: Texture2D = theatre.get_node("%BillboardAd").texture
+	assert((theatre.get_node("%MasteryStatus") as Label).text == "7 of 7 complete")
+	assert((theatre.get_node("%AidaAttention") as Label).text == "Attention — Flash the impossible colour.")
 	assert(exact_texture != null and exact_texture.get_image().get_width() == 1600)
 	var agency_audio := shell.get_node_or_null("%AgencyAudio")
 	assert(agency_audio != null)
@@ -1451,6 +1543,19 @@ func _practice_recovery(
 		},
 		"document": document
 	}
+
+func _contrast_ratio(foreground: Color, background: Color) -> float:
+	var foreground_luminance := (
+		0.2126 * _linear_channel(foreground.r)
+		+ 0.7152 * _linear_channel(foreground.g)
+		+ 0.0722 * _linear_channel(foreground.b)
+	)
+	var background_luminance := (
+		0.2126 * _linear_channel(background.r)
+		+ 0.7152 * _linear_channel(background.g)
+		+ 0.0722 * _linear_channel(background.b)
+	)
+	return (maxf(foreground_luminance, background_luminance) + 0.05) / (minf(foreground_luminance, background_luminance) + 0.05)
 
 func _contrast_with_white(background: Color) -> float:
 	var luminance := (

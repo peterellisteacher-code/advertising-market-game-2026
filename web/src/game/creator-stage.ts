@@ -101,10 +101,7 @@ export const PUBLICATION_MISSING_CODES = Object.freeze([
   "interest",
   "desire",
   "action",
-  "market-route",
-  "role-handoff",
-  "art-director-action",
-  "strategist-action"
+  "market-route"
 ] as const);
 
 export type PublicationMissingCode = typeof PUBLICATION_MISSING_CODES[number];
@@ -175,7 +172,7 @@ export function evaluatePricePlacementState(
 
 export function evaluatePublicationReadiness(
   session: PairSession,
-  progress: PairRoleProgress,
+  _progress: PairRoleProgress,
   campaign: CampaignDocumentV1
 ): PublicationReadiness {
   const missing: PublicationMissingCode[] = [];
@@ -193,10 +190,6 @@ export function evaluatePublicationReadiness(
     campaign.strategy.marketRoute.proofPoint.trim().length === 0) {
     missing.push("market-route");
   }
-  if (session.handoffCount < 1) missing.push("role-handoff");
-  if (progress["art-director"] < 1) missing.push("art-director-action");
-  if (progress.strategist < 1) missing.push("strategist-action");
-
   const immutableMissing = Object.freeze(missing);
   return Object.freeze({ ready: immutableMissing.length === 0, missing: immutableMissing });
 }

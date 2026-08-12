@@ -12,7 +12,7 @@ test("student copy uses direct factual wording without obsolete promotional phra
 
   assert.match(
     text,
-    /First you will invent a product, then you will create an advertisement for it\./
+    /Build one persuasive advertisement with your partner\./
   );
   for (const obsolete of [
     "Invent it. Advertise it. Judge the market.",

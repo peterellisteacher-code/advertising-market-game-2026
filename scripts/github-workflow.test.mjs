@@ -33,6 +33,16 @@ test("GitHub Actions validates and builds the complete web artifact without depl
   );
   assert.match(workflow, /pnpm test/u);
   assert.match(workflow, /pnpm typecheck/u);
+  assert.match(
+    workflow,
+    /Install canvas native build prerequisites[\s\S]*?apt-get install[\s\S]*?libcairo2-dev[\s\S]*?libpango1\.0-dev[\s\S]*?libjpeg-dev[\s\S]*?libgif-dev[\s\S]*?librsvg2-dev/u,
+    "the validation runner must be able to compile node-canvas when its prebuilt binary is unavailable"
+  );
+  assert.ok(
+    workflow.indexOf("Install canvas native build prerequisites") <
+      workflow.indexOf("Install locked dependencies"),
+    "canvas build prerequisites must be installed before pnpm resolves the optional native peer"
+  );
   assert.match(workflow, /actions\/setup-python@[0-9a-f]{40}/u);
   assert.match(workflow, /python-version:\s*"3\.12"/u);
   assert.match(workflow, /python -m pip install --requirement pipeline\/requirements\.txt/u);

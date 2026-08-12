@@ -9,11 +9,9 @@ import type { InstructionClaimId } from "./instruction-argument";
 export const GUIDED_JOURNEY_ORDER = Object.freeze([
   "sign-in",
   "audience",
-  "roles",
   "starter-product",
   "product-edit",
   "product-name",
-  "pair-contribution",
   "attention",
   "interest",
   "desire",
@@ -124,27 +122,13 @@ const DEFINITIONS: readonly GuidedJourneyDefinition[] = Object.freeze([
     stage: "invent",
     title: "Audience brief",
     now: "Read the audience situation, need and values.",
-    why: "The Audience brief establishes the evidence needed to confirm the Partner roles and later product choices.",
+    why: "The Audience brief establishes the evidence needed for the Starter product and later product choices.",
     done: "An audience brief is selected and its need and values are visible.",
-    next: "Confirm the Partner roles.",
+    next: "Choose a Starter product.",
     tool: "audience",
     claimIds: claimIds("P2"),
     actionLabel: "Open audience brief",
     isComplete: (document: CampaignDocumentV1) => hasText(document.brief.targetAudienceId)
-  }),
-  Object.freeze({
-    id: "roles",
-    stage: "invent",
-    title: "Partner roles",
-    now: "Open the Role guide and confirm the Art Director and Strategist responsibilities.",
-    why: "The Partner roles assign responsibility before the Starter product is chosen.",
-    done: "The role guide has been acknowledged and the starting role is visible.",
-    next: "Choose a Starter product.",
-    tool: "roles",
-    claimIds: claimIds("P3", "ICA"),
-    actionLabel: "Open Role guide",
-    isComplete: (document: CampaignDocumentV1) =>
-      document.gameplay.pair.roleGuideAcknowledged
   }),
   Object.freeze({
     id: "starter-product",
@@ -168,7 +152,7 @@ const DEFINITIONS: readonly GuidedJourneyDefinition[] = Object.freeze([
     done: "The placed product shows a deliberate change after its initial placement.",
     next: "Add the Product name.",
     tool: "product",
-    claimIds: claimIds("P7"),
+    claimIds: claimIds("P3", "P7", "P11"),
     optionalMethods: Object.freeze([
       "Use Fill to change an eligible product section.",
       "Use Delete selected item to remove an unwanted part.",
@@ -177,42 +161,28 @@ const DEFINITIONS: readonly GuidedJourneyDefinition[] = Object.freeze([
     ]),
     actionLabel: "Open Build",
     isComplete: (document: CampaignDocumentV1) =>
-      hasPlacedProduct(document) && document.gameplay.pair.artDirectorActions > 1
+      hasPlacedProduct(document) &&
+      document.gameplay.pair.artDirectorActions +
+        document.gameplay.pair.strategistActions > 1
   }),
   Object.freeze({
     id: "product-name",
     stage: "invent",
     title: "Product name",
     now: "Enter a clear name in the Product name field.",
-    why: "The Product name gives the advertisement a subject before the Pair contribution is completed.",
+    why: "The Product name gives the advertisement a subject before Attention is completed.",
     done: "The Product name field contains saved text.",
-    next: "Complete the Pair contribution.",
+    next: "Complete Attention.",
     tool: "product-name",
-    claimIds: claimIds("P8", "ICB"),
+    claimIds: claimIds("P8", "P10", "ICB"),
     actionLabel: "Focus Product name",
     isComplete: (document: CampaignDocumentV1) => hasText(document.product.name)
-  }),
-  Object.freeze({
-    id: "pair-contribution",
-    stage: "invent",
-    title: "Pair contribution",
-    now: "Record one Art Director visual change, one Strategist message or strategy change, and one role swap.",
-    why: "The Pair contribution combines deliberate visual and message decisions in the advertisement before Attention.",
-    done: "Both partners have a recorded contribution and the roles have been swapped.",
-    next: "Complete Attention.",
-    tool: "pair",
-    claimIds: claimIds("P10", "P11", "P12"),
-    actionLabel: "Open pair controls",
-    isComplete: (document: CampaignDocumentV1) =>
-      document.gameplay.pair.handoffCount > 0 &&
-      document.gameplay.pair.artDirectorActions > 0 &&
-      document.gameplay.pair.strategistActions > 0
   }),
   aidaStep(
     "attention",
     "Attention gives the audience a reason to notice the advertisement before Interest.",
     "Complete Interest.",
-    ["P13"]
+    ["P12", "P13"]
   ),
   aidaStep(
     "interest",

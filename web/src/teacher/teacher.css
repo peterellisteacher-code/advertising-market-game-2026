@@ -25,16 +25,14 @@ body:has([data-admarket-route="teacher-playtest"]) {
 }
 
 .teacher-playtest-strip {
-  position: fixed;
-  top: 120px;
-  right: 12px;
+  position: relative;
   z-index: 300;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   width: fit-content;
-  max-width: min(32rem, calc(100vw - 24px));
+  max-width: 100%;
   min-height: 44px;
   box-sizing: border-box;
   border: 1px solid var(--teacher-line);
@@ -44,9 +42,9 @@ body:has([data-admarket-route="teacher-playtest"]) {
   box-shadow: 0 4px 16px rgb(20 32 51 / 12%);
 }
 
-.teacher-playtest-strip[data-expanded="true"] {
-  width: min(30rem, calc(100vw - 24px));
-  padding-block: 10px;
+#teacher-playtest-root {
+  min-width: 0;
+  margin-left: auto;
 }
 
 .teacher-playtest-strip > span {
@@ -59,12 +57,22 @@ body:has([data-admarket-route="teacher-playtest"]) {
 }
 
 .teacher-playtest-strip__actions {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 10px;
-  width: 100%;
+  width: max-content;
+  max-width: min(30rem, calc(100vw - 24px));
   margin-left: auto;
+  padding: 10px;
+  border: 1px solid var(--teacher-line);
+  border-radius: 10px;
+  background: var(--teacher-paper);
+  box-shadow: 0 10px 28px rgb(20 32 51 / 18%);
 }
 
 .teacher-playtest-strip__actions[hidden] {
@@ -94,14 +102,6 @@ body:has([data-admarket-route="teacher-playtest"]) {
 body:has([data-admarket-route="teacher-playtest"]) #creator-root {
   top: 0;
   bottom: 0;
-}
-
-body:has([data-admarket-route="teacher-playtest"]) .creator__layers {
-  top: 84px;
-}
-
-body:has(.teacher-playtest-strip[data-expanded="true"]) .creator__layers {
-  top: 160px;
 }
 
 .teacher-page {

@@ -185,15 +185,32 @@ test("agency quick start fills the viewport rather than a fixed 1280 by 800 box"
   assert.match(panelBlock, /anchor_bottom = 1\.0/);
   assert.match(panelBlock, /offset_top = 48\.0/);
   assert.match(panelBlock, /offset_bottom = -48\.0/);
-  assert.match(itemsBlock, /size_flags_vertical = 1/);
+  // VBoxContainer's default vertical sizing is FILL (1). Godot may omit the
+  // property when saving through the editor, so reject only an explicit
+  // conflicting mode instead of requiring redundant serialization.
+  assert.doesNotMatch(itemsBlock, /size_flags_vertical = (?!1\b)\d+/);
   assert.doesNotMatch(panelBlock, /ScrollContainer/);
+});
+
+test("the entry lobby makes the advertisement primary and the assignment sandbox secondary", () => {
+  for (const requiredCopy of [
+    "AGENCY ACADEMY",
+    "Start advertisement",
+    "Open assignment sandbox",
+    "Join a class market",
+    "Teacher setup"
+  ]) {
+    assert.ok(mainScene.includes(`text = "${requiredCopy}"`), `missing lobby route: ${requiredCopy}`);
+  }
+  assert.doesNotMatch(mainScene, /text = "Practice on this computer"/);
+  assert.doesNotMatch(mainScene, /text = "AD MARKET \/\/ GAME"/);
 });
 
 test("agency floor renders above the main shell background", () => {
   const floorBlock = agencyWorldScene.match(
     /\[node name="AgencyFloor"[\s\S]*?(?=\n\[node name="WorldCamera")/
   )?.[0] ?? "";
-  assert.match(floorBlock, /z_index = 0/);
+  // CanvasItem's default z_index is 0 and editor saves may omit default values.
   assert.doesNotMatch(floorBlock, /z_index = -/);
 });
 
@@ -223,7 +240,7 @@ test("agency HUD and station card can be tucked without hiding the next action",
     "HUD width belongs to the anchors so the bar spans whatever viewport it is given"
   );
   assert.ok(agencyHudScene.includes('name="HudTuckToggle"'));
-  assert.ok(agencyHudScene.includes('text = "Show work details"'));
+  assert.ok(agencyHudScene.includes('text = "Work details"'));
   for (const nodeName of [
     "StationDetailsToggle",
     "StationPanelTuck",
@@ -256,7 +273,7 @@ test("compact agency HUD keeps readable, high-contrast actions inside the laptop
     assert.match(block, /theme_override_colors\/font_hover_color = Color\(0\.047, 0\.086, 0\.145, 1\)/);
     assert.match(block, /theme_override_colors\/font_pressed_color = Color\(0\.047, 0\.086, 0\.145, 1\)/);
   }
-  assert.match(nodeBlock("HudGoToObjective"), /custom_minimum_size = Vector2\(176, 60\)/);
+  assert.match(nodeBlock("HudGoToObjective"), /custom_minimum_size = Vector2\(168, 52\)/);
   assert.match(agencyHudScript, /var _compact: bool = true/);
   assert.match(agencyHudScript, /set_compact\(true\)/);
   assert.match(
@@ -265,39 +282,32 @@ test("compact agency HUD keeps readable, high-contrast actions inside the laptop
   );
 });
 
-test("agency mission keeps evidence and a direct role handover beside clickable answers", () => {
+test("agency mission keeps evidence beside immediately clickable team answers", () => {
   assert.ok(missionCatalogScript.includes('"referenceFacts"'));
   for (const nodeName of [
     "MissionStep",
     "ReferenceCard",
     "ReferenceLabel",
-    "ReferenceToggle",
-    "RoleDetailsToggle",
-    "RoleDefinitionLabel",
-    "RoleHandoffButton"
+    "ReferenceToggle"
   ]) {
     assert.ok(missionPanelScene.includes(`name="${nodeName}"`), `missing ${nodeName}`);
   }
-  assert.match(missionPanelScript, /signal role_handoff_requested\(role: String\)/);
+  for (const removedNode of ["OwnerCard", "RoleDetailsToggle", "RoleDefinitionLabel", "RoleHandoffButton"]) {
+    assert.ok(!missionPanelScene.includes(`name="${removedNode}"`), `obsolete ${removedNode}`);
+  }
+  assert.doesNotMatch(missionPanelScript, /signal role_handoff_requested\(role: String\)/);
   assert.ok(missionPanelScript.includes("Click one answer"));
-  assert.ok(missionPanelScript.includes("Both partners use the same controls"));
-  assert.ok(missionPanelScript.includes("Strategist decides audience, purpose, product and message"));
-  assert.ok(missionPanelScript.includes("Art Director decides visual design and execution"));
   assert.ok(missionPanelScript.includes("Hide audience brief"));
   assert.ok(missionPanelScript.includes("Hide task reference"));
-  assert.match(missionPanelScript, /func show_handoff_error\(\) -> void:/);
-  assert.doesNotMatch(
-    missionPanelScript,
-    /Close this panel first\. Then hand control/
-  );
-  assert.match(agencyWorldScript, /func _on_mission_role_handoff_requested\(role: String\) -> void:/);
+  assert.doesNotMatch(missionPanelScript, /func show_handoff_error\(\) -> void:/);
+  assert.doesNotMatch(agencyWorldScript, /func _on_mission_role_handoff_requested\(role: String\) -> void:/);
 });
 
 test("game shell uses the full 16:10 school MacBook viewport", () => {
   assert.match(projectSettings, /window\/size\/viewport_width=1280/);
   assert.match(projectSettings, /window\/size\/viewport_height=800/);
   assert.match(projectSettings, /window\/stretch\/aspect="expand"/);
-  assert.match(mainScene, /name="MainMargin"[\s\S]*?offset_top = 96\.0[\s\S]*?offset_bottom = -24\.0/);
+  assert.match(mainScene, /name="MainMargin"[\s\S]*?offset_top = 72\.0[\s\S]*?offset_bottom = -20\.0/);
 });
 
 test("game canvas overrides Godot device-pixel inline sizing at display scale", () => {
@@ -340,14 +350,14 @@ test("student lobby keeps teacher controls behind explicit disclosure", () => {
   assert.match(mainScene, /name="TeacherSetupToggle"[\s\S]*?text = "Teacher setup"/);
   assert.match(mainScene, /name="HostArea"[\s\S]*?unique_name_in_owner = true[\s\S]*?visible = false/);
   assert.match(mainScript, /teacher_setup_toggle\.pressed\.connect\(_toggle_teacher_setup\)/);
-  assert.match(mainScene, /text = "PAIR PLAY  •  ONE MACBOOK"/);
+  assert.match(mainScene, /text = "PARTNER ADVERTISING  •  DESKTOP"/);
 });
 
-test("student lobby makes local practice the immediate route and keeps one game identity", () => {
-  assert.match(mainScene, /text = "AD MARKET \/\/ GAME"/);
+test("student lobby makes the advertisement the immediate route and keeps one game identity", () => {
+  assert.match(mainScene, /text = "AGENCY ACADEMY"/);
   assert.match(
     mainScene,
-    /text = "First you will invent a product, then you will create an advertisement for it\."/
+    /text = "Build one persuasive advertisement with your partner\."/
   );
   assert.doesNotMatch(mainScene, /Invent it\. Advertise it\. Judge the market\./);
   assert.match(
@@ -359,7 +369,7 @@ test("student lobby makes local practice the immediate route and keeps one game 
     /name="StartRun"[\s\S]*?theme_override_styles\/normal = SubResource\("Style_primary"\)/
   );
   assert.match(mainScene, /text = "Pair alias \(practice or live room\)"/);
-  assert.match(marketScene, /text = "AD MARKET \/\/ MEDAL GALLERY"/);
+  assert.match(marketScene, /text = "AGENCY ACADEMY \/\/ MARKET GALLERY"/);
   assert.doesNotMatch(
     mainScript,
     /func _begin_startup\(\) -> void:[\s\S]*?start_button\.disabled = true[\s\S]*?market_host\.resume_session\(\)/
@@ -371,7 +381,6 @@ test("run screen reveals one concrete next requirement at a time", () => {
     "Next: build a product in the studio.",
     "Next: add a product name.",
     "Next: choose an audience brief.",
-    "Next: swap roles once.",
     "Next: link one choice to Attention.",
     "Next: add a price.",
     "Next: choose and lock a market route.",
@@ -444,16 +453,11 @@ test("Godot advertising copy reuses AIDA stage and advertisement terminology", (
   }
 });
 
-test("the full linked argument and role guide remain available throughout pair play", () => {
+test("the full linked argument guide remains available throughout pair play", () => {
   assert.match(mainScene, /name="ReviewInstructions"[\s\S]*?text = "Review all instructions"/);
-  assert.match(mainScene, /name="RoleGuide"[\s\S]*?text = "Role guide"/);
-  assert.match(mainScene, /name="RoleGuideDialog"[\s\S]*?title = "Pair role guide"/);
+  assert.doesNotMatch(mainScene, /name="RoleGuide"/);
+  assert.doesNotMatch(mainScene, /name="RoleGuideDialog"/);
   for (const copy of [
-    "Both partners can use the same tools that are available in the current level",
-    "The roles do not unlock different buttons",
-    "Art Director is responsible for what the advertisement looks like",
-    "Strategist is responsible for what the advertisement says",
-    "The active role tells you whose turn should make the next change",
     "Context is the situation the audience is in",
     "A premise is a reason",
     "Audience and product",
@@ -464,7 +468,7 @@ test("the full linked argument and role guide remain available throughout pair p
   ]) {
     assert.ok(mainScene.includes(copy), `missing permanent guide copy: ${copy}`);
   }
-  assert.match(mainScript, /role_guide\.pressed\.connect\(_show_role_guide\)/);
+  assert.doesNotMatch(mainScript, /_show_role_guide/);
   assert.match(mainScript, /func _restore_dialog_focus\(\) -> void:/);
 });
 

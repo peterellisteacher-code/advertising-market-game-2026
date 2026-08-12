@@ -25,7 +25,7 @@ theme_override_font_sizes/font_size = 13
 autowrap_mode = 2
 
 [node name="PreviewPanel" type="PanelContainer" parent="."]
-custom_minimum_size = Vector2(0, 76)
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 
 [node name="PreviewColumn" type="VBoxContainer" parent="PreviewPanel"]
@@ -39,7 +39,7 @@ text = "LIVE HEADLINE"
 horizontal_alignment = 1
 
 [node name="HeadlinePreview" type="Label" parent="PreviewPanel/PreviewColumn"]
-custom_minimum_size = Vector2(0, 42)
+custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 theme_override_font_sizes/font_size = 19
 text = "Headline preview"
@@ -48,12 +48,12 @@ vertical_alignment = 1
 autowrap_mode = 2
 
 [node name="Workspace" type="HBoxContainer" parent="."]
-custom_minimum_size = Vector2(880, 226)
+custom_minimum_size = Vector2(880, 210)
 layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="RetainedPanel" type="PanelContainer" parent="Workspace"]
-custom_minimum_size = Vector2(550, 226)
+custom_minimum_size = Vector2(550, 210)
 layout_mode = 2
 size_flags_horizontal = 3
 
@@ -76,7 +76,7 @@ theme_override_constants/v_separation = 6
 columns = 3
 
 [node name="RemovedPanel" type="PanelContainer" parent="Workspace"]
-custom_minimum_size = Vector2(310, 226)
+custom_minimum_size = Vector2(310, 210)
 layout_mode = 2
 
 [node name="RemovedColumn" type="VBoxContainer" parent="Workspace/RemovedPanel"]
@@ -98,7 +98,7 @@ theme_override_constants/v_separation = 6
 columns = 2
 
 [node name="ReadoutRow" type="HBoxContainer" parent="."]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 theme_override_constants/separation = 8
 
@@ -115,7 +115,7 @@ theme_override_font_sizes/font_size = 13
 horizontal_alignment = 1
 
 [node name="DemonstrationFeedback" type="Label" parent="."]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
 autowrap_mode = 2

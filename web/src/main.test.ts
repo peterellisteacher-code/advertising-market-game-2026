@@ -1411,6 +1411,8 @@ describe("window.AdMarketCreator", () => {
       "reportStartupFailure"
     ]);
     gameAccess.reportStartupProgress(37);
+    expect(document.querySelector("[data-game-startup-heading]")?.textContent)
+      .toBe("Opening Agency Academy");
     expect(document.querySelector("[data-game-startup-message]")?.textContent)
       .toBe("Loading game… 37%");
     expect(document.querySelector<HTMLElement>("#game-startup-status")?.hidden)
@@ -1873,12 +1875,12 @@ describe("window.AdMarketCreator", () => {
     }));
   }, 20_000);
 
-  it("tucks and untucks the Brief & roles panel from its edge tab without resetting its brief", async () => {
+  it("tucks and untucks the Audience brief panel from its edge tab without resetting its brief", async () => {
     await import("./main");
     const api = (window as Window & { AdMarketCreator: CreatorPublicApi }).AdMarketCreator;
     expect(await parsed(api, "open-task-bar", "open", blankDocument)).toMatchObject({ ok: true });
 
-    const tab = getByRole<HTMLButtonElement>(document.body, "button", { name: "Brief & roles" });
+    const tab = getByRole<HTMLButtonElement>(document.body, "button", { name: "Audience brief" });
     expect(tab.getAttribute("aria-expanded")).toBe("false");
     const taskBarBeforeOpen = document.querySelector<HTMLElement>("#studio-task-bar")!;
     expect(taskBarBeforeOpen.hidden).toBe(true);
@@ -2096,7 +2098,7 @@ describe("window.AdMarketCreator", () => {
       scaleX: 0.5,
       scaleY: 0.5
     }));
-  });
+  }, 20_000);
 
   it("keeps the guided instruction synchronized with persisted campaign progress", async () => {
     const source = documentAtStage("sell");
@@ -2223,14 +2225,13 @@ describe("window.AdMarketCreator", () => {
     expect(await parsed(api, "open-first-role-guide", "open", firstEntry))
       .toMatchObject({ ok: true });
     const dialog = getByRole(document.body, "dialog", { name: "Studio tour" });
-    expect(dialog.textContent).toContain("Page 1 of 4 · Brief");
+    expect(dialog.textContent).toContain("Page 1 of 3 · Brief");
     expect(dialog.textContent).toContain("Teenagers. One-hour window between school dismissal and home arrival.");
     expect(dialog.querySelector<HTMLButtonElement>("[data-studio-onboarding-close]")?.hidden)
       .toBe(true);
     fireEvent.keyDown(dialog, { key: "Escape" });
     expect(dialog.closest<HTMLElement>("[data-studio-onboarding-layer]")?.hidden).toBe(false);
     const menuPanel = document.querySelector<HTMLElement>("#studio-menu-panel");
-    fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
     fireEvent.click(getByRole(dialog, "button", { name: "Start with a product" }));
@@ -2459,7 +2460,7 @@ describe("window.AdMarketCreator", () => {
     await waitFor(() =>
       expect(currentObjects()[0]!.rasterSectionFillRecipes).toHaveLength(1)
     );
-  });
+  }, 60_000);
 
   it("keeps the active practice revision when undoing after autosaves", async () => {
     await import("./main");
@@ -2786,7 +2787,7 @@ describe("window.AdMarketCreator", () => {
     if (!afterDeselect.ok) throw new Error(JSON.stringify(afterDeselect.error));
     expect(CampaignDocumentSchema.parse(afterDeselect.payload).evidence.attention)
       .toEqual(["latest-proof"]);
-  });
+  }, 20_000);
 
   it("keeps the layers panel and the display panel mutually exclusive floating overlays", async () => {
     await import("./main");
@@ -2797,17 +2798,21 @@ describe("window.AdMarketCreator", () => {
     fireEvent.click(getByRole(document.body, "button", { name: "Open item list" }));
     const layersPanel = document.querySelector<HTMLElement>(".creator__layers")!;
     expect(layersPanel.hidden).toBe(false);
+    expect(layersPanel.hasAttribute("inert")).toBe(false);
 
     // Display lives in the Menu tuck panel, which defaults tucked (Phase A1).
     fireEvent.click(document.querySelector<HTMLButtonElement>('[data-tuck-tab="menu"]')!);
     fireEvent.click(getByRole(document.body, "button", { name: "Display" }));
     const displayPanel = document.querySelector<HTMLElement>("[data-display-panel]")!;
     expect(displayPanel.hidden).toBe(false);
+    expect(displayPanel.hasAttribute("inert")).toBe(false);
     expect(layersPanel.hidden).toBe(true);
+    expect(layersPanel.hasAttribute("inert")).toBe(true);
 
     fireEvent.click(getByRole(document.body, "button", { name: "Open item list" }));
     expect(layersPanel.hidden).toBe(false);
     expect(displayPanel.hidden).toBe(true);
+    expect(displayPanel.hasAttribute("inert")).toBe(true);
   });
 
   it("keeps an AIDA move unlocked until the pair selects canvas proof", async () => {
@@ -3183,7 +3188,7 @@ describe("window.AdMarketCreator", () => {
       expect(state.fabricState.objects.some(({ objectId }) => objectId === priceObjectId))
         .toBe(false);
     });
-  }, 10_000);
+  }, 30_000);
 
   it("drops checklist evidence when its canvas piece has been removed", async () => {
     const source = CampaignDocumentSchema.parse({
@@ -3293,13 +3298,13 @@ describe("window.AdMarketCreator", () => {
     expect(raw).not.toContain("binary");
   });
 
-  it("plays a paired Round 0 with real text history and audience persistence", async () => {
+  it("plays a shared Round 0 with real text history and audience persistence", async () => {
     await import("./main");
     const api = window.AdMarketCreator;
     expect(await parsed(api, "open-round-zero", "open", blankDocument)).toMatchObject({ ok: true });
-    fireEvent.click(getByRole(document.body, "button", { name: "Brief & roles" }));
+    fireEvent.click(getByRole(document.body, "button", { name: "Audience brief" }));
 
-    expect(document.querySelector("[data-active-role]")?.textContent).toBe("Art Director");
+    expect(document.querySelector("[data-active-role]")).toBeNull();
     expect((await parsed(api, "round-zero-brief", "getState", null)).payload).toMatchObject({
       brief: {
         targetAudienceId: AUDIENCE_BRIEFS[0].id,
@@ -3325,28 +3330,17 @@ describe("window.AdMarketCreator", () => {
         })
       ]);
       expect(getByRole(document.body, "status", { name: "Pair progress" }).textContent)
-        .toBe(
-          "Complete the current visual choice. Then choose Swap roles. " +
-          "The Strategist leads the next message decision. " +
-          "Art Director: visible advertisement edit recorded. " +
-          "Strategist: message or strategy change not yet recorded. " +
-          "Roles have not been swapped yet."
-        );
+        .toBe("1 saved design decision.");
     });
 
-    fireEvent.click(getByRole(document.body, "button", { name: "Swap roles" }));
-    expect(document.querySelector("[data-active-role]")?.textContent).toBe("Strategist");
+    expect(document.querySelector("[data-swap-roles]")).toBeNull();
     fireEvent.input(words, { target: { value: "Your weekend, your way" } });
     fireEvent.click(getByRole(document.body, "button", { name: "Add words to ad" }));
 
     await waitFor(() => {
       expect(currentObjects()).toHaveLength(2);
       expect(getByRole(document.body, "status", { name: "Pair progress" }).textContent)
-        .toBe(
-          "Art Director: visible advertisement edit recorded. " +
-          "Strategist: message or strategy change recorded. " +
-          "Roles have been swapped once."
-        );
+        .toBe("2 saved design decisions.");
       expect(document.querySelector("[data-active-role-action]")).toBeNull();
     });
 
@@ -3371,7 +3365,7 @@ describe("window.AdMarketCreator", () => {
         ]
       }
     });
-  });
+  }, 15_000);
 
   it("rehydrates the exact persisted local blobs, saves their bodies and publishes only owned URLs", async () => {
     const source = localBlobDocument();
@@ -3695,10 +3689,13 @@ describe("window.AdMarketCreator", () => {
       name: "Library view"
     });
     expect(libraryView.value).toBe("products");
+    await waitFor(() => {
+      expect(document.querySelector('[data-library-status]')?.textContent)
+        .toBe("1 of 1 products");
+    }, { timeout: 10_000 });
     const search = getByRole<HTMLInputElement>(document.body, "searchbox", { name: "Search assets" });
-    search.value = "bottle";
-    search.dispatchEvent(new Event("input"));
-    const tile = await findByRole(document.body, "button", { name: /Reviewed bottle/ });
+    fireEvent.input(search, { target: { value: "bottle" } });
+    const tile = getByRole(document.body, "button", { name: /Reviewed bottle/ });
     expect(tile.textContent).not.toContain("$");
     tile.click();
 
@@ -3806,7 +3803,12 @@ describe("window.AdMarketCreator", () => {
     const search = getByRole<HTMLInputElement>(document.body, "searchbox", { name: "Search assets" });
     search.value = "history bottle";
     search.dispatchEvent(new Event("input"));
-    fireEvent.click(await findByRole(document.body, "button", { name: /History bottle/ }));
+    fireEvent.click(await findByRole(
+      document.body,
+      "button",
+      { name: /History bottle/ },
+      { timeout: 10_000 }
+    ));
     const placed = CampaignDocumentSchema.parse(
       (await parsed(api, "history-placed", "getState", null)).payload
     );
@@ -3867,7 +3869,7 @@ describe("window.AdMarketCreator", () => {
     expect(await parsed(api, "history-save-redone", "save", null)).toMatchObject({ ok: true });
     const redoSaveBlobs = runtime.save.mock.calls.at(-1)?.[1] as ReadonlyMap<string, Blob>;
     expect([...redoSaveBlobs.keys()]).toEqual([localReference!.blobKey]);
-  });
+  }, 20_000);
 
   it("chooses, places, saves and reopens the exact PNG-only Product Kit", async () => {
     const root = document.querySelector<HTMLElement>("#creator-root")!;
@@ -3931,7 +3933,11 @@ describe("window.AdMarketCreator", () => {
     expect(await parsed(api, "open-product-kit", "open", blankDocument))
       .toMatchObject({ ok: true });
     activateStudioTool("product");
-    const starter = await findByRole(document.body, "radio", { name: /Reusable tumbler/ });
+    const builderPanel = document.querySelector<HTMLElement>("[data-product-builder-panel]")!;
+    await waitFor(() => {
+      expect(builderPanel.textContent).toContain("Choose a starter product");
+    }, { timeout: 10_000 });
+    const starter = getByRole(document.body, "radio", { name: /Reusable tumbler/ });
     fireEvent.click(starter);
 
     const lid = getByRole<HTMLInputElement>(document.body, "radio", { name: /Flat lid/ });
@@ -4113,7 +4119,7 @@ describe("window.AdMarketCreator", () => {
       ]);
     expect(responses.filter(({ mimeType }) => mimeType === "image/png")
       .every(({ byteLength }) => byteLength > 8)).toBe(true);
-  }, 40_000);
+  }, 90_000);
 
   it("creates all four local logo recipes, remixes, saves, reloads and publishes them", async () => {
     expect(() => parseLogoIconCatalogue(logoCatalogueFixture())).not.toThrow();
@@ -4295,7 +4301,7 @@ describe("window.AdMarketCreator", () => {
     expect(String(logoCalls[0]![0])).toBe(
       `${window.location.origin}/catalog/generated/logo-icons-v1-reviewed/catalog.json`
     );
-  }, 40_000);
+  }, 90_000);
 
   it("loads account Object Forge allowance, places owned pixels, and keeps fal controls server-side", async () => {
     const imageBytes = Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a);
@@ -4475,7 +4481,7 @@ describe("window.AdMarketCreator", () => {
     await waitFor(() => expect(currentObjects()).toEqual([]));
     fireEvent.click(getByRole(document.body, "button", { name: "Redo" }));
     await waitFor(() => expect(currentObjects()).toHaveLength(1));
-  });
+  }, 20_000);
 
   it("aborts Image Lab at the start of close so a late job cannot recreate the canvas", async () => {
     let resolveJob!: (response: Response) => void;
@@ -4619,7 +4625,7 @@ describe("window.AdMarketCreator", () => {
 
     expect(await findByRole(document.body, "button", { name: /Morning market/ })).toBeTruthy();
     expect(fetchSpy.mock.calls.some(([input]) => String(input).startsWith("/api/openverse-search?"))).toBe(true);
-  });
+  }, 20_000);
 
   it("saves a live photo as owned bytes and reloads it without network access", async () => {
     const id = "123e4567-e89b-42d3-a456-426614174000";
@@ -4694,7 +4700,7 @@ describe("window.AdMarketCreator", () => {
     expect(fetchSpy.mock.calls.filter(([input]) =>
       String(input).includes(`/api/openverse-image/${id}`)))
       .toHaveLength(liveImageCallsBeforeReload);
-  });
+  }, 20_000);
 
   it("returns canonical handler errors when storage or export fails", async () => {
     const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);

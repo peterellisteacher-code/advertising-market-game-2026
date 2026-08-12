@@ -208,7 +208,7 @@ test("the lobby opens only the isolated assignment sandbox document", async () =
     scene,
     /\[node name="OpenAssignmentSandbox" type="Button"[^\]]*\][\s\S]*?unique_name_in_owner = true[\s\S]*?(?=\n\[node |\s*$)/
   );
-  assert.match(scene, /text = "Assignment sandbox"/);
+  assert.match(scene, /text = "Open assignment sandbox"/);
   assert.match(main, /creator_host\.load_latest\(ASSIGNMENT_SANDBOX_DOCUMENT_ID\)/);
   assert.match(
     main,
@@ -260,7 +260,7 @@ test("the Godot shell mirrors current instructions semantically without pretendi
   assert.match(main, /func _process\(_delta: float\) -> void:/);
   assert.match(
     scene,
-    /text = "First you will invent a product, then you will create an advertisement for it\."/
+    /text = "Build one persuasive advertisement with your partner\."/
   );
   assert.match(
     scene,
@@ -462,7 +462,7 @@ test("published campaigns use the isolated pitch theatre before the market gate"
   assert.match(main, /@onready var pitch_theatre: AdMarketPitchTheatre = %PitchTheatre/);
   assert.match(
     main,
-    /pitch_theatre\.present\(publication, progress, agency_world\.reduced_motion_enabled\)/
+    /pitch_theatre\.present\(pitch_publication, progress, agency_world\.reduced_motion_enabled\)/
   );
   assert.match(main, /func _complete_pitch_when_ready\(\) -> void:/);
   assert.match(main, /not _pitch_finished or not _pitch_market_ready/);
@@ -554,7 +554,7 @@ test("agency world travel keeps every room reachable with collision-safe arrival
   assert.match(stationScene, /theme_override_font_sizes\/font_size = 16/);
   assert.doesNotMatch(stationScene, /OwnerRoleBadge/);
   assert.doesNotMatch(pairScene, /(?:ArtDirectorLabel|StrategistLabel)/);
-  assert.match(world, /tab\.text = "Open %s" % String\(record\.get\("title"/);
+  assert.match(world, /tab\.text = "Open room: %s" % String\(record\.get\("title"/);
 });
 
 test("missionEvidence parity: the Godot bridge validates it and the web schema declares it optional", async () => {

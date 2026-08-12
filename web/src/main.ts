@@ -204,7 +204,6 @@ import {
   creatorStageAllows
 } from "./game/creator-level-access";
 import { GuidedJourneyController } from "./game/guided-journey-controller";
-import { RoleGuideController } from "./game/role-guide-controller";
 import { StudioOnboardingController } from "./game/studio-onboarding-controller";
 import { SectionFillController } from "./tools/section-fill-controller";
 
@@ -305,7 +304,6 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #assignmentPlannerPanel: AssignmentPlannerPanel | null = null;
   #productKitPanel: ProductKitPanel | null = null;
   #guidedJourney: GuidedJourneyController | null = null;
-  #roleGuide: RoleGuideController | null = null;
   #studioOnboarding: StudioOnboardingController | null = null;
   #aidaStage: AidaStage = "attention";
   #rasterPricing: RasterPricingIndex | null = null;
@@ -581,14 +579,6 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     }
     this.#guidedJourney = controller;
     this.#refreshGuidedJourney();
-  }
-
-  attachRoleGuide(controller: RoleGuideController): void {
-    if (this.#roleGuide !== null && this.#roleGuide !== controller) {
-      throw new Error("Partner role guide is already attached");
-    }
-    this.#roleGuide = controller;
-    this.#refreshRoleGuide();
   }
 
   attachStudioOnboarding(controller: StudioOnboardingController): void {
@@ -1160,7 +1150,6 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       if (this.#imageLab !== null) void this.#imageLab.initialise();
       this.#setOpen(true);
       this.#refreshGuidedJourney();
-      this.#refreshRoleGuide();
       this.#refreshStudioOnboarding();
     } catch (error) {
       this.#pairGame?.close();
@@ -1191,7 +1180,6 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       this.#blobs.clear();
       this.#document = null;
       this.#guidedJourney?.setCampaign(null);
-      this.#roleGuide?.setCampaign(null);
       this.#studioOnboarding?.setCampaign(null);
       this.#refreshMoneyCheck();
       this.#refreshMarketRoute();
@@ -1598,7 +1586,6 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     });
     attempt(() => this.#logoLab?.setMarks([]));
     attempt(() => this.#guidedJourney?.setCampaign(null));
-    attempt(() => this.#roleGuide?.setCampaign(null));
     attempt(() => this.#studioOnboarding?.setCampaign(null));
     attempt(() => this.#setOpen(false));
     attempt(() => this.gameCanvas?.focus({ preventScroll: true }));
@@ -1811,18 +1798,6 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       ? this.#document
       : this.#snapshot();
     this.#guidedJourney.setCampaign(document);
-  }
-
-  #refreshRoleGuide(): void {
-    if (this.#roleGuide === null) return;
-    if (this.#document === null || this.#document.workspaceMode === "assignment-sandbox") {
-      this.#roleGuide.setCampaign(null);
-      return;
-    }
-    const document = this.#runtime === null
-      ? this.#document
-      : this.#snapshot();
-    this.#roleGuide.setCampaign(document);
   }
 
   #refreshStudioOnboarding(): void {
@@ -2298,7 +2273,7 @@ const menuTuck: TuckPanelHandle = tuckShell.register({
 const briefTuck: TuckPanelHandle = tuckShell.register({
   id: "brief",
   edge: "top",
-  tabLabel: "Brief & roles",
+  tabLabel: "Audience brief",
   defaultTucked: true,
   panel: shell.taskBar,
   tabStrip: shell.tuckTabsTop
@@ -2653,11 +2628,6 @@ const guidedJourney = new GuidedJourneyController(shell.overlay, (step) => {
     shell.overlay.querySelector<HTMLButtonElement>('[data-command="return"]')?.click();
     return;
   }
-  if (step.id === "roles") {
-    briefTuck.untuck({ focus: false });
-    shell.overlay.querySelector<HTMLButtonElement>("[data-role-guide-open]")?.click();
-    return;
-  }
   if (step.id === "product-name") {
     menuTuck.untuck({ focus: false });
     shell.overlay.querySelector<HTMLInputElement>('input[aria-label="Product name"]')?.focus();
@@ -2673,12 +2643,6 @@ const guidedJourney = new GuidedJourneyController(shell.overlay, (step) => {
     const briefToggle = shell.overlay.querySelector<HTMLButtonElement>("[data-brief-toggle]");
     if (briefToggle?.getAttribute("aria-expanded") !== "true") briefToggle?.click();
     shell.audienceSignal.focus();
-    return;
-  }
-  if (step.id === "pair-contribution") {
-    briefTuck.untuck({ focus: false });
-    studioTools.select("product");
-    shell.swapRoles.focus();
     return;
   }
   studioTools.select(step.tool);
@@ -2752,17 +2716,6 @@ const pairGame = new PairGameController(
   () => handler.schedulePracticeAutosave()
 );
 handler.attachPairGame(pairGame);
-const roleGuide = new RoleGuideController(
-  root,
-  shell.overlay,
-  () => {
-    pairGame.acknowledgeRoleGuide();
-    handler.schedulePracticeAutosave();
-  },
-  () => shell.overlay.querySelector<HTMLButtonElement>("[data-guide-open-tool]")?.focus(),
-  false
-);
-handler.attachRoleGuide(roleGuide);
 let tourCloseRetuck: number | null = null;
 const studioOnboarding = new StudioOnboardingController(
   root,
@@ -2801,7 +2754,7 @@ const studioOnboarding = new StudioOnboardingController(
       tourCloseRetuck = null;
     }
     menuTuck.untuck({ focus: false });
-    if (pageId === "brief" || pageId === "roles") briefTuck.untuck({ focus: false });
+    if (pageId === "brief") briefTuck.untuck({ focus: false });
     else briefTuck.tuck({ focus: false });
   }
 );

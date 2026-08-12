@@ -119,7 +119,7 @@ describe("GuidedJourneyController", () => {
     expect(methods.textContent).not.toMatch(/\bcode\b/i);
   });
 
-  it("navigates the six-page reference manual with labelled controls and cleans up listeners", () => {
+  it("navigates the five-page reference manual with labelled controls and cleans up listeners", () => {
     const { root, controller } = setup();
     controller.setCampaign(campaign());
     const dialog = root.querySelector<HTMLElement>("[data-guide-dialog]")!;
@@ -130,19 +130,19 @@ describe("GuidedJourneyController", () => {
     expect(getByRole(root, "dialog", { name: "How to use this site" }))
       .toBe(dialog);
     expect(dialog.hidden).toBe(false);
-    expect(dialog.textContent).toContain("Page 1 of 6 · Goal");
+    expect(dialog.textContent).toContain("Page 1 of 5 · Goal");
     expect(dialog.querySelector<HTMLButtonElement>("[data-guide-previous]")!.hidden).toBe(true);
     const previous = dialog.querySelector<HTMLButtonElement>("[data-guide-previous]")!;
     const next = dialog.querySelector<HTMLButtonElement>("[data-guide-next]")!;
     expect(dialog.querySelectorAll("[data-guide-manual-page]:not([hidden])")).toHaveLength(1);
     fireEvent.click(next);
-    expect(dialog.textContent).toContain("Page 2 of 6 · Brief");
+    expect(dialog.textContent).toContain("Page 2 of 5 · Brief");
     expect(previous.hidden).toBe(false);
     expect(dialog.querySelectorAll("[data-guide-manual-page]:not([hidden])")).toHaveLength(1);
     fireEvent.click(previous);
-    expect(dialog.textContent).toContain("Page 1 of 6 · Goal");
-    for (let page = 1; page <= 6; page += 1) fireEvent.click(next);
-    expect(dialog.textContent).toContain("Page 6 of 6 · Pitch");
+    expect(dialog.textContent).toContain("Page 1 of 5 · Goal");
+    for (let page = 1; page <= 5; page += 1) fireEvent.click(next);
+    expect(dialog.textContent).toContain("Page 5 of 5 · Pitch");
     expect(next.hidden).toBe(true);
     expect(dialog.querySelectorAll("[data-guide-manual-page]:not([hidden])")).toHaveLength(1);
     expect(document.activeElement).toBe(
@@ -191,7 +191,7 @@ describe("GuidedJourneyController", () => {
     expect(root.querySelector<HTMLButtonElement>("[data-slot=desire]")!.disabled).toBe(true);
   });
 
-  it("keeps completed AIDA work available when an earlier pair requirement is incomplete", () => {
+  it("keeps completed AIDA work available without legacy pair-role requirements", () => {
     const { root, controller } = setup();
     const document = campaign("sell");
     completeInvent(document);
@@ -203,7 +203,7 @@ describe("GuidedJourneyController", () => {
     controller.setCampaign(document);
 
     expect(root.querySelector<HTMLButtonElement>("[data-slot=attention]")!.disabled).toBe(false);
-    expect(root.querySelector<HTMLButtonElement>("[data-slot=interest]")!.disabled).toBe(true);
+    expect(root.querySelector<HTMLButtonElement>("[data-slot=interest]")!.disabled).toBe(false);
   });
 
   it("keeps the market route unavailable until price evidence is visible", () => {

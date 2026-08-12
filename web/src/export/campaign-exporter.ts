@@ -195,13 +195,6 @@ function validatePriceIntegrity(document: CampaignDocumentV1): void {
   }
 }
 
-function validatePairParticipation(document: CampaignDocumentV1): void {
-  const pair = document.gameplay.pair;
-  if (pair.handoffCount < 1 || pair.artDirectorActions < 1 || pair.strategistActions < 1) {
-    throw new Error("Before the market opens, swap control once. Both players each make one visible change.");
-  }
-}
-
 function canvasStateWithoutGuides(value: Record<string, unknown>): Record<string, unknown> {
   const clone = structuredClone(value);
   if (!Array.isArray(clone.objects)) throw new Error("Canvas serialization has no object array");
@@ -277,7 +270,6 @@ export class CampaignExporter {
     for (const slot of CHECKLIST_SLOTS) {
       if (parsed.evidence[slot].length === 0) throw new Error(`${slot} evidence is required for publication`);
     }
-    validatePairParticipation(parsed);
     validatePriceIntegrity(parsed);
     validateRasterSources(parsed, this.#ownedUrls);
 

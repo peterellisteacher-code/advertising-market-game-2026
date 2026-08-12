@@ -58,7 +58,7 @@ export const INSTRUCTION_ARGUMENT: readonly InstructionSubargument[] = Object.fr
   subargument(
     "A",
     "Establish a shared audience purpose",
-    "This section answers two basic questions: who are you trying to persuade, and which partner is responsible for the next kind of decision? The audience brief describes a group of people in a particular situation.",
+    "This section answers one basic question: who are you trying to persuade? The audience brief describes a group of people in a particular situation, and the pair makes every decision together.",
     [
     claim(
       "P1",
@@ -75,7 +75,7 @@ export const INSTRUCTION_ARGUMENT: readonly InstructionSubargument[] = Object.fr
     claim(
       "P3",
       "premise",
-      "Assigning the Art Director and Strategist roles gives each partner a stated responsibility for the same audience brief.",
+      "Making the advertisement together keeps every product and message choice connected to the same audience brief.",
       ["ICA"]
     ),
     claim(
@@ -127,7 +127,7 @@ export const INSTRUCTION_ARGUMENT: readonly InstructionSubargument[] = Object.fr
   subargument(
     "C",
     "Turn the product into an advertisement",
-    "An advertisement combines what people see with what they read. The Art Director makes a visible design choice. The Strategist writes or plans the message. AIDA gives the message four jobs: attract attention, hold interest, create desire and tell the audience what to do.",
+    "An advertisement combines what people see with what they read. The pair makes the visual and message choices together. AIDA gives the message four jobs: attract attention, hold interest, create desire and tell the audience what to do.",
     [
     claim(
       "P10",
@@ -139,13 +139,13 @@ export const INSTRUCTION_ARGUMENT: readonly InstructionSubargument[] = Object.fr
     claim(
       "P11",
       "premise",
-      "The Art Director's visible change supplies evidence of a deliberate visual choice.",
+      "A visible change supplies evidence of a deliberate visual choice.",
       ["ICC"]
     ),
     claim(
       "P12",
       "premise",
-      "The Strategist's wording supplies evidence of a deliberate message choice.",
+      "Saved wording supplies evidence of a deliberate message choice.",
       ["ICC"]
     ),
     claim(

@@ -184,10 +184,7 @@ describe("publication readiness", () => {
         "interest",
         "desire",
         "action",
-        "market-route",
-        "role-handoff",
-        "art-director-action",
-        "strategist-action"
+        "market-route"
       ]
     });
     expect(PUBLICATION_MISSING_CODES).toEqual([
@@ -198,10 +195,7 @@ describe("publication readiness", () => {
       "interest",
       "desire",
       "action",
-      "market-route",
-      "role-handoff",
-      "art-director-action",
-      "strategist-action"
+      "market-route"
     ]);
     expect(session).toEqual(sessionSnapshot);
     expect(progress).toEqual(progressSnapshot);
@@ -242,10 +236,7 @@ describe("publication readiness", () => {
             proofPoint: " "
           }
         }
-      }],
-      ["role-handoff", { ...readySession(), handoffCount: 0 }, readyProgress(), readyCampaign()],
-      ["art-director-action", readySession(), { "art-director": 0, strategist: 1 }, readyCampaign()],
-      ["strategist-action", readySession(), { "art-director": 1, strategist: 0 }, readyCampaign()]
+      }]
     ];
 
     for (const [missingCode, session, progress, campaign] of cases) {

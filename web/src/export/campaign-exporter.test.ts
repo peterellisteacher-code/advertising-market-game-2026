@@ -174,7 +174,7 @@ function nestPhoto(
 }
 
 describe("CampaignExporter", () => {
-  it("rejects a solo publication until both players act and swap once", () => {
+  it("publishes without legacy role counters when the advertisement is complete", () => {
     const document = documentFixture();
     document.gameplay.pair = {
       activeRole: "art-director",
@@ -186,8 +186,8 @@ describe("CampaignExporter", () => {
     const port = new ExportHarness(pngDataUrl(), document.fabricState);
 
     expect(() => new CampaignExporter(port, ownedUrls(document)).publish(document))
-      .toThrow("Before the market opens, swap control once. Both players each make one visible change.");
-    expect(port.renderCount).toBe(0);
+      .not.toThrow();
+    expect(port.renderCount).toBe(1);
   });
 
   it("returns the exact publication contract from a clean 1600 by 900 PNG", () => {

@@ -96,10 +96,7 @@ function createPairGameView(): { root: HTMLElement; view: PairGameView } {
   document.body.innerHTML = `
     <main data-test-root>
       <section role="region" aria-label="Pair play">
-        <h2 data-active-role></h2>
-        <span data-partner-role></span>
         <p role="status" aria-label="Pair progress" data-round-progress></p>
-        <button type="button" data-swap-roles>Swap roles</button>
       <label>Audience brief <select data-audience-signal></select></label>
         <section role="region" aria-label="Audience brief">
           <p data-audience-context></p>
@@ -127,10 +124,7 @@ function createPairGameView(): { root: HTMLElement; view: PairGameView } {
   return {
     root,
     view: {
-      activeRole: root.querySelector("[data-active-role]")!,
-      partnerRole: root.querySelector("[data-partner-role]")!,
       roundProgress: root.querySelector("[data-round-progress]")!,
-      swapRoles: root.querySelector("[data-swap-roles]")!,
       audienceSignal: root.querySelector("[data-audience-signal]")!,
       audienceContext: root.querySelector("[data-audience-context]")!,
       audienceNeed: root.querySelector("[data-audience-need]")!,
@@ -166,7 +160,6 @@ describe("PairGameController", () => {
     await controller.open(campaign);
 
     expect(port.briefIds).toEqual([AUDIENCE_BRIEFS[0].id]);
-    expect(getByRole(root, "heading", { name: "Art Director" })).toBeTruthy();
     const audienceSignal = getByRole<HTMLSelectElement>(root, "combobox", {
       name: "Audience brief"
     });
@@ -176,18 +169,13 @@ describe("PairGameController", () => {
     expect(root.textContent).toContain(AUDIENCE_BRIEFS[0].need);
     expect(root.textContent).toContain(AUDIENCE_BRIEFS[0].values.join(", "));
     expect(root.textContent).toContain(AUDIENCE_BRIEFS[0].intendedEffect);
-    expect(view.partnerRole.textContent).toBe("Strategist");
-    expect(root.querySelector("[data-active-role-action]")).toBeNull();
-    expect(view.roundProgress.textContent).toContain(
-      "Art Director: visible advertisement edit not yet recorded."
-    );
-    expect(view.roundProgress.textContent).toContain(
-      "Strategist: message or strategy change not yet recorded."
-    );
-    expect(view.roundProgress.textContent).toContain("Roles have not been swapped yet.");
+    expect(view.roundProgress.textContent).toBe("0 saved design decisions.");
+    expect(root.textContent).not.toContain("Art Director");
+    expect(root.textContent).not.toContain("Strategist");
+    expect(root.querySelector("[data-swap-roles]")).toBeNull();
   });
 
-  it("tracks both roles across text, canvas changes, handoff and reopen", async () => {
+  it("tracks collective design decisions across text, canvas changes and reopen", async () => {
     const campaign = campaignFixture();
     const port = new RoundZeroHarness(campaign);
     const { root, view } = createPairGameView();
@@ -201,22 +189,11 @@ describe("PairGameController", () => {
 
     await waitFor(() => {
       expect(port.addedText).toEqual(["Make room for adventure"]);
-      expect(root.textContent).toContain("Art Director: visible advertisement edit recorded.");
-      // The swap prompt is announced through the status region, not shown
-      // as standing copy.
-      expect(view.roundProgress.textContent).toContain(
-        "Complete the current visual choice. Then choose Swap roles. The Strategist leads the next message decision."
-      );
+      expect(view.roundProgress.textContent).toBe("1 saved design decision.");
     });
 
-    fireEvent.click(getByRole(root, "button", { name: "Swap roles" }));
-    expect(getByRole(root, "heading", { name: "Strategist" })).toBeTruthy();
-    expect(view.partnerRole.textContent).toBe("Art Director");
     port.emitCanvasMutation();
-    expect(view.roundProgress.textContent).toContain(
-      "Strategist: message or strategy change recorded."
-    );
-    expect(view.roundProgress.textContent).toContain("Roles have been swapped once.");
+    expect(view.roundProgress.textContent).toBe("2 saved design decisions.");
 
     const persistedPair = controller.snapshot();
     if (persistedPair === null) throw new Error("Expected open pair progress");
@@ -226,18 +203,16 @@ describe("PairGameController", () => {
     const reopened = new PairGameController(view, port);
     await reopened.open(reopenedDocument);
 
-    expect(getByRole(root, "heading", { name: "Strategist" })).toBeTruthy();
     expect(reopened.snapshot()).toEqual({
-      activeRole: "strategist",
-      handoffCount: 1,
-      artDirectorActions: 1,
-      strategistActions: 1,
+      activeRole: "art-director",
+      handoffCount: 0,
+      artDirectorActions: 2,
+      strategistActions: 0,
       roleGuideAcknowledged: false
     });
   });
 
-
-  it("announces pair durability only after handoff and action counters change", async () => {
+  it("announces and persists one collective canvas decision", async () => {
     const campaign = campaignFixture();
     const port = new RoundZeroHarness(campaign);
     const { root, view } = createPairGameView();
@@ -250,30 +225,21 @@ describe("PairGameController", () => {
     );
     await controller.open(campaign);
 
-    fireEvent.click(getByRole(root, "button", { name: "Swap roles" }));
-    expect(view.polite.textContent).toContain("responsibilities");
-    expect(view.polite.textContent).toContain("recorded authorship history remains");
     port.emitCanvasMutation();
 
     expect(changes).toEqual([
       {
-        activeRole: "strategist",
-        handoffCount: 1,
-        artDirectorActions: 0,
+        activeRole: "art-director",
+        handoffCount: 0,
+        artDirectorActions: 1,
         strategistActions: 0,
-        roleGuideAcknowledged: false
-      },
-      {
-        activeRole: "strategist",
-        handoffCount: 1,
-        artDirectorActions: 0,
-        strategistActions: 1,
         roleGuideAcknowledged: false
       }
     ]);
+    expect(view.roundProgress.textContent).toBe("1 saved design decision.");
   });
 
-  it("persists role-guide acknowledgement without changing contribution history", async () => {
+  it("persists studio-tour acknowledgement without changing decision history", async () => {
     const campaign = campaignFixture();
     const port = new RoundZeroHarness(campaign);
     const { view } = createPairGameView();
@@ -343,7 +309,6 @@ describe("PairGameController", () => {
     await controller.open(campaign);
     controller.dispose();
 
-    fireEvent.click(getByRole(root, "button", { name: "Swap roles" }));
     fireEvent.input(getByRole(root, "textbox", { name: "Advertisement words" }), {
       target: { value: "No longer active" }
     });
@@ -352,7 +317,7 @@ describe("PairGameController", () => {
 
     await Promise.resolve();
     expect(port.addedText).toEqual([]);
-    expect(getByRole(root, "heading", { name: "Art Director" })).toBeTruthy();
+    expect(view.roundProgress.textContent).toBe("0 saved design decisions.");
   });
 
   it("routes selected-product words and explains when a product is not selected", async () => {

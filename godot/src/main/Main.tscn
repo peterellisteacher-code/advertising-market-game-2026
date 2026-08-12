@@ -246,19 +246,6 @@ theme_override_styles/hover = SubResource("Style_secondary")
 theme_override_styles/focus = SubResource("Style_focus")
 text = "Review all instructions"
 
-[node name="RoleGuide" type="Button" parent="MainMargin/GameInput/BrandRow" unique_id=1856009854]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 42)
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("Style_secondary")
-theme_override_styles/pressed = SubResource("Style_secondary")
-theme_override_styles/hover = SubResource("Style_secondary")
-theme_override_styles/focus = SubResource("Style_focus")
-text = "Role guide"
-
 [node name="AccountClearance" type="Control" parent="MainMargin/GameInput/BrandRow" unique_id=1055410977]
 custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
@@ -862,47 +849,6 @@ Use the same five criteria to review your own completed market card and to score
 
 [b]Overall conclusion[/b]
 Therefore, a campaign that completes each linked step is likely to communicate an effective and credible offer to its audience, and the shared scoring process is likely to produce a fair comparison."
-
-[node name="RoleGuideDialog" type="AcceptDialog" parent="." unique_id=2060890745]
-unique_name_in_owner = true
-title = "Pair role guide"
-initial_position = 1
-size = Vector2i(720, 420)
-ok_button_text = "Close"
-
-[node name="RoleGuideText" type="RichTextLabel" parent="RoleGuideDialog" unique_id=386787641]
-unique_name_in_owner = true
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 24.0
-offset_top = 24.0
-offset_right = -24.0
-offset_bottom = -72.0
-grow_horizontal = 2
-grow_vertical = 2
-focus_mode = 2
-theme_override_font_sizes/normal_font_size = 17
-bbcode_enabled = true
-text = "[b]The same controls are available to both partners[/b]
-
-Both partners can use the same tools that are available in the current level. The roles do not unlock different buttons. The role names divide responsibility for decisions; they are not separate site permissions.
-
-[b]Art Director: leads visual decisions[/b]
-
-The Art Director is responsible for what the advertisement looks like: product images, colour, size, position and layout. For example, the Art Director can choose a product image, enlarge it, change a colour and decide where the headline sits.
-
-[b]Strategist: leads message and offer decisions[/b]
-
-The Strategist is responsible for what the advertisement says and why the offer should persuade the audience: product name, benefit, AIDA message, price, market route and proof point. For example, the Strategist can name the product, write its benefit, choose a suitable price and add a proof point.
-
-[b]How a turn works[/b]
-
-The active role tells you whose turn should make the next change with the keyboard or trackpad. The other partner advises, checks the audience brief and prepares the next decision. The site records the role that is active. It does not block tools or identify which person physically touched the device.
-
-[b]What Swap roles changes[/b]
-
-Swapping roles changes the active responsibility and the role recorded for later changes. Earlier work and recorded contributions stay in the campaign. Both partners should be able to explain how the image and message work together for the chosen audience."
 
 [node name="CreatorHost" type="Node" parent="." unique_id=1220491040]
 unique_name_in_owner = true

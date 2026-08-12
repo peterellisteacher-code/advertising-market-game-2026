@@ -9,12 +9,9 @@ import {
   type AudienceBrief
 } from "./audience-briefs";
 import {
-  bothRolesHaveActed,
   createPairSession,
   recordProductiveAction,
   selectAudienceBrief,
-  swapActiveRole,
-  type PairRole,
   type PairRoleProgress,
   type PairSession
 } from "./pair-session";
@@ -25,10 +22,7 @@ import {
 } from "../product-kit/curved-label-renderer";
 
 export interface PairGameView {
-  activeRole: HTMLElement;
-  partnerRole: HTMLElement;
   roundProgress: HTMLElement;
-  swapRoles: HTMLButtonElement;
   audienceSignal: HTMLSelectElement;
   audienceContext: HTMLElement;
   audienceNeed: HTMLElement;
@@ -66,10 +60,6 @@ interface StoredPairState {
 type ListenerDisposer = () => void;
 export type PairStateChangeListener = (state: CampaignPairStateV1) => void;
 
-function oppositeRole(role: PairRole): PairRole {
-  return role === "art-director" ? "strategist" : "art-director";
-}
-
 export class PairGameController {
   readonly #view: PairGameView;
   readonly #port: RoundZeroPort;
@@ -92,7 +82,6 @@ export class PairGameController {
     this.#now = now;
     this.#onPairChange = onPairChange;
     this.#populateAudienceSignals();
-    this.#listen(view.swapRoles, "click", () => this.#swapRoles());
     this.#listen(view.audienceSignal, "change", () => this.#changeAudience());
     this.#listen(view.addWords, "click", () => this.#addWords());
     this.#listen(view.productWords, "click", () => this.#addProductWords());
@@ -196,19 +185,6 @@ export class PairGameController {
   ): void {
     target.addEventListener(eventName, listener);
     this.#listenerDisposers.push(() => target.removeEventListener(eventName, listener));
-  }
-
-  #swapRoles(): void {
-    if (this.#current === null || this.#disposed) {
-      return;
-    }
-    const session = swapActiveRole(this.#current.session);
-    this.#replaceCurrent({ ...this.#current, session });
-    this.#render();
-    this.#notifyPairChange();
-    this.#view.polite.textContent = session.activeRole === "art-director"
-      ? STUDENT_COPY.handoff.toArtDirector
-      : STUDENT_COPY.handoff.toStrategist;
   }
 
   #changeAudience(): void {
@@ -333,10 +309,6 @@ export class PairGameController {
     if (this.#current === null) {
       return;
     }
-    const activeRole = this.#current.session.activeRole;
-    const partnerRole = oppositeRole(activeRole);
-    this.#view.activeRole.textContent = STUDENT_COPY.rolePrompts[activeRole].label;
-    this.#view.partnerRole.textContent = STUDENT_COPY.rolePrompts[partnerRole].label;
     this.#view.audienceSignal.value = this.#current.session.audienceBriefId;
     this.#renderBrief(getAudienceBrief(this.#current.session.audienceBriefId));
     this.#renderProgress();
@@ -353,28 +325,9 @@ export class PairGameController {
     if (this.#current === null) {
       return;
     }
-    const progress = this.#current.progress;
-    const activeRole = this.#current.session.activeRole;
-    const partnerRole = oppositeRole(activeRole);
-    // The status region is aural-only: the visible strip stays a compact
-    // functional row, and the swap prompt leads the announcement when the
-    // active role has acted but the partner has not.
-    const swapPrompt = !bothRolesHaveActed(progress) && progress[activeRole] > 0
-      ? (partnerRole === "art-director"
-        ? STUDENT_COPY.handoff.promptToArtDirector
-        : STUDENT_COPY.handoff.promptToStrategist)
-      : null;
-    this.#view.roundProgress.textContent = [
-      ...(swapPrompt === null ? [] : [swapPrompt]),
-      progress["art-director"] > 0
-        ? STUDENT_COPY.roundZero.artDirectorRecorded
-        : STUDENT_COPY.roundZero.artDirectorMissing,
-      progress.strategist > 0
-        ? STUDENT_COPY.roundZero.strategistRecorded
-        : STUDENT_COPY.roundZero.strategistMissing,
-      this.#current.session.handoffCount > 0
-        ? STUDENT_COPY.roundZero.rolesSwapped
-        : STUDENT_COPY.roundZero.rolesNotSwapped
-    ].join(" ");
+    const savedDecisions = this.#current.progress["art-director"] +
+      this.#current.progress.strategist;
+    this.#view.roundProgress.textContent = String(savedDecisions) +
+      " saved design " + (savedDecisions === 1 ? "decision." : "decisions.");
   }
 }

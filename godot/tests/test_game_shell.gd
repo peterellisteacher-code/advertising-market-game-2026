@@ -651,7 +651,6 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
 	var create_live := shell.get_node("%CreateLiveMarket") as Button
 	var launch := shell.get_node("%LaunchCreator") as Button
 	var review_instructions := shell.get_node("%ReviewInstructions") as Button
-	var role_guide := shell.get_node("%RoleGuide") as Button
 	var enter_market := shell.get_node("%EnterMarket") as Button
 	var hero_copy := shell.get_node("MainMargin/GameInput/HeroCopy") as Label
 	var brand := shell.get_node("MainMargin/GameInput/BrandRow/Brand") as Label
@@ -674,8 +673,7 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
 	assert(publish.visible)
 	assert(review_instructions.text == "Review all instructions")
 	assert(review_instructions.focus_mode == Control.FOCUS_ALL)
-	assert(role_guide.text == "Role guide")
-	assert(role_guide.focus_mode == Control.FOCUS_ALL)
+	assert(shell.get_node_or_null("%RoleGuide") == null)
 	assert(enter_market.text == "Enter market")
 	assert(not enter_market.visible)
 	assert((shell.get_node("MainMargin/GameInput/RunPanel/RunContent") as VBoxContainer).alignment == BoxContainer.ALIGNMENT_CENTER)
@@ -745,17 +743,14 @@ func _instructions_remain_available_as_a_complete_reference() -> bool:
 	var review_instructions := shell.get_node("%ReviewInstructions") as Button
 	var instructions_dialog := shell.get_node("%InstructionsDialog") as AcceptDialog
 	var instructions_text := shell.get_node("%InstructionsText") as RichTextLabel
-	var role_guide := shell.get_node("%RoleGuide") as Button
-	var role_dialog := shell.get_node("%RoleGuideDialog") as AcceptDialog
-	var role_text := shell.get_node("%RoleGuideText") as RichTextLabel
 	assert(
 		review_instructions.pressed.is_connected(Callable(shell, "_show_instructions"))
 	)
-	assert(role_guide.pressed.is_connected(Callable(shell, "_show_role_guide")))
+	assert(shell.get_node_or_null("%RoleGuide") == null)
+	assert(shell.get_node_or_null("%RoleGuideDialog") == null)
+	assert(shell.get_node_or_null("%RoleGuideText") == null)
 	assert(not instructions_dialog.visible)
-	assert(not role_dialog.visible)
 	assert(instructions_dialog.title == "Advertisement instructions")
-	assert(role_dialog.title == "Pair role guide")
 	assert(instructions_text.focus_mode == Control.FOCUS_ALL)
 	for section in [
 		"Audience and product",
@@ -765,14 +760,6 @@ func _instructions_remain_available_as_a_complete_reference() -> bool:
         "Overall conclusion"
 	]:
 		assert(instructions_text.text.contains(section))
-	for required in [
-		"The same controls are available to both partners",
-		"The roles do not unlock different buttons",
-		"Art Director: leads visual decisions",
-		"Strategist: leads message and offer decisions",
-        "Swapping roles changes the active responsibility"
-	]:
-		assert(role_text.text.contains(required))
 	instructions_dialog.hide()
 	shell.free()
 	return true
@@ -873,18 +860,18 @@ func _campaign_moves_gate_each_level() -> bool:
 		assert(not bool(shell.get("_level_locked")))
 		assert(advance.disabled)
 
-	var solo_invent := invent_ready.duplicate(true)
-	solo_invent["gameplay"]["pair"] = {
+	var legacy_uneven_pair := invent_ready.duplicate(true)
+	legacy_uneven_pair["gameplay"]["pair"] = {
 		"activeRole": "art-director",
 		"handoffCount": 0,
 		"artDirectorActions": 1,
 		"strategistActions": 0
 	}
-	_deliver_saved_creator_state(shell, solo_invent)
+	_deliver_saved_creator_state(shell, legacy_uneven_pair)
 	lock.pressed.emit()
 	assert(
-		status.text == "Next: swap roles once.",
-		"Unexpected readiness status: %s" % status.text
+		status.text == _agency_mission_gate_clue(),
+		"Legacy role counters must not block shared decisions: %s" % status.text
 	)
 	assert(not bool(shell.get("_level_locked")))
 	assert(advance.disabled)

@@ -84,11 +84,8 @@ const AIDA_NEXT_ACTIONS := {
 @onready var publish_campaign: Button = %PublishCampaign
 @onready var enter_market: Button = %EnterMarket
 @onready var review_instructions: Button = %ReviewInstructions
-@onready var role_guide: Button = %RoleGuide
 @onready var instructions_dialog: AcceptDialog = %InstructionsDialog
 @onready var instructions_text: RichTextLabel = %InstructionsText
-@onready var role_guide_dialog: AcceptDialog = %RoleGuideDialog
-@onready var role_guide_text: RichTextLabel = %RoleGuideText
 @onready var keyboard_hint: Label = %KeyboardHint
 @onready var final_review: Control = %FinalReview
 @onready var review_audience: CheckBox = %ReviewAudience
@@ -263,11 +260,8 @@ func _ready() -> void:
     publish_campaign.pressed.connect(_publish_campaign)
     enter_market.pressed.connect(_enter_market)
     review_instructions.pressed.connect(_show_instructions)
-    role_guide.pressed.connect(_show_role_guide)
     instructions_dialog.confirmed.connect(_restore_dialog_focus)
     instructions_dialog.canceled.connect(_restore_dialog_focus)
-    role_guide_dialog.confirmed.connect(_restore_dialog_focus)
-    role_guide_dialog.canceled.connect(_restore_dialog_focus)
     for review_check in _final_review_checks():
         review_check.toggled.connect(_on_final_review_changed)
     run_panel.hide()
@@ -1667,11 +1661,6 @@ func _show_instructions() -> void:
     instructions_dialog.popup_centered(Vector2i(920, 640))
     _focus_if_ready(instructions_text)
 
-func _show_role_guide() -> void:
-    _dialog_focus_target = get_viewport().gui_get_focus_owner()
-    role_guide_dialog.popup_centered(Vector2i(720, 420))
-    _focus_if_ready(role_guide_text)
-
 func _restore_dialog_focus() -> void:
     var target := _dialog_focus_target
     _dialog_focus_target = null
@@ -1807,14 +1796,6 @@ func _readiness_clue_for(phase: String, document: Dictionary) -> String:
             return "Next: add a product name."
         if not _is_nonblank_string(brief.get("targetAudienceId")):
             return "Next: choose an audience brief."
-        var gameplay := _dictionary_child(document, "gameplay")
-        var pair := _dictionary_child(gameplay, "pair")
-        if int(pair.get("handoffCount", 0)) < 1:
-            return "Next: swap roles once."
-        if int(pair.get("artDirectorActions", 0)) < 1:
-            return "Next: the Art Director makes one visible image change."
-        if int(pair.get("strategistActions", 0)) < 1:
-            return "Next: the Strategist makes one visible message change."
     elif phase == "sell":
         var strategy := _dictionary_child(document, "strategy")
         var aida_plan := _dictionary_child(strategy, "aidaPlan")

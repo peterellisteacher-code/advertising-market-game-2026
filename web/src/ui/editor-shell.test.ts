@@ -24,12 +24,11 @@ describe("createEditorShell", () => {
       expect(getComputedStyle(creator).getPropertyValue("--creator-chrome-font-size").trim())
         .toBe("1.125rem");
       const coveredChrome: Array<[string, HTMLElement]> = [
-        ["task bar", shell.activeRole],
+        ["task bar", shell.audienceSignal],
         ["canvas controls", root.querySelector<HTMLElement>("[data-canvas-zoom-status]")!],
         ["display panel", shell.displayPanel.querySelector<HTMLElement>("legend")!],
         ["instruction dialog", root.querySelector<HTMLElement>("[data-guide-dialog] p")!],
         ["onboarding dialog", root.querySelector<HTMLElement>("[data-studio-onboarding-dialog] p")!],
-        ["role dialog", root.querySelector<HTMLElement>("[data-role-guide-layer] p")!],
         ["product typeface control", shell.productTypeface]
       ];
       expect(coveredChrome.map(([, element]) => element)).not.toContain(null);
@@ -227,35 +226,12 @@ describe("createEditorShell", () => {
       .toContain("Advertisement empty");
     expect(shell.canvasEmptyState.hidden).toBe(false);
     expect(getByRole(root, "region", { name: "Pair play" })).toBeTruthy();
-    // The pair status is announced, not displayed: role teaching lives in
-    // the tour and role guide, so the strip stays a compact functional row.
+    // The pair decides together; only the collective decision count is announced.
     const pairProgress = getByRole(root, "status", { name: "Pair progress" });
     expect(pairProgress.classList.contains("sr-only")).toBe(true);
-    expect(root.querySelector(".creator__role-card [data-active-role]"))
-      .toBe(shell.activeRole);
-    expect(root.querySelector(".creator__role-card [data-partner-role]"))
-      .toBe(shell.partnerRole);
-    expect(root.querySelector("[data-active-role-action]")).toBeNull();
-    expect(root.querySelector("[data-partner-role-action]")).toBeNull();
-    expect(shell.partnerRole.textContent).toBe("Strategist");
-    expect(getByRole(root, "button", { name: "Swap roles" })).toBeTruthy();
-    const roleActions = getByRole(root, "group", { name: "Partner role controls" });
-    expect([...roleActions.querySelectorAll("button")].map(({ textContent }) => textContent))
-      .toEqual(["Swap roles", "Role guide"]);
-    const roleGuideLayer = root.querySelector<HTMLElement>("[data-role-guide-layer]")!;
-    expect(roleGuideLayer.hidden).toBe(true);
-    expect(roleGuideLayer.textContent).toContain(
-      "Controls the product's appearance, images, colour, arrangement and layout."
-    );
-    expect(roleGuideLayer.textContent).toContain(
-      "Controls the product name, advertising words, claim, price reasoning and market-route reasoning."
-    );
-    expect(roleGuideLayer.textContent).toContain(
-      "Both partners can use the same tools that are unlocked for the current level."
-    );
-    expect(roleGuideLayer.textContent).toContain(
-      "The roles do not unlock different buttons."
-    );
+    expect(root.querySelector(".creator__role-card")).toBeNull();
+    expect(root.querySelector("[data-swap-roles]")).toBeNull();
+    expect(root.querySelector("[data-role-guide-layer]")).toBeNull();
     expect(getByRole(root, "combobox", { name: "Audience brief" })).toBeTruthy();
     const audienceBrief = root.querySelector<HTMLElement>(
       '#studio-full-brief[aria-label="Audience brief"]'

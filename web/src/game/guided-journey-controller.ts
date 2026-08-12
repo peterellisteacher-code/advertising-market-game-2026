@@ -158,8 +158,7 @@ export class GuidedJourneyController {
       }
     };
 
-    const aidaAllowed = creatorStageAllows(document.gameplay.stage, "aida") &&
-      completed.get("pair-contribution") === true;
+    const aidaAllowed = creatorStageAllows(document.gameplay.stage, "aida");
     const aidaOrder = ["attention", "interest", "desire", "action"] as const;
     for (const [index, stage] of aidaOrder.entries()) {
       const priorComplete = index === 0 || completed.get(aidaOrder[index - 1]!) === true;
@@ -169,7 +168,7 @@ export class GuidedJourneyController {
       setAvailability(
         button,
         disabled,
-        `Complete ${index === 0 ? "the pair contribution" : aidaOrder[index - 1]} first.`
+        `Complete ${index === 0 ? "the product setup" : aidaOrder[index - 1]} first.`
       );
     }
 
@@ -204,7 +203,6 @@ export class GuidedJourneyController {
     const pages = [
       ["Goal", "Make one persuasive advertisement with a partner, then explain why its choices suit the supplied audience."],
       ["Brief", "Read Context, Need, Values and Intended audience response before choosing the product or message."],
-      ["Roles", "The Art Director leads appearance choices. The Strategist leads audience, message, evidence and offer choices. Both can use every available control."],
       ["Build", "Choose a product, then move, resize, recolour, add or remove an item in the advertisement when the next instruction asks for it."],
       ["Message", "Use Attention, Interest, Desire and Action one at a time. Explain how each visible choice helps the audience."],
       ["Pitch", "Complete the required tasks, present the advertisement and explain how its product, message, price and proof fit the audience."]

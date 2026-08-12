@@ -14,7 +14,7 @@ function campaign(acknowledged = false) {
 }
 
 describe("StudioOnboardingController", () => {
-  it("shows the supplied brief before the Build area and focuses the starter action after page four", () => {
+  it("shows the supplied brief before the Build area and focuses the starter action after page three", () => {
     document.body.innerHTML = '<div id="creator-root"></div>';
     const root = document.querySelector<HTMLElement>("#creator-root")!;
     const shell = createEditorShell(root);
@@ -33,20 +33,17 @@ describe("StudioOnboardingController", () => {
     expect(dialog.textContent).toContain("Teenagers. One-hour window between school dismissal and home arrival.");
     expect(dialog.textContent).toContain("Need");
     expect(dialog.textContent).toContain("A method to make the window productive.");
-    expect(dialog.textContent).toContain("Page 1 of 4 · Brief");
+    expect(dialog.textContent).toContain("Page 1 of 3 · Brief");
     expect(shell.overlay.inert).not.toBe(true);
     expect(shell.overlay.querySelector<HTMLElement>(".creator__workspace")!.inert).toBe(true);
     expect(shell.overlay.querySelector<HTMLElement>(".creator__tuck-top")!.inert).toBe(true);
     expect(shell.overlay.querySelector<HTMLElement>("[data-studio-onboarding-layer]")!.inert).not.toBe(true);
 
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
-    expect(dialog.textContent).toContain("Page 2 of 4 · Roles");
+    expect(dialog.textContent).toContain("Page 2 of 3 · Build area");
     expect(acknowledge).not.toHaveBeenCalled();
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
-    expect(dialog.textContent).toContain("Page 3 of 4 · Build area");
-    expect(acknowledge).not.toHaveBeenCalled();
-    fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
-    expect(dialog.textContent).toContain("Page 4 of 4 · First action");
+    expect(dialog.textContent).toContain("Page 3 of 3 · First action");
     expect(acknowledge).not.toHaveBeenCalled();
     fireEvent.click(getByRole(dialog, "button", { name: "Start with a product" }));
 
@@ -67,7 +64,7 @@ describe("StudioOnboardingController", () => {
     expect(root.querySelector<HTMLElement>("[data-studio-onboarding-layer]")!.hidden).toBe(true);
     fireEvent.click(getByRole(root, "button", { name: "Studio tour" }));
     expect(getByRole(root, "dialog", { name: "Studio tour" }).textContent)
-      .toContain("Page 1 of 4 · Brief");
+      .toContain("Page 1 of 3 · Brief");
   });
 
   it("keeps a required tour open until completion and allows closing only on manual replay", () => {
@@ -96,7 +93,6 @@ describe("StudioOnboardingController", () => {
     expect(root.querySelector<HTMLElement>("[data-studio-onboarding-layer]")!.hidden).toBe(false);
 
     fireEvent.click(next);
-    fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
     fireEvent.click(getByRole(dialog, "button", { name: "Start with a product" }));
     expect(acknowledge).toHaveBeenCalledOnce();
@@ -172,12 +168,6 @@ describe("StudioOnboardingController", () => {
     expect(highlighted()[0]?.dataset.studioOnboardingHighlight).toBe("brief");
 
     fireEvent.click(getByRole(dialog, "button", { name: "Next" }));
-    expect(highlighted()).toHaveLength(1);
-    expect(highlighted()[0]).toBe(root.querySelector(".creator__role-card"));
-    expect(highlighted()[0]?.dataset.studioOnboardingHighlight).toBe("roles");
-    expect(acknowledge).not.toHaveBeenCalled();
-
-    fireEvent.keyDown(dialog, { key: "ArrowRight" });
     expect(highlighted()).toHaveLength(1);
     expect(highlighted()[0]).toBe(getByRole(root, "tab", { name: "Build" }));
     expect(highlighted()[0]?.dataset.studioOnboardingHighlight).toBe("build");

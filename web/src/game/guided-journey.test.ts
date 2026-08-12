@@ -41,12 +41,6 @@ function placeProduct(document: CampaignDocumentV1): void {
   document.gameplay.pair.artDirectorActions = 1;
 }
 
-function completePairContribution(document: CampaignDocumentV1): void {
-  document.gameplay.pair.handoffCount = 1;
-  document.gameplay.pair.artDirectorActions = 2;
-  document.gameplay.pair.strategistActions = 1;
-}
-
 function completeAida(
   document: CampaignDocumentV1,
   stage: "attention" | "interest" | "desire" | "action"
@@ -60,11 +54,9 @@ describe("evaluateGuidedJourney", () => {
     expect(GUIDED_JOURNEY_ORDER).toEqual([
       "sign-in",
       "audience",
-      "roles",
       "starter-product",
       "product-edit",
       "product-name",
-      "pair-contribution",
       "attention",
       "interest",
       "desire",
@@ -97,9 +89,6 @@ describe("evaluateGuidedJourney", () => {
     expect(evaluateGuidedJourney(document).current.id).toBe("product-name");
 
     document.product.name = "Study Flask";
-    expect(evaluateGuidedJourney(document).current.id).toBe("pair-contribution");
-
-    completePairContribution(document);
     expect(evaluateGuidedJourney(document).current).toMatchObject({
       id: "finish-level-1",
       tool: "game",
@@ -167,7 +156,7 @@ describe("evaluateGuidedJourney", () => {
     const document = campaign();
     placeProduct(document);
     document.product.name = "Study Flask";
-    completePairContribution(document);
+    document.gameplay.pair.artDirectorActions = 2;
 
     const levelOneTransition = evaluateGuidedJourney(document);
     expect(levelOneTransition.progressLabel).toBe("Level 1 studio work complete");
@@ -191,13 +180,13 @@ describe("evaluateGuidedJourney", () => {
     expect(evaluateGuidedJourney(document).current.id).toBe("audience");
   });
 
-  it("requires the persisted role-guide acknowledgement before product work", () => {
+  it("does not gate product work on legacy role-guide acknowledgement", () => {
     const document = campaign();
     document.gameplay.pair.roleGuideAcknowledged = false;
 
     expect(evaluateGuidedJourney(document).current).toMatchObject({
-      id: "roles",
-      actionLabel: "Open Role guide"
+      id: "starter-product",
+      actionLabel: "Open Build"
     });
   });
 
@@ -220,26 +209,22 @@ describe("evaluateGuidedJourney", () => {
     expect(state.current.optionalMethods?.join(" ")).not.toMatch(/\bcode\b/i);
   });
 
-  it("requires both recorded roles and one handoff for the pair contribution", () => {
+  it("moves on after the pair has named and visibly edited the product", () => {
     const document = campaign();
     placeProduct(document);
     document.product.name = "Study Flask";
-    document.gameplay.pair.handoffCount = 1;
     document.gameplay.pair.artDirectorActions = 2;
 
     const state = evaluateGuidedJourney(document);
 
-    expect(state.current.id).toBe("pair-contribution");
-    expect(state.current.done.toLowerCase()).toContain("both partners");
-    expect(state.current.done.toLowerCase()).toContain("roles");
-    expect(state.current.why).toContain("visual and message decisions");
+    expect(state.current.id).toBe("finish-level-1");
   });
 
   it("requires an explanation and visible evidence for each AIDA stage", () => {
     const document = campaign();
     placeProduct(document);
     document.product.name = "Study Flask";
-    completePairContribution(document);
+    document.gameplay.pair.artDirectorActions = 2;
     document.gameplay.stage = "sell";
     document.strategy.aidaPlan.attention = "Use contrast around the product.";
 
@@ -255,11 +240,9 @@ describe("evaluateGuidedJourney", () => {
     expect(steps.map(({ id }) => id)).toEqual([
       "sign-in",
       "audience",
-      "roles",
       "starter-product",
       "product-edit",
       "product-name",
-      "pair-contribution",
       "attention",
       "interest",
       "desire",
@@ -284,12 +267,10 @@ describe("evaluateGuidedJourney", () => {
     const steps = evaluateGuidedJourney(campaign()).steps;
     const expectedLaterOutcome = {
       "sign-in": "audience",
-      audience: "roles",
-      roles: "starter product",
+      audience: "starter product",
       "starter-product": "product edit",
       "product-edit": "product name",
       "product-name": "advertisement",
-      "pair-contribution": "advertisement",
       attention: "interest",
       interest: "value",
       desire: "action",
@@ -334,7 +315,7 @@ describe("evaluateGuidedJourney", () => {
     const document = campaign();
     placeProduct(document);
     document.product.name = "Study Flask";
-    completePairContribution(document);
+    document.gameplay.pair.artDirectorActions = 2;
     for (const stage of ["attention", "interest", "desire", "action"] as const) {
       completeAida(document, stage);
     }

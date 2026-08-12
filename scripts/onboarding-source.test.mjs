@@ -381,7 +381,6 @@ test("run screen reveals one concrete next requirement at a time", () => {
     "Next: build a product in the studio.",
     "Next: add a product name.",
     "Next: choose an audience brief.",
-    "Next: swap roles once.",
     "Next: link one choice to Attention.",
     "Next: add a price.",
     "Next: choose and lock a market route.",
@@ -456,14 +455,9 @@ test("Godot advertising copy reuses AIDA stage and advertisement terminology", (
 
 test("the full linked argument guide remains available throughout pair play", () => {
   assert.match(mainScene, /name="ReviewInstructions"[\s\S]*?text = "Review all instructions"/);
-  assert.match(mainScene, /name="RoleGuide"[\s\S]*?text = "Role guide"/);
-  assert.match(mainScene, /name="RoleGuideDialog"[\s\S]*?title = "Pair role guide"/);
+  assert.doesNotMatch(mainScene, /name="RoleGuide"/);
+  assert.doesNotMatch(mainScene, /name="RoleGuideDialog"/);
   for (const copy of [
-    "Both partners can use the same tools that are available in the current level",
-    "The roles do not unlock different buttons",
-    "Art Director is responsible for what the advertisement looks like",
-    "Strategist is responsible for what the advertisement says",
-    "The active role tells you whose turn should make the next change",
     "Context is the situation the audience is in",
     "A premise is a reason",
     "Audience and product",
@@ -474,7 +468,7 @@ test("the full linked argument guide remains available throughout pair play", ()
   ]) {
     assert.ok(mainScene.includes(copy), `missing permanent guide copy: ${copy}`);
   }
-  assert.match(mainScript, /role_guide\.pressed\.connect\(_show_role_guide\)/);
+  assert.doesNotMatch(mainScript, /_show_role_guide/);
   assert.match(mainScript, /func _restore_dialog_focus\(\) -> void:/);
 });
 

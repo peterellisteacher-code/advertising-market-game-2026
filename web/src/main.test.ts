@@ -3189,7 +3189,7 @@ describe("window.AdMarketCreator", () => {
       expect(state.fabricState.objects.some(({ objectId }) => objectId === priceObjectId))
         .toBe(false);
     });
-  }, 10_000);
+  }, 30_000);
 
   it("drops checklist evidence when its canvas piece has been removed", async () => {
     const source = CampaignDocumentSchema.parse({

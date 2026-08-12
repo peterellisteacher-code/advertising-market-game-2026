@@ -189,6 +189,20 @@ test("agency quick start fills the viewport rather than a fixed 1280 by 800 box"
   assert.doesNotMatch(panelBlock, /ScrollContainer/);
 });
 
+test("the entry lobby makes the campaign primary and the assignment sandbox secondary", () => {
+  for (const requiredCopy of [
+    "AGENCY ACADEMY",
+    "Start campaign",
+    "Open assignment sandbox",
+    "Join a class market",
+    "Teacher setup"
+  ]) {
+    assert.ok(mainScene.includes(`text = "${requiredCopy}"`), `missing lobby route: ${requiredCopy}`);
+  }
+  assert.doesNotMatch(mainScene, /text = "Practice on this computer"/);
+  assert.doesNotMatch(mainScene, /text = "AD MARKET \/\/ GAME"/);
+});
+
 test("agency floor renders above the main shell background", () => {
   const floorBlock = agencyWorldScene.match(
     /\[node name="AgencyFloor"[\s\S]*?(?=\n\[node name="WorldCamera")/
@@ -223,7 +237,7 @@ test("agency HUD and station card can be tucked without hiding the next action",
     "HUD width belongs to the anchors so the bar spans whatever viewport it is given"
   );
   assert.ok(agencyHudScene.includes('name="HudTuckToggle"'));
-  assert.ok(agencyHudScene.includes('text = "Show work details"'));
+  assert.ok(agencyHudScene.includes('text = "Work details"'));
   for (const nodeName of [
     "StationDetailsToggle",
     "StationPanelTuck",
@@ -256,7 +270,7 @@ test("compact agency HUD keeps readable, high-contrast actions inside the laptop
     assert.match(block, /theme_override_colors\/font_hover_color = Color\(0\.047, 0\.086, 0\.145, 1\)/);
     assert.match(block, /theme_override_colors\/font_pressed_color = Color\(0\.047, 0\.086, 0\.145, 1\)/);
   }
-  assert.match(nodeBlock("HudGoToObjective"), /custom_minimum_size = Vector2\(176, 60\)/);
+  assert.match(nodeBlock("HudGoToObjective"), /custom_minimum_size = Vector2\(168, 52\)/);
   assert.match(agencyHudScript, /var _compact: bool = true/);
   assert.match(agencyHudScript, /set_compact\(true\)/);
   assert.match(
@@ -297,7 +311,7 @@ test("game shell uses the full 16:10 school MacBook viewport", () => {
   assert.match(projectSettings, /window\/size\/viewport_width=1280/);
   assert.match(projectSettings, /window\/size\/viewport_height=800/);
   assert.match(projectSettings, /window\/stretch\/aspect="expand"/);
-  assert.match(mainScene, /name="MainMargin"[\s\S]*?offset_top = 96\.0[\s\S]*?offset_bottom = -24\.0/);
+  assert.match(mainScene, /name="MainMargin"[\s\S]*?offset_top = 72\.0[\s\S]*?offset_bottom = -20\.0/);
 });
 
 test("game canvas overrides Godot device-pixel inline sizing at display scale", () => {
@@ -340,14 +354,14 @@ test("student lobby keeps teacher controls behind explicit disclosure", () => {
   assert.match(mainScene, /name="TeacherSetupToggle"[\s\S]*?text = "Teacher setup"/);
   assert.match(mainScene, /name="HostArea"[\s\S]*?unique_name_in_owner = true[\s\S]*?visible = false/);
   assert.match(mainScript, /teacher_setup_toggle\.pressed\.connect\(_toggle_teacher_setup\)/);
-  assert.match(mainScene, /text = "PAIR PLAY  •  ONE MACBOOK"/);
+  assert.match(mainScene, /text = "PARTNER CAMPAIGN  •  DESKTOP"/);
 });
 
-test("student lobby makes local practice the immediate route and keeps one game identity", () => {
-  assert.match(mainScene, /text = "AD MARKET \/\/ GAME"/);
+test("student lobby makes the campaign the immediate route and keeps one game identity", () => {
+  assert.match(mainScene, /text = "AGENCY ACADEMY"/);
   assert.match(
     mainScene,
-    /text = "First you will invent a product, then you will create an advertisement for it\."/
+    /text = "Build one persuasive advertisement with your partner\."/
   );
   assert.doesNotMatch(mainScene, /Invent it\. Advertise it\. Judge the market\./);
   assert.match(

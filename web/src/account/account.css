@@ -15,8 +15,10 @@
   place-content: center;
   gap: .65rem;
   padding: 2rem;
-  background: #fffaf2;
-  color: #172033;
+  background:
+    radial-gradient(circle at 18% 20%, rgb(77 49 95 / .54), transparent 32rem),
+    linear-gradient(145deg, #101536, #17143c 58%, #2a1738);
+  color: #fff8eb;
   text-align: center;
   font-family: "Trebuchet MS", "Aptos", "Segoe UI", sans-serif;
 }
@@ -24,10 +26,12 @@
 .game-startup-status strong {
   font-size: clamp(1.8rem, 4vw, 3rem);
   line-height: 1.05;
+  color: #fff8eb;
+  letter-spacing: -.025em;
 }
 
 .game-startup-status span {
-  color: #3d4c64;
+  color: #f4bd4f;
   font-size: clamp(1rem, 2vw, 1.3rem);
 }
 
@@ -41,11 +45,11 @@
 }
 
 .account-access {
-  --account-ink: #172033;
-  --account-paper: #f6f1e7;
-  --account-coral: #f25f5c;
-  --account-blue: #096b8f;
-  --account-gold: #f4c95d;
+  --account-ink: #17213b;
+  --account-paper: #fff8eb;
+  --account-coral: #2fc7d4;
+  --account-blue: #243b76;
+  --account-gold: #f4bd4f;
   position: fixed;
   inset: 0;
   z-index: 400;
@@ -55,10 +59,9 @@
   place-items: center;
   overflow: auto;
   background:
-    radial-gradient(circle at 16% 18%, rgb(244 201 93 / .42), transparent 26rem),
-    radial-gradient(circle at 86% 80%, rgb(9 107 143 / .22), transparent 30rem),
-    repeating-linear-gradient(135deg, rgb(23 32 51 / .025) 0 10px, transparent 10px 22px),
-    var(--account-paper);
+    radial-gradient(circle at 16% 18%, rgb(77 49 95 / .58), transparent 30rem),
+    radial-gradient(circle at 86% 80%, rgb(47 199 212 / .18), transparent 32rem),
+    linear-gradient(145deg, #101536, #17143c 58%, #2a1738);
   color: var(--account-ink);
   font-family: "Trebuchet MS", "Aptos", "Segoe UI", sans-serif;
 }
@@ -66,10 +69,30 @@
 .account-access__card {
   width: min(100%, 30rem);
   padding: clamp(1.35rem, 5vw, 2.25rem);
-  border: 3px solid var(--account-ink);
+  border: 2px solid rgb(244 189 79 / .72);
   border-radius: 1.25rem;
-  background: #fffaf2;
-  box-shadow: .55rem .55rem 0 var(--account-gold);
+  background: var(--account-paper);
+  box-shadow: 0 1.25rem 4rem rgb(0 0 0 / .38), 0 .35rem 0 var(--account-gold);
+}
+
+.account-access__mark {
+  margin: 0 0 .55rem !important;
+  color: #6b3d83 !important;
+  font-size: .84rem;
+  font-weight: 950;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.account-access__actions {
+  margin-top: 1.1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .65rem;
+}
+
+.account-access__actions button {
+  flex: 1 1 11rem;
 }
 
 .account-access__card h1 {

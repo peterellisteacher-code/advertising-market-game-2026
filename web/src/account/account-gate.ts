@@ -150,7 +150,7 @@ export class AccountAccessController {
     this.#statusRoot.hidden = true;
     this.#statusRoot.replaceChildren();
     this.#gateRoot.hidden = false;
-    this.#gateRoot.className = "account-access";
+    this.#gateRoot.className = "account-access account-access--academy";
 
     const section = this.#gateCard("The game could not start");
     const message = document.createElement("p");
@@ -171,7 +171,11 @@ export class AccountAccessController {
       signIn.disabled = true;
       void this.#recoverActivationFailure();
     });
-    section.append(message, retry, signIn);
+    const actions = document.createElement("div");
+    actions.className = "account-access__actions";
+    actions.dataset.recoveryActions = "true";
+    actions.append(retry, signIn);
+    section.append(message, actions);
     this.#gateRoot.replaceChildren(section);
     queueMicrotask(() => retry.focus());
   }
@@ -202,24 +206,20 @@ export class AccountAccessController {
   #renderChecking(): void {
     this.#statusRoot.hidden = true;
     this.#gateRoot.hidden = false;
-    this.#gateRoot.className = "account-access";
-    const section = document.createElement("section");
-    section.className = "account-access__card";
-    section.setAttribute("aria-label", "Account access");
-    const heading = document.createElement("h1");
-    heading.textContent = "Welcome to Ad Market";
+    this.#gateRoot.className = "account-access account-access--academy";
+    const section = this.#gateCard("Welcome to Agency Academy");
     const status = document.createElement("p");
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
     status.textContent = "Checking your account…";
-    section.append(heading, status);
+    section.append(status);
     this.#gateRoot.replaceChildren(section);
   }
 
   #renderLogin(message = ""): void {
     this.#gateRoot.hidden = false;
-    this.#gateRoot.className = "account-access";
-    const section = this.#gateCard("Welcome to Ad Market");
+    this.#gateRoot.className = "account-access account-access--academy";
+    const section = this.#gateCard("Welcome to Agency Academy");
     const intro = document.createElement("p");
     intro.textContent = "Enter your pair username and password to reconnect your private save.";
     const form = document.createElement("form");
@@ -370,7 +370,7 @@ export class AccountAccessController {
     this.#statusRoot.hidden = true;
     this.#statusRoot.replaceChildren();
     this.#gateRoot.hidden = false;
-    this.#gateRoot.className = "account-access";
+    this.#gateRoot.className = "account-access account-access--academy";
     const section = this.#gateCard("Your private save could not open.");
     const message = this.#liveError(
       "We could not prepare private device storage. Your game stayed locked and no other account's work was opened. Return to the start and try again."
@@ -573,7 +573,7 @@ export class AccountAccessController {
     title = "Account locked"
   ): void {
     this.#gateRoot.hidden = false;
-    this.#gateRoot.className = "account-access";
+    this.#gateRoot.className = "account-access account-access--academy";
     const section = this.#gateCard(title);
     const status = document.createElement("p");
     status.setAttribute("role", assertive ? "alert" : "status");
@@ -587,10 +587,14 @@ export class AccountAccessController {
     const section = document.createElement("section");
     section.className = "account-access__card";
     section.setAttribute("aria-label", "Account access");
+    const mark = document.createElement("p");
+    mark.className = "account-access__mark";
+    mark.dataset.academyMark = "true";
+    mark.textContent = "Agency Academy";
     const heading = document.createElement("h1");
     heading.tabIndex = -1;
     heading.textContent = title;
-    section.append(heading);
+    section.append(mark, heading);
     return section;
   }
 

@@ -1411,6 +1411,8 @@ describe("window.AdMarketCreator", () => {
       "reportStartupFailure"
     ]);
     gameAccess.reportStartupProgress(37);
+    expect(document.querySelector("[data-game-startup-heading]")?.textContent)
+      .toBe("Opening Agency Academy");
     expect(document.querySelector("[data-game-startup-message]")?.textContent)
       .toBe("Loading game… 37%");
     expect(document.querySelector<HTMLElement>("#game-startup-status")?.hidden)

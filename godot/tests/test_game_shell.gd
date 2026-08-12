@@ -649,6 +649,7 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
 	var advance := shell.get_node("%AdvanceLevel") as Button
 	var publish := shell.get_node("%PublishCampaign") as Button
 	var start := shell.get_node("%StartRun") as Button
+	var sandbox := shell.get_node("%OpenAssignmentSandbox") as Button
 	var join_live := shell.get_node("%JoinLiveMarket") as Button
 	var create_live := shell.get_node("%CreateLiveMarket") as Button
 	var launch := shell.get_node("%LaunchCreator") as Button
@@ -656,11 +657,19 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
 	var role_guide := shell.get_node("%RoleGuide") as Button
 	var enter_market := shell.get_node("%EnterMarket") as Button
 	var hero_copy := shell.get_node("MainMargin/GameInput/HeroCopy") as Label
+	var brand := shell.get_node("MainMargin/GameInput/BrandRow/Brand") as Label
+	var hero_heading := shell.get_node("MainMargin/GameInput/HeroHeading") as Label
+	var lobby_eyebrow := shell.get_node("MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyEyebrow") as Label
+	var lobby_heading := shell.get_node("MainMargin/GameInput/LobbyPanel/LobbyContent/LobbyHeading") as Label
 
 	assert(lobby.visible)
 	assert(run_panel.visible)
 	assert(not hero_copy.visible)
 	assert(hero_copy.text.contains("Level 1"))
+	assert(brand.text == "AGENCY ACADEMY")
+	assert(hero_heading.text == "Build one persuasive advertisement with your partner.")
+	assert(lobby_eyebrow.text == "CAMPAIGN READY")
+	assert(lobby_heading.text == "Choose where to begin.")
 	assert(heading.text.contains("matches the audience need"))
 	assert(lock.text == "Lock this level")
 	assert(advance.text == "Next level")
@@ -676,7 +685,7 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
 
 	var accessible_normal := Color("#b63a15")
 	var accessible_hover := Color("#c3471b")
-	for button in [start, create_live, launch, publish]:
+	for button in [create_live, launch, publish]:
 		var normal := button.get_theme_stylebox("normal") as StyleBoxFlat
 		var hover := button.get_theme_stylebox("hover") as StyleBoxFlat
 		assert(normal != null)
@@ -686,7 +695,18 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
 		assert(_contrast_with_white(normal.bg_color) >= 4.5)
 		assert(_contrast_with_white(hover.bg_color) >= 4.5)
 
-	assert(start.text == "Practice on this computer")
+	assert(start.text == "Start campaign")
+	assert(sandbox.text == "Open assignment sandbox")
+	assert((shell.get_node("%JoinMarketToggle") as Button).text == "Join a class market")
+	assert(join_live.text == "Join the live market")
+	var start_style := start.get_theme_stylebox("normal") as StyleBoxFlat
+	assert(start_style != null)
+	assert(start_style.bg_color.is_equal_approx(Color("#f4bd4f")))
+	assert(_contrast_with_white(start_style.bg_color) < 4.5)
+	assert(_contrast_ratio(start.get_theme_color("font_color"), start_style.bg_color) >= 4.5)
+	var sandbox_style := sandbox.get_theme_stylebox("normal") as StyleBoxFlat
+	assert(sandbox_style != null)
+	assert(_contrast_ratio(sandbox.get_theme_color("font_color"), sandbox_style.bg_color) >= 4.5)
 	var join_style := join_live.get_theme_stylebox("normal") as StyleBoxFlat
 	var join_hover_style := join_live.get_theme_stylebox("hover") as StyleBoxFlat
 	assert(join_style != null)
@@ -717,7 +737,7 @@ func _live_room_routes_are_primary_and_accessible() -> bool:
 	assert(max_teams.value == 15.0)
 	assert(max_teams.min_value == 3.0 and max_teams.max_value == 30.0)
 	assert(create_live.text == "Open a class market")
-	assert(practice.text == "Practice on this computer")
+	assert(practice.text == "Start campaign")
 	for control in [alias, room_code, join_live, classroom_code, max_teams, create_live, practice]:
 		assert((control as Control).custom_minimum_size.y >= 44.0)
 	shell.free()
@@ -806,7 +826,7 @@ func _host_defaults_open_a_teacher_dashboard() -> bool:
 	teacher_setup.pressed.emit()
 	assert(host_area.visible)
 	assert(teacher_setup.text == "Hide teacher setup")
-	assert((shell.get_node("MainMargin/GameInput/BrandRow/PlayMode") as Label).text == "PAIR PLAY  •  ONE MACBOOK")
+	assert((shell.get_node("MainMargin/GameInput/BrandRow/PlayMode") as Label).text == "PARTNER CAMPAIGN  •  DESKTOP")
 	(shell.get_node("%ClassroomCode") as LineEdit).text = "teacher-code-7"
 	(shell.get_node("%CreateLiveMarket") as Button).pressed.emit()
 	var create_id: String = market_fake.last_request_id()
@@ -1537,6 +1557,19 @@ func _practice_recovery(
 		},
 		"document": document
 	}
+
+func _contrast_ratio(foreground: Color, background: Color) -> float:
+	var foreground_luminance := (
+		0.2126 * _linear_channel(foreground.r)
+		+ 0.7152 * _linear_channel(foreground.g)
+		+ 0.0722 * _linear_channel(foreground.b)
+	)
+	var background_luminance := (
+		0.2126 * _linear_channel(background.r)
+		+ 0.7152 * _linear_channel(background.g)
+		+ 0.0722 * _linear_channel(background.b)
+	)
+	return (maxf(foreground_luminance, background_luminance) + 0.05) / (minf(foreground_luminance, background_luminance) + 0.05)
 
 func _contrast_with_white(background: Color) -> float:
 	var luminance := (

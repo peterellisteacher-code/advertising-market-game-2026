@@ -2144,8 +2144,12 @@ window.AdMarketGameAccess = Object.freeze({
   requireAccess: () => requireGameAccess(),
   reportStartupProgress: (percent: number) => {
     const status = document.querySelector<HTMLElement>("#game-startup-status");
+    const heading = status?.querySelector<HTMLElement>("[data-game-startup-heading]");
     const message = status?.querySelector<HTMLElement>("[data-game-startup-message]");
     const safePercent = Math.min(100, Math.max(0, Math.round(percent)));
+    if (heading !== undefined && heading !== null) {
+      heading.textContent = "Opening Agency Academy";
+    }
     if (message !== undefined && message !== null) {
       message.textContent = `Loading game… ${safePercent}%`;
     }

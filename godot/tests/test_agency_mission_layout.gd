@@ -43,8 +43,8 @@ func _record_identity_and_accessibility_are_visible() -> bool:
 		int(record.get("taskTotal")),
 	])
 	assert(panel.find_child("*Score*", true, false) == null)
-	assert(not (panel.get_node("%RoleDefinitionLabel") as Label).visible)
-	assert(not (panel.get_node("%HoldingLabel") as Label).visible)
+	assert(panel.get_node_or_null("%OwnerCard") == null)
+	assert(panel.get_node_or_null("%RoleHandoffButton") == null)
 	var status := panel.get_node("%FeedbackStatus") as Label
 	assert(status != null and not status.text.is_empty())
 	assert((panel.get_node("%ChoiceOne") as Button).focus_mode != Control.FOCUS_NONE)

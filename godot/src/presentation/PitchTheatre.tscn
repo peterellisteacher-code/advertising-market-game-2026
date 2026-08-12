@@ -153,6 +153,8 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_xf8bi")
 
 [node name="Backdrop" type="ColorRect" parent="." unique_id=473423594]
@@ -204,6 +206,12 @@ theme_override_colors/font_color = Color(0.82, 0.88, 0.92, 1)
 theme_override_font_sizes/font_size = 16
 text = "The client sees the exact advertisement your pair created. Choose how to frame its presentation, then use the evidence cards to explain why the advertisement should persuade its audience."
 autowrap_mode = 2
+
+[node name="MasteryStatus" type="Label" parent="PitchMargin/PitchContent/PitchHeader" unique_id=502028450]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+text = "0 of 7 complete"
 
 [node name="PitchBody" type="HBoxContainer" parent="PitchMargin/PitchContent" unique_id=83547427]
 layout_mode = 2
@@ -398,6 +406,36 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.965, 0.741, 0.247, 1)
 theme_override_font_sizes/font_size = 13
 text = "Optional practice: none completed. It never blocks the pitch."
+autowrap_mode = 2
+
+[node name="AidaHeading" type="Label" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=2017228493]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+text = "Your AIDA plan"
+
+[node name="AidaAttention" type="Label" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=974334689]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Attention —"
+autowrap_mode = 2
+
+[node name="AidaInterest" type="Label" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=1961983228]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Interest —"
+autowrap_mode = 2
+
+[node name="AidaDesire" type="Label" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=1530941700]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Desire —"
+autowrap_mode = 2
+
+[node name="AidaAction" type="Label" parent="PitchMargin/PitchContent/PitchBody/EvidenceCard/EvidenceMargin/EvidenceContent" unique_id=1446057295]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Action —"
 autowrap_mode = 2
 
 [node name="PitchControlsCard" type="PanelContainer" parent="PitchMargin/PitchContent" unique_id=1417339713]

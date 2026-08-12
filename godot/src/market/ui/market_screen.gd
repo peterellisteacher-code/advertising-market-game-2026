@@ -7,13 +7,14 @@ signal fix_requested
 const MarketViewState = preload("res://src/market/market_view_state.gd")
 const MarketHost = preload("res://src/market/market_host.gd")
 const LocalMarketSession = preload("res://src/market/local_market_session.gd")
-const NAVY := Color("#17212b")
-const BURNT_ORANGE := Color("#b63a15")
-const ORANGE_HOVER := Color("#c3471b")
-const OFF_WHITE := Color("#fffaf0")
-const KRAFT := Color("#f4ead6")
-const KRAFT_BORDER := Color("#d7c7aa")
-const MUTED := Color("#505a64")
+const NAVY := Color("#17213b")
+const BURNT_ORANGE := Color("#4d315f")
+const ORANGE_HOVER := Color("#614074")
+const OFF_WHITE := Color("#fff8eb")
+const KRAFT := Color("#f6ead6")
+const KRAFT_BORDER := Color("#d8c7a7")
+const MUTED := Color("#526078")
+const GOLD := Color("#f4bd4f")
 const WHITE := Color("#ffffff")
 const SCORE_CRITERIA := [
     ["audience", "Audience fit"],
@@ -1091,9 +1092,15 @@ func _new_button(label: String, node_name: String, primary: bool) -> Button:
     button.add_theme_color_override("font_hover_pressed_color", WHITE)
     button.add_theme_color_override("font_focus_color", WHITE)
     button.add_theme_color_override("font_disabled_color", NAVY)
-    var normal_color := BURNT_ORANGE if primary else NAVY
-    var hover_color := ORANGE_HOVER if primary else NAVY.lightened(0.08)
-    var pressed_color := normal_color.darkened(0.04)
+    var normal_color := GOLD if primary else NAVY
+    var hover_color := GOLD.lightened(0.08) if primary else NAVY.lightened(0.08)
+    var pressed_color := normal_color.darkened(0.06)
+    if primary:
+        button.add_theme_color_override("font_color", NAVY)
+        button.add_theme_color_override("font_hover_color", NAVY)
+        button.add_theme_color_override("font_pressed_color", NAVY)
+        button.add_theme_color_override("font_hover_pressed_color", NAVY)
+        button.add_theme_color_override("font_focus_color", NAVY)
     button.add_theme_stylebox_override("normal", _button_style(normal_color))
     button.add_theme_stylebox_override("hover", _button_style(hover_color))
     button.add_theme_stylebox_override("pressed", _button_style(pressed_color))
@@ -1188,7 +1195,7 @@ func _button_style(background: Color) -> StyleBoxFlat:
 func _focus_style() -> StyleBoxFlat:
     var style := StyleBoxFlat.new()
     style.bg_color = Color(0, 0, 0, 0)
-    style.border_color = BURNT_ORANGE
+    style.border_color = GOLD
     style.set_border_width_all(3)
     style.set_corner_radius_all(10)
     return style

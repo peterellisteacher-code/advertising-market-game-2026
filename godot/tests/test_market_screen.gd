@@ -2,7 +2,7 @@ extends RefCounted
 class_name AdMarketTestMarketScreen
 
 const MarketScreenScene = preload("res://src/market/ui/MarketScreen.tscn")
-const CARD_BACKGROUND := Color("#fffaf0")
+const CARD_BACKGROUND := Color("#fff8eb")
 const MarketHost = preload("res://src/market/market_host.gd")
 const FakeMarketTransport = preload("res://tests/fakes/fake_market_transport.gd")
 
@@ -204,7 +204,8 @@ func _scene_uses_accessible_ad_market_layouts() -> bool:
     var frame := screen.get_node("%MarketFrame") as PanelContainer
     var panel := frame.get_theme_stylebox("panel") as StyleBoxFlat
     assert(panel != null)
-    assert(panel.bg_color.is_equal_approx(Color("#fffaf0")))
+    assert(panel.bg_color.is_equal_approx(Color("#101536")))
+    assert((screen.get_node("%ModeTag") as Label).text == "AGENCY ACADEMY // MARKET GALLERY")
     for node in screen.find_children("*", "Button", true, false):
         var button := node as Button
         if button.text.is_empty():

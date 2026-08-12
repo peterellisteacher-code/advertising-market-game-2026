@@ -1428,7 +1428,11 @@ func _on_creator_published(publication: Dictionary) -> void:
         if run != null
         else null
     )
-    if not pitch_theatre.present(publication, progress, agency_world.reduced_motion_enabled):
+    var pitch_publication := publication.duplicate(true)
+    var strategy_value: Variant = _campaign_document.get("strategy", {})
+    if typeof(strategy_value) == TYPE_DICTIONARY:
+        pitch_publication["strategy"] = Dictionary(strategy_value).duplicate(true)
+    if not pitch_theatre.present(pitch_publication, progress, agency_world.reduced_motion_enabled):
         publish_campaign.disabled = false
         status.text = "The finished advertisement image could not be prepared. Return to the studio and publish it again."
         return

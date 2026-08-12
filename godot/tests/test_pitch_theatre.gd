@@ -47,6 +47,11 @@ func run() -> bool:
 	assert(theatre.get_node("%EvidenceAida").text.contains("AIDA"))
 	assert(theatre.get_node("%EvidenceHierarchy").text.contains("Visual hierarchy"))
 	assert(theatre.get_node("%EvidenceClaim").text.contains("Supportable claim"))
+	assert(theatre.get_node("%MasteryStatus").text == "7 of 7 complete")
+	assert(theatre.get_node("%AidaAttention").text == "Attention — Make the bottle silhouette impossible to miss.")
+	assert(theatre.get_node("%AidaInterest").text == "Interest — Show the filter and refill features.")
+	assert(theatre.get_node("%AidaDesire").text == "Desire — Imagine every trip with cold clean water.")
+	assert(theatre.get_node("%AidaAction").text == "Action — Choose your Orbit Bottle today.")
 	var response: String = theatre.get_node("%ClientResponse").text
 	assert(response.contains("client"))
 	assert(response.contains("audience"))
@@ -86,6 +91,12 @@ func _publication() -> Dictionary:
 		"revision": 4,
 		"pngBase64": Marshalls.raw_to_base64(image.save_png_to_buffer()),
 		"metadata": {"productName": "Orbit Bottle"},
+		"strategy": {"aidaPlan": {
+			"attention": "Make the bottle silhouette impossible to miss.",
+			"interest": "Show the filter and refill features.",
+			"desire": "Imagine every trip with cold clean water.",
+			"action": "Choose your Orbit Bottle today.",
+		}},
 	}
 
 func _capture_sound(cue_id: String) -> void:

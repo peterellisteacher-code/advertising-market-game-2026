@@ -1068,6 +1068,8 @@ func _closed_studio_reopens_to_publish_and_enters_the_market() -> bool:
 	var theatre := shell.get_node_or_null("%PitchTheatre") as AdMarketPitchTheatre
 	assert(theatre != null and theatre.visible)
 	var exact_texture: Texture2D = theatre.get_node("%BillboardAd").texture
+	assert((theatre.get_node("%MasteryStatus") as Label).text == "7 of 7 complete")
+	assert((theatre.get_node("%AidaAttention") as Label).text == "Attention — Flash the impossible colour.")
 	assert(exact_texture != null and exact_texture.get_image().get_width() == 1600)
 	var agency_audio := shell.get_node_or_null("%AgencyAudio")
 	assert(agency_audio != null)

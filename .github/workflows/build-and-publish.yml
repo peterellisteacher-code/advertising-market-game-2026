@@ -42,6 +42,17 @@ jobs:
         with:
           version: "11.7.0"
 
+      - name: Install canvas native build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential \
+            libcairo2-dev \
+            libpango1.0-dev \
+            libjpeg-dev \
+            libgif-dev \
+            librsvg2-dev
+
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
 

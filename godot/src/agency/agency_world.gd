@@ -5,6 +5,7 @@ signal station_requested(station_id: String)
 signal guide_requested
 signal audio_settings_requested
 signal audio_settings_changed(settings: Dictionary)
+signal build_advertisement_requested
 
 const AgencyProgress = preload("res://src/agency/agency_progress.gd")
 const MissionCatalog = preload("res://src/agency/agency_mission_catalog.gd")
@@ -294,6 +295,8 @@ func _connect_controls() -> void:
 			hud.guide_requested.connect(_on_hud_guide_requested)
 		if not hud.sound_muted_requested.is_connected(_on_hud_sound_muted_requested):
 			hud.sound_muted_requested.connect(_on_hud_sound_muted_requested)
+		if not hud.build_advertisement_requested.is_connected(_on_hud_build_advertisement_requested):
+			hud.build_advertisement_requested.connect(_on_hud_build_advertisement_requested)
 	var guide := _guide()
 	if guide != null:
 		if not guide.direct_travel_requested.is_connected(_on_guidance_travel_requested):
@@ -589,6 +592,9 @@ func _on_hud_sound_muted_requested(muted: bool) -> void:
 	_progress.audio_settings = settings
 	_configure_guidance()
 	audio_settings_changed.emit(settings.duplicate(true))
+
+func _on_hud_build_advertisement_requested() -> void:
+	build_advertisement_requested.emit()
 
 func _on_guidance_travel_requested(station_id: String) -> void:
 	direct_travel(station_id)

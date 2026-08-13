@@ -198,6 +198,7 @@ func _ready() -> void:
     agency_world.station_requested.connect(_on_agency_station_requested)
     agency_world.audio_settings_requested.connect(_on_agency_audio_settings_requested)
     agency_world.audio_settings_changed.connect(_on_agency_audio_settings_changed)
+    agency_world.build_advertisement_requested.connect(_open_assignment_sandbox)
     _agency_campaign.creator_requested.connect(_open_creator)
     _agency_campaign.publish_requested.connect(_publish_campaign)
     _agency_campaign.market_requested.connect(_enter_market)

@@ -7,6 +7,7 @@ class_name AdMarketTestAgencyButtonTheme
 # means unclickable, and only that.
 
 const THEME_PATH := "res://src/agency/ui/agency_theme.tres"
+const MISSION_THEME_PATH := "res://src/ui/agency_mission_theme.tres"
 const MissionPanelScene = preload("res://src/agency/missions/AgencyMissionPanel.tscn")
 const GuideDrawerScene = preload("res://src/agency/ui/AgencyGuideDrawer.tscn")
 const HudScene = preload("res://src/agency/ui/AgencyHud.tscn")
@@ -29,6 +30,7 @@ const WORLD_BUTTON_PATHS: Array[String] = [
 
 func run() -> bool:
 	_assert_theme_resource()
+	_assert_mission_theme_body_text_is_readable()
 	var tree := Engine.get_main_loop() as SceneTree
 	assert(tree != null)
 	for scene: PackedScene in [MissionPanelScene, GuideDrawerScene, HudScene]:
@@ -74,6 +76,21 @@ func _assert_theme_resource() -> void:
 		)
 		for state: String in ["normal", "hover", "pressed"]:
 			assert(not _is_grey(_fill(theme, state, type_name)))
+
+func _assert_mission_theme_body_text_is_readable() -> void:
+	# The demonstration stages mount under this theme, so its default Label colour is
+	# what every unstyled instruction and status label falls back to. Left undefined it
+	# resolved to Godot's near-white, which vanished on the cream work surface.
+	var theme := load(MISSION_THEME_PATH) as Theme
+	assert(theme != null)
+	assert(theme.has_color("font_color", "Label"))
+	var body := theme.get_color("font_color", "Label")
+	var surface := (theme.get_stylebox("panel", "WorkSurface") as StyleBoxFlat).bg_color
+	var ratio := _contrast_ratio(body, surface)
+	assert(
+		ratio >= MIN_TEXT_CONTRAST,
+		"Mission body text contrast %.2f is below %.1f:1 on the work surface" % [ratio, MIN_TEXT_CONTRAST]
+	)
 
 func _fill(theme: Theme, state: String, type_name: String) -> Color:
 	var box := theme.get_stylebox(state, type_name) as StyleBoxFlat

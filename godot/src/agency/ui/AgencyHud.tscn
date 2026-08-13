@@ -29,6 +29,13 @@ corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_build"]
+bg_color = Color(0.36, 0.72, 0.5, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
 [node name="AgencyHud" type="PanelContainer" unique_id=603327499]
 custom_minimum_size = Vector2(1248, 84)
 theme = ExtResource("2_theme")
@@ -96,6 +103,19 @@ theme_override_colors/font_pressed_color = Color(0.047, 0.086, 0.145, 1)
 theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_4iwib")
 text = "Enter current task"
+
+[node name="HudBuildAdvertisement" type="Button" parent="HudMargin/HudStack/PrimaryRow" unique_id=988776655]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(244, 52)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.047, 0.086, 0.145, 1)
+theme_override_colors/font_hover_color = Color(0.047, 0.086, 0.145, 1)
+theme_override_colors/font_pressed_color = Color(0.047, 0.086, 0.145, 1)
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_build")
+text = "Build my advertisement"
+tooltip_text = "Leave the academy and build your advertisement in the studio."
 
 [node name="HudGuideButton" type="Button" parent="HudMargin/HudStack/PrimaryRow" unique_id=1438983335]
 unique_name_in_owner = true

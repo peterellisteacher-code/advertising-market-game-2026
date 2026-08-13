@@ -5,6 +5,7 @@ signal direct_travel_requested(station_id: String)
 signal objective_task_requested(station_id: String)
 signal guide_requested(section: String)
 signal sound_muted_requested(muted: bool)
+signal build_advertisement_requested
 
 const OVERALL_GOAL := "Create and pitch a persuasive advertisement for the client audience."
 
@@ -131,6 +132,9 @@ func _connect_controls() -> void:
 	var tuck_button := get_node_or_null("HudMargin/HudStack/PrimaryRow/HudTuckToggle") as Button
 	if tuck_button != null and not tuck_button.pressed.is_connected(_on_tuck_pressed):
 		tuck_button.pressed.connect(_on_tuck_pressed)
+	var build_button := get_node_or_null("HudMargin/HudStack/PrimaryRow/HudBuildAdvertisement") as Button
+	if build_button != null and not build_button.pressed.is_connected(_on_build_advertisement_pressed):
+		build_button.pressed.connect(_on_build_advertisement_pressed)
 
 func _set_label_text(path: String, value: String) -> void:
 	var label := get_node_or_null(path) as Label
@@ -149,6 +153,9 @@ func _on_sound_pressed() -> void:
 
 func _on_tuck_pressed() -> void:
 	set_compact(not _compact)
+
+func _on_build_advertisement_pressed() -> void:
+	build_advertisement_requested.emit()
 
 func _on_direct_travel_selected(index: int) -> void:
 	var menu := get_node_or_null("HudMargin/HudStack/ExpandedDetails/TravelBlock/HudDirectTravel") as OptionButton

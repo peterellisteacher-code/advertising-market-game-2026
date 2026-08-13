@@ -496,7 +496,7 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_bc0i0")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_it3ii")
 theme_override_styles/hover = SubResource("StyleBoxFlat_qdqpm")
 theme_override_styles/focus = SubResource("Style_focus")
-text = "Open assignment sandbox"
+text = "Build my advertisement"
 
 [node name="MarketScreen" parent="MainMargin/GameInput" unique_id=698235327 instance=ExtResource("4_market_screen")]
 unique_name_in_owner = true

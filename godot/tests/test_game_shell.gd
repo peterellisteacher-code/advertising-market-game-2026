@@ -691,7 +691,7 @@ func _authored_shell_is_fun_first_and_accessible() -> bool:
 		assert(_contrast_with_white(hover.bg_color) >= 4.5)
 
 	assert(start.text == "Start advertisement")
-	assert(sandbox.text == "Open assignment sandbox")
+	assert(sandbox.text == "Build my advertisement")
 	assert((shell.get_node("%JoinMarketToggle") as Button).text == "Join a class market")
 	assert(join_live.text == "Join the live market")
 	var start_style := start.get_theme_stylebox("normal") as StyleBoxFlat

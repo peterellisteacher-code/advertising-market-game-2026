@@ -89,9 +89,25 @@ func run() -> bool:
 	) as OptionButton
 	assert(hud_guide_button.focus_mode == Control.FOCUS_ALL)
 	assert(hud_travel_menu.item_count == 9)
+	_assert_hud_build_advertisement_route(world)
 	assert(world.get_node("HUD/HUDRoot/ObjectiveBar").visible == false)
 	world.free()
 	return true
+
+func _assert_hud_build_advertisement_route(world: Node) -> void:
+	var typed_world := world as AdMarketAgencyWorld
+	assert(typed_world != null)
+	var hud := world.get_node("%AgencyHud") as AdMarketAgencyHud
+	var build_button := hud.get_node(
+		"HudMargin/HudStack/PrimaryRow/HudBuildAdvertisement"
+	) as Button
+	assert(build_button != null)
+	assert(build_button.text == "Build my advertisement")
+	assert(build_button.focus_mode == Control.FOCUS_ALL)
+	var relayed: Array[String] = []
+	typed_world.build_advertisement_requested.connect(func() -> void: relayed.append("build"))
+	build_button.pressed.emit()
+	assert(relayed == ["build"])
 
 func _assert_quick_start_opens_product_workspace(tree: SceneTree) -> void:
 	_workspace_requested = false

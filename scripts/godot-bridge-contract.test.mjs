@@ -208,7 +208,7 @@ test("the lobby opens only the isolated assignment sandbox document", async () =
     scene,
     /\[node name="OpenAssignmentSandbox" type="Button"[^\]]*\][\s\S]*?unique_name_in_owner = true[\s\S]*?(?=\n\[node |\s*$)/
   );
-  assert.match(scene, /text = "Open assignment sandbox"/);
+  assert.match(scene, /text = "Build my advertisement"/);
   assert.match(main, /creator_host\.load_latest\(ASSIGNMENT_SANDBOX_DOCUMENT_ID\)/);
   assert.match(
     main,

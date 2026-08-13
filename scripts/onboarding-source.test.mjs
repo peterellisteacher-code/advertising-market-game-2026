@@ -196,7 +196,7 @@ test("the entry lobby makes the advertisement primary and the assignment sandbox
   for (const requiredCopy of [
     "AGENCY ACADEMY",
     "Start advertisement",
-    "Open assignment sandbox",
+    "Build my advertisement",
     "Join a class market",
     "Teacher setup"
   ]) {

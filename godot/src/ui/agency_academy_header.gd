@@ -34,21 +34,35 @@ func _render_progress(states: Array[String]) -> void:
 		child.queue_free()
 	for index: int in range(states.size()):
 		var state: String = states[index]
-		var dot := Label.new()
-		dot.custom_minimum_size = Vector2(18, 22)
-		dot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		dot.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		dot.text = "●" if state != "remaining" else "○"
-		dot.tooltip_text = "Task %d: %s" % [index + 1, state]
-		dot.set_meta("progress_state", state)
-		match state:
-			"complete":
-				dot.add_theme_color_override("font_color", Tokens.SUCCESS)
-			"current":
-				dot.add_theme_color_override("font_color", Tokens.GOLD)
-			_:
-				dot.add_theme_color_override("font_color", Color("#A9ADC0"))
-		progress_dots.add_child(dot)
+		var holder := CenterContainer.new()
+		holder.custom_minimum_size = Vector2(18, 22)
+		holder.tooltip_text = "Task %d: %s" % [index + 1, state]
+		holder.set_meta("progress_state", state)
+		holder.add_child(_build_progress_dot(state))
+		progress_dots.add_child(holder)
+
+## Draws each task marker as a shape rather than a font glyph. The bullet
+## characters used before are absent from the exported web font and showed as
+## empty boxes. A filled disc marks a done or current task; an outlined ring
+## marks one still to come.
+func _build_progress_dot(state: String) -> Panel:
+	var diameter := 14.0
+	var dot := Panel.new()
+	dot.custom_minimum_size = Vector2(diameter, diameter)
+	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.set_corner_radius_all(int(diameter / 2.0))
+	match state:
+		"complete":
+			style.bg_color = Tokens.SUCCESS
+		"current":
+			style.bg_color = Tokens.GOLD
+		_:
+			style.bg_color = Color(0, 0, 0, 0)
+			style.border_color = Color("#A9ADC0")
+			style.set_border_width_all(2)
+	dot.add_theme_stylebox_override("panel", style)
+	return dot
 
 func _on_brief_pressed() -> void:
 	brief_requested.emit()

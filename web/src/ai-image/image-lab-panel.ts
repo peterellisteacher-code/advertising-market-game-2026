@@ -94,7 +94,7 @@ const SCENE_CHOICES = [
   "premium showcase"
 ] as const;
 
-const ADVERTISEMENT_FINISH_OPTIONS = [
+export const ADVERTISEMENT_FINISH_OPTIONS = [
   { id: "photographic-campaign", label: "Photographic advert" },
   { id: "clean-product", label: "Clean product advert" },
   { id: "lifestyle", label: "Lifestyle advert" },
@@ -102,7 +102,7 @@ const ADVERTISEMENT_FINISH_OPTIONS = [
   { id: "bold-poster", label: "Bold poster finish" }
 ] as const;
 
-const ADVERTISEMENT_IMPROVEMENT_OPTIONS = [
+export const ADVERTISEMENT_IMPROVEMENT_OPTIONS = [
   { id: "lighting-shadows", label: "Lighting and shadows" },
   { id: "materials-texture", label: "Materials and texture" },
   { id: "background-polish", label: "Background polish" },

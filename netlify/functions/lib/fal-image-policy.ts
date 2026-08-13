@@ -303,6 +303,9 @@ const ADVERTISEMENT_IMPROVEMENT_TOPICS: ReadonlyMap<string, string> = new Map([
   ["depth-focus", "depth and focus separation"]
 ]);
 
+const ADVERTISEMENT_FINISH_CHOICES: ReadonlySet<string> =
+  new Set(ADVERTISEMENT_FINISH_DIRECTIONS.keys());
+
 const ADVERTISEMENT_IMPROVEMENT_ORDER: readonly string[] =
   [...ADVERTISEMENT_IMPROVEMENT_TOPICS.keys()];
 
@@ -537,11 +540,7 @@ export function parseAdvertisementRealisationRequest(
     ...parseIdentity(record),
     documentId: requireBoundedText(record.documentId, "documentId", 64),
     designDataUrl: record.designDataUrl as string,
-    finish: requireChoice(
-      record.finish,
-      "finish",
-      new Set(ADVERTISEMENT_FINISH_DIRECTIONS.keys())
-    ),
+    finish: requireChoice(record.finish, "finish", ADVERTISEMENT_FINISH_CHOICES),
     improvements: requireOrderedChoiceSubset(
       record.improvements,
       "improvements",

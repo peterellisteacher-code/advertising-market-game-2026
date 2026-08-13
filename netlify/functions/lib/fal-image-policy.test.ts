@@ -2,6 +2,10 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  ADVERTISEMENT_FINISH_OPTIONS,
+  ADVERTISEMENT_IMPROVEMENT_OPTIONS
+} from "../../../web/src/ai-image/image-lab-panel";
+import {
   FAL_IMAGE_MAX_BYTES,
   FalImagePolicyError,
   MAKE_IT_REAL_PROFILE,
@@ -605,6 +609,13 @@ describe("fal image policy", () => {
       "INVALID_FIELD",
       "improvements"
     );
+  });
+
+  it("keeps the browser taxonomy and the server allowlists in sync", () => {
+    expect(ADVERTISEMENT_FINISH_OPTIONS.map((option) => option.id))
+      .toEqual([...advertisementFinishChoices]);
+    expect(ADVERTISEMENT_IMPROVEMENT_OPTIONS.map((option) => option.id))
+      .toEqual([...advertisementImprovementChoices]);
   });
 
   it("keeps the mandatory preservation and prohibition rules for every finish", () => {

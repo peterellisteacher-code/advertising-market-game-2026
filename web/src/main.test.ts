@@ -4481,6 +4481,233 @@ describe("window.AdMarketCreator", () => {
     await waitFor(() => expect(currentObjects()).toEqual([]));
     fireEvent.click(getByRole(document.body, "button", { name: "Redo" }));
     await waitFor(() => expect(currentObjects()).toHaveLength(1));
+
+    expect(fetchSpy.mock.calls.some(([input]) =>
+      String(input).startsWith("/api/account/progress"))).toBe(false);
+  }, 20_000);
+
+  interface SandboxCloudProgressHarness {
+    readonly fetchSpy: import("vitest").MockInstance<typeof fetch>;
+    readonly progressPuts: Array<{
+      expectedRevision: number;
+      documentId: string;
+      document: CampaignDocumentV1;
+    }>;
+    readonly serverRevision: () => number;
+  }
+
+  function mockSandboxCloudProgressFetch(initialServerRevision = 0): SandboxCloudProgressHarness {
+    let serverRevision = initialServerRevision;
+    const progressPuts: SandboxCloudProgressHarness["progressPuts"] = [];
+    // The account asset client content-sniffs uploads, so the generated image
+    // must be a structurally valid PNG header (signature + IHDR), not just the
+    // 8-byte signature other Image Lab tests get away with.
+    const imageBytes = Uint8Array.of(
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+      0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+      0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89
+    );
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url = String(input);
+      if (url === "/api/account/session") {
+        return Promise.resolve(Response.json({
+          authenticated: true,
+          username: "qa-pair",
+          resetGeneration: null
+        }));
+      }
+      if (url === "/api/account/progress" && init?.method === "PUT") {
+        const body = JSON.parse(String(init.body)) as {
+          expectedRevision: number;
+          documentId: string;
+          document: CampaignDocumentV1;
+        };
+        progressPuts.push(body);
+        if (body.expectedRevision !== serverRevision) {
+          return Promise.resolve(Response.json({
+            error: "REVISION_CONFLICT",
+            currentRevision: serverRevision
+          }, { status: 409 }));
+        }
+        serverRevision += 1;
+        return Promise.resolve(Response.json({
+          schema: "advertising-game-progress",
+          version: 1,
+          documentId: body.documentId,
+          revision: serverRevision,
+          updatedAt: "2026-08-13T01:00:00.000Z"
+        }));
+      }
+      if (url === "/api/account/progress") {
+        return Promise.resolve(Response.json({
+          schema: "advertising-game-progress",
+          version: 1,
+          documents: []
+        }));
+      }
+      if (url.startsWith("/api/account/progress?documentId=")) {
+        return Promise.resolve(Response.json({ error: "PROGRESS_NOT_FOUND" }, { status: 404 }));
+      }
+      if (url.startsWith("/api/account/assets/") && init?.method === "PUT") {
+        const digest = url.slice("/api/account/assets/".length);
+        const blob = init.body as Blob;
+        return Promise.resolve(Response.json({
+          schema: "advertising-game-account-asset",
+          version: 1,
+          asset: {
+            id: digest,
+            sha256: digest,
+            contentType: blob.type,
+            byteLength: blob.size,
+            href: url
+          }
+        }));
+      }
+      if (url === "/api/image-lab/session") {
+        return Promise.resolve(Response.json({
+          enabled: true,
+          object: { remaining: 6, reserved: 0 },
+          realise: { remaining: 2, reserved: 0 }
+        }));
+      }
+      if (url === "/api/image-lab/jobs" && init?.method === "POST") {
+        return Promise.resolve(Response.json({
+          jobToken: "encrypted-advertisement-token",
+          stage: "realise",
+          remaining: { object: 6, realise: 1 }
+        }, { status: 202 }));
+      }
+      if (url.startsWith("/api/image-lab/jobs?job=")) {
+        return Promise.resolve(Response.json({ status: "completed" }));
+      }
+      if (url.startsWith("/api/image-lab/assets?job=")) {
+        return Promise.resolve(new Response(imageBytes, {
+          headers: {
+            "content-type": "image/png",
+            "content-length": String(imageBytes.byteLength)
+          }
+        }));
+      }
+      return Promise.reject(new Error(`Unexpected URL ${url}`));
+    });
+    return { fetchSpy, progressPuts, serverRevision: () => serverRevision };
+  }
+
+  function createSandboxRealiseSource(): CampaignDocumentV1 {
+    // Mirrors the document Godot's assignment_sandbox_document.gd creates:
+    // fixed ids, offline mode, revision 0 and NO teamId.
+    const source = createBlankCampaignDocument({
+      documentId: "assignment-sandbox",
+      sessionId: "assignment-sandbox-session",
+      mode: "offline"
+    });
+    source.workspaceMode = "assignment-sandbox";
+    source.product.name = "Orbit Bottle";
+    source.assignmentPlan.productFunction = "Keeps water cold through the school day";
+    source.assignmentPlan.targetAudience = "Senior students who carry water all day";
+    source.assignmentPlan.advertisingLocation = "Bus shelter near school";
+    source.strategy.aidaPlan = {
+      attention: "The icy bottle against a hot orange background",
+      interest: "A temperature display and replaceable filter",
+      desire: "Feel prepared, calm and refreshed all day",
+      action: "Scan the code to choose a colour"
+    };
+    return source;
+  }
+
+  async function realiseSandboxAdvertisement(expectedJobPosts: number,
+    fetchSpy: SandboxCloudProgressHarness["fetchSpy"]): Promise<void> {
+    const imageLab = document.querySelector<HTMLElement>('[data-image-lab-panel]')!;
+    await waitFor(() => expect(getByRole(imageLab, "button", {
+      name: "Make this advertisement realistic"
+    })).toBeTruthy());
+    fireEvent.click(getByRole(imageLab, "button", {
+      name: "Make this advertisement realistic"
+    }));
+    await waitFor(() => expect(fetchSpy.mock.calls.filter(([input, request]) =>
+      String(input) === "/api/image-lab/jobs" && request?.method === "POST"
+    )).toHaveLength(expectedJobPosts), { timeout: 10_000 });
+    await waitFor(() => expect(imageLab.textContent)
+      .toContain(STUDENT_COPY.assignmentSandbox.imageLab.doneAdvertisement));
+  }
+
+  it("uploads the assignment sandbox to cloud progress before each advertisement realisation", async () => {
+    const harness = mockSandboxCloudProgressFetch();
+
+    await import("./main");
+    await window.AdMarketAccount.requireAccess();
+    const api = window.AdMarketCreator;
+    await parsed(api, "open-sandbox-cloud", "open", createSandboxRealiseSource());
+    activateStudioTool("image");
+    await realiseSandboxAdvertisement(1, harness.fetchSpy);
+
+    expect(harness.progressPuts).toHaveLength(1);
+    const first = harness.progressPuts[0]!;
+    expect(first.documentId).toBe("assignment-sandbox");
+    expect(first.expectedRevision).toBe(0);
+    expect(first.document).toMatchObject({
+      documentId: "assignment-sandbox",
+      sessionId: "assignment-sandbox-session",
+      teamId: "assignment-sandbox-team",
+      mode: "offline",
+      workspaceMode: "assignment-sandbox",
+      product: expect.objectContaining({ name: "Orbit Bottle" }),
+      strategy: expect.objectContaining({
+        aidaPlan: {
+          attention: "The icy bottle against a hot orange background",
+          interest: "A temperature display and replaceable filter",
+          desire: "Feel prepared, calm and refreshed all day",
+          action: "Scan the code to choose a colour"
+        }
+      })
+    });
+
+    // The cloud copy must be settled before the job request, or the server's
+    // authorisation check reads a missing/stale document and returns 403.
+    const putIndex = harness.fetchSpy.mock.calls.findIndex(([input, request]) =>
+      String(input) === "/api/account/progress" && request?.method === "PUT");
+    const jobIndex = harness.fetchSpy.mock.calls.findIndex(([input, request]) =>
+      String(input) === "/api/image-lab/jobs" && request?.method === "POST");
+    expect(putIndex).toBeGreaterThanOrEqual(0);
+    expect(jobIndex).toBeGreaterThan(putIndex);
+
+    // Second submission with an edit in between: the cloud copy must carry the
+    // NEW content at a strictly newer document revision (the asset adapter
+    // reloads drafts by (documentId, revision), so a repeated revision would
+    // silently re-sync the first submission's content).
+    fireEvent.input(getByLabelText(document.body, "Product name"), {
+      target: { value: "Orbit Bottle Max" }
+    });
+    await realiseSandboxAdvertisement(2, harness.fetchSpy);
+
+    expect(harness.progressPuts).toHaveLength(2);
+    const second = harness.progressPuts[1]!;
+    expect(second.expectedRevision).toBe(1);
+    expect(second.document.product.name).toBe("Orbit Bottle Max");
+    expect(second.document.revision).toBeGreaterThan(first.document.revision);
+    expect(harness.progressPuts.every(({ documentId }) =>
+      documentId === "assignment-sandbox")).toBe(true);
+  }, 20_000);
+
+  it("keeps the local sandbox when the cloud copy holds a stale revision from another device", async () => {
+    const harness = mockSandboxCloudProgressFetch(5);
+
+    await import("./main");
+    await window.AdMarketAccount.requireAccess();
+    const api = window.AdMarketCreator;
+    await parsed(api, "open-sandbox-conflict", "open", createSandboxRealiseSource());
+    activateStudioTool("image");
+    await realiseSandboxAdvertisement(1, harness.fetchSpy);
+
+    // First PUT conflicts (expected 0 vs current 5); the sandbox auto-resolves
+    // keep-local and retries so authorisation still sees the fresh content.
+    expect(harness.progressPuts.map(({ expectedRevision }) => expectedRevision))
+      .toEqual([0, 5]);
+    expect(harness.serverRevision()).toBe(6);
+    expect(harness.progressPuts[1]!.document.product.name).toBe("Orbit Bottle");
+    expect(document.querySelector("[data-account-cloud-status]")?.textContent)
+      .toContain("Saved on this device and cloud.");
   }, 20_000);
 
   it("aborts Image Lab at the start of close so a late job cannot recreate the canvas", async () => {

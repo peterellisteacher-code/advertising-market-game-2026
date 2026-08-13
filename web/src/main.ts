@@ -241,6 +241,13 @@ function nextUpdatedAt(current: string, latest?: string): string {
 const normaliseAdvertisementText = (value: string, maximum: number): string =>
   value.replace(/\s+/gu, " ").trim().slice(0, maximum);
 
+// The sandbox document Godot creates carries no teamId, but the cloud-progress
+// contract (client save, server save and the advertisement authorisation
+// parser) requires three distinct practice identities. The cloud copy alone
+// carries this constant; the in-editor document keeps its original identity so
+// the captured image-lab pair (teamId ?? documentId) stays valid.
+const ASSIGNMENT_SANDBOX_CLOUD_TEAM_ID = "assignment-sandbox-team";
+
 async function createCanvasRuntime(canvasElement: HTMLCanvasElement): Promise<CanvasRuntime> {
   const [{ Canvas }, { FabricCanvasAdapter }] = await Promise.all([
     import("fabric"),
@@ -311,7 +318,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
   #editorOpen = false;
   #practiceAutosave: SerializedAutosave<LocalPracticeRecoveryV1> | null = null;
   #practiceSaveMatched = false;
-  readonly #cloudSync: Pick<CloudProgressSync, "enqueue" | "settled"> | null;
+  readonly #cloudSync: Pick<CloudProgressSync, "enqueue" | "settled" | "resolveConflict"> | null;
   readonly #writersStatement: WritersStatementView;
 
   constructor(
@@ -321,7 +328,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     private readonly gameCanvas: HTMLCanvasElement | null,
     private readonly drafts: DraftStore = new IndexedDbDraftStore(),
     practice: LocalPracticeService | null = null,
-    cloudSync: Pick<CloudProgressSync, "enqueue" | "settled"> | null = null,
+    cloudSync: Pick<CloudProgressSync, "enqueue" | "settled" | "resolveConflict"> | null = null,
     overlayExclusivity: OverlayExclusivity = createOverlayExclusivity()
   ) {
     this.#cloudSync = cloudSync;
@@ -810,7 +817,7 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
     this.#assertCurrentImageLabPair(pair);
     this.schedulePracticeAutosave();
     await this.flushPracticeAutosave();
-    await this.#cloudSync?.settled();
+    await this.#syncAssignmentSandboxCloudProgress();
     this.#assertCurrentImageLabPair(pair);
     const document = this.#document;
     if (!document || document.workspaceMode !== "assignment-sandbox") {
@@ -833,6 +840,47 @@ class BrowserCreatorHandler implements CreatorBridgeHandler, RoundZeroPort {
       throw new Error("Complete the product details and all four Advertisement AIDA decisions first.");
     }
     return { documentId: document.documentId, context };
+  }
+
+  // The server authorises advertisement realisation against the saved cloud
+  // copy of the sandbox, but nothing else ever uploads it: practice autosave
+  // commits no-op for the sandbox because its fixed ids can never match a
+  // practice checkpoint. Persist the current snapshot to drafts at a fresh
+  // revision (the cloud asset adapter re-reads drafts by documentId+revision,
+  // so a repeated revision would re-sync stale content) and drain the outbox.
+  async #syncAssignmentSandboxCloudProgress(): Promise<void> {
+    const cloudSync = this.#cloudSync;
+    if (cloudSync === null) return;
+    const document = this.#document;
+    if (!this.#editorOpen || document === null ||
+      document.workspaceMode !== "assignment-sandbox") {
+      await cloudSync.settled();
+      return;
+    }
+    const snapshot = this.#snapshot();
+    const latest = await this.drafts.load(snapshot.documentId);
+    const cloudDocument = parseCampaignDocument({
+      ...structuredClone(snapshot),
+      teamId: snapshot.teamId ?? ASSIGNMENT_SANDBOX_CLOUD_TEAM_ID,
+      revision: (latest
+        ? Math.max(snapshot.revision, latest.document.revision)
+        : snapshot.revision) + 1,
+      updatedAt: nextUpdatedAt(snapshot.updatedAt, latest?.document.updatedAt)
+    });
+    await this.drafts.save(
+      cloudDocument,
+      selectReferencedLocalAssetBlobs(cloudDocument, this.#blobs)
+    );
+    cloudSync.enqueue(cloudDocument);
+    await cloudSync.settled();
+    try {
+      // The sandbox cloud copy exists only so the server can authorise the
+      // advertisement against it, so a stale revision from another device or
+      // cleared metadata always resolves to the copy on this device. Throws
+      // when no conflict is pending, which is the common case.
+      await cloudSync.resolveConflict(cloudDocument.documentId, "keep-local");
+      await cloudSync.settled();
+    } catch {}
   }
 
   async captureStudioCoachCanvas(): Promise<StudioCoachCanvasEvidence> {

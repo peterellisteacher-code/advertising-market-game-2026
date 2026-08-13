@@ -24,6 +24,7 @@ import {
 import {
   ADVERTISEMENT_REALISATION_PROFILE_ID,
   IMAGE_LAB_ASSET_MAX_BYTES,
+  LEGACY_ADVERTISEMENT_REALISATION_PROFILE_ID,
   LEGACY_MAKE_IT_REAL_PROFILE_ID,
   MAKE_IT_REAL_PROFILE_ID,
   OBJECT_FORGE_PROFILE_ID,
@@ -114,6 +115,8 @@ const advertisementRequest = {
   ...identity,
   documentId: "assignment-sandbox",
   designDataUrl,
+  finish: "photographic-campaign",
+  improvements: ["lighting-shadows", "colour-contrast"],
   context: {
     productName: "Orbit Bottle",
     productFunction: "Keeps water cold through the school day",
@@ -509,7 +512,8 @@ describe("Image Lab jobs transport", () => {
   });
 
   it("pins advertisement realisation to GPT Image 2 edit and the shared realise allowance", async () => {
-    expect(ADVERTISEMENT_REALISATION_PROFILE_ID).toBe("make-it-real-advertisement-v1");
+    expect(ADVERTISEMENT_REALISATION_PROFILE_ID).toBe("make-it-real-advertisement-v2");
+    expect(LEGACY_ADVERTISEMENT_REALISATION_PROFILE_ID).toBe("make-it-real-advertisement-v1");
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ request_id: requestId }));
     const state = stateFixture();
     const allowances = allowanceFixture();
@@ -1026,6 +1030,26 @@ describe("Image Lab jobs transport", () => {
       initialJob: storedObjectJob({
         stage: "make-it-real",
         profileId: MAKE_IT_REAL_PROFILE_ID
+      })
+    });
+    const bytes = pngBytes(1_280, 720);
+    const fetcher = completedQueueResponses(new Response(responseBody(bytes), {
+      headers: { "content-type": "image/png", "content-length": String(bytes.byteLength) }
+    }));
+    const response = await handlerWith(fetcher, 1_000, state)(authenticatedGet(
+      `/api/image-lab/assets?job=${encodeURIComponent(token)}`
+    ));
+
+    expect(response.status).toBe(200);
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(bytes);
+  });
+
+  it("keeps already-issued v1 advertisement jobs readable after the v2 profile bump", async () => {
+    const token = jobToken("make-it-real", LEGACY_ADVERTISEMENT_REALISATION_PROFILE_ID);
+    const state = stateFixture({
+      initialJob: storedObjectJob({
+        stage: "make-it-real",
+        profileId: LEGACY_ADVERTISEMENT_REALISATION_PROFILE_ID
       })
     });
     const bytes = pngBytes(1_280, 720);

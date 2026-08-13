@@ -40,6 +40,8 @@ export interface MakeItRealChoice {
 export interface AdvertisementRealisationChoice {
   sessionId: string;
   teamId: string;
+  finish: string;
+  improvements: string[];
 }
 
 export interface ImageLabActions {
@@ -90,6 +92,22 @@ const SCENE_CHOICES = [
   "cosy home setting",
   "sporty action setting",
   "premium showcase"
+] as const;
+
+const ADVERTISEMENT_FINISH_OPTIONS = [
+  { id: "photographic-campaign", label: "Photographic advert" },
+  { id: "clean-product", label: "Clean product advert" },
+  { id: "lifestyle", label: "Lifestyle advert" },
+  { id: "premium-editorial", label: "Premium magazine look" },
+  { id: "bold-poster", label: "Bold poster finish" }
+] as const;
+
+const ADVERTISEMENT_IMPROVEMENT_OPTIONS = [
+  { id: "lighting-shadows", label: "Lighting and shadows" },
+  { id: "materials-texture", label: "Materials and texture" },
+  { id: "background-polish", label: "Background polish" },
+  { id: "colour-contrast", label: "Colour and contrast" },
+  { id: "depth-focus", label: "Depth and focus" }
 ] as const;
 
 function button(label: string): HTMLButtonElement {
@@ -150,6 +168,8 @@ export class ImageLabPanel {
   #pendingChecks: Partial<Record<Operation, PendingCheck>> = {};
   #operation: AbortController | null = null;
   #disposed = false;
+  #advertisementFinish: string = ADVERTISEMENT_FINISH_OPTIONS[0].id;
+  #advertisementImprovements = new Set<string>();
 
   constructor(
     private readonly host: HTMLElement,
@@ -172,6 +192,8 @@ export class ImageLabPanel {
     this.#pendingChecks = {};
     this.#message = "Checking the image tools…";
     this.#error = "";
+    this.#advertisementFinish = ADVERTISEMENT_FINISH_OPTIONS[0].id;
+    this.#advertisementImprovements = new Set();
     this.#draw();
   }
 
@@ -379,9 +401,57 @@ export class ImageLabPanel {
         : sandboxCopy.makeAdvertisementRealistic);
       advertisement.disabled = this.#busy !== null || !this.#pair;
       advertisement.addEventListener("click", () => void this.#realiseAdvertisement());
-      section.append(warning, advertisement);
+      section.append(
+        warning,
+        this.#advertisementFinishControl(),
+        this.#advertisementImproveControl(),
+        advertisement
+      );
     }
     return section;
+  }
+
+  #advertisementFinishControl(): HTMLLabelElement {
+    const label = document.createElement("label");
+    label.textContent = "Professional finish";
+    const select = document.createElement("select");
+    select.name = "advertisement-finish";
+    select.setAttribute("aria-label", "Professional finish");
+    for (const choice of ADVERTISEMENT_FINISH_OPTIONS) {
+      const option = document.createElement("option");
+      option.value = choice.id;
+      option.textContent = choice.label;
+      option.selected = choice.id === this.#advertisementFinish;
+      select.append(option);
+    }
+    select.addEventListener("change", () => {
+      this.#advertisementFinish = select.value;
+    });
+    label.append(select);
+    return label;
+  }
+
+  #advertisementImproveControl(): HTMLFieldSetElement {
+    const fieldset = document.createElement("fieldset");
+    fieldset.className = "image-lab__improve";
+    const legend = document.createElement("legend");
+    legend.textContent = "Improve";
+    fieldset.append(legend);
+    for (const choice of ADVERTISEMENT_IMPROVEMENT_OPTIONS) {
+      const label = document.createElement("label");
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.name = "advertisement-improve";
+      input.value = choice.id;
+      input.checked = this.#advertisementImprovements.has(choice.id);
+      input.addEventListener("click", () => {
+        if (input.checked) this.#advertisementImprovements.add(choice.id);
+        else this.#advertisementImprovements.delete(choice.id);
+      });
+      label.append(input, document.createTextNode(choice.label));
+      fieldset.append(label);
+    }
+    return fieldset;
   }
 
   async #forge(root: HTMLElement): Promise<void> {
@@ -436,7 +506,11 @@ export class ImageLabPanel {
     if (!this.#pair || this.#pair.workspaceMode !== "assignment-sandbox" || this.#busy !== null) return;
     const input: AdvertisementRealisationChoice = {
       sessionId: this.#pair.sessionId,
-      teamId: this.#pair.teamId
+      teamId: this.#pair.teamId,
+      finish: this.#advertisementFinish,
+      improvements: ADVERTISEMENT_IMPROVEMENT_OPTIONS
+        .filter((choice) => this.#advertisementImprovements.has(choice.id))
+        .map((choice) => choice.id)
     };
     await this.#run({
       operation: "realise",

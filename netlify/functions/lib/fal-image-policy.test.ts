@@ -62,6 +62,22 @@ const sceneChoices = [
   "premium showcase"
 ] as const;
 
+const advertisementFinishChoices = [
+  "photographic-campaign",
+  "clean-product",
+  "lifestyle",
+  "premium-editorial",
+  "bold-poster"
+] as const;
+
+const advertisementImprovementChoices = [
+  "lighting-shadows",
+  "materials-texture",
+  "background-polish",
+  "colour-contrast",
+  "depth-focus"
+] as const;
+
 const pngBytes = (width = 1_024, height = 576, size = 45): Uint8Array => {
   const bytes = new Uint8Array(size);
   bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -449,6 +465,8 @@ describe("fal image policy", () => {
       ...identity,
       documentId: "assignment-sandbox",
       designDataUrl: dataUrl("image/png", pngBytes()),
+      finish: "photographic-campaign",
+      improvements: ["lighting-shadows", "colour-contrast"],
       context: advertisementContext
     } as const;
 
@@ -497,6 +515,8 @@ describe("fal image policy", () => {
         ...identity,
         documentId: "assignment-sandbox",
         designDataUrl: dataUrl("image/png", pngBytes()),
+        finish: "photographic-campaign",
+        improvements: [],
         context: promptLikeData
       })
     );
@@ -510,6 +530,124 @@ describe("fal image policy", () => {
     expect(prompt).toMatch(/no new people/i);
     expect(prompt).toMatch(/no new text/i);
     expect(prompt).toMatch(/no watermarks|no signatures/i);
+  });
+
+  const advertisementRequestWith = (
+    overrides: Record<string, unknown>
+  ): Record<string, unknown> => ({
+    stage: "realise",
+    mode: "advertisement",
+    ...identity,
+    documentId: "assignment-sandbox",
+    designDataUrl: dataUrl("image/png", pngBytes()),
+    finish: "photographic-campaign",
+    improvements: [],
+    context: advertisementContext,
+    ...overrides
+  });
+
+  it.each(advertisementFinishChoices)(
+    "accepts the advertisement professional finish %s",
+    (finish) => {
+      expect(parseAdvertisementRealisationRequest(
+        advertisementRequestWith({ finish })
+      ).finish).toBe(finish);
+    }
+  );
+
+  it.each([
+    "Photographic-Campaign",
+    "photographic campaign",
+    " photographic-campaign",
+    "cinematic",
+    "",
+    42,
+    null,
+    undefined
+  ])("rejects the non-UI advertisement finish %s", (finish) => {
+    expectPolicyError(
+      () => parseAdvertisementRealisationRequest(advertisementRequestWith({ finish })),
+      "INVALID_FIELD",
+      "finish"
+    );
+  });
+
+  it("accepts the full improvement set in canonical order and each single improvement", () => {
+    expect(parseAdvertisementRealisationRequest(
+      advertisementRequestWith({ improvements: [...advertisementImprovementChoices] })
+    ).improvements).toEqual([...advertisementImprovementChoices]);
+    for (const improvement of advertisementImprovementChoices) {
+      expect(parseAdvertisementRealisationRequest(
+        advertisementRequestWith({ improvements: [improvement] })
+      ).improvements).toEqual([improvement]);
+    }
+  });
+
+  it.each([
+    ["a duplicate entry", ["lighting-shadows", "lighting-shadows"]],
+    ["an unknown entry", ["sharper-text"]],
+    ["a non-canonical order", ["colour-contrast", "lighting-shadows"]],
+    ["a non-string entry", [42]],
+    ["a non-array value", "lighting-shadows"],
+    ["a null value", null],
+    ["an undefined value", undefined],
+    ["an excessive count", [
+      "lighting-shadows",
+      "materials-texture",
+      "background-polish",
+      "colour-contrast",
+      "depth-focus",
+      "depth-focus"
+    ]]
+  ])("rejects advertisement improvements with %s", (_label, improvements) => {
+    expectPolicyError(
+      () => parseAdvertisementRealisationRequest(advertisementRequestWith({ improvements })),
+      "INVALID_FIELD",
+      "improvements"
+    );
+  });
+
+  it("keeps the mandatory preservation and prohibition rules for every finish", () => {
+    for (const finish of advertisementFinishChoices) {
+      const prompt = composeAdvertisementRealisationPrompt(
+        parseAdvertisementRealisationRequest(advertisementRequestWith({ finish }))
+      );
+      expect(prompt).toMatch(/preserve the supplied composition/i);
+      expect(prompt).toMatch(/preserve every existing person.*identity.*pose/i);
+      expect(prompt).toMatch(/do not invent a brand/i);
+      expect(prompt).toMatch(/no new text/i);
+      expect(prompt).toMatch(/no new people/i);
+      expect(prompt).toMatch(/no watermarks or signatures/i);
+      expect(prompt).toMatch(/never override|do not override/i);
+    }
+  });
+
+  it("gives each finish its own bounded server-owned direction", () => {
+    const prompts = advertisementFinishChoices.map((finish) =>
+      composeAdvertisementRealisationPrompt(
+        parseAdvertisementRealisationRequest(advertisementRequestWith({ finish }))
+      ));
+    expect(new Set(prompts).size).toBe(advertisementFinishChoices.length);
+    for (const prompt of prompts) {
+      expect(prompt).not.toMatch(/photographic-campaign|clean-product|premium-editorial|bold-poster|depth-focus/);
+    }
+  });
+
+  it("emphasises only the selected improvements and omits the line when none are selected", () => {
+    const none = composeAdvertisementRealisationPrompt(
+      parseAdvertisementRealisationRequest(advertisementRequestWith({ improvements: [] }))
+    );
+    expect(none).not.toMatch(/particular attention/i);
+
+    const some = composeAdvertisementRealisationPrompt(
+      parseAdvertisementRealisationRequest(advertisementRequestWith({
+        improvements: ["lighting-shadows", "depth-focus"]
+      }))
+    );
+    expect(some).toMatch(/particular attention/i);
+    expect(some).toMatch(/lighting and shadows/i);
+    expect(some).toMatch(/depth/i);
+    expect(some).not.toMatch(/materials and texture|background polish|colour and contrast/i);
   });
 
   it("rejects an unknown stage with a stable error", () => {

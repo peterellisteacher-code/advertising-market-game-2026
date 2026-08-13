@@ -255,7 +255,9 @@ describe("ImageLabRuntime", () => {
 
     await runtime.makeAdvertisementReal({
       sessionId: "session-a",
-      teamId: "team-a"
+      teamId: "team-a",
+      finish: "premium-editorial",
+      improvements: ["materials-texture", "depth-focus"]
     }, new AbortController().signal);
 
     expect(getAdvertisementContext).toHaveBeenCalledOnce();
@@ -266,6 +268,8 @@ describe("ImageLabRuntime", () => {
       idempotencyKey: "generation-advertisement-1",
       documentId: "assignment-sandbox",
       designDataUrl: preparedReference,
+      finish: "premium-editorial",
+      improvements: ["materials-texture", "depth-focus"],
       context: advertisementContext
     }, { signal: expect.any(AbortSignal) });
     expect(place).toHaveBeenCalledWith(
@@ -273,10 +277,59 @@ describe("ImageLabRuntime", () => {
       expect.objectContaining({
         title: "Orbit Bottle advertisement",
         stage: "make-it-real",
-        profileId: "make-it-real-advertisement-v1",
+        profileId: "make-it-real-advertisement-v2",
         requestId: "generation-advertisement-1"
       })
     );
+  });
+
+  it("changes the advertisement submission fingerprint when a creative selection changes", async () => {
+    const fingerprints: string[] = [];
+    const submissionPersistence = {
+      load: vi.fn().mockResolvedValue(null),
+      store: vi.fn().mockImplementation(async (fingerprint: string) => {
+        fingerprints.push(fingerprint);
+      }),
+      remove: vi.fn().mockResolvedValue(undefined)
+    };
+    let generation = 0;
+    const runtime = new ImageLabRuntime({
+      client: client(),
+      exportDesign: vi.fn(() => "data:image/png;base64,iVBORw0KGgo="),
+      getAdvertisementContext: vi.fn(() => ({
+        documentId: "assignment-sandbox",
+        context: advertisementContext
+      })),
+      place: vi.fn().mockResolvedValue(undefined),
+      prepare: vi.fn().mockResolvedValue({
+        blob: new Blob(["reference"], { type: "image/png" }),
+        dataUrl: "data:image/png;base64,cmVmZXJlbmNl",
+        width: 1024,
+        height: 576
+      }),
+      createId: () => `generation-fingerprint-${generation += 1}`,
+      isCurrentPair: () => true,
+      submissionPersistence
+    });
+    const base = {
+      sessionId: "session-a",
+      teamId: "team-a",
+      finish: "photographic-campaign",
+      improvements: [] as string[]
+    };
+
+    await runtime.makeAdvertisementReal(base, new AbortController().signal);
+    await runtime.makeAdvertisementReal({
+      ...base,
+      finish: "bold-poster"
+    }, new AbortController().signal);
+    await runtime.makeAdvertisementReal({
+      ...base,
+      improvements: ["lighting-shadows"]
+    }, new AbortController().signal);
+
+    expect(fingerprints).toHaveLength(3);
+    expect(new Set(fingerprints).size).toBe(3);
   });
 
   it("does not fetch or place a failed generation", async () => {

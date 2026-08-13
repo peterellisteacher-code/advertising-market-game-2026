@@ -70,7 +70,8 @@ import {
 export const OBJECT_FORGE_PROFILE_ID = "object-forge-gpt-image-2-low-v1";
 export const LEGACY_MAKE_IT_REAL_PROFILE_ID = "make-it-real-gpt-image-2-high-v1";
 export const MAKE_IT_REAL_PROFILE_ID = "make-it-real-gpt-image-2-high-v2";
-export const ADVERTISEMENT_REALISATION_PROFILE_ID = "make-it-real-advertisement-v1";
+export const ADVERTISEMENT_REALISATION_PROFILE_ID = "make-it-real-advertisement-v2";
+export const LEGACY_ADVERTISEMENT_REALISATION_PROFILE_ID = "make-it-real-advertisement-v1";
 export const Z_IMAGE_LORA_PROFILE_ID = "z-image-lora-v1";
 export const FLUX2_TURBO_EDIT_PROFILE_ID = "flux2-turbo-edit-v1";
 export const IMAGE_LAB_ASSET_MAX_BYTES = 8 * 1_048_576;
@@ -832,7 +833,10 @@ async function requireBoundJob(
       height: MAKE_IT_REAL_PROFILE.height
     };
   }
-  if (job.stage === "make-it-real" && job.profileId === ADVERTISEMENT_REALISATION_PROFILE_ID) {
+  if (job.stage === "make-it-real" && (
+    job.profileId === ADVERTISEMENT_REALISATION_PROFILE_ID ||
+    job.profileId === LEGACY_ADVERTISEMENT_REALISATION_PROFILE_ID
+  )) {
     return {
       job,
       stored,

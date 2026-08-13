@@ -259,6 +259,8 @@ export class ImageLabRuntime implements ImageLabActions {
     const documentId = source.documentId;
     const context: AdvertisementRealisationContext = { ...source.context };
     this.#assertActive(pair, signal);
+    const finish = input.finish;
+    const improvements = [...input.improvements];
     const submission = JSON.stringify({
       stage: "realise",
       mode: "advertisement",
@@ -266,6 +268,8 @@ export class ImageLabRuntime implements ImageLabActions {
       teamId: input.teamId,
       documentId,
       designDataUrl: reference.dataUrl,
+      finish,
+      improvements,
       context
     });
     const { fingerprint, generationId, resumed } = await this.#submissionId(submission);
@@ -275,6 +279,8 @@ export class ImageLabRuntime implements ImageLabActions {
       idempotencyKey: generationId,
       documentId,
       designDataUrl: reference.dataUrl,
+      finish,
+      improvements,
       context
     }, fingerprint, signal);
     this.#assertActive(pair, signal);
@@ -285,7 +291,7 @@ export class ImageLabRuntime implements ImageLabActions {
       title: `${displayTitle(context.productName)} advertisement`,
       blob: asset,
       stage: "make-it-real",
-      profileId: "make-it-real-advertisement-v1",
+      profileId: "make-it-real-advertisement-v2",
       requestId: generationId
     });
     await this.#submissionPersistence.remove(fingerprint);

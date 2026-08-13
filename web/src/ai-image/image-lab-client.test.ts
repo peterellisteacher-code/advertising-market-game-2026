@@ -33,6 +33,8 @@ const advertisementRequest = (): ImageLabJobRequest => ({
   idempotencyKey: "advertisement-try-1",
   documentId: "assignment-sandbox",
   designDataUrl: "data:image/png;base64,iVBORw0KGgo=",
+  finish: "photographic-campaign",
+  improvements: ["lighting-shadows", "colour-contrast"],
   context: {
     productName: "Orbit Bottle",
     productFunction: "Keeps water cold through the school day",
@@ -167,6 +169,37 @@ describe("ImageLabClient jobs", () => {
         ...(advertisementRequest() as Extract<ImageLabJobRequest, { mode: "advertisement" }>).context,
         model: "fal-ai/anything"
       }
+    } as never), "INVALID_REQUEST");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed advertisement finish and improvement selections without fetching", async () => {
+    const fetchMock = vi.fn();
+    const client = new ImageLabClient({ fetch: fetchMock });
+
+    const base = advertisementRequest() as Extract<ImageLabJobRequest, { mode: "advertisement" }>;
+    await expectClientError(client.createJob({
+      ...base,
+      finish: undefined
+    } as never), "INVALID_REQUEST");
+    await expectClientError(client.createJob({
+      ...base,
+      improvements: "lighting-shadows"
+    } as never), "INVALID_REQUEST");
+    await expectClientError(client.createJob({
+      ...base,
+      improvements: [42]
+    } as never), "INVALID_REQUEST");
+    await expectClientError(client.createJob({
+      ...base,
+      improvements: [
+        "lighting-shadows",
+        "materials-texture",
+        "background-polish",
+        "colour-contrast",
+        "depth-focus",
+        "extra-choice"
+      ]
     } as never), "INVALID_REQUEST");
     expect(fetchMock).not.toHaveBeenCalled();
   });

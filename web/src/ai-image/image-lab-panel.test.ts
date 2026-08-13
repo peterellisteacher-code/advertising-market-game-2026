@@ -220,8 +220,74 @@ describe("ImageLabPanel", () => {
 
     await waitFor(() => expect(port.makeAdvertisementReal).toHaveBeenCalledWith({
       sessionId: identity.sessionId,
-      teamId: identity.teamId
+      teamId: identity.teamId,
+      finish: "photographic-campaign",
+      improvements: []
     }, expect.any(AbortSignal)));
+  });
+
+  it("offers the whole-ad finish and improve controls only in assignment sandbox", async () => {
+    const guidedHost = document.createElement("div");
+    const guided = new ImageLabPanel(guidedHost, actions());
+    guided.setPair(identity);
+    await guided.initialise();
+    expect(queryByRole(guidedHost, "combobox", { name: "Professional finish" })).toBeNull();
+    expect(queryByRole(guidedHost, "group", { name: "Improve" })).toBeNull();
+
+    const sandboxHost = document.createElement("div");
+    const port = actions();
+    const sandbox = new ImageLabPanel(sandboxHost, port);
+    sandbox.setPair({ ...identity, workspaceMode: "assignment-sandbox" });
+    await sandbox.initialise();
+
+    const finish = getByRole<HTMLSelectElement>(sandboxHost, "combobox", {
+      name: "Professional finish"
+    });
+    expect(Array.from(finish.options).map((option) => option.value)).toEqual([
+      "photographic-campaign",
+      "clean-product",
+      "lifestyle",
+      "premium-editorial",
+      "bold-poster"
+    ]);
+    expect(finish.value).toBe("photographic-campaign");
+    expect(Array.from(finish.options).map((option) => option.textContent)).toEqual([
+      "Photographic advert",
+      "Clean product advert",
+      "Lifestyle advert",
+      "Premium magazine look",
+      "Bold poster finish"
+    ]);
+    const improve = getByRole(sandboxHost, "group", { name: "Improve" });
+    const boxes = Array.from(improve.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'));
+    expect(boxes.map((box) => box.value)).toEqual([
+      "lighting-shadows",
+      "materials-texture",
+      "background-polish",
+      "colour-contrast",
+      "depth-focus"
+    ]);
+    expect(boxes.every((box) => !box.checked)).toBe(true);
+    expect(improve.textContent).toContain("Lighting and shadows");
+    expect(improve.textContent).toContain("Materials and texture");
+    expect(improve.textContent).toContain("Background polish");
+    expect(improve.textContent).toContain("Colour and contrast");
+    expect(improve.textContent).toContain("Depth and focus");
+
+    fireEvent.change(finish, { target: { value: "bold-poster" } });
+    fireEvent.click(getByRole(sandboxHost, "checkbox", { name: "Colour and contrast" }));
+    fireEvent.click(getByRole(sandboxHost, "checkbox", { name: "Lighting and shadows" }));
+    fireEvent.click(getByRole(sandboxHost, "button", {
+      name: STUDENT_COPY.assignmentSandbox.imageLab.makeAdvertisementRealistic
+    }));
+
+    await waitFor(() => expect(port.makeAdvertisementReal).toHaveBeenCalledWith({
+      sessionId: identity.sessionId,
+      teamId: identity.teamId,
+      finish: "bold-poster",
+      improvements: ["lighting-shadows", "colour-contrast"]
+    }, expect.any(AbortSignal)));
+    expect(sandboxHost.textContent).not.toMatch(/prompt|model|slug|quality|dimensions/i);
   });
 
   it("offers Check request for an unknown outcome and reconciles the same submission", async () => {

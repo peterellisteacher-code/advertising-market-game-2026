@@ -72,6 +72,8 @@ export interface AdvertisementRealisationJobRequest {
   idempotencyKey: string;
   documentId: string;
   designDataUrl: string;
+  finish: string;
+  improvements: string[];
   context: AdvertisementRealisationContext;
 }
 
@@ -409,6 +411,10 @@ const parseJobStatus = (value: unknown): ImageLabJobStatus => {
 const commonJobFieldsAreValid = (record: Record<string, unknown>): boolean =>
   boundedString(record.idempotencyKey, 128);
 
+const boundedStringArray = (value: unknown, maxEntries: number): value is string[] =>
+  Array.isArray(value) && value.length <= maxEntries &&
+  value.every((entry) => boundedString(entry, 64));
+
 const validateJobRequest = (value: unknown): ImageLabJobRequest => {
   const record = ownRecord(value);
   if (!record || !commonJobFieldsAreValid(record)) {
@@ -443,8 +449,11 @@ const validateJobRequest = (value: unknown): ImageLabJobRequest => {
   const context = ownRecord(record.context);
   if (record.stage === "realise" && record.mode === "advertisement" &&
     hasExactKeys(record, [
-      "stage", "mode", "idempotencyKey", "documentId", "designDataUrl", "context"
+      "stage", "mode", "idempotencyKey", "documentId", "designDataUrl",
+      "finish", "improvements", "context"
     ]) && boundedString(record.documentId, 64) &&
+    boundedString(record.finish, 64) &&
+    boundedStringArray(record.improvements, 5) &&
     boundedString(record.designDataUrl, DESIGN_DATA_URL_LIMIT) &&
     /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(record.designDataUrl) &&
     context && hasExactKeys(context, [
@@ -462,6 +471,8 @@ const validateJobRequest = (value: unknown): ImageLabJobRequest => {
       idempotencyKey: record.idempotencyKey as string,
       documentId: record.documentId,
       designDataUrl: record.designDataUrl,
+      finish: record.finish,
+      improvements: [...record.improvements],
       context: {
         productName: context.productName,
         productFunction: context.productFunction,

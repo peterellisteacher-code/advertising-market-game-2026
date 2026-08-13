@@ -4451,6 +4451,8 @@ describe("window.AdMarketCreator", () => {
       stage: "realise",
       mode: "advertisement",
       documentId: "sandbox-realise-document",
+      finish: "photographic-campaign",
+      improvements: [],
       context: {
         productName: "Orbit Bottle",
         productFunction: "Keeps water cold through the school day",
@@ -4473,7 +4475,7 @@ describe("window.AdMarketCreator", () => {
       expect.objectContaining({
         kind: "generated-image",
         stage: "make-it-real",
-        profileId: "make-it-real-advertisement-v1"
+        profileId: "make-it-real-advertisement-v2"
       })
     ]));
 
